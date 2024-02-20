@@ -36,7 +36,7 @@ namespace kagome::network {
     return outcome::failure(ProtocolError::NO_RESPONSE);
   }
 
-  BeefyProtocol::BeefyProtocol(libp2p::Host &host,
+  BeefyProtocolImpl::BeefyProtocolImpl(libp2p::Host &host,
                                const blockchain::GenesisBlockHash &genesis,
                                Roles roles,
                                std::shared_ptr<Beefy> beefy,
@@ -53,22 +53,22 @@ namespace kagome::network {
         stream_engine_{std::move(stream_engine)}
         {}
 
-  bool BeefyProtocol::start() {
+  bool BeefyProtocolImpl::start() {
     return base_.start(weak_from_this());
   }
 
-  const std::string &BeefyProtocol::protocolName() const {
+  const std::string &BeefyProtocolImpl::protocolName() const {
     return base_.protocolName();
   }
 
-  void BeefyProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
-    auto on_handshake = [](std::shared_ptr<BeefyProtocol> self,
+  void BeefyProtocolImpl::onIncomingStream(std::shared_ptr<Stream> stream) {
+    auto on_handshake = [](std::shared_ptr<BeefyProtocolImpl> self,
                            std::shared_ptr<Stream> stream,
                            Roles) {
       self->stream_engine_->addIncoming(stream, self);
       return true;
     };
-    auto on_message = [](std::shared_ptr<BeefyProtocol> self,
+    auto on_message = [](std::shared_ptr<BeefyProtocolImpl> self,
                          consensus::beefy::BeefyGossipMessage message) {
       self->beefy_->onMessage(std::move(message));
       return true;
@@ -81,12 +81,12 @@ namespace kagome::network {
                                               std::move(on_message));
   }
 
-  void BeefyProtocol::newOutgoingStream(
+  void BeefyProtocolImpl::newOutgoingStream(
       const PeerInfo &peer,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto on_handshake =
         [cb = std::move(cb)](
-            std::shared_ptr<BeefyProtocol> self,
+            std::shared_ptr<BeefyProtocolImpl> self,
             outcome::result<notifications::ConnectAndHandshake<Roles>>
                 r) mutable {
           if (not r) {
@@ -101,7 +101,7 @@ namespace kagome::network {
         weak_from_this(), base_, peer, roles_, std::move(on_handshake));
   }
 
-  void BeefyProtocol::broadcast(
+  void BeefyProtocolImpl::broadcast(
       std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) {
     stream_engine_->broadcast(shared_from_this(), message);
   }

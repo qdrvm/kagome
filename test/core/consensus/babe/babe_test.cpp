@@ -8,6 +8,7 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
@@ -33,16 +34,13 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
-#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
-#include "utils/thread_pool.hpp"
 
-using kagome::ThreadPool;
-using kagome::Watchdog;
+using kagome::TestThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -227,12 +225,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_.io_context());
-  }
-
-  void TearDown() override {
-    watchdog_->stop();
+                                  TestThreadPool{io_},
+                                  io_);
   }
 
   AppConfigurationMock app_config;
@@ -254,8 +248,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  ThreadPool thread_pool_{watchdog_, "test", 1};
+  std::shared_ptr<boost::asio::io_context> io_ =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
@@ -406,6 +400,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_.io_context());
-  testutil::wait(*thread_pool_.io_context());
+  io_->run();
 }

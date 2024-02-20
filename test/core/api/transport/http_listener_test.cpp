@@ -44,7 +44,7 @@ TEST_F(HttpListenerTest, EchoSuccess) {
     watchdog->checkLoop(kagome::kWatchdogDefaultTimeout);
   });
 
-  app_state_manager->atShutdown([ctx{main_context}] { ctx->stop(); });
+  app_state_manager->atShutdown([watchdog{watchdog}] { watchdog->stop(); });
 
   std::unique_ptr<std::thread> client_thread;
 
@@ -57,6 +57,7 @@ TEST_F(HttpListenerTest, EchoSuccess) {
 
           bool time_is_out;
 
+          std::this_thread::sleep_for(1s);  // Gives chance app to be started
           local_context->post([&] {
             auto client = std::make_shared<HttpClient>(*local_context);
 
@@ -75,8 +76,7 @@ TEST_F(HttpListenerTest, EchoSuccess) {
           local_context->run_for(2s);
           EXPECT_FALSE(time_is_out);
 
-          EXPECT_TRUE(app_state_manager->state()
-                      == AppStateManager::State::Works);
+          EXPECT_EQ(app_state_manager->state(), AppStateManager::State::Works);
           app_state_manager->shutdown();
         },
         endpoint,
@@ -85,8 +85,6 @@ TEST_F(HttpListenerTest, EchoSuccess) {
   });
 
   app_state_manager->run();
-
-  watchdog->stop();
 
   client_thread->join();
   asio_runner->join();

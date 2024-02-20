@@ -115,10 +115,10 @@ namespace kagome::parachain {
             std::make_shared<libp2p::log::Configurator>()));
     auto r = logging_system->configure();
     if (not r.message.empty()) {
-      (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
+      std::cerr << r.message << std::endl;
     }
     if (r.has_error) {
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
     kagome::log::setLoggingSystem(logging_system);
     logger = kagome::log::createLogger("Pvf Worker", "parachain");
@@ -127,6 +127,6 @@ namespace kagome::parachain {
       SL_ERROR(logger, "{}", r.error());
       return EXIT_FAILURE;
     }
-    return 0;
+    return EXIT_SUCCESS;
   }
 }  // namespace kagome::parachain

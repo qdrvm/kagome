@@ -154,7 +154,7 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_4) {
   EXPECT_THROW(doInject(), AppStateException);
   EXPECT_THROW(doPrepare(), AppStateException);
   EXPECT_THROW(doLaunch(), AppStateException);
-  EXPECT_NO_THROW(doShutdown());
+  EXPECT_THROW(doShutdown(), AppStateException);
   EXPECT_EQ(state(), AppStateManager::State::ReadyToStop);
 }
 
@@ -308,7 +308,10 @@ TEST_F(AppStateManagerTest, Run_CallSequence) {
   EXPECT_CALL(*shutdown_cb, call()).InSequence(seq).WillOnce(Return());
 
   app_state_manager->atLaunch([] {
-    std::thread terminator([] { raise(SIGQUIT); });
+    std::thread terminator([] {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      raise(SIGQUIT);
+    });
     terminator.join();
     return true;
   });

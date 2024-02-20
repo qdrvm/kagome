@@ -191,18 +191,26 @@ namespace kagome::parachain {
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 
+  PvfImpl::~PvfImpl() {
+    if (precompiler_thread_) {
+      precompiler_thread_->join();
+      precompiler_thread_.reset();
+    }
+  }
+
   bool PvfImpl::prepare() {
     if (config_.precompile_modules) {
-      std::thread t{[self = shared_from_this()]() {
-        auto res = self->precompiler_->precompileModulesAt(
-            self->block_tree_->getLastFinalized().hash);
-        if (!res) {
-          SL_ERROR(self->log_,
-                   "Parachain module precompilation failed: {}",
-                   res.error());
-        }
-      }};
-      t.detach();
+      precompiler_thread_ =
+          std::make_unique<std::thread>([self = shared_from_this()]() {
+            soralog::util::setThreadName("pvf_cmpl_thread");
+            auto res = self->precompiler_->precompileModulesAt(
+                self->block_tree_->getLastFinalized().hash);
+            if (!res) {
+              SL_ERROR(self->log_,
+                       "Parachain module precompilation failed: {}",
+                       res.error());
+            }
+          });
     }
     return true;
   }
@@ -345,7 +353,6 @@ namespace kagome::parachain {
               argv0().value(),
               common::Buffer{scale::encode(input).value()},
               cb);
-    // this will go away as soon as callWasm will have an async form
     OUTCOME_TRY(result, promise.get_future().get());
     return scale::decode<ValidationResult>(result);
   }

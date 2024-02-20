@@ -25,6 +25,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
+#include "utils/thread_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -97,7 +98,7 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      WeakIoContext main_thread)
+      WeakIoContext main_thread_context)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -113,7 +114,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_{std::move(main_thread)} {
+        main_thread_context_{std::move(main_thread_context)} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -125,6 +126,7 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
+    BOOST_ASSERT(not main_thread_context_.expired());
 
     sync_method_ = app_config.syncMethod();
 
@@ -136,7 +138,6 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-    main_thread_.start();
   }
 
   /** @see AppStateManager::takeControl */
@@ -598,7 +599,9 @@ namespace kagome::network {
                peer_id,
                from);
 
-      if (blocks[0].header and blocks[0].header->number != 0
+      if (blocks[0].header
+          and blocks[0].header->number
+                  > self->block_tree_->getLastFinalized().number
           and not self->known_blocks_.contains(blocks[0].header->parent_hash)
           and not self->block_tree_->has(blocks[0].header->parent_hash)) {
         if (handler) {
@@ -624,7 +627,8 @@ namespace kagome::network {
           return;
         }
         // Check if body is provided
-        if (need_body and not block.body.has_value()) {
+        if (need_body and block.header->number != 0
+            and not block.body.has_value()) {
           SL_VERBOSE(self->log_,
                      "Can't load blocks from {} starting from block {}: "
                      "Received block without body",
@@ -872,7 +876,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(main_thread_,
+    REINVOKE(main_thread_context_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),

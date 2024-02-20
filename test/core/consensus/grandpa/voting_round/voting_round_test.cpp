@@ -160,16 +160,17 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
     EXPECT_CALL(*previous_round_, doCommit()).Times(AnyNumber());
 
-    round_ = VotingRoundImpl::create(grandpa_,
-                                     config,
-                                     hasher_,
-                                     env_,
-                                     vote_crypto_provider_,
-                                     prevotes_,
-                                     precommits_,
-                                     vote_graph_,
-                                     scheduler_,
-                                     previous_round_);
+    round_ = std::make_shared<VotingRoundImpl>(grandpa_,
+                                               config,
+                                               hasher_,
+                                               env_,
+                                               nullptr,
+                                               vote_crypto_provider_,
+                                               prevotes_,
+                                               precommits_,
+                                               vote_graph_,
+                                               scheduler_,
+                                               previous_round_);
   }
 
   SignedMessage preparePrimaryPropose(const Id &id,
@@ -277,15 +278,14 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // when 1.
   // Alice prevotes
   auto alice_vote = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
-  std::optional<GrandpaContext> empty_context{};
-  round_->onPrevote(empty_context, alice_vote, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice_vote, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
                  VotingRound::IsPrecommitsChanged{false});
 
   // Bob prevotes
   auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{9, "ED"_H});
-  round_->onPrevote(empty_context, bob_vote, Propagation::NEEDLESS);
+  round_->onPrevote({}, bob_vote, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
                  VotingRound::IsPrecommitsChanged{false});
@@ -298,7 +298,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // Eve prevotes
   auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{6, "F"_H});
 
-  round_->onPrevote(empty_context, eve_vote, Propagation::NEEDLESS);
+  round_->onPrevote({}, eve_vote, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
                  VotingRound::IsPrecommitsChanged{false});
@@ -308,17 +308,16 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 }
 
 TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
-  std::optional<GrandpaContext> empty_context{};
   auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
-  round_->onPrevote(empty_context, alice1, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice1, Propagation::NEEDLESS);
   auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "ED"_H});
-  round_->onPrevote(empty_context, alice2, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice2, Propagation::NEEDLESS);
   auto alice3 = preparePrevote(kAlice, kAliceSignature, Prevote{6, "F"_H});
-  round_->onPrevote(empty_context, alice3, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice3, Propagation::NEEDLESS);
   round_->update(false, true, false);
   ASSERT_EQ(round_->prevoteGhost(), std::nullopt);
   auto bob = preparePrevote(kBob, kBobSignature, Prevote{7, "FA"_H});
-  round_->onPrevote(empty_context, bob, Propagation::NEEDLESS);
+  round_->onPrevote({}, bob, Propagation::NEEDLESS);
   round_->update(false, true, false);
   ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
 }
@@ -355,8 +354,7 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 1.
   // Alice Prevotes FC
   auto alice_prevote = preparePrevote(kAlice, kAliceSignature, {9, "FC"_H});
-  std::optional<GrandpaContext> empty_context{};
-  round_->onPrevote(empty_context, alice_prevote, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice_prevote, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
                  VotingRound::IsPrecommitsChanged{false});
@@ -364,7 +362,7 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 2.
   // Bob prevotes ED
   auto bob_prevote = preparePrevote(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrevote(empty_context, bob_prevote, Propagation::NEEDLESS);
+  round_->onPrevote({}, bob_prevote, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
                  VotingRound::IsPrecommitsChanged{false});
@@ -377,7 +375,7 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 3.
   // Alice precommits FC
   auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H});
-  round_->onPrecommit(empty_context, alice_precommit, Propagation::NEEDLESS);
+  round_->onPrecommit({}, alice_precommit, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{false},
                  VotingRound::IsPrecommitsChanged{true});
@@ -385,7 +383,7 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 4.
   // Bob precommits ED
   auto bob_precommit = preparePrecommit(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrecommit(empty_context, bob_precommit, Propagation::NEEDLESS);
+  round_->onPrecommit({}, bob_precommit, Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{false},
                  VotingRound::IsPrecommitsChanged{true});
@@ -395,7 +393,7 @@ TEST_F(VotingRoundTest, Finalization) {
 
   // when 5.
   // Eve prevotes
-  round_->onPrevote(empty_context,
+  round_->onPrevote({},
                     preparePrevote(kEve, kEveSignature, {6, "EA"_H}),
                     Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
@@ -406,7 +404,7 @@ TEST_F(VotingRoundTest, Finalization) {
 
   // when 6.
   // Eve precommits
-  round_->onPrecommit(empty_context,
+  round_->onPrecommit({},
                       preparePrecommit(kEve, kEveSignature, {6, "EA"_H}),
                       Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
@@ -419,8 +417,7 @@ TEST_F(VotingRoundTest, Finalization) {
 
 ACTION_P(onProposed, test_fixture) {
   // imitating primary proposed is received from network
-  std::optional<GrandpaContext> empty{};
-  test_fixture->round_->onProposal(empty, arg2, Propagation::NEEDLESS);
+  test_fixture->round_->onProposal({}, arg2, Propagation::NEEDLESS);
 }
 
 ACTION_P(onPrevoted, test_fixture) {
@@ -428,18 +425,17 @@ ACTION_P(onPrevoted, test_fixture) {
   auto signed_prevote = arg2;
 
   // send Alice's prevote
-  std::optional<GrandpaContext> empty{};
-  test_fixture->round_->onPrevote(empty, signed_prevote, Propagation::NEEDLESS);
+  test_fixture->round_->onPrevote({}, signed_prevote, Propagation::NEEDLESS);
   // send Bob's prevote
   test_fixture->round_->onPrevote(
-      empty,
+      {},
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob},
       Propagation::NEEDLESS);
   // send Eve's prevote
   test_fixture->round_->onPrevote(
-      empty,
+      {},
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kEveSignature,
                     .id = test_fixture->kEve},
@@ -452,14 +448,13 @@ ACTION_P(onPrevoted, test_fixture) {
 ACTION_P(onPrecommitted, test_fixture) {
   // imitate receiving precommit from other peers
   auto signed_precommit = arg2;
-  std::optional<GrandpaContext> empty{};
 
   // send Alice's precommit
   test_fixture->round_->onPrecommit(
-      empty, signed_precommit, Propagation::NEEDLESS);
+      {}, signed_precommit, Propagation::NEEDLESS);
   // send Bob's precommit
   test_fixture->round_->onPrecommit(
-      empty,
+      {},
       SignedMessage{.message = signed_precommit.message,
                     .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob},

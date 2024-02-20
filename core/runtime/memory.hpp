@@ -13,9 +13,11 @@
 #include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 #include "common/literals.hpp"
+#include "runtime/ptr_size.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
+  using BytesOut = std::span<uint8_t>;
 
   inline constexpr size_t kInitialMemorySize = []() {
     using kagome::common::literals::operator""_MB;
@@ -28,6 +30,10 @@ namespace kagome::runtime {
     using kagome::common::literals::operator""_kB;
     return 64_kB;
   }();
+
+  inline uint64_t sizeToPages(uint64_t size) {
+    return (size + kMemoryPageSize - 1) / kMemoryPageSize;
+  }
 
   /** The underlying memory can be accessed through unaligned pointers which
    * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
@@ -52,6 +58,17 @@ namespace kagome::runtime {
      */
     virtual void resize(WasmSize new_size) = 0;
 
+    virtual outcome::result<BytesOut> view(WasmPointer ptr,
+                                           WasmSize size) const = 0;
+
+    outcome::result<BytesOut> view(PtrSize ptr_size) const {
+      return view(ptr_size.ptr, ptr_size.size);
+    }
+
+    outcome::result<BytesOut> view(WasmSpan span) const {
+      return view(PtrSize{span});
+    }
+
     /**
      * Allocates memory of given size and returns address in the memory
      * @param size allocated memory size
@@ -66,52 +83,20 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual std::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
+    virtual void deallocate(WasmPointer ptr) = 0;
 
-    /**
-     * Load integers from provided address
-     */
-    virtual int8_t load8s(WasmPointer addr) const = 0;
-    virtual uint8_t load8u(WasmPointer addr) const = 0;
-    virtual int16_t load16s(WasmPointer addr) const = 0;
-    virtual uint16_t load16u(WasmPointer addr) const = 0;
-    virtual int32_t load32s(WasmPointer addr) const = 0;
-    virtual uint32_t load32u(WasmPointer addr) const = 0;
-    virtual int64_t load64s(WasmPointer addr) const = 0;
-    virtual uint64_t load64u(WasmPointer addr) const = 0;
-    virtual std::array<uint8_t, 16> load128(WasmPointer addr) const = 0;
+    common::BufferView loadN(WasmPointer ptr, WasmSize size) const {
+      return view(ptr, size).value();
+    }
 
-    /**
-     * Load bytes from provided address into the buffer of size n
-     * @param addr address in memory to load bytes
-     * @param n number of bytes to be loaded
-     * @return BufferView of length N
-     */
-    virtual common::BufferView loadN(WasmPointer addr, WasmSize n) const = 0;
-    /**
-     * Load string from address into buffer of size n
-     * @param addr address in memory to load bytes
-     * @param n number of bytes
-     * @return string with data
-     */
-    virtual std::string loadStr(WasmPointer addr, WasmSize n) const = 0;
+    void storeBuffer(WasmPointer ptr, common::BufferView v) {
+      memcpy(view(ptr, v.size()).value().data(), v.data(), v.size());
+    }
 
-    /**
-     * Store integers at given address of the wasm memory
-     */
-    virtual void store8(WasmPointer addr, int8_t value) = 0;
-    virtual void store16(WasmPointer addr, int16_t value) = 0;
-    virtual void store32(WasmPointer addr, int32_t value) = 0;
-    virtual void store64(WasmPointer addr, int64_t value) = 0;
-    virtual void store128(WasmPointer addr,
-                          const std::array<uint8_t, 16> &value) = 0;
-    virtual void storeBuffer(WasmPointer addr, common::BufferView value) = 0;
-
-    /**
-     * @brief allocates buffer in memory and copies value into memory
-     * @param value buffer to store
-     * @return full wasm pointer to allocated buffer
-     */
-    virtual WasmSpan storeBuffer(common::BufferView value) = 0;
+    WasmSpan storeBuffer(common::BufferView v) {
+      auto ptr = allocate(v.size());
+      storeBuffer(ptr, v);
+      return PtrSize{ptr, static_cast<WasmSize>(v.size())}.combine();
+    }
   };
 }  // namespace kagome::runtime

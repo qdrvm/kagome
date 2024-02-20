@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/asio/io_context.hpp>
+
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -107,6 +109,8 @@ class ChainTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
   std::shared_ptr<ApprovedAncestorMock> approved_ancestor =
       std::make_shared<ApprovedAncestorMock>();
+  std::shared_ptr<boost::asio::io_context> io_context =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
       tree,
@@ -120,7 +124,7 @@ class ChainTest : public testing::Test {
       parachain_api,
       backing_store,
       hasher,
-      std::make_shared<boost::asio::io_context>());
+      io_context);
 };
 
 /**

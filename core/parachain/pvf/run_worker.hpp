@@ -19,9 +19,16 @@
 
 namespace kagome::parachain {
 
-  // run(scale::encode())
-  // run(make_shared<Buffer>(scale::encode()))
-
+  /**
+   * Run PVF call subprocess worker
+   * @tparam Cb - callback that receives subprocess work result
+   * @param io_context - context to schedule deadline timer on
+   * @param scheduler - scheduler to measure execution deadline
+   * @param timeout - execution deadline timeout
+   * @param exe - current executable path (taken as is from argv[0])
+   * @param input_ - prepared input for executor
+   * @param cb_ - callback impl that receives subprocess work result
+   */
   template <std::invocable<outcome::result<common::Buffer>> Cb>
   void runWorker(boost::asio::io_context &io_context,
                  std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -45,7 +52,6 @@ namespace kagome::parachain {
                 exe,
                 bp::args({"pvf-worker"}),
                 bp::std_out > pipe_stdout,
-                // bp::std_err > bp::null,
                 bp::std_in < pipe_stdin,
             } {}
     };
@@ -61,7 +67,7 @@ namespace kagome::parachain {
       }
     };
 
-    io_context.post([scheduler, timeout, cb] {
+    io_context.post([scheduler, timeout, cb]() mutable {
       scheduler->schedule([cb]() mutable { cb(std::errc::timed_out); },
                           timeout);
     });

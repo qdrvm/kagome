@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <libp2p/basic/scheduler.hpp>
 #include <map>
 
 #include "consensus/beefy/types.hpp"
@@ -18,9 +19,8 @@
 #include "utils/weak_io_context.hpp"
 
 namespace kagome {
-  class ThreadPool;
   class WeakIoContextStrand;
-}  // namespace kagome
+}
 
 namespace kagome::application {
   class AppStateManager;
@@ -29,11 +29,15 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
+}
 
 namespace kagome::consensus {
   class Timeline;
-}  // namespace kagome::consensus
+}
 
 namespace kagome::crypto {
   class EcdsaProvider;
@@ -42,11 +46,11 @@ namespace kagome::crypto {
 
 namespace kagome::runtime {
   class BeefyApi;
-}  // namespace kagome::runtime
+}
 
 namespace kagome::storage {
   class SpacedStorage;
-}  // namespace kagome::storage
+}
 
 namespace kagome::network {
   class BeefyProtocol;
@@ -59,12 +63,15 @@ namespace kagome::network {
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
-          std::shared_ptr<ThreadPool> thread_pool,
-          WeakIoContext main_thread,
+          const common::WorkerThreadPool &worker_thread_pool,
+          WeakIoContext main_thread_context,
+          std::shared_ptr<libp2p::basic::Scheduler> scheduler,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
           primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+
+    bool start();
 
     primitives::BlockNumber finalized() const;
 
@@ -84,7 +91,6 @@ namespace kagome::network {
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
-    void start();
     bool hasJustification(primitives::BlockNumber block) const;
     using FindValidatorsResult = std::optional<
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
@@ -104,13 +110,16 @@ namespace kagome::network {
         consensus::beefy::AuthoritySetId validator_set_id,
         primitives::BlockNumber block_number);
     void metricValidatorSetId();
+    void broadcast(consensus::beefy::BeefyGossipMessage message);
+    void setTimer();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<WeakIoContextStrand> strand_;
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;
@@ -121,9 +130,11 @@ namespace kagome::network {
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
     primitives::BlockNumber last_voted_ = 0;
+    std::optional<consensus::beefy::VoteMessage> last_vote_;
     Sessions sessions_;
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
+    libp2p::basic::Scheduler::Handle timer_;
 
     log::Logger log_;
   };

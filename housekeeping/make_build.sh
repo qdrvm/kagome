@@ -19,6 +19,12 @@ if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 
+if [[ "${KAGOME_MAC_CI}" = 1 ]]; then
+  source ~/venv/bin/activate
+  export HUNTER_PYTHON_LOCATION=$VIRTUAL_ENV
+  export CURL_SSL_BACKEND=SecureTransport
+fi
+
 which git
 
 cd "$(dirname $0)/.."

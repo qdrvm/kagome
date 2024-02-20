@@ -17,22 +17,22 @@
 #include "telemetry/service.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadPool;
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
+}
+
+namespace kagome::crypto {
+  class Hasher;
 }
 
 namespace kagome::runtime {
   class OffchainWorkerApi;
   class Core;
 };  // namespace kagome::runtime
-
-namespace kagome::blockchain {
-  class BlockTree;
-}
-
-namespace kagome::crypto {
-  class Hasher;
-}
 
 namespace kagome::transaction_pool {
   class TransactionPool;
@@ -48,8 +48,8 @@ namespace kagome::consensus {
    public:
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        const ThreadPool &thread_pool,
-        WeakIoContext main_thread,
+        const common::WorkerThreadPool &worker_thread_pool,
+        WeakIoContext main_thread_context,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -75,8 +75,8 @@ namespace kagome::consensus {
         const primitives::BlockInfo &previous_best_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    WeakIoContext wasm_thread_;
-    WeakIoContext main_thread_;
+    WeakIoContext worker_thread_context_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

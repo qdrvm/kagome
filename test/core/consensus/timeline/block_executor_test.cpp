@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "blockchain/block_tree_error.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -23,16 +24,12 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
 
-using kagome::ThreadPool;
-using kagome::Watchdog;
+using kagome::TestThreadPool;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -174,21 +171,16 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    block_executor_ =
-        std::make_shared<BlockExecutorImpl>(block_tree_,
-                                            thread_pool_,
-                                            thread_pool_.io_context(),
-                                            core_,
-                                            tx_pool_,
-                                            hasher_,
-                                            offchain_worker_api_,
-                                            storage_sub_engine_,
-                                            chain_sub_engine_,
-                                            std::move(appender));
-  }
-
-  void TearDown() override {
-    watchdog_->stop();
+    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
+                                                          TestThreadPool{io_},
+                                                          io_,
+                                                          core_,
+                                                          tx_pool_,
+                                                          hasher_,
+                                                          offchain_worker_api_,
+                                                          storage_sub_engine_,
+                                                          chain_sub_engine_,
+                                                          std::move(appender));
   }
 
  protected:
@@ -209,8 +201,8 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  ThreadPool thread_pool_{watchdog_, "test", 1};
+  std::shared_ptr<boost::asio::io_context> io_ =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -280,16 +272,10 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
-  WaitForSingleObject
-      wso;  // callback must be called strictly before waiting of thread pool
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [&](auto &&result) {
-        ASSERT_OUTCOME_SUCCESS_TRY(result);
-        wso.set();
-      });
-  wso.wait();
+      [&](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
 
-  testutil::wait(*thread_pool_.io_context());
+  io_->run();
 }

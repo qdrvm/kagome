@@ -31,11 +31,14 @@ namespace kagome::consensus::grandpa {
     // This ctor is needed only for tests purposes
     VotingRoundImpl() : round_number_{}, duration_{} {}
 
-   private:
+   public:
+    using SaveCachedVotes = std::function<void()>;
+
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<Environment> env,
+                    SaveCachedVotes save_cached_votes,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker> prevotes,
                     std::shared_ptr<VoteTracker> precommits,
@@ -47,6 +50,7 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
+        SaveCachedVotes save_cached_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
@@ -59,19 +63,13 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
+        SaveCachedVotes save_cached_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
         const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
-
-   public:
-    template <typename... Args>
-    static std::shared_ptr<VotingRoundImpl> create(Args &&...args) {
-      return std::shared_ptr<VotingRoundImpl>(
-          new VotingRoundImpl(std::forward<Args>(args)...));
-    }
 
     enum class Stage {
       // Initial stage, round is just created
@@ -133,7 +131,7 @@ namespace kagome::consensus::grandpa {
      * Basically method just checks if received propose was produced by the
      * primary and if so, it is stored in primary_vote_ field
      */
-    void onProposal(std::optional<GrandpaContext> &grandpa_context,
+    void onProposal(OptRef<GrandpaContext> grandpa_context,
                     const SignedMessage &proposal,
                     Propagation propagation) override;
 
@@ -144,7 +142,7 @@ namespace kagome::consensus::grandpa {
      * state (\see update)
      * @returns true if inner state has changed
      */
-    bool onPrevote(std::optional<GrandpaContext> &grandpa_context,
+    bool onPrevote(OptRef<GrandpaContext> grandpa_context,
                    const SignedMessage &prevote,
                    Propagation propagation) override;
 
@@ -154,7 +152,7 @@ namespace kagome::consensus::grandpa {
      * Then we try to update round state and finalize
      * @returns true if inner state has changed
      */
-    bool onPrecommit(std::optional<GrandpaContext> &grandpa_context,
+    bool onPrecommit(OptRef<GrandpaContext> grandpa_context,
                      const SignedMessage &precommit,
                      Propagation propagation) override;
 
@@ -189,6 +187,8 @@ namespace kagome::consensus::grandpa {
      * network
      */
     void attemptToFinalizeRound() override;
+
+    Votes votes() const override;
 
     // Catch-up actions
 
@@ -259,9 +259,8 @@ namespace kagome::consensus::grandpa {
 
     /// Triggered when we receive {@param vote} for the current peer
     template <typename T>
-    outcome::result<void> onSigned(
-        std::optional<GrandpaContext> &grandpa_context,
-        const SignedMessage &vote);
+    outcome::result<void> onSigned(OptRef<GrandpaContext> grandpa_context,
+                                   const SignedMessage &vote);
 
     /**
      * Invoked during each onSingedPrevote.
@@ -315,6 +314,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> env_;
+    SaveCachedVotes save_cached_votes_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

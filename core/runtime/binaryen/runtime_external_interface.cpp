@@ -25,7 +25,17 @@ namespace {
   }
 
   template <>
+  auto literalMemFun<uint32_t>() {
+    return &wasm::Literal::geti32;
+  }
+
+  template <>
   auto literalMemFun<int64_t>() {
+    return &wasm::Literal::geti64;
+  }
+
+  template <>
+  auto literalMemFun<uint64_t>() {
     return &wasm::Literal::geti64;
   }
 
@@ -275,7 +285,7 @@ namespace kagome::runtime::binaryen {
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
-    return wasm::Literal();
+    throw wasm::TrapException{};
   }
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,
