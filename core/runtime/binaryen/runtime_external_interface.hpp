@@ -169,6 +169,7 @@ namespace kagome::runtime::binaryen {
       memory.resize(newSize);
     }
 
+    [[noreturn]]
     void trap(const char *why) override {
       logger_->error("Trap: {}", why);
       throw wasm::TrapException{};
@@ -183,7 +184,7 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
-    void methodsRegistration();
+    void registerMethods();
 
     template <auto mf>
     static wasm::Literal importCall(RuntimeExternalInterface &this_,

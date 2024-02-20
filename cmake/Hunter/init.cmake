@@ -3,7 +3,7 @@
 string(COMPARE EQUAL "$ENV{GITHUB_HUNTER_USERNAME}" "" username_is_empty)
 string(COMPARE EQUAL "$ENV{GITHUB_HUNTER_TOKEN}" "" password_is_empty)
 
-# binary cache can be uploaded to soramitsu/hunter-binary-cache so others will not build same dependencies twice
+# binary cache can be uploaded to qdrvm/hunter-binary-cache so others will not build same dependencies twice
 if (NOT password_is_empty AND NOT username_is_empty)
     option(HUNTER_RUN_UPLOAD "Upload cache binaries" YES)
     message("Binary cache uploading is ENABLED.")
