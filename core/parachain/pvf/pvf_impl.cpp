@@ -314,12 +314,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance,
-                runtime_cache_->instantiateFromCode(
-                    code_hash,
-                    code_zstd,
-                    runtime::RuntimeInstancesPool::Config{max_stack_depth}));
-
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
