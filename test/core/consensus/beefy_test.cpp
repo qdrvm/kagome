@@ -19,7 +19,7 @@
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/beefy/beefy_impl.hpp"
 #include "network/beefy/beefy_thread_pool.hpp"
-#include "network/beefy/i_beefy_protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "testutil/lazy.hpp"

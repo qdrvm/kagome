@@ -8,8 +8,6 @@ add_subdirectory(protobuf)
 
 
 add_library(network
-    beefy/beefy_impl.cpp
-    beefy/protocol.cpp
     impl/protocols/light.cpp
     impl/state_protocol_observer_impl.cpp
     impl/state_sync_request_flow.cpp
@@ -28,6 +26,8 @@ add_library(network
     impl/protocols/grandpa_protocol.cpp
     impl/protocols/protocol_req_collation.cpp
     impl/protocols/block_announce_protocol.cpp
+    impl/protocols/beefy_justification_protocol.cpp
+    impl/protocols/beefy_protocol_impl.cpp
     impl/peer_view.cpp
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
