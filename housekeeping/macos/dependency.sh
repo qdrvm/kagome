@@ -19,6 +19,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.75.0 --profil
 brew install ninja
 
 sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
 
 whereis cc
 printf '#include<stdlib.h>\nint main() {}\n' > test.c
