@@ -18,6 +18,9 @@ namespace kagome::common {
     MainThreadPool(std::shared_ptr<Watchdog> watchdog,
                    std::shared_ptr<boost::asio::io_context> ctx)
         : ThreadPool(std::move(watchdog), "main_runner", 1, std::move(ctx)) {}
+
+    // Ctor for test purposes
+    MainThreadPool(TestThreadPool test) : ThreadPool{test} {}
   };
 
   class MainPoolHandler final : public PoolHandler {

@@ -23,7 +23,8 @@ namespace kagome::common {
             std::move(watchdog),
             std::max<size_t>(3, std::thread::hardware_concurrency()) - 1) {}
 
-        WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}
+    // Ctor for test purposes
+    WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}
   };
 
   class WorkerPoolHandler final : public PoolHandler {
