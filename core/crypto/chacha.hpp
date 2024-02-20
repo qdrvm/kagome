@@ -8,6 +8,7 @@
 
 #include <openssl/evp.h>
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -59,7 +60,7 @@ namespace kagome::crypto {
     }
 
     uint32_t next(uint32_t n) {
-      auto zone = (n << __builtin_clz(n)) - 1;
+      auto zone = (n << std::countl_zero(n)) - 1;
       while (true) {
         if (index_ >= block_.size()) {
           block_ = block();

@@ -420,10 +420,10 @@ namespace kagome::consensus::grandpa {
       SL_ERROR(
           logger_,
           "BUG: VotingRoundImpl::doFinalize, block {}, set {} != {}, round {}",
+          grandpa_justification.block_info.number,
           id,
           voters.id,
-          grandpa_justification.round_number,
-          grandpa_justification.block_info.number);
+          grandpa_justification.round_number);
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
     verified_justification_queue_->addVerified(id, grandpa_justification);
