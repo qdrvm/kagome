@@ -72,4 +72,9 @@ target_link_libraries(runtime_upgrade_tracker_test
     )
 
 addtest(instance_pool_test instance_pool_test.cpp)
-target_link_libraries(instance_pool_test module_repository blob)
+target_link_libraries(instance_pool_test
+    module_repository
+    blob
+    logger
+    log_configurator
+    )

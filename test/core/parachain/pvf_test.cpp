@@ -20,6 +20,7 @@
 #include "mock/core/runtime/module_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
+#include "mock/core/runtime/runtime_instances_pool_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/types.hpp"
@@ -58,7 +59,7 @@ class PvfTest : public testing::Test {
 
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
 
-    module_factory_ = std::make_shared<runtime::ModuleFactoryMock>();
+    instance_pool_ = std::make_shared<runtime::RuntimeInstancesPoolMock>();
     auto runtime_properties_cache =
         std::make_shared<runtime::RuntimePropertiesCacheMock>();
     auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
@@ -93,7 +94,7 @@ class PvfTest : public testing::Test {
         nullptr,
         nullptr,
         hasher_,
-        module_factory_,
+        instance_pool_,
         runtime_properties_cache,
         block_tree,
         sr25519_provider,
@@ -104,11 +105,9 @@ class PvfTest : public testing::Test {
         app_config_);
   }
 
-  outcome::result<std::shared_ptr<runtime::Module>, runtime::CompilationError>
-  make_module_mock(BufferView code, const Hash256 &code_hash) {
-    auto module = std::make_shared<runtime::ModuleMock>();
+  outcome::result<std::shared_ptr<runtime::ModuleInstance>> make_module_mock(
+      BufferView code, const Hash256 &code_hash) {
     auto instance = std::make_shared<runtime::ModuleInstanceMock>();
-    ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
     auto res = scale::encode(kagome::parachain::ValidationResult{}).value();
     ON_CALL(*instance, callExportFunction(_, "validate_block", _))
         .WillByDefault(Return(outcome::success(res)));
@@ -118,7 +117,7 @@ class PvfTest : public testing::Test {
           return runtime::RuntimeContext::create_TEST(instance);
         }));
 
-    return module;
+    return instance;
   }
 
  protected:
@@ -126,7 +125,7 @@ class PvfTest : public testing::Test {
       std::make_shared<AppConfigurationMock>();
   std::shared_ptr<PvfImpl> pvf_;
   std::shared_ptr<crypto::HasherMock> hasher_;
-  std::shared_ptr<runtime::ModuleFactoryMock> module_factory_;
+  std::shared_ptr<runtime::RuntimeInstancesPoolMock> instance_pool_;
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
 };
 
@@ -148,9 +147,10 @@ TEST_F(PvfTest, InstancesCached) {
   Pvf::ParachainBlock para_block{};
   ParachainRuntime code1 = "code1"_buf;
   auto code_hash_1 = "code_hash_1"_hash256;
-  EXPECT_CALL(*module_factory_, make(code1.view()))
-      .WillOnce(Invoke([&code_hash_1, this](auto code) {
-        return make_module_mock(code, code_hash_1);
+  EXPECT_CALL(*instance_pool_,
+              instantiateFromCode(code_hash_1, code1.view(), _))
+      .WillRepeatedly(Invoke([this](auto hash, auto code, auto) {
+        return make_module_mock(code, hash);
       }));
   EXPECT_CALL(*hasher_, blake2b_256(code1.view()))
       .WillRepeatedly(Return(code_hash_1));
@@ -164,9 +164,10 @@ TEST_F(PvfTest, InstancesCached) {
 
   ParachainRuntime code2 = "code2"_buf;
   auto code_hash_2 = "code_hash_2"_hash256;
-  EXPECT_CALL(*module_factory_, make(code2.view()))
-      .WillOnce(Invoke([&code_hash_2, this](auto code) {
-        return make_module_mock(code, code_hash_2);
+  EXPECT_CALL(*instance_pool_,
+              instantiateFromCode(code_hash_2, code2.view(), _))
+      .WillRepeatedly(Invoke([this](auto hash, auto code, auto) {
+        return make_module_mock(code, hash);
       }));
   EXPECT_CALL(*hasher_, blake2b_256(code2.view()))
       .WillRepeatedly(Return(code_hash_2));

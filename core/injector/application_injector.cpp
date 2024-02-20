@@ -523,8 +523,9 @@ namespace {
         bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
           auto module_factory =
               injector.template create<sptr<runtime::ModuleFactory>>();
-          return std::make_shared<runtime::RuntimeInstancesPool>(
-              module_factory);
+          return std::make_shared<runtime::RuntimeInstancesPoolImpl>(
+              module_factory,
+              std::make_shared<runtime::StackLimitInstrumenter>());
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
@@ -922,7 +923,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+            makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
