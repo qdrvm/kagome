@@ -23,8 +23,6 @@ if [[ "${KAGOME_MAC_CI}" = 1 ]]; then
   source ~/venv/bin/activate
   export HUNTER_PYTHON_LOCATION=$VIRTUAL_ENV
   export CURL_SSL_BACKEND=SecureTransport
-
-  sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
   export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
 fi
 
