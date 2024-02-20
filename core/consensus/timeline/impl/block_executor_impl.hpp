@@ -48,7 +48,7 @@ namespace kagome::consensus {
    public:
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+        const common::WorkerThreadPool &worker_thread_pool,
         WeakIoContext main_thread_context,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,

@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include <common/blob.hpp>
+#include <bit>
+#include <limits>
 #include <type_traits>
 
 namespace kagome::math {
@@ -59,8 +60,8 @@ namespace kagome::math {
     if (isPowerOf2(k)) {
       return k;
     }
-    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
-    return (1ull << p);
+    auto n = std::numeric_limits<decltype(k)>::digits - std::countl_zero(k);
+    return decltype(k){1} << n;
   }
 
 }  // namespace kagome::math

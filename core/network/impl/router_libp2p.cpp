@@ -18,7 +18,7 @@ namespace kagome::network {
       LazySPtr<SyncProtocol> sync_protocol,
       LazySPtr<StateProtocol> state_protocol,
       LazySPtr<WarpProtocol> warp_protocol,
-      LazySPtr<BeefyProtocol> beefy_protocol,
+      LazySPtr<BeefyProtocolImpl> beefy_protocol,
       LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
       LazySPtr<LightProtocol> light_protocol,
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
@@ -228,7 +228,7 @@ namespace kagome::network {
     return send_dispute_protocol_.get();
   }
 
-  std::shared_ptr<BeefyProtocol> RouterLibp2p::getBeefyProtocol() const {
+  std::shared_ptr<BeefyProtocolImpl> RouterLibp2p::getBeefyProtocol() const {
     return beefy_protocol_.get();
   }
 

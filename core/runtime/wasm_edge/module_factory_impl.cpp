@@ -358,8 +358,6 @@ namespace kagome::runtime::wasm_edge {
         config_{config} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(host_api_factory_);
-    BOOST_ASSERT(storage_);
-    BOOST_ASSERT(serializer_);
   }
 
   outcome::result<std::shared_ptr<Module>, CompilationError>

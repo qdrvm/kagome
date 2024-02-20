@@ -30,7 +30,7 @@ namespace kagome::consensus {
 
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      const common::WorkerThreadPool &worker_thread_pool,
       WeakIoContext main_thread_context,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -40,7 +40,7 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
-        worker_thread_context_{worker_thread_pool->io_context()},
+        worker_thread_context_{worker_thread_pool.io_context()},
         main_thread_context_{std::move(main_thread_context)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
