@@ -9,6 +9,7 @@
 #include "common/buffer.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::parachain {
 
@@ -20,12 +21,13 @@ namespace kagome::parachain {
   };
 
   struct PvfWorkerInput {
-    SCALE_TIE(6);
+    SCALE_TIE(7);
 
     RuntimeEngine engine;
     common::Buffer runtime_code;
     std::string function;
     common::Buffer params;
+    runtime::RuntimeContextFactory::ContextParams runtime_params;
     std::optional<std::string> cache_dir;
     std::vector<std::string> log_params;
   };

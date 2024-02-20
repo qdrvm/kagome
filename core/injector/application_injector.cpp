@@ -524,8 +524,7 @@ namespace {
           auto module_factory =
               injector.template create<sptr<runtime::ModuleFactory>>();
           return std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-              module_factory,
-              std::make_shared<runtime::StackLimitInstrumenter>());
+              module_factory);
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),

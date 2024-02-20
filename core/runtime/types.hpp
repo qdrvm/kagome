@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "outcome/outcome.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::runtime {
   /**
@@ -49,7 +50,8 @@ namespace kagome::runtime {
   using WasmI64 = int64_t;
 
   struct MemoryLimits {
-    std::optional<uint32_t> max_stack_size{};
+    SCALE_TIE(2);
+
     std::optional<uint32_t> max_stack_values_num{};
     std::optional<uint32_t> max_memory_pages_num{};
   };

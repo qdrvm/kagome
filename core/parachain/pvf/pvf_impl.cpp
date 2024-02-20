@@ -301,27 +301,25 @@ namespace kagome::parachain {
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
 
-    constexpr auto name = "validate_block";
-    if (not app_configuration_->usePvfSubprocess()) {
-      runtime::RuntimeInstancesPool::Config instance_config{};
-      runtime::RuntimeContext::ContextParams executor_params{};
-      if (session_params) {
-        std::optional<uint32_t> max_stack_depth;
-        for (auto &param : *session_params) {
-          if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
-            instance_config.max_stack_depth = stack_max->max_values_num;
-            executor_params.memory_limits.max_stack_values_num =
-                stack_max->max_values_num;
-          } else if (auto *pages_max =
-                         get_if<runtime::MaxMemoryPages>(&param)) {
-            executor_params.memory_limits.max_memory_pages_num =
-                pages_max->limit;
-          }
+    runtime::RuntimeContext::ContextParams executor_params{};
+    if (session_params) {
+      for (auto &param : *session_params) {
+        if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
+          executor_params.memory_limits.max_stack_values_num =
+              stack_max->max_values_num;
+        } else if (auto *pages_max =
+                       get_if<runtime::MaxMemoryPages>(&param)) {
+          executor_params.memory_limits.max_memory_pages_num =
+              pages_max->limit;
         }
       }
+    }
+
+    constexpr auto name = "validate_block";
+    if (not app_configuration_->usePvfSubprocess()) {
       OUTCOME_TRY(instance,
                   runtime_cache_->instantiateFromCode(
-                      code_hash, code_zstd, instance_config));
+                      code_hash, code_zstd, executor_params));
       OUTCOME_TRY(
           ctx,
           ctx_factory_->ephemeral(
@@ -334,6 +332,7 @@ namespace kagome::parachain {
         code_zstd,
         name,
         common::Buffer{scale::encode(params).value()},
+        executor_params,
         app_configuration_->useWavmCache()
             ? std::make_optional(app_configuration_->runtimeCacheDirPath())
             : std::nullopt,

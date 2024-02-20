@@ -92,6 +92,7 @@ target_link_libraries(executor
     uncompress_if_needed
     storage
     mp_utils
+    runtime_common
     )
 kagome_install(executor)
 

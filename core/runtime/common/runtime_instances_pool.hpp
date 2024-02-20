@@ -19,28 +19,6 @@
 
 namespace kagome::runtime {
 
-  class StackLimitInstrumenter {
-   public:
-    virtual ~StackLimitInstrumenter() = default;
-
-    virtual outcome::result<common::Buffer, StackLimiterError>
-    instrumentWithStackLimiter(common::BufferView uncompressed_wasm,
-                               size_t stack_limit) {
-      return runtime::instrumentWithStackLimiter(uncompressed_wasm,
-                                                 stack_limit);
-    }
-  };
-
-  // for tests
-  class NoopStackLimitInstrumenter final : public StackLimitInstrumenter {
-   public:
-    virtual outcome::result<common::Buffer, StackLimiterError>
-    instrumentWithStackLimiter(common::BufferView uncompressed_wasm,
-                               size_t stack_limit) override {
-      return common::Buffer{uncompressed_wasm};
-    }
-  };
-
   /**
    * @brief Pool of runtime instances - per state. Encapsulates modules cache.
    */
@@ -48,15 +26,13 @@ namespace kagome::runtime {
       : public RuntimeInstancesPool,
         public std::enable_shared_from_this<RuntimeInstancesPoolImpl> {
    public:
-    RuntimeInstancesPoolImpl(
-        std::shared_ptr<ModuleFactory> module_factory,
-        std::shared_ptr<StackLimitInstrumenter> stack_limiter,
-        size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
+    RuntimeInstancesPoolImpl(std::shared_ptr<ModuleFactory> module_factory,
+                             size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
         const CodeHash &code_hash,
         common::BufferView code_zstd,
-        const Config &config) override;
+        const RuntimeContext::ContextParams &config) override;
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -68,7 +44,8 @@ namespace kagome::runtime {
      * otherwise.
      */
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromState(
-        const TrieHash &state, const Config &config) override;
+        const TrieHash &state,
+        const RuntimeContext::ContextParams &config) override;
     /**
      * @brief Releases the module instance (returns it to the pool)
      *
@@ -109,12 +86,12 @@ namespace kagome::runtime {
 
     using CompilationResult =
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
-    CompilationResult tryCompileModule(const CodeHash &code_hash,
-                                       common::BufferView code_zstd,
-                                       const Config &config);
+    CompilationResult tryCompileModule(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const RuntimeContext::ContextParams &config);
 
     std::shared_ptr<ModuleFactory> module_factory_;
-    std::shared_ptr<StackLimitInstrumenter> stack_limiter_;
 
     std::mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;

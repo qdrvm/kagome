@@ -18,11 +18,12 @@ namespace kagome::runtime {
                 instantiateFromCode,
                 (const CodeHash &code_hash,
                  common::BufferView code_zstd,
-                 const Config &config));
+                 const RuntimeContext::ContextParams &config));
 
     MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
                 instantiateFromState,
-                (const TrieHash &state, const Config &config));
+                (const TrieHash &state,
+                 const RuntimeContext::ContextParams &config));
 
     MOCK_METHOD(void,
                 release,

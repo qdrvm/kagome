@@ -23,7 +23,7 @@ using kagome::common::Buffer;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
-using kagome::runtime::NoopStackLimitInstrumenter;
+using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;
 
@@ -58,15 +58,15 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
 
-  RuntimeInstancesPoolImpl pool{module_factory,
-                                std::make_shared<NoopStackLimitInstrumenter>(),
-                                POOL_SIZE};
+  RuntimeInstancesPoolImpl pool{module_factory, POOL_SIZE};
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back([&pool, &code, i]() {
-      ASSERT_OUTCOME_SUCCESS_TRY(pool.instantiateFromCode(
-          make_code_hash(i % POOL_SIZE), code, RuntimeInstancesPool::Config{}));
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          pool.instantiateFromCode(make_code_hash(i % POOL_SIZE),
+                                   code,
+                                   RuntimeContext::ContextParams{{{}, {}}}));
     });
   }
 
@@ -79,8 +79,10 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
 
   // check that all POOL_SIZE instances are in cache
   for (int i = 0; i < POOL_SIZE; i++) {
-    ASSERT_OUTCOME_SUCCESS_TRY(pool.instantiateFromCode(
-        make_code_hash(i), code.view(), RuntimeInstancesPool::Config{}));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        pool.instantiateFromCode(make_code_hash(i),
+                                 code.view(),
+                                 RuntimeContext::ContextParams{{{}, {}}}));
   }
   ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "runtime/module_instance.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
@@ -18,24 +19,15 @@ namespace kagome::runtime {
    public:
     static constexpr size_t DEFAULT_MODULES_CACHE_SIZE = 2;
 
-    // https://github.com/paritytech/polkadot-sdk/blob/e16ef0861f576dd260487d78b57949b18795ed77/polkadot/primitives/src/v6/executor_params.rs#L32
-    static constexpr size_t DEFAULT_STACK_MAX = 65536;
-
     using TrieHash = storage::trie::RootHash;
     using CodeHash = storage::trie::RootHash;
 
     virtual ~RuntimeInstancesPool() = default;
 
-    struct Config {
-      // this is the logical stack depth, ensured by WASM code instrumentation
-      // see core/runtime/common/stack_limiter.cpp
-      uint32_t max_stack_depth = DEFAULT_STACK_MAX;
-    };
-
     virtual outcome::result<std::shared_ptr<ModuleInstance>>
     instantiateFromCode(const CodeHash &code_hash,
                         common::BufferView code_zstd,
-                        const Config &config) = 0;
+                        const RuntimeContext::ContextParams &config) = 0;
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -47,7 +39,8 @@ namespace kagome::runtime {
      * otherwise.
      */
     virtual outcome::result<std::shared_ptr<ModuleInstance>>
-    instantiateFromState(const TrieHash &state, const Config &config) = 0;
+    instantiateFromState(const TrieHash &state,
+                         const RuntimeContext::ContextParams &config) = 0;
     /**
      * @brief Releases the module instance (returns it to the pool)
      *
