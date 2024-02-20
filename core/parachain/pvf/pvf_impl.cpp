@@ -294,7 +294,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
                 parachain_api_->session_index_for_child(parent_hash));
