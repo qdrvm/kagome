@@ -45,10 +45,6 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  auto dummyRuntimeContext(std::shared_ptr<runtime::ModuleInstance> instance) {
-    return runtime::RuntimeContext::create_TEST(instance);
-  }
-
   outcome::result<PvfWorkerInput> decodeInput() {
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
     OUTCOME_TRY(readStdin(length_bytes));
@@ -95,14 +91,14 @@ namespace kagome::parachain {
     kagome::log::tuneLoggingSystem(input.log_params);
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
-    OUTCOME_TRY(module, factory->make(input.runtime_code));
-    OUTCOME_TRY(instance, module->instantiate());
-    OUTCOME_TRY(instance->resetMemory({}));
-    auto dummy_context = dummyRuntimeContext(instance);
+    runtime::RuntimeContextFactory::ContextParams ctx_params;
+    OUTCOME_TRY(ctx,
+                runtime::RuntimeContextFactory::fromCode(
+                    *factory, input.runtime_code, ctx_params));
     OUTCOME_TRY(result,
-                instance->callExportFunction(
-                    dummy_context, input.function, input.params));
-    OUTCOME_TRY(instance->resetEnvironment());
+                ctx.module_instance->callExportFunction(
+                    ctx, input.function, input.params));
+    OUTCOME_TRY(ctx.module_instance->resetEnvironment());
     OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
     std::cout.write((const char *)len.data(), len.size());
     std::cout.write((const char *)result.data(), result.size());

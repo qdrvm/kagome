@@ -75,6 +75,7 @@ namespace kagome::runtime {
 
   enum class Error {
     COMPILATION_FAILED = 1,
+    INSTRUMENTATION_FAILED
   };
 
 }  // namespace kagome::runtime
