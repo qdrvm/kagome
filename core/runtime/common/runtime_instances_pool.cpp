@@ -131,15 +131,16 @@ namespace kagome::runtime {
         if (!instr_res) {
           res = CompilationError{fmt::format(
               "Failed to inject stack limiter: {}", instr_res.error().msg)};
+        } else {
+          code = std::move(instr_res.value());
         }
-        code = std::move(instr_res.value());
       }
-      res = common::map_result(module_factory_->make(code), [](auto &&module) {
-        return std::shared_ptr<const Module>(module);
-      });
+      if (!res) {
+        res = common::map_result(module_factory_->make(code), [](auto &&module) {
+          return std::shared_ptr<const Module>(module);
+        });
+      }
     }
-    BOOST_ASSERT(res);
-
     l.lock();
     compiling_modules_.erase(iter);
     promise.set_value(*res);
