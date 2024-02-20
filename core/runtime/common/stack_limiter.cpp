@@ -49,7 +49,6 @@ namespace kagome::runtime {
     }
 
    public:
-    log::Logger logger_;
     std::vector<uint8_t> bytes;
   };
 
@@ -148,7 +147,8 @@ namespace kagome::runtime {
                                       wabt::ExprList::const_iterator,
                                       wabt::ExprList::iterator>;
 
-    Stack() : height_{ACTIVATION_FRAME_COST}, frames_{} {}
+    Stack(log::Logger logger)
+        : height_{ACTIVATION_FRAME_COST}, frames_{}, logger_{logger} {}
 
     outcome::result<void, StackLimiterError> unreachable() {
       if (frames_.empty()) {
@@ -322,7 +322,7 @@ namespace kagome::runtime {
       log::Logger logger, const wabt::Func &func, const wabt::Module &module) {
     uint32_t locals_num = func.GetNumLocals();
 
-    ConstStack stack{};
+    ConstStack stack{logger};
 
     stack.push_frame(func);
     if (func.exprs.empty()) {
@@ -584,11 +584,12 @@ namespace kagome::runtime {
       wabt::Func &func,
       const wabt::Var &stack_height,
       uint32_t stack_limit,
-      const std::unordered_map<wabt::Index, uint32_t> &stack_costs) {
+      const std::unordered_map<wabt::Index, uint32_t> &stack_costs,
+      log::Logger logger) {
     if (func.exprs.empty()) {
       return outcome::success();
     }
-    MutStack stack{};
+    MutStack stack{logger};
 
     stack.push_frame(func);
 
@@ -815,8 +816,8 @@ namespace kagome::runtime {
     KAGOME_PROFILE_START_L(logger, instrument_wasm);
     for (size_t i = 0; i < module.funcs.size(); i++) {
       auto &func = module.funcs[i];
-      OUTCOME_TRY(
-          instrument_func(*func, stack_height_var, stack_limit, func_costs));
+      OUTCOME_TRY(instrument_func(
+          *func, stack_height_var, stack_limit, func_costs, logger));
       SL_TRACE(logger, "[{}/{}] {}", i, module.funcs.size(), func->name);
     }
 
