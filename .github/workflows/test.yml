@@ -42,7 +42,7 @@ jobs:
       env:
         KAGOME_MAC_CI: 1
     - name: build
-      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
