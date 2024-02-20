@@ -250,10 +250,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  // main_pool_handler,
-                                  // worker_pool_handler);
-                                  TestThreadPool{io_},
-                                  io_);
+                                  main_pool_handler,
+                                  worker_pool_handler);
   }
 
   void TearDown() override {
@@ -281,8 +279,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<boost::asio::io_context> io_ =
-      std::make_shared<boost::asio::io_context>();
   std::shared_ptr<AppStateManagerMock> app_state_manager;
   std::shared_ptr<Watchdog> watchdog;
   std::shared_ptr<MainThreadPool> main_thread_pool;
@@ -438,6 +434,4 @@ TEST_F(BabeTest, SlotLeader) {
             ValidatorStatus::Validator);
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
-
-  io_->run();
 }
