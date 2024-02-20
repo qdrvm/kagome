@@ -17,6 +17,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
