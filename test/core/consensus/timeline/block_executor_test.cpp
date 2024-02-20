@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
+#include <latch>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
@@ -240,9 +241,6 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
-  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
-      std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -312,10 +310,13 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
+  std::latch latch(1);
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [&](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
-
-  io_->run();
+      [&](auto &&result) {
+        ASSERT_OUTCOME_SUCCESS_TRY(result);
+        latch.count_down();
+      });
+  latch.arrive_and_wait();
 }
