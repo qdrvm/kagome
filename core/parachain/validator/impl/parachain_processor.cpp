@@ -1110,7 +1110,7 @@ namespace kagome::parachain {
             stream_engine->dropReserveOutgoing(peer_id, protocol);
 
             if (!stream_result.has_value()) {
-              self->logger_->warn("Unable to create stream {} with {}: {}",
+              self->logger_->verbose("Unable to create stream {} with {}: {}",
                                   protocol->protocolName(),
                                   peer_id,
                                   stream_result.error());

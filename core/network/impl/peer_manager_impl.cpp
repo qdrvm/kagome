@@ -622,7 +622,7 @@ namespace kagome::network {
               auto &peer_id = peer_info.id;
 
               if (not stream_res.has_value()) {
-                self->log_->warn("Unable to create stream {} with {}: {}",
+                self->log_->verbose("Unable to create stream {} with {}: {}",
                                  protocol->protocolName(),
                                  peer_id,
                                  stream_res.error());
@@ -719,7 +719,7 @@ namespace kagome::network {
 
                      auto &peer_id = peer_info.id;
                      if (!stream_result.has_value()) {
-                       self->log_->warn(
+                       self->log_->verbose(
                            "Unable to create stream {} with {}: {}",
                            validation_protocol->protocolName(),
                            peer_id,
