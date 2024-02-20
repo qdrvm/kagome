@@ -14,7 +14,9 @@ if(XCODE_VERSION)
 endif()
 
 find_program(CMAKE_C_COMPILER clang-15)
-find_program(CMAKE_CXX_COMPILER clang++-15)
+cmake_path(GET CMAKE_C_COMPILER PARENT_PATH COMPILER_DIR)
+# because clang++-15 link is not available on all platforms
+find_program(CMAKE_CXX_COMPILER clang++ PATHS "${COMPILER_DIR}" NO_DEFAULT_PATH)
 
 if(NOT CMAKE_C_COMPILER)
   fatal_error("clang-15 not found")
