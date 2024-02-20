@@ -21,6 +21,8 @@ namespace kagome::runtime {
 
   class StackLimitInstrumenter {
    public:
+    virtual ~StackLimitInstrumenter() = default;
+
     virtual outcome::result<common::Buffer, StackLimiterError>
     instrumentWithStackLimiter(common::BufferView uncompressed_wasm,
                                size_t stack_limit) {

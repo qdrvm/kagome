@@ -17,13 +17,13 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 #include "utils/argv0.hpp"
 
@@ -116,26 +116,6 @@ namespace kagome::parachain {
     }
 #endif
   }
-
-  struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &) const override {
-      abort();
-    }
-  };
-
-  struct ReturnModuleInstance : runtime::ModuleRepository {
-    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
-        : instance{std::move(instance)} {}
-
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        const primitives::BlockInfo &,
-        const storage::trie::RootHash &) override {
-      return instance;
-    }
-
-    std::shared_ptr<runtime::ModuleInstance> instance;
-  };
 
   struct ValidationParams {
     SCALE_TIE(4);
@@ -323,8 +303,25 @@ namespace kagome::parachain {
 
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
+      runtime::RuntimeInstancesPool::Config instance_config{};
+      runtime::RuntimeContext::ContextParams executor_params{};
+      if (session_params) {
+        std::optional<uint32_t> max_stack_depth;
+        for (auto &param : *session_params) {
+          if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
+            instance_config.max_stack_depth = stack_max->max_values_num;
+            executor_params.memory_limits.max_stack_values_num =
+                stack_max->max_values_num;
+          } else if (auto *pages_max =
+                         get_if<runtime::MaxMemoryPages>(&param)) {
+            executor_params.memory_limits.max_memory_pages_num =
+                pages_max->limit;
+          }
+        }
+      }
       OUTCOME_TRY(instance,
-                  runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+                  runtime_cache_->instantiateFromCode(
+                      code_hash, code_zstd, instance_config));
       OUTCOME_TRY(
           ctx,
           ctx_factory_->ephemeral(

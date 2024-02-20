@@ -101,15 +101,15 @@ if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER
 endif ()
 
 hunter_config(
-    wabt
-    URL https://github.com/qdrvm/wabt/archive/refs/tags/1.0.34-qdrvm1.zip
-    SHA1 d22995329c9283070f3a32d2c5e07f4d75c2fc31
-    KEEP_PACKAGE_SOURCES
-    CMAKE_ARGS
-      BUILD_TESTS=OFF
-      BUILD_TOOLS=OFF
-      BUILD_LIBWASM=OFF
-      USE_INTERNAL_SHA256=OFF
+        wabt
+        URL https://github.com/qdrvm/wabt/archive/refs/tags/1.0.34-qdrvm1.zip
+        SHA1 d22995329c9283070f3a32d2c5e07f4d75c2fc31
+        KEEP_PACKAGE_SOURCES
+        CMAKE_ARGS
+        BUILD_TESTS=OFF
+        BUILD_TOOLS=OFF
+        BUILD_LIBWASM=OFF
+        USE_INTERNAL_SHA256=OFF
 )
 
 hunter_config(

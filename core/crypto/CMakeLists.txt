@@ -86,7 +86,7 @@ target_link_libraries(secp256k1_provider
     OpenSSL::Crypto
     OpenSSL::SSL
     blob
-    secp256k1::secp256k1
+    libsecp256k1::secp256k1
     scale::scale
     )
 kagome_install(
