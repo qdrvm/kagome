@@ -9,6 +9,8 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "common/main_thread_pool.hpp"
+#include "consensus/beefy/impl/beefy_impl.hpp"
+#include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -17,8 +19,6 @@
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
-#include "network/beefy/beefy_impl.hpp"
-#include "network/beefy/beefy_thread_pool.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"

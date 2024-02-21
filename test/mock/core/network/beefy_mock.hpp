@@ -6,12 +6,14 @@
 
 #pragma once
 
-#include "network/beefy/beefy.hpp"
+#include "consensus/beefy/beefy.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::network {
   struct BeefyMock : public Beefy {
+    MOCK_METHOD(primitives::BlockNumber, finalized, (), (const, override));
+
     MOCK_METHOD(
         outcome::result<std::optional<consensus::beefy::BeefyJustification>>,
         getJustification,

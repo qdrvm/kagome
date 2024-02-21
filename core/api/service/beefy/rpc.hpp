@@ -10,7 +10,7 @@
 #include "injector/lazy.hpp"
 
 namespace kagome::network {
-  class BeefyImpl;
+  class Beefy;
 }  // namespace kagome::network
 
 namespace kagome::blockchain {
@@ -23,14 +23,14 @@ namespace kagome::api {
    public:
     BeefyRpc(
         std::shared_ptr<JRpcServer> server,
-        LazySPtr<network::BeefyImpl> beefy,
+        LazySPtr<network::Beefy> beefy,
         LazySPtr<blockchain::BlockHeaderRepository> block_header_repository);
 
     void registerHandlers() override;
 
    private:
     std::shared_ptr<JRpcServer> server_;
-    LazySPtr<network::BeefyImpl> beefy_;
+    LazySPtr<network::Beefy> beefy_;
     LazySPtr<blockchain::BlockHeaderRepository> block_header_repository_;
   };
 }  // namespace kagome::api

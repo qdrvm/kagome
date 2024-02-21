@@ -10,10 +10,10 @@
 
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/beefy/beefy.hpp"
 #include "consensus/beefy/types.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-#include "network/beefy/beefy.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -78,7 +78,7 @@ namespace kagome::network {
     void start();
     void stop();
 
-    primitives::BlockNumber finalized() const;
+    primitives::BlockNumber finalized() const override;
 
     outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const override;

@@ -14,6 +14,8 @@ namespace kagome::network {
    public:
     virtual ~Beefy() = default;
 
+    virtual primitives::BlockNumber finalized() const = 0;
+
     virtual outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const = 0;
 

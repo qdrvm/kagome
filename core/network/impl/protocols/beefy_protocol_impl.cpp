@@ -6,10 +6,8 @@
 
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 
-#include "blockchain/genesis_block_hash.hpp"
-#include "network/beefy/beefy_impl.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "network/common.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/notifications/connect_and_handshake.hpp"
 #include "network/notifications/handshake_and_read_messages.hpp"

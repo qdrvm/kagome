@@ -9,8 +9,8 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "log/formatters/variant.hpp"
-#include "network/beefy/beefy.hpp"
 #include "network/common.hpp"
 #include "primitives/common.hpp"
 

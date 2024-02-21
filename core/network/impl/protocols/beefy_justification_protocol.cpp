@@ -6,12 +6,8 @@
 
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 
-#include "blockchain/genesis_block_hash.hpp"
-#include "network/beefy/beefy_impl.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "network/common.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
-#include "network/notifications/connect_and_handshake.hpp"
-#include "network/notifications/handshake_and_read_messages.hpp"
 
 namespace kagome::network {
   BeefyJustificationProtocol::BeefyJustificationProtocol(libp2p::Host &host,

@@ -9,12 +9,12 @@
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/service/jrpc_fn.hpp"
 #include "blockchain/block_header_repository.hpp"
-#include "network/beefy/beefy_impl.hpp"
+#include "consensus/beefy/beefy.hpp"
 
 namespace kagome::api {
   BeefyRpc::BeefyRpc(
       std::shared_ptr<JRpcServer> server,
-      LazySPtr<network::BeefyImpl> beefy,
+      LazySPtr<network::Beefy> beefy,
       LazySPtr<blockchain::BlockHeaderRepository> block_header_repository)
       : server_{std::move(server)},
         beefy_{std::move(beefy)},
