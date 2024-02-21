@@ -91,10 +91,9 @@ namespace kagome::parachain {
     kagome::log::tuneLoggingSystem(input.log_params);
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
-    runtime::RuntimeContextFactory::ContextParams ctx_params;
     OUTCOME_TRY(ctx,
                 runtime::RuntimeContextFactory::fromCode(
-                    *factory, input.runtime_code, ctx_params));
+                    *factory, input.runtime_code, input.runtime_params));
     OUTCOME_TRY(result,
                 ctx.module_instance->callExportFunction(
                     ctx, input.function, input.params));
