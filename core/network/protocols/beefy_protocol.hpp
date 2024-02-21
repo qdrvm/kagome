@@ -6,13 +6,13 @@
 
 #pragma once
 
+#include "network/protocol_base.hpp"
+
 #include "consensus/beefy/types.hpp"
 
 namespace kagome::network {
-  class BeefyProtocol {
+  class BeefyProtocol : public virtual ProtocolBase {
    public:
-    virtual ~BeefyProtocol() = default;
-
     virtual void broadcast(
         std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) = 0;
   };

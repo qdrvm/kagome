@@ -16,12 +16,15 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "application/sync_method.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
 #include "injector/lazy.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
+#include "network/types/blocks_request.hpp"
+#include "network/types/blocks_response.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
@@ -30,8 +33,8 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
-namespace kagome::storage::trie_pruner {
-  class TriePruner;
+namespace kagome::blockchain {
+  class BlockTree;
 }
 
 namespace kagome::common {
@@ -41,22 +44,28 @@ namespace kagome::common {
 namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
+  class Timeline;
 }  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
   class Environment;
 }  // namespace kagome::consensus::grandpa
 
+namespace kagome::network {
+  class Beefy;
+  class PeerManager;
+}  // namespace kagome::network
+
 namespace kagome::storage::trie {
-  class PersistentTrieBatch;
   class TrieSerializer;
   class TrieStorage;
 }  // namespace kagome::storage::trie
 
-namespace kagome::network {
-  class Beefy;
-  class PeerManager;
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
 
+namespace kagome::network {
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {

@@ -6,23 +6,30 @@
 
 #pragma once
 
-#include <libp2p/connection/stream.hpp>
-#include <libp2p/protocol/ping.hpp>
+#include <memory>
 
-#include "network/impl/protocols/block_announce_protocol.hpp"
-#include "network/impl/protocols/grandpa_protocol.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
-#include "network/impl/protocols/propagate_transactions_protocol.hpp"
-#include "network/impl/protocols/protocol_fetch_available_data.hpp"
-#include "network/impl/protocols/protocol_fetch_chunk.hpp"
-#include "network/impl/protocols/protocol_req_collation.hpp"
-#include "network/impl/protocols/protocol_req_pov.hpp"
-#include "network/impl/protocols/send_dispute_protocol.hpp"
-#include "network/protocols/state_protocol.hpp"
-#include "network/protocols/sync_protocol.hpp"
+namespace libp2p::protocol {
+  class Ping;
+}
 
 namespace kagome::network {
-  class BeefyProtocolImpl;
+  class BlockAnnounceProtocol;
+  class CollationProtocol;
+  class ValidationProtocol;
+  class ReqCollationProtocol;
+  class ReqPovProtocol;
+  class FetchChunkProtocol;
+  class FetchAvailableDataProtocol;
+  class StatementFetchingProtocol;
+  class PropagateTransactionsProtocol;
+  class StateProtocol;
+  class SyncProtocol;
+  class GrandpaProtocol;
+  class SendDisputeProtocol;
+  class BeefyProtocol;
+}  // namespace kagome::network
+
+namespace kagome::network {
 
   /**
    * Router, which reads and delivers different network messages to the
@@ -53,7 +60,7 @@ namespace kagome::network {
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
     virtual std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
         const = 0;
-    virtual std::shared_ptr<BeefyProtocolImpl> getBeefyProtocol() const = 0;
+    virtual std::shared_ptr<BeefyProtocol> getBeefyProtocol() const = 0;
     virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network

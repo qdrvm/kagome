@@ -5,7 +5,27 @@
  */
 
 #include "network/impl/router_libp2p.hpp"
+
+#include <libp2p/connection/stream.hpp>
+#include <libp2p/protocol/ping.hpp>
 #include "common/main_thread_pool.hpp"
+#include "network/impl/protocols/beefy_justification_protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/light.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/protocol_fetch_available_data.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
+#include "network/impl/protocols/protocol_req_pov.hpp"
+#include "network/impl/protocols/send_dispute_protocol.hpp"
+#include "network/protocols/beefy_protocol.hpp"
+#include "network/protocols/state_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
+#include "network/types/bootstrap_nodes.hpp"
+#include "network/warp/protocol.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
@@ -20,7 +40,7 @@ namespace kagome::network {
       LazySPtr<SyncProtocol> sync_protocol,
       LazySPtr<StateProtocol> state_protocol,
       LazySPtr<WarpProtocol> warp_protocol,
-      LazySPtr<BeefyProtocolImpl> beefy_protocol,
+      LazySPtr<BeefyProtocol> beefy_protocol,
       LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
       LazySPtr<LightProtocol> light_protocol,
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
@@ -236,7 +256,7 @@ namespace kagome::network {
     return send_dispute_protocol_.get();
   }
 
-  std::shared_ptr<BeefyProtocolImpl> RouterLibp2p::getBeefyProtocol() const {
+  std::shared_ptr<BeefyProtocol> RouterLibp2p::getBeefyProtocol() const {
     return beefy_protocol_.get();
   }
 

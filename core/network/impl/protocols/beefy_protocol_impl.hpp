@@ -24,9 +24,8 @@ namespace kagome::network {
 namespace kagome::network {
 
   class BeefyProtocolImpl final
-      : public ProtocolBase,
-        public std::enable_shared_from_this<BeefyProtocolImpl>,
-        public BeefyProtocol {
+      : public BeefyProtocol,
+        public std::enable_shared_from_this<BeefyProtocolImpl> {
     static constexpr auto kName = "BeefyProtocol";
 
    public:

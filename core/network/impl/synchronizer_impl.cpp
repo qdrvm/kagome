@@ -9,16 +9,19 @@
 #include <random>
 
 #include <libp2p/common/final_action.hpp>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_configuration.hpp"
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
-#include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/beefy/beefy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/peer_manager.hpp"
+#include "network/protocols/state_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"

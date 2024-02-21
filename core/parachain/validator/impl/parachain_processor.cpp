@@ -18,6 +18,10 @@
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
 #include "network/common.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
+#include "network/impl/protocols/protocol_req_pov.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"
@@ -1111,9 +1115,9 @@ namespace kagome::parachain {
 
             if (!stream_result.has_value()) {
               self->logger_->verbose("Unable to create stream {} with {}: {}",
-                                  protocol->protocolName(),
-                                  peer_id,
-                                  stream_result.error());
+                                     protocol->protocolName(),
+                                     peer_id,
+                                     stream_result.error());
               return;
             }
 

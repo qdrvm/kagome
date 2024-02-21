@@ -18,6 +18,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
+#include "mock/core/network/beefy_protocol_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
@@ -46,6 +47,7 @@ using kagome::crypto::HasherImpl;
 using kagome::crypto::SessionKeysMock;
 using kagome::network::BeefyImpl;
 using kagome::network::BeefyProtocol;
+using kagome::network::BeefyProtocolMock;
 using kagome::network::BeefyThreadPool;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
@@ -93,22 +95,6 @@ struct Timer : libp2p::basic::Scheduler {
   std::optional<Callback> cb_;
 };
 
-namespace kagome::consensus::beefy {
-  inline auto &operator<<(std::ostream &os, const VoteMessage &) {
-    return os;
-  }
-  inline auto &operator<<(std::ostream &os, const SignedCommitment &) {
-    return os;
-  }
-}  // namespace kagome::consensus::beefy
-
-struct BroadcastMock : BeefyProtocol {
-  MOCK_METHOD(void,
-              broadcast,
-              (std::shared_ptr<BeefyGossipMessage>),
-              (override));
-};
-
 struct BeefyPeer {
   EcdsaKeypair keys_;
   BlockNumber finalized_ = 0;
@@ -119,7 +105,8 @@ struct BeefyPeer {
   std::shared_ptr<Timer> timer_ = std::make_shared<Timer>();
   std::shared_ptr<SessionKeysMock> keystore_ =
       std::make_shared<SessionKeysMock>();
-  std::shared_ptr<BroadcastMock> broadcast_ = std::make_shared<BroadcastMock>();
+  std::shared_ptr<BeefyProtocolMock> broadcast_ =
+      std::make_shared<BeefyProtocolMock>();
   ChainSubscriptionEnginePtr chain_sub_ =
       std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<BeefyImpl> beefy_;
