@@ -32,3 +32,5 @@ examples/**/db
 /examples/polkadot/syncing/
 /examples/kusama/syncing/
 /examples/rococo/syncing/
+
+CMakeUserPresets.json
