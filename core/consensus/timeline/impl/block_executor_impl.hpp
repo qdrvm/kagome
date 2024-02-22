@@ -65,8 +65,8 @@ namespace kagome::consensus {
         const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) override;
 
-   private:
-    void applyBlockExecuted(
+   protected:
+    virtual void applyBlockExecuted(
         primitives::Block &&block,
         const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback,
@@ -74,6 +74,7 @@ namespace kagome::consensus {
         clock::SteadyClock::TimePoint start_time,
         const primitives::BlockInfo &previous_best_block);
 
+   private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;

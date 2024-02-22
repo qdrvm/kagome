@@ -128,6 +128,31 @@ inline GrandpaAuthorityId operator"" _gran_auth(const char *c, size_t s) {
   return res;
 }
 
+class BlockExecutorWrapper : public BlockExecutorImpl {
+ public:
+  using BlockExecutorImpl::BlockExecutorImpl;
+  std::function<void()> on_executed;
+
+ private:
+  void applyBlockExecuted(
+      kagome::primitives::Block &&block,
+      const std::optional<kagome::primitives::Justification> &justification,
+      ApplyJustificationCb &&callback,
+      const kagome::primitives::BlockInfo &block_info,
+      kagome::clock::SteadyClock::TimePoint start_time,
+      const kagome::primitives::BlockInfo &previous_best_block) override {
+    BlockExecutorImpl::applyBlockExecuted(std::move(block),
+                                          justification,
+                                          std::move(callback),
+                                          block_info,
+                                          start_time,
+                                          previous_best_block);
+    if (on_executed) {
+      on_executed();
+    }
+  }
+};
+
 class BlockExecutorTest : public testing::Test {
  public:
   static void SetUpTestCase() {
@@ -197,16 +222,17 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
-                                                          main_pool_handler_,
-                                                          worker_pool_handler_,
-                                                          core_,
-                                                          tx_pool_,
-                                                          hasher_,
-                                                          offchain_worker_api_,
-                                                          storage_sub_engine_,
-                                                          chain_sub_engine_,
-                                                          std::move(appender));
+    block_executor_ =
+        std::make_shared<BlockExecutorWrapper>(block_tree_,
+                                               main_pool_handler_,
+                                               worker_pool_handler_,
+                                               core_,
+                                               tx_pool_,
+                                               hasher_,
+                                               offchain_worker_api_,
+                                               storage_sub_engine_,
+                                               chain_sub_engine_,
+                                               std::move(appender));
   }
 
   void TearDown() override {
@@ -241,7 +267,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
 
-  std::shared_ptr<BlockExecutorImpl> block_executor_;
+  std::shared_ptr<BlockExecutorWrapper> block_executor_;
 };
 
 /**
@@ -310,12 +336,12 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillOnce(testing::Return(outcome::success()));
 
   std::latch latch(1);
+  block_executor_->on_executed = [&] { latch.count_down(); };
+
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [&](auto &&result) {
-        ASSERT_OUTCOME_SUCCESS_TRY(result);
-        latch.count_down();
-      });
-  latch.arrive_and_wait();
+      [&](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
+
+  latch.wait();
 }
