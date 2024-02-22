@@ -8,16 +8,8 @@
 
 #include "network/router.hpp"
 
-// #include "application/app_configuration.hpp"
-// #include "application/app_state_manager.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-// #include "libp2p/host/host.hpp"
-// #include "libp2p/multi/multiaddress.hpp"
-// #include "libp2p/protocol/ping.hpp"
-// #include "network/sync_protocol_observer.hpp"
-// #include "network/types/bootstrap_nodes.hpp"
-// #include "network/types/own_peer_info.hpp"
 
 namespace libp2p {
   class Host;

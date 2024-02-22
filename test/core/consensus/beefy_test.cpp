@@ -18,7 +18,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
-#include "mock/core/network/beefy_protocol_mock.hpp"
+#include "mock/core/network/protocols/beefy_protocol_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"

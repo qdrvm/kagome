@@ -10,7 +10,6 @@
 #include <libp2p/protocol/ping.hpp>
 #include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
-#include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
