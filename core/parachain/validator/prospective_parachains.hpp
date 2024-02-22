@@ -261,7 +261,7 @@ namespace kagome::parachain {
 
     outcome::result<std::optional<fragment::RelayChainBlockInfo>>
     fetchBlockInfo(const RelayHash &relay_hash) {
-      /// TODO(iceseer): do
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
       /// cache for block header request and calculations
       auto res_header = block_tree_->getBlockHeader(relay_hash);
       if (res_header.has_error()) {
@@ -391,7 +391,8 @@ namespace kagome::parachain {
         view.active_leaves.erase(deactivated);
       }
 
-      /// TODO(iceseer): do cache headers
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+      /// cache headers
       [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode>
           temp_header_cache;
       if (update.new_head) {

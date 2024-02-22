@@ -631,10 +631,10 @@ namespace kagome::network {
               auto &peer_id = peer_info.id;
 
               if (not stream_res.has_value()) {
-                self->log_->warn("Unable to create stream {} with {}: {}",
-                                 protocol->protocolName(),
-                                 peer_id,
-                                 stream_res.error());
+                self->log_->verbose("Unable to create stream {} with {}: {}",
+                                    protocol->protocolName(),
+                                    peer_id,
+                                    stream_res.error());
                 self->connecting_peers_.erase(peer_id);
                 self->disconnectFromPeer(peer_id);
                 return;

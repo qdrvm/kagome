@@ -297,7 +297,8 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
     REINVOKE(main_thread_context_, onUpdatePeerView, peer_id, view);
 
-    /// TODO(iceseer): do `handle_peer_view_update` keep peer view to send only
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+    /// `handle_peer_view_update` keep peer view to send only
     /// perfect messages
     for (const auto &h : view.heads_) {
       send_peer_messages_for_relay_parent({{peer_id}}, h);
@@ -781,7 +782,7 @@ namespace kagome::parachain {
     network::ParachainBlock pov(std::move(collation_response->get().pov));
     const network::CandidateDescriptor &descriptor = receipt.descriptor;
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// fetched_candidates ???
 
     auto &parachain_state = opt_parachain_state->get();
@@ -846,7 +847,7 @@ namespace kagome::parachain {
       return;
     }
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// fetched_collation_sanity_check
 
     pending_candidates.insert(
@@ -975,7 +976,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// `grid_topology` and `local_validator`
     return ManifestImportSuccess{
         .acknowledge = false,
@@ -1098,7 +1099,7 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash,
       const RelayHash &relay_parent) {
     std::deque<network::VersionedValidatorProtocolMessage> messages;
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// Will sent to the whole group. Optimize when `grid_view` will be
     /// implemented
     messages.emplace_back(network::VersionedValidatorProtocolMessage{
@@ -1131,7 +1132,7 @@ namespace kagome::parachain {
       const StatementStore &statement_store,
       const std::vector<ValidatorIndex> &group,
       const CandidateHash &candidate_hash) {
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// fill data from grid tracker
     network::vstaging::StatementFilter sending_filter{group.size()};
 
@@ -1304,7 +1305,7 @@ namespace kagome::parachain {
             manifest->get().relay_parent);
         send_to_validators_group(manifest->get().relay_parent, messages);
       } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
-        /// TODO(iceseer): do
+        /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
         /// not used because of `acknowledge` = true. Implement `grid_view` to
         /// retrieve real `acknowledge`.
 
@@ -1443,7 +1444,7 @@ namespace kagome::parachain {
             });
       }
 
-      /// TODO(iceseer): do
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
       /// check statement signature
 
       Groups groups{opt_session_info->validator_groups};
@@ -1522,7 +1523,7 @@ namespace kagome::parachain {
       return;
     }
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// validate response
 
     auto parachain_state = tryGetStateByRelayParent(relay_parent);
@@ -1697,7 +1698,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::apply_post_confirmation(
       const PostConfirmation &post_confirmation) {
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// `send_cluster_candidate_statements`
 
     new_confirmed_candidate_fragment_tree_updates(
@@ -2283,7 +2284,8 @@ namespace kagome::parachain {
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
-              /// TODO(iceseer): do `bitfields_indicate_availability` check
+              /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+              /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
                 return prospective_parachains_->answerGetBackableCandidate(
                     relay_parent,
@@ -2769,10 +2771,10 @@ namespace kagome::parachain {
             stream_engine->dropReserveOutgoing(peer_id, protocol);
 
             if (!stream_result.has_value()) {
-              self->logger_->warn("Unable to create stream {} with {}: {}",
-                                  protocol->protocolName(),
-                                  peer_id,
-                                  stream_result.error());
+              self->logger_->verbose("Unable to create stream {} with {}: {}",
+                                     protocol->protocolName(),
+                                     peer_id,
+                                     stream_result.error());
               return;
             }
 
@@ -3061,7 +3063,8 @@ namespace kagome::parachain {
               "Candidate {} validation failed with: {}",
               candidate_hash,
               validation_result.result.error());
-      /// TODO(iceseer): do send invalid
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+      /// send invalid
       return;
     }
 
@@ -3110,7 +3113,8 @@ namespace kagome::parachain {
                 candidate_hash,
                 validation_result.relay_parent,
                 res.error());
-        /// TODO(iceseer): do send invalid
+        /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+        /// send invalid
         return;
       }
 
@@ -3389,7 +3393,7 @@ namespace kagome::parachain {
     TicToc _measure{"Parachain validation", logger_};
     const auto candidate_hash{candidate.hash(*hasher_)};
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     auto need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
@@ -3417,7 +3421,7 @@ namespace kagome::parachain {
       return;
     }
 
-    /// TODO(iceseer): do
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
@@ -3968,7 +3972,7 @@ namespace kagome::parachain {
                     peer_id,
                     relay_parent,
                     result.error());
-            /// TODO(iceseer): do
+            /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
             /// dequeue_next_collation_and_fetch
             return;
           }
