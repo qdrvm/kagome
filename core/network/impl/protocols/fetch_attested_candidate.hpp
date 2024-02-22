@@ -1,10 +1,10 @@
 /**
- * Copyright Quadrivium Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PROTOCOL_FETCH_ATTESTED_CANDIDATE_HPP
-#define KAGOME_PROTOCOL_FETCH_ATTESTED_CANDIDATE_HPP
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -82,5 +82,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_PROTOCOL_FETCH_ATTESTED_CANDIDATE_HPP

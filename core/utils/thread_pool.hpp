@@ -73,13 +73,6 @@ namespace kagome {
       SL_TRACE(log_, "Pool destroyed");
     }
 
-    /// to prevent creation without `shared_ptr`
-    template <typename... Args>
-    static std::shared_ptr<ThreadPool> create(Args &&...args) {
-      return std::shared_ptr<ThreadPool>(
-          new ThreadPool(std::forward<Args>(args)...));
-    }
-
     const std::shared_ptr<boost::asio::io_context> &io_context() const {
       return ioc_;
     }

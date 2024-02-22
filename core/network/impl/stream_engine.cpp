@@ -228,7 +228,7 @@ namespace kagome::network {
                       descr.deferred_messages.pop_front();
                     }
                   });
-              // BOOST_ASSERT(existing);
+              BOOST_ASSERT(existing);
             });
           });
     }

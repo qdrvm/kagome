@@ -34,7 +34,7 @@ namespace kagome::parachain {
   }
 
   void BackingStoreImpl::onActivateLeaf(const BlockHash &relay_parent) {
-    [[maybe_unused]] auto _ = per_relay_parent_[relay_parent];
+    std::ignore = per_relay_parent_[relay_parent];
   }
 
   bool BackingStoreImpl::is_in_group(

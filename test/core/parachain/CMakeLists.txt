@@ -23,7 +23,7 @@ target_link_libraries(assignments_test
     )
 
 addtest(prospective_parachains
-prospective_parachains.cpp
+    prospective_parachains.cpp
     )
 
 target_link_libraries(prospective_parachains

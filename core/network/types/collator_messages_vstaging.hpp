@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COLLATOR_MESSAGES_VSTAGING_HPP
-#define KAGOME_COLLATOR_MESSAGES_VSTAGING_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 #include <scale/bitvec.hpp>
@@ -237,5 +237,3 @@ namespace kagome::network {
       Versioned<kagome::network::StatementDistributionMessage,
                 kagome::network::vstaging::StatementDistributionMessage>;
 }  // namespace kagome::network
-
-#endif  // KAGOME_COLLATOR_MESSAGES_VSTAGING_HPP

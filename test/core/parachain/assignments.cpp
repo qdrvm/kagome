@@ -47,17 +47,15 @@ struct AssignmentsTest : public test::BaseFS_Test {
                                    const char *const (&accounts)[N],
                                    size_t random) {
     for (const auto &acc : accounts) {
-      [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
-                                     std::string_view{acc})
-              .value();
+      std::ignore = cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
+                                               std::string_view{acc})
+                        .value();
     }
     for (size_t ix = 0ull; ix < random; ++ix) {
       auto seed = std::to_string(ix);
-      [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
-                                     std::string_view{seed})
-              .value();
+      std::ignore = cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
+                                               std::string_view{seed})
+                        .value();
     }
     return cs->getSr25519PublicKeys(KeyTypes::ASSIGNMENT).value();
   }

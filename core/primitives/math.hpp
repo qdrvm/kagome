@@ -9,6 +9,7 @@
 #include <bit>
 #include <limits>
 #include <type_traits>
+#include "macro/endianness_utils.hpp"
 
 namespace kagome::math {
 
@@ -54,11 +55,11 @@ namespace kagome::math {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     constexpr size_t size = sizeof(std::decay_t<T>);
     if constexpr (size == 8) {
-      return __builtin_bswap64(value);
+      return LE_BE_SWAP64(value);
     } else if constexpr (size == 4) {
-      return __builtin_bswap32(value);
+      return LE_BE_SWAP32(value);
     } else if constexpr (size == 2) {
-      return __builtin_bswap16(value);
+      return LE_BE_SWAP16(value);
     }
 #endif
     return value;

@@ -739,16 +739,18 @@ namespace kagome::network {
 
             auto &peer_id = peer_info.id;
             if (!stream_result.has_value()) {
-              self->log_->warn("Unable to create stream {} with {}: {}",
-                               validation_protocol->protocolName(),
-                               peer_id,
-                               stream_result.error().message());
+              SL_TRACE(self->log_,
+                       "Unable to create stream {} with {}: {}",
+                       validation_protocol->protocolName(),
+                       peer_id,
+                       stream_result.error().message());
               auto ps = self->getPeerState(peer_info.id);
               if (ps) {
                 self->tryOpenValidationProtocol(
                     peer_info, ps->get(), network::CollationVersion::V1);
               } else {
-                self->log_->warn(
+                SL_TRACE(
+                    self->log_,
                     "No peer state to open V1 validation protocol {} with {}",
                     validation_protocol->protocolName(),
                     peer_id);

@@ -58,7 +58,7 @@ namespace kagome::dispute {
 namespace kagome::parachain {
   class BitfieldStore;
   struct ParachainProcessorImpl;
-  struct IBackedCandidatesSource;
+  struct BackedCandidatesSource;
 }  // namespace kagome::parachain
 
 namespace kagome::network {
@@ -100,7 +100,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<BabeBlockValidator> validating,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-        std::shared_ptr<parachain::IBackedCandidatesSource> candidates_source,
+        std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
         std::shared_ptr<authorship::Proposer> proposer,
         primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
@@ -158,7 +158,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<BabeBlockValidator> validating_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
-    std::shared_ptr<parachain::IBackedCandidatesSource> candidates_source_;
+    std::shared_ptr<parachain::BackedCandidatesSource> candidates_source_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
     std::shared_ptr<authorship::Proposer> proposer_;
     primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;

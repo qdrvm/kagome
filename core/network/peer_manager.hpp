@@ -76,11 +76,11 @@ namespace kagome::network {
       if (maybe_candidate_hash) {
         if (auto it = collating_state.advertisements.find(relay_parent);
             it != collating_state.advertisements.end()) {
-          return it->second.count(*maybe_candidate_hash) != 0ull;
+          return it->second.contains(*maybe_candidate_hash);
         }
         return false;
       }
-      return collating_state.advertisements.count(relay_parent) != 0ull;
+      return collating_state.advertisements.contains(relay_parent);
     }
 
     PeerStateCompact compact() const {

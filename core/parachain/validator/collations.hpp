@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_COLLATIONS_HPP
-#define KAGOME_PARACHAIN_COLLATIONS_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 #include <map>
@@ -206,5 +205,3 @@ namespace kagome::parachain {
   }
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_COLLATIONS_HPP

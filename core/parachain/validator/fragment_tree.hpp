@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_FRAGMENT_TREE
-#define KAGOME_PARACHAIN_FRAGMENT_TREE
+#pragma once
 
 #include <boost/variant.hpp>
 #include <map>
@@ -986,5 +985,3 @@ namespace kagome::parachain::fragment {
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Constraints::Error);
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Scope::Error);
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, CandidateStorage::Error);
-
-#endif  // KAGOME_PARACHAIN_FRAGMENT_TREE

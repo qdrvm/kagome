@@ -75,7 +75,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-      std::shared_ptr<parachain::IBackedCandidatesSource> candidates_source,
+      std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,

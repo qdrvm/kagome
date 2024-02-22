@@ -43,6 +43,8 @@ namespace kagome::parachain {
     HEAD_HASH,
     COMMITMENTS_HASH,
     OUTPUTS,
+    PERSISTED_DATA_HASH,
+    NO_CODE,
   };
 }  // namespace kagome::parachain
 
@@ -102,9 +104,8 @@ namespace kagome::parachain {
     using CandidateDescriptor = network::CandidateDescriptor;
     using ParachainRuntime = network::ParachainRuntime;
 
-    outcome::result<ParachainRuntime> findData(
-        const CandidateDescriptor &descriptor,
-        const runtime::PersistedValidationData &pvd) const;
+    outcome::result<ParachainRuntime> getCode(
+        const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
         const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,

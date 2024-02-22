@@ -2563,7 +2563,6 @@ namespace kagome::parachain {
         if (is_block_approved && !was_block_approved) {
           notifyApproved(block_hash);
         }
-        /// TODO(iceseer): store in database if needed
       }
       _ = std::make_pair(is_approved, std::move(status));
       ae = approval_entry;
@@ -2593,7 +2592,6 @@ namespace kagome::parachain {
                            status.required_tranches);
     if (approval::is_local_approval(transition) || newly_approved
         || (already_approved_by && !*already_approved_by)) {
-      /// TODO(iceseer): store in database if needed
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
                    == candidate_entry);
     }

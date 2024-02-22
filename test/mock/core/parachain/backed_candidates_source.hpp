@@ -12,7 +12,7 @@
 
 namespace kagome::parachain {
 
-  struct BackedCandidatesSourceMock : public IBackedCandidatesSource {
+  struct BackedCandidatesSourceMock : public BackedCandidatesSource {
     MOCK_METHOD(std::vector<network::BackedCandidate>,
                 getBackedCandidates,
                 (const RelayHash &),

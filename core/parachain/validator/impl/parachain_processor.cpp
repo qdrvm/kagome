@@ -807,14 +807,6 @@ namespace kagome::parachain {
       return;
     }
 
-    //    if (seconded) {
-    //      SL_DEBUG(logger_,
-    //               "Already have seconded block {} instead of {}.",
-    //               seconded->toString(),
-    //               receipt.hash());
-    //      return;
-    //    }
-
     if (issued_statements.count(receipt.hash(*hasher_)) != 0) {
       SL_DEBUG(
           logger_, "Statement of {} already issued.", receipt.hash(*hasher_));

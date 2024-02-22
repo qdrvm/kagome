@@ -25,6 +25,10 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
+    case PvfError::PERSISTED_DATA_HASH:
+      return "Incorrect Perssted Data hash";
+    case PvfError::NO_CODE:
+      return "No code";
     case PvfError::NO_PERSISTED_DATA:
       return "PersistedValidationData was not found";
     case PvfError::POV_SIZE:
@@ -217,17 +221,18 @@ namespace kagome::parachain {
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
-    OUTCOME_TRY(code, findData(receipt.descriptor, pvd));
+
+    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    if (receipt.descriptor.persisted_data_hash != data_hash) {
+      return PvfError::PERSISTED_DATA_HASH;
+    }
+
+    OUTCOME_TRY(code, getCode(receipt.descriptor));
     return pvfValidate(pvd, pov, receipt, code);
   }
 
-  outcome::result<ParachainRuntime> PvfImpl::findData(
-      const CandidateDescriptor &descriptor,
-      const runtime::PersistedValidationData &pvd) const {
-    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
-    if (descriptor.persisted_data_hash != data_hash) {
-      return PvfError::NO_PERSISTED_DATA;
-    }
+  outcome::result<ParachainRuntime> PvfImpl::getCode(
+      const CandidateDescriptor &descriptor) const {
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,
@@ -238,18 +243,18 @@ namespace kagome::parachain {
       if (!code) {
         SL_VERBOSE(
             log_,
-            "findData relay_parent={} para_id={}: not found (validation_code)",
+            "getCode relay_parent={} para_id={}: not found (validation_code)",
             descriptor.relay_parent,
             descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
+        return PvfError::NO_CODE;
       }
       return *code;
     }
     SL_VERBOSE(log_,
-               "findData relay_parent={} para_id={}: not found",
+               "getCode relay_parent={} para_id={}: not found",
                descriptor.relay_parent,
                descriptor.para_id);
-    return PvfError::NO_PERSISTED_DATA;
+    return PvfError::NO_CODE;
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(

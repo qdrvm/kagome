@@ -42,10 +42,7 @@ namespace kagome::parachain {
         const auto diff = base_number - para_min;
         const size_t slice_len =
             std::min(size_t(diff + 1), allowed_relay_parents_contiguous.size());
-        if (slice_len > 0ull) {
-          return std::span<const Hash>(&allowed_relay_parents_contiguous[0ull],
-                                       slice_len);
-        }
+        return std::span{allowed_relay_parents_contiguous}.first(slice_len);
       }
     }
     return {};
@@ -92,7 +89,7 @@ namespace kagome::parachain {
 
   outcome::result<std::vector<ParachainId>> ImplicitView::activate_leaf(
       const Hash &leaf_hash) {
-    if (leaves.find(leaf_hash) != leaves.end()) {
+    if (leaves.contains(leaf_hash)) {
       return Error::ALREADY_KNOWN;
     }
 

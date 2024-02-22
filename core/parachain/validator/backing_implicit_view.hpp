@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
-#define KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
+#pragma once
 
 #include <optional>
 #include <span>
@@ -71,5 +70,3 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ImplicitView::Error)
-
-#endif  // KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
