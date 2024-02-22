@@ -12,7 +12,7 @@
 #include "log/logger.hpp"
 
 namespace libp2p {
-  class Host;
+  struct Host;
 }
 
 namespace libp2p::multi {
