@@ -368,13 +368,18 @@ namespace kagome::consensus::babe {
     }
     const auto &pre_digest = pre_digest_res.value();
 
-    auto propose = [self{shared_from_this()},
+    auto propose = [wp{weak_from_this()},
                     inherent_data{std::move(inherent_data)},
                     now,
                     proposal_start,
                     pre_digest{std::move(pre_digest)},
                     slot = slot_,
                     parent = parent_]() mutable {
+      auto self = wp.lock();
+      if (not self) {
+        return;
+      }
+
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 

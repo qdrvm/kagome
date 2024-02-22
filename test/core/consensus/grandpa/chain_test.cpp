@@ -123,7 +123,6 @@ class ChainTest : public testing::Test {
 
   void TearDown() override {
     watchdog->stop();
-    main_pool_handler.reset();
   }
 
   std::shared_ptr<BlockTreeMock> tree = std::make_shared<BlockTreeMock>();

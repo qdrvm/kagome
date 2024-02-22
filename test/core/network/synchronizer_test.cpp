@@ -118,7 +118,6 @@ class SynchronizerTest
 
   void TearDown() override {
     watchdog->stop();
-    main_pool_handler.reset();
   }
 
   application::AppConfigurationMock app_config;

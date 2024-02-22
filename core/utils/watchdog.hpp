@@ -165,6 +165,6 @@ namespace kagome {
     std::mutex mutex_;
     std::unordered_map<std::thread::id, Thread> threads_;
     std::atomic_bool stopped_ = false;
-    log::Logger log_ = log::createLogger("Watchdog");
+    log::Logger log_ = log::createLogger("Watchdog", "threads");
   };
 }  // namespace kagome

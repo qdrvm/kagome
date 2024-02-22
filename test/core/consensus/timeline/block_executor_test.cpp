@@ -140,6 +140,8 @@ class BlockExecutorTest : public testing::Test {
     auto app_state_manager =
         std::make_shared<kagome::application::AppStateManagerMock>();
 
+    watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+
     main_thread_pool_ = std::make_shared<MainThreadPool>(
         watchdog_, std::make_shared<boost::asio::io_context>());
     main_pool_handler_ =
@@ -209,15 +211,12 @@ class BlockExecutorTest : public testing::Test {
 
   void TearDown() override {
     watchdog_->stop();
-    worker_thread_pool_.reset();
-    main_pool_handler_.reset();
   }
 
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
 
-  std::shared_ptr<Watchdog> watchdog_ =
-      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+  std::shared_ptr<Watchdog> watchdog_;
   std::shared_ptr<MainThreadPool> main_thread_pool_;
   std::shared_ptr<MainPoolHandler> main_pool_handler_;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool_;

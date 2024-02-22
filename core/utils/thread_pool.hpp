@@ -61,7 +61,7 @@ namespace kagome {
     }
 
     ThreadPool(TestThreadPool test)
-        : log_{log::createLogger("test")},
+        : log_{log::createLogger("TestThreadPool")},
           ioc_{test.io ? test.io
                        : std::make_shared<boost::asio::io_context>()} {}
 

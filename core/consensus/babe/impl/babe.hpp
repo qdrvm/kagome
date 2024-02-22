@@ -137,13 +137,15 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> makeSeal(
         const primitives::Block &block) const override;
 
-    outcome::result<void> processSlotLeadershipProposed(
+   protected:
+    virtual outcome::result<void> processSlotLeadershipProposed(
         uint64_t now,
         clock::SteadyClock::TimePoint proposal_start,
         std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
             &&changes_tracker,
         primitives::Block &&block);
 
+   private:
     log::Logger log_;
 
     const clock::SystemClock &clock_;
