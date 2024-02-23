@@ -274,7 +274,7 @@ namespace kagome::network {
       it->second.time = clock_->now();
     }
 
-    auto proto_col = router_->getCollationProtocol();
+    auto proto_col = router_->getCollationProtocolVStaging();
     BOOST_ASSERT_MSG(proto_col, "Router did not provide collaction protocol");
     stream_engine_->reserveStreams(peer_id, proto_col);
   }
@@ -714,11 +714,7 @@ namespace kagome::network {
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
       auto validation_protocol = [&]() -> std::shared_ptr<ProtocolBase> {
-        if (proto_version == network::CollationVersion::VStaging) {
-          return router_->getValidationProtocolVStaging();
-        } else {
-          return router_->getValidationProtocol();
-        }
+        return router_->getValidationProtocolVStaging();
       }();
 
       BOOST_ASSERT_MSG(validation_protocol,
@@ -841,11 +837,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(proto_val_vstaging,
                      "Router did not provide validation protocol vstaging");
 
-    auto proto_val = router_->getValidationProtocol();
-    BOOST_ASSERT_MSG(proto_val, "Router did not provide validation protocol");
-
     stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
-    stream_engine_->reserveStreams(peer_id, proto_val);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {

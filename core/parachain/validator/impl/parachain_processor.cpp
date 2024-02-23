@@ -177,22 +177,13 @@ namespace kagome::parachain {
       return;
     }
 
-    if (relay_parent_state->get().prospective_parachains_mode) {
-      send_to_validators_group(
-          relay_parent,
-          {network::VersionedValidatorProtocolMessage{
-              network::vstaging::ValidatorProtocolMessage{
-                  network::vstaging::BitfieldDistributionMessage{
-                      network::vstaging::BitfieldDistribution{relay_parent,
-                                                              bitfield}}}}});
-    } else {
-      send_to_validators_group(relay_parent,
-                               {network::VersionedValidatorProtocolMessage{
-                                   network::ValidatorProtocolMessage{
-                                       network::BitfieldDistributionMessage{
-                                           network::BitfieldDistribution{
-                                               relay_parent, bitfield}}}}});
-    }
+    send_to_validators_group(
+        relay_parent,
+        {network::VersionedValidatorProtocolMessage{
+            network::vstaging::ValidatorProtocolMessage{
+                network::vstaging::BitfieldDistributionMessage{
+                    network::vstaging::BitfieldDistribution{relay_parent,
+                                                            bitfield}}}}});
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -530,7 +521,7 @@ namespace kagome::parachain {
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(
-        router_->getValidationProtocol(),
+        router_->getValidationProtocolVStaging(),
         msg,
         [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
   }
@@ -557,11 +548,7 @@ namespace kagome::parachain {
     }
 
     auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
-      if (opt_parachain_state->get().prospective_parachains_mode) {
-        return router_->getValidationProtocolVStaging();
-      } else {
-        return router_->getValidationProtocol();
-      }
+      return router_->getValidationProtocolVStaging();
     }();
 
     auto make_send = [&]<typename Msg>(
@@ -585,20 +572,14 @@ namespace kagome::parachain {
       }
     };
 
-    if (opt_parachain_state->get().prospective_parachains_mode) {
-      make_send(network::vstaging::ViewUpdate{view},
-                router_->getValidationProtocolVStaging());
-    } else {
-      make_send(network::ViewUpdate{view}, router_->getValidationProtocol());
-    }
+    make_send(network::vstaging::ViewUpdate{view},
+              router_->getValidationProtocolVStaging());
   }
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
-    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
-    pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocolVStaging(),
@@ -1031,11 +1012,7 @@ namespace kagome::parachain {
     }
 
     auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
-      if (relay_parent_state->get().prospective_parachains_mode) {
-        return router_->getValidationProtocolVStaging();
-      } else {
-        return router_->getValidationProtocol();
-      }
+      return router_->getValidationProtocolVStaging();
     }();
 
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
@@ -2631,12 +2608,8 @@ namespace kagome::parachain {
       OUTCOME_TRY(
           summary,
           importStatement(validation_result.relay_parent, stm, rp_state));
-      if (rp_state.prospective_parachains_mode) {
-        share_local_statement_vstaging(
-            rp_state, validation_result.relay_parent, stm);
-      } else {
-        share_local_statement_v1(rp_state, validation_result.relay_parent, stm);
-      }
+      share_local_statement_vstaging(
+          rp_state, validation_result.relay_parent, stm);
 
       post_import_statement_actions(
           validation_result.relay_parent, rp_state, summary);
@@ -2792,7 +2765,7 @@ namespace kagome::parachain {
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingCollatingStream(
       const libp2p::peer::PeerId &peer_id, F &&callback) {
-    auto protocol = router_->getCollationProtocol();
+    auto protocol = router_->getCollationProtocolVStaging();
     BOOST_ASSERT(protocol);
 
     return tryOpenOutgoingStream(
@@ -2806,9 +2779,7 @@ namespace kagome::parachain {
       F &&callback) {
     std::shared_ptr<network::ProtocolBase> protocol;
     switch (version) {
-      case network::CollationVersion::V1: {
-        protocol = router_->getValidationProtocol();
-      } break;
+      case network::CollationVersion::V1:
       case network::CollationVersion::VStaging: {
         protocol = router_->getValidationProtocolVStaging();
       } break;
@@ -2862,10 +2833,7 @@ namespace kagome::parachain {
             peer_id, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
               if (auto self = wptr.lock()) {
                 switch (version) {
-                  case network::CollationVersion::V1: {
-                    self->sendMyView(
-                        peer_id, stream, self->router_->getCollationProtocol());
-                  } break;
+                  case network::CollationVersion::V1:
                   case network::CollationVersion::VStaging: {
                     self->sendMyView(
                         peer_id,
@@ -2904,11 +2872,7 @@ namespace kagome::parachain {
             [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
               if (auto self = wptr.lock()) {
                 switch (version) {
-                  case network::CollationVersion::V1: {
-                    self->sendMyView(peer_id,
-                                     stream,
-                                     self->router_->getValidationProtocol());
-                  } break;
+                  case network::CollationVersion::V1:
                   case network::CollationVersion::VStaging: {
                     self->sendMyView(
                         peer_id,
@@ -2963,7 +2927,7 @@ namespace kagome::parachain {
     auto stream_engine = pm_->getStreamEngine();
     BOOST_ASSERT(stream_engine);
 
-    auto collation_protocol = router_->getCollationProtocol();
+    auto collation_protocol = router_->getCollationProtocolVStaging();
     BOOST_ASSERT(collation_protocol);
 
     auto &statements_queue = our_current_state_.seconded_statements[peer_id];
@@ -3000,10 +2964,13 @@ namespace kagome::parachain {
           peer_id,
           collation_protocol,
           std::make_shared<
-              network::WireMessage<network::CollationProtocolMessage>>(
-              network::CollationProtocolMessage(network::CollationMessage(
-                  network::Seconded{.relay_parent = rp,
-                                    .statement = std::move(statement)}))));
+              network::WireMessage<network::vstaging::CollatorProtocolMessage>>(
+              network::vstaging::CollatorProtocolMessage(
+                  network::vstaging::CollationMessage(
+                      network::vstaging::
+                          CollatorProtocolMessageCollationSeconded{
+                              .relay_parent = rp,
+                              .statement = std::move(statement)}))));
     }
   }
 
