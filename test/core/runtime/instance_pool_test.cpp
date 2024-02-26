@@ -58,13 +58,14 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
 
-  RuntimeInstancesPoolImpl pool{module_factory, POOL_SIZE};
+  auto pool =
+      std::make_shared<RuntimeInstancesPoolImpl>(module_factory, POOL_SIZE);
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
-          pool.instantiateFromCode(make_code_hash(i % POOL_SIZE),
+          pool->instantiateFromCode(make_code_hash(i % POOL_SIZE),
                                    code,
                                    RuntimeContext::ContextParams{{{}, {}}}));
     });
@@ -80,7 +81,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   // check that all POOL_SIZE instances are in cache
   for (int i = 0; i < POOL_SIZE; i++) {
     ASSERT_OUTCOME_SUCCESS_TRY(
-        pool.instantiateFromCode(make_code_hash(i),
+        pool->instantiateFromCode(make_code_hash(i),
                                  code.view(),
                                  RuntimeContext::ContextParams{{{}, {}}}));
   }
