@@ -53,7 +53,7 @@ hunter_config(
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       WasmEdge
-      VERSION 0.14.0-alpha.1-qdrvm3
+      VERSION 0.14.0-alpha.1-qdrvm4
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
@@ -110,12 +110,6 @@ hunter_config(
         BUILD_TOOLS=OFF
         BUILD_LIBWASM=OFF
         USE_INTERNAL_SHA256=OFF
-)
-
-hunter_config(
-    OpenSSL
-    URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
-    SHA1 3409260b6a9bf19d10d253c670e5e7b3c7b3a90b
 )
 
 hunter_config(
