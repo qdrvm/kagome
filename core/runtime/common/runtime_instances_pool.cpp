@@ -97,6 +97,7 @@ namespace kagome::runtime {
     }
     BOOST_ASSERT(pool_opt);
     OUTCOME_TRY(instance, pool_opt->get().instantiate(lock));
+    BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
@@ -155,6 +156,7 @@ namespace kagome::runtime {
     auto entry = pools_.get(state);
     BOOST_ASSERT(entry);
     OUTCOME_TRY(instance, entry->get().instantiate(lock));
+    BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), state, std::move(instance));
   }

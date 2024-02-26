@@ -132,7 +132,7 @@ namespace kagome::parachain {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::RuntimeInstancesPool> instance_pool,
+      std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,

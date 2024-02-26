@@ -26,8 +26,9 @@ namespace kagome::runtime {
       : public RuntimeInstancesPool,
         public std::enable_shared_from_this<RuntimeInstancesPoolImpl> {
    public:
-    RuntimeInstancesPoolImpl(std::shared_ptr<ModuleFactory> module_factory,
-                             size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
+    explicit RuntimeInstancesPoolImpl(
+        std::shared_ptr<ModuleFactory> module_factory,
+        size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
         const CodeHash &code_hash,

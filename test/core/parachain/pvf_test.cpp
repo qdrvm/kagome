@@ -59,7 +59,8 @@ class PvfTest : public testing::Test {
 
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
 
-    instance_pool_ = std::make_shared<runtime::RuntimeInstancesPoolMock>();
+    auto instance_pool = std::make_unique<runtime::RuntimeInstancesPoolMock>();
+    instance_pool_ = instance_pool.get();
     auto runtime_properties_cache =
         std::make_shared<runtime::RuntimePropertiesCacheMock>();
     auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
@@ -94,7 +95,7 @@ class PvfTest : public testing::Test {
         nullptr,
         nullptr,
         hasher_,
-        instance_pool_,
+        std::move(instance_pool),
         runtime_properties_cache,
         block_tree,
         sr25519_provider,
@@ -125,7 +126,7 @@ class PvfTest : public testing::Test {
       std::make_shared<AppConfigurationMock>();
   std::shared_ptr<PvfImpl> pvf_;
   std::shared_ptr<crypto::HasherMock> hasher_;
-  std::shared_ptr<runtime::RuntimeInstancesPoolMock> instance_pool_;
+  runtime::RuntimeInstancesPoolMock* instance_pool_;
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
 };
 
