@@ -53,7 +53,7 @@ hunter_config(
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       WasmEdge
-      VERSION 0.14.0-alpha.1-qdrvm3
+      VERSION 0.14.0-alpha.1-qdrvm4
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
