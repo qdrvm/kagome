@@ -15,6 +15,14 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
+
+namespace libp2p::basic {
+  class Scheduler;
+}  // namespace libp2p::basic
+
 namespace kagome::application {
   class AppConfiguration;
   class AppStateManager;
@@ -75,6 +83,8 @@ namespace kagome::parachain {
     };
 
     PvfImpl(const Config &config,
+            std::shared_ptr<boost::asio::io_context> io_context,
+            std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimePropertiesCache>
@@ -84,7 +94,8 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-            std::shared_ptr<application::AppStateManager> app_state_manager);
+            std::shared_ptr<application::AppStateManager> app_state_manager,
+            std::shared_ptr<application::AppConfiguration> app_configuration);
 
     ~PvfImpl() override;
 
@@ -116,6 +127,8 @@ namespace kagome::parachain {
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
     Config config_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -127,6 +140,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
+    std::shared_ptr<application::AppConfiguration> app_configuration_;
 
     std::unique_ptr<std::thread> precompiler_thread_;
   };

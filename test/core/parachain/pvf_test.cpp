@@ -29,6 +29,7 @@
 #include "testutil/prepare_loggers.hpp"
 #include "utils/struct_to_tuple.hpp"
 
+using kagome::application::AppConfigurationMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
@@ -55,6 +56,8 @@ class PvfTest : public testing::Test {
     testutil::prepareLoggers();
     hasher_ = std::make_shared<testing::NiceMock<crypto::HasherMock>>();
     EXPECT_CALL(*hasher_, blake2b_256(_)).WillRepeatedly(Return(""_hash256));
+
+    EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
 
     module_factory_ = std::make_shared<runtime::ModuleFactoryMock>();
     auto runtime_properties_cache =
@@ -88,6 +91,8 @@ class PvfTest : public testing::Test {
             .runtime_instance_cache_size = 2,
             .precompile_threads_num = 0,
         },
+        nullptr,
+        nullptr,
         hasher_,
         module_factory_,
         runtime_properties_cache,
@@ -96,7 +101,8 @@ class PvfTest : public testing::Test {
         parachain_api,
         executor,
         ctx_factory,
-        app_state_manager);
+        app_state_manager,
+        app_config_);
   }
 
   outcome::result<std::shared_ptr<runtime::Module>, runtime::CompilationError>
@@ -117,6 +123,8 @@ class PvfTest : public testing::Test {
   }
 
  protected:
+  std::shared_ptr<AppConfigurationMock> app_config_ =
+      std::make_shared<AppConfigurationMock>();
   std::shared_ptr<PvfImpl> pvf_;
   std::shared_ptr<crypto::HasherMock> hasher_;
   std::shared_ptr<runtime::ModuleFactoryMock> module_factory_;

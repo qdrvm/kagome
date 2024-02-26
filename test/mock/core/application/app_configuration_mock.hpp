@@ -139,6 +139,13 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, shouldPrecompileParachainModules, (), (const, override));
 
+    MOCK_METHOD(bool, usePvfSubprocess, (), (const, override));
+
+    MOCK_METHOD(std::chrono::milliseconds,
+                pvfSubprocessDeadline,
+                (),
+                (const, override));
+
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
     MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));

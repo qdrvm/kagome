@@ -53,7 +53,7 @@ hunter_config(
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       WasmEdge
-      VERSION 0.14.0-alpha.1-qdrvm3
+      VERSION 0.14.0-alpha.1-qdrvm4
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
@@ -99,3 +99,11 @@ if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER
       SHA1 301f8b1775904179cb552c12be237b4aa076981e
   )
 endif ()
+
+hunter_config(
+    libsecp256k1
+    URL https://github.com/qdrvm/soramitsu-libsecp256k1/archive/ace3e08075d9cc1ecff1afe1be65c31fc9059c4c.zip
+    SHA1 bc1e4413a56ce2cdc17175dd1c9b569345c1e709
+    CMAKE_ARGS
+        SECP256K1_ENABLE_MODULE_RECOVERY=ON
+)

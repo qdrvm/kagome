@@ -245,8 +245,24 @@ namespace kagome::application {
     virtual bool purgeWavmCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
+
     virtual uint32_t parachainPrecompilationThreadNum() const = 0;
+
     virtual bool shouldPrecompileParachainModules() const = 0;
+
+    /**
+     * Whether to use a separate process for Pvf check calls.
+     * Allows to terminate long lasting checks by a deadline timeout.
+     *
+     * Defaulted to true.
+     */
+    virtual bool usePvfSubprocess() const = 0;
+
+    /**
+     * Timeout for Pvf check calls execution.
+     * Effective only when usePvfSubprocess() == true.
+     */
+    virtual std::chrono::milliseconds pvfSubprocessDeadline() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
