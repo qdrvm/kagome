@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_TEST_COMPARATOR_HPP
-#define KAGOME_SCALE_TEST_COMPARATOR_HPP
+#pragma once
 
 #include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
@@ -18,5 +18,3 @@ namespace testutil {
   }
 
 }  // namespace testutil
-
-#endif  // KAGOME_SCALE_TEST_COMPARATOR_HPP
