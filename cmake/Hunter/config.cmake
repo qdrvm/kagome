@@ -113,12 +113,6 @@ hunter_config(
 )
 
 hunter_config(
-    OpenSSL
-    URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
-    SHA1 3409260b6a9bf19d10d253c670e5e7b3c7b3a90b
-)
-
-hunter_config(
     libsecp256k1
     URL https://github.com/qdrvm/soramitsu-libsecp256k1/archive/ace3e08075d9cc1ecff1afe1be65c31fc9059c4c.zip
     SHA1 bc1e4413a56ce2cdc17175dd1c9b569345c1e709
