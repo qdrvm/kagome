@@ -9,7 +9,7 @@
 #include "parachain/validator/parachain_observer.hpp"
 
 #include "log/logger.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 
 namespace kagome::network {
   class PeerManager;
@@ -39,28 +39,33 @@ namespace kagome::parachain {
     /// collation protocol observer
     void onIncomingMessage(
         const libp2p::peer::PeerId &peer_id,
-        network::CollationProtocolMessage &&collation_message) override;
-    void onIncomingCollationStream(
-        const libp2p::peer::PeerId &peer_id) override;
+        network::VersionedCollatorProtocolMessage &&msg) override;
+    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id,
+                                   network::CollationVersion version) override;
 
     /// validation protocol observer
-    void onIncomingMessage(
-        const libp2p::peer::PeerId &peer_id,
-        network::ValidatorProtocolMessage &&validation_message) override;
-    void onIncomingValidationStream(
-        const libp2p::peer::PeerId &peer_id) override;
+    void onIncomingMessage(const libp2p::peer::PeerId &peer_id,
+                           network::VersionedValidatorProtocolMessage
+                               &&validation_message) override;
+    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
+                                    network::CollationVersion version) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(
         network::CollationFetchingRequest request) override;
+    outcome::result<network::vstaging::CollationFetchingResponse>
+    OnCollationRequest(
+        network::vstaging::CollationFetchingRequest request) override;
 
     /// We should response with PoV block if we seconded this candidate
     outcome::result<network::ResponsePov> OnPovRequest(
         network::RequestPov request) override;
 
    private:
-    void onAdvertise(const libp2p::peer::PeerId &peer_id,
-                     primitives::BlockHash relay_parent);
+    void onAdvertise(
+        const libp2p::peer::PeerId &peer_id,
+        primitives::BlockHash relay_parent,
+        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
 
     void onDeclare(const libp2p::peer::PeerId &peer_id,
                    network::CollatorPublicKey pubkey,

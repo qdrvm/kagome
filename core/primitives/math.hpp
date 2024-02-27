@@ -9,6 +9,9 @@
 #include <bit>
 #include <limits>
 #include <type_traits>
+#include <outcome/outcome.hpp>
+
+#include "macro/endianness_utils.hpp"
 
 namespace kagome::math {
 
@@ -36,17 +39,29 @@ namespace kagome::math {
     return res;
   }
 
+  template <typename T, typename E>
+  inline outcome::result<void> checked_sub(T &x, T y, E e) {
+    static_assert(std::numeric_limits<T>::is_integer
+                      && !std::numeric_limits<T>::is_signed,
+                  "Value must be integer and unsigned!");
+    if (x >= y) {
+      x -= y;
+      return outcome::success();
+    }
+    return e;
+  }
+
   template <typename T,
             std::enable_if_t<std::is_integral_v<std::decay_t<T>>, bool> = true>
   constexpr auto toLE(const T &value) {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     constexpr size_t size = sizeof(std::decay_t<T>);
     if constexpr (size == 8) {
-      return __builtin_bswap64(value);
+      return LE_BE_SWAP64(value);
     } else if constexpr (size == 4) {
-      return __builtin_bswap32(value);
+      return LE_BE_SWAP32(value);
     } else if constexpr (size == 2) {
-      return __builtin_bswap16(value);
+      return LE_BE_SWAP16(value);
     }
 #endif
     return value;

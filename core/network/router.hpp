@@ -10,6 +10,7 @@
 #include <libp2p/protocol/ping.hpp>
 
 #include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
@@ -35,13 +36,19 @@ namespace kagome::network {
     virtual std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
         const = 0;
     virtual std::shared_ptr<CollationProtocol> getCollationProtocol() const = 0;
+    virtual std::shared_ptr<CollationProtocolVStaging>
+    getCollationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ValidationProtocol> getValidationProtocol()
         const = 0;
+    virtual std::shared_ptr<ValidationProtocolVStaging>
+    getValidationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const = 0;
     virtual std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol()
         const = 0;
+    virtual std::shared_ptr<FetchAttestedCandidateProtocol>
+    getFetchAttestedCandidateProtocol() const = 0;
     virtual std::shared_ptr<FetchAvailableDataProtocol>
     getFetchAvailableDataProtocol() const = 0;
     virtual std::shared_ptr<StatementFetchingProtocol>

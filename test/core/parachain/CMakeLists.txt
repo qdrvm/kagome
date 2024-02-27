@@ -21,3 +21,12 @@ target_link_libraries(assignments_test
     base_fs_test
     validator_parachain
     )
+
+addtest(prospective_parachains
+    prospective_parachains.cpp
+    )
+
+target_link_libraries(prospective_parachains
+    validator_parachain
+    log_configurator
+    )
