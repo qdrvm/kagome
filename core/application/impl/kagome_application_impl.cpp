@@ -48,7 +48,6 @@ namespace kagome::application {
 
   void KagomeApplicationImpl::run() {
     auto app_state_manager = injector_.injectAppStateManager();
-    auto io_context = injector_.injectIoContext();
     auto clock = injector_.injectSystemClock();
     auto watchdog = injector_.injectWatchdog();
 
@@ -80,16 +79,6 @@ namespace kagome::application {
                         res.error());
       exit(EXIT_FAILURE);
     }
-
-    std::unique_ptr<std::thread> asio_runner;
-
-    app_state_manager->atLaunch([ctx{io_context}, watchdog, &asio_runner] {
-      asio_runner = std::make_unique<std::thread>([ctx{ctx}, watchdog] {
-        soralog::util::setThreadName("main_runner");  // explicitly for macos
-        watchdog->run(ctx);
-      });
-      return true;
-    });
 
     std::thread watchdog_thread([watchdog] {
       soralog::util::setThreadName("watchdog");
@@ -130,10 +119,6 @@ namespace kagome::application {
     app_state_manager->run();
 
     watchdog->stop();
-
-    if (asio_runner) {
-      asio_runner->join();
-    }
 
     watchdog_thread.join();
   }

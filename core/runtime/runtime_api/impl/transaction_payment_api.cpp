@@ -37,6 +37,7 @@ namespace kagome::runtime {
                                         const primitives::Extrinsic &ext,
                                         uint32_t len) {
     OUTCOME_TRY(runtime_version, core_api_->version(block));
+
     static const common::Hash64 transaction_payment_api_hash =
         hasher_->blake2b_64(
             common::Buffer::fromString("TransactionPaymentApi"));

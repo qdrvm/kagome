@@ -9,7 +9,7 @@
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/service/jrpc_fn.hpp"
 #include "blockchain/block_header_repository.hpp"
-#include "network/beefy/beefy.hpp"
+#include "consensus/beefy/beefy.hpp"
 
 namespace kagome::api {
   BeefyRpc::BeefyRpc(

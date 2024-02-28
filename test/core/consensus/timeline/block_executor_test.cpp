@@ -8,12 +8,15 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
+#include <latch>
 
 #include "blockchain/block_tree_error.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
@@ -28,12 +31,19 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/watchdog.hpp"
 
 using kagome::TestThreadPool;
+using kagome::Watchdog;
+using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::common::MainPoolHandler;
+using kagome::common::MainThreadPool;
+using kagome::common::WorkerPoolHandler;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::ConsensusSelector;
@@ -73,7 +83,6 @@ using kagome::runtime::OffchainWorkerApi;
 using kagome::runtime::OffchainWorkerApiMock;
 using kagome::transaction_pool::TransactionPool;
 using kagome::transaction_pool::TransactionPoolMock;
-
 using namespace std::chrono_literals;
 
 using testing::_;
@@ -119,6 +128,31 @@ inline GrandpaAuthorityId operator"" _gran_auth(const char *c, size_t s) {
   return res;
 }
 
+class BlockExecutorWrapper : public BlockExecutorImpl {
+ public:
+  using BlockExecutorImpl::BlockExecutorImpl;
+  std::function<void()> on_executed;
+
+ private:
+  void applyBlockExecuted(
+      kagome::primitives::Block &&block,
+      const std::optional<kagome::primitives::Justification> &justification,
+      ApplyJustificationCb &&callback,
+      const kagome::primitives::BlockInfo &block_info,
+      kagome::clock::SteadyClock::TimePoint start_time,
+      const kagome::primitives::BlockInfo &previous_best_block) override {
+    BlockExecutorImpl::applyBlockExecuted(std::move(block),
+                                          justification,
+                                          std::move(callback),
+                                          block_info,
+                                          start_time,
+                                          previous_best_block);
+    if (on_executed) {
+      on_executed();
+    }
+  }
+};
+
 class BlockExecutorTest : public testing::Test {
  public:
   static void SetUpTestCase() {
@@ -127,6 +161,23 @@ class BlockExecutorTest : public testing::Test {
 
   void SetUp() override {
     block_tree_ = std::make_shared<BlockTreeMock>();
+
+    auto app_state_manager =
+        std::make_shared<kagome::application::AppStateManagerMock>();
+
+    watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+
+    main_thread_pool_ = std::make_shared<MainThreadPool>(
+        watchdog_, std::make_shared<boost::asio::io_context>());
+    main_pool_handler_ =
+        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool_);
+    main_pool_handler_->start();
+
+    worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
+    worker_pool_handler_ = std::make_shared<WorkerPoolHandler>(
+        app_state_manager, worker_thread_pool_);
+    worker_pool_handler_->start();
+
     core_ = std::make_shared<CoreMock>();
 
     babe_config_ = std::make_shared<BabeConfiguration>();
@@ -171,20 +222,32 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
-                                                          TestThreadPool{io_},
-                                                          io_,
-                                                          core_,
-                                                          tx_pool_,
-                                                          hasher_,
-                                                          offchain_worker_api_,
-                                                          storage_sub_engine_,
-                                                          chain_sub_engine_,
-                                                          std::move(appender));
+    block_executor_ =
+        std::make_shared<BlockExecutorWrapper>(block_tree_,
+                                               main_pool_handler_,
+                                               worker_pool_handler_,
+                                               core_,
+                                               tx_pool_,
+                                               hasher_,
+                                               offchain_worker_api_,
+                                               storage_sub_engine_,
+                                               chain_sub_engine_,
+                                               std::move(appender));
+  }
+
+  void TearDown() override {
+    watchdog_->stop();
   }
 
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
+
+  std::shared_ptr<Watchdog> watchdog_;
+  std::shared_ptr<MainThreadPool> main_thread_pool_;
+  std::shared_ptr<MainPoolHandler> main_pool_handler_;
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_;
+  std::shared_ptr<WorkerPoolHandler> worker_pool_handler_;
+
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
@@ -204,7 +267,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
 
-  std::shared_ptr<BlockExecutorImpl> block_executor_;
+  std::shared_ptr<BlockExecutorWrapper> block_executor_;
 };
 
 /**
@@ -272,10 +335,13 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
+  std::latch latch(1);
+  block_executor_->on_executed = [&] { latch.count_down(); };
+
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
       [&](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
 
-  io_->run();
+  latch.wait();
 }

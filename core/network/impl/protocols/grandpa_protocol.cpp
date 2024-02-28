@@ -508,7 +508,7 @@ namespace kagome::network {
 
   common::Hash256 GrandpaProtocol::getHash(
       const GrandpaMessage &message) const {
-    return hasher_->twox_256(scale::encode(message).value());
+    return hasher_->twox_256(::scale::encode(message).value());
   }
 
   bool GrandpaProtocol::addKnown(const PeerId &peer,

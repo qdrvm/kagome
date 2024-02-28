@@ -51,6 +51,8 @@ namespace kagome::parachain {
     HEAD_HASH,
     COMMITMENTS_HASH,
     OUTPUTS,
+    PERSISTED_DATA_HASH,
+    NO_CODE,
   };
 }  // namespace kagome::parachain
 
@@ -100,8 +102,10 @@ namespace kagome::parachain {
 
     bool prepare();
 
-    outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
-                                    const ParachainBlock &pov) const override;
+    outcome::result<Result> pvfSync(
+        const CandidateReceipt &receipt,
+        const ParachainBlock &pov,
+        const runtime::PersistedValidationData &pvd) const override;
     outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,
         const ParachainBlock &pov,
@@ -112,9 +116,8 @@ namespace kagome::parachain {
     using CandidateDescriptor = network::CandidateDescriptor;
     using ParachainRuntime = network::ParachainRuntime;
 
-    outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-    findData(const CandidateDescriptor &descriptor) const;
-
+    outcome::result<ParachainRuntime> getCode(
+        const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
         const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,

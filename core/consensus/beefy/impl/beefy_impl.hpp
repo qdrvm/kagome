@@ -6,20 +6,20 @@
 
 #pragma once
 
-#include <libp2p/basic/scheduler.hpp>
 #include <map>
 
+#include <libp2p/basic/scheduler.hpp>
+
+#include "consensus/beefy/beefy.hpp"
 #include "consensus/beefy/types.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-#include "network/beefy/i_beefy.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome {
-  class WeakIoContextStrand;
+  class PoolHandler;
 }
 
 namespace kagome::application {
@@ -32,8 +32,9 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class WorkerThreadPool;
-}
+  class MainPoolHandler;
+  class WorkerPoolHandler;
+}  // namespace kagome::common
 
 namespace kagome::consensus {
   class Timeline;
@@ -54,26 +55,30 @@ namespace kagome::storage {
 
 namespace kagome::network {
   class BeefyProtocol;
+  class BeefyThreadPool;
 
-  class Beefy : public IBeefy, public std::enable_shared_from_this<Beefy> {
+  class BeefyImpl : public Beefy,
+                    public std::enable_shared_from_this<BeefyImpl> {
    public:
-    Beefy(application::AppStateManager &app_state_manager,
-          const application::ChainSpec &chain_spec,
-          std::shared_ptr<blockchain::BlockTree> block_tree,
-          std::shared_ptr<runtime::BeefyApi> beefy_api,
-          std::shared_ptr<crypto::EcdsaProvider> ecdsa,
-          std::shared_ptr<storage::SpacedStorage> db,
-          const common::WorkerThreadPool &worker_thread_pool,
-          WeakIoContext main_thread_context,
-          std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-          LazySPtr<consensus::Timeline> timeline,
-          std::shared_ptr<crypto::SessionKeys> session_keys,
-          LazySPtr<BeefyProtocol> beefy_protocol,
-          primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+    BeefyImpl(application::AppStateManager &app_state_manager,
+              const application::ChainSpec &chain_spec,
+              std::shared_ptr<blockchain::BlockTree> block_tree,
+              std::shared_ptr<runtime::BeefyApi> beefy_api,
+              std::shared_ptr<crypto::EcdsaProvider> ecdsa,
+              std::shared_ptr<storage::SpacedStorage> db,
+              std::shared_ptr<common::MainPoolHandler> main_thread_handler,
+              std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
+              std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+              LazySPtr<consensus::Timeline> timeline,
+              std::shared_ptr<crypto::SessionKeys> session_keys,
+              LazySPtr<BeefyProtocol> beefy_protocol,
+              primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
-    bool start();
+    void prepare();
+    void start();
+    void stop();
 
-    primitives::BlockNumber finalized() const;
+    primitives::BlockNumber finalized() const override;
 
     outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const override;
@@ -81,7 +86,7 @@ namespace kagome::network {
     void onJustification(const primitives::BlockHash &block_hash,
                          primitives::Justification raw) override;
 
-    void onMessage(consensus::beefy::BeefyGossipMessage message);
+    void onMessage(consensus::beefy::BeefyGossipMessage message) override;
 
    private:
     struct Session {
@@ -117,8 +122,8 @@ namespace kagome::network {
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
-    std::shared_ptr<WeakIoContextStrand> strand_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> beefy_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;

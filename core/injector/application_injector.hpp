@@ -69,6 +69,10 @@ namespace kagome {
     class ApiService;
   }
 
+  namespace common {
+    class MainThreadPool;
+  }
+
   namespace consensus {
     class Timeline;
   }
@@ -114,6 +118,7 @@ namespace kagome::injector {
     std::shared_ptr<application::AppStateManager> injectAppStateManager();
     std::shared_ptr<boost::asio::io_context> injectIoContext();
     std::shared_ptr<Watchdog> injectWatchdog();
+    std::shared_ptr<common::MainThreadPool> injectMainThreadPool();
     std::shared_ptr<metrics::Exposer> injectOpenMetricsService();
     std::shared_ptr<network::Router> injectRouter();
     std::shared_ptr<network::PeerManager> injectPeerManager();

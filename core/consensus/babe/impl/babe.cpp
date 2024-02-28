@@ -11,8 +11,10 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -31,6 +33,7 @@
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -74,15 +77,15 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-      std::shared_ptr<parachain::BackingStore> backing_store,
+      std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      const common::WorkerThreadPool &worker_thread_pool,
-      WeakIoContext main_thread_context)
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -95,15 +98,15 @@ namespace kagome::consensus::babe {
         sr25519_provider_(std::move(sr25519_provider)),
         validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
-        backing_store_(std::move(backing_store)),
+        candidates_source_(std::move(candidates_source)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         proposer_(std::move(proposer)),
         storage_sub_engine_(std::move(storage_sub_engine)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_thread_context_(std::move(main_thread_context)),
-        worker_thread_context_{worker_thread_pool.io_context()},
+        main_pool_handler_(std::move(main_pool_handler)),
+        worker_pool_handler_(std::move(worker_pool_handler)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -114,15 +117,15 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
-    BOOST_ASSERT(backing_store_);
+    BOOST_ASSERT(candidates_source_);
     BOOST_ASSERT(dispute_coordinator_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
-    BOOST_ASSERT(not main_thread_context_.expired());
-    BOOST_ASSERT(not worker_thread_context_.expired());
+    BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -329,9 +332,13 @@ namespace kagome::consensus::babe {
       auto &relay_parent = parent_.hash;
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
+      SL_INFO(log_,
+              "Bitfields set for block.(count={}, relay_parent={})",
+              parachain_inherent_data.bitfields.size(),
+              relay_parent);
 
       parachain_inherent_data.backed_candidates =
-          backing_store_->get(relay_parent);
+          candidates_source_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                parachain_inherent_data.backed_candidates.size(),
@@ -366,13 +373,18 @@ namespace kagome::consensus::babe {
     }
     const auto &pre_digest = pre_digest_res.value();
 
-    auto propose = [self{shared_from_this()},
+    auto propose = [wp{weak_from_this()},
                     inherent_data{std::move(inherent_data)},
                     now,
                     proposal_start,
                     pre_digest{std::move(pre_digest)},
                     slot = slot_,
                     parent = parent_]() mutable {
+      auto self = wp.lock();
+      if (not self) {
+        return;
+      }
+
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
@@ -404,11 +416,10 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      post(self->main_thread_context_, std::move(proposed));
+      self->main_pool_handler_->execute(std::move(proposed));
     };
 
-    post(worker_thread_context_, std::move(propose));
-
+    worker_pool_handler_->execute(std::move(propose));
     return outcome::success();
   }
 
