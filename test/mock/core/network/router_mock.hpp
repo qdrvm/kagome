@@ -17,8 +17,6 @@ namespace kagome::network {
    */
   class RouterMock : public Router {
    public:
-    virtual ~RouterMock() = default;
-
     MOCK_METHOD(std::shared_ptr<StatementFetchingProtocol>,
                 getFetchStatementProtocol,
                 (),
@@ -98,7 +96,7 @@ namespace kagome::network {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<BeefyProtocolImpl>,
+    MOCK_METHOD(std::shared_ptr<BeefyProtocol>,
                 getBeefyProtocol,
                 (),
                 (const, override));

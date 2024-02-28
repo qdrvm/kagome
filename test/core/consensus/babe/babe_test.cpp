@@ -6,8 +6,11 @@
 
 #include <gtest/gtest.h>
 
+#include <latch>
+
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -16,6 +19,7 @@
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
@@ -40,15 +44,22 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
+#include "utils/watchdog.hpp"
 
 using kagome::TestThreadPool;
+using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
+using kagome::application::AppStateManagerMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
+using kagome::common::MainPoolHandler;
+using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
+using kagome::common::WorkerPoolHandler;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -142,6 +153,27 @@ static Digest make_digest(SlotNumber slot) {
   return digest;
 };
 
+class BabeWrapper : public Babe {
+ public:
+  using Babe::Babe;
+  std::function<void()> on_proposed;
+
+ private:
+  outcome::result<void> processSlotLeadershipProposed(
+      uint64_t now,
+      kagome::clock::SteadyClock::TimePoint proposal_start,
+      std::shared_ptr<kagome::storage::changes_trie::StorageChangesTrackerImpl>
+          &&changes_tracker,
+      kagome::primitives::Block &&block) override {
+    auto res = Babe::processSlotLeadershipProposed(
+        now, proposal_start, std::move(changes_tracker), std::move(block));
+    if (on_proposed) {
+      on_proposed();
+    }
+    return res;
+  }
+};
+
 class BabeTest : public testing::Test {
  public:
   static void SetUpTestCase() {
@@ -190,7 +222,6 @@ class BabeTest : public testing::Test {
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
     block_validator = std::make_shared<BabeBlockValidatorMock>();
     bitfield_store = std::make_shared<BitfieldStoreMock>();
-    backing_store = std::make_shared<BackingStoreMock>();
 
     dispute_coordinator = std::make_shared<DisputeCoordinatorMock>();
     ON_CALL(*dispute_coordinator, getDisputeForInherentData(_, _))
@@ -209,27 +240,48 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
-    babe = std::make_shared<Babe>(app_config,
-                                  clock,
-                                  block_tree,
-                                  testutil::sptr_to_lazy<SlotsUtil>(slots_util),
-                                  babe_config_repo,
-                                  timings,
-                                  session_keys,
-                                  lottery,
-                                  hasher,
-                                  sr25519_provider,
-                                  block_validator,
-                                  bitfield_store,
-                                  backed_candidates_source_,
-                                  dispute_coordinator,
-                                  proposer,
-                                  storage_sub_engine,
-                                  chain_sub_engine,
-                                  announce_transmitter,
-                                  offchain_worker_api,
-                                  TestThreadPool{io_},
-                                  io_);
+    watchdog = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+
+    app_state_manager =
+        std::make_shared<kagome::application::AppStateManagerMock>();
+
+    main_thread_pool = std::make_shared<MainThreadPool>(
+        watchdog, std::make_shared<boost::asio::io_context>());
+    main_pool_handler =
+        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+    main_pool_handler->start();
+
+    worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
+    worker_pool_handler = std::make_shared<WorkerPoolHandler>(
+        app_state_manager, worker_thread_pool);
+    worker_pool_handler->start();
+
+    babe = std::make_shared<BabeWrapper>(
+        app_config,
+        clock,
+        block_tree,
+        testutil::sptr_to_lazy<SlotsUtil>(slots_util),
+        babe_config_repo,
+        timings,
+        session_keys,
+        lottery,
+        hasher,
+        sr25519_provider,
+        block_validator,
+        bitfield_store,
+        backed_candidates_source_,
+        dispute_coordinator,
+        proposer,
+        storage_sub_engine,
+        chain_sub_engine,
+        announce_transmitter,
+        offchain_worker_api,
+        main_pool_handler,
+        worker_pool_handler);
+  }
+
+  void TearDown() override {
+    watchdog->stop();
   }
 
   AppConfigurationMock app_config;
@@ -244,7 +296,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider;
   std::shared_ptr<BabeBlockValidatorMock> block_validator;
   std::shared_ptr<BitfieldStoreMock> bitfield_store;
-  std::shared_ptr<BackingStoreMock> backing_store;
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator;
   std::shared_ptr<ProposerMock> proposer;
   std::shared_ptr<StorageSubscriptionEngine> storage_sub_engine;
@@ -253,8 +304,12 @@ class BabeTest : public testing::Test {
       backed_candidates_source_;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<boost::asio::io_context> io_ =
-      std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<AppStateManagerMock> app_state_manager;
+  std::shared_ptr<Watchdog> watchdog;
+  std::shared_ptr<MainThreadPool> main_thread_pool;
+  std::shared_ptr<MainPoolHandler> main_pool_handler;
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool;
+  std::shared_ptr<WorkerPoolHandler> worker_pool_handler;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
@@ -264,7 +319,7 @@ class BabeTest : public testing::Test {
   static constexpr EpochNumber uninitialized_epoch =
       std::numeric_limits<EpochNumber>::max();
 
-  std::shared_ptr<Babe> babe;  // testee
+  std::shared_ptr<BabeWrapper> babe;  // testee
 
   const BlockInfo genesis_block_info{0, "block#0"_hash256};
   const BlockHeader genesis_block_header{
@@ -403,7 +458,10 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
             ValidatorStatus::Validator);
 
+  std::latch latch(1);
+  babe->on_proposed = [&] { latch.count_down(); };
+
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  io_->run();
+  latch.wait();
 }

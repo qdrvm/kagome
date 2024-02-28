@@ -11,8 +11,12 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
+#include <libp2p/protocol/ping.hpp>
 
-#include "network/beefy/protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/protocols/beefy_protocol.hpp"
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
@@ -815,8 +819,10 @@ namespace kagome::network {
                 peer_info,
                 peer_state.value().get(),
                 network::CollationVersion::VStaging);
+            auto beefy_protocol = std::static_pointer_cast<BeefyProtocolImpl>(
+                self->router_->getBeefyProtocol());
             openOutgoing(self->stream_engine_,
-                         self->router_->getBeefyProtocol(),
+                         beefy_protocol,
                          peer_info,
                          [](outcome::result<
                              std::shared_ptr<libp2p::connection::Stream>>) {});

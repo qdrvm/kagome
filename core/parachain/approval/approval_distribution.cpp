@@ -11,6 +11,7 @@
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
+#include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
@@ -18,6 +19,8 @@
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
@@ -438,7 +441,7 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
@@ -452,16 +455,13 @@ namespace kagome::parachain {
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
       std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-      WeakIoContext main_thread_context,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{[&] {
           BOOST_ASSERT(approval_thread_pool != nullptr);
           return approval_thread_pool->handler();
         }()},
-        worker_thread_handler_{[&] {
-          BOOST_ASSERT(worker_thread_pool != nullptr);
-          return worker_thread_pool->handler();
-        }()},
+        worker_pool_handler_(std::move(worker_pool_handler)),
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -476,7 +476,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_thread_context_{std::move(main_thread_context)},
+        main_pool_handler_(std::move(main_pool_handler)),
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -494,9 +494,11 @@ namespace kagome::parachain {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
-    BOOST_ASSERT(not main_thread_context_.expired());
-    BOOST_ASSERT(app_state_manager);
+    BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
+    BOOST_ASSERT(approval_thread_handler_);
 
+    BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
 
@@ -546,12 +548,17 @@ namespace kagome::parachain {
           }
         });
 
-    approval_thread_handler_->start();
-    worker_thread_handler_->start();
-
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
+  }
+
+  void ApprovalDistribution::start() {
+    approval_thread_handler_->start();
+  }
+
+  void ApprovalDistribution::stop() {
+    approval_thread_handler_->stop();
   }
 
   void ApprovalDistribution::store_remote_view(
@@ -677,7 +684,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
     REINVOKE(
-        *worker_thread_handler_, imported_block_info, block_hash, block_header);
+        *worker_pool_handler_, imported_block_info, block_hash, block_header);
 
     auto call = [&]() -> outcome::result<NewHeadDataContext> {
       OUTCOME_TRY(included_candidates, request_included_candidates(block_hash));
@@ -2113,8 +2120,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::runDistributeAssignment(
       std::unordered_map<libp2p::peer::PeerId, std::deque<network::Assignment>>
           &&messages) {
-    REINVOKE(
-        main_thread_context_, runDistributeAssignment, std::move(messages));
+    REINVOKE(*main_pool_handler_, runDistributeAssignment, std::move(messages));
 
     SL_TRACE(logger_,
              "Distributing assignments to peers. (peers count={})",
@@ -2127,7 +2133,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::send_assignments_batched(
       std::deque<network::Assignment> &&assignments,
       const libp2p::peer::PeerId &peer_id) {
-    REINVOKE(main_thread_context_,
+    REINVOKE(*main_pool_handler_,
              send_assignments_batched,
              std::move(assignments),
              peer_id);
@@ -2169,7 +2175,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::send_approvals_batched(
       std::deque<network::IndirectSignedApprovalVote> &&approvals,
       const libp2p::peer::PeerId &peer_id) {
-    REINVOKE(main_thread_context_,
+    REINVOKE(*main_pool_handler_,
              send_approvals_batched,
              std::move(approvals),
              peer_id);
@@ -2218,7 +2224,7 @@ namespace kagome::parachain {
       std::unordered_map<libp2p::peer::PeerId,
                          std::deque<network::IndirectSignedApprovalVote>>
           &&messages) {
-    REINVOKE(main_thread_context_, runDistributeApproval, std::move(messages));
+    REINVOKE(*main_pool_handler_, runDistributeApproval, std::move(messages));
 
     SL_TRACE(logger_,
              "Sending an approval messages to peers. (num peers={})",

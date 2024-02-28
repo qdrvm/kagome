@@ -12,23 +12,22 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
-#include "utils/weak_io_context.hpp"
-
-namespace kagome {
-  class ThreadHandler;
-}
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
   class BlockTree;
 }  // namespace kagome::blockchain
 
-namespace kagome::dispute {
-  class DisputeCoordinator;
+namespace kagome::common {
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus::grandpa {
   class AuthorityManager;
+}
+
+namespace kagome::dispute {
+  class DisputeCoordinator;
 }
 
 namespace kagome::network {
@@ -62,7 +61,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<crypto::Hasher> hasher,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     ~EnvironmentImpl() override = default;
 
@@ -135,7 +134,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

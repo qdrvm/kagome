@@ -8,26 +8,38 @@
 
 #include "network/router.hpp"
 
-#include "application/app_configuration.hpp"
-#include "application/app_state_manager.hpp"
 #include "injector/lazy.hpp"
-#include "libp2p/host/host.hpp"
-#include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/protocol/ping.hpp"
-#include "network/beefy/protocol.hpp"
-#include "network/impl/protocols/light.hpp"
-#include "network/sync_protocol_observer.hpp"
-#include "network/types/bootstrap_nodes.hpp"
-#include "network/types/own_peer_info.hpp"
-#include "network/warp/protocol.hpp"
+#include "log/logger.hpp"
+
+namespace libp2p {
+  struct Host;
+}
+
+namespace libp2p::multi {
+  class Multiaddress;
+}
 
 namespace kagome::application {
+  class AppConfiguration;
+  class AppStateManager;
   class ChainSpec;
-}
+}  // namespace kagome::application
 
 namespace kagome::blockchain {
   class BlockStorage;
 }
+
+namespace kagome::common {
+  class MainPoolHandler;
+}
+
+namespace kagome::network {
+  struct OwnPeerInfo;
+  struct BootstrapNodes;
+  class WarpProtocol;
+  class BeefyJustificationProtocol;
+  class LightProtocol;
+}  // namespace kagome::network
 
 namespace kagome::network {
   class RouterLibp2p : public Router,
@@ -35,6 +47,7 @@ namespace kagome::network {
    public:
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const OwnPeerInfo &own_info,
@@ -44,7 +57,7 @@ namespace kagome::network {
         LazySPtr<SyncProtocol> sync_protocol,
         LazySPtr<StateProtocol> state_protocol,
         LazySPtr<WarpProtocol> warp_protocol,
-        LazySPtr<BeefyProtocolImpl> beefy_protocol,
+        LazySPtr<BeefyProtocol> beefy_protocol,
         LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
         LazySPtr<LightProtocol> light_protocol,
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
@@ -104,7 +117,7 @@ namespace kagome::network {
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
 
-    std::shared_ptr<BeefyProtocolImpl> getBeefyProtocol() const override;
+    std::shared_ptr<BeefyProtocol> getBeefyProtocol() const override;
 
    private:
     /**
@@ -121,6 +134,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
     const OwnPeerInfo &own_info_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     LazySPtr<BlockAnnounceProtocol> block_announce_protocol_;
     LazySPtr<GrandpaProtocol> grandpa_protocol_;
@@ -128,7 +142,7 @@ namespace kagome::network {
     LazySPtr<SyncProtocol> sync_protocol_;
     LazySPtr<StateProtocol> state_protocol_;
     LazySPtr<WarpProtocol> warp_protocol_;
-    LazySPtr<BeefyProtocolImpl> beefy_protocol_;
+    LazySPtr<BeefyProtocol> beefy_protocol_;
     LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol_;
     LazySPtr<LightProtocol> light_protocol_;
 

@@ -9,9 +9,9 @@
 #include <bit>
 #include <limits>
 #include <type_traits>
-#include <outcome/outcome.hpp>
 
 #include "macro/endianness_utils.hpp"
+#include "outcome/outcome.hpp"
 
 namespace kagome::math {
 

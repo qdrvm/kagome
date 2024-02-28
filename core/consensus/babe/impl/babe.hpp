@@ -17,11 +17,10 @@
 #include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
-}
+}  // namespace kagome::application
 
 namespace kagome::authorship {
   class Proposer;
@@ -32,8 +31,9 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class WorkerThreadPool;
-}
+  class WorkerPoolHandler;
+  class MainPoolHandler;
+}  // namespace kagome::common
 
 namespace kagome::consensus {
   class SlotsUtil;
@@ -107,8 +107,8 @@ namespace kagome::consensus::babe {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        const common::WorkerThreadPool &worker_thread_pool,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
 
     bool isGenesisConsensus() const override;
 
@@ -138,13 +138,15 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> makeSeal(
         const primitives::Block &block) const override;
 
-    outcome::result<void> processSlotLeadershipProposed(
+   protected:
+    virtual outcome::result<void> processSlotLeadershipProposed(
         uint64_t now,
         clock::SteadyClock::TimePoint proposal_start,
         std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
             &&changes_tracker,
         primitives::Block &&block);
 
+   private:
     log::Logger log_;
 
     const clock::SystemClock &clock_;
@@ -165,8 +167,8 @@ namespace kagome::consensus::babe {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    WeakIoContext main_thread_context_;
-    WeakIoContext worker_thread_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

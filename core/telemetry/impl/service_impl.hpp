@@ -34,6 +34,14 @@ namespace rapidjson {
 #include "telemetry/impl/message_pool.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}
+
+namespace kagome::telemetry {
+  class TelemetryThreadPool;
+}
+
 namespace kagome::telemetry {
 
   static constexpr auto kImplementationName = "Kagome Node";
@@ -55,7 +63,8 @@ namespace kagome::telemetry {
         const libp2p::Host &host,
         std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<const network::PeerManager> peer_manager);
+        std::shared_ptr<const network::PeerManager> peer_manager,
+        std::shared_ptr<TelemetryThreadPool> telemetry_thread_pool);
     TelemetryServiceImpl(const TelemetryServiceImpl &) = delete;
     TelemetryServiceImpl(TelemetryServiceImpl &&) = delete;
     TelemetryServiceImpl &operator=(const TelemetryServiceImpl &) = delete;
@@ -131,16 +140,15 @@ namespace kagome::telemetry {
     std::shared_ptr<const transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<const storage::BufferStorage> buffer_storage_;
     std::shared_ptr<const network::PeerManager> peer_manager_;
+    std::shared_ptr<PoolHandler> pool_handler_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+
     const bool enabled_;
 
     // connections thread fields
     std::atomic_bool shutdown_requested_ = false;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    using WorkGuardT = boost::asio::executor_work_guard<
-        boost::asio::io_context::executor_type>;
-    std::shared_ptr<WorkGuardT> work_guard_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
-    std::unique_ptr<std::thread> worker_thread_;
+
     std::vector<std::shared_ptr<TelemetryConnection>> connections_;
     libp2p::basic::Scheduler::Handle frequent_timer_;
     libp2p::basic::Scheduler::Handle delayed_timer_;
