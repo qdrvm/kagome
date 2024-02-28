@@ -21,6 +21,7 @@
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
 #include "mock/core/parachain/approved_ancestor.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
@@ -51,6 +52,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::runtime::GrandpaApiMock;
 using kagome::runtime::ParachainHostMock;
 using testing::_;
 using testing::Invoke;
@@ -79,6 +81,7 @@ class ChainTest : public testing::Test {
         approved_ancestor,
         testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
         nullptr,
+        grandpa_api,
         dispute_coordinator,
         parachain_api,
         backing_store,
@@ -133,7 +136,8 @@ class ChainTest : public testing::Test {
   std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =
       std::make_shared<GrandpaTransmitterMock>();
   std::shared_ptr<GrandpaMock> grandpa_ = std::make_shared<GrandpaMock>();
-
+  std::shared_ptr<GrandpaApiMock> grandpa_api =
+      std::make_shared<GrandpaApiMock>();
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator =
       std::make_shared<DisputeCoordinatorMock>();
   std::shared_ptr<ParachainHostMock> parachain_api =

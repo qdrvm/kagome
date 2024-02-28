@@ -19,6 +19,7 @@
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
+#include "consensus/grandpa/voting_round.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "crypto/hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -26,6 +27,7 @@
 #include "network/grandpa_transmitter.hpp"
 #include "parachain/backing/store.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/grandpa_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "scale/scale.hpp"
 #include "utils/pool_handler.hpp"
@@ -44,6 +46,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
       std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue,
+      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
@@ -56,6 +59,7 @@ namespace kagome::consensus::grandpa {
         approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
         verified_justification_queue_(std::move(verified_justification_queue)),
+        grandpa_api_(std::move(grandpa_api)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
@@ -66,6 +70,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
+    BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(dispute_coordinator_ != nullptr);
     BOOST_ASSERT(parachain_api_ != nullptr);
     BOOST_ASSERT(backing_store_ != nullptr);
@@ -436,6 +441,54 @@ namespace kagome::consensus::grandpa {
         scale::decode<GrandpaJustification>(encoded_justification.data));
 
     return outcome::success(std::move(grandpa_justification));
+  }
+
+  outcome::result<void> EnvironmentImpl::reportEquivocation(
+      const VotingRound &round, const Equivocation &equivocation) const {
+    auto last_finalized = round.lastFinalizedBlock();
+    auto authority_set_id = round.voterSetId();
+
+    // generate key ownership proof at that block
+    auto key_owner_proof_res = grandpa_api_->generate_key_ownership_proof(
+        last_finalized.hash, authority_set_id, equivocation.offender());
+    if (key_owner_proof_res.has_error()) {
+      SL_WARN(
+          logger_,
+          "Round #{}: can't generate key ownership proof for equivocation report: {}",
+          equivocation.round(),
+          key_owner_proof_res.error());
+      return key_owner_proof_res.as_failure();
+    }
+    const auto &key_owner_proof_opt = key_owner_proof_res.value();
+
+    if (not key_owner_proof_opt.has_value()) {
+      SL_DEBUG(
+          logger_,
+          "Round #{}: can't generate key ownership proof for equivocation report: "
+          "Equivocation offender is not part of the authority set.",
+          equivocation.round());
+      return outcome::success();  // ensure if an error type is right
+    }
+    const auto &key_owner_proof = key_owner_proof_opt.value();
+
+    // submit an equivocation report at **best** block
+    EquivocationProof equivocation_proof{
+        .set_id = authority_set_id,
+        .equivocation = std::move(equivocation),
+    };
+
+    auto submit_res =
+        grandpa_api_->submit_report_equivocation_unsigned_extrinsic(
+            last_finalized.hash, equivocation_proof, key_owner_proof);
+    if (submit_res.has_error()) {
+      SL_WARN(logger_,
+              "Round #{}: can't submit equivocation report: {}",
+              equivocation.round(),
+              key_owner_proof_res.error());
+      return submit_res.as_failure();
+    }
+
+    return outcome::success();
   }
 
 }  // namespace kagome::consensus::grandpa

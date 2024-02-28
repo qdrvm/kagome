@@ -20,6 +20,7 @@
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -28,6 +29,7 @@ using kagome::consensus::grandpa::AuthoritySet;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
+using kagome::runtime::GrandpaApiMock;
 using Propagation = kagome::consensus::grandpa::VotingRound::Propagation;
 
 using namespace std::chrono_literals;
