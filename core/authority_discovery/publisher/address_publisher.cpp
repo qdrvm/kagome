@@ -58,7 +58,7 @@ namespace kagome::authority_discovery {
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
       libp2p_key_.emplace(crypto::Ed25519Keypair{
           .secret_key =
-              crypto::Ed25519PrivateKey::fromSpan(libp2p_key.privateKey.data)
+              crypto::Ed25519PrivateKey::from(libp2p_key.privateKey.data)
                   .value(),
           .public_key =
               crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)

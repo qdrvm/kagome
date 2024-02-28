@@ -4,6 +4,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(kagome_crypto common.cpp)
+target_link_libraries(kagome_crypto
+    OpenSSL::Crypto
+    )
+kagome_install(kagome_crypto)
+
 add_library(hasher
     hasher/hasher_impl.cpp
     )
@@ -59,7 +65,7 @@ kagome_install(sr25519_provider)
 add_library(ecdsa_provider
     ecdsa/ecdsa_provider_impl.cpp
     ecdsa_types.cpp
-    )
+)
 target_link_libraries(ecdsa_provider
     hasher
     logger

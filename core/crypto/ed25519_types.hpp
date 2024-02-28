@@ -11,6 +11,7 @@ extern "C" {
 }
 
 #include "common/blob.hpp"
+#include "crypto/common.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::crypto {
@@ -29,9 +30,9 @@ namespace kagome::crypto {
 
 }  // namespace kagome::crypto
 
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           Ed25519PrivateKey,
-                           constants::ed25519::PRIVKEY_SIZE);
+// KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+//                            Ed25519PrivateKey,
+//                            constants::ed25519::PRIVKEY_SIZE);
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Ed25519PublicKey,
                            constants::ed25519::PUBKEY_SIZE);
@@ -43,6 +44,41 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            constants::ed25519::SEED_SIZE);
 
 namespace kagome::crypto {
+
+  class Ed25519PrivateKey
+      : public common::SLBuffer<constants::ed25519::PRIVKEY_SIZE,
+                                SecureHeapAllocator<uint8_t>> {
+   public:
+    Ed25519PrivateKey(const Ed25519PrivateKey &) = delete;
+    Ed25519PrivateKey &operator=(const Ed25519PrivateKey &) = delete;
+
+    Ed25519PrivateKey(Ed25519PrivateKey &&key) noexcept
+        : SLBuffer{std::move(key)} {}
+
+    Ed25519PrivateKey &operator=(Ed25519PrivateKey &&key) noexcept {
+      (*this).SLBuffer::operator=(std::move(key));
+      return *this;
+    }
+
+    // && to highlight that view will be cleared
+    static Ed25519PrivateKey from(
+        std::span<uint8_t, constants::ed25519::PRIVKEY_SIZE> &&view) {
+      Ed25519PrivateKey key;
+      key.put(view);
+      OPENSSL_cleanse(view.data(), view.size());
+      return key;
+    }
+    static outcome::result<Ed25519PrivateKey> from(std::span<uint8_t> &&view) {
+      if (view.size() != constants::ed25519::PRIVKEY_SIZE) {
+        return common::BlobError::INCORRECT_LENGTH;
+      }
+      return Ed25519PrivateKey::from(
+          std::span<uint8_t, constants::ed25519::PRIVKEY_SIZE>{view});
+    }
+
+   private:
+    Ed25519PrivateKey() {}
+  };
 
   template <typename D>
   struct Ed25519Signed {

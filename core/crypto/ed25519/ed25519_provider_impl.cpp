@@ -10,6 +10,7 @@ extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 
+#include "crypto/common.hpp"
 #include "crypto/hasher.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
@@ -43,12 +44,13 @@ namespace kagome::crypto {
     }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
     ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
-    Ed25519Keypair kp;
-    std::copy_n(
-        kp_bytes.begin(), ED25519_SECRET_KEY_LENGTH, kp.secret_key.begin());
-    std::copy_n(kp_bytes.begin() + ED25519_SECRET_KEY_LENGTH,
-                ED25519_PUBLIC_KEY_LENGTH,
-                kp.public_key.begin());
+    Ed25519Keypair kp{
+        Ed25519PrivateKey::from(std::span<uint8_t, ED25519_SECRET_KEY_LENGTH>{
+            kp_bytes.begin(), ED25519_SECRET_KEY_LENGTH}),
+        Ed25519PublicKey::fromSpan(
+            std::span{kp_bytes.begin() + ED25519_SECRET_KEY_LENGTH,
+                      ED25519_PUBLIC_KEY_LENGTH})
+            .value()};
     return kp;
   }
 
