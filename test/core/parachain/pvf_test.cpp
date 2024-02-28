@@ -27,6 +27,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/struct_to_tuple.hpp"
 
 using kagome::application::AppConfigurationMock;
 using kagome::common::Buffer;

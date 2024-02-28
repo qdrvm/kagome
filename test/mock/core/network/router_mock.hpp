@@ -32,8 +32,18 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<ValidationProtocolVStaging>,
+                getValidationProtocolVStaging,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<BlockAnnounceProtocol>,
                 getBlockAnnounceProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<CollationProtocolVStaging>,
+                getCollationProtocolVStaging,
                 (),
                 (const, override));
 
@@ -53,6 +63,11 @@ namespace kagome::network {
                 (const, override));
     MOCK_METHOD(std::shared_ptr<FetchChunkProtocol>,
                 getFetchChunkProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<FetchAttestedCandidateProtocol>,
+                getFetchAttestedCandidateProtocol,
                 (),
                 (const, override));
 

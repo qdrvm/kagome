@@ -11,6 +11,7 @@
 #include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -45,13 +46,16 @@ namespace kagome::network {
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
       LazySPtr<ValidationProtocol> validation_protocol,
       LazySPtr<CollationProtocol> collation_protocol,
+      LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
+      LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging,
       LazySPtr<ReqCollationProtocol> req_collation_protocol,
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
       LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
       LazySPtr<SendDisputeProtocol> send_dispute_protocol,
-      LazySPtr<libp2p::protocol::Ping> ping_protocol)
+      LazySPtr<libp2p::protocol::Ping> ping_protocol,
+      LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -70,6 +74,8 @@ namespace kagome::network {
             std::move(propagate_transactions_protocol)),
         validation_protocol_(std::move(validation_protocol)),
         collation_protocol_(std::move(collation_protocol)),
+        collation_protocol_vstaging_(std::move(collation_protocol_vstaging)),
+        validation_protocol_vstaging_(std::move(validation_protocol_vstaging)),
         req_collation_protocol_(std::move(req_collation_protocol)),
         req_pov_protocol_(std::move(req_pov_protocol)),
         fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
@@ -78,6 +84,7 @@ namespace kagome::network {
         statement_fetching_protocol_(std::move(statement_fetching_protocol)),
         send_dispute_protocol_(std::move(send_dispute_protocol)),
         ping_protocol_{std::move(ping_protocol)},
+        fetch_attested_candidate_{std::move(fetch_attested_candidate)},
         log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(main_pool_handler_ != nullptr);
@@ -103,15 +110,18 @@ namespace kagome::network {
       if (auto self = wp.lock()) {
         self->block_announce_protocol_.get()->start();
         self->grandpa_protocol_.get()->start();
-
         self->sync_protocol_.get()->start();
         self->state_protocol_.get()->start();
         self->warp_protocol_.get()->start();
         self->beefy_protocol_.get()->start();
         self->beefy_justifications_protocol_.get()->start();
         self->light_protocol_.get()->start();
-
         self->propagate_transactions_protocol_.get()->start();
+
+        // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
+        // should be uncommented when this task will be implemented
+        // self->collation_protocol_.get()->start();
+        // self->validation_protocol_.get()->start();
 
         self->collation_protocol_.get()->start();
         self->validation_protocol_.get()->start();
@@ -120,8 +130,8 @@ namespace kagome::network {
         self->fetch_chunk_protocol_.get()->start();
         self->fetch_available_data_protocol_.get()->start();
         self->statement_fetching_protocol_.get()->start();
-
         self->send_dispute_protocol_.get()->start();
+        self->fetch_attested_candidate_.get()->start();
       }
     });
 
@@ -221,9 +231,19 @@ namespace kagome::network {
     return collation_protocol_.get();
   }
 
+  std::shared_ptr<CollationProtocolVStaging>
+  RouterLibp2p::getCollationProtocolVStaging() const {
+    return collation_protocol_vstaging_.get();
+  }
+
   std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
       const {
     return validation_protocol_.get();
+  }
+
+  std::shared_ptr<ValidationProtocolVStaging>
+  RouterLibp2p::getValidationProtocolVStaging() const {
+    return validation_protocol_vstaging_.get();
   }
 
   std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()
@@ -238,6 +258,11 @@ namespace kagome::network {
   std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
       const {
     return fetch_chunk_protocol_.get();
+  }
+
+  std::shared_ptr<FetchAttestedCandidateProtocol>
+  RouterLibp2p::getFetchAttestedCandidateProtocol() const {
+    return fetch_attested_candidate_.get();
   }
 
   std::shared_ptr<FetchAvailableDataProtocol>

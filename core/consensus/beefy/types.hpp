@@ -66,8 +66,8 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
-  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                               const SignedCommitment &v) {
+  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
+                                                 const SignedCommitment &v) {
     s << v.commitment;
     size_t count = 0;
     common::Buffer bits;
@@ -83,7 +83,7 @@ namespace kagome::consensus::beefy {
     }
     s << bits;
     s << static_cast<uint32_t>(v.signatures.size());
-    s << scale::CompactInteger{count};
+    s << ::scale::CompactInteger{count};
     for (auto &sig : v.signatures) {
       if (sig) {
         s << *sig;
@@ -91,8 +91,8 @@ namespace kagome::consensus::beefy {
     }
     return s;
   }
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               SignedCommitment &v) {
+  inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
+                                                 SignedCommitment &v) {
     s >> v.commitment;
     common::Buffer bits;
     s >> bits;
@@ -105,12 +105,12 @@ namespace kagome::consensus::beefy {
     uint32_t total = 0;
     s >> total;
     if (bits.size() * 8 < total) {
-      scale::raise(scale::DecodeError::NOT_ENOUGH_DATA);
+      ::scale::raise(::scale::DecodeError::NOT_ENOUGH_DATA);
     }
-    scale::CompactInteger actual_count;
+    ::scale::CompactInteger actual_count;
     s >> actual_count;
     if (actual_count != expected_count) {
-      scale::raise(scale::DecodeError::TOO_MANY_ITEMS);
+      ::scale::raise(::scale::DecodeError::TOO_MANY_ITEMS);
     }
     v.signatures.resize(total);
     for (size_t i = 0; i < total; ++i) {

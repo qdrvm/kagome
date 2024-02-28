@@ -8,7 +8,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  24  // TODO(Harrm): check how it influences on compilation time
+  32  // TODO(Harrm): check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -115,6 +115,7 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -788,6 +789,7 @@ namespace {
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
+            di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),

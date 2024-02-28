@@ -269,14 +269,16 @@ namespace kagome::network {
       const network::CollatorPublicKey &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-      it->second.collator_state = CollatorState{
-          .parachain_id = para_id,
+      it->second.collator_state = CollatingPeerState{
+          .para_id = para_id,
           .collator_id = collator_id,
+          .advertisements = {},
+          .last_active = std::chrono::system_clock::now(),
       };
       it->second.time = clock_->now();
     }
 
-    auto proto_col = router_->getCollationProtocol();
+    auto proto_col = router_->getCollationProtocolVStaging();
     BOOST_ASSERT_MSG(proto_col, "Router did not provide collaction protocol");
     stream_engine_->reserveStreams(peer_id, proto_col);
   }
@@ -296,7 +298,7 @@ namespace kagome::network {
       return Error::UNDECLARED_COLLATOR;
     }
     return std::make_pair(peer_state.collator_state.value().collator_id,
-                          peer_state.collator_state.value().parachain_id);
+                          peer_state.collator_state.value().para_id);
   }
 
   void PeerManagerImpl::align() {
@@ -538,6 +540,13 @@ namespace kagome::network {
         });
   }
 
+  std::optional<std::reference_wrapper<PeerState>>
+  PeerManagerImpl::createDefaultPeerState(const PeerId &peer_id) {
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    return state;
+  }
+
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
     auto &state = peer_states_[peer_id];
@@ -701,39 +710,57 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::tryOpenValidationProtocol(const PeerInfo &peer_info,
-                                                  PeerState &peer_state) {
+  void PeerManagerImpl::tryOpenValidationProtocol(
+      const PeerInfo &peer_info,
+      PeerState &peer_state,
+      network::CollationVersion
+          proto_version) {  // network::CollationVersion::VStaging
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
-      auto validation_protocol = router_->getValidationProtocol();
+      auto validation_protocol = [&]() -> std::shared_ptr<ProtocolBase> {
+        return router_->getValidationProtocolVStaging();
+      }();
+
       BOOST_ASSERT_MSG(validation_protocol,
                        "Router did not provide validation protocol");
 
       log_->trace("Try to open outgoing validation protocol.(peer={})",
                   peer_info.id);
-      openOutgoing(stream_engine_,
-                   validation_protocol,
-                   peer_info,
-                   [validation_protocol, peer_info, wptr{weak_from_this()}](
-                       outcome::result<std::shared_ptr<Stream>> stream_result) {
-                     auto self = wptr.lock();
-                     if (not self) {
-                       return;
-                     }
+      openOutgoing(
+          stream_engine_,
+          validation_protocol,
+          peer_info,
+          [validation_protocol, peer_info, wptr{weak_from_this()}](
+              outcome::result<std::shared_ptr<Stream>> stream_result) {
+            auto self = wptr.lock();
+            if (not self) {
+              return;
+            }
 
-                     auto &peer_id = peer_info.id;
-                     if (!stream_result.has_value()) {
-                       self->log_->verbose(
-                           "Unable to create stream {} with {}: {}",
-                           validation_protocol->protocolName(),
-                           peer_id,
-                           stream_result.error().message());
-                       return;
-                     }
+            auto &peer_id = peer_info.id;
+            if (!stream_result.has_value()) {
+              SL_TRACE(self->log_,
+                       "Unable to create stream {} with {}: {}",
+                       validation_protocol->protocolName(),
+                       peer_id,
+                       stream_result.error().message());
+              auto ps = self->getPeerState(peer_info.id);
+              if (ps) {
+                self->tryOpenValidationProtocol(
+                    peer_info, ps->get(), network::CollationVersion::V1);
+              } else {
+                SL_TRACE(
+                    self->log_,
+                    "No peer state to open V1 validation protocol {} with {}",
+                    validation_protocol->protocolName(),
+                    peer_id);
+              }
+              return;
+            }
 
-                     self->stream_engine_->addOutgoing(stream_result.value(),
-                                                       validation_protocol);
-                   });
+            self->stream_engine_->addOutgoing(stream_result.value(),
+                                              validation_protocol);
+          });
     }
   }
 
@@ -788,8 +815,10 @@ namespace kagome::network {
             }
 
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
-            self->tryOpenValidationProtocol(peer_info,
-                                            peer_state.value().get());
+            self->tryOpenValidationProtocol(
+                peer_info,
+                peer_state.value().get(),
+                network::CollationVersion::VStaging);
             auto beefy_protocol = std::static_pointer_cast<BeefyProtocolImpl>(
                 self->router_->getBeefyProtocol());
             openOutgoing(self->stream_engine_,
@@ -810,10 +839,11 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    auto proto_val = router_->getValidationProtocol();
-    BOOST_ASSERT_MSG(proto_val, "Router did not provide validation protocol");
+    auto proto_val_vstaging = router_->getValidationProtocolVStaging();
+    BOOST_ASSERT_MSG(proto_val_vstaging,
+                     "Router did not provide validation protocol vstaging");
 
-    stream_engine_->reserveStreams(peer_id, proto_val);
+    stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {

@@ -1217,7 +1217,7 @@ namespace kagome::parachain {
                       std::move(block_info.value())));
                 }});
 
-    imported_block_info(head, std::move(updated.new_head));
+    imported_block_info(head, updated.new_head);
   }
 
   void ApprovalDistribution::on_active_leaves_update(
@@ -2030,83 +2030,91 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
-      const network::ValidatorProtocolMessage &message) {
+      const network::VersionedValidatorProtocolMessage &message) {
     REINVOKE(
         *approval_thread_handler_, onValidationProtocolMsg, peer_id, message);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
-    if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
-      visit_in_place(
-          *m,
-          [&](const network::Assignments &assignments) {
-            SL_TRACE(logger_,
-                     "Received assignments.(peer_id={}, count={})",
-                     peer_id,
-                     assignments.assignments.size());
-            DeferedSender<network::Assignment> assignment_defered_sender{
-                [wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeAssignment(std::move(msgs));
-                  }
-                }};
-            for (auto const &assignment : assignments.assignments) {
-              if (auto it = pending_known_.find(
-                      assignment.indirect_assignment_cert.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending assignment.(block hash={}, claimed index={}, "
-                         "validator={}, peer={})",
-                         assignment.indirect_assignment_cert.block_hash,
-                         assignment.candidate_ix,
-                         assignment.indirect_assignment_cert.validator,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{assignment}));
-                continue;
-              }
 
-              import_and_circulate_assignment(
-                  peer_id,
-                  assignment_defered_sender,
-                  assignment.indirect_assignment_cert,
-                  assignment.candidate_ix);
-            }
-          },
-          [&](const network::Approvals &approvals) {
-            SL_TRACE(logger_,
-                     "Received approvals.(peer_id={}, count={})",
-                     peer_id,
-                     approvals.approvals.size());
-            DeferedSender<network::IndirectSignedApprovalVote>
-                approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeApproval(std::move(msgs));
-                  }
-                }};
-            for (auto const &approval_vote : approvals.approvals) {
-              if (auto it = pending_known_.find(
-                      approval_vote.payload.payload.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending approval.(block hash={}, candidate index={}, "
-                         "validator={}, peer={})",
-                         approval_vote.payload.payload.block_hash,
-                         approval_vote.payload.payload.candidate_index,
-                         approval_vote.payload.ix,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{approval_vote}));
-                continue;
-              }
+    std::optional<
+        std::reference_wrapper<const network::ApprovalDistributionMessage>>
+        m = visit_in_place(message, [](const auto &val) {
+          return if_type<const network::ApprovalDistributionMessage>(val);
+        });
 
-              import_and_circulate_approval(
-                  peer_id, approval_defered_sender, approval_vote);
-            }
-          },
-          [&](const auto &) { UNREACHABLE; });
+    if (!m) {
+      return;
     }
+
+    visit_in_place(
+        m->get(),
+        [&](const network::Assignments &assignments) {
+          SL_TRACE(logger_,
+                   "Received assignments.(peer_id={}, count={})",
+                   peer_id,
+                   assignments.assignments.size());
+          DeferedSender<network::Assignment> assignment_defered_sender{
+              [wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeAssignment(std::move(msgs));
+                }
+              }};
+          for (auto const &assignment : assignments.assignments) {
+            if (auto it = pending_known_.find(
+                    assignment.indirect_assignment_cert.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending assignment.(block hash={}, claimed index={}, "
+                       "validator={}, peer={})",
+                       assignment.indirect_assignment_cert.block_hash,
+                       assignment.candidate_ix,
+                       assignment.indirect_assignment_cert.validator,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{assignment}));
+              continue;
+            }
+
+            import_and_circulate_assignment(peer_id,
+                                            assignment_defered_sender,
+                                            assignment.indirect_assignment_cert,
+                                            assignment.candidate_ix);
+          }
+        },
+        [&](const network::Approvals &approvals) {
+          SL_TRACE(logger_,
+                   "Received approvals.(peer_id={}, count={})",
+                   peer_id,
+                   approvals.approvals.size());
+          DeferedSender<network::IndirectSignedApprovalVote>
+              approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeApproval(std::move(msgs));
+                }
+              }};
+          for (auto const &approval_vote : approvals.approvals) {
+            if (auto it = pending_known_.find(
+                    approval_vote.payload.payload.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending approval.(block hash={}, candidate index={}, "
+                       "validator={}, peer={})",
+                       approval_vote.payload.payload.block_hash,
+                       approval_vote.payload.payload.candidate_index,
+                       approval_vote.payload.ix,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{approval_vote}));
+              continue;
+            }
+
+            import_and_circulate_approval(
+                peer_id, approval_defered_sender, approval_vote);
+          }
+        },
+        [&](const auto &) { UNREACHABLE; });
   }
 
   void ApprovalDistribution::runDistributeAssignment(
@@ -2159,7 +2167,7 @@ namespace kagome::parachain {
               .assignments = std::vector<network::Assignment>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       assignments.erase(begin, end);
     }
   }
@@ -2207,7 +2215,7 @@ namespace kagome::parachain {
                   std::vector<network::IndirectSignedApprovalVote>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       approvals.erase(begin, end);
     }
   }
@@ -2561,7 +2569,6 @@ namespace kagome::parachain {
         if (is_block_approved && !was_block_approved) {
           notifyApproved(block_hash);
         }
-        /// TODO(iceseer): store in database if needed
       }
       _ = std::make_pair(is_approved, std::move(status));
       ae = approval_entry;
@@ -2591,7 +2598,6 @@ namespace kagome::parachain {
                            status.required_tranches);
     if (approval::is_local_approval(transition) || newly_approved
         || (already_approved_by && !*already_approved_by)) {
-      /// TODO(iceseer): store in database if needed
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
                    == candidate_entry);
     }

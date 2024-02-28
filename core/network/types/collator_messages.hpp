@@ -87,41 +87,6 @@ namespace kagome::network {
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
 
   /**
-   * Unique descriptor of a candidate receipt.
-   */
-  struct CandidateDescriptor {
-    SCALE_TIE(9);
-
-    ParachainId para_id;  /// Parachain Id
-    primitives::BlockHash
-        relay_parent;  /// Hash of the relay chain block the candidate is
-    /// executed in the context of
-    CollatorPublicKey collator_id;  /// Collators public key.
-    primitives::BlockHash
-        persisted_data_hash;         /// Hash of the persisted validation data
-    primitives::BlockHash pov_hash;  /// Hash of the PoV block.
-    storage::trie::RootHash
-        erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
-    /// tree.
-    Signature signature;  /// Collator signature of the concatenated components
-    primitives::BlockHash
-        para_head_hash;  /// Hash of the parachain head data of this candidate.
-    primitives::BlockHash
-        validation_code_hash;  /// Hash of the parachain Runtime.
-
-    common::Buffer signable() const {
-      return common::Buffer{
-          ::scale::encode(relay_parent,
-                          para_id,
-                          persisted_data_hash,
-                          pov_hash,
-                          validation_code_hash)
-              .value(),
-      };
-    }
-  };
-
-  /**
    * Contains information about the candidate and a proof of the results of its
    * execution.
    */
@@ -209,48 +174,6 @@ namespace kagome::network {
   using FetchAvailableDataResponse =
       boost::variant<runtime::AvailableData, Empty>;
 
-  struct OutboundHorizontal {
-    SCALE_TIE(2);
-
-    ParachainId para_id;       /// Parachain Id is recepient id
-    UpwardMessage upward_msg;  /// upward message for parallel parachain
-  };
-
-  struct InboundDownwardMessage {
-    SCALE_TIE(2);
-    /// The block number at which these messages were put into the downward
-    /// message queue.
-    BlockNumber sent_at;
-    /// The actual downward message to processes.
-    DownwardMessage msg;
-  };
-
-  struct InboundHrmpMessage {
-    SCALE_TIE(2);
-    /// The block number at which this message was sent.
-    /// Specifically, it is the block number at which the candidate that sends
-    /// this message was enacted.
-    BlockNumber sent_at;
-    /// The message payload.
-    common::Buffer data;
-  };
-
-  struct CandidateCommitments {
-    SCALE_TIE(6);
-
-    std::vector<UpwardMessage> upward_msgs;  /// upward messages
-    std::vector<OutboundHorizontal>
-        outbound_hor_msgs;  /// outbound horizontal messages
-    std::optional<ParachainRuntime>
-        opt_para_runtime;          /// new parachain runtime if present
-    HeadData para_head;            /// parachain head data
-    uint32_t downward_msgs_count;  /// number of downward messages that were
-    /// processed by the parachain
-    BlockNumber watermark;  /// watermark which specifies the relay chain block
-    /// number up to which all inbound horizontal messages
-    /// have been processed
-  };
-
   struct CommittedCandidateReceipt {
     SCALE_TIE(2);
 
@@ -296,7 +219,8 @@ namespace kagome::network {
 
   struct Statement {
     SCALE_TIE(1);
-
+    Statement() = default;
+    Statement(CandidateState &&c) : candidate_state{std::move(c)} {}
     CandidateState candidate_state{Unused<0>{}};
   };
   using SignedStatement = IndexedAndSigned<Statement>;
@@ -351,12 +275,6 @@ namespace kagome::network {
       const auto it = std::lower_bound(heads_.begin(), heads_.end(), hash);
       return it != heads_.end() && *it == hash;
     }
-  };
-
-  struct ExView {
-    View view;
-    primitives::BlockHeader new_head;
-    std::vector<primitives::BlockHash> lost;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
@@ -505,25 +423,13 @@ namespace kagome::network {
     std::optional<CollatorId> collator;
   };
 
-  /**
-   * Common WireMessage that represents messages in NetworkBridge.
-   */
-  template <typename T>
-  using WireMessage = boost::variant<
-      Dummy,  /// not used
-      std::enable_if_t<AllowerTypeChecker<T,
-                                          ValidatorProtocolMessage,
-                                          CollationProtocolMessage>::allowed,
-                       T>,  /// protocol message
-      ViewUpdate            /// view update message
-      >;
-
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {
     auto commitments_hash =
         hasher.blake2b_256(scale::encode(receipt.commitments).value());
     return hasher.blake2b_256(
-        ::scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
+        ::scale::encode(std::tie(receipt.descriptor, commitments_hash))
+            .value());
   }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
