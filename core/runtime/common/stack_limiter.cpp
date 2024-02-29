@@ -169,12 +169,12 @@ namespace kagome::runtime {
 
       void push_frame(MaybeConst<wabt::Func &> func) {
         push_frame(StackFrame{
-            false,
-            func.GetNumResults(),
-            func.GetNumResults(),
-            0,
-            &func,
-            func.exprs.begin(),
+            .is_polymorphic = false,
+            .end_value_num = func.GetNumResults(),
+            .branch_value_num = func.GetNumResults(),
+            .start_height = 0,
+            .top_expr = &func,
+            .current_expr = func.exprs.begin(),
         });
       }
 
@@ -229,33 +229,31 @@ namespace kagome::runtime {
         return frames_.empty();
       }
 
-      outcome::result<std::optional<ExprIt>, StackLimiterError> advance() {
+      outcome::result<void, StackLimiterError> advance() {
         bool is_over = false;
         do {
-          frames_.back().current_expr++;
-          is_over =
-              frames_.back().getExprList().end() == frames_.back().current_expr;
+          auto &frame = frames_.back();
+          is_over = frame.getExprList().end() == frame.current_expr;
+          if (!is_over) ++frame.current_expr;
+          is_over = frame.getExprList().end() == frame.current_expr;
           if (is_over) {
             if (std::holds_alternative<typename StackFrame::Branch>(
-                    frames_.back().top_expr)) {
-              auto &branch = std::get<typename StackFrame::Branch>(
-                  frames_.back().top_expr);
+                    frame.top_expr)) {
+              auto &branch =
+                  std::get<typename StackFrame::Branch>(frame.top_expr);
               if (branch.curr_branch == true && !branch.expr->false_.empty()) {
                 branch.curr_branch = false;
-                frames_.back().current_expr = branch.expr->false_.begin();
+                frame.current_expr = branch.expr->false_.begin();
                 break;
-              } else {
-                OUTCOME_TRY(pop_frame());
               }
-            } else {
-              OUTCOME_TRY(pop_frame());
             }
+            OUTCOME_TRY(pop_frame());
           }
           if (frames_.empty()) {
-            return std::nullopt;
+            return outcome::success();
           }
         } while (is_over);
-        return frames_.back().current_expr;
+        return outcome::success();
       }
 
       [[nodiscard]] uint32_t get_height() const {
@@ -266,8 +264,11 @@ namespace kagome::runtime {
         return frames_.back().is_polymorphic;
       }
 
-      [[nodiscard]] StackFrame &top_frame() {
-        return frames_.back();
+      [[nodiscard]] StackFrame *top_frame() {
+        if (frames_.empty()) {
+          return nullptr;
+        }
+        return &frames_.back();
       }
 
       [[nodiscard]] outcome::result<std::reference_wrapper<const StackFrame>,
@@ -304,7 +305,8 @@ namespace kagome::runtime {
       uint32_t max_height = 0;
 
       while (!stack.empty()) {
-        auto &expr = *stack.top_frame().current_expr;
+        auto& top_frame = *stack.top_frame();
+        auto &expr = *top_frame.current_expr;
         SL_TRACE(logger, "{}", wabt::GetExprTypeName(expr.type()));
         using wabt::ExprType;
 
@@ -507,7 +509,7 @@ namespace kagome::runtime {
       uint32_t stack_limit;
     };
 
-    void instrument_call(const InstrumentCallCtx &ctx,
+    wabt::ExprList::iterator instrument_call(const InstrumentCallCtx &ctx,
                          wabt::ExprList &exprs,
                          wabt::ExprList::iterator call_it) {
       exprs.insert(call_it,
@@ -548,6 +550,7 @@ namespace kagome::runtime {
                    std::make_unique<wabt::BinaryExpr>(wabt::Opcode::I32Sub));
       exprs.insert(next_it,
                    std::make_unique<wabt::GlobalSetExpr>(ctx.stack_height));
+      return next_it;
     }
 
     outcome::result<void, StackLimiterError> instrument_func(
@@ -565,7 +568,8 @@ namespace kagome::runtime {
 
       while (!stack.empty()) {
         bool pushed_frame = false;
-        auto &expr = *stack.top_frame().current_expr;
+        auto &top_frame = *stack.top_frame();
+        auto &expr = *top_frame.current_expr;
 
         using wabt::ExprType;
         switch (expr.type()) {
@@ -594,15 +598,15 @@ namespace kagome::runtime {
             auto call = dynamic_cast<wabt::CallExpr *>(&expr);
             assert(call->var.is_index());
             if (auto cost = stack_costs.at(call->var.index()); cost != 0) {
-              instrument_call(
+              top_frame.current_expr = instrument_call(
                   InstrumentCallCtx{
                       stack_height,
                       call->var,
                       stack_costs.at(call->var.index()),
                       stack_limit,
                   },
-                  stack.top_frame().getExprList(),
-                  stack.top_frame().current_expr);
+                  top_frame.getExprList(),
+                  top_frame.current_expr);
             }
             break;
           }
@@ -614,7 +618,7 @@ namespace kagome::runtime {
 
         if (!pushed_frame) {
           if (auto expr_opt = stack.advance(); !expr_opt.has_value()) {
-            break;
+            return expr_opt.error();
           }
         }
       }
