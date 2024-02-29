@@ -8,6 +8,8 @@
 
 #include <boost/asio/io_context.hpp>
 
+#include "injector/inject.hpp"
+
 namespace kagome {
 
   inline bool runningInThisThread(
@@ -23,11 +25,7 @@ namespace kagome {
     PoolHandler &operator=(PoolHandler &&) = delete;
     PoolHandler &operator=(const PoolHandler &) = delete;
 
-    // Next nested struct and deleted ctor added to avoid unintended injections
-    struct Inject {
-      explicit Inject() = default;
-    };
-    explicit PoolHandler(Inject, ...);
+    DONT_INJECT(PoolHandler);
 
     explicit PoolHandler(std::shared_ptr<boost::asio::io_context> io_context)
         : is_active_{false}, ioc_{std::move(io_context)} {}
@@ -45,6 +43,8 @@ namespace kagome {
     void execute(F &&func) {
       if (is_active_.load(std::memory_order_acquire)) {
         ioc_->post(std::forward<F>(func));
+      } else {
+        throw std::logic_error{"PoolHandler lost callback"};
       }
     }
 

@@ -183,8 +183,6 @@ TEST_F(KagomeInjectorTest, InjectProtocols) {
   auto router = injector_->injectRouter();
   ASSERT_NE(router, nullptr);
 
-  std::static_pointer_cast<kagome::network::RouterLibp2p>(router)->prepare();
-
   EXPECT_NE(router->getBlockAnnounceProtocol(), nullptr);
   EXPECT_NE(router->getPropagateTransactionsProtocol(), nullptr);
   EXPECT_NE(router->getStateProtocol(), nullptr);
