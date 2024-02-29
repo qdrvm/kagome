@@ -994,18 +994,46 @@ namespace kagome::parachain {
     BOOST_ASSERT(se);
 
     std::unordered_set<network::PeerId> group_set;
-    if (auto r = runtime_info_->get_session_info(relay_parent)) {
-      auto &[session, info] = r.value();
-      if (info.our_group) {
-        for (auto &i : session.validator_groups[*info.our_group]) {
-          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
-            group_set.emplace(peer->id);
+    auto session_info_opt = retrieveSessionInfo(relay_parent);
+    if (session_info_opt && relay_parent_state->get().our_index) {
+      Groups groups{session_info_opt->validator_groups};
+      auto group_index =
+          groups.byValidatorIndex(*relay_parent_state->get().our_index);
+      if (group_index) {
+        if (auto it = groups.groups.find(*group_index);
+            it != groups.groups.end()) {
+          SL_TRACE(
+              logger_,
+              "Create broadcast context. (relay_parent={}, our_index={}, group_index={}, num_validators={})",
+              relay_parent,
+              *relay_parent_state->get().our_index,
+              *group_index,
+              it->second.size());
+
+          for (const ValidatorIndex v : it->second) {
+            if (v != *relay_parent_state->get().our_index) {
+              if (auto peer =
+                      query_audi_->get(session_info_opt->discovery_keys[v])) {
+                group_set.insert(peer->id);
+              }
+            }
           }
+        } else {
+          SL_TRACE(logger_,
+                   "`group_index` not found. (relay_parent={}, group_index={})",
+                   relay_parent,
+                   *group_index);
         }
+      } else {
+        SL_TRACE(logger_, "No `group_index`. (relay_parent={})", relay_parent);
       }
+    } else {
+      SL_TRACE(logger_,
+               "No `session_info` or `our_index`. (relay_parent={})",
+               relay_parent);
     }
 
-    std::deque<network::PeerId> group, any;
+    std::deque<network::PeerId> any, group;
     for (const auto &p : group_set) {
       group.emplace_back(p);
     }
