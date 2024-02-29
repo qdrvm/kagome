@@ -7,9 +7,11 @@
 #pragma once
 
 #ifdef _MSC_VER
+#define LE_BE_SWAP16 _byteswap_ushort
 #define LE_BE_SWAP32 _byteswap_ulong
 #define LE_BE_SWAP64 _byteswap_uint64
 #else  //_MSC_VER
+#define LE_BE_SWAP16 __builtin_bswap16
 #define LE_BE_SWAP32 __builtin_bswap32
 #define LE_BE_SWAP64 __builtin_bswap64
 #endif  //_MSC_VER

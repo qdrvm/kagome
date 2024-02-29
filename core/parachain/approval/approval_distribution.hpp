@@ -27,7 +27,7 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
 #include "parachain/approval/knowledge.hpp"
 #include "parachain/approval/store.hpp"
@@ -38,12 +38,13 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::common {
-  class WorkerThreadPool;
-}
+  class MainPoolHandler;
+  class WorkerPoolHandler;
+}  // namespace kagome::common
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
@@ -269,7 +270,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
@@ -283,12 +284,14 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
         std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-        WeakIoContext main_thread_context,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
     bool prepare();
+    void start();
+    void stop();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
@@ -302,7 +305,7 @@ namespace kagome::parachain {
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
-        const network::ValidatorProtocolMessage &message);
+        const network::VersionedValidatorProtocolMessage &message);
 
     using SignaturesForCandidate =
         std::unordered_map<ValidatorIndex, ValidatorSignature>;
@@ -707,9 +710,9 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<ThreadHandler> approval_thread_handler_;
+    std::shared_ptr<PoolHandler> approval_thread_handler_;
 
-    std::shared_ptr<ThreadHandler> worker_thread_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
@@ -735,7 +738,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

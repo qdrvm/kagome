@@ -132,6 +132,22 @@ namespace kagome::runtime {
                  const parachain::PvfCheckStatement &,
                  const parachain::Signature &),
                 (override));
+
+    MOCK_METHOD(
+        outcome::result<std::optional<parachain::fragment::BackingState>>,
+        staging_para_backing_state,
+        (const primitives::BlockHash &, ParachainId),
+        (override));
+
+    MOCK_METHOD(outcome::result<parachain::fragment::AsyncBackingParams>,
+                staging_async_backing_params,
+                (const primitives::BlockHash &),
+                (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                minimum_backing_votes,
+                (const primitives::BlockHash &, SessionIndex),
+                (override));
   };
 
 }  // namespace kagome::runtime

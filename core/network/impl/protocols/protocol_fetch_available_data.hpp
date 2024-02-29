@@ -87,8 +87,9 @@ namespace kagome::network {
           req.relay_parent,
           req.candidate_hash);
 
-      if (auto res = backing_store_->get_candidate(req.candidate_hash)) {
-        return std::move(*res);
+      if (auto res = backing_store_->getCadidateInfo(req.relay_parent,
+                                                     req.candidate_hash)) {
+        return res->get().candidate;
       }
 
       base().logger()->error("No fetch statement response.");

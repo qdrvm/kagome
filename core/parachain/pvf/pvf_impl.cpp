@@ -31,6 +31,10 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
+    case PvfError::PERSISTED_DATA_HASH:
+      return "Incorrect Perssted Data hash";
+    case PvfError::NO_CODE:
+      return "No code";
     case PvfError::NO_PERSISTED_DATA:
       return "PersistedValidationData was not found";
     case PvfError::POV_SIZE:
@@ -182,7 +186,7 @@ namespace kagome::parachain {
     if (config_.precompile_modules) {
       precompiler_thread_ =
           std::make_unique<std::thread>([self = shared_from_this()]() {
-            soralog::util::setThreadName("pvf_cmpl_thread");
+            soralog::util::setThreadName("pvf_compile");
             auto res = self->precompiler_->precompileModulesAt(
                 self->block_tree_->getLastFinalized().hash);
             if (!res) {
@@ -234,59 +238,51 @@ namespace kagome::parachain {
     timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
-    return std::make_pair(std::move(commitments), std::move(data));
+    return std::make_pair(std::move(commitments), data);
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt, const ParachainBlock &pov) const {
+      const CandidateReceipt &receipt,
+      const ParachainBlock &pov,
+      const runtime::PersistedValidationData &pvd) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
-    OUTCOME_TRY(data_code, findData(receipt.descriptor));
-    auto &[data, code] = data_code;
-    return pvfValidate(data, pov, receipt, code);
+
+    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    if (receipt.descriptor.persisted_data_hash != data_hash) {
+      return PvfError::PERSISTED_DATA_HASH;
+    }
+
+    OUTCOME_TRY(code, getCode(receipt.descriptor));
+    return pvfValidate(pvd, pov, receipt, code);
   }
 
-  outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-  PvfImpl::findData(const CandidateDescriptor &descriptor) const {
+  outcome::result<ParachainRuntime> PvfImpl::getCode(
+      const CandidateDescriptor &descriptor) const {
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,
          }) {
-      OUTCOME_TRY(data,
-                  parachain_api_->persisted_validation_data(
-                      descriptor.relay_parent, descriptor.para_id, assumption));
-      if (!data) {
-        SL_VERBOSE(log_,
-                   "findData relay_parent={} para_id={}: not found "
-                   "(persisted_validation_data)",
-                   descriptor.relay_parent,
-                   descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
-      }
-      auto data_hash = hasher_->blake2b_256(scale::encode(*data).value());
-      if (descriptor.persisted_data_hash != data_hash) {
-        continue;
-      }
       OUTCOME_TRY(code,
                   parachain_api_->validation_code(
                       descriptor.relay_parent, descriptor.para_id, assumption));
       if (!code) {
         SL_VERBOSE(
             log_,
-            "findData relay_parent={} para_id={}: not found (validation_code)",
+            "getCode relay_parent={} para_id={}: not found (validation_code)",
             descriptor.relay_parent,
             descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
+        return PvfError::NO_CODE;
       }
-      return std::make_pair(*data, *code);
+      return *code;
     }
     SL_VERBOSE(log_,
-               "findData relay_parent={} para_id={}: not found",
+               "getCode relay_parent={} para_id={}: not found",
                descriptor.relay_parent,
                descriptor.para_id);
-    return PvfError::NO_PERSISTED_DATA;
+    return PvfError::NO_CODE;
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(

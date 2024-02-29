@@ -4,37 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/beefy/protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
 
-#include "blockchain/genesis_block_hash.hpp"
-#include "network/beefy/beefy.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "network/common.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/notifications/connect_and_handshake.hpp"
 #include "network/notifications/handshake_and_read_messages.hpp"
 
 namespace kagome::network {
-  BeefyJustificationProtocol::BeefyJustificationProtocol(libp2p::Host &host,
-                   const blockchain::GenesisBlockHash &genesis,
-                   std::shared_ptr<Beefy> beefy)
-          : RequestResponseProtocolType{
-              kName,
-              host,
-              make_protocols(kBeefyJustificationProtocol, genesis),
-              log::createLogger(kName),
-          },
-          beefy_{std::move(beefy)} {}
-
-  std::optional<outcome::result<BeefyJustificationProtocol::ResponseType>>
-  BeefyJustificationProtocol::onRxRequest(RequestType block,
-                                          std::shared_ptr<Stream>) {
-    OUTCOME_TRY(opt, beefy_->getJustification(block));
-    if (opt) {
-      return outcome::success(std::move(*opt));
-    }
-    return outcome::failure(ProtocolError::NO_RESPONSE);
-  }
 
   BeefyProtocolImpl::BeefyProtocolImpl(libp2p::Host &host,
                                const blockchain::GenesisBlockHash &genesis,

@@ -6,6 +6,7 @@
 
 #include "parachain/availability/fetch/fetch_impl.hpp"
 
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "parachain/availability/proof.hpp"
 
 namespace kagome::parachain {

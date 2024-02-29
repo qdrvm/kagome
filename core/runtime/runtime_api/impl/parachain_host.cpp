@@ -268,4 +268,27 @@ namespace kagome::runtime {
         ctx, "ParachainHost_submit_pvf_check_statement", statement, signature);
   }
 
+  outcome::result<std::optional<parachain::fragment::BackingState>>
+  ParachainHostImpl::staging_para_backing_state(
+      const primitives::BlockHash &block, ParachainId id) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<parachain::fragment::BackingState>>(
+        ctx, "ParachainHost_para_backing_state", id);
+  }
+
+  outcome::result<parachain::fragment::AsyncBackingParams>
+  ParachainHostImpl::staging_async_backing_params(
+      const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<parachain::fragment::AsyncBackingParams>(
+        ctx, "ParachainHost_async_backing_params");
+  }
+
+  outcome::result<uint32_t> ParachainHostImpl::minimum_backing_votes(
+      const primitives::BlockHash &block, SessionIndex index) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<uint32_t>(ctx,
+                                     "ParachainHost_minimum_backing_votes");
+  }
+
 }  // namespace kagome::runtime

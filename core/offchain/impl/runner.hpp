@@ -11,6 +11,7 @@
 
 #include <libp2p/common/final_action.hpp>
 
+#include "application/app_state_manager.hpp"
 #include "utils/thread_pool.hpp"
 
 namespace kagome {
@@ -35,13 +36,25 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(std::shared_ptr<OcwThreadPool> ocw_thread_pool)
+    Runner(application::AppStateManager &app_state_manager,
+           std::shared_ptr<OcwThreadPool> ocw_thread_pool)
         : free_threads_{kMaxThreads},
           max_tasks_{kMaxTasks},
           ocw_thread_handler_{[&] {
             BOOST_ASSERT(ocw_thread_pool);
             return ocw_thread_pool->handler();
-          }()} {}
+          }()} {
+      app_state_manager.takeControl(*this);
+    }
+
+    bool start() {
+      ocw_thread_handler_->start();
+      return true;
+    }
+
+    void stop() {
+      ocw_thread_handler_->stop();
+    }
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
@@ -85,6 +98,6 @@ namespace kagome::offchain {
     size_t free_threads_;
     const size_t max_tasks_;
     std::deque<Task> tasks_;
-    std::shared_ptr<ThreadHandler> ocw_thread_handler_;
+    std::shared_ptr<PoolHandler> ocw_thread_handler_;
   };
 }  // namespace kagome::offchain

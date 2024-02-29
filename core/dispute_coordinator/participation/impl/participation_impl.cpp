@@ -14,7 +14,7 @@
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::dispute {
 
@@ -25,7 +25,7 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<ThreadHandler> dispute_thread_handler,
+      std::shared_ptr<PoolHandler> dispute_thread_handler,
       std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),

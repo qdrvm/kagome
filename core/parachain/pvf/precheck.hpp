@@ -16,7 +16,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::blockchain {
@@ -77,7 +77,7 @@ namespace kagome::parachain {
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
-    std::shared_ptr<ThreadHandler> pvf_thread_handler_;
+    std::shared_ptr<PoolHandler> pvf_thread_handler_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain

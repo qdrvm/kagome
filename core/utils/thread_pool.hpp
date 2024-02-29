@@ -11,7 +11,7 @@
 
 #include "injector/inject.hpp"
 #include "log/logger.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 #include "utils/watchdog.hpp"
 
 namespace kagome {
@@ -61,13 +61,13 @@ namespace kagome {
     }
 
     ThreadPool(TestThreadPool test)
-        : log_{log::createLogger("test")},
+        : log_{log::createLogger("TestThreadPool")},
           ioc_{test.io ? test.io
                        : std::make_shared<boost::asio::io_context>()} {}
 
     virtual ~ThreadPool() {
       for (auto &thread : threads_) {
-        SL_TRACE(log_, "Joining thread...");
+        SL_TRACE(log_, "Joining thread…");
         thread.join();
       }
       SL_TRACE(log_, "Pool destroyed");
@@ -77,9 +77,9 @@ namespace kagome {
       return ioc_;
     }
 
-    std::shared_ptr<ThreadHandler> handler() {
+    std::shared_ptr<PoolHandler> handler() {
       BOOST_ASSERT(ioc_);
-      return std::make_shared<ThreadHandler>(ioc_);
+      return std::make_shared<PoolHandler>(ioc_);
     }
 
    private:

@@ -19,12 +19,14 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;

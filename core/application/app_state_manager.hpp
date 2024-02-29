@@ -16,8 +16,6 @@ namespace kagome::application {
   // bool, we want it to be a compile error instead of silently ignoring it
   // because the concept is not satisfied.
   template <typename T>
-  concept AppStateInjectable = requires(T &t) { t.inject(); };
-  template <typename T>
   concept AppStatePreparable = requires(T &t) { t.prepare(); };
   template <typename T>
   concept AppStateStartable = requires(T &t) { t.start(); };
@@ -27,20 +25,39 @@ namespace kagome::application {
   // if an object is registered with AppStateManager but has no method
   // that is called by AppStateManager, there's probably something wrong
   template <typename T>
-  concept AppStateControllable = AppStatePreparable<T> || AppStateInjectable<T>
-                              || AppStateStoppable<T> || AppStateStartable<T>;
+  concept AppStateControllable =
+      AppStatePreparable<T> || AppStateStoppable<T> || AppStateStartable<T>;
+
+  template <typename T>
+  concept ActionRetBool = std::same_as<std::invoke_result_t<T>, bool>;
+
+  template <typename T>
+  concept ActionRetVoid = std::is_void_v<std::invoke_result_t<T>>;
+
+  class Action {
+   public:
+    Action(ActionRetBool auto &&f)
+        : f_([f = std::move(f)]() mutable { return f(); }) {}
+
+    Action(ActionRetVoid auto &&f)
+        : f_([f = std::move(f)]() mutable { return f(), true; }) {}
+
+    bool operator()() {
+      return f_();
+    }
+
+   private:
+    std::function<bool()> f_;
+  };
 
   class AppStateManager {
    public:
-    using OnInject = std::function<bool()>;
-    using OnPrepare = std::function<bool()>;
-    using OnLaunch = std::function<bool()>;
-    using OnShutdown = std::function<void()>;
+    using OnPrepare = Action;
+    using OnLaunch = Action;
+    using OnShutdown = Action;
 
     enum class State {
       Init,
-      Injecting,
-      Injected,
       Prepare,
       ReadyToStart,
       Starting,
@@ -50,12 +67,6 @@ namespace kagome::application {
     };
 
     virtual ~AppStateManager() = default;
-
-    /**
-     * @brief Execute \param cb at stage 'injections' of application
-     * @param cb
-     */
-    virtual void atInject(OnInject &&cb) = 0;
 
     /**
      * @brief Execute \param cb at stage 'preparations' of application
@@ -83,17 +94,14 @@ namespace kagome::application {
      */
     template <AppStateControllable Controlled>
     void takeControl(Controlled &entity) {
-      if constexpr (AppStateInjectable<Controlled>) {
-        atInject([&entity]() -> bool { return entity.inject(); });
-      }
       if constexpr (AppStatePreparable<Controlled>) {
-        atPrepare([&entity]() -> bool { return entity.prepare(); });
+        atPrepare([&entity] { return entity.prepare(); });
       }
       if constexpr (AppStateStartable<Controlled>) {
-        atLaunch([&entity]() -> bool { return entity.start(); });
+        atLaunch([&entity] { return entity.start(); });
       }
       if constexpr (AppStateStoppable<Controlled>) {
-        atShutdown([&entity]() -> void { return entity.stop(); });
+        atShutdown([&entity] { return entity.stop(); });
       }
     }
 
@@ -107,7 +115,6 @@ namespace kagome::application {
     virtual State state() const = 0;
 
    protected:
-    virtual void doInject() = 0;
     virtual void doPrepare() = 0;
     virtual void doLaunch() = 0;
     virtual void doShutdown() = 0;

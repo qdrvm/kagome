@@ -6,6 +6,8 @@
 
 #include "parachain/availability/recovery/recovery_impl.hpp"
 
+#include "network/impl/protocols/protocol_fetch_available_data.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 

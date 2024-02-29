@@ -14,6 +14,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -32,8 +33,8 @@
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
+#include "utils/pool_handler.hpp"
 #include "utils/retain_if.hpp"
-#include "utils/thread_handler.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =
@@ -78,8 +79,8 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
-      WeakIoContext main_thread_context)
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -93,11 +94,11 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        grandpa_thread_handler_{[&] {
+        main_pool_handler_(std::move(main_pool_handler)),
+        grandpa_pool_handler_{[&] {
           BOOST_ASSERT(grandpa_thread_pool != nullptr);
           return grandpa_thread_pool->handler();
         }()},
-        main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool->io_context()),
@@ -109,8 +110,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
-    BOOST_ASSERT(grandpa_thread_handler_ != nullptr);
-    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
+    BOOST_ASSERT(grandpa_pool_handler_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -126,14 +127,11 @@ namespace kagome::consensus::grandpa {
     app_state_manager->takeControl(*this);
   }
 
-  bool GrandpaImpl::prepare() {
-    grandpa_thread_handler_->start();
-    return true;
-  }
-
   bool GrandpaImpl::start() {
-    if (!grandpa_thread_handler_->isInCurrentThread()) {
-      grandpa_thread_handler_->execute([wptr{weak_from_this()}] {
+    grandpa_pool_handler_->start();
+
+    if (!grandpa_pool_handler_->isInCurrentThread()) {
+      grandpa_pool_handler_->execute([wptr{weak_from_this()}] {
         if (auto self = wptr.lock()) {
           self->start();
         }
@@ -222,7 +220,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    grandpa_thread_handler_->stop();
+    grandpa_pool_handler_->stop();
     fallback_timer_handle_.cancel();
   }
 
@@ -391,7 +389,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::tryExecuteNextRound(
       const std::shared_ptr<VotingRound> &prev_round) {
-    REINVOKE(*grandpa_thread_handler_, tryExecuteNextRound, prev_round);
+    REINVOKE(*grandpa_pool_handler_, tryExecuteNextRound, prev_round);
     if (current_round_ != prev_round) {
       return;
     }
@@ -427,7 +425,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::updateNextRound(RoundNumber round_number) {
-    REINVOKE(*grandpa_thread_handler_, updateNextRound, round_number);
+    REINVOKE(*grandpa_pool_handler_, updateNextRound, round_number);
     if (auto opt_round = selectRound(round_number + 1, std::nullopt);
         opt_round.has_value()) {
       auto &round = opt_round.value();
@@ -441,13 +439,13 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       std::optional<network::PeerStateCompact> &&info,
       network::GrandpaNeighborMessage &&msg) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              onNeighborMessage,
              peer_id,
              std::move(info),
              std::move(msg));
 
-    BOOST_ASSERT(grandpa_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(grandpa_pool_handler_->isInCurrentThread());
     SL_DEBUG(logger_,
              "NeighborMessage set_id={} round={} last_finalized={} "
              "has received from {}",
@@ -554,7 +552,7 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       std::optional<network::PeerStateCompact> &&info_opt,
       network::CatchUpRequest &&msg) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              onCatchUpRequest,
              peer_id,
              std::move(info_opt),
@@ -682,7 +680,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       network::CatchUpResponse &&msg,
                                       bool allow_missing_blocks) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              onCatchUpResponse,
              peer_id,
              msg,
@@ -883,7 +881,7 @@ namespace kagome::consensus::grandpa {
       std::optional<network::PeerStateCompact> &&info,
       VoteMessage &&msg,
       bool allow_missing_blocks) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              onVoteMessage,
              peer_id,
              std::move(info),
@@ -1071,7 +1069,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
                                     network::FullCommitMessage &&msg,
                                     bool allow_missing_blocks) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              onCommitMessage,
              peer_id,
              msg,
@@ -1209,10 +1207,10 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    post(main_thread_context_,
-         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
-           callback(std::move(result));
-         });
+    main_pool_handler_->execute(
+        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
+          callback(std::move(result));
+        });
   }
 
   outcome::result<void> GrandpaImpl::verifyJustification(
@@ -1241,7 +1239,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::applyJustification(
       const GrandpaJustification &justification,
       ApplyJustificationCb &&callback) {
-    REINVOKE(*grandpa_thread_handler_,
+    REINVOKE(*grandpa_pool_handler_,
              applyJustification,
              justification,
              std::move(callback));
@@ -1388,12 +1386,12 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    post(main_thread_context_,
-         [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
-           for (auto &block : blocks) {
-             s->syncByBlockInfo(block, peer, nullptr, false);
-           }
-         });
+    main_pool_handler_->execute(
+        [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
+          for (auto &block : blocks) {
+            s->syncByBlockInfo(block, peer, nullptr, false);
+          }
+        });
     waiting_blocks_.emplace_back(std::move(waiting));
     pruneWaitingBlocks();
   }
@@ -1402,7 +1400,7 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    REINVOKE(*grandpa_thread_handler_, onHead, block);
+    REINVOKE(*grandpa_pool_handler_, onHead, block);
     auto f = [&](WaitingBlock &waiting) {
       if (waiting.blocks.erase(block) == 0) {
         return true;
@@ -1428,7 +1426,7 @@ namespace kagome::consensus::grandpa {
           self->onCommitMessage(peer, std::move(commit), false);
         }
       };
-      post(*grandpa_thread_handler_, std::move(f));
+      grandpa_pool_handler_->execute(std::move(f));
       return false;
     };
     retain_if(waiting_blocks_, f);

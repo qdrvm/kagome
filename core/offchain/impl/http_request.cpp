@@ -181,7 +181,7 @@ namespace kagome::offchain {
         // Try to connect next endpoint if any
         if (++self->resolver_iterator_
             != boost::asio::ip::tcp::resolver::iterator{}) {
-          SL_TRACE(self->log_, "Trying next endpoint...");
+          SL_TRACE(self->log_, "Trying next endpoint…");
           self->connect();
         } else {
           self->error_message_ = fmt::format("Connection failed: {}", ec);
