@@ -34,6 +34,7 @@ target_link_libraries(validator_parachain
     erasure_coding_crust::ec-cpp
     waitable_timer
     kagome_pvf_worker
+    runtime_common
     )
 
 add_library(kagome_pvf_worker

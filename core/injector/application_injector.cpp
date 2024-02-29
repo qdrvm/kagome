@@ -216,6 +216,13 @@
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
+namespace boost::di {
+  template <>
+  struct ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
+    BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>);
+  };
+}  // namespace ::boost::di
+
 namespace {
   template <class T>
   using sptr = std::shared_ptr<T>;
@@ -460,6 +467,7 @@ namespace {
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<CompiledType>>());
         }
+        BOOST_UNREACHABLE_RETURN({});
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
@@ -519,12 +527,7 @@ namespace {
             }),
         makeBinaryenInjector(),
         makeWavmInjector(),
-        bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
-          auto module_factory =
-              injector.template create<sptr<runtime::ModuleFactory>>();
-          return std::make_shared<runtime::RuntimeInstancesPool>(
-              module_factory);
-        }),
+        di::bind<runtime::RuntimeInstancesPool>.template to<runtime::RuntimeInstancesPoolImpl>(),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
         bind_by_lambda<runtime::ModuleFactory>(
@@ -922,7 +925,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+            makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

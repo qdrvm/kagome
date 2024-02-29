@@ -79,6 +79,7 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       size_t runtime_instance_cache_size{16};
+      size_t max_stack_depth{};
       unsigned precompile_threads_num{1};
     };
 
@@ -86,7 +87,7 @@ namespace kagome::parachain {
             std::shared_ptr<boost::asio::io_context> io_context,
             std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
             std::shared_ptr<blockchain::BlockTree> block_tree,

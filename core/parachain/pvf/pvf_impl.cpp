@@ -17,13 +17,14 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 #include "utils/argv0.hpp"
 
@@ -121,26 +122,6 @@ namespace kagome::parachain {
 #endif
   }
 
-  struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &) const override {
-      abort();
-    }
-  };
-
-  struct ReturnModuleInstance : runtime::ModuleRepository {
-    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
-        : instance{std::move(instance)} {}
-
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        const primitives::BlockInfo &,
-        const storage::trie::RootHash &) override {
-      return instance;
-    }
-
-    std::shared_ptr<runtime::ModuleInstance> instance;
-  };
-
   struct ValidationParams {
     SCALE_TIE(4);
 
@@ -155,7 +136,7 @@ namespace kagome::parachain {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -175,8 +156,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
-        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
-            module_factory, config.runtime_instance_cache_size)},
+        runtime_cache_{std::move(instance_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
@@ -310,7 +290,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
                 parachain_api_->session_index_for_child(parent_hash));
@@ -318,10 +297,25 @@ namespace kagome::parachain {
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
 
+    runtime::RuntimeContext::ContextParams executor_params{};
+    if (session_params) {
+      for (auto &param : *session_params) {
+        if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
+          executor_params.memory_limits.max_stack_values_num =
+              stack_max->max_values_num;
+        } else if (auto *pages_max =
+                       get_if<runtime::MaxMemoryPages>(&param)) {
+          executor_params.memory_limits.max_memory_pages_num =
+              pages_max->limit;
+        }
+      }
+    }
+
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
       OUTCOME_TRY(instance,
-                  runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+                  runtime_cache_->instantiateFromCode(
+                      code_hash, code_zstd, executor_params));
       OUTCOME_TRY(
           ctx,
           ctx_factory_->ephemeral(
@@ -334,6 +328,7 @@ namespace kagome::parachain {
         code_zstd,
         name,
         common::Buffer{scale::encode(params).value()},
+        executor_params,
         app_configuration_->useWavmCache()
             ? std::make_optional(app_configuration_->runtimeCacheDirPath())
             : std::nullopt,

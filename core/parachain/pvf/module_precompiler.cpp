@@ -175,7 +175,8 @@ namespace kagome::parachain {
              code.size(),
              hash);
     stats.total_code_size += code.size();
-    OUTCOME_TRY(runtime_cache_->instantiateFromCode(hash, code));
+
+    OUTCOME_TRY(runtime_cache_->instantiateFromCode(hash, code, {}));
     SL_DEBUG(log_,
              "Instantiated runtime instance with code hash {} for parachain "
              "{}, {} left",

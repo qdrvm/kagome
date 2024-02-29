@@ -26,9 +26,9 @@ target_link_libraries(runtime_wavm
 		WAVM::libWAVM
 		constant_code_provider
 		core_api_factory
-    executor
+        executor
 		Boost::boost
-    trie_storage_provider
+        trie_storage_provider
 		memory_allocator
     )
 kagome_install(runtime_wavm)
