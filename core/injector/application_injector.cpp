@@ -310,11 +310,19 @@ namespace {
     return std::move(key_file_storage_res.value());
   }
 
+  template <typename Injector>
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
+      const Injector &injector,
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
+    const auto &genesis_hash =
+        injector.template create<const blockchain::GenesisBlockHash &>();
+    auto x = hex_lower(genesis_hash);
+
     libp2p::protocol::kademlia::Config kademlia_config;
-    kademlia_config.protocols = {"/" + chain_spec.protocolId() + "/kad"},
+    kademlia_config.protocols = {fmt::vformat("/{}/kad",
+                                              fmt::make_format_args(x)),
+                                 "/" + chain_spec.protocolId() + "/kad"},
     kademlia_config.maxBucketSize = 1000,
     kademlia_config.randomWalk = {.interval = random_wak_interval};
 
@@ -641,7 +649,7 @@ namespace {
                     const auto &injector) {
                   auto &chain_spec =
                       injector.template create<application::ChainSpec &>();
-                  return get_kademlia_config(chain_spec, random_walk);
+                  return get_kademlia_config(injector, chain_spec, random_walk);
                 })[boost::di::override],
 
             di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),

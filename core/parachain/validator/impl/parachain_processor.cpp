@@ -1012,9 +1012,14 @@ namespace kagome::parachain {
 
           for (const ValidatorIndex v : it->second) {
             if (v != *relay_parent_state->get().our_index) {
-              if (auto peer =
-                      query_audi_->get(session_info_opt->discovery_keys[v])) {
+              auto peer = query_audi_->get(session_info_opt->discovery_keys[v]);
+              SL_TRACE(logger_,
+                       "AuDi request. (discovery_key={})",
+                       session_info_opt->discovery_keys[v]);
+              if (peer) {
                 group_set.insert(peer->id);
+              } else {
+                SL_TRACE(logger_, "AuDi search failed.");
               }
             }
           }
