@@ -12,5 +12,4 @@ namespace kagome::crypto {
       OPENSSL_cleanse(ptr, size);
     }
 
-
 }

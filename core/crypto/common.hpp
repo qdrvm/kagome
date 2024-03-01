@@ -16,12 +16,19 @@
 
 namespace kagome::crypto {
 
+  // guaranteed to clean up the memory and not be optimized away
   void secure_cleanup(void *ptr, size_t size);
 
+  /**
+   * A wrapper around a span of data
+   * that securely cleans up the data when goes out of scope
+   */
   template <typename T, size_t Size = std::dynamic_extent>
+    requires std::is_standard_layout_v<T>
   struct SecureCleanGuard {
     explicit SecureCleanGuard(std::span<T, Size> data) noexcept : data{data} {}
-    explicit SecureCleanGuard(std::array<T, Size>& data) noexcept : data{data} {}
+    explicit SecureCleanGuard(std::array<T, Size> &data) noexcept
+        : data{data} {}
 
     SecureCleanGuard(const SecureCleanGuard &) = delete;
     SecureCleanGuard &operator=(const SecureCleanGuard &) = delete;
@@ -41,19 +48,10 @@ namespace kagome::crypto {
     std::span<T, Size> data;
   };
 
-  template <typename T>
-  concept has_extent = requires(T) { std::extent_v<T>; };
-
-  template <std::ranges::range R>
-    requires(!has_extent<R>)
-  SecureCleanGuard(R data) -> SecureCleanGuard<std::ranges::range_value_t<R>>;
-
-  template <std::ranges::range Arr>
-    requires(has_extent<Arr>)
-  SecureCleanGuard(Arr &data)
-      -> SecureCleanGuard<std::ranges::range_value_t<Arr>, std::extent_v<Arr>>;
-
-  template <typename T>
+  /**
+   * An allocator on the OpenSSL secure heap
+   */
+  template <typename T, size_t HeapSize = 4096, size_t MinAllocationSize = 32>
   class SecureHeapAllocator {
     inline static std::once_flag flag;
 
@@ -64,7 +62,7 @@ namespace kagome::crypto {
 
     static pointer allocate(size_type n) {
       std::call_once(flag, []() {
-        if (CRYPTO_secure_malloc_init(4 * 1024, 32) != 1) {
+        if (CRYPTO_secure_malloc_init(HeapSize, MinAllocationSize) != 1) {
           throw std::runtime_error{"Failed to allocate OpenSSL secure heap"};
         }
       });
@@ -82,6 +80,11 @@ namespace kagome::crypto {
     }
   };
 
+  /**
+   * A container that allocates its data on the OpenSSL secure heap
+   * @tparam Size - the key length
+   * @tparam Tag - a type-safety tag
+   */
   template <size_t Size, typename Tag>
   class PrivateKey {
    public:
@@ -102,10 +105,18 @@ namespace kagome::crypto {
       return Size;
     }
 
+    /**
+     * SecureCleanGuard ensures that data we used to initialize the key
+     * is then immediately erased from its original unsafe storage
+     */
     static PrivateKey from(SecureCleanGuard<uint8_t, Size> view) {
       return PrivateKey::from(view.data);
     }
 
+    /**
+     * SecureCleanGuard ensures that data we used to initialize the key
+     * is then immediately erased from its original unsafe storage
+     */
     static outcome::result<PrivateKey> from(SecureCleanGuard<uint8_t> view) {
       if (view.data.size() != Size) {
         return common::BlobError::INCORRECT_LENGTH;
@@ -113,14 +124,22 @@ namespace kagome::crypto {
       return PrivateKey::from(view.data.subspan<0, Size>());
     }
 
-    static outcome::result<PrivateKey> fromHex(std::string_view hex) {
-      OUTCOME_TRY(bytes, common::unhex(hex));
+    /**
+     * SecureCleanGuard ensures that data we used to initialize the key
+     * is then immediately erased from its original unsafe storage
+     */
+     static outcome::result<PrivateKey> fromHex(SecureCleanGuard<char> hex) {
+      OUTCOME_TRY(
+          bytes,
+          common::unhex(std::string_view{hex.data.begin(), hex.data.end()}));
       return PrivateKey::from(SecureCleanGuard<uint8_t>{bytes});
     }
 
-    // direct read access to the private key bytes.
-    // The bytes copied from here must be cleaned up with
-    // kagome::crypto::secure_cleanup
+    /**
+     * Provides the direct read access to the private key bytes.
+     * The bytes copied from here to unsafe memory must later be cleaned up with
+     * kagome::crypto::secure_cleanup
+     */
     [[nodiscard]] std::span<const uint8_t> unsafeBytes() const {
       return data;
     }
