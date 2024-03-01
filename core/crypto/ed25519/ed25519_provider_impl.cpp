@@ -67,7 +67,6 @@ namespace kagome::crypto {
               keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
-    crypto::secure_cleanup(keypair_bytes.data(), keypair_bytes.size());
     if (res != ED25519_RESULT_OK) {
       SL_ERROR(logger_,
                "Error during ed25519 sign; error code: {}",
