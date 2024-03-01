@@ -42,6 +42,12 @@ namespace kagome::consensus::babe {
     return babe_block_header.slot_number;
   }
 
+  outcome::result<AuthorityIndex> getAuthority(
+      const primitives::BlockHeader &header) {
+    OUTCOME_TRY(babe_block_header, getBabeBlockHeader(header));
+    return babe_block_header.authority_index;
+  }
+
   outcome::result<BabeBlockHeader> getBabeBlockHeader(
       const primitives::BlockHeader &block_header) {
     [[unlikely]] if (block_header.number == 0) {

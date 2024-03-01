@@ -24,6 +24,11 @@ namespace kagome::consensus {
                 (const primitives::BlockHeader &),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<AuthorityIndex>,
+                getAuthority,
+                (const primitives::BlockHeader &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<void>,
                 processSlot,
                 (SlotNumber, const primitives::BlockInfo &),
@@ -52,6 +57,11 @@ namespace kagome::consensus {
     MOCK_METHOD(outcome::result<void>,
                 validateHeader,
                 (const primitives::BlockHeader &),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<void>,
+                reportEquivocation,
+                (const primitives::BlockHash &, const primitives::BlockHash &),
                 (const, override));
   };
 }  // namespace kagome::consensus

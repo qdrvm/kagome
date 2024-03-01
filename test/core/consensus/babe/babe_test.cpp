@@ -36,6 +36,7 @@
 #include "mock/core/parachain/backed_candidates_source.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
+#include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -113,6 +114,7 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::runtime::BabeApiMock;
 using kagome::runtime::OffchainWorkerApiMock;
 using kagome::storage::trie::calculateOrderedTrieHash;
 using kagome::storage::trie::StateVersion;
@@ -236,6 +238,8 @@ class BabeTest : public testing::Test {
     backed_candidates_source_ =
         std::make_shared<kagome::parachain::BackedCandidatesSourceMock>();
 
+    babe_api = std::make_shared<BabeApiMock>();
+
     offchain_worker_api = std::make_shared<OffchainWorkerApiMock>();
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
@@ -275,6 +279,7 @@ class BabeTest : public testing::Test {
         storage_sub_engine,
         chain_sub_engine,
         announce_transmitter,
+        babe_api,
         offchain_worker_api,
         main_pool_handler,
         worker_pool_handler);
@@ -303,6 +308,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<kagome::parachain::BackedCandidatesSourceMock>
       backed_candidates_source_;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
+  std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<AppStateManagerMock> app_state_manager;
   std::shared_ptr<Watchdog> watchdog;

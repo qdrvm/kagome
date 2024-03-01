@@ -14,6 +14,7 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/block_announce_observer.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
@@ -63,6 +64,8 @@ namespace kagome::consensus {
   class TimelineImpl final : public Timeline,
                              public network::BlockAnnounceObserver,
                              public std::enable_shared_from_this<TimelineImpl> {
+    static const size_t kMaxSlotObserveForEquivocation = 1000;
+
    public:
     TimelineImpl(
         const application::AppConfiguration &app_config,
@@ -106,6 +109,9 @@ namespace kagome::consensus {
 
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
+
+    void checkAndReportEquivocation(
+        const primitives::BlockHeader &header) override;
 
    private:
     bool updateSlot(TimePoint now);
@@ -169,6 +175,12 @@ namespace kagome::consensus {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_major_syncing_;
+
+    using AuthorityIndex = uint32_t;
+
+    std::map<std::tuple<SlotNumber, AuthorityIndex>,
+             std::tuple<primitives::BlockHash, bool>>
+        data_for_equvocation_checks_;
 
     telemetry::Telemetry telemetry_;
   };
