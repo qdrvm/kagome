@@ -30,14 +30,10 @@ FROM zombie-builder-polkadot-sdk AS zombie-builder-polkadot-sdk-bin
 WORKDIR /home/nonroot/polkadot-sdk/
 RUN cargo update -p test-parachain-adder-collator \
     -p polkadot-test-malus \
-    -p test-parachain-undying-collator \
-    -p polkadot-execute-worker \
-    -p polkadot-prepare-worker
+    -p test-parachain-undying-collator
 RUN cargo build --profile testnet -p test-parachain-adder-collator \
     -p polkadot-test-malus \
-    -p test-parachain-undying-collator \
-    -p polkadot-execute-worker \
-    -p polkadot-prepare-worker
+    -p test-parachain-undying-collator
 RUN find /home/nonroot/polkadot-sdk/target/ -maxdepth 2 -print
 
 FROM docker.io/parity/polkadot:$POLKADOT_RELEASE_GLOBAL AS polkadot
@@ -50,9 +46,9 @@ RUN mkdir -p /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/malus /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/adder-collator /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/undying-collator /home/nonroot/bin
-COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/polkadot-execute-worker /home/nonroot/bin
-COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/polkadot-prepare-worker /home/nonroot/bin
 COPY --from=polkadot /usr/bin/polkadot /home/nonroot/bin
+COPY --from=polkadot /usr/lib/polkadot/polkadot-execute-worker /home/nonroot/bin
+COPY --from=polkadot /usr/lib/polkadot/polkadot-prepare-worker /home/nonroot/bin
 COPY --from=polkadot-parachain /usr/local/bin/polkadot-parachain /home/nonroot/bin
 COPY polkadot-sdk-versions.txt /home/nonroot/polkadot-sdk-versions.txt
 COPY zombienet-versions.txt /home/nonroot/zombienet-versions.txt
