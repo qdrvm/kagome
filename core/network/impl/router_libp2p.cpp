@@ -106,37 +106,37 @@ namespace kagome::network {
   }
 
   void RouterLibp2p::start() {
-    auto lazy = [&](auto &lazy) {
+    auto lazyStart = [&](auto &lazy) {
       main_pool_handler_->execute([weak{std::weak_ptr{lazy.get()}}] {
         if (auto ptr = weak.lock()) {
           ptr->start();
         }
       });
     };
-    lazy(block_announce_protocol_);
-    lazy(grandpa_protocol_);
-    lazy(sync_protocol_);
-    lazy(state_protocol_);
-    lazy(warp_protocol_);
-    lazy(beefy_protocol_);
-    lazy(beefy_justifications_protocol_);
-    lazy(light_protocol_);
-    lazy(propagate_transactions_protocol_);
+    lazyStart(block_announce_protocol_);
+    lazyStart(grandpa_protocol_);
+    lazyStart(sync_protocol_);
+    lazyStart(state_protocol_);
+    lazyStart(warp_protocol_);
+    lazyStart(beefy_protocol_);
+    lazyStart(beefy_justifications_protocol_);
+    lazyStart(light_protocol_);
+    lazyStart(propagate_transactions_protocol_);
 
     // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
     // should be uncommented when this task will be implemented
-    // lazy(collation_protocol_);
-    // lazy(validation_protocol_);
+    // lazyStart(collation_protocol_);
+    // lazyStart(validation_protocol_);
 
-    lazy(collation_protocol_);
-    lazy(validation_protocol_);
-    lazy(req_collation_protocol_);
-    lazy(req_pov_protocol_);
-    lazy(fetch_chunk_protocol_);
-    lazy(fetch_available_data_protocol_);
-    lazy(statement_fetching_protocol_);
-    lazy(send_dispute_protocol_);
-    lazy(fetch_attested_candidate_);
+    lazyStart(collation_protocol_);
+    lazyStart(validation_protocol_);
+    lazyStart(req_collation_protocol_);
+    lazyStart(req_pov_protocol_);
+    lazyStart(fetch_chunk_protocol_);
+    lazyStart(fetch_available_data_protocol_);
+    lazyStart(statement_fetching_protocol_);
+    lazyStart(send_dispute_protocol_);
+    lazyStart(fetch_attested_candidate_);
 
     ping_protocol_.get();
     main_pool_handler_->execute([weak{weak_from_this()}] {
@@ -196,6 +196,7 @@ namespace kagome::network {
     const auto &host_addresses = host_.getAddresses();
     if (host_addresses.empty()) {
       log_->critical("Host addresses is empty");
+      app_state_manager_->shutdown();
       return;
     }
 
