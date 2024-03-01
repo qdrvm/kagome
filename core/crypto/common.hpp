@@ -29,7 +29,6 @@ namespace kagome::crypto {
                   "Secure clean guard must have write access to the data");
 
     explicit SecureCleanGuard(std::span<T, Size> data) noexcept : data{data} {}
-
     template <std::ranges::contiguous_range R>
       requires std::ranges::output_range<R, T>
     explicit SecureCleanGuard(R &&r) : data{r} {}
