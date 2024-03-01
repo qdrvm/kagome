@@ -69,7 +69,7 @@ kagome_install(sr25519_provider)
 add_library(ecdsa_provider
     ecdsa/ecdsa_provider_impl.cpp
     ecdsa_types.cpp
-)
+    )
 target_link_libraries(ecdsa_provider
     hasher
     logger
