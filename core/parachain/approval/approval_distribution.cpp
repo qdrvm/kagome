@@ -671,7 +671,7 @@ namespace kagome::parachain {
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
     computeVrfDelayAssignments(
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
-
+    crypto::secure_cleanup(keypair_buf.data(), keypair_buf.size());
     return assignments;
   }
 

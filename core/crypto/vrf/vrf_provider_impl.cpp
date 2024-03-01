@@ -65,6 +65,7 @@ namespace kagome::crypto {
         keypair_buf.data(),
         reinterpret_cast<const Strobe128 *>(msg.data().data()),  // NOLINT
         threshold_bytes.data());
+    secure_cleanup(keypair_buf.data(), keypair_buf.size());
 
     if (SR25519_SIGNATURE_RESULT_OK != sign_res.result) {
       return std::nullopt;
@@ -118,6 +119,7 @@ namespace kagome::crypto {
                                              msg.data(),
                                              msg.size(),
                                              threshold_bytes.data());
+    secure_cleanup(keypair_buf.data(), keypair_buf.size());
     if (not sign_res.is_less
         or (SR25519_SIGNATURE_RESULT_OK != sign_res.result)) {
       return std::nullopt;
