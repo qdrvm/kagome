@@ -8,8 +8,4 @@
 
 namespace kagome::crypto {
 
-    void secure_cleanup(void* ptr, size_t size) {
-      OPENSSL_cleanse(ptr, size);
-    }
-
 }

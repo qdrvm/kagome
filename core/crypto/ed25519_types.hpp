@@ -30,9 +30,6 @@ namespace kagome::crypto {
 
 }  // namespace kagome::crypto
 
-// KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-//                            Ed25519PrivateKey,
-//                            constants::ed25519::PRIVKEY_SIZE);
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Ed25519PublicKey,
                            constants::ed25519::PUBKEY_SIZE);

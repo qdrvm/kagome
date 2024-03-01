@@ -20,9 +20,6 @@ namespace kagome::crypto {
   }
 }  // namespace kagome::crypto
 
-//KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-//                           EcdsaPrivateKey,
-//                           constants::ecdsa::PRIVKEY_SIZE);
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            EcdsaPublicKey,
                            constants::ecdsa::PUBKEY_SIZE);

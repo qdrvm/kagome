@@ -16,9 +16,6 @@
 
 namespace kagome::crypto {
 
-  // guaranteed to clean up the memory and not be optimized away
-  void secure_cleanup(void *ptr, size_t size);
-
   /**
    * A wrapper around a span of data
    * that securely cleans up the data when goes out of scope
@@ -48,7 +45,7 @@ namespace kagome::crypto {
     }
 
     ~SecureCleanGuard() {
-      secure_cleanup(data.data(), data.size_bytes());
+      OPENSSL_cleanse(data.data(), data.size_bytes());
     }
 
     std::span<T, Size> data;

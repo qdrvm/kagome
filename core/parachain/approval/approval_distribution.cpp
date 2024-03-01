@@ -663,6 +663,7 @@ namespace kagome::parachain {
     }
 
     common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
+    crypto::SecureCleanGuard g{keypair_buf};
     std::ranges::copy(assignments_key.secret_key.unsafeBytes(),
                       keypair_buf.begin());
     std::ranges::copy(assignments_key.public_key,
@@ -674,7 +675,7 @@ namespace kagome::parachain {
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
     computeVrfDelayAssignments(
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
-    crypto::secure_cleanup(keypair_buf.data(), keypair_buf.size());
+
     return assignments;
   }
 

@@ -58,13 +58,13 @@ namespace kagome::crypto {
       const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
+    SecureCleanGuard g{keypair_bytes};
     std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_bytes.begin());
     std::copy(keypair.public_key.begin(),
               keypair.public_key.end(),
               keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
-    crypto::secure_cleanup(keypair_bytes.data(), keypair_bytes.size());
     if (res != ED25519_RESULT_OK) {
       SL_ERROR(logger_,
                "Error during ed25519 sign; error code: {}",
