@@ -14,6 +14,7 @@
 using kagome::application::AppConfigurationMock;
 using namespace kagome;
 using namespace crypto;
+using namespace std::string_literals;
 
 using testing::_;
 using testing::Return;
@@ -77,15 +78,17 @@ TEST_F(SessionKeysTest, SessionKeys) {
       .Times(1)
       .WillOnce(Return(ed_keys));
 
-  auto ed_priv = Ed25519PrivateKey::fromHex(
-                     "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
-                     "27ec35cd8325602dd47fd")
-                     .value();
+  auto ed_priv =
+      Ed25519PrivateKey::fromHex(
+          SecureCleanGuard{"a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
+                           "27ec35cd8325602dd47fd"s})
+          .value();
 
   auto sr_priv =
       Sr25519SecretKey::fromHex(
-          "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
-          "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9")
+          SecureCleanGuard{
+              "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
+              "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"s})
           .value();
 
   outcome::result<Ed25519Keypair> ed_pair = Ed25519Keypair{ed_priv, ed_key};

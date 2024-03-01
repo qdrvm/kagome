@@ -74,9 +74,6 @@ namespace kagome::crypto {
   };
 }  // namespace kagome::crypto
 
-// KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-//                            Sr25519SecretKey,
-//                            constants::sr25519::SECRET_SIZE);
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Sr25519PublicKey,
                            constants::sr25519::PUBLIC_SIZE);

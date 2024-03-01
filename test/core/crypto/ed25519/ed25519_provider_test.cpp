@@ -25,6 +25,7 @@ using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureCleanGuard;
 
 struct Ed25519ProviderTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -154,7 +155,9 @@ TEST_F(Ed25519ProviderTest, GenerateBySeedSuccess) {
   EXPECT_OUTCOME_TRUE(public_key, Ed25519PublicKey::fromHex(hex_public_key));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(private_key, Ed25519PrivateKey::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(
+      private_key,
+      Ed25519PrivateKey::fromHex(SecureCleanGuard(std::string(hex_seed))));
 
   auto kp = ed25519_provider->generateKeypair(seed, {}).value();
 

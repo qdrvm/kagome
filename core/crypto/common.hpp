@@ -26,9 +26,15 @@ namespace kagome::crypto {
   template <typename T, size_t Size = std::dynamic_extent>
     requires std::is_standard_layout_v<T>
   struct SecureCleanGuard {
+    static_assert(!std::is_const_v<T>,
+                  "Secure clean guard must have write access to the data");
+
     explicit SecureCleanGuard(std::span<T, Size> data) noexcept : data{data} {}
     explicit SecureCleanGuard(std::array<T, Size> &data) noexcept
         : data{data} {}
+    template <std::ranges::contiguous_range R>
+      requires std::ranges::output_range<R, T>
+    explicit SecureCleanGuard(R &&r) : data{r} {}
 
     SecureCleanGuard(const SecureCleanGuard &) = delete;
     SecureCleanGuard &operator=(const SecureCleanGuard &) = delete;
@@ -48,6 +54,9 @@ namespace kagome::crypto {
     std::span<T, Size> data;
   };
 
+  template <std::ranges::contiguous_range R>
+  SecureCleanGuard(R &&r) -> SecureCleanGuard<std::ranges::range_value_t<R>>;
+
   /**
    * An allocator on the OpenSSL secure heap
    */
@@ -59,6 +68,11 @@ namespace kagome::crypto {
     using value_type = T;
     using pointer = T *;
     using size_type = size_t;
+
+    template <typename U>
+    struct rebind {
+      using other = SecureHeapAllocator<U, HeapSize, MinAllocationSize>;
+    };
 
     static pointer allocate(size_type n) {
       std::call_once(flag, []() {
@@ -128,7 +142,7 @@ namespace kagome::crypto {
      * SecureCleanGuard ensures that data we used to initialize the key
      * is then immediately erased from its original unsafe storage
      */
-     static outcome::result<PrivateKey> fromHex(SecureCleanGuard<char> hex) {
+    static outcome::result<PrivateKey> fromHex(SecureCleanGuard<char> hex) {
       OUTCOME_TRY(
           bytes,
           common::unhex(std::string_view{hex.data.begin(), hex.data.end()}));

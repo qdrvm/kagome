@@ -21,6 +21,7 @@ using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureCleanGuard;
 using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519PublicKey;
@@ -158,7 +159,9 @@ TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
   EXPECT_OUTCOME_TRUE(public_key, Sr25519PublicKey::fromHex(hex_vk));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(secret_key, Sr25519SecretKey::fromHex(hex_sk));
+  EXPECT_OUTCOME_TRUE(
+      secret_key,
+      Sr25519SecretKey::fromHex(SecureCleanGuard{std::string{hex_sk}}));
 
   auto &&kp = sr25519_provider->generateKeypair(seed, {});
 
