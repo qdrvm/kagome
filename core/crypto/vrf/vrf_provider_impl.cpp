@@ -22,14 +22,13 @@ namespace kagome::crypto {
     std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
-    Sr25519Keypair keypair;
-    std::copy(kp.begin(),
-              kp.begin() + constants::sr25519::SECRET_SIZE,
-              keypair.secret_key.begin());
-    std::copy(kp.begin() + constants::sr25519::SECRET_SIZE,
-              kp.begin() + constants::sr25519::SECRET_SIZE
-                  + constants::sr25519::PUBLIC_SIZE,
-              keypair.public_key.begin());
+    Sr25519Keypair keypair{
+        Sr25519SecretKey::from(SecureCleanGuard(
+            std::span(kp).subspan<0, constants::sr25519::SECRET_SIZE>())),
+        Sr25519PublicKey::fromSpan(
+            std::span(kp.begin() + constants::sr25519::SECRET_SIZE,
+                      constants::sr25519::PUBLIC_SIZE))
+            .value()};
     return keypair;
   }
 
@@ -50,8 +49,11 @@ namespace kagome::crypto {
       const Sr25519Keypair &keypair,
       const std::optional<std::reference_wrapper<const VRFThreshold>> threshold)
       const {
-    common::Buffer keypair_buf{};
-    keypair_buf.put(keypair.secret_key).put(keypair.public_key);
+    std::array<uint8_t, Sr25519PublicKey::size() + Sr25519SecretKey::size()>
+        keypair_buf{};
+    std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_buf.begin());
+    std::ranges::copy(keypair.public_key,
+                      keypair_buf.begin() + Sr25519SecretKey::size());
 
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
@@ -62,6 +64,7 @@ namespace kagome::crypto {
         keypair_buf.data(),
         reinterpret_cast<const Strobe128 *>(msg.data().data()),  // NOLINT
         threshold_bytes.data());
+    secure_cleanup(keypair_buf.data(), keypair_buf.size());
 
     if (SR25519_SIGNATURE_RESULT_OK != sign_res.result) {
       return std::nullopt;
@@ -100,8 +103,11 @@ namespace kagome::crypto {
       const common::Buffer &msg,
       const Sr25519Keypair &keypair,
       const VRFThreshold &threshold) const {
-    common::Buffer keypair_buf{};
-    keypair_buf.put(keypair.secret_key).put(keypair.public_key);
+    std::array<uint8_t, Sr25519PublicKey::size() + Sr25519SecretKey::size()>
+        keypair_buf{};
+    std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_buf.begin());
+    std::ranges::copy(keypair.public_key,
+                      keypair_buf.begin() + Sr25519SecretKey::size());
 
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
@@ -111,6 +117,7 @@ namespace kagome::crypto {
                                              msg.data(),
                                              msg.size(),
                                              threshold_bytes.data());
+    secure_cleanup(keypair_buf.data(), keypair_buf.size());
     if (not sign_res.is_less
         or (SR25519_SIGNATURE_RESULT_OK != sign_res.result)) {
       return std::nullopt;

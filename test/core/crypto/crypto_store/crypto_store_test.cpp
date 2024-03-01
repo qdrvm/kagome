@@ -62,7 +62,16 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     testutil::prepareLoggers();
   }
 
-  CryptoStoreTest() : BaseFS_Test(crypto_store_test_directory) {}
+  CryptoStoreTest()
+      : BaseFS_Test(crypto_store_test_directory),
+        ed_pair(Ed25519PrivateKey::fromHex(
+                    "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
+                    "27ec35cd8325602dd47fd")
+                    .value(),
+                Ed25519PublicKey::fromHex(
+                    "3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
+                    "960990fe02aa26b7fc72")
+                    .value()) {}
 
   void SetUp() override {
     auto hasher = std::make_shared<HasherImpl>();
@@ -93,16 +102,6 @@ struct CryptoStoreTest : public test::BaseFS_Test {
                                           "c7d43b127ec35cd8325602dd47fd"));
     seed = s;
     key_type = KeyTypes::BABE;
-
-    EXPECT_OUTCOME_TRUE(
-        ed_publ,
-        Ed25519PublicKey::fromHex("3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
-                                  "960990fe02aa26b7fc72"));
-    EXPECT_OUTCOME_TRUE(
-        ed_priv,
-        Ed25519PrivateKey::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
-                                   "27ec35cd8325602dd47fd"));
-    ed_pair = {ed_priv, ed_publ};
 
     EXPECT_OUTCOME_TRUE(
         sr_publ,

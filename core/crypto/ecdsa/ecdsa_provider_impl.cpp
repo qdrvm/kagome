@@ -45,10 +45,11 @@ namespace kagome::crypto {
           scale::encode("Secp256k1HDKD"_bytes, seed, junction.cc).value());
     }
     EcdsaKeypair keys;
-    keys.secret_key = seed;
+    keys.secret_key = EcdsaPrivateKey::from(
+        SecureCleanGuard<uint8_t, EcdsaPrivateKey::size()>{seed});
     secp256k1_pubkey ffi_pub;
     if (secp256k1_ec_pubkey_create(
-            context_.get(), &ffi_pub, keys.secret_key.data())
+            context_.get(), &ffi_pub, keys.secret_key.unsafeBytes().data())
         == 0) {
       return Error::DERIVE_FAILED;
     }
@@ -75,7 +76,7 @@ namespace kagome::crypto {
     if (secp256k1_ecdsa_sign_recoverable(context_.get(),
                                          &ffi_sig,
                                          message.data(),
-                                         key.cbegin(),
+                                         key.unsafeBytes().data(),
                                          secp256k1_nonce_function_rfc6979,
                                          nullptr)
         == 0) {

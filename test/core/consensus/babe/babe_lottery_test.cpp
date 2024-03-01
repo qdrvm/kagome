@@ -35,7 +35,7 @@ struct BabeLotteryTest : public testing::Test {
 
   void SetUp() override {
     keypair_.public_key.fill(2);
-    keypair_.secret_key.fill(3);
+    //keypair_.secret_key.fill(3);
 
     babe_config_ = std::make_shared<BabeConfiguration>(BabeConfiguration{
         .epoch_length = 3,

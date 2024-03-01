@@ -79,7 +79,8 @@ namespace {
   }
 
   void computeVrfModuloAssignments(
-      const kagome::common::Buffer &keypair_buf,
+      std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+          keypair_buf,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const std::vector<kagome::parachain::CoreIndex> &lc,
@@ -133,7 +134,8 @@ namespace {
   }
 
   void computeVrfDelayAssignments(
-      const kagome::common::Buffer &keypair_buf,
+      std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+          keypair_buf,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const std::vector<kagome::parachain::CoreIndex> &lc,
@@ -331,7 +333,7 @@ namespace {
       const kagome::parachain::ApprovalDistribution::CandidateEntry
           &candidate_entry,
       const kagome::parachain::approval::RequiredTranches &required_tranches,
-      kagome::network::DelayTranche const tranche_now) {
+      const kagome::network::DelayTranche tranche_now) {
     if (!approval_entry.our_assignment) {
       return false;
     }
@@ -660,8 +662,11 @@ namespace kagome::parachain {
       lc.push_back(core_ix);
     }
 
-    common::Buffer keypair_buf{};
-    keypair_buf.put(assignments_key.secret_key).put(assignments_key.public_key);
+    common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
+    std::ranges::copy(assignments_key.secret_key.unsafeBytes(),
+                      keypair_buf.begin());
+    std::ranges::copy(assignments_key.public_key,
+                      keypair_buf.begin() + crypto::Sr25519SecretKey::size());
 
     std::unordered_map<CoreIndex, ApprovalDistribution::OurAssignment>
         assignments;
@@ -669,7 +674,7 @@ namespace kagome::parachain {
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
     computeVrfDelayAssignments(
         keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
-
+    crypto::secure_cleanup(keypair_buf.data(), keypair_buf.size());
     return assignments;
   }
 
@@ -2439,9 +2444,10 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

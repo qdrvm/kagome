@@ -21,14 +21,13 @@ namespace kagome::crypto {
       kp = next;
     }
 
-    Sr25519Keypair keypair;
-    std::copy(kp.begin(),
-              kp.begin() + constants::sr25519::SECRET_SIZE,
-              keypair.secret_key.begin());
-    std::copy(kp.begin() + constants::sr25519::SECRET_SIZE,
-              kp.begin() + constants::sr25519::SECRET_SIZE
-                  + constants::sr25519::PUBLIC_SIZE,
-              keypair.public_key.begin());
+    Sr25519Keypair keypair{
+        Sr25519SecretKey::from(SecureCleanGuard{
+            std::span(kp).subspan<0, constants::sr25519::SECRET_SIZE>()}),
+        Sr25519PublicKey::fromSpan(
+            std::span(kp).subspan(constants::sr25519::SECRET_SIZE,
+                                  constants::sr25519::PUBLIC_SIZE))
+            .value()};
     return keypair;
   }
 
@@ -39,7 +38,7 @@ namespace kagome::crypto {
     try {
       sr25519_sign(signature.data(),
                    keypair.public_key.data(),
-                   keypair.secret_key.data(),
+                   keypair.secret_key.unsafeBytes().data(),
                    message.data(),
                    message.size());
     } catch (...) {

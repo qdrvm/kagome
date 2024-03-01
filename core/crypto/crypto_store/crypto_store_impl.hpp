@@ -138,7 +138,7 @@ namespace kagome::crypto {
           }
           SL_TRACE(logger_, "Loaded key {}", pk.toHex());
           OUTCOME_TRY(kp, kp_res);
-          auto &&[pub, priv] = suite.decomposeKeypair(kp);
+          auto &&[pub, priv] = suite.decomposeKeypair(std::move(kp));
           if (pub == pk) {
             SL_TRACE(logger_, "Key is correct {}", pk.toHex());
             res.emplace_back(std::move(pk));

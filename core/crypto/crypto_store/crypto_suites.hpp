@@ -59,7 +59,7 @@ namespace kagome::crypto {
      * @see composeKeypair()
      */
     virtual std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Keypair &kp) const noexcept = 0;
+        Keypair &&kp) const noexcept = 0;
 
     /**
      * Create a public key from its bytes
@@ -98,7 +98,7 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const EcdsaKeypair &kp) const noexcept override {
+        EcdsaKeypair &&kp) const noexcept override {
       return {kp.public_key, kp.secret_key};
     }
 
@@ -141,8 +141,8 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Ed25519Keypair &kp) const noexcept override {
-      return {kp.public_key, kp.secret_key};
+        Ed25519Keypair &&kp) const noexcept override {
+      return {kp.public_key, std::move(kp.secret_key)};
     }
 
     outcome::result<PublicKey> toPublicKey(
@@ -184,7 +184,7 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Sr25519Keypair &kp) const noexcept override {
+        Sr25519Keypair &&kp) const noexcept override {
       return {kp.public_key, kp.secret_key};
     }
 

@@ -56,7 +56,8 @@ namespace {
           (keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()))
               .native();
       std::ofstream grandpa_file{grandpa_path};
-      grandpa_file << grandpa.secret_key.toHex();
+      auto hex = kagome::common::hex_lower(grandpa.secret_key.unsafeBytes());
+      grandpa_file.write(hex.c_str(), hex.size());
     }
     {
       auto seed = kagome::crypto::Sr25519Seed::fromSpan(

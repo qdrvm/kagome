@@ -56,10 +56,14 @@ namespace kagome::authority_discovery {
     BOOST_ASSERT(scheduler_ != nullptr);
     app_state_manager->atLaunch([this] { return start(); });
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
+      std::array<uint8_t, crypto::constants::ed25519::PRIVKEY_SIZE>
+          private_key_bytes{};
+      std::copy_n(libp2p_key.privateKey.data.begin(),
+                  crypto::constants::ed25519::PRIVKEY_SIZE,
+                  private_key_bytes.begin());
       libp2p_key_.emplace(crypto::Ed25519Keypair{
-          .secret_key =
-              crypto::Ed25519PrivateKey::from(libp2p_key.privateKey.data)
-                  .value(),
+          .secret_key = crypto::Ed25519PrivateKey::from(
+              crypto::SecureCleanGuard(private_key_bytes)),
           .public_key =
               crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
                   .value(),

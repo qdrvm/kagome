@@ -211,9 +211,11 @@ namespace kagome::crypto {
     libp2p::crypto::PublicKey lp2p_public{
         {libp2p::crypto::Key::Type::Ed25519,
          std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
+    auto bytes = secret_key.unsafeBytes();
+    // TODO(Harrm): implement secure private key storage in libp2p
     libp2p::crypto::PrivateKey lp2p_private{
         {libp2p::crypto::Key::Type::Ed25519,
-         std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}}};
+         std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
     return libp2p::crypto::KeyPair{
         .publicKey = lp2p_public,
         .privateKey = lp2p_private,
