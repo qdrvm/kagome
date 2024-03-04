@@ -22,6 +22,9 @@ namespace kagome::crypto {
    */
   class Pbkdf2Provider {
    public:
+    using SecureBuffer = common::SLBuffer<std::numeric_limits<size_t>::max(),
+                                          SecureHeapAllocator<uint8_t>>;
+
     virtual ~Pbkdf2Provider() = default;
 
     /**

@@ -17,7 +17,6 @@ extern "C" {
 #include "crypto/common.hpp"
 #include "primitives/math.hpp"
 #include "scale/tie.hpp"
-#include "crypto/common.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {
