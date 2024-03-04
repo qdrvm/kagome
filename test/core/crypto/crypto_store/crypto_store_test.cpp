@@ -66,15 +66,16 @@ struct CryptoStoreTest : public test::BaseFS_Test {
 
   CryptoStoreTest()
       : BaseFS_Test(crypto_store_test_directory),
-        ed_pair(
-            Ed25519PrivateKey::fromHex(
-                SecureCleanGuard("a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
-                                 "27ec35cd8325602dd47fd"s))
-                .value(),
-            Ed25519PublicKey::fromHex(
-                "3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
-                "960990fe02aa26b7fc72")
-                .value()) {}
+        ed_pair{
+            .secret_key = Ed25519PrivateKey::fromHex(
+                              SecureCleanGuard(
+                                  "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
+                                  "27ec35cd8325602dd47fd"s))
+                              .value(),
+            .public_key = Ed25519PublicKey::fromHex(
+                              "3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
+                              "960990fe02aa26b7fc72")
+                              .value()} {}
 
   void SetUp() override {
     auto hasher = std::make_shared<HasherImpl>();
@@ -189,8 +190,9 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(
-      pair, crypto_store->generateEd25519Keypair(key_type, Ed25519Seed{seed}));
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateEd25519Keypair(
+                          key_type, Ed25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -212,8 +214,9 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(
-      pair, crypto_store->generateSr25519Keypair(key_type, Sr25519Seed{seed}));
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateSr25519Keypair(
+                          key_type, Sr25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory

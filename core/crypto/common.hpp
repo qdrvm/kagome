@@ -12,6 +12,7 @@
 #include <mutex>
 #include <type_traits>
 
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 
 namespace kagome::crypto {
@@ -27,8 +28,7 @@ namespace kagome::crypto {
                   "Secure clean guard must have write access to the data");
 
     explicit SecureCleanGuard(std::span<T, Size> data) noexcept : data{data} {}
-    explicit SecureCleanGuard(std::array<T, Size> &data) noexcept
-        : data{data} {}
+
     template <std::ranges::contiguous_range R>
       requires std::ranges::output_range<R, T>
     explicit SecureCleanGuard(R &&r) : data{r} {}
@@ -53,6 +53,18 @@ namespace kagome::crypto {
 
   template <std::ranges::contiguous_range R>
   SecureCleanGuard(R &&r) -> SecureCleanGuard<std::ranges::range_value_t<R>>;
+
+  template <typename T, size_t N>
+  SecureCleanGuard(std::array<T, N> &) -> SecureCleanGuard<T, N>;
+
+  template <typename T, size_t N>
+  SecureCleanGuard(std::array<T, N> &&) -> SecureCleanGuard<T, N>;
+
+  template <size_t N>
+  SecureCleanGuard(common::Blob<N> &) -> SecureCleanGuard<uint8_t, N>;
+
+  template <size_t N>
+  SecureCleanGuard(common::Blob<N> &&) -> SecureCleanGuard<uint8_t, N>;
 
   /**
    * An allocator on the OpenSSL secure heap
@@ -89,7 +101,13 @@ namespace kagome::crypto {
       BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
       OPENSSL_secure_free(p);
     }
+
+    bool operator==(const SecureHeapAllocator &) const = default;
   };
+
+  template <size_t SizeLimit = std::numeric_limits<size_t>::max()>
+  using SecureBuffer =
+      common::SLBuffer<SizeLimit, SecureHeapAllocator<uint8_t>>;
 
   /**
    * A container that allocates its data on the OpenSSL secure heap
@@ -98,6 +116,9 @@ namespace kagome::crypto {
    */
   template <size_t Size, typename Tag>
   class PrivateKey {
+    template <size_t, typename>
+    friend class PrivateKey;
+
    public:
     PrivateKey() = default;
     PrivateKey(const PrivateKey &) = default;
@@ -108,6 +129,12 @@ namespace kagome::crypto {
     PrivateKey &operator=(PrivateKey &&key) noexcept = default;
 
     bool operator==(const PrivateKey &) const noexcept = default;
+
+    template <typename OtherTag>
+    bool operator==(const PrivateKey<Size, OtherTag> &key) const noexcept {
+      return key == data.view();
+    }
+
     bool operator==(std::span<const uint8_t> bytes) const noexcept {
       return data.view() == bytes;
     }
@@ -116,12 +143,25 @@ namespace kagome::crypto {
       return Size;
     }
 
+    template <size_t OtherSize, typename OtherTag>
+      requires(OtherSize >= Size)
+    static PrivateKey from(const PrivateKey<OtherSize, OtherTag> &other_key) {
+      auto copy = other_key.data;
+      return PrivateKey{std::move(copy)};
+    }
+
+    template <size_t OtherSize, typename OtherTag>
+      requires(OtherSize >= Size)
+    static PrivateKey from(PrivateKey<OtherSize, OtherTag> &&other_key) {
+      return PrivateKey{std::move(other_key.data)};
+    }
+
     /**
      * SecureCleanGuard ensures that data we used to initialize the key
      * is then immediately erased from its original unsafe storage
      */
     static PrivateKey from(SecureCleanGuard<uint8_t, Size> view) {
-      return PrivateKey::from(view.data);
+      return PrivateKey(view.data);
     }
 
     /**
@@ -132,7 +172,16 @@ namespace kagome::crypto {
       if (view.data.size() != Size) {
         return common::BlobError::INCORRECT_LENGTH;
       }
-      return PrivateKey::from(view.data.subspan<0, Size>());
+      return PrivateKey(view.data.subspan<0, Size>());
+    }
+
+    template <size_t OtherSize>
+      requires(OtherSize >= Size)
+    static outcome::result<PrivateKey> from(SecureBuffer<OtherSize> buf) {
+      if (buf.size() != Size) {
+        return common::BlobError::INCORRECT_LENGTH;
+      }
+      return PrivateKey(std::move(buf));
     }
 
     /**
@@ -146,22 +195,34 @@ namespace kagome::crypto {
       return PrivateKey::from(SecureCleanGuard<uint8_t>{bytes});
     }
 
+    static outcome::result<PrivateKey> fromHex(const SecureBuffer<> &hex) {
+      OUTCOME_TRY(bytes,
+                  common::unhex(std::string_view{
+                      reinterpret_cast<const char *>(hex.data()), hex.size()}));
+      return PrivateKey::from(SecureCleanGuard<uint8_t>{bytes});
+    }
+
     /**
      * Provides the direct read access to the private key bytes.
      * The bytes copied from here to unsafe memory must later be cleaned up with
-     * kagome::crypto::secure_cleanup
+     * SecureCleanGuard
      */
     [[nodiscard]] std::span<const uint8_t> unsafeBytes() const {
       return data;
     }
 
    private:
-    static PrivateKey from(std::span<uint8_t, Size> view) {
-      PrivateKey key;
-      key.data.put(view);
-      return key;
+    explicit PrivateKey(std::span<uint8_t, Size> view) {
+      BOOST_ASSERT(view.size() == Size);
+      data.put(view);
     }
 
-    common::SLBuffer<Size, SecureHeapAllocator<uint8_t>> data;
+    template <size_t OtherSize>
+      requires(OtherSize >= Size)
+    explicit PrivateKey(SecureBuffer<OtherSize> data) : data{std::move(data)} {
+      BOOST_ASSERT(this->data.size() == Size);
+    }
+
+    SecureBuffer<Size> data;
   };
 }  // namespace kagome::crypto

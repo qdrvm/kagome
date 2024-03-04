@@ -29,12 +29,12 @@ namespace kagome::crypto::bip39 {
   struct Mnemonic {
     using Words = std::vector<std::string>;
 
-    boost::variant<common::Buffer, Words> seed;
+    std::variant<Bip39Seed, Words> seed;
     std::string password;
     std::vector<Junction> junctions;
 
-    auto *words() const {
-      return boost::get<Words>(&seed);
+    const Words *words() const {
+      return std::get_if<Words>(&seed);
     }
 
     /**

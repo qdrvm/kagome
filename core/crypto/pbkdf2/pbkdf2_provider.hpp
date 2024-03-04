@@ -7,8 +7,10 @@
 #pragma once
 
 #include <span>
+
 #include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
+#include "crypto/common.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
@@ -20,6 +22,9 @@ namespace kagome::crypto {
    */
   class Pbkdf2Provider {
    public:
+    using SecureBuffer = common::SLBuffer<std::numeric_limits<size_t>::max(),
+                                          SecureHeapAllocator<uint8_t>>;
+
     virtual ~Pbkdf2Provider() = default;
 
     /**
@@ -30,7 +35,7 @@ namespace kagome::crypto {
      * @param key_length length of generated key
      * @return derived key
      */
-    virtual outcome::result<common::Buffer> deriveKey(
+    virtual outcome::result<SecureBuffer> deriveKey(
         common::BufferView data,
         common::BufferView salt,
         size_t iterations,

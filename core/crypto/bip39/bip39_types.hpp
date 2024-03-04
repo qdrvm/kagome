@@ -8,13 +8,15 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "crypto/common.hpp"
 
 namespace kagome::crypto::bip39 {
   namespace constants {
     constexpr size_t BIP39_SEED_LEN_512 = 64u;
   }  // namespace constants
 
-  using Bip39Seed = common::Buffer;
+  struct Bip39Tag;
+  using Bip39Seed = PrivateKey<constants::BIP39_SEED_LEN_512, Bip39Tag>;
 
   struct RawJunction {
     bool hard;
@@ -22,12 +24,7 @@ namespace kagome::crypto::bip39 {
   };
 
   struct Bip39SeedAndJunctions {
-    common::Buffer seed;
+    Bip39Seed seed;
     std::vector<RawJunction> junctions;
-
-    template <typename T>
-    outcome::result<T> as() const {
-      return T::fromSpan(seed.view(0, std::min(seed.size(), T::size())));
-    }
   };
 }  // namespace kagome::crypto::bip39

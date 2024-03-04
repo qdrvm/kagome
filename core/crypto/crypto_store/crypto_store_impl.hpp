@@ -162,11 +162,13 @@ namespace kagome::crypto {
         KeyType key_type,
         const std::shared_ptr<CryptoSuite> &suite,
         std::unordered_map<KeyType, KeyCache<CryptoSuite>> &caches) {
-      typename CryptoSuite::Seed seed;
-      csprng_->fillRandomly(seed);
+      SecureBuffer<> seed_buf(CryptoSuite::Seed::size());
+      csprng_->fillRandomly(seed_buf);
+      OUTCOME_TRY(seed, CryptoSuite::Seed::from(std::move(seed_buf)));
       OUTCOME_TRY(kp, suite->generateKeypair(seed, {}));
       getCache(suite, caches, key_type).insert(kp.public_key, kp.secret_key);
-      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, seed));
+      OUTCOME_TRY(file_storage_->saveKeyPair(
+          key_type, kp.public_key, seed.unsafeBytes()));
       return kp;
     }
 

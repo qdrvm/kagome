@@ -39,11 +39,14 @@ namespace kagome::crypto {
       if (not junction.hard) {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
-      seed = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD"_bytes, seed, junction.cc).value());
+      auto _ = hasher_->blake2b_256(
+          scale::encode("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc)
+              .value());
+      seed = Ed25519Seed::from(
+          SecureCleanGuard(static_cast<std::array<uint8_t, 32>>(_)));
     }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
-    ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
+    ed25519_keypair_from_seed(kp_bytes.data(), seed.unsafeBytes().data());
     Ed25519Keypair kp{
         Ed25519PrivateKey::from(SecureCleanGuard{
             std::span(kp_bytes).subspan<0, ED25519_SECRET_KEY_LENGTH>()}),

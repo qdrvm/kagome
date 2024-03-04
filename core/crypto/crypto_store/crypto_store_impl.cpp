@@ -185,7 +185,7 @@ namespace kagome::crypto {
 
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
       const CryptoStore::Path &key_path) const {
-    std::string contents;
+    SecureBuffer<> contents;
     if (not readFile(contents, key_path.string())) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
@@ -193,10 +193,11 @@ namespace kagome::crypto {
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
     Ed25519Seed seed;
     if (ED25519_SEED_LENGTH == contents.size()) {
-      OUTCOME_TRY(_seed, Ed25519Seed::fromSpan(str2byte(contents)));
+      OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
       seed = _seed;
     } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-      OUTCOME_TRY(_seed, Ed25519Seed::fromHex(contents));
+      std::span<char> char_content{};
+      OUTCOME_TRY(_seed, Ed25519Seed::fromHex(SecureCleanGuard{char_content}));
       seed = _seed;
     } else {
       return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;

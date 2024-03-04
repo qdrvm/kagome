@@ -69,8 +69,13 @@ namespace kagome::crypto {
     salt.put(default_salt);
     salt.put(password);
 
-    return pbkdf2_provider_->deriveKey(
-        entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
+    OUTCOME_TRY(
+        key,
+        pbkdf2_provider_->deriveKey(entropy,
+                                    salt,
+                                    iterations_count,
+                                    bip39::constants::BIP39_SEED_LEN_512));
+    return bip39::Bip39Seed::from(std::move(key));
   }
 
   outcome::result<bip39::Bip39SeedAndJunctions> Bip39ProviderImpl::generateSeed(
@@ -84,7 +89,7 @@ namespace kagome::crypto {
       OUTCOME_TRY(entropy, calculateEntropy(*words));
       BOOST_OUTCOME_TRY(result.seed, makeSeed(entropy, mnemonic.password));
     } else {
-      result.seed = std::move(boost::get<common::Buffer>(mnemonic.seed));
+      result.seed = std::move(std::get<bip39::Bip39Seed>(mnemonic.seed));
     }
     for (auto &junction : mnemonic.junctions) {
       result.junctions.emplace_back(junction.raw(*hasher_));

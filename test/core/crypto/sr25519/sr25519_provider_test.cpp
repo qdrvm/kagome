@@ -21,6 +21,7 @@ using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureBuffer;
 using kagome::crypto::SecureCleanGuard;
 using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
@@ -51,8 +52,9 @@ struct Sr25519ProviderTest : public ::testing::Test {
   }
 
   auto generate() {
-    Sr25519Seed seed;
-    random_generator->fillRandomly(seed);
+    SecureBuffer<> seed_buf(Sr25519Seed::size());
+    random_generator->fillRandomly(seed_buf);
+    auto seed = Sr25519Seed::from(std::move(seed_buf)).value();
     return sr25519_provider->generateKeypair(seed, {});
   }
 
@@ -155,7 +157,8 @@ TEST_F(Sr25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
  * @then verifying and secret keys come up with predefined values
  */
 TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(seed, Sr25519Seed::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(
+      seed, Sr25519Seed::fromHex(SecureCleanGuard{std::string(hex_seed)}));
   EXPECT_OUTCOME_TRUE(public_key, Sr25519PublicKey::fromHex(hex_vk));
 
   // private key is the same as seed
@@ -177,7 +180,7 @@ TEST_F(Sr25519ProviderTest, Junctions) {
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {
     auto bip = bip_provider.generateSeed(phrase).value();
-    auto keys = sr25519_provider->generateKeypair(bip.as<Sr25519Seed>().value(),
+    auto keys = sr25519_provider->generateKeypair(Sr25519Seed::from(bip.seed),
                                                   bip.junctions);
     EXPECT_EQ(keys.public_key.toHex(), pub_str);
   };

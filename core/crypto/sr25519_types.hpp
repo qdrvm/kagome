@@ -14,9 +14,9 @@ extern "C" {
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"
+#include "crypto/common.hpp"
 #include "primitives/math.hpp"
 #include "scale/tie.hpp"
-#include "crypto/common.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {
@@ -80,14 +80,14 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Sr25519Signature,
                            constants::sr25519::SIGNATURE_SIZE);
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           Sr25519Seed,
-                           constants::sr25519::SEED_SIZE);
 
 namespace kagome::crypto {
   struct Sr25519Tag;
   using Sr25519SecretKey =
       PrivateKey<constants::sr25519::SECRET_SIZE, Sr25519Tag>;
+
+  struct Sr25519SeedTag;
+  using Sr25519Seed = PrivateKey<constants::sr25519::SEED_SIZE, Sr25519SeedTag>;
 
   template <typename D>
   struct Sr25519Signed {

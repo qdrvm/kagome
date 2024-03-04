@@ -14,10 +14,10 @@ namespace kagome::crypto {
    public:
     ~Pbkdf2ProviderImpl() override = default;
 
-    outcome::result<common::Buffer> deriveKey(common::BufferView data,
-                                              common::BufferView salt,
-                                              size_t iterations,
-                                              size_t key_length) const override;
+    outcome::result<SecureBuffer> deriveKey(common::BufferView data,
+                                            common::BufferView salt,
+                                            size_t iterations,
+                                            size_t key_length) const override;
   };
 
 }  // namespace kagome::crypto

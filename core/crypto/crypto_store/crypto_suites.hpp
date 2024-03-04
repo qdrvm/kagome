@@ -42,8 +42,7 @@ namespace kagome::crypto {
      */
     outcome::result<Keypair> generateKeypair(
         const bip39::Bip39SeedAndJunctions &bip) const {
-      OUTCOME_TRY(seed, bip.as<Seed>());
-      return generateKeypair(seed, bip.junctions);
+      return generateKeypair(Seed::from(bip.seed), bip.junctions);
     }
 
     /**
@@ -71,7 +70,7 @@ namespace kagome::crypto {
      * Create a seed from its bytes
      */
     virtual outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept = 0;
+        SecureCleanGuard<uint8_t> bytes) const noexcept = 0;
   };
 
   class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
@@ -109,8 +108,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return EcdsaSeed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return EcdsaSeed::from(std::move(bytes));
     }
 
    private:
@@ -152,8 +151,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return Ed25519Seed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return Ed25519Seed::from(std::move(bytes));
     }
 
    private:
@@ -195,8 +194,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return Sr25519Seed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return Sr25519Seed::from(std::move(bytes));
     }
 
    private:

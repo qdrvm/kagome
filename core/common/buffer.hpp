@@ -213,7 +213,7 @@ namespace kagome::common {
     return os << BufferView(buffer);
   }
 
-  typedef SLBuffer<std::numeric_limits<size_t>::max()> Buffer;
+  using Buffer = SLBuffer<std::numeric_limits<size_t>::max()>;
 
   inline static const Buffer kEmptyBuffer{};
 

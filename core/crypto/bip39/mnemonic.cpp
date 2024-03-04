@@ -94,8 +94,10 @@ namespace kagome::crypto::bip39 {
     }
 
     if (seed.starts_with("0x")) {
-      OUTCOME_TRY(bytes, common::unhexWith0x(seed));
-      mnemonic.seed = common::Buffer{std::move(bytes)};
+      SecureBuffer<> bytes(seed.size() / 2 - 1);
+      OUTCOME_TRY(common::unhexWith0x(seed, bytes.begin()));
+      OUTCOME_TRY(seed, Bip39Seed::from(std::move(bytes)));
+      mnemonic.seed = std::move(seed);
     } else {
       Words words;
       if (not seed.empty()) {

@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "crypto/secp256k1_types.hpp"
 #include "crypto/common.hpp"
+#include "crypto/secp256k1_types.hpp"
 
 namespace kagome::crypto {
   namespace constants::ecdsa {
@@ -26,14 +26,14 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            EcdsaSignature,
                            constants::ecdsa::SIGNATURE_SIZE);
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           EcdsaSeed,
-                           constants::ecdsa::SEED_SIZE);
 
 namespace kagome::crypto {
 
   struct EcdsaTag;
   using EcdsaPrivateKey = PrivateKey<constants::ecdsa::PRIVKEY_SIZE, EcdsaTag>;
+
+  struct EcdsaSeedTag;
+  using EcdsaSeed = PrivateKey<constants::ecdsa::SEED_SIZE, EcdsaSeedTag>;
 
   struct EcdsaKeypair {
     EcdsaPrivateKey secret_key;
