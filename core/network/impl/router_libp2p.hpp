@@ -74,13 +74,9 @@ namespace kagome::network {
         LazySPtr<libp2p::protocol::Ping> ping_protocol,
         LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate);
 
-    ~RouterLibp2p() override = default;
-
     /** @see AppStateManager::takeControl */
-    bool prepare();
-
-    /** @see AppStateManager::takeControl */
-    bool start();
+    void start();
+    void startLibp2p();
 
     /** @see AppStateManager::takeControl */
     void stop();

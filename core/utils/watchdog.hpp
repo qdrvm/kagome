@@ -18,6 +18,8 @@
 #include <boost/asio/io_context.hpp>
 #include <log/logger.hpp>
 
+#include "injector/inject.hpp"
+
 #ifdef __APPLE__
 
 #include <mach/mach.h>
@@ -62,7 +64,6 @@ namespace kagome {
       BOOST_ASSERT(granularity != granularity.zero());
     }
 
-    struct Inject {};
     Watchdog(Inject, ...) : Watchdog(std::chrono::seconds{1}) {}
 
     struct Ping {

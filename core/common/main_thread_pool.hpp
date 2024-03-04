@@ -30,6 +30,7 @@ namespace kagome::common {
         std::shared_ptr<MainThreadPool> thread_pool)
         : PoolHandler(thread_pool->io_context()) {
       BOOST_ASSERT(app_state_manager);
+      start();
       app_state_manager->takeControl(*this);
     }
   };

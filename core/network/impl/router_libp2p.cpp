@@ -105,56 +105,65 @@ namespace kagome::network {
     app_state_manager_->takeControl(*this);
   }
 
-  bool RouterLibp2p::prepare() {
-    main_pool_handler_->execute([wp = weak_from_this()] {
-      if (auto self = wp.lock()) {
-        self->block_announce_protocol_.get()->start();
-        self->grandpa_protocol_.get()->start();
-        self->sync_protocol_.get()->start();
-        self->state_protocol_.get()->start();
-        self->warp_protocol_.get()->start();
-        self->beefy_protocol_.get()->start();
-        self->beefy_justifications_protocol_.get()->start();
-        self->light_protocol_.get()->start();
-        self->propagate_transactions_protocol_.get()->start();
+  void RouterLibp2p::start() {
+    auto lazyStart = [&](auto &lazy) {
+      main_pool_handler_->execute([weak{std::weak_ptr{lazy.get()}}] {
+        if (auto ptr = weak.lock()) {
+          ptr->start();
+        }
+      });
+    };
+    lazyStart(block_announce_protocol_);
+    lazyStart(grandpa_protocol_);
+    lazyStart(sync_protocol_);
+    lazyStart(state_protocol_);
+    lazyStart(warp_protocol_);
+    lazyStart(beefy_protocol_);
+    lazyStart(beefy_justifications_protocol_);
+    lazyStart(light_protocol_);
+    lazyStart(propagate_transactions_protocol_);
 
-        // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
-        // should be uncommented when this task will be implemented
-        // self->collation_protocol_.get()->start();
-        // self->validation_protocol_.get()->start();
+    // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
+    // should be uncommented when this task will be implemented
+    // lazyStart(collation_protocol_);
+    // lazyStart(validation_protocol_);
 
-        self->collation_protocol_.get()->start();
-        self->validation_protocol_.get()->start();
-        self->req_collation_protocol_.get()->start();
-        self->req_pov_protocol_.get()->start();
-        self->fetch_chunk_protocol_.get()->start();
-        self->fetch_available_data_protocol_.get()->start();
-        self->statement_fetching_protocol_.get()->start();
-        self->send_dispute_protocol_.get()->start();
-        self->fetch_attested_candidate_.get()->start();
+    lazyStart(collation_protocol_);
+    lazyStart(validation_protocol_);
+    lazyStart(req_collation_protocol_);
+    lazyStart(req_pov_protocol_);
+    lazyStart(fetch_chunk_protocol_);
+    lazyStart(fetch_available_data_protocol_);
+    lazyStart(statement_fetching_protocol_);
+    lazyStart(send_dispute_protocol_);
+    lazyStart(fetch_attested_candidate_);
+
+    ping_protocol_.get();
+    main_pool_handler_->execute([weak{weak_from_this()}] {
+      if (auto self = weak.lock()) {
+        self->host_.setProtocolHandler(
+            {self->ping_protocol_.get()->getProtocolId()},
+            [weak](libp2p::StreamAndProtocol stream_and_proto) {
+              if (auto self = weak.lock()) {
+                auto &stream = stream_and_proto.stream;
+                if (auto peer_id = stream->remotePeerId()) {
+                  SL_TRACE(self->log_,
+                           "Handled {} protocol stream from {}",
+                           self->ping_protocol_.get()->getProtocolId(),
+                           peer_id.value().toBase58());
+                  self->ping_protocol_.get()->handle(
+                      std::forward<decltype(stream_and_proto)>(
+                          stream_and_proto));
+                }
+              }
+            });
+
+        self->startLibp2p();
       }
     });
-
-    host_.setProtocolHandler(
-        {ping_protocol_.get()->getProtocolId()},
-        [wp{weak_from_this()}](auto &&stream_and_proto) {
-          if (auto self = wp.lock()) {
-            auto &stream = stream_and_proto.stream;
-            if (auto peer_id = stream->remotePeerId()) {
-              SL_TRACE(self->log_,
-                       "Handled {} protocol stream from {}",
-                       self->ping_protocol_.get()->getProtocolId(),
-                       peer_id.value().toBase58());
-              self->ping_protocol_.get()->handle(
-                  std::forward<decltype(stream_and_proto)>(stream_and_proto));
-            }
-          }
-        });
-
-    return true;
   }
 
-  bool RouterLibp2p::start() {
+  void RouterLibp2p::startLibp2p() {
     auto listen_addresses = app_config_.listenAddresses();
     for (auto &listen_address : listen_addresses) {
       // fully formatted listen address is used inside Kademlia
@@ -187,15 +196,14 @@ namespace kagome::network {
     const auto &host_addresses = host_.getAddresses();
     if (host_addresses.empty()) {
       log_->critical("Host addresses is empty");
-      return false;
+      app_state_manager_->shutdown();
+      return;
     }
 
     log_->info("Started with peer id: {}", host_.getId().toBase58());
     for (const auto &addr : host_addresses) {
       log_->info("Started listening on address: {}", addr.getStringAddress());
     }
-
-    return true;
   }
 
   void RouterLibp2p::stop() {

@@ -182,7 +182,7 @@ namespace kagome::network {
     if (not res) {
       SL_WARN(log_, "start error {}", res.error());
       // TODO(turuslan): #1536 warp sync forced change
-      return false;
+      return true;
     }
     return true;
   }
