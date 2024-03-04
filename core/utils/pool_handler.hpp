@@ -28,7 +28,7 @@ namespace kagome {
     DONT_INJECT(PoolHandler);
 
     explicit PoolHandler(std::shared_ptr<boost::asio::io_context> io_context)
-        : is_active_{false}, ioc_{std::move(io_context)} {}
+        : is_active_{true}, ioc_{std::move(io_context)} {}
     ~PoolHandler() = default;
 
     void start() {
