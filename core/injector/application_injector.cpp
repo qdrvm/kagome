@@ -221,7 +221,7 @@ namespace boost::di {
   struct ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
     BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>);
   };
-}  // namespace ::boost::di
+}  // namespace boost::di
 
 namespace {
   template <class T>
@@ -318,11 +318,13 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
+      const blockchain::GenesisBlockHash &genesis,
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
     libp2p::protocol::kademlia::Config kademlia_config;
-    kademlia_config.protocols = {"/" + chain_spec.protocolId() + "/kad"},
-    kademlia_config.maxBucketSize = 1000,
+    kademlia_config.protocols =
+        network::make_protocols("/{}/kad", genesis, chain_spec);
+    kademlia_config.maxBucketSize = 1000;
     kademlia_config.randomWalk = {.interval = random_wak_interval};
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
@@ -642,9 +644,9 @@ namespace {
             bind_by_lambda<libp2p::protocol::kademlia::Config>(
                 [random_walk{config->getRandomWalkInterval()}](
                     const auto &injector) {
-                  auto &chain_spec =
-                      injector.template create<application::ChainSpec &>();
-                  return get_kademlia_config(chain_spec, random_walk);
+                  return get_kademlia_config(
+                    injector.template create<const blockchain::GenesisBlockHash &>(),
+                    injector.template create<const application::ChainSpec &>(), random_walk);
                 })[boost::di::override],
 
             di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
@@ -925,7 +927,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
