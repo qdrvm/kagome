@@ -151,7 +151,8 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<TrieStorage> trie_storage =
       std::make_shared<TrieStorageMock>();
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
-  std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>();
+  std::shared_ptr<Watchdog> watchdog =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
   std::shared_ptr<RpcThreadPool> rpc_thread_pool =
       std::make_shared<RpcThreadPool>(watchdog, rpc_context);

@@ -14,7 +14,7 @@
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/network/beefy.hpp"
+#include "mock/core/network/beefy_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
@@ -38,7 +38,7 @@ using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
 
-class SynchronizerTest : public testing::Test {
+class SyncProtocolObserverTest : public testing::Test {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
@@ -75,7 +75,7 @@ class SynchronizerTest : public testing::Test {
  * @when a request for blocks arrives
  * @then an expected response is formed @and sent
  */
-TEST_F(SynchronizerTest, ProcessRequest) {
+TEST_F(SyncProtocolObserverTest, ProcessRequest) {
   // GIVEN
   BlocksRequest received_request{BlocksRequest::kBasicAttributes,
                                  block3_hash_,

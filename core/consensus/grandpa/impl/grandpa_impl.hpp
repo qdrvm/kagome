@@ -19,10 +19,9 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::application {
@@ -31,6 +30,10 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
+}
+
+namespace kagome::common {
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus {
@@ -113,16 +116,8 @@ namespace kagome::consensus::grandpa {
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         storage::SpacedStorage &db,
-        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
-        WeakIoContext main_thread_context);
-
-    /**
-     * Prepares for grandpa round execution: e.g. sets justification observer
-     * handler.
-     * @return true preparation was done with no issues
-     * @see kagome::application::AppStateManager::takeControl()
-     */
-    bool prepare();
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool);
 
     /**
      * Initiates grandpa voting process e.g.:
@@ -345,8 +340,8 @@ namespace kagome::consensus::grandpa {
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<storage::BufferStorage> db_;
 
-    std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

@@ -17,6 +17,7 @@
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
@@ -123,8 +124,8 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
-      WeakIoContext main_thread_context,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       LazySPtr<consensus::Timeline> timeline)
@@ -143,11 +144,11 @@ namespace kagome::dispute {
         pvf_(std::move(pvf)),
         approval_distribution_(std::move(approval_distribution)),
         authority_discovery_(std::move(authority_discovery)),
-        main_thread_context_{std::move(main_thread_context)},
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
+        main_pool_handler_(std::move(main_pool_handler)),
         dispute_thread_handler_{[&] {
           BOOST_ASSERT(dispute_thread_pool != nullptr);
           return dispute_thread_pool->handler();
@@ -171,7 +172,8 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
+    BOOST_ASSERT(dispute_thread_handler_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
 
@@ -2145,7 +2147,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(main_thread_context_,
+    REINVOKE(*main_pool_handler_,
              sendDisputeResponse,
              std::move(res),
              std::move(cb));

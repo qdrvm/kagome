@@ -9,15 +9,19 @@
 #include <random>
 
 #include <libp2p/common/final_action.hpp>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_configuration.hpp"
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "consensus/babe/has_babe_consensus_digest.hpp"
+#include "common/main_thread_pool.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "network/beefy/i_beefy.hpp"
 #include "network/peer_manager.hpp"
+#include "network/protocols/state_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
@@ -25,7 +29,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -96,10 +100,11 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline,
-      std::shared_ptr<IBeefy> beefy,
+      std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      WeakIoContext main_thread_context)
-      : app_state_manager_(std::move(app_state_manager)),
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      : log_(log::createLogger("Synchronizer", "synchronizer")),
+        app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
@@ -114,7 +119,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_context_{std::move(main_thread_context)} {
+        main_pool_handler_(std::move(main_pool_handler)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -126,7 +131,7 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
-    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(main_pool_handler_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -876,7 +881,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(main_thread_context_,
+    REINVOKE(*main_pool_handler_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),

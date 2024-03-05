@@ -10,6 +10,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -36,11 +37,12 @@ using blockchain::BlockTreeImpl;
 using blockchain::JustificationStoragePolicyMock;
 using blockchain::TreeNode;
 using common::Buffer;
+using common::MainPoolHandler;
+using common::MainThreadPool;
 using consensus::SlotNumber;
 using consensus::babe::BabeBlockHeader;
 using consensus::babe::SlotType;
 using crypto::HasherImpl;
-using kagome::primitives::calculateBlockHash;
 using network::ExtrinsicObserverImpl;
 using primitives::Block;
 using primitives::BlockBody;
@@ -49,6 +51,7 @@ using primitives::BlockHeader;
 using primitives::BlockId;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
+using primitives::calculateBlockHash;
 using primitives::Consensus;
 using primitives::Digest;
 using primitives::Justification;
@@ -167,19 +170,24 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    block_tree_ =
-        BlockTreeImpl::create(*app_config_,
-                              header_repo_,
-                              storage_,
-                              extrinsic_observer_,
-                              hasher_,
-                              chain_events_engine,
-                              ext_events_engine,
-                              extrinsic_event_key_repo,
-                              justification_storage_policy_,
-                              state_pruner_,
-                              std::make_shared<::boost::asio::io_context>())
-            .value();
+    block_tree_ = BlockTreeImpl::create(*app_config_,
+                                        header_repo_,
+                                        storage_,
+                                        extrinsic_observer_,
+                                        hasher_,
+                                        chain_events_engine,
+                                        ext_events_engine,
+                                        extrinsic_event_key_repo,
+                                        justification_storage_policy_,
+                                        state_pruner_,
+                                        main_pool_handler_)
+                      .value();
+
+    main_pool_handler_->start();
+  }
+
+  void TearDown() override {
+    watchdog_->stop();
   }
 
   /**
@@ -284,6 +292,15 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<AppStateManagerMock> app_state_manager_ =
       std::make_shared<AppStateManagerMock>();
+
+  std::shared_ptr<Watchdog> watchdog_ =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+
+  std::shared_ptr<MainThreadPool> main_thread_pool_ =
+      std::make_shared<MainThreadPool>(
+          watchdog_, std::make_shared<boost::asio::io_context>());
+  std::shared_ptr<MainPoolHandler> main_pool_handler_ =
+      std::make_shared<MainPoolHandler>(app_state_manager_, main_thread_pool_);
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 

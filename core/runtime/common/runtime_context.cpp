@@ -4,9 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <utility>
+
 #include "runtime/runtime_context.hpp"
 
 #include "blockchain/block_header_repository.hpp"
+#include "runtime/common/stack_limiter.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/memory_provider.hpp"
@@ -20,6 +23,8 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
   using E = kagome::runtime::Error;
   switch (e) {
+    case E::INSTRUMENTATION_FAILED:
+      return "Runtime module instrumentation failed";
     case E::COMPILATION_FAILED:
       return "Runtime module compilation failed";
   }
@@ -35,12 +40,13 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->module_instance);
   }
 
-  RuntimeContext::~RuntimeContext() {}
+  RuntimeContext::~RuntimeContext() = default;
 
   RuntimeContextFactoryImpl::RuntimeContextFactoryImpl(
       std::shared_ptr<ModuleRepository> module_repo,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-      : module_repo_{module_repo}, header_repo_{header_repo} {}
+      : module_repo_{std::move(module_repo)},
+        header_repo_{std::move(header_repo)} {}
 
   outcome::result<RuntimeContext> RuntimeContextFactory::fromCode(
       const runtime::ModuleFactory &module_factory,
@@ -48,6 +54,17 @@ namespace kagome::runtime {
       ContextParams params) {
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    if (params.memory_limits.max_stack_values_num) {
+      auto res = instrumentWithStackLimiter(
+          code, *params.memory_limits.max_stack_values_num);
+      if (!res) {
+        log::createLogger("RuntimeContextFactory", "runtime")
+            ->error("Failed to instrument wasm code with stack limiter: {}",
+                    res.error().message());
+        return Error::INSTRUMENTATION_FAILED;
+      }
+      code = std::move(res.value());
+    }
     auto runtime_module_res = module_factory.make(code);
     if (!runtime_module_res) {
       return Error::COMPILATION_FAILED;

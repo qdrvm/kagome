@@ -8,26 +8,38 @@
 
 #include "network/router.hpp"
 
-#include "application/app_configuration.hpp"
-#include "application/app_state_manager.hpp"
 #include "injector/lazy.hpp"
-#include "libp2p/host/host.hpp"
-#include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/protocol/ping.hpp"
-#include "network/beefy/protocol.hpp"
-#include "network/impl/protocols/light.hpp"
-#include "network/sync_protocol_observer.hpp"
-#include "network/types/bootstrap_nodes.hpp"
-#include "network/types/own_peer_info.hpp"
-#include "network/warp/protocol.hpp"
+#include "log/logger.hpp"
+
+namespace libp2p {
+  struct Host;
+}
+
+namespace libp2p::multi {
+  class Multiaddress;
+}
 
 namespace kagome::application {
+  class AppConfiguration;
+  class AppStateManager;
   class ChainSpec;
-}
+}  // namespace kagome::application
 
 namespace kagome::blockchain {
   class BlockStorage;
 }
+
+namespace kagome::common {
+  class MainPoolHandler;
+}
+
+namespace kagome::network {
+  struct OwnPeerInfo;
+  struct BootstrapNodes;
+  class WarpProtocol;
+  class BeefyJustificationProtocol;
+  class LightProtocol;
+}  // namespace kagome::network
 
 namespace kagome::network {
   class RouterLibp2p : public Router,
@@ -35,6 +47,7 @@ namespace kagome::network {
    public:
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const OwnPeerInfo &own_info,
@@ -44,27 +57,26 @@ namespace kagome::network {
         LazySPtr<SyncProtocol> sync_protocol,
         LazySPtr<StateProtocol> state_protocol,
         LazySPtr<WarpProtocol> warp_protocol,
-        LazySPtr<BeefyProtocolImpl> beefy_protocol,
+        LazySPtr<BeefyProtocol> beefy_protocol,
         LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
         LazySPtr<LightProtocol> light_protocol,
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
         LazySPtr<ValidationProtocol> validation_protocol,
         LazySPtr<CollationProtocol> collation_protocol,
+        LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
+        LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging,
         LazySPtr<ReqCollationProtocol> req_collation_protocol,
         LazySPtr<ReqPovProtocol> req_pov_protocol,
         LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
         LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
         LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
         LazySPtr<SendDisputeProtocol> send_dispute_protocol,
-        LazySPtr<libp2p::protocol::Ping> ping_protocol);
-
-    ~RouterLibp2p() override = default;
-
-    /** @see AppStateManager::takeControl */
-    bool prepare();
+        LazySPtr<libp2p::protocol::Ping> ping_protocol,
+        LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate);
 
     /** @see AppStateManager::takeControl */
-    bool start();
+    void start();
+    void startLibp2p();
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -80,11 +92,17 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const override;
 
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
+    std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging()
+        const override;
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
+    std::shared_ptr<ValidationProtocolVStaging> getValidationProtocolVStaging()
+        const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
     std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
     std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
+    std::shared_ptr<FetchAttestedCandidateProtocol>
+    getFetchAttestedCandidateProtocol() const override;
     std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
         const override;
     std::shared_ptr<StatementFetchingProtocol> getFetchStatementProtocol()
@@ -95,7 +113,7 @@ namespace kagome::network {
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
 
-    std::shared_ptr<BeefyProtocolImpl> getBeefyProtocol() const override;
+    std::shared_ptr<BeefyProtocol> getBeefyProtocol() const override;
 
    private:
     /**
@@ -112,6 +130,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
     const OwnPeerInfo &own_info_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     LazySPtr<BlockAnnounceProtocol> block_announce_protocol_;
     LazySPtr<GrandpaProtocol> grandpa_protocol_;
@@ -119,7 +138,7 @@ namespace kagome::network {
     LazySPtr<SyncProtocol> sync_protocol_;
     LazySPtr<StateProtocol> state_protocol_;
     LazySPtr<WarpProtocol> warp_protocol_;
-    LazySPtr<BeefyProtocolImpl> beefy_protocol_;
+    LazySPtr<BeefyProtocol> beefy_protocol_;
     LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol_;
     LazySPtr<LightProtocol> light_protocol_;
 
@@ -127,6 +146,8 @@ namespace kagome::network {
 
     LazySPtr<ValidationProtocol> validation_protocol_;
     LazySPtr<CollationProtocol> collation_protocol_;
+    LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging_;
+    LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging_;
     LazySPtr<ReqCollationProtocol> req_collation_protocol_;
     LazySPtr<ReqPovProtocol> req_pov_protocol_;
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;
@@ -136,6 +157,7 @@ namespace kagome::network {
     LazySPtr<SendDisputeProtocol> send_dispute_protocol_;
 
     LazySPtr<libp2p::protocol::Ping> ping_protocol_;
+    LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate_;
 
     log::Logger log_;
   };

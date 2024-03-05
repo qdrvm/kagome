@@ -51,6 +51,8 @@ namespace kagome::parachain {
     HEAD_HASH,
     COMMITMENTS_HASH,
     OUTPUTS,
+    PERSISTED_DATA_HASH,
+    NO_CODE,
   };
 }  // namespace kagome::parachain
 
@@ -77,6 +79,7 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       size_t runtime_instance_cache_size{16};
+      size_t max_stack_depth{};
       unsigned precompile_threads_num{1};
     };
 
@@ -84,7 +87,7 @@ namespace kagome::parachain {
             std::shared_ptr<boost::asio::io_context> io_context,
             std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
             std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -99,8 +102,10 @@ namespace kagome::parachain {
 
     bool prepare();
 
-    outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
-                                    const ParachainBlock &pov) const override;
+    outcome::result<Result> pvfSync(
+        const CandidateReceipt &receipt,
+        const ParachainBlock &pov,
+        const runtime::PersistedValidationData &pvd) const override;
     outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,
         const ParachainBlock &pov,
@@ -111,9 +116,8 @@ namespace kagome::parachain {
     using CandidateDescriptor = network::CandidateDescriptor;
     using ParachainRuntime = network::ParachainRuntime;
 
-    outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-    findData(const CandidateDescriptor &descriptor) const;
-
+    outcome::result<ParachainRuntime> getCode(
+        const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
         const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,
