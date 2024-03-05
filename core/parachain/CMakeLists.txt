@@ -22,6 +22,8 @@ add_library(validator_parachain
     approval/approval_distribution_error.cpp
     approval/approval.cpp
     backing/store_impl.cpp
+    validator/impl/fragment_tree.cpp
+    validator/backing_implicit_view.cpp
     )
 
 target_link_libraries(validator_parachain
@@ -32,6 +34,7 @@ target_link_libraries(validator_parachain
     erasure_coding_crust::ec-cpp
     waitable_timer
     kagome_pvf_worker
+    runtime_common
     )
 
 add_library(kagome_pvf_worker

@@ -58,9 +58,6 @@ namespace kagome::application {
   void AppStateManagerImpl::reset() {
     std::lock_guard lg(mutex_);
 
-    std::queue<OnInject> empty_inject;
-    std::swap(inject_, empty_inject);
-
     std::queue<OnPrepare> empty_prepare;
     std::swap(prepare_, empty_prepare);
 
@@ -71,14 +68,6 @@ namespace kagome::application {
     std::swap(shutdown_, empty_shutdown);
 
     state_ = State::Init;
-  }
-
-  void AppStateManagerImpl::atInject(OnInject &&cb) {
-    std::lock_guard lg(mutex_);
-    if (state_ != State::Init and state_ != State::Injecting) {
-      throw AppStateException("adding callback for stage 'inject'");
-    }
-    inject_.emplace(std::move(cb));
   }
 
   void AppStateManagerImpl::atPrepare(OnPrepare &&cb) {
@@ -105,38 +94,10 @@ namespace kagome::application {
     shutdown_.emplace(std::move(cb));
   }
 
-  void AppStateManagerImpl::doInject() {
-    std::lock_guard lg(mutex_);
-    if (state_ != State::Init and state_ != State::Injecting) {
-      throw AppStateException("running stage 'injecting'");
-    }
-    state_ = State::Injecting;
-
-    if (not inject_.empty()) {
-      SL_TRACE(logger_, "Running stage 'injecting'…");
-    }
-
-    while (not inject_.empty()) {
-      auto &cb = inject_.front();
-      if (state_.load() == State::Injecting) {
-        auto success = cb();
-        if (not success) {
-          SL_ERROR(logger_, "Stage 'injecting' is failed");
-          State s = State::Injecting;
-          state_.compare_exchange_strong(s, State::ShuttingDown);
-        }
-      }
-      inject_.pop();
-    }
-
-    State s = State::Injecting;
-    state_.compare_exchange_strong(s, State::Injected);
-  }
-
   void AppStateManagerImpl::doPrepare() {
     std::lock_guard lg(mutex_);
 
-    auto state = State::Injected;
+    auto state = State::Init;
     if (not state_.compare_exchange_strong(state, State::Prepare)) {
       if (state != State::ShuttingDown) {
         throw AppStateException("running stage 'preparing'");
@@ -205,9 +166,6 @@ namespace kagome::application {
       }
     }
 
-    std::queue<OnInject> empty_inject;
-    std::swap(inject_, empty_inject);
-
     std::queue<OnPrepare> empty_prepare;
     std::swap(prepare_, empty_prepare);
 
@@ -230,8 +188,6 @@ namespace kagome::application {
       throw std::logic_error(
           "AppStateManager must be instantiated on shared pointer before run");
     }
-
-    doInject();
 
     doPrepare();
 

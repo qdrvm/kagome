@@ -30,7 +30,6 @@ namespace kagome::application {
     AppStateManagerImpl &operator=(const AppStateManagerImpl &) = delete;
     AppStateManagerImpl &operator=(AppStateManagerImpl &&) noexcept = delete;
 
-    void atInject(OnInject &&cb) override;
     void atPrepare(OnPrepare &&cb) override;
     void atLaunch(OnLaunch &&cb) override;
     void atShutdown(OnShutdown &&cb) override;
@@ -45,7 +44,6 @@ namespace kagome::application {
    protected:
     void reset();
 
-    void doInject() override;
     void doPrepare() override;
     void doLaunch() override;
     void doShutdown() override;
@@ -65,7 +63,6 @@ namespace kagome::application {
     std::mutex cv_mutex_;
     std::condition_variable cv_;
 
-    std::queue<OnInject> inject_;
     std::queue<OnPrepare> prepare_;
     std::queue<OnLaunch> launch_;
     std::queue<OnShutdown> shutdown_;

@@ -12,6 +12,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "crypto/type_hasher.hpp"
 #include "injector/lazy.hpp"
 #include "network/types/collator_messages.hpp"
 #include "outcome/outcome.hpp"
@@ -25,6 +26,18 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::network {
+
+  using HashedBlockHeader = primitives::BlockHeader;
+  struct ExView {
+    View view;
+    HashedBlockHeader new_head;
+    std::vector<primitives::BlockHash> lost;
+  };
+
+  struct ExViewRef {
+    std::optional<std::reference_wrapper<const HashedBlockHeader>> new_head;
+    const std::vector<primitives::BlockHash> &lost;
+  };
 
   /**
    * Observable class for current heads and finalized block number tracking.

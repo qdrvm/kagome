@@ -8,7 +8,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  24  // TODO(Harrm): check how it influences on compilation time
+  32  // TODO(Harrm): check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -17,6 +17,8 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
+#include <libp2p/protocol/ping/ping.hpp>
+#include <libp2p/protocol/ping/ping_config.hpp>
 
 #undef U64  // comes from OpenSSL and messes with WAVM
 
@@ -60,12 +62,15 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
+#include "consensus/beefy/impl/beefy_impl.hpp"
+#include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "consensus/finality_consensus.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -104,11 +109,20 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
-#include "network/beefy/beefy.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/protocols/beefy_justification_protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/fetch_attested_candidate.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/light.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/protocol_fetch_available_data.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
+#include "network/impl/protocols/protocol_req_pov.hpp"
 #include "network/impl/protocols/send_dispute_protocol.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
@@ -118,6 +132,8 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
+#include "network/warp/cache.hpp"
+#include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
@@ -196,8 +212,16 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "telemetry/impl/service_impl.hpp"
+#include "telemetry/impl/telemetry_thread_pool.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
+
+namespace boost::di {
+  template <>
+  struct ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
+    BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>);
+  };
+}  // namespace boost::di
 
 namespace {
   template <class T>
@@ -294,11 +318,13 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
+      const blockchain::GenesisBlockHash &genesis,
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
     libp2p::protocol::kademlia::Config kademlia_config;
-    kademlia_config.protocols = {"/" + chain_spec.protocolId() + "/kad"},
-    kademlia_config.maxBucketSize = 1000,
+    kademlia_config.protocols =
+        network::make_protocols("/{}/kad", genesis, chain_spec);
+    kademlia_config.maxBucketSize = 1000;
     kademlia_config.randomWalk = {.interval = random_wak_interval};
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
@@ -307,41 +333,24 @@ namespace {
 
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
-    auto header_repo =
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
-
-    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
-    auto state_pruner =
-        injector.template create<sptr<storage::trie_pruner::TriePruner>>();
-
-    auto extrinsic_observer =
-        injector.template create<sptr<network::ExtrinsicObserver>>();
-
-    auto hasher = injector.template create<sptr<crypto::Hasher>>();
-
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
-    auto ext_events_engine = injector.template create<
-        primitives::events::ExtrinsicSubscriptionEnginePtr>();
-    auto ext_events_key_repo = injector.template create<
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
-    auto justification_storage_policy = injector.template create<
-        std::shared_ptr<blockchain::JustificationStoragePolicy>>();
-
+    // clang-format off
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
-        std::move(header_repo),
-        std::move(storage),
-        std::move(extrinsic_observer),
-        std::move(hasher),
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<network::ExtrinsicObserver>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
         chain_events_engine,
-        std::move(ext_events_engine),
-        std::move(ext_events_key_repo),
-        std::move(justification_storage_policy),
-        std::move(state_pruner),
-        injector.template create<std::shared_ptr<::boost::asio::io_context>>());
+        injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
+        injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
+        injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
+        injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
+        injector.template create<std::shared_ptr<common::MainPoolHandler>>());
+    // clang-format on
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
@@ -460,6 +469,7 @@ namespace {
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<CompiledType>>());
         }
+        BOOST_UNREACHABLE_RETURN({});
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
@@ -519,12 +529,7 @@ namespace {
             }),
         makeBinaryenInjector(),
         makeWavmInjector(),
-        bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
-          auto module_factory =
-              injector.template create<sptr<runtime::ModuleFactory>>();
-          return std::make_shared<runtime::RuntimeInstancesPool>(
-              module_factory);
-        }),
+        di::bind<runtime::RuntimeInstancesPool>.template to<runtime::RuntimeInstancesPoolImpl>(),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
         bind_by_lambda<runtime::ModuleFactory>(
@@ -639,9 +644,9 @@ namespace {
             bind_by_lambda<libp2p::protocol::kademlia::Config>(
                 [random_walk{config->getRandomWalkInterval()}](
                     const auto &injector) {
-                  auto &chain_spec =
-                      injector.template create<application::ChainSpec &>();
-                  return get_kademlia_config(chain_spec, random_walk);
+                  return get_kademlia_config(
+                    injector.template create<const blockchain::GenesisBlockHash &>(),
+                    injector.template create<const application::ChainSpec &>(), random_walk);
                 })[boost::di::override],
 
             di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
@@ -789,6 +794,7 @@ namespace {
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
+            di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -869,7 +875,7 @@ namespace {
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
             di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
-            di::bind<network::IBeefy>.template to<network::Beefy>(),
+            di::bind<network::Beefy>.template to<network::BeefyImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
@@ -1090,4 +1096,10 @@ namespace kagome::injector {
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
     return pimpl_->injector_.template create<sptr<Watchdog>>();
   }
+
+  std::shared_ptr<common::MainThreadPool>
+  KagomeNodeInjector::injectMainThreadPool() {
+    return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
+  }
+
 }  // namespace kagome::injector

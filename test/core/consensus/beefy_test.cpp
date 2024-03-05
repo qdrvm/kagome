@@ -6,7 +6,11 @@
 
 #include <gtest/gtest.h>
 
-#include "common/worker_thread_pool.hpp"
+#include <libp2p/basic/scheduler.hpp>
+
+#include "common/main_thread_pool.hpp"
+#include "consensus/beefy/impl/beefy_impl.hpp"
+#include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -14,9 +18,10 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
+#include "mock/core/network/protocols/beefy_protocol_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
-#include "network/beefy/beefy.hpp"
-#include "network/beefy/i_beefy_protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -25,6 +30,8 @@ using kagome::TestThreadPool;
 using kagome::application::AppStateManagerMock;
 using kagome::application::ChainSpecMock;
 using kagome::blockchain::BlockTreeMock;
+using kagome::common::MainPoolHandler;
+using kagome::common::MainThreadPool;
 using kagome::consensus::Timeline;
 using kagome::consensus::TimelineMock;
 using kagome::consensus::beefy::BeefyGossipMessage;
@@ -39,8 +46,10 @@ using kagome::crypto::EcdsaSeed;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::SecureBuffer;
 using kagome::crypto::SessionKeysMock;
-using kagome::network::Beefy;
+using kagome::network::BeefyImpl;
 using kagome::network::BeefyProtocol;
+using kagome::network::BeefyProtocolMock;
+using kagome::network::BeefyThreadPool;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -87,22 +96,6 @@ struct Timer : libp2p::basic::Scheduler {
   std::optional<Callback> cb_;
 };
 
-namespace kagome::consensus::beefy {
-  inline auto &operator<<(std::ostream &os, const VoteMessage &) {
-    return os;
-  }
-  inline auto &operator<<(std::ostream &os, const SignedCommitment &) {
-    return os;
-  }
-}  // namespace kagome::consensus::beefy
-
-struct BroadcastMock : BeefyProtocol {
-  MOCK_METHOD(void,
-              broadcast,
-              (std::shared_ptr<BeefyGossipMessage>),
-              (override));
-};
-
 struct BeefyPeer {
   EcdsaKeypair keys_;
   BlockNumber finalized_ = 0;
@@ -113,13 +106,14 @@ struct BeefyPeer {
   std::shared_ptr<Timer> timer_ = std::make_shared<Timer>();
   std::shared_ptr<SessionKeysMock> keystore_ =
       std::make_shared<SessionKeysMock>();
-  std::shared_ptr<BroadcastMock> broadcast_ = std::make_shared<BroadcastMock>();
+  std::shared_ptr<BeefyProtocolMock> broadcast_ =
+      std::make_shared<BeefyProtocolMock>();
   ChainSubscriptionEnginePtr chain_sub_ =
       std::make_shared<ChainSubscriptionEngine>();
-  std::shared_ptr<Beefy> beefy_;
+  std::shared_ptr<BeefyImpl> beefy_;
 };
 
-struct Test : testing::Test {
+struct BeefyTest : testing::Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
@@ -149,8 +143,20 @@ struct Test : testing::Test {
       EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_))
           .WillRepeatedly(Return(
               std::make_pair(std::make_shared<EcdsaKeypair>(peer.keys_), i)));
-      AppStateManagerMock app_state;
-      EXPECT_CALL(app_state, atLaunch(_));
+
+      std::shared_ptr<AppStateManagerMock> app_state_manager_ =
+          std::make_shared<AppStateManagerMock>();
+      std::shared_ptr<MainThreadPool> main_thread_pool_ =
+          std::make_shared<MainThreadPool>(TestThreadPool{io_});
+      std::shared_ptr<MainPoolHandler> main_pool_handler_ =
+          std::make_shared<MainPoolHandler>(app_state_manager_,
+                                            main_thread_pool_);
+      main_pool_handler_->start();
+      std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
+          std::make_shared<BeefyThreadPool>(TestThreadPool{io_});
+
+      EXPECT_CALL(*app_state_manager_, atLaunch(_));
+
       EXPECT_CALL(*peer.block_tree_, getLastFinalized()).WillRepeatedly([&] {
         return blocks_[peer.finalized_].blockInfo();
       });
@@ -179,20 +185,21 @@ struct Test : testing::Test {
               }
             });
           });
-      peer.beefy_ = std::make_shared<Beefy>(
-          app_state,
+      peer.beefy_ = std::make_shared<BeefyImpl>(
+          *app_state_manager_,
           chain_spec_,
           peer.block_tree_,
           beefy_api_,
           ecdsa_,
           std::make_shared<InMemorySpacedStorage>(),
-          TestThreadPool{io_},
-          io_,
+          main_pool_handler_,
+          beefy_thread_pool_,
           peer.timer_,
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           peer.chain_sub_);
+      peer.beefy_->prepare();
       peer.beefy_->start();
     }
   }
@@ -284,7 +291,7 @@ struct Test : testing::Test {
   std::vector<BeefyPeer> peers_;
 };
 
-TEST_F(Test, beefy_finalizing_blocks) {
+TEST_F(BeefyTest, beefy_finalizing_blocks) {
   min_delta_ = 4;
   makePeers(2);
   generate_blocks_and_sync(42, 10);
@@ -308,7 +315,7 @@ TEST_F(Test, beefy_finalizing_blocks) {
   finalize_block_and_wait_for_beefy(21, {});
 }
 
-TEST_F(Test, lagging_validators) {
+TEST_F(BeefyTest, lagging_validators) {
   min_delta_ = 1;
   makePeers(3);
   generate_blocks_and_sync(62, 30);

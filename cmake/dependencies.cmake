@@ -83,6 +83,9 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   find_package(WAVM CONFIG REQUIRED)
 endif ()
 
+hunter_add_package(wabt)
+find_package(wabt CONFIG REQUIRED)
+
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 

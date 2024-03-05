@@ -17,19 +17,24 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 #include "utils/argv0.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
+    case PvfError::PERSISTED_DATA_HASH:
+      return "Incorrect Perssted Data hash";
+    case PvfError::NO_CODE:
+      return "No code";
     case PvfError::NO_PERSISTED_DATA:
       return "PersistedValidationData was not found";
     case PvfError::POV_SIZE:
@@ -117,26 +122,6 @@ namespace kagome::parachain {
 #endif
   }
 
-  struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &) const override {
-      abort();
-    }
-  };
-
-  struct ReturnModuleInstance : runtime::ModuleRepository {
-    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
-        : instance{std::move(instance)} {}
-
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        const primitives::BlockInfo &,
-        const storage::trie::RootHash &) override {
-      return instance;
-    }
-
-    std::shared_ptr<runtime::ModuleInstance> instance;
-  };
-
   struct ValidationParams {
     SCALE_TIE(4);
 
@@ -151,7 +136,7 @@ namespace kagome::parachain {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -171,8 +156,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
-        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
-            module_factory, config.runtime_instance_cache_size)},
+        runtime_cache_{std::move(instance_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
@@ -202,7 +186,7 @@ namespace kagome::parachain {
     if (config_.precompile_modules) {
       precompiler_thread_ =
           std::make_unique<std::thread>([self = shared_from_this()]() {
-            soralog::util::setThreadName("pvf_cmpl_thread");
+            soralog::util::setThreadName("pvf_compile");
             auto res = self->precompiler_->precompileModulesAt(
                 self->block_tree_->getLastFinalized().hash);
             if (!res) {
@@ -254,59 +238,51 @@ namespace kagome::parachain {
     timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
-    return std::make_pair(std::move(commitments), std::move(data));
+    return std::make_pair(std::move(commitments), data);
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt, const ParachainBlock &pov) const {
+      const CandidateReceipt &receipt,
+      const ParachainBlock &pov,
+      const runtime::PersistedValidationData &pvd) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
-    OUTCOME_TRY(data_code, findData(receipt.descriptor));
-    auto &[data, code] = data_code;
-    return pvfValidate(data, pov, receipt, code);
+
+    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    if (receipt.descriptor.persisted_data_hash != data_hash) {
+      return PvfError::PERSISTED_DATA_HASH;
+    }
+
+    OUTCOME_TRY(code, getCode(receipt.descriptor));
+    return pvfValidate(pvd, pov, receipt, code);
   }
 
-  outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-  PvfImpl::findData(const CandidateDescriptor &descriptor) const {
+  outcome::result<ParachainRuntime> PvfImpl::getCode(
+      const CandidateDescriptor &descriptor) const {
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,
          }) {
-      OUTCOME_TRY(data,
-                  parachain_api_->persisted_validation_data(
-                      descriptor.relay_parent, descriptor.para_id, assumption));
-      if (!data) {
-        SL_VERBOSE(log_,
-                   "findData relay_parent={} para_id={}: not found "
-                   "(persisted_validation_data)",
-                   descriptor.relay_parent,
-                   descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
-      }
-      auto data_hash = hasher_->blake2b_256(scale::encode(*data).value());
-      if (descriptor.persisted_data_hash != data_hash) {
-        continue;
-      }
       OUTCOME_TRY(code,
                   parachain_api_->validation_code(
                       descriptor.relay_parent, descriptor.para_id, assumption));
       if (!code) {
         SL_VERBOSE(
             log_,
-            "findData relay_parent={} para_id={}: not found (validation_code)",
+            "getCode relay_parent={} para_id={}: not found (validation_code)",
             descriptor.relay_parent,
             descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
+        return PvfError::NO_CODE;
       }
-      return std::make_pair(*data, *code);
+      return *code;
     }
     SL_VERBOSE(log_,
-               "findData relay_parent={} para_id={}: not found",
+               "getCode relay_parent={} para_id={}: not found",
                descriptor.relay_parent,
                descriptor.para_id);
-    return PvfError::NO_PERSISTED_DATA;
+    return PvfError::NO_CODE;
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(
@@ -314,7 +290,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
                 parachain_api_->session_index_for_child(parent_hash));
@@ -322,10 +297,25 @@ namespace kagome::parachain {
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
 
+    runtime::RuntimeContext::ContextParams executor_params{};
+    if (session_params) {
+      for (auto &param : *session_params) {
+        if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
+          executor_params.memory_limits.max_stack_values_num =
+              stack_max->max_values_num;
+        } else if (auto *pages_max =
+                       get_if<runtime::MaxMemoryPages>(&param)) {
+          executor_params.memory_limits.max_memory_pages_num =
+              pages_max->limit;
+        }
+      }
+    }
+
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
       OUTCOME_TRY(instance,
-                  runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+                  runtime_cache_->instantiateFromCode(
+                      code_hash, code_zstd, executor_params));
       OUTCOME_TRY(
           ctx,
           ctx_factory_->ephemeral(
@@ -338,6 +328,7 @@ namespace kagome::parachain {
         code_zstd,
         name,
         common::Buffer{scale::encode(params).value()},
+        executor_params,
         app_configuration_->useWavmCache()
             ? std::make_optional(app_configuration_->runtimeCacheDirPath())
             : std::nullopt,

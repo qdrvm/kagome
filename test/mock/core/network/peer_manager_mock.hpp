@@ -72,6 +72,11 @@ namespace kagome::network {
                 forOnePeer,
                 (const PeerId &, std::function<void(const PeerId &)>),
                 (const, override));
+
+    MOCK_METHOD(std::optional<std::reference_wrapper<PeerState>>,
+                createDefaultPeerState,
+                (const PeerId &),
+                (override));
   };
 
 }  // namespace kagome::network

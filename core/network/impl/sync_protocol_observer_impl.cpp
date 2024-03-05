@@ -9,8 +9,8 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "consensus/beefy/beefy.hpp"
 #include "log/formatters/variant.hpp"
-#include "network/beefy/i_beefy.hpp"
 #include "network/common.hpp"
 #include "primitives/common.hpp"
 
@@ -30,7 +30,7 @@ namespace kagome::network {
   SyncProtocolObserverImpl::SyncProtocolObserverImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-      std::shared_ptr<IBeefy> beefy,
+      std::shared_ptr<Beefy> beefy,
       std::shared_ptr<PeerManager> peer_manager)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
@@ -201,7 +201,7 @@ namespace kagome::network {
             if (auto r = beefy_->getJustification(*number)) {
               if (auto &opt = r.value()) {
                 new_block.beefy_justification = primitives::Justification{
-                    common::Buffer{scale::encode(*opt).value()},
+                    common::Buffer{::scale::encode(*opt).value()},
                 };
               }
             }
