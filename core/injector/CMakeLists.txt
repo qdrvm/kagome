@@ -59,7 +59,6 @@ target_link_libraries(application_injector
     p2p::p2p
     p2p::p2p_identify
     p2p::p2p_kademlia
-    p2p::p2p_loopback_stream
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider

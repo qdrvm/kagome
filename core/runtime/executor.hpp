@@ -30,7 +30,7 @@ namespace kagome::runtime {
                               const Args &...args) {
       auto code_hash = ctx.module_instance->getCodeHash();
       auto call = [&]() {
-        return ctx.module_instance->template callAndDecodeExportFunction<Res>(
+        return ctx.module_instance->callAndDecodeExportFunction<Res>(
             ctx, name, args...);
       };
       if (!cache_) {

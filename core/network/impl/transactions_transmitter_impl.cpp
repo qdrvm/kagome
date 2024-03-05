@@ -6,6 +6,7 @@
 
 #include "network/impl/transactions_transmitter_impl.hpp"
 
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/router.hpp"
 
 namespace kagome::network {

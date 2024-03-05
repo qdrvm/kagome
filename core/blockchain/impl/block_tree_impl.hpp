@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <thread>
 #include <unordered_set>
 
 #include <libp2p/common/final_action.hpp>
@@ -31,16 +32,22 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+
+namespace kagome::blockchain {
+  struct ReorgAndPrune;
+  class TreeNode;
+  class CachedTree;
+}  // namespace kagome::blockchain
+
+namespace kagome::common {
+  class MainPoolHandler;
+}
 
 namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
 namespace kagome::blockchain {
-  struct ReorgAndPrune;
-  class TreeNode;
-  class CachedTree;
 
   class BlockTreeImpl : public BlockTree,
                         public std::enable_shared_from_this<BlockTreeImpl> {
@@ -60,7 +67,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -192,7 +199,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);
@@ -273,7 +280,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

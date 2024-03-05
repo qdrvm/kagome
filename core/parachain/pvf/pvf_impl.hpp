@@ -8,10 +8,20 @@
 
 #include "parachain/pvf/pvf.hpp"
 
+#include <thread>
+
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_properties_cache.hpp"
+
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
+
+namespace libp2p::basic {
+  class Scheduler;
+}  // namespace libp2p::basic
 
 namespace kagome::application {
   class AppConfiguration;
@@ -41,6 +51,8 @@ namespace kagome::parachain {
     HEAD_HASH,
     COMMITMENTS_HASH,
     OUTPUTS,
+    PERSISTED_DATA_HASH,
+    NO_CODE,
   };
 }  // namespace kagome::parachain
 
@@ -67,12 +79,15 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       size_t runtime_instance_cache_size{16};
+      size_t max_stack_depth{};
       unsigned precompile_threads_num{1};
     };
 
     PvfImpl(const Config &config,
+            std::shared_ptr<boost::asio::io_context> io_context,
+            std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
             std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -80,12 +95,17 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-            std::shared_ptr<application::AppStateManager> app_state_manager);
+            std::shared_ptr<application::AppStateManager> app_state_manager,
+            std::shared_ptr<application::AppConfiguration> app_configuration);
+
+    ~PvfImpl() override;
 
     bool prepare();
 
-    outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
-                                    const ParachainBlock &pov) const override;
+    outcome::result<Result> pvfSync(
+        const CandidateReceipt &receipt,
+        const ParachainBlock &pov,
+        const runtime::PersistedValidationData &pvd) const override;
     outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,
         const ParachainBlock &pov,
@@ -96,9 +116,8 @@ namespace kagome::parachain {
     using CandidateDescriptor = network::CandidateDescriptor;
     using ParachainRuntime = network::ParachainRuntime;
 
-    outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-    findData(const CandidateDescriptor &descriptor) const;
-
+    outcome::result<ParachainRuntime> getCode(
+        const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
         const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,
@@ -109,6 +128,8 @@ namespace kagome::parachain {
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
     Config config_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -120,5 +141,8 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
+    std::shared_ptr<application::AppConfiguration> app_configuration_;
+
+    std::unique_ptr<std::thread> precompiler_thread_;
   };
 }  // namespace kagome::parachain

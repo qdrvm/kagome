@@ -16,12 +16,15 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "application/sync_method.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
 #include "injector/lazy.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
+#include "network/types/blocks_request.hpp"
+#include "network/types/blocks_response.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
@@ -30,29 +33,39 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
-namespace kagome::storage::trie_pruner {
-  class TriePruner;
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::common {
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
+  class Timeline;
 }  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
   class Environment;
 }  // namespace kagome::consensus::grandpa
 
+namespace kagome::network {
+  class Beefy;
+  class PeerManager;
+}  // namespace kagome::network
+
 namespace kagome::storage::trie {
-  class PersistentTrieBatch;
   class TrieSerializer;
   class TrieStorage;
 }  // namespace kagome::storage::trie
 
-namespace kagome::network {
-  class IBeefy;
-  class PeerManager;
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
 
+namespace kagome::network {
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -105,9 +118,9 @@ namespace kagome::network {
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline,
-        std::shared_ptr<IBeefy> beefy,
+        std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        WeakIoContext main_thread);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -219,6 +232,8 @@ namespace kagome::network {
 
     void afterStateSync();
 
+    log::Logger log_;
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -231,10 +246,10 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     LazySPtr<consensus::Timeline> timeline_;
-    std::shared_ptr<IBeefy> beefy_;
+    std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     application::SyncMethod sync_method_;
 
@@ -242,7 +257,6 @@ namespace kagome::network {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
-    log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
     struct StateSync {

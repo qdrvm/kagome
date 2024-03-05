@@ -43,7 +43,6 @@ namespace kagome::runtime::wavm {
     WAVM::Runtime::Function *getExportedFunction(
         const std::string &name, const WAVM::IR::FunctionType &type) const;
 
-   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;
     const std::shared_ptr<const CompartmentWrapper> compartment_;
     WAVM::IR::MemoryType intrinsic_memory_type_;

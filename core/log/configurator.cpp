@@ -14,6 +14,7 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
+    stream: stderr
     thread: name
     color: false
     latency: 0
@@ -115,6 +116,7 @@ groups:
               - name: trie_pruner
           - name: transactions
           - name: pubsub
+          - name: threads
       - name: others
         children:
           - name: testing

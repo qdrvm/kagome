@@ -58,15 +58,7 @@ namespace kagome::network {
         },
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
-    app_state_manager.atLaunch([this]() mutable {
-      auto r = start();
-      if (not r) {
-        SL_WARN(log_, "start error {}", r.error());
-        // TODO(turuslan): #1536 warp sync forced change
-        return true;
-      }
-      return true;
-    });
+    app_state_manager.takeControl(*this);
   }
 
   outcome::result<WarpSyncProof> WarpSyncCache::getProof(
@@ -153,36 +145,45 @@ namespace kagome::network {
     return outcome::success();
   }
 
-  outcome::result<void> WarpSyncCache::start() {
-    auto cursor = db_prefix_.cursor();
-    OUTCOME_TRY(cursor->seekLast());
-    while (cursor->isValid()) {
-      auto key = *cursor->key();
-      auto number = fromKey(key);
-      OUTCOME_TRY(expected_hash,
-                  primitives::BlockHash::fromSpan(*cursor->value()));
-      if (auto hash_res = block_repository_->getHashByNumber(number)) {
-        if (hash_res.value() == expected_hash) {
-          cache_next_ = number + 1;
-          break;
-        }
-      }
-      OUTCOME_TRY(cursor->prev());
-      OUTCOME_TRY(db_prefix_.remove(key));
-    }
-    started_.store(true);
-    OUTCOME_TRY(cacheMore(block_tree_->getLastFinalized().number));
-
-    chain_sub_.onFinalize(
-        [weak{weak_from_this()}](const primitives::BlockHeader &block) {
-          if (auto self = weak.lock()) {
-            auto r = self->cacheMore(block.number);
-            if (not r) {
-              SL_WARN(self->log_, "cacheMore error {}", r.error());
-            }
+  bool WarpSyncCache::start() {
+    auto res = [&]() -> outcome::result<void> {
+      auto cursor = db_prefix_.cursor();
+      OUTCOME_TRY(cursor->seekLast());
+      while (cursor->isValid()) {
+        auto key = *cursor->key();
+        auto number = fromKey(key);
+        OUTCOME_TRY(expected_hash,
+                    primitives::BlockHash::fromSpan(*cursor->value()));
+        if (auto hash_res = block_repository_->getHashByNumber(number)) {
+          if (hash_res.value() == expected_hash) {
+            cache_next_ = number + 1;
+            break;
           }
-        });
+        }
+        OUTCOME_TRY(cursor->prev());
+        OUTCOME_TRY(db_prefix_.remove(key));
+      }
+      started_.store(true);
+      OUTCOME_TRY(cacheMore(block_tree_->getLastFinalized().number));
 
-    return outcome::success();
+      chain_sub_.onFinalize(
+          [weak{weak_from_this()}](const primitives::BlockHeader &block) {
+            if (auto self = weak.lock()) {
+              auto r = self->cacheMore(block.number);
+              if (not r) {
+                SL_WARN(self->log_, "cacheMore error {}", r.error());
+              }
+            }
+          });
+
+      return outcome::success();
+    }();
+
+    if (not res) {
+      SL_WARN(log_, "start error {}", res.error());
+      // TODO(turuslan): #1536 warp sync forced change
+      return true;
+    }
+    return true;
   }
 }  // namespace kagome::network

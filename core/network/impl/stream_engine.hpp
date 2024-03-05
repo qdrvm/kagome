@@ -52,7 +52,6 @@ namespace kagome::network {
     enum class Direction : uint8_t {
       INCOMING = 1,
       OUTGOING = 2,
-      BIDIRECTIONAL = 3
     };
 
    public:
@@ -86,11 +85,6 @@ namespace kagome::network {
                  res.value());
       }
       add(std::move(stream), protocol, Direction::OUTGOING);
-    }
-
-    void addBidirectional(std::shared_ptr<Stream> stream,
-                          const std::shared_ptr<ProtocolBase> &protocol) {
-      add(std::move(stream), protocol, Direction::BIDIRECTIONAL);
     }
 
     void reserveStreams(const PeerId &peer_id,
@@ -309,7 +303,7 @@ namespace kagome::network {
                          protocol->protocolName(),
                          peer_id);
               } else {
-                SL_DEBUG(self->logger_,
+                SL_TRACE(self->logger_,
                          "Could not send message to {} stream with {}: {}",
                          protocol->protocolName(),
                          peer_id,

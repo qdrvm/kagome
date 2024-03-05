@@ -9,6 +9,15 @@ endif ()
 
 add_subdirectory(binaryen)
 
+addtest(allocator_test
+    allocator_test.cpp
+    )
+target_link_libraries(allocator_test
+    memory_allocator
+    scale::scale
+    hexutil
+    )
+
 addtest(wasm_result_test
     wasm_result_test.cpp
     )
@@ -63,4 +72,16 @@ target_link_libraries(runtime_upgrade_tracker_test
     )
 
 addtest(instance_pool_test instance_pool_test.cpp)
-target_link_libraries(instance_pool_test module_repository blob)
+target_link_libraries(instance_pool_test
+    module_repository
+    blob
+    logger
+    log_configurator
+    )
+
+addtest(stack_limiter_test stack_limiter_test.cpp)
+target_link_libraries(stack_limiter_test
+    runtime_common
+    logger
+    log_configurator
+    )

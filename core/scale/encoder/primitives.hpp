@@ -127,15 +127,7 @@ namespace kagome::scale {
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    std::vector<uint8_t> res;
-    encode(
-        [&](const uint8_t *const val, size_t count) {
-          if (count != 0ull) {
-            res.insert(res.end(), &val[0], &val[count]);
-          }
-        },
-        args...);
-    return res;
+    return ::scale::encode(args...);
   }
 
   inline size_t bitUpperBorder(const ::scale::CompactInteger &x) {

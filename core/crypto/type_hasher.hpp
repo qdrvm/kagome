@@ -15,12 +15,8 @@ namespace kagome::crypto {
 
   template <typename H, typename... T>
   inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
-    kagome::scale::encode(
-        [&](const uint8_t *const val, size_t count) {
-          hasher.update({val, count});
-        },
-        std::forward<T>(t)...);
-
+    auto val = ::scale::encode(std::forward<T>(t)...).value();
+    hasher.update(val);
     hasher.get_final(out);
   }
 
@@ -63,8 +59,9 @@ namespace kagome::crypto {
       }
       return *opt_hash_;
     }
-
+#ifndef CFG_TESTING
    private:
+#endif  // CFG_TESTING
     T type_;
     mutable std::optional<HashType> opt_hash_{};
   };

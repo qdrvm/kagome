@@ -339,7 +339,7 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
-    SL_TRACE(logger_, "Removing block {}...", block_info);
+    SL_TRACE(logger_, "Removing block {}…", block_info);
 
     {  // Remove number-to-key assigning
       auto num_to_hash_key = blockNumberToKey(block_info.number);

@@ -9,11 +9,12 @@
 #include <algorithm>
 
 #include "blockchain/genesis_block_hash.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/common.hpp"
 #include "network/notifications/connect_and_handshake.hpp"
 #include "network/notifications/handshake_and_read_messages.hpp"
-#include "utils/weak_io_context_post.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace {
   constexpr const char *kPropagatedTransactions =
@@ -29,7 +30,7 @@ namespace kagome::network {
       Roles roles,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      WeakIoContext main_thread,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -44,12 +45,13 @@ namespace kagome::network {
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
         roles_{roles},
-        main_thread_{std::move(main_thread)},
+        main_pool_handler_(std::move(main_pool_handler)),
         timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)} {
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(timeline_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
@@ -135,9 +137,8 @@ namespace kagome::network {
 
   void PropagateTransactionsProtocol::propagateTransactions(
       std::span<const primitives::Transaction> txs) {
-    if (not runningInThisThread(main_thread_)) {
-      return post(
-          main_thread_,
+    if (not main_pool_handler_->isInCurrentThread()) {
+      return main_pool_handler_->execute(
           [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {
             self->propagateTransactions(txs);
           });

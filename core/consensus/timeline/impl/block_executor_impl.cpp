@@ -6,9 +6,11 @@
 
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 
-#include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "common/main_thread_pool.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -18,7 +20,6 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace kagome::consensus {
 
@@ -30,8 +31,8 @@ namespace kagome::consensus {
 
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      const ThreadPool &thread_pool,
-      WeakIoContext main_thread,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -40,8 +41,8 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
-        wasm_thread_{thread_pool.io_context()},
-        main_thread_{std::move(main_thread)},
+        main_pool_handler_(std::move(main_pool_handler)),
+        worker_pool_handler_(std::move(worker_pool_handler)),
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -52,6 +53,8 @@ namespace kagome::consensus {
         logger_{log::createLogger("BlockExecutor", "block_executor")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
+    BOOST_ASSERT(worker_pool_handler_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -173,9 +176,9 @@ namespace kagome::consensus {
                                  start_time,
                                  previous_best_block);
       };
-      post(main_thread_, std::move(executed));
+      main_pool_handler_->execute(std::move(executed));
     };
-    post(wasm_thread_, std::move(execute));
+    worker_pool_handler_->execute(std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(

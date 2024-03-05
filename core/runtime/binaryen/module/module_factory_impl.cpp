@@ -6,13 +6,13 @@
 
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 
-#include "host_api/host_api_factory.hpp"
 #include "crypto/hasher.hpp"
+#include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -23,13 +23,10 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<crypto::Hasher> hasher)
       : env_factory_{std::move(env_factory)},
         storage_{std::move(storage)},
-        hasher_(std::move(hasher)) {
-    BOOST_ASSERT(env_factory_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
-  }
+        hasher_(std::move(hasher)) {}
 
-  outcome::result<std::shared_ptr<Module>, CompilationError> ModuleFactoryImpl::make(
-      common::BufferView code) const {
+  outcome::result<std::shared_ptr<Module>, CompilationError>
+  ModuleFactoryImpl::make(common::BufferView code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(code_vec,

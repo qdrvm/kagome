@@ -80,7 +80,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(crypto_store_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -179,7 +178,7 @@ namespace kagome::host_api {
     using ResultType = std::vector<crypto::Ed25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type);
@@ -195,7 +194,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_crypto_ed25519_generate_version_1(
       runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) {
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
@@ -229,7 +228,7 @@ namespace kagome::host_api {
       runtime::WasmSpan msg) {
     using ResultType = std::optional<crypto::Ed25519Signature>;
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_buffer =
@@ -305,7 +304,7 @@ namespace kagome::host_api {
     using ResultType = std::vector<crypto::Sr25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type);
@@ -322,7 +321,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_crypto_sr25519_generate_version_1(
       runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) {
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
@@ -362,7 +361,7 @@ namespace kagome::host_api {
     static const auto error_result =
         scale::encode(ResultType(std::nullopt)).value();
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_buffer =
@@ -575,7 +574,7 @@ namespace kagome::host_api {
     using ResultType = std::vector<crypto::EcdsaPublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type);
@@ -596,7 +595,7 @@ namespace kagome::host_api {
       runtime::WasmSpan msg) {
     using ResultType = std::optional<crypto::EcdsaSignature>;
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
@@ -629,7 +628,7 @@ namespace kagome::host_api {
       runtime::WasmSpan msg) {
     using ResultType = std::optional<crypto::EcdsaSignature>;
 
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
@@ -661,7 +660,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_crypto_ecdsa_generate_version_1(
       runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) const {
-    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
@@ -774,5 +773,11 @@ namespace kagome::host_api {
       *batch_verify_ &= ok;
     }
     return ok;
+  }
+
+  crypto::KeyType CryptoExtension::loadKeyType(runtime::WasmPointer ptr) const {
+    return scale::decode<crypto::KeyType>(
+               getMemory().loadN(ptr, sizeof(crypto::KeyType)))
+        .value();
   }
 }  // namespace kagome::host_api

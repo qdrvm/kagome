@@ -8,57 +8,32 @@
 
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
-#include "clock/impl/basic_waitable_timer.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "parachain/approval/approval_distribution_error.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "utils/async_sequence.hpp"
 #include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
-  using E = kagome::parachain::ApprovalDistribution::Error;
-  switch (e) {
-    case E::NO_INSTANCE:
-      return "No self instance";
-    case E::NO_CONTEXT:
-      return "No context";
-    case E::NO_SESSION_INFO:
-      return "No session info";
-    case E::UNUSED_SLOT_TYPE:
-      return "Unused slot type";
-    case E::ENTRY_IS_NOT_FOUND:
-      return "Entry is not found";
-    case E::ALREADY_APPROVING:
-      return "Block in progress";
-    case E::VALIDATOR_INDEX_OUT_OF_BOUNDS:
-      return "Validator index out of bounds";
-    case E::CORE_INDEX_OUT_OF_BOUNDS:
-      return "Core index out of bounds";
-    case E::IS_IN_BACKING_GROUP:
-      return "Is in backing group";
-    case E::SAMPLE_OUT_OF_BOUNDS:
-      return "Sample is out of bounds";
-    case E::VRF_DELAY_CORE_INDEX_MISMATCH:
-      return "VRF delay core index mismatch";
-    case E::VRF_VERIFY_AND_GET_TRANCHE:
-      return "VRF verify and get tranche failed";
-  }
-  return "Unknown approval-distribution error";
-}
 
 static constexpr uint64_t kTickDurationMs = 500ull;
 static constexpr kagome::network::Tick kApprovalDelay = 2ull;
@@ -402,23 +377,23 @@ namespace {
       const kagome::parachain::approval::AssignmentCert &assignment,
       kagome::network::GroupIndex backing_group) {
     using namespace kagome;
-    using AD = parachain::ApprovalDistribution;
+    using parachain::ApprovalDistributionError;
 
     if (validator_index >= config.assignment_keys.size()) {
-      return AD::Error::VALIDATOR_INDEX_OUT_OF_BOUNDS;
+      return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
     }
 
     const auto &validator_public = config.assignment_keys[validator_index];
     //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
     if (claimed_core_index >= config.n_cores) {
-      return AD::Error::CORE_INDEX_OUT_OF_BOUNDS;
+      return ApprovalDistributionError::CORE_INDEX_OUT_OF_BOUNDS;
     }
 
     const auto is_in_backing = isInBackingGroup(
         config.validator_groups, validator_index, backing_group);
     if (is_in_backing) {
-      return AD::Error::IS_IN_BACKING_GROUP;
+      return ApprovalDistributionError::IS_IN_BACKING_GROUP;
     }
 
     const auto &vrf_output = assignment.vrf.output;
@@ -430,7 +405,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
-            return AD::Error::SAMPLE_OUT_OF_BOUNDS;
+            return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
           }
           /// TODO(iceseer): vrf_verify_extra check
           return network::DelayTranche(0ull);
@@ -439,7 +414,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const core_index = obj.core_index;
           if (core_index != claimed_core_index) {
-            return AD::Error::VRF_DELAY_CORE_INDEX_MISMATCH;
+            return ApprovalDistributionError::VRF_DELAY_CORE_INDEX_MISMATCH;
           }
 
           network::DelayTranche tranche;
@@ -453,7 +428,7 @@ namespace {
                   &relay_vrf_story,
                   core_index,
                   &tranche)) {
-            return AD::Error::VRF_VERIFY_AND_GET_TRANCHE;
+            return ApprovalDistributionError::VRF_VERIFY_AND_GET_TRANCHE;
           }
           return tranche;
         });
@@ -466,7 +441,7 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<ThreadPool> thread_pool,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
@@ -477,16 +452,16 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<parachain::Recovery> recovery,
-      std::shared_ptr<Watchdog> watchdog,
-      WeakIoContext main_thread,
+      std::shared_ptr<Pvf> pvf,
+      std::shared_ptr<Recovery> recovery,
+      std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : int_pool_{std::make_shared<ThreadPool>(
-          std::move(watchdog), "approval", 1ull)},
-        internal_context_{int_pool_->handler()},
-        thread_pool_{std::move(thread_pool)},
-        thread_pool_context_{thread_pool_->handler()},
+      : approval_thread_handler_{[&] {
+          BOOST_ASSERT(approval_thread_pool != nullptr);
+          return approval_thread_pool->handler();
+        }()},
+        worker_pool_handler_(std::move(worker_pool_handler)),
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -501,9 +476,12 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_thread_{std::move(main_thread)},
-        dispute_coordinator_{std::move(dispute_coordinator)} {
-    BOOST_ASSERT(thread_pool_);
+        main_pool_handler_(std::move(main_pool_handler)),
+        dispute_coordinator_{std::move(dispute_coordinator)},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                approval_thread_pool->io_context()),
+            libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);
@@ -516,6 +494,11 @@ namespace kagome::parachain {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
+    BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
+    BOOST_ASSERT(approval_thread_handler_);
+
+    BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
 
@@ -565,18 +548,22 @@ namespace kagome::parachain {
           }
         });
 
-    internal_context_->start();
-    thread_pool_context_->start();
-    main_thread_.start();
-
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
   }
 
+  void ApprovalDistribution::start() {
+    approval_thread_handler_->start();
+  }
+
+  void ApprovalDistribution::stop() {
+    approval_thread_handler_->stop();
+  }
+
   void ApprovalDistribution::store_remote_view(
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
-    REINVOKE(*internal_context_, store_remote_view, peer_id, view);
+    REINVOKE(*approval_thread_handler_, store_remote_view, peer_id, view);
 
     primitives::BlockNumber old_finalized_number{0ull};
     if (auto it = peer_views_.find(peer_id); it != peer_views_.end()) {
@@ -601,7 +588,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::clearCaches(
       const primitives::events::ChainEventParams &event) {
-    REINVOKE(*internal_context_, clearCaches, event);
+    REINVOKE(*approval_thread_handler_, clearCaches, event);
 
     if (const auto value =
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
@@ -697,7 +684,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
     REINVOKE(
-        *thread_pool_context_, imported_block_info, block_hash, block_header);
+        *worker_pool_handler_, imported_block_info, block_hash, block_header);
 
     auto call = [&]() -> outcome::result<NewHeadDataContext> {
       OUTCOME_TRY(included_candidates, request_included_candidates(block_hash));
@@ -723,7 +710,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::storeNewHeadContext(
       const primitives::BlockHash &block_hash, NewHeadDataContext &&context) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*approval_thread_handler_,
              storeNewHeadContext,
              block_hash,
              std::move(context));
@@ -747,7 +734,7 @@ namespace kagome::parachain {
   template <typename Func>
   void ApprovalDistribution::for_ACU(const primitives::BlockHash &block_hash,
                                      Func &&func) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     if (auto it = approving_context_map_.find(block_hash);
         it != approving_context_map_.end()) {
       std::forward<Func>(func)(*it);
@@ -872,7 +859,7 @@ namespace kagome::parachain {
                "No session info for [session_index: {}, block_hash: {}]",
                session_index,
                block_hash);
-      return Error::NO_SESSION_INFO;
+      return ApprovalDistributionError::NO_SESSION_INFO;
     }
 
     SL_TRACE(logger_,
@@ -1012,7 +999,7 @@ namespace kagome::parachain {
                block_hash,
                parent_hash,
                imported_block.session_index);
-      return Error::NO_SESSION_INFO;
+      return ApprovalDistributionError::NO_SESSION_INFO;
     }
 
     const auto block_tick =
@@ -1116,10 +1103,10 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
-    internal_context_->execute([wself{weak_from_this()},
-                                new_hash,
-                                finalized_block_number,
-                                meta{std::move(meta)}]() {
+    approval_thread_handler_->execute([wself{weak_from_this()},
+                                       new_hash,
+                                       finalized_block_number,
+                                       meta{std::move(meta)}]() {
       if (auto self = wself.lock()) {
         SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
         for (const auto &[peed_id, view] : self->peer_views_) {
@@ -1184,7 +1171,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
     const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
@@ -1230,12 +1217,12 @@ namespace kagome::parachain {
                       std::move(block_info.value())));
                 }});
 
-    imported_block_info(head, std::move(updated.new_head));
+    imported_block_info(head, updated.new_head);
   }
 
   void ApprovalDistribution::on_active_leaves_update(
       const network::ExView &updated) {
-    REINVOKE(*internal_context_, on_active_leaves_update, updated);
+    REINVOKE(*approval_thread_handler_, on_active_leaves_update, updated);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
@@ -1261,7 +1248,7 @@ namespace kagome::parachain {
               return;
             }
 
-            BOOST_ASSERT(self->internal_context_->isInCurrentThread());
+            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
             self->scheduleTranche(head, std::move(possible_candidate.value()));
           }
         });
@@ -1397,7 +1384,7 @@ namespace kagome::parachain {
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex candidate_index) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
@@ -1596,7 +1583,7 @@ namespace kagome::parachain {
       DeferedSender<network::Assignment> &defered_sender,
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex claimed_candidate_index) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = assignment.block_hash;
     const auto validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -1786,7 +1773,7 @@ namespace kagome::parachain {
       const MessageSource &source,
       DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
       const network::IndirectSignedApprovalVote &vote) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
     const auto candidate_index = vote.payload.payload.candidate_index;
@@ -1970,7 +1957,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::getApprovalSignaturesForCandidate(
       const CandidateHash &candidate_hash,
       SignaturesForCandidateCallback &&callback) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*approval_thread_handler_,
              getApprovalSignaturesForCandidate,
              candidate_hash,
              std::move(callback));
@@ -2043,88 +2030,97 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
-      const network::ValidatorProtocolMessage &message) {
-    REINVOKE(*internal_context_, onValidationProtocolMsg, peer_id, message);
+      const network::VersionedValidatorProtocolMessage &message) {
+    REINVOKE(
+        *approval_thread_handler_, onValidationProtocolMsg, peer_id, message);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
-    if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
-      visit_in_place(
-          *m,
-          [&](const network::Assignments &assignments) {
-            SL_TRACE(logger_,
-                     "Received assignments.(peer_id={}, count={})",
-                     peer_id,
-                     assignments.assignments.size());
-            DeferedSender<network::Assignment> assignment_defered_sender{
-                [wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeAssignment(std::move(msgs));
-                  }
-                }};
-            for (auto const &assignment : assignments.assignments) {
-              if (auto it = pending_known_.find(
-                      assignment.indirect_assignment_cert.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending assignment.(block hash={}, claimed index={}, "
-                         "validator={}, peer={})",
-                         assignment.indirect_assignment_cert.block_hash,
-                         assignment.candidate_ix,
-                         assignment.indirect_assignment_cert.validator,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{assignment}));
-                continue;
-              }
 
-              import_and_circulate_assignment(
-                  peer_id,
-                  assignment_defered_sender,
-                  assignment.indirect_assignment_cert,
-                  assignment.candidate_ix);
-            }
-          },
-          [&](const network::Approvals &approvals) {
-            SL_TRACE(logger_,
-                     "Received approvals.(peer_id={}, count={})",
-                     peer_id,
-                     approvals.approvals.size());
-            DeferedSender<network::IndirectSignedApprovalVote>
-                approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeApproval(std::move(msgs));
-                  }
-                }};
-            for (auto const &approval_vote : approvals.approvals) {
-              if (auto it = pending_known_.find(
-                      approval_vote.payload.payload.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending approval.(block hash={}, candidate index={}, "
-                         "validator={}, peer={})",
-                         approval_vote.payload.payload.block_hash,
-                         approval_vote.payload.payload.candidate_index,
-                         approval_vote.payload.ix,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{approval_vote}));
-                continue;
-              }
+    std::optional<
+        std::reference_wrapper<const network::ApprovalDistributionMessage>>
+        m = visit_in_place(message, [](const auto &val) {
+          return if_type<const network::ApprovalDistributionMessage>(val);
+        });
 
-              import_and_circulate_approval(
-                  peer_id, approval_defered_sender, approval_vote);
-            }
-          },
-          [&](const auto &) { UNREACHABLE; });
+    if (!m) {
+      return;
     }
+
+    visit_in_place(
+        m->get(),
+        [&](const network::Assignments &assignments) {
+          SL_TRACE(logger_,
+                   "Received assignments.(peer_id={}, count={})",
+                   peer_id,
+                   assignments.assignments.size());
+          DeferedSender<network::Assignment> assignment_defered_sender{
+              [wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeAssignment(std::move(msgs));
+                }
+              }};
+          for (auto const &assignment : assignments.assignments) {
+            if (auto it = pending_known_.find(
+                    assignment.indirect_assignment_cert.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending assignment.(block hash={}, claimed index={}, "
+                       "validator={}, peer={})",
+                       assignment.indirect_assignment_cert.block_hash,
+                       assignment.candidate_ix,
+                       assignment.indirect_assignment_cert.validator,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{assignment}));
+              continue;
+            }
+
+            import_and_circulate_assignment(peer_id,
+                                            assignment_defered_sender,
+                                            assignment.indirect_assignment_cert,
+                                            assignment.candidate_ix);
+          }
+        },
+        [&](const network::Approvals &approvals) {
+          SL_TRACE(logger_,
+                   "Received approvals.(peer_id={}, count={})",
+                   peer_id,
+                   approvals.approvals.size());
+          DeferedSender<network::IndirectSignedApprovalVote>
+              approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeApproval(std::move(msgs));
+                }
+              }};
+          for (auto const &approval_vote : approvals.approvals) {
+            if (auto it = pending_known_.find(
+                    approval_vote.payload.payload.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending approval.(block hash={}, candidate index={}, "
+                       "validator={}, peer={})",
+                       approval_vote.payload.payload.block_hash,
+                       approval_vote.payload.payload.candidate_index,
+                       approval_vote.payload.ix,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{approval_vote}));
+              continue;
+            }
+
+            import_and_circulate_approval(
+                peer_id, approval_defered_sender, approval_vote);
+          }
+        },
+        [&](const auto &) { UNREACHABLE; });
   }
 
   void ApprovalDistribution::runDistributeAssignment(
       std::unordered_map<libp2p::peer::PeerId, std::deque<network::Assignment>>
           &&messages) {
-    REINVOKE(main_thread_, runDistributeAssignment, std::move(messages));
+    REINVOKE(*main_pool_handler_, runDistributeAssignment, std::move(messages));
 
     SL_TRACE(logger_,
              "Distributing assignments to peers. (peers count={})",
@@ -2137,7 +2133,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::send_assignments_batched(
       std::deque<network::Assignment> &&assignments,
       const libp2p::peer::PeerId &peer_id) {
-    REINVOKE(main_thread_,
+    REINVOKE(*main_pool_handler_,
              send_assignments_batched,
              std::move(assignments),
              peer_id);
@@ -2171,7 +2167,7 @@ namespace kagome::parachain {
               .assignments = std::vector<network::Assignment>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       assignments.erase(begin, end);
     }
   }
@@ -2179,8 +2175,10 @@ namespace kagome::parachain {
   void ApprovalDistribution::send_approvals_batched(
       std::deque<network::IndirectSignedApprovalVote> &&approvals,
       const libp2p::peer::PeerId &peer_id) {
-    REINVOKE(
-        main_thread_, send_approvals_batched, std::move(approvals), peer_id);
+    REINVOKE(*main_pool_handler_,
+             send_approvals_batched,
+             std::move(approvals),
+             peer_id);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxApprovalBatchSize
@@ -2217,7 +2215,7 @@ namespace kagome::parachain {
                   std::vector<network::IndirectSignedApprovalVote>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       approvals.erase(begin, end);
     }
   }
@@ -2226,7 +2224,7 @@ namespace kagome::parachain {
       std::unordered_map<libp2p::peer::PeerId,
                          std::deque<network::IndirectSignedApprovalVote>>
           &&messages) {
-    REINVOKE(main_thread_, runDistributeApproval, std::move(messages));
+    REINVOKE(*main_pool_handler_, runDistributeApproval, std::move(messages));
 
     SL_TRACE(logger_,
              "Sending an approval messages to peers. (num peers={})",
@@ -2239,7 +2237,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
                                             ValidatorIndex validator_index,
                                             const RelayHash &block_hash) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*approval_thread_handler_,
              issue_approval,
              candidate_hash,
              validator_index,
@@ -2571,7 +2569,6 @@ namespace kagome::parachain {
         if (is_block_approved && !was_block_approved) {
           notifyApproved(block_hash);
         }
-        /// TODO(iceseer): store in database if needed
       }
       _ = std::make_pair(is_approved, std::move(status));
       ae = approval_entry;
@@ -2601,7 +2598,6 @@ namespace kagome::parachain {
                            status.required_tranches);
     if (approval::is_local_approval(transition) || newly_approved
         || (already_approved_by && !*already_approved_by)) {
-      /// TODO(iceseer): store in database if needed
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
                    == candidate_entry);
     }
@@ -2610,7 +2606,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::scheduleTranche(
       const primitives::BlockHash &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     SL_TRACE(logger_,
              "Imported new block {}:{} with candidates count {}",
              candidate.block_number,
@@ -2658,35 +2654,25 @@ namespace kagome::parachain {
              tick,
              ms_wakeup_after);
 
-    auto t =
-        std::make_unique<clock::BasicWaitableTimer>(int_pool_->io_context());
-    t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
-    t->asyncWait(
-        [wself{weak_from_this()}, block_hash, block_number, candidate_hash](
-            auto &&ec) {
-          std::unique_ptr<clock::Timer> t{};
+    auto handle = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}, block_hash, block_number, candidate_hash]() {
           if (auto self = wself.lock()) {
-            BOOST_ASSERT(self->internal_context_->isInCurrentThread());
+            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
             if (auto target_block_it = self->active_tranches_.find(block_hash);
                 target_block_it != self->active_tranches_.end()) {
-              if (ec) {
-                SL_TRACE(self->logger_,
-                         "Tranche operation waiting failed timer: {}",
-                         ec.message());
-                return;
-              }
               self->handleTranche(block_hash, block_number, candidate_hash);
             }
           }
-        });
-    target_block[candidate_hash].emplace_back(tick, std::move(t));
+        },
+        std::chrono::milliseconds(ms_wakeup_after));
+    target_block[candidate_hash].emplace_back(tick, std::move(handle));
   }
 
   void ApprovalDistribution::handleTranche(
       const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash) {
-    BOOST_ASSERT(internal_context_->isInCurrentThread());
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
     auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
@@ -2906,9 +2892,9 @@ namespace kagome::parachain {
   primitives::BlockInfo ApprovalDistribution::approvedAncestor(
       const primitives::BlockInfo &min,
       const primitives::BlockInfo &max) const {
-    if (not internal_context_->isInCurrentThread()) {
+    if (not approval_thread_handler_->isInCurrentThread()) {
       std::promise<primitives::BlockInfo> p;
-      internal_context_->execute(
+      approval_thread_handler_->execute(
           [&] { p.set_value(approvedAncestor(min, max)); });
       return p.get_future().get();
     }
