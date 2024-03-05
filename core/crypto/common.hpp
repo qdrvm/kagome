@@ -14,6 +14,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::crypto {
 
@@ -72,6 +73,7 @@ namespace kagome::crypto {
   template <typename T, size_t HeapSize = 4096, size_t MinAllocationSize = 32>
   class SecureHeapAllocator {
     inline static std::once_flag flag;
+    inline static log::Logger logger;
 
    public:
     using value_type = T;
@@ -88,12 +90,18 @@ namespace kagome::crypto {
         if (CRYPTO_secure_malloc_init(HeapSize, MinAllocationSize) != 1) {
           throw std::runtime_error{"Failed to allocate OpenSSL secure heap"};
         }
+        logger = log::createLogger("SecureAllocator", "crypto");
       });
       BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
       auto p = OPENSSL_secure_malloc(n * sizeof(T));
+      SL_TRACE(logger,
+               "allocated {} bytes in secure heap, {} used",
+               OPENSSL_secure_actual_size(p),
+               CRYPTO_secure_used());
       if (p == nullptr) {
         throw std::bad_alloc{};
       }
+
       return reinterpret_cast<T *>(p);
     }
 

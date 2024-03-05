@@ -7,6 +7,7 @@
 add_library(kagome_crypto common.cpp)
 target_link_libraries(kagome_crypto
     OpenSSL::Crypto
+    logger
     )
 kagome_install(kagome_crypto)
 
