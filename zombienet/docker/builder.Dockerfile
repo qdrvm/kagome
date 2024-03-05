@@ -47,6 +47,8 @@ COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/te
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/adder-collator /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/undying-collator /home/nonroot/bin
 COPY --from=polkadot /usr/bin/polkadot /home/nonroot/bin
+COPY --from=polkadot /usr/lib/polkadot/polkadot-execute-worker /home/nonroot/bin
+COPY --from=polkadot /usr/lib/polkadot/polkadot-prepare-worker /home/nonroot/bin
 COPY --from=polkadot-parachain /usr/local/bin/polkadot-parachain /home/nonroot/bin
 COPY polkadot-sdk-versions.txt /home/nonroot/polkadot-sdk-versions.txt
 COPY zombienet-versions.txt /home/nonroot/zombienet-versions.txt
