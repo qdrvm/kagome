@@ -110,7 +110,7 @@ namespace kagome::runtime::wasm_edge {
           host_instance_{host_instance},
           executor_{executor},
           env_{std::move(env)},
-          code_hash_{} {
+          code_hash_{code_hash} {
       BOOST_ASSERT(module_ != nullptr);
       BOOST_ASSERT(instance_ != nullptr);
       BOOST_ASSERT(host_instance_ != nullptr);
