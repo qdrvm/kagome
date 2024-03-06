@@ -21,6 +21,10 @@ if (NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "")
 endif ()
 
+if(NOT ${CMAKE_BUILD_TYPE} MATCHES "^(Debug|Release|RelWithDebInfo)$")
+  fatal_error("CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE} but should be one of [Debug, Release, RelWithDebInfo]")
+endif()
+
 if(${CMAKE_BUILD_TYPE} MATCHES "^RelWithDebInfo$")
   set(HUNTER_CONFIGURATION_TYPES "Release" CACHE STRING "")
 else()
