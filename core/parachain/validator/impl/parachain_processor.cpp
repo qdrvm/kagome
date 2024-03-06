@@ -2255,18 +2255,24 @@ namespace kagome::parachain {
             core,
             [&](const network::ScheduledCore &scheduled_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
-              return prospective_parachains_->answerGetBackableCandidate(
-                  relay_parent, scheduled_core.para_id, {});
+              if (auto i = prospective_parachains_->answerGetBackableCandidates(
+                  relay_parent, scheduled_core.para_id, 1, {}); !i.empty()) {
+                    return i[0];
+                  }
+                  return std::nullopt;
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
               /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
-                return prospective_parachains_->answerGetBackableCandidate(
+                if (auto i = prospective_parachains_->answerGetBackableCandidates(
                     relay_parent,
-                    occupied_core.next_up_on_available->para_id,
-                    {occupied_core.candidate_hash});
+                    occupied_core.next_up_on_available->para_id, 1,
+                    {occupied_core.candidate_hash}); !i.empty()) {
+                    return i[0];
+                  }
+                  return std::nullopt;
               }
               return std::nullopt;
             },
