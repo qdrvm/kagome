@@ -21,8 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction::Kind, e) {
       return "General error to do with the transaction being outdated (e.g. "
              "nonce too low)";
     case E::BadProof:
-      return "General error to do with the transaction's proofs (e.g. "
-             "signature)";
+      return "InvalidTransaction::BadProof. General error to do with the transaction's proofs (e.g. signature). May happen if finality lags behind best block (breaks transaction mortality encoding).";
     case E::AncientBirthBlock:
       return "The transaction birth block is ancient";
     case E::ExhaustsResources:
