@@ -528,46 +528,86 @@ namespace kagome::parachain::fragment {
     }
 
     template <typename Func>
-    std::optional<CandidateHash> selectChild(
-        const std::vector<CandidateHash> &required_path, Func &&pred) const {
+    std::vector<CandidateHash> selectChildren(
+        const std::vector<CandidateHash> &required_path,
+        uint32_t count,
+        Func &&pred) const {
       NodePointer base_node{NodePointerRoot{}};
       for (const CandidateHash &required_step : required_path) {
         if (auto node = nodeCandidateChild(base_node, required_step)) {
           base_node = *node;
         } else {
-          return std::nullopt;
+          return {};
         }
       }
 
-      return visit_in_place(
+      std::vector<CandidateHash> accum;
+      return selectChildrenInner(
+          std::move(base_node), count, count, std::forward<Func>(pred), accum);
+    }
+
+    template <typename Func>
+    std::vector<CandidateHash> selectChildrenInner(
+        NodePointer base_node,
+        uint32_t expected_count,
+        uint32_t remaining_count,
+        const Func &pred,
+        std::vector<CandidateHash> &accumulator) const {
+      if (remaining_count == 0) {
+        return accumulator;
+      }
+
+      auto children = visit_in_place(
           base_node,
-          [&](const NodePointerRoot &) -> std::optional<CandidateHash> {
-            for (const FragmentNode &n : nodes) {
+          [&](const NodePointerRoot &)
+              -> std::vector<std::pair<NodePointer, CandidateHash>> {
+            std::vector<std::pair<NodePointer, CandidateHash>> tmp;
+            for (size_t ptr = 0; ptr < nodes.size(); ++ptr) {
+              const FragmentNode &n = nodes[ptr];
               if (!is_type<NodePointerRoot>(n.parent)) {
-                return std::nullopt;
+                continue;
               }
               if (scope.getPendingAvailability(n.candidate_hash)) {
-                return std::nullopt;
+                continue;
               }
               if (!pred(n.candidate_hash)) {
-                return std::nullopt;
+                continue;
               }
-              return n.candidate_hash;
+              tmp.emplace_back(NodePointerStorage{ptr}, n.candidate_hash);
             }
-            return std::nullopt;
+            return tmp;
           },
-          [&](const NodePointerStorage &ptr) -> std::optional<CandidateHash> {
-            for (const auto &[_, h] : nodes[ptr].children) {
-              if (scope.getPendingAvailability(h)) {
-                return std::nullopt;
+          [&](const NodePointerStorage &base_node_ptr)
+              -> std::vector<std::pair<NodePointer, CandidateHash>> {
+            std::vector<std::pair<NodePointer, CandidateHash>> tmp;
+            const auto &bn = nodes[base_node_ptr];
+            for (const auto &[ptr, hash] : bn.children) {
+              if (scope.getPendingAvailability(hash)) {
+                continue;
               }
-              if (!pred(h)) {
-                return std::nullopt;
+              if (!pred(hash)) {
+                continue;
               }
-              return h;
+              tmp.emplace_back(ptr, hash);
             }
-            return std::nullopt;
+            return tmp;
           });
+
+      auto best_result = accumulator;
+      for (const auto &[child_ptr, child_hash] : children) {
+        accumulator.emplace_back(child_hash);
+        auto result = selectChildrenInner(
+            child_ptr, expected_count, remaining_count - 1, pred, accumulator);
+        accumulator.pop_back();
+
+        if (result.size() == size_t(expected_count)) {
+          return result;
+        } else if (best_result.size() < result.size()) {
+          best_result = result;
+        }
+      }
+
+      return best_result;
     }
 
     static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher,

@@ -87,9 +87,10 @@ namespace kagome::parachain {
       return v;
     }
 
-    std::optional<std::pair<CandidateHash, Hash>> answerGetBackableCandidate(
+    std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
         const RelayHash &relay_parent,
         ParachainId para,
+        uint32_t count,
         const std::vector<CandidateHash> &required_path) {
       SL_TRACE(logger,
                "Search for backable candidates. (para_id={}, "
@@ -103,7 +104,7 @@ namespace kagome::parachain {
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
-        return std::nullopt;
+        return {};
       }
       const RelayBlockViewData &data = data_it->second;
 
@@ -114,7 +115,7 @@ namespace kagome::parachain {
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
-        return std::nullopt;
+        return {};
       }
       const fragment::FragmentTree &tree = tree_it->second;
 
@@ -125,36 +126,43 @@ namespace kagome::parachain {
                 "para_id={})",
                 relay_parent,
                 para);
-        return std::nullopt;
+        return {};
       }
       const fragment::CandidateStorage &storage = storage_it->second;
 
-      auto child_hash = tree.selectChild(
-          required_path, [&](const CandidateHash &candidate) -> bool {
-            return storage.isBacked(candidate);
-          });
-      if (!child_hash) {
+      std::vector<std::pair<CandidateHash, Hash>> backable_candidates;
+      for (const auto &child_hash :
+           tree.selectChildren(required_path,
+                               count,
+                               [&](const CandidateHash &candidate) -> bool {
+                                 return storage.isBacked(candidate);
+                               })) {
+        if (auto parent_hash_opt =
+                storage.relayParentByCandidateHash(child_hash)) {
+          backable_candidates.emplace_back(child_hash, *parent_hash_opt);
+        } else {
+          SL_ERROR(
+              logger,
+              "Candidate is present in fragment tree but not in candidate's storage! (child_hash={}, para_id={})",
+              child_hash,
+              para);
+        }
+      }
+
+      if (backable_candidates.empty()) {
+        SL_TRACE(
+            logger,
+            "Could not find any backable candidate. (relay_parent={}, para_id={})",
+            relay_parent,
+            para);
+      } else {
         SL_TRACE(logger,
-                 "Child hash is null. (para_id={}, "
-                 "relay_parent={})",
-                 para,
-                 relay_parent);
-        return std::nullopt;
-      }
-
-      auto candidate_relay_parent =
-          storage.relayParentByCandidateHash(*child_hash);
-      if (!candidate_relay_parent) {
-        SL_ERROR(logger,
-                 "Candidate is present in fragment tree but not in candidate's "
-                 "storage! (relay_parent={}, para_id={}, child_hash={})",
+                 "Found backable candidates. (relay_parent={}, count={})",
                  relay_parent,
-                 para,
-                 *child_hash);
-        return std::nullopt;
+                 backable_candidates.size());
       }
 
-      return std::make_pair(*child_hash, *candidate_relay_parent);
+      return backable_candidates;
     }
 
     fragment::FragmentTreeMembership answerTreeMembershipRequest(
