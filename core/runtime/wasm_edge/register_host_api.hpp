@@ -20,32 +20,32 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<int32_t>() {
-    return WasmEdge_ValTypeGenI32();
+    return WasmEdge_ValType_I32;
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<uint32_t>() {
-    return WasmEdge_ValTypeGenI32();
+    return WasmEdge_ValType_I32;
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<int64_t>() {
-    return WasmEdge_ValTypeGenI64();
+    return WasmEdge_ValType_I64;
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<uint64_t>() {
-    return WasmEdge_ValTypeGenI64();
+    return WasmEdge_ValType_I64;
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<float>() {
-    return WasmEdge_ValTypeGenF32();
+    return WasmEdge_ValType_F32;
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<double>() {
-    return WasmEdge_ValTypeGenF64();
+    return WasmEdge_ValType_F64;
   }
 
   template <typename T>
@@ -158,10 +158,7 @@ namespace kagome::runtime::wasm_edge {
     WasmEdge_FunctionTypeDelete(type);
 
     auto name_str = WasmEdge_StringCreateByBuffer(name.data(), name.size());
-    WasmEdge_ModuleInstanceAddFunction(
-        module,
-        name_str,
-        instance);
+    WasmEdge_ModuleInstanceAddFunction(module, name_str, instance);
     WasmEdge_StringDelete(name_str);
   }
 
@@ -204,7 +201,7 @@ namespace kagome::runtime::wasm_edge {
                         std::string_view name,
                         std::span<WasmEdge_ValType> rets,
                         std::span<WasmEdge_ValType> args) {
-    register_method(stub, module, (void*)name.data(), name, rets, args);
+    register_method(stub, module, (void *)name.data(), name, rets, args);
   }
 
 #define REGISTER_HOST_METHOD(Ret, name, ...)            \

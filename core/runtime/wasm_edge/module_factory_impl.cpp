@@ -77,26 +77,21 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI32())) {
-      return WasmEdge_ValueGetI32(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI64())) {
-      return WasmEdge_ValueGetI64(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF32())) {
-      return WasmEdge_ValueGetF32(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF64())) {
-      return WasmEdge_ValueGetF64(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenV128())) {
-      return Error::INVALID_VALUE_TYPE;
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenFuncRef())) {
-      return Error::INVALID_VALUE_TYPE;
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenExternRef())) {
-      return Error::INVALID_VALUE_TYPE;
+    switch (v.Type) {
+      case WasmEdge_ValType_I32:
+        return WasmEdge_ValueGetI32(v);
+      case WasmEdge_ValType_I64:
+        return WasmEdge_ValueGetI64(v);
+      case WasmEdge_ValType_F32:
+        return WasmEdge_ValueGetF32(v);
+      case WasmEdge_ValType_F64:
+        return WasmEdge_ValueGetF64(v);
+      case WasmEdge_ValType_V128:
+        return Error::INVALID_VALUE_TYPE;
+      case WasmEdge_ValType_FuncRef:
+        return Error::INVALID_VALUE_TYPE;
+      case WasmEdge_ValType_ExternRef:
+        return Error::INVALID_VALUE_TYPE;
     }
     BOOST_UNREACHABLE_RETURN({});
   }
