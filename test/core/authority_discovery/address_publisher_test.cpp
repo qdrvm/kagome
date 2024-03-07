@@ -29,9 +29,12 @@ using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519ProviderMock;
 using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::SecureBuffer;
 using kagome::crypto::SessionKeysImpl;
+using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519ProviderMock;
 using kagome::crypto::Sr25519PublicKey;
+using kagome::crypto::Sr25519SecretKey;
 using kagome::network::Roles;
 using kagome::runtime::AuthorityDiscoveryApiMock;
 using libp2p::HostMock;
@@ -118,7 +121,7 @@ TEST_F(AddressPublisherTest, Success) {
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(_))
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*crypto_store_, findSr25519Keypair(_, _))
-      .WillOnce(Return(outcome::success()));
+      .WillOnce(Return(Sr25519Keypair{}));
   EXPECT_CALL(*block_tree_, bestBlock());
   EXPECT_CALL(*authority_discovery_api_, authorities(_))
       .WillOnce(Return(std::vector{audi_key_}));

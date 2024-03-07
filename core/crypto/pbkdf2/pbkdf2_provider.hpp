@@ -22,9 +22,6 @@ namespace kagome::crypto {
    */
   class Pbkdf2Provider {
    public:
-    using SecureBuffer = common::SLBuffer<std::numeric_limits<size_t>::max(),
-                                          SecureHeapAllocator<uint8_t>>;
-
     virtual ~Pbkdf2Provider() = default;
 
     /**
@@ -35,7 +32,7 @@ namespace kagome::crypto {
      * @param key_length length of generated key
      * @return derived key
      */
-    virtual outcome::result<SecureBuffer> deriveKey(
+    virtual outcome::result<SecureBuffer<>> deriveKey(
         common::BufferView data,
         common::BufferView salt,
         size_t iterations,

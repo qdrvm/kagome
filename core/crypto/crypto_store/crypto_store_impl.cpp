@@ -191,17 +191,19 @@ namespace kagome::crypto {
     }
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    Ed25519Seed seed;
-    if (ED25519_SEED_LENGTH == contents.size()) {
-      OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
-      seed = _seed;
-    } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-      std::span<char> char_content{};
-      OUTCOME_TRY(_seed, Ed25519Seed::fromHex(SecureCleanGuard{char_content}));
-      seed = _seed;
-    } else {
-      return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
-    }
+    OUTCOME_TRY(seed, [&] -> outcome::result<Ed25519Seed> {
+      if (ED25519_SEED_LENGTH == contents.size()) {
+        OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
+        return _seed;
+      } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
+        std::span<char> char_content{};
+        OUTCOME_TRY(_seed,
+                    Ed25519Seed::fromHex(SecureCleanGuard{char_content}));
+        return _seed;
+      } else {
+        return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
+      }
+    }());
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     return ed25519KeyToLibp2pKeypair(kp);
   }

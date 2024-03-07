@@ -49,8 +49,10 @@ namespace kagome::crypto {
       seed = EcdsaSeed::from(
           SecureCleanGuard(static_cast<std::array<uint8_t, 32>>(_)));
     }
-    EcdsaKeypair keys;
-    keys.secret_key = EcdsaPrivateKey::from(seed);
+    EcdsaKeypair keys{
+        .secret_key = EcdsaPrivateKey::from(seed),
+        .public_key = {},
+    };
     secp256k1_pubkey ffi_pub;
     if (secp256k1_ec_pubkey_create(
             context_.get(), &ffi_pub, keys.secret_key.unsafeBytes().data())

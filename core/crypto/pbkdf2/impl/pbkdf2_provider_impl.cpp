@@ -10,12 +10,12 @@
 
 namespace kagome::crypto {
 
-  outcome::result<Pbkdf2Provider::SecureBuffer> Pbkdf2ProviderImpl::deriveKey(
+  outcome::result<SecureBuffer<>> Pbkdf2ProviderImpl::deriveKey(
       common::BufferView data,
       common::BufferView salt,
       size_t iterations,
       size_t key_length) const {
-    SecureBuffer out(key_length, 0);
+    SecureBuffer<> out(key_length, 0);
     const auto *digest = EVP_sha512();
 
     int res = PKCS5_PBKDF2_HMAC(reinterpret_cast<const char *>(data.data()),

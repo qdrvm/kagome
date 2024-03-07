@@ -94,7 +94,10 @@ namespace kagome::crypto::bip39 {
     }
 
     if (seed.starts_with("0x")) {
-      SecureBuffer<> bytes(seed.size() / 2 - 1);
+      if (seed.size() != HEX_SEED_STR_LENGTH) {
+        return bip39::MnemonicError::INVALID_SEED_LENGTH;
+      }
+      SecureBuffer<> bytes(HEX_SEED_BIT_LENGTH, 0);
       OUTCOME_TRY(common::unhexWith0x(seed, bytes.begin()));
       OUTCOME_TRY(seed, Bip39Seed::from(std::move(bytes)));
       mnemonic.seed = std::move(seed);
@@ -111,10 +114,12 @@ namespace kagome::crypto::bip39 {
 }  // namespace kagome::crypto::bip39
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, MnemonicError, e) {
-  using Error = kagome::crypto::bip39::MnemonicError;
   switch (e) {
-    case Error::INVALID_MNEMONIC:
+    using enum kagome::crypto::bip39::MnemonicError;
+    case INVALID_MNEMONIC:
       return "Mnemonic provided is not valid";
+    case INVALID_SEED_LENGTH:
+      return "Provided BIP39 seed is not a 64 digit hex number";
   }
   return "unknown MnemonicError";
 }

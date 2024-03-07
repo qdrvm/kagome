@@ -41,7 +41,7 @@ struct EcdsaProviderTest : public ::testing::Test {
   }
 
   auto generate() {
-    SecureBuffer<> seed_buf{EcdsaSeed::size()};
+    SecureBuffer<> seed_buf(EcdsaSeed::size());
     csprng->fillRandomly(seed_buf);
     auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
     return ecdsa_provider_->generateKeypair(seed, {}).value();

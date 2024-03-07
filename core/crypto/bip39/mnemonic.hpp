@@ -17,6 +17,7 @@ namespace kagome::crypto {
 namespace kagome::crypto::bip39 {
   enum class MnemonicError {
     INVALID_MNEMONIC = 1,
+    INVALID_SEED_LENGTH,
   };
 
   struct Junction {
@@ -29,7 +30,7 @@ namespace kagome::crypto::bip39 {
   struct Mnemonic {
     using Words = std::vector<std::string>;
 
-    std::variant<Bip39Seed, Words> seed;
+    std::variant<Words, Bip39Seed> seed;
     std::string password;
     std::vector<Junction> junctions;
 

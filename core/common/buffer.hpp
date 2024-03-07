@@ -160,6 +160,11 @@ namespace kagome::common {
       return std::span(*this).subspan(offset, length);
     }
 
+    template <size_t Offset, size_t Length>
+    BufferView view() const {
+      return std::span(*this).template subspan<Offset, Length>();
+    }
+
     /**
      * @brief encode bytearray as hex
      * @return hex-encoded string

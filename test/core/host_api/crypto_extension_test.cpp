@@ -314,7 +314,7 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
  * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
-  SecureBuffer<> seed_buf{Ed25519Seed::size()};
+  SecureBuffer<> seed_buf(Ed25519Seed::size());
   random_generator_->fillRandomly(seed_buf);
   auto seed = Ed25519Seed::from(std::move(seed_buf)).value();
   auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();

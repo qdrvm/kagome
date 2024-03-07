@@ -15,6 +15,9 @@ namespace kagome::crypto::bip39 {
     constexpr size_t BIP39_SEED_LEN_512 = 64u;
   }  // namespace constants
 
+  constexpr size_t HEX_SEED_STR_LENGTH = 66u;  // '0x' + 64 hex digits
+  constexpr size_t HEX_SEED_BIT_LENGTH = 32u;
+
   struct Bip39Tag;
   using Bip39Seed = PrivateKey<constants::BIP39_SEED_LEN_512, Bip39Tag>;
 

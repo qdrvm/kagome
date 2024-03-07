@@ -39,11 +39,7 @@ namespace kagome::crypto {
     SecureCleanGuard(SecureCleanGuard &&g) noexcept : data{g.data} {
       g.data = {};
     }
-    SecureCleanGuard &operator=(SecureCleanGuard &&g) noexcept {
-      data = g.data;
-      g.data = {};
-      return *this;
-    }
+    SecureCleanGuard &operator=(SecureCleanGuard &&g) = delete;
 
     ~SecureCleanGuard() {
       OPENSSL_cleanse(data.data(), data.size_bytes());
@@ -128,7 +124,8 @@ namespace kagome::crypto {
     friend class PrivateKey;
 
    public:
-    PrivateKey() = default;
+    PrivateKey() : data(Size, 0) {}
+
     PrivateKey(const PrivateKey &) = default;
     PrivateKey &operator=(const PrivateKey &) = default;
 
@@ -215,19 +212,20 @@ namespace kagome::crypto {
      * The bytes copied from here to unsafe memory must later be cleaned up with
      * SecureCleanGuard
      */
-    [[nodiscard]] std::span<const uint8_t> unsafeBytes() const {
-      return data;
+    [[nodiscard]] std::span<const uint8_t, Size> unsafeBytes() const {
+      return std::span<const uint8_t, Size>(data);
     }
 
    private:
-    explicit PrivateKey(std::span<uint8_t, Size> view) {
+    explicit PrivateKey(std::span<const uint8_t, Size> view) {
       BOOST_ASSERT(view.size() == Size);
       data.put(view);
     }
 
     template <size_t OtherSize>
       requires(OtherSize >= Size)
-    explicit PrivateKey(SecureBuffer<OtherSize> data) : data{std::move(data)} {
+    explicit PrivateKey(SecureBuffer<OtherSize> data)
+        : PrivateKey{data.view().template subspan<0, Size>()} {
       BOOST_ASSERT(this->data.size() == Size);
     }
 
