@@ -428,24 +428,29 @@ namespace kagome::network {
     }
     auto next_session = sessions_.upper_bound(beefy_finalized_ + 1);
     if (next_session == sessions_.begin()) {
-      SL_VERBOSE(log_, "can't vote: no sessions");
-      return outcome::success();
+      if (next_session == sessions_.end()) {
+        SL_VERBOSE(log_, "can't vote: no sessions");
+        return outcome::success();
+      }
+      ++next_session;
     }
     auto session = std::prev(next_session);
     auto grandpa_finalized = block_tree_->getLastFinalized().number;
     auto target = session->first;
-    if (next_session != sessions_.end()
-        and grandpa_finalized >= next_session->first) {
-      target = next_session->first;
-      session = next_session;
-    } else if (target <= beefy_finalized_) {
-      auto diff = grandpa_finalized - beefy_finalized_ + 1;
-      target = beefy_finalized_
-             + std::max<primitives::BlockNumber>(
-                   min_delta_, math::nextHighPowerOf2(diff / 2));
-      if (next_session != sessions_.end() and target >= next_session->first) {
+    if (target <= beefy_finalized_) {
+      if (next_session != sessions_.end()
+          and grandpa_finalized >= next_session->first) {
         target = next_session->first;
         session = next_session;
+      } else {
+        auto diff = grandpa_finalized - beefy_finalized_ + 1;
+        target = beefy_finalized_
+               + std::max<primitives::BlockNumber>(
+                     min_delta_, math::nextHighPowerOf2(diff / 2));
+        if (next_session != sessions_.end() and target >= next_session->first) {
+          target = next_session->first;
+          session = next_session;
+        }
       }
     }
     if (target > grandpa_finalized) {
