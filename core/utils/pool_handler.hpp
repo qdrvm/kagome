@@ -28,10 +28,11 @@ namespace kagome {
     DONT_INJECT(PoolHandler);
 
     explicit PoolHandler(std::shared_ptr<boost::asio::io_context> io_context)
-        : is_active_{true}, ioc_{std::move(io_context)} {}
+        : is_active_{false}, ioc_{std::move(io_context)} {}
     ~PoolHandler() = default;
 
     void start() {
+      started_ = true;
       is_active_.store(true);
     }
 
@@ -43,8 +44,8 @@ namespace kagome {
     void execute(F &&func) {
       if (is_active_.load(std::memory_order_acquire)) {
         ioc_->post(std::forward<F>(func));
-      } else {
-        throw std::logic_error{"PoolHandler lost callback"};
+      } else if (not started_) {
+        throw std::logic_error{"PoolHandler lost callback before start()"};
       }
     }
 
@@ -62,6 +63,7 @@ namespace kagome {
 
    private:
     std::atomic_bool is_active_;
+    std::atomic_bool started_ = false;
     std::shared_ptr<boost::asio::io_context> ioc_;
   };
 
