@@ -14,8 +14,8 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "common/outcome_throw.hpp"
-#include "crypto/hasher.hpp"
 #include "crypto/blake2/blake2b.h"
+#include "crypto/hasher.hpp"
 #include "crypto/keccak/keccak.hpp"
 #include "host_api/impl/storage_util.hpp"
 #include "log/trace_macros.hpp"
@@ -407,11 +407,11 @@ namespace kagome::host_api {
 
     const auto &values = values_res.value();
 
-    auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        detail::toStateVersion(version),
-        values.begin(),
-        values.end(),
-        crypto::blake2b<32>);
+    auto ordered_hash =
+        storage::trie::calculateOrderedTrieHash(detail::toStateVersion(version),
+                                                values.begin(),
+                                                values.end(),
+                                                crypto::blake2b<32>);
     common::raise_on_err(ordered_hash);
 
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());

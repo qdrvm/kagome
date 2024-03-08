@@ -11,13 +11,13 @@
 #include <scale/scale.hpp>
 
 #include "common/monadic_utils.hpp"
-#include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/types.hpp"
@@ -25,14 +25,15 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/runtime/memory.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::host_api::ChildStorageExtension;
-using kagome::runtime::Memory;
-using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
+using kagome::runtime::TestMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
@@ -66,10 +67,8 @@ class ChildStorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(
             Return(outcome::success(std::ref(*trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
-    memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(
-            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
+        .WillRepeatedly(Return(std::ref(memory_)));
     child_storage_extension_ = std::make_shared<ChildStorageExtension>(
         storage_provider_, memory_provider_);
   }
@@ -78,7 +77,7 @@ class ChildStorageExtensionTest : public ::testing::Test {
   std::shared_ptr<TrieBatchMock> trie_child_storage_batch_;
   std::shared_ptr<TrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<MemoryMock> memory_;
+  TestMemory memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<ChildStorageExtension> child_storage_extension_;
 };
@@ -104,29 +103,15 @@ class BoolOutcomeParameterizedTest
 TEST_P(ReadOutcomeParameterizedTest, GetTest) {
   // executeOnChildStorage
 
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   // logic
 
-  WasmPointer value_pointer = 44;
-  WasmSize value_size = 44;
-  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
-
   std::vector<uint8_t> encoded_opt_value;
   if (GetParam()) {
-    encoded_opt_value = scale::encode(GetParam().value()).value();
+    encoded_opt_value =
+        testutil::scaleEncodeAndCompareWithRef(GetParam().value()).value();
   }
 
   // 'func' (lambda)
@@ -136,22 +121,14 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
       .WillOnce(Return(param));
 
   // results
+  auto call = [&] {
+    return child_storage_extension_->ext_default_child_storage_get_version_1(
+        memory_[child_storage_key], memory_[key]);
+  };
   if (GetParam().has_error()) {
-    ASSERT_THROW(
-        {
-          child_storage_extension_->ext_default_child_storage_get_version_1(
-              child_storage_key_span, key_span);
-        },
-        std::runtime_error);
+    ASSERT_THROW({ call(); }, std::runtime_error);
   } else {
-    EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_value)))
-        .WillOnce(Return(value_span));
-
-    auto actual =
-        child_storage_extension_->ext_default_child_storage_get_version_1(
-            child_storage_key_span, key_span);
-
-    ASSERT_EQ(value_span, actual);
+    ASSERT_EQ(memory_[call()], encoded_opt_value);
   }
 }
 
@@ -166,43 +143,12 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
 TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   // executeOnChildStorage
 
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   // logic
 
-  WasmPointer value_pointer = 44;
-  WasmSize value_size = 44;
-  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
-  auto encoded_result =
-      scale::encode<std::optional<uint32_t>>(std::nullopt).value();
-
   WasmOffset offset = 4;
-  Buffer offset_value_data;
-
-  if (GetParam() && GetParam().value()) {
-    auto &param = GetParam().value().value();
-    offset_value_data = param.subbuffer(offset);
-    ASSERT_EQ(offset_value_data.size(), param.size() - offset);
-    EXPECT_OUTCOME_TRUE(
-        encoded_opt_offset_val_size,
-        scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
-    encoded_result = encoded_opt_offset_val_size;
-    EXPECT_CALL(*memory_,
-                storeBuffer(value_pointer, BufferView(offset_value_data)))
-        .WillOnce(Return());
-  }
 
   // 'func' (lambda)
   auto &param = GetParam();
@@ -211,22 +157,26 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
 
   // results
 
+  auto value_span = memory_.allocate2(2);
+  auto call = [&] {
+    return child_storage_extension_->ext_default_child_storage_read_version_1(
+        memory_[child_storage_key], memory_[key], value_span.combine(), offset);
+  };
   if (GetParam().has_error()) {
-    ASSERT_THROW(
-        {
-          child_storage_extension_->ext_default_child_storage_read_version_1(
-              child_storage_key_span, key_span, value_span, offset);
-        },
-        std::runtime_error);
+    ASSERT_THROW({ call(); }, std::runtime_error);
   } else {
-    WasmSpan res_wasm_span = 1337;
-    EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_result)))
-        .WillOnce(Return(res_wasm_span));
-
-    ASSERT_EQ(
-        res_wasm_span,
-        child_storage_extension_->ext_default_child_storage_read_version_1(
-            child_storage_key_span, key_span, value_span, offset));
+    auto &param = GetParam().value();
+    using Result = std::optional<uint32_t>;
+    Result result;
+    if (param) {
+      result = param->size() - offset;
+    }
+    ASSERT_EQ(memory_.decode<Result>(call()), result);
+    if (param) {
+      auto n = std::min<size_t>(value_span.size, param->size());
+      ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+                SpanAdl{param->view(offset, n)});
+    }
   }
 }
 
@@ -238,19 +188,8 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
  */
 TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   // executeOnChildStorage
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillRepeatedly(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
@@ -259,20 +198,15 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   }
 
   // logic
-  WasmPointer value_pointer = 44;
-  WasmSize value_size = 44;
-  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
   Buffer value(8, 'v');
-  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
-      .WillOnce(Return(value));
   EXPECT_CALL(*trie_child_storage_batch_, put(key.view(), value))
       .WillOnce(Return(GetParam()));
 
   child_storage_extension_->ext_default_child_storage_set_version_1(
-      child_storage_key_span, key_span, value_span);
+      memory_[child_storage_key], memory_[key], memory_[value]);
   if (GetParam()) {
     child_storage_extension_->ext_default_child_storage_root_version_1(
-        child_storage_key_span);
+        memory_[child_storage_key]);
   }
 }
 
@@ -284,19 +218,8 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
  */
 TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
   // executeOnChildStorage
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillRepeatedly(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
@@ -309,10 +232,10 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
       .WillOnce(Return(GetParam()));
 
   child_storage_extension_->ext_default_child_storage_clear_version_1(
-      child_storage_key_span, key_span);
+      memory_[child_storage_key], memory_[key]);
   if (GetParam()) {
     child_storage_extension_->ext_default_child_storage_root_version_1(
-        child_storage_key_span);
+        memory_[child_storage_key]);
   }
 }
 
@@ -326,20 +249,8 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
  */
 TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
   // executeOnChildStorage
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer prefix_pointer = 40;
-  WasmSize prefix_size = 40;
-  WasmSpan prefix_span = PtrSize(prefix_pointer, prefix_size).combine();
   Buffer prefix(8, 'p');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillRepeatedly(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
-      .WillOnce(Return(prefix));
 
   RootHash new_child_root = "123456"_hash256;
   EXPECT_CALL(*trie_child_storage_batch_, commit(_))
@@ -351,9 +262,9 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
       .WillOnce(Return(outcome::success(std::make_tuple(true, 33u))));
 
   child_storage_extension_->ext_default_child_storage_clear_prefix_version_1(
-      child_storage_key_span, prefix_span);
+      memory_[child_storage_key], memory_[prefix]);
   child_storage_extension_->ext_default_child_storage_root_version_1(
-      child_storage_key_span);
+      memory_[child_storage_key]);
 }
 
 /**
@@ -362,22 +273,8 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
  * @then return next key after given one, in lexicographical order
  */
 TEST_F(ChildStorageExtensionTest, NextKeyTest) {
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-          child_storage_key);
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_child_storage_batch_, trieCursor())
       .WillOnce(Invoke([&key]() {
         auto cursor = std::make_unique<PolkadotTrieCursorMock>();
@@ -388,15 +285,9 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
         return cursor;
       }));
 
-  WasmPointer res_pointer = 44;
-  WasmSize res_size = 44;
-  WasmSpan res_span = PtrSize(res_pointer, res_size).combine();
-  EXPECT_CALL(*memory_, storeBuffer(_)).WillOnce(Return(res_span));
-
-  ASSERT_EQ(
-      res_span,
-      child_storage_extension_->ext_default_child_storage_next_key_version_1(
-          child_storage_key_span, key_span));
+  memory_[child_storage_extension_
+              ->ext_default_child_storage_next_key_version_1(
+                  memory_[child_storage_key], memory_[key])];
 }
 
 /**
@@ -405,31 +296,16 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
  * @then returns new child root value
  */
 TEST_F(ChildStorageExtensionTest, RootTest) {
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-          child_storage_key);
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
 
   RootHash new_child_root = "123456"_hash256;
-  WasmPointer new_child_root_ptr = 1984;
-  WasmPointer new_child_root_size = 12;
-  WasmSpan new_child_root_span =
-      PtrSize(new_child_root_ptr, new_child_root_size).combine();
   EXPECT_CALL(*trie_child_storage_batch_, commit(_))
       .WillOnce(Return(new_child_root));
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(new_child_root)))
-      .WillOnce(Return(new_child_root_span));
 
-  ASSERT_EQ(new_child_root_span,
-            child_storage_extension_->ext_default_child_storage_root_version_1(
-                child_storage_key_span));
+  ASSERT_EQ(memory_[child_storage_extension_
+                        ->ext_default_child_storage_root_version_1(
+                            memory_[child_storage_key])],
+            new_child_root);
 }
 
 /**
@@ -439,19 +315,8 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
  */
 TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
   // executeOnChildStorage
-  WasmPointer child_storage_key_pointer = 42;
-  WasmSize child_storage_key_size = 42;
-  WasmSpan child_storage_key_span =
-      PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  EXPECT_CALL(*memory_,
-              loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   // logic
   EXPECT_CALL(*trie_child_storage_batch_, contains(key.view()))
@@ -460,7 +325,7 @@ TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
   ASSERT_EQ(
       GetParam() ? GetParam().value() : 0,
       child_storage_extension_->ext_default_child_storage_exists_version_1(
-          child_storage_key_span, key_span));
+          memory_[child_storage_key], memory_[key]));
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,

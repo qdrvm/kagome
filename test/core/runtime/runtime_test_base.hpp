@@ -161,7 +161,7 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        std::make_shared<runtime::RuntimeInstancesPool>(module_factory),
+        std::make_shared<runtime::RuntimeInstancesPoolImpl>(module_factory),
         upgrade_tracker,
         module_factory,
         std::make_shared<runtime::SingleModuleCache>(),

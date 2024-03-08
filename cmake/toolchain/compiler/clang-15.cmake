@@ -13,8 +13,22 @@ if(XCODE_VERSION)
   fatal_error(${_err})
 endif()
 
-find_program(CMAKE_C_COMPILER clang-15)
+find_program(CMAKE_C_COMPILER clang-15 REQUIRED)
 find_program(CMAKE_CXX_COMPILER clang++-15)
+
+if (CMAKE_CXX_COMPILER STREQUAL "CMAKE_CXX_COMPILER-NOTFOUND")
+  message(STATUS "clang++-15 not found, checking clang++")
+  cmake_path(GET CMAKE_C_COMPILER PARENT_PATH compiler_path)
+  message(STATUS "Assumed compiler path: ${compiler_path}")
+  # clang++-15 doesn't always exist
+  find_program(CMAKE_CXX_COMPILER clang++ PATHS "${compiler_path}" NO_DEFAULT_PATH REQUIRED)
+
+  execute_process(COMMAND "${CMAKE_CXX_COMPILER}" --version OUTPUT_VARIABLE compiler_version_output)
+  string(REGEX MATCH "clang version ([0-9]+)\.[0-9]+\.[0-9]+" compiler_version "${compiler_version_output}")
+  if (NOT CMAKE_MATCH_1 STREQUAL "15")
+    message(FATAL_ERROR "Found clang++ version ${CMAKE_MATCH_1}, 15 is required")
+  endif()
+endif()
 
 if(NOT CMAKE_C_COMPILER)
   fatal_error("clang-15 not found")

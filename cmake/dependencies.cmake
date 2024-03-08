@@ -18,7 +18,10 @@ find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)
-find_package(xxhash CONFIG REQUIRED)
+find_library(XXHASH NAMES libxxhash.a REQUIRED PATHS "${XXHASH_ROOT}/lib")
+add_library(xxhash::xxhash STATIC IMPORTED)
+set_property(TARGET xxhash::xxhash PROPERTY IMPORTED_LOCATION "${XXHASH}")
+target_include_directories(xxhash::xxhash INTERFACE "${XXHASH_ROOT}/include")
 
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
@@ -67,7 +70,7 @@ find_package(Boost.DI CONFIG REQUIRED)
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
 
-# https://github.com/soramitsu/soramitsu-libsecp256k1
+# https://github.com/qdrvm/soramitsu-libsecp256k1
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)
 
@@ -83,23 +86,15 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   find_package(WAVM CONFIG REQUIRED)
 endif ()
 
+hunter_add_package(wabt)
+find_package(wabt CONFIG REQUIRED)
+
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
-  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    find_library(WASM_EDGE_LIBRARY NAMES libwasmedged.a REQUIRED PATHS "${WASMEDGE_ROOT}")
-  else()
-    find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
-  endif()
-
-  add_library(WasmEdge::WasmEdge STATIC IMPORTED)
-  set_property(TARGET WasmEdge::WasmEdge PROPERTY IMPORTED_LOCATION "${WASM_EDGE_LIBRARY}")
-  target_link_libraries(WasmEdge::WasmEdge INTERFACE curses zstd::libzstd_static)
-  if (APPLE)
-    target_link_libraries(WasmEdge::WasmEdge INTERFACE xar)
-  endif()
+  find_package(WasmEdge REQUIRED CONFIG)
 endif ()
 
 hunter_add_package(rocksdb)

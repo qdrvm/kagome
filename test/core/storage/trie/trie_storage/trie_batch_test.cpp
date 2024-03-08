@@ -51,9 +51,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
     auto codec = std::make_shared<PolkadotCodec>();
     auto serializer = std::make_shared<TrieSerializerImpl>(
-        factory,
-        codec,
-        std::make_shared<TrieStorageBackendImpl>(rocks_));
+        factory, codec, std::make_shared<TrieStorageBackendImpl>(rocks_));
 
     empty_hash = serializer->getEmptyRootHash();
 
@@ -211,9 +209,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory,
-      codec,
-      std::make_shared<TrieStorageBackendImpl>(spaced_db));
+      factory, codec, std::make_shared<TrieStorageBackendImpl>(spaced_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(
       *state_pruner,

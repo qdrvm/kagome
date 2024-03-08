@@ -11,32 +11,32 @@
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 
 #include "blockchain/impl/block_header_repository_impl.hpp"  //header_repo
-#include "crypto/bip39/impl/bip39_provider_impl.hpp"         //bip39_provider
-#include "crypto/crypto_store/crypto_store_impl.hpp"         //crypto_store
-#include "crypto/ecdsa/ecdsa_provider_impl.hpp"              //ecdsa_provider
-#include "crypto/ed25519/ed25519_provider_impl.hpp"          //ed25519_provider
-#include "crypto/hasher/hasher_impl.hpp"                     //hasher
-#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"       //pbkdf2_provider
-#include "crypto/secp256k1/secp256k1_provider_impl.hpp"  //secp256k1_provider
-#include "crypto/sr25519/sr25519_provider_impl.hpp"      //sr25519_provider
-#include "host_api/impl/host_api_factory_impl.hpp"       // host_api_factory
-#include "offchain/impl/offchain_persistent_storage.hpp"  //offchain_persistent_store
-#include "offchain/impl/offchain_worker_pool_impl.hpp"  //offchain_worker_pool
-#include "runtime/common/runtime_properties_cache_impl.hpp"  // cache
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "core/runtime/wavm/runtime_paths.hpp"
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"  //bip39_provider
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"  //crypto_store
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"  //ecdsa_provider
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
+#include "crypto/ed25519/ed25519_provider_impl.hpp"  //ed25519_provider
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"  //hasher
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"  //pbkdf2_provider
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"  //secp256k1_provider
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"  //sr25519_provider
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "host_api/impl/host_api_factory_impl.hpp"  // host_api_factory
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"  //offchain_persistent_store
 #include "offchain/impl/offchain_persistent_storage.hpp"
+#include "offchain/impl/offchain_worker_pool_impl.hpp"  //offchain_worker_pool
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"  // cache
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/memory_provider.hpp"

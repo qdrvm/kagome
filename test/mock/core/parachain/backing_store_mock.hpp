@@ -17,8 +17,10 @@ namespace kagome::parachain {
     MOCK_METHOD(
         std::optional<ImportResult>,
         put,
-        ((const std::unordered_map<ParachainId, std::vector<ValidatorIndex>> &),
-         Statement),
+        (const RelayHash &,
+         (const std::unordered_map<ParachainId, std::vector<ValidatorIndex>> &),
+         Statement,
+         bool),
         (override));
 
     MOCK_METHOD(std::vector<BackedCandidate>,
@@ -26,22 +28,19 @@ namespace kagome::parachain {
                 (const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(void, remove, (const primitives::BlockHash &), (override));
-
     MOCK_METHOD(void,
                 add,
                 (const primitives::BlockHash &, BackedCandidate &&),
                 (override));
 
-    MOCK_METHOD(std::optional<network::CommittedCandidateReceipt>,
-                get_candidate,
-                (const network::CandidateHash &),
+    MOCK_METHOD(std::optional<std::reference_wrapper<const StatementInfo>>,
+                getCadidateInfo,
+                (const primitives::BlockHash &, const network::CandidateHash &),
                 (const, override));
 
-    MOCK_METHOD(std::optional<std::reference_wrapper<const StatementInfo>>,
-                get_validity_votes,
-                (const network::CandidateHash &),
-                (const, override));
+    MOCK_METHOD(void, onActivateLeaf, (const RelayHash &), (override));
+
+    MOCK_METHOD(void, onDeactivateLeaf, (const RelayHash &), (override));
   };
 
 }  // namespace kagome::parachain

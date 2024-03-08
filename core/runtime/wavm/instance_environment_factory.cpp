@@ -26,9 +26,6 @@ namespace kagome::runtime::wavm {
         serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
         module_factory_{module_factory} {
-    BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(serializer_ != nullptr);
-    BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(module_factory_ != nullptr);
   }
 

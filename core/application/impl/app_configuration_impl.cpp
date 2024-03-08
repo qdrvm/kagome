@@ -886,6 +886,10 @@ namespace kagome::application {
         ("parachain-precompilation-thread-num",
          po::value<uint32_t>()->default_value(parachain_precompilation_thread_num_),
          "Number of threads that precompile parachain runtime modules at node startup")
+        ("parachain-single-process", po::bool_switch(), 
+        "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
+        ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
+        "Pvf check subprocess execution deadline in milliseconds")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1483,6 +1487,15 @@ namespace kagome::application {
             find_argument<uint32_t>(vm, "parachain-precompilation-thread-num");
         arg.has_value()) {
       parachain_precompilation_thread_num_ = *arg;
+    }
+
+    if (find_argument(vm, "parachain-single-process")) {
+      use_pvf_subprocess_ = false;
+    }
+
+    if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
+        arg.has_value()) {
+      pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
     }
 
     bool offchain_worker_value_error = false;

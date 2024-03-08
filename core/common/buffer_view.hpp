@@ -30,7 +30,7 @@ namespace kagome::common {
    public:
     using span::span;
 
-    BufferView(std::initializer_list<uint8_t>&&) = delete;
+    BufferView(std::initializer_list<uint8_t> &&) = delete;
 
     BufferView(const span &other) noexcept : span(other) {}
 

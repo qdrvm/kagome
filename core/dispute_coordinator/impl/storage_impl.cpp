@@ -106,7 +106,7 @@ namespace kagome::dispute {
       const StoredWindow &stored_window) {
     auto dispute_space = storage_->getSpace(storage::Space::kDisputeData);
 
-    OUTCOME_TRY(encoded, scale::encode(stored_window));
+    OUTCOME_TRY(encoded, ::scale::encode(stored_window));
 
     OUTCOME_TRY(dispute_space->put(storage::kSessionsWindowLookupKey,
                                    common::BufferView{encoded}));

@@ -7,11 +7,12 @@
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
-#include "utils/weak_io_context_post.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
@@ -19,23 +20,27 @@ namespace kagome::consensus::grandpa {
 
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
-      WeakIoContext main_thread,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<AuthorityManager> authority_manager,
       LazySPtr<network::Synchronizer> synchronizer,
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
-      : main_thread_{std::move(main_thread)},
+      : main_pool_handler_(std::move(main_pool_handler)),
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         synchronizer_{std::move(synchronizer)},
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
-        log_{log::createLogger("VerifiedJustificationQueue")} {
+        log_{log::createLogger("VerifiedJustificationQueue", "grandpa")} {
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(authority_manager_ != nullptr);
+
     app_state_manager.takeControl(*this);
   }
 
-  bool VerifiedJustificationQueue::start() {
+  void VerifiedJustificationQueue::start() {
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
@@ -45,12 +50,11 @@ namespace kagome::consensus::grandpa {
         self->possibleLoop();
       }
     });
-    return true;
   }
 
   void VerifiedJustificationQueue::addVerified(
       AuthoritySetId set, GrandpaJustification justification) {
-    REINVOKE(main_thread_, addVerified, set, std::move(justification));
+    REINVOKE(*main_pool_handler_, addVerified, set, std::move(justification));
     if (set < expected_) {
       return;
     }

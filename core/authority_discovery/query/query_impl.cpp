@@ -103,14 +103,16 @@ namespace kagome::authority_discovery {
     OUTCOME_TRY(local_keys,
                 crypto_store_->getSr25519PublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
+    auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
+                  const primitives::AuthorityDiscoveryId &key) {
+      return std::find(keys.begin(), keys.end(), key) != keys.end();
+    };
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
-      return std::find(local_keys.begin(), local_keys.end(), id)
-          != local_keys.end();
+      return not has(local_keys, id);
     });
     for (auto it = auth_to_peer_cache_.begin();
          it != auth_to_peer_cache_.end();) {
-      if (std::find(authorities.begin(), authorities.end(), it->first)
-          != authorities.end()) {
+      if (has(authorities, it->first)) {
         ++it;
       } else {
         it = auth_to_peer_cache_.erase(it);
@@ -118,8 +120,7 @@ namespace kagome::authority_discovery {
     }
     for (auto it = peer_to_auth_cache_.begin();
          it != peer_to_auth_cache_.end();) {
-      if (std::find(authorities.begin(), authorities.end(), it->second)
-          != authorities.end()) {
+      if (has(authorities, it->second)) {
         ++it;
       } else {
         it = peer_to_auth_cache_.erase(it);

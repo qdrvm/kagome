@@ -34,7 +34,7 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.2.1
+    VERSION 0.2.2
     KEEP_PACKAGE_SOURCES
 )
 
@@ -52,15 +52,9 @@ hunter_config(
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
-      LLVM
-      VERSION 16.0.1
-      CMAKE_ARGS LLVM_ENABLE_PROJECTS=compiler-rt
-  )
-
-  hunter_config(
       WasmEdge
-      URL https://github.com/Harrm/WasmEdge/archive/f9ef1de1679dd86c62c998a28fc8875e32c187f6.zip
-      SHA1 2bd770546623afb6083e67a3e6bad819f36dfd72
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.13.5-qdrvm1.zip
+      SHA1 3637f5df6892a762606393940539c0dcb6e9c022
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
@@ -94,7 +88,7 @@ endif ()
 
 hunter_config(
     scale
-    VERSION 1.1.0
+    VERSION 1.1.2
     KEEP_PACKAGE_SOURCES
 )
 
@@ -111,7 +105,27 @@ hunter_config(
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(
       binaryen
-      URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
-      SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+      URL https://github.com/qdrvm/binaryen/archive/e6a2fea157bde503f07f28444b350512374cf5bf.zip
+      SHA1 301f8b1775904179cb552c12be237b4aa076981e
   )
 endif ()
+
+hunter_config(
+        wabt
+        URL https://github.com/qdrvm/wabt/archive/refs/tags/1.0.34-qdrvm1.zip
+        SHA1 d22995329c9283070f3a32d2c5e07f4d75c2fc31
+        KEEP_PACKAGE_SOURCES
+        CMAKE_ARGS
+        BUILD_TESTS=OFF
+        BUILD_TOOLS=OFF
+        BUILD_LIBWASM=OFF
+        USE_INTERNAL_SHA256=OFF
+)
+
+hunter_config(
+    libsecp256k1
+    URL https://github.com/qdrvm/soramitsu-libsecp256k1/archive/ace3e08075d9cc1ecff1afe1be65c31fc9059c4c.zip
+    SHA1 bc1e4413a56ce2cdc17175dd1c9b569345c1e709
+    CMAKE_ARGS
+        SECP256K1_ENABLE_MODULE_RECOVERY=ON
+)

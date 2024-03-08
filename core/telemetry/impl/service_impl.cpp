@@ -23,8 +23,10 @@ namespace rapidjson {
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
+#include "telemetry/impl/telemetry_thread_pool.hpp"
 
 namespace {
   std::string json2string(rapidjson::Document &document) {
@@ -44,7 +46,8 @@ namespace kagome::telemetry {
       const libp2p::Host &host,
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<storage::SpacedStorage> storage,
-      std::shared_ptr<const network::PeerManager> peer_manager)
+      std::shared_ptr<const network::PeerManager> peer_manager,
+      std::shared_ptr<TelemetryThreadPool> telemetry_thread_pool)
       : app_state_manager_{std::move(app_state_manager)},
         app_configuration_{app_configuration},
         chain_spec_{chain_spec},
@@ -52,21 +55,19 @@ namespace kagome::telemetry {
         tx_pool_{std::move(tx_pool)},
         buffer_storage_{storage->getSpace(storage::Space::kDefault)},
         peer_manager_{std::move(peer_manager)},
+        pool_handler_{telemetry_thread_pool->handler()},
+        io_context_{telemetry_thread_pool->io_context()},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                telemetry_thread_pool->io_context()),
+            libp2p::basic::Scheduler::Config{})},
         enabled_{app_configuration_.isTelemetryEnabled()},
         log_{log::createLogger("TelemetryService", "telemetry")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(tx_pool_);
     BOOST_ASSERT(buffer_storage_);
     BOOST_ASSERT(peer_manager_);
-    io_context_ = std::make_shared<boost::asio::io_context>();
-    auto scheduler_asio_backend =
-        std::make_shared<libp2p::basic::AsioSchedulerBackend>(io_context_);
-    scheduler_ = std::make_shared<libp2p::basic::SchedulerImpl>(
-        scheduler_asio_backend, libp2p::basic::Scheduler::Config{});
-    work_guard_ = std::make_shared<WorkGuardT>(io_context_->get_executor());
     if (enabled_) {
-      message_pool_ = std::make_shared<MessagePool>(
-          kTelemetryMessageMaxLengthBytes, kTelemetryMessagePoolSize);
       app_state_manager_->takeControl(*this);
     } else {
       SL_INFO(log_, "Telemetry disabled");
@@ -74,6 +75,8 @@ namespace kagome::telemetry {
   }
 
   bool TelemetryServiceImpl::prepare() {
+    message_pool_ = std::make_shared<MessagePool>(
+        kTelemetryMessageMaxLengthBytes, kTelemetryMessagePoolSize);
     prepareGreetingMessage();
     auto chain_spec = chainSpecEndpoints();
     const auto &cli_config = app_configuration_.telemetryEndpoints();
@@ -94,15 +97,11 @@ namespace kagome::telemetry {
           scheduler_);
       connections_.emplace_back(std::move(connection));
     }
-    worker_thread_ = std::make_shared<std::thread>([io_context{io_context_}] {
-      soralog::util::setThreadName("telemetry");
-      io_context->run();
-    });
-    worker_thread_->detach();
     return true;
   }
 
   bool TelemetryServiceImpl::start() {
+    pool_handler_->start();
     for (auto &connection : connections_) {
       connection->connect();
     }
@@ -120,7 +119,7 @@ namespace kagome::telemetry {
     for (auto &connection : connections_) {
       connection->shutdown();
     }
-    io_context_->stop();
+    pool_handler_->stop();
   }
 
   std::vector<TelemetryEndpoint> TelemetryServiceImpl::chainSpecEndpoints()

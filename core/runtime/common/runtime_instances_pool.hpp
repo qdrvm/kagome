@@ -6,13 +6,14 @@
 
 #pragma once
 
-#include "runtime/module_repository.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 
 #include <future>
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_set>
 
+#include "runtime/common/stack_limiter.hpp"
 #include "runtime/module_factory.hpp"
 #include "utils/lru.hpp"
 
@@ -20,22 +21,19 @@ namespace kagome::runtime {
 
   /**
    * @brief Pool of runtime instances - per state. Encapsulates modules cache.
-   *
    */
-  class RuntimeInstancesPool final
-      : public std::enable_shared_from_this<RuntimeInstancesPool> {
-    static constexpr size_t DEFAULT_MODULES_CACHE_SIZE = 2;
-
+  class RuntimeInstancesPoolImpl final
+      : public RuntimeInstancesPool,
+        public std::enable_shared_from_this<RuntimeInstancesPoolImpl> {
    public:
-    using TrieHash = storage::trie::RootHash;
-    using CodeHash = storage::trie::RootHash;
+    explicit RuntimeInstancesPoolImpl(
+        std::shared_ptr<ModuleFactory> module_factory,
+        size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
-    RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
-                         size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
-
-    outcome::result<std::shared_ptr<ModuleInstance>>
-    instantiateFromCode(const CodeHash &code_hash,
-                        common::BufferView code_zstd);
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const RuntimeContext::ContextParams &config) override;
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -47,7 +45,8 @@ namespace kagome::runtime {
      * otherwise.
      */
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromState(
-        const TrieHash &state);
+        const TrieHash &state,
+        const RuntimeContext::ContextParams &config) override;
     /**
      * @brief Releases the module instance (returns it to the pool)
      *
@@ -56,7 +55,7 @@ namespace kagome::runtime {
      * @param instance - instance to be released.
      */
     void release(const TrieHash &state,
-                 std::shared_ptr<ModuleInstance> &&instance);
+                 std::shared_ptr<ModuleInstance> &&instance) override;
 
     /**
      * @brief Get the module for state from internal cache
@@ -65,7 +64,7 @@ namespace kagome::runtime {
      * @return Module if any, nullopt otherwise
      */
     std::optional<std::shared_ptr<const Module>> getModule(
-        const TrieHash &state);
+        const TrieHash &state) override;
 
     /**
      * @brief Puts new module into internal cache
@@ -74,7 +73,8 @@ namespace kagome::runtime {
      * module
      * @param module - new module pointer
      */
-    void putModule(const TrieHash &state, std::shared_ptr<Module> module);
+    void putModule(const TrieHash &state,
+                   std::shared_ptr<Module> module) override;
 
    private:
     struct InstancePool {
@@ -87,8 +87,10 @@ namespace kagome::runtime {
 
     using CompilationResult =
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
-    CompilationResult tryCompileModule(const CodeHash &code_hash,
-                                       common::BufferView code_zstd);
+    CompilationResult tryCompileModule(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const RuntimeContext::ContextParams &config);
 
     std::shared_ptr<ModuleFactory> module_factory_;
 

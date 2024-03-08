@@ -7,6 +7,7 @@
 #include "runtime/common/runtime_instances_pool.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "runtime/common/stack_limiter.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -21,7 +22,7 @@ namespace kagome::runtime {
    */
   class BorrowedInstance final : public ModuleInstance {
    public:
-    BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
+    BorrowedInstance(std::weak_ptr<RuntimeInstancesPoolImpl> pool,
                      const common::Hash256 &hash,
                      std::shared_ptr<ModuleInstance> instance)
         : pool_{std::move(pool)}, hash_{hash}, instance_{std::move(instance)} {}
@@ -64,24 +65,28 @@ namespace kagome::runtime {
     }
 
    private:
-    std::weak_ptr<RuntimeInstancesPool> pool_;
+    std::weak_ptr<RuntimeInstancesPoolImpl> pool_;
     common::Hash256 hash_;  // either trie hash or code hash
     std::shared_ptr<ModuleInstance> instance_;
   };
 
-  RuntimeInstancesPool::RuntimeInstancesPool(
+  RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
       std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
-      : module_factory_{std::move(module_factory)}, pools_{capacity} {}
+      : module_factory_{std::move(module_factory)}, pools_{capacity} {
+    BOOST_ASSERT(module_factory_);
+  }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
-                                            common::BufferView code_zstd) {
+  RuntimeInstancesPoolImpl::instantiateFromCode(
+      const CodeHash &code_hash,
+      common::BufferView code_zstd,
+      const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
     auto pool_opt = pools_.get(code_hash);
 
     if (!pool_opt) {
       lock.unlock();
-      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
+      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd, config));
       lock.lock();
       pool_opt = pools_.get(code_hash);
       if (!pool_opt) {
@@ -90,13 +95,16 @@ namespace kagome::runtime {
     }
     BOOST_ASSERT(pool_opt);
     OUTCOME_TRY(instance, pool_opt->get().instantiate(lock));
+    BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  RuntimeInstancesPool::CompilationResult
-  RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
-                                         common::BufferView code_zstd) {
+  RuntimeInstancesPoolImpl::CompilationResult
+  RuntimeInstancesPoolImpl::tryCompileModule(
+      const CodeHash &code_hash,
+      common::BufferView code_zstd,
+      const RuntimeContext::ContextParams &config) {
     std::unique_lock l{compiling_modules_mtx_};
     if (auto iter = compiling_modules_.find(code_hash);
         iter != compiling_modules_.end()) {
@@ -116,12 +124,23 @@ namespace kagome::runtime {
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
-      res = common::map_result(module_factory_->make(code), [](auto &&module) {
-        return std::shared_ptr<const Module>(module);
-      });
+      if (config.memory_limits.max_stack_values_num) {
+        auto instr_res = instrumentWithStackLimiter(
+            code, *config.memory_limits.max_stack_values_num);
+        if (!instr_res) {
+          res = CompilationError{fmt::format(
+              "Failed to inject stack limiter: {}", instr_res.error().msg)};
+        } else {
+          code = std::move(instr_res.value());
+        }
+      }
+      if (!res) {
+        res =
+            common::map_result(module_factory_->make(code), [](auto &&module) {
+              return std::shared_ptr<const Module>(module);
+            });
+      }
     }
-    BOOST_ASSERT(res);
-
     l.lock();
     compiling_modules_.erase(iter);
     promise.set_value(*res);
@@ -129,18 +148,20 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::instantiateFromState(
-      const RuntimeInstancesPool::TrieHash &state) {
+  RuntimeInstancesPoolImpl::instantiateFromState(
+      const RuntimeInstancesPoolImpl::TrieHash &state,
+      const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(state);
     BOOST_ASSERT(entry);
     OUTCOME_TRY(instance, entry->get().instantiate(lock));
+    BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), state, std::move(instance));
   }
 
-  void RuntimeInstancesPool::release(
-      const RuntimeInstancesPool::TrieHash &state,
+  void RuntimeInstancesPoolImpl::release(
+      const RuntimeInstancesPoolImpl::TrieHash &state,
       std::shared_ptr<ModuleInstance> &&instance) {
     std::unique_lock guard{pools_mtx_};
     auto entry = pools_.get(state);
@@ -150,8 +171,9 @@ namespace kagome::runtime {
     entry->get().instances.emplace_back(std::move(instance));
   }
 
-  std::optional<std::shared_ptr<const Module>> RuntimeInstancesPool::getModule(
-      const RuntimeInstancesPool::TrieHash &state) {
+  std::optional<std::shared_ptr<const Module>>
+  RuntimeInstancesPoolImpl::getModule(
+      const RuntimeInstancesPoolImpl::TrieHash &state) {
     std::unique_lock guard{pools_mtx_};
     if (auto entry = pools_.get(state)) {
       return entry->get().module;
@@ -159,8 +181,8 @@ namespace kagome::runtime {
     return std::nullopt;
   }
 
-  void RuntimeInstancesPool::putModule(
-      const RuntimeInstancesPool::TrieHash &state,
+  void RuntimeInstancesPoolImpl::putModule(
+      const RuntimeInstancesPoolImpl::TrieHash &state,
       std::shared_ptr<Module> module) {
     std::unique_lock guard{pools_mtx_};
     if (not pools_.get(state)) {
@@ -169,7 +191,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::InstancePool::instantiate(
+  RuntimeInstancesPoolImpl::InstancePool::instantiate(
       std::unique_lock<std::mutex> &lock) {
     if (instances.empty()) {
       auto copy = module;

@@ -48,7 +48,7 @@ namespace kagome::network {
                                 const primitives::events::ChainEventParams
                                     &event) {
       if (auto self = wptr.lock()) {
-        if (auto const value =
+        if (auto value =
                 if_type<const primitives::events::HeadsEventParams>(event)) {
           self->updateMyView(ExView{
               .view =
@@ -57,7 +57,7 @@ namespace kagome::network {
                       .finalized_number_ =
                           self->block_tree_.get()->getLastFinalized().number,
                   },
-              .new_head = (*value).get(),
+              .new_head = value->get().get(),
               .lost = {},
           });
         }
