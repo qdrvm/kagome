@@ -94,5 +94,6 @@
     REGISTER_HOST_METHOD(void   , ext_offchain_set_authorized_nodes_version_1, int64_t, int32_t) \
     REGISTER_HOST_METHOD(void   , ext_offchain_index_set_version_1, int64_t, int64_t) \
     REGISTER_HOST_METHOD(void   , ext_offchain_index_clear_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_panic_handler_abort_on_panic_version_1, int64_t)
+    REGISTER_HOST_METHOD(void   , ext_panic_handler_abort_on_panic_version_1, int64_t) \
+    REGISTER_HOST_METHOD(int32_t, ext_crypto_bandersnatch_generate_version_1, int32_t, int64_t)
 // clang-format on

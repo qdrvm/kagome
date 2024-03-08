@@ -13,8 +13,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "common/buffer.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::crypto {
 
@@ -52,12 +52,13 @@ namespace kagome::crypto {
               const void *in,
               size_t inlen);  // data to be hashed
 
-  template<size_t N>
+  template <size_t N>
   inline common::Blob<N> blake2b(common::BufferView buf) {
     common::Blob<N> out;
-    BOOST_VERIFY(blake2b(out.data(), N, nullptr, 0, buf.data(), buf.size()) == 0);
+    BOOST_VERIFY(blake2b(out.data(), N, nullptr, 0, buf.data(), buf.size())
+                 == 0);
     return out;
-  }   
+  }
 
 }  // namespace kagome::crypto
 

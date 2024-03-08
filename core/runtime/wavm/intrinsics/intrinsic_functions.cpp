@@ -77,10 +77,9 @@ namespace kagome::runtime::wavm {
     }
 #define REGISTER_HOST_METHOD(Ret, name, ...)                                \
   registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(, ) __VA_ARGS__>( \
-      module, #name);                                                       \
+      module, #name);
 
     REGISTER_HOST_METHODS
-
   }
 
 }  // namespace kagome::runtime::wavm

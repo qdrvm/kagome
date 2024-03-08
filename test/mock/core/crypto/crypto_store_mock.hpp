@@ -40,13 +40,10 @@ namespace kagome::crypto {
                 (KeyType),
                 (const, override));
 
+    // ----
+
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519Keypair,
-                (KeyType, std::string_view),
-                (override));
-
-    MOCK_METHOD(outcome::result<Sr25519Keypair>,
-                generateSr25519Keypair,
                 (KeyType, std::string_view),
                 (override));
 
@@ -55,18 +52,8 @@ namespace kagome::crypto {
                 (KeyType, const Ed25519Seed &),
                 (override));
 
-    MOCK_METHOD(outcome::result<Sr25519Keypair>,
-                generateSr25519Keypair,
-                (KeyType, const Sr25519Seed &),
-                (override));
-
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519KeypairOnDisk,
-                (KeyType),
-                (override));
-
-    MOCK_METHOD(outcome::result<Sr25519Keypair>,
-                generateSr25519KeypairOnDisk,
                 (KeyType),
                 (override));
 
@@ -75,20 +62,66 @@ namespace kagome::crypto {
                 (KeyType, const Ed25519PublicKey &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<Sr25519Keypair>,
-                findSr25519Keypair,
-                (KeyType, const Sr25519PublicKey &),
-                (const, override));
-
     MOCK_METHOD(outcome::result<Ed25519Keys>,
                 getEd25519PublicKeys,
                 (KeyType),
+                (const, override));
+
+    // ----
+
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
+                generateSr25519Keypair,
+                (KeyType, std::string_view),
+                (override));
+
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
+                generateSr25519Keypair,
+                (KeyType, const Sr25519Seed &),
+                (override));
+
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
+                generateSr25519KeypairOnDisk,
+                (KeyType),
+                (override));
+
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
+                findSr25519Keypair,
+                (KeyType, const Sr25519PublicKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Sr25519Keys>,
                 getSr25519PublicKeys,
                 (KeyType),
                 (const, override));
+
+    // ----
+
+    MOCK_METHOD(outcome::result<BandersnatchKeypair>,
+                generateBandersnatchKeypair,
+                (KeyType, std::string_view),
+                (override));
+
+    MOCK_METHOD(outcome::result<BandersnatchKeypair>,
+                generateBandersnatchKeypair,
+                (KeyType, const BandersnatchSeed &),
+                (override));
+
+    MOCK_METHOD(outcome::result<BandersnatchKeypair>,
+                generateBandersnatchKeypairOnDisk,
+                (KeyType),
+                (override));
+
+    MOCK_METHOD(outcome::result<BandersnatchKeypair>,
+                findBandersnatchKeypair,
+                (KeyType, const BandersnatchPublicKey &),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<BandersnatchKeys>,
+                getBandersnatchPublicKeys,
+                (KeyType),
+                (const, override));
+
+    // ----
 
     MOCK_METHOD(outcome::result<libp2p::crypto::KeyPair>,
                 loadLibp2pKeypair,

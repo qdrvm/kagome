@@ -66,8 +66,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
     threads.emplace_back([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
           pool->instantiateFromCode(make_code_hash(i % POOL_SIZE),
-                                   code,
-                                   RuntimeContext::ContextParams{{{}, {}}}));
+                                    code,
+                                    RuntimeContext::ContextParams{{{}, {}}}));
     });
   }
 
@@ -82,8 +82,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   for (int i = 0; i < POOL_SIZE; i++) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         pool->instantiateFromCode(make_code_hash(i),
-                                 code.view(),
-                                 RuntimeContext::ContextParams{{{}, {}}}));
+                                  code.view(),
+                                  RuntimeContext::ContextParams{{{}, {}}}));
   }
   ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

@@ -8,13 +8,17 @@
 
 #include "host_api/host_api_factory.hpp"
 
-#include "crypto/crypto_store.hpp"
-#include "crypto/ecdsa_provider.hpp"
-#include "crypto/ed25519_provider.hpp"
-#include "crypto/hasher.hpp"
-#include "crypto/secp256k1_provider.hpp"
-#include "crypto/sr25519_provider.hpp"
 #include "host_api/impl/offchain_extension.hpp"
+
+namespace kagome::crypto {
+  class EcdsaProvider;
+  class Ed25519Provider;
+  class Sr25519Provider;
+  class BandersnatchProvider;
+  class Secp256k1Provider;
+  class Hasher;
+  class CryptoStore;
+}  // namespace kagome::crypto
 
 namespace kagome::offchain {
   class OffchainPersistentStorage;
@@ -29,9 +33,10 @@ namespace kagome::host_api {
 
     HostApiFactoryImpl(
         const OffchainExtensionConfig &offchain_config,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
@@ -47,9 +52,10 @@ namespace kagome::host_api {
 
    private:
     OffchainExtensionConfig offchain_config_;
-    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;

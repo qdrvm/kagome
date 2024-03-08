@@ -28,7 +28,6 @@ namespace kagome::runtime {
    */
   class ModuleRepository {
    public:
-
     virtual ~ModuleRepository() = default;
 
     /**

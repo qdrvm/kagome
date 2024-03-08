@@ -52,7 +52,7 @@ namespace kagome::host_api {
 
     void reset() override;
 
-    // ------------------------ Storage extensions v1 ------------------------
+    // ------------------------ Storage extensions ------------------------
 
     runtime::WasmSpan ext_storage_read_version_1(
         runtime::WasmSpan key,
@@ -105,14 +105,14 @@ namespace kagome::host_api {
 
     runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
-    
-    // ------------------------Memory extensions v1-------------------------
+
+    // ------------------------ Memory extensions -------------------------
     runtime::WasmPointer ext_allocator_malloc_version_1(
         runtime::WasmSize size) override;
 
     void ext_allocator_free_version_1(runtime::WasmPointer ptr) override;
 
-    // -------------------------Crypto extensions v1---------------------
+    // ------------------------- Crypto extensions ---------------------
 
     void ext_crypto_start_batch_verify_version_1() override;
 
@@ -206,6 +206,9 @@ namespace kagome::host_api {
         runtime::WasmPointer sig,
         runtime::WasmPointer msg,
         runtime::WasmPointer key) override;
+
+    runtime::WasmPointer ext_crypto_bandersnatch_generate_version_1(
+        runtime::WasmSize key_type, runtime::WasmSpan seed) override;
 
     // ------------------------- Hashing extension/crypto ---------------
 
@@ -346,20 +349,20 @@ namespace kagome::host_api {
         runtime::WasmSpan prefix,
         runtime::WasmSpan limit) override;
 
-    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+    runtime::WasmSpan ext_default_child_storage_read_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
 
-    virtual int32_t ext_default_child_storage_exists_version_1(
+    int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
 
-    virtual void ext_default_child_storage_storage_kill_version_1(
+    void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) override;
 
-    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+    runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) override;
 
     virtual void ext_panic_handler_abort_on_panic_version_1(

@@ -9,6 +9,7 @@
 #include <boost/di.hpp>
 
 #include "blockchain/block_header_repository.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -64,7 +65,7 @@ namespace kagome::parachain {
         di::bind<crypto::Bip39Provider>.to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
-
+        di::bind<crypto::BandersnatchProvider>.to<crypto::BandersnatchProviderImpl>(),
         bind_null<crypto::CryptoStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),

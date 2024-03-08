@@ -7,9 +7,9 @@
 #pragma once
 
 #include "common/buffer.hpp"
+#include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
-#include "runtime/runtime_context.hpp"
 
 namespace kagome::parachain {
 

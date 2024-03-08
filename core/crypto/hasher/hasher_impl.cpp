@@ -34,7 +34,6 @@ namespace kagome::crypto {
 
   Hash128 HasherImpl::blake2b_128(common::BufferView data) const {
     return blake2b<16>(data);
-
   }
 
   Hash256 HasherImpl::twox_256(common::BufferView data) const {

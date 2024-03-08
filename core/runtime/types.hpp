@@ -75,10 +75,7 @@ namespace kagome::runtime {
     return {minor_part, major_part};
   }
 
-  enum class Error {
-    COMPILATION_FAILED = 1,
-    INSTRUMENTATION_FAILED
-  };
+  enum class Error { COMPILATION_FAILED = 1, INSTRUMENTATION_FAILED };
 
 }  // namespace kagome::runtime
 

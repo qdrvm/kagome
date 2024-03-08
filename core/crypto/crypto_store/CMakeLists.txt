@@ -35,6 +35,7 @@ target_link_libraries(crypto_store
     ecdsa_provider
     ed25519_provider
     sr25519_provider
+    bandersnatch_provider
     p2p::p2p_random_generator # generator from libp2p
     bip39_provider
     crypto_store_key_type

@@ -72,10 +72,10 @@ namespace kagome::authorship {
 
     /**
      * Estimates the size of the block based on
-     * 
+     *
      * This function calculates the size of the block by encoding it
      * using the ScaleEncoderStream
-     * 
+     *
      * @return The estimated size of the block.
      */
     size_t estimateBlockSize() const override;

@@ -71,10 +71,8 @@ namespace kagome::runtime {
   };
 
   RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
-      std::shared_ptr<ModuleFactory> module_factory,
-      size_t capacity)
-      : module_factory_{std::move(module_factory)},
-        pools_{capacity} {
+      std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
+      : module_factory_{std::move(module_factory)}, pools_{capacity} {
     BOOST_ASSERT(module_factory_);
   }
 
@@ -137,9 +135,10 @@ namespace kagome::runtime {
         }
       }
       if (!res) {
-        res = common::map_result(module_factory_->make(code), [](auto &&module) {
-          return std::shared_ptr<const Module>(module);
-        });
+        res =
+            common::map_result(module_factory_->make(code), [](auto &&module) {
+              return std::shared_ptr<const Module>(module);
+            });
       }
     }
     l.lock();

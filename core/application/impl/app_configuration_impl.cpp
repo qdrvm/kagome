@@ -1493,7 +1493,8 @@ namespace kagome::application {
       use_pvf_subprocess_ = false;
     }
 
-    if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline"); arg.has_value()) {
+    if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
+        arg.has_value()) {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
     }
 

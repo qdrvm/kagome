@@ -24,11 +24,11 @@ namespace kagome::storage::trie {
    * @tparam It an iterator type of a container of common::Buffers
    * @return the Merkle tree root hash of the tree containing provided values
    */
-  template <typename It> 
+  template <typename It>
   outcome::result<RootHash> calculateOrderedTrieHash(StateVersion version,
                                                      const It &begin,
                                                      const It &end,
-                                                     const RootHashFunc& hash) {
+                                                     const RootHashFunc &hash) {
     auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     PolkadotCodec codec{hash};
     // empty root
@@ -50,7 +50,9 @@ namespace kagome::storage::trie {
 
   template <typename ContainerType>
   outcome::result<RootHash> calculateOrderedTrieHash(
-      StateVersion version, const ContainerType &container, const RootHashFunc& hash) {
+      StateVersion version,
+      const ContainerType &container,
+      const RootHashFunc &hash) {
     return calculateOrderedTrieHash(
         version, container.begin(), container.end(), hash);
   }

@@ -169,8 +169,7 @@ namespace kagome::runtime::binaryen {
       memory.resize(newSize);
     }
 
-    [[noreturn]]
-    void trap(const char *why) override {
+    [[noreturn]] void trap(const char *why) override {
       logger_->error("Trap: {}", why);
       throw wasm::TrapException{};
     }

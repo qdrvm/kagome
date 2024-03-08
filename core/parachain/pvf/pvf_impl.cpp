@@ -17,7 +17,6 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
@@ -303,10 +302,8 @@ namespace kagome::parachain {
         if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
           executor_params.memory_limits.max_stack_values_num =
               stack_max->max_values_num;
-        } else if (auto *pages_max =
-                       get_if<runtime::MaxMemoryPages>(&param)) {
-          executor_params.memory_limits.max_memory_pages_num =
-              pages_max->limit;
+        } else if (auto *pages_max = get_if<runtime::MaxMemoryPages>(&param)) {
+          executor_params.memory_limits.max_memory_pages_num = pages_max->limit;
         }
       }
     }

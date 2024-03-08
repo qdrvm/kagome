@@ -127,7 +127,7 @@ class PvfTest : public testing::Test {
       std::make_shared<AppConfigurationMock>();
   std::shared_ptr<PvfImpl> pvf_;
   std::shared_ptr<crypto::HasherMock> hasher_;
-  runtime::RuntimeInstancesPoolMock* instance_pool_;
+  runtime::RuntimeInstancesPoolMock *instance_pool_;
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
 };
 
