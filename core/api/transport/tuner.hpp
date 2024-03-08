@@ -9,7 +9,6 @@
 #include <memory>
 
 #include <boost/asio/ip/tcp.hpp>
-#include "api/transport/rpc_io_context.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::api {

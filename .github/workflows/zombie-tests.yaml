@@ -1,0 +1,54 @@
+name: Zombie-Tests
+
+on:
+  push:
+    branches:
+      - "feature/zobbie-tests-python-fix"
+  workflow_dispatch: 
+
+jobs:
+  zombie-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Parachains smoke test"
+            test: "test0001"
+          - name: "Parachains smoke test kagome"
+            test: "test0001_kagome"
+          - name: "Parachains upgrade smoke test"
+            test: "test0002"
+          - name: "Parachains upgrade smoke test kagome"
+            test: "test0002_kagome"
+          - name: "Parachains smoke test cumulus"
+            test: "test0003"
+          - name: "Parachains smoke test cumulus kagome"
+            test: "test0003_kagome"
+          - name: "Runtime upgrade"
+            test: "test0004"
+          - name: "Runtime upgrade kagome"
+            test: "test0004_kagome"
+          - name: "Dispute valid block"
+            test: "test0005"
+          - name: "Parachains disputes"
+            test: "test0006"
+          - name: "Deregister register validator smoke"
+            test: "test0008"
+          - name: "Basic warp sync"
+            test: "test0009"
+          - name: "Validators warp sync"
+            test: "test0010"
+          - name: "Block building warp sync"
+            test: "test0011"
+    runs-on: [ self-hosted ]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Set owner of working dir recurively
+        run: sudo chown -R $(whoami) .
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester
+      - name: Run test
+        working-directory: ./zombienet/docker
+        run: make ${{ matrix.options.test }}

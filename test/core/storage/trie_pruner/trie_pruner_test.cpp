@@ -643,8 +643,8 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   ON_CALL(*block_tree, bestBlock())
       .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
-  //ON_CALL(*block_tree, bestLeaf())
-  //    .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
+  // ON_CALL(*block_tree, bestLeaf())
+  //     .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
   auto mock_block = [&](unsigned int number) {
     auto str_number = std::to_string(number);

@@ -42,8 +42,10 @@ groups:
 )");
 
       auto logging_system = std::make_shared<soralog::LoggingSystem>(
-          std::make_shared<kagome::log::Configurator>(
-              std::make_shared<libp2p::log::Configurator>(testing_log_config)));
+          std::make_shared<soralog::ConfiguratorFromYAML>(
+              std::make_shared<kagome::log::Configurator>(
+                  std::make_shared<libp2p::log::Configurator>()),
+              testing_log_config));
       auto r = logging_system->configure();
       if (r.has_error) {
         throw std::runtime_error("Can't configure logger system: " + r.message);

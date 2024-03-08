@@ -161,7 +161,7 @@ namespace kagome::api {
   outcome::result<std::vector<primitives::Extrinsic>>
   AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
-    BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
+    SL_CRITICAL(logger_, "removeExtrinsic is not implemented");
     return outcome::failure(std::errc::not_supported);
   }
 

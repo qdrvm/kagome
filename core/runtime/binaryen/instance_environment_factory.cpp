@@ -20,8 +20,6 @@ namespace kagome::runtime::binaryen {
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)} {
-    BOOST_ASSERT(storage_);
-    BOOST_ASSERT(serializer_);
     BOOST_ASSERT(host_api_factory_);
   }
 

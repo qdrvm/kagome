@@ -8,27 +8,43 @@
 
 #include <boost/assert.hpp>
 
+#include "common/main_thread_pool.hpp"
+
 using namespace std::chrono_literals;
 
 namespace kagome::network {
 
   ReputationRepositoryImpl::ReputationRepositoryImpl(
+      application::AppStateManager &app_state_manager,
+      std::shared_ptr<common::MainPoolHandler> main_thread,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : scheduler_{std::move(scheduler)},
+      : main_thread_{std::move(main_thread)},
+        scheduler_{std::move(scheduler)},
         log_(log::createLogger("Reputation", "reputation")) {
     BOOST_ASSERT(scheduler_);
 
-    tick_handler_ = scheduler_->scheduleWithHandle([&] { tick(); }, 1s);
+    app_state_manager.takeControl(*this);
+  }
+
+  void ReputationRepositoryImpl::start() {
+    main_thread_->execute([weak{weak_from_this()}] {
+      if (auto self = weak.lock()) {
+        self->tick_handler_ =
+            self->scheduler_->scheduleWithHandle([self] { self->tick(); }, 1s);
+      }
+    });
   }
 
   Reputation ReputationRepositoryImpl::reputation(
       const ReputationRepository::PeerId &peer_id) const {
+    std::unique_lock lock{mutex_};
     auto it = reputation_table_.find(peer_id);
     return it != reputation_table_.end() ? it->second : 0;
   }
 
   Reputation ReputationRepositoryImpl::change(
       const ReputationRepository::PeerId &peer_id, ReputationChange diff) {
+    std::unique_lock lock{mutex_};
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points. "
@@ -44,6 +60,7 @@ namespace kagome::network {
       const ReputationRepository::PeerId &peer_id,
       ReputationChange diff,
       std::chrono::seconds duration) {
+    std::unique_lock lock{mutex_};
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points "
@@ -60,26 +77,37 @@ namespace kagome::network {
     );
 
     if (value != 0) {
-      scheduler_->schedule(
-          [wp{weak_from_this()}, peer_id, value, reason = diff.reason] {
-            if (auto self = wp.lock()) {
-              auto reputation = self->reputation_table_[peer_id] += value;
-              SL_DEBUG(self->log_,
-                       "Reputation of peer {} was changed by {} points to {} "
-                       "points. Reason: reverse of `{}'",
-                       peer_id,
-                       value,
-                       reputation,
-                       reason);
-            }
-          },
-          duration);
+      main_thread_->execute([weak{weak_from_this()},
+                             peer_id,
+                             value,
+                             reason = diff.reason,
+                             duration] {
+        if (auto self = weak.lock()) {
+          self->scheduler_->schedule(
+              [weak, peer_id, value, reason] {
+                if (auto self = weak.lock()) {
+                  std::unique_lock lock{self->mutex_};
+                  auto reputation = self->reputation_table_[peer_id] += value;
+                  SL_DEBUG(
+                      self->log_,
+                      "Reputation of peer {} was changed by {} points to {} "
+                      "points. Reason: reverse of `{}'",
+                      peer_id,
+                      value,
+                      reputation,
+                      reason);
+                }
+              },
+              duration);
+        }
+      });
     }
 
     return reputation;
   }
 
   void ReputationRepositoryImpl::tick() {
+    std::unique_lock lock{mutex_};
     // For each elapsed second, move the node reputation towards zero.
     // If we multiply each second the reputation by `k` (where `k` is 0..1), it
     // takes `ln(0.5) / ln(k)` seconds to reduce the reputation by half. Use

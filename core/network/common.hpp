@@ -29,7 +29,13 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kLightProtocol = "/{}/light/2";
   const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
   const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
+  const libp2p::peer::ProtocolName kCollationProtocolVStaging{
+      "/{}/collation/2"};
+  const libp2p::peer::ProtocolName kValidationProtocolVStaging{
+      "/{}/validation/2"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
+  const libp2p::peer::ProtocolName kReqCollationVStagingProtocol{
+      "/{}/req_collation/2"};
   const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
   const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};
   const libp2p::peer::ProtocolName kFetchAvailableDataProtocol{
@@ -37,6 +43,8 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kFetchStatementProtocol{
       "/{}/req_statement/1"};
   const libp2p::peer::ProtocolName kSendDisputeProtocol{"/{}/send_dispute/1"};
+  const libp2p::peer::ProtocolName kFetchAttestedCandidateProtocol{
+      "/{}/req_attested_candidate/2"};
   const libp2p::peer::ProtocolName kBeefyProtocol{"/{}/beefy/2"};
   const libp2p::peer::ProtocolName kBeefyJustificationProtocol{
       "/{}/beefy/justifications/1"};

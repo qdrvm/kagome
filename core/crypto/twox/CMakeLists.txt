@@ -6,7 +6,7 @@
 
 add_library(twox twox.cpp)
 target_link_libraries(twox
-    xxhash
+    xxhash::xxhash
     blob
   )
 kagome_install(twox)

@@ -63,15 +63,15 @@ namespace kagome::runtime {
         if (not code.has_value()) {
           return code.as_failure();
         }
-        OUTCOME_TRY(new_module,
-                    module_factory_->make(code.value()));
+        OUTCOME_TRY(new_module, module_factory_->make(code.value()));
         runtime_instances_pool_->putModule(state, std::move(new_module));
       }
     }
 
     // Try to acquire an instance (instantiate if needed)
     OUTCOME_TRY(runtime_instance,
-                runtime_instances_pool_->instantiateFromState(state));
+                runtime_instances_pool_->instantiateFromState(
+                    state, RuntimeContext::ContextParams{}));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;

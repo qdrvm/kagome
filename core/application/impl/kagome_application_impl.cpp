@@ -12,6 +12,7 @@
 #include "application/impl/util.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
+#include "injector/application_injector.hpp"
 #include "metrics/metrics.hpp"
 #include "telemetry/service.hpp"
 #include "utils/watchdog.hpp"
@@ -22,41 +23,41 @@ namespace kagome::application {
   }
 
   KagomeApplicationImpl::KagomeApplicationImpl(
-      std::shared_ptr<AppConfiguration> app_config)
-      : app_config_(app_config),
-        injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
+      injector::KagomeNodeInjector &injector)
+      : injector_(injector),
         logger_(log::createLogger("Application", "application")) {
     // keep important instances, they must exist when injector destroyed
     // some of them are requested by reference and hence not copied
-    chain_spec_ = injector_->injectChainSpec();
+    app_config_ = injector_.injectAppConfig();
+    BOOST_ASSERT(app_config_ != nullptr);
+    chain_spec_ = injector_.injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
   }
 
   int KagomeApplicationImpl::chainInfo() {
-    auto mode = injector_->injectPrintChainInfoMode();
+    auto mode = injector_.injectPrintChainInfoMode();
     return mode->run();
   }
 
   int KagomeApplicationImpl::recovery() {
     logger_->info("Start in recovery mode with PID {}", getpid());
 
-    auto mode = injector_->injectRecoveryMode();
+    auto mode = injector_.injectRecoveryMode();
     return mode->run();
   }
 
   void KagomeApplicationImpl::run() {
-    auto app_state_manager = injector_->injectAppStateManager();
-    auto io_context = injector_->injectIoContext();
-    auto clock = injector_->injectSystemClock();
-    auto watchdog = injector_->injectWatchdog();
+    auto app_state_manager = injector_.injectAppStateManager();
+    auto clock = injector_.injectSystemClock();
+    auto watchdog = injector_.injectWatchdog();
 
-    injector_->injectOpenMetricsService();
-    injector_->injectRpcApiService();
+    injector_.injectOpenMetricsService();
+    injector_.injectRpcApiService();
 
-    kagome::telemetry::setTelemetryService(injector_->injectTelemetryService());
+    kagome::telemetry::setTelemetryService(injector_.injectTelemetryService());
 
-    injector_->injectAddressPublisher();
-    injector_->injectTimeline();
+    injector_.injectAddressPublisher();
+    injector_.injectTimeline();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_->nodeVersion(),
@@ -79,23 +80,12 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
-    app_state_manager->atLaunch([ctx{io_context}, watchdog] {
-      std::thread asio_runner([ctx{ctx}, watchdog] {
-        soralog::util::setThreadName("kagome");  // explicitly for macos
-        watchdog->run(ctx);
-      });
-      asio_runner.detach();
-      return true;
+    std::thread watchdog_thread([watchdog] {
+      soralog::util::setThreadName("watchdog");
+      watchdog->checkLoop(kWatchdogDefaultTimeout);
     });
 
-    std::thread watchdog_thread(
-        [watchdog] { watchdog->checkLoop(kWatchdogDefaultTimeout); });
-    watchdog_thread.detach();
-
-    app_state_manager->atShutdown([ctx{io_context}, watchdog] {
-      ctx->stop();
-      watchdog->stop();
-    });
+    app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
 
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();
@@ -127,6 +117,10 @@ namespace kagome::application {
     }
 
     app_state_manager->run();
+
+    watchdog->stop();
+
+    watchdog_thread.join();
   }
 
 }  // namespace kagome::application

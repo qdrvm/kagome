@@ -13,7 +13,7 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/service/impl/api_service_impl.hpp"
-#include "api/transport/rpc_thread_pool.hpp"
+#include "api/service/impl/rpc_thread_pool.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "common/buffer.hpp"
 #include "core/api/client/http_client.hpp"
@@ -31,6 +31,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+#include "utils/watchdog.hpp"
 
 using namespace std::chrono_literals;
 using namespace kagome::api;
@@ -38,6 +39,7 @@ using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
 using kagome::Watchdog;
+using kagome::api::RpcThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManager;
 using kagome::blockchain::BlockTree;
@@ -63,9 +65,6 @@ struct ListenerTest : public ::testing::Test {
     testutil::prepareLoggers();
   }
 
-  template <class T>
-  using sptr = std::shared_ptr<T>;
-
  protected:
   using Endpoint = boost::asio::ip::tcp::endpoint;
   using Context = RpcContext;
@@ -88,8 +87,12 @@ struct ListenerTest : public ::testing::Test {
     response =
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
 
+    auto seed = static_cast<unsigned int>(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    auto rand = rand_r(&seed);
+
     endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
-    endpoint.port(4321);
+    endpoint.port(1024 + rand % (65536 - 1024));  // random non-sudo port
     ON_CALL(app_config, rpcEndpoint()).WillByDefault(ReturnRef(endpoint));
     ON_CALL(app_config, maxWsConnections()).WillByDefault(Return(100));
 
@@ -98,7 +101,6 @@ struct ListenerTest : public ::testing::Test {
 
     service = std::make_shared<ApiServiceImpl>(
         *app_state_manager,
-        thread_pool,
         std::vector<std::shared_ptr<Listener>>({listener}),
         server,
         std::vector<std::shared_ptr<JRpcProcessor>>(processors),
@@ -108,13 +110,13 @@ struct ListenerTest : public ::testing::Test {
         ext_event_key_repo,
         block_tree,
         trie_storage,
-        core);
+        core,
+        rpc_thread_pool);
   }
 
   void TearDown() override {
     request.clear();
     response.clear();
-
     service.reset();
   }
 
@@ -123,18 +125,12 @@ struct ListenerTest : public ::testing::Test {
   Endpoint endpoint;
   kagome::application::AppConfigurationMock app_config;
 
-  sptr<kagome::application::AppStateManager> app_state_manager =
+  std::shared_ptr<kagome::application::AppStateManager> app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
 
-  kagome::api::RpcThreadPool::Configuration config = {1, 1};
+  std::shared_ptr<ApiStub> api = std::make_shared<ApiStub>();
 
-  sptr<kagome::api::RpcThreadPool> thread_pool =
-      std::make_shared<kagome::api::RpcThreadPool>(
-          rpc_context, std::make_shared<Watchdog>(), config);
-
-  sptr<ApiStub> api = std::make_shared<ApiStub>();
-
-  sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
+  std::shared_ptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
 
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<JrpcProcessorStub>(server, api)};
@@ -155,6 +151,11 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<TrieStorage> trie_storage =
       std::make_shared<TrieStorageMock>();
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
+  std::shared_ptr<Watchdog> watchdog =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
-  sptr<ApiService> service;
+  std::shared_ptr<RpcThreadPool> rpc_thread_pool =
+      std::make_shared<RpcThreadPool>(watchdog, rpc_context);
+
+  std::shared_ptr<ApiService> service;
 };

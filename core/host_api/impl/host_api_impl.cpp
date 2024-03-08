@@ -6,6 +6,7 @@
 
 #include "host_api/impl/host_api_impl.hpp"
 
+#include "common/bytestr.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -588,9 +589,9 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
       runtime::WasmSpan message) {
-    auto [ptr, addr] = runtime::PtrSize{message};
-    auto msg = memory_provider_->getCurrentMemory()->get().loadStr(ptr, addr);
-    throw std::runtime_error{msg};
+    auto msg = byte2str(
+        memory_provider_->getCurrentMemory()->get().view(message).value());
+    throw std::runtime_error{std::string{msg}};
   }
 
   // ---------------------------- Elliptic Curves ----------------------------

@@ -10,6 +10,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -36,11 +37,12 @@ using blockchain::BlockTreeImpl;
 using blockchain::JustificationStoragePolicyMock;
 using blockchain::TreeNode;
 using common::Buffer;
+using common::MainPoolHandler;
+using common::MainThreadPool;
 using consensus::SlotNumber;
 using consensus::babe::BabeBlockHeader;
 using consensus::babe::SlotType;
 using crypto::HasherImpl;
-using kagome::primitives::calculateBlockHash;
 using network::ExtrinsicObserverImpl;
 using primitives::Block;
 using primitives::BlockBody;
@@ -49,6 +51,7 @@ using primitives::BlockHeader;
 using primitives::BlockId;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
+using primitives::calculateBlockHash;
 using primitives::Consensus;
 using primitives::Digest;
 using primitives::Justification;
@@ -81,8 +84,7 @@ struct BlockTreeTest : public testing::Test {
 
   void SetUp() override {
     EXPECT_CALL(*storage_, getBlockTreeLeaves())
-        .WillOnce(Return(
-            std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
+        .WillOnce(Return(std::vector<BlockHash>{kFinalizedBlockInfo.hash}));
 
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
@@ -102,7 +104,7 @@ struct BlockTreeTest : public testing::Test {
         .WillRepeatedly(Return(finalized_block_header_));
 
     EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
-        .WillRepeatedly(Return(outcome::success(primitives::Justification{})));
+        .WillRepeatedly(Return(outcome::success(Justification{})));
 
     EXPECT_CALL(*storage_, getLastFinalized())
         .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
@@ -168,19 +170,24 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    block_tree_ =
-        BlockTreeImpl::create(*app_config_,
-                              header_repo_,
-                              storage_,
-                              extrinsic_observer_,
-                              hasher_,
-                              chain_events_engine,
-                              ext_events_engine,
-                              extrinsic_event_key_repo,
-                              justification_storage_policy_,
-                              state_pruner_,
-                              std::make_shared<::boost::asio::io_context>())
-            .value();
+    block_tree_ = BlockTreeImpl::create(*app_config_,
+                                        header_repo_,
+                                        storage_,
+                                        extrinsic_observer_,
+                                        hasher_,
+                                        chain_events_engine,
+                                        ext_events_engine,
+                                        extrinsic_event_key_repo,
+                                        justification_storage_policy_,
+                                        state_pruner_,
+                                        main_pool_handler_)
+                      .value();
+
+    main_pool_handler_->start();
+  }
+
+  void TearDown() override {
+    watchdog_->stop();
   }
 
   /**
@@ -190,7 +197,7 @@ struct BlockTreeTest : public testing::Test {
   BlockHash addBlock(const Block &block) {
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
-    primitives::BlockInfo block_info(block.header.number, hash);
+    BlockInfo block_info(block.header.number, hash);
     const_cast<BlockHeader &>(block.header).hash_opt.emplace(hash);
 
     EXPECT_CALL(*storage_, putBlock(block))
@@ -286,6 +293,15 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<AppStateManagerMock> app_state_manager_ =
       std::make_shared<AppStateManagerMock>();
 
+  std::shared_ptr<Watchdog> watchdog_ =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+
+  std::shared_ptr<MainThreadPool> main_thread_pool_ =
+      std::make_shared<MainThreadPool>(
+          watchdog_, std::make_shared<boost::asio::io_context>());
+  std::shared_ptr<MainPoolHandler> main_pool_handler_ =
+      std::make_shared<MainPoolHandler>(app_state_manager_, main_thread_pool_);
+
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
@@ -301,7 +317,7 @@ struct BlockTreeTest : public testing::Test {
     };
     Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
-        primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+        PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
     BabeSeal seal{};
     Buffer encoded_seal{scale::encode(seal).value()};
@@ -611,14 +627,14 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
   auto make_subtree = [branching_factor](std::shared_ptr<TreeNode> parent,
-                                         size_t current_depth,
-                                         size_t max_depth,
+                                         BlockNumber current_depth,
+                                         BlockNumber max_depth,
                                          std::string name,
                                          auto &make_subtree) {
-    primitives::BlockHash hash{};
+    BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
     auto node = std::make_shared<TreeNode>(
-        primitives::BlockInfo{hash, current_depth}, parent, false);
+        BlockInfo{hash, current_depth}, parent, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -848,8 +864,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto b55 = addHeaderToRepository(b43, 55);
   auto b56 = addHeaderToRepository(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(b56))
-      .WillOnce(Return(primitives::BlockBody{}));
+  EXPECT_CALL(*storage_, getBlockBody(b56)).WillOnce(Return(BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
 
@@ -870,8 +885,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto b55 = addHeaderToRepository(b43, 55);
   auto b56 = addHeaderToRepository(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(b56))
-      .WillOnce(Return(primitives::BlockBody{}));
+  EXPECT_CALL(*storage_, getBlockBody(b56)).WillOnce(Return(BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
 

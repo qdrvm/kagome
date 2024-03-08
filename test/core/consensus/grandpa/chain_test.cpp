@@ -6,8 +6,12 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/asio/io_context.hpp>
+
+#include "common/main_thread_pool.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
@@ -23,12 +27,16 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::Watchdog;
+using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
+using kagome::common::MainPoolHandler;
+using kagome::common::MainThreadPool;
 using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::EnvironmentImpl;
@@ -52,6 +60,30 @@ class ChainTest : public testing::Test {
  protected:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
+
+  void SetUp() override {
+    auto app_state_manager = std::make_shared<AppStateManagerMock>();
+
+    main_thread_pool = std::make_shared<MainThreadPool>(
+        watchdog, std::make_shared<boost::asio::io_context>());
+    main_pool_handler =
+        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+    main_pool_handler->start();
+
+    chain = std::make_shared<EnvironmentImpl>(
+        tree,
+        header_repo,
+        authority_manager,
+        grandpa_transmitter,
+        approved_ancestor,
+        testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
+        nullptr,
+        dispute_coordinator,
+        parachain_api,
+        backing_store,
+        hasher,
+        main_pool_handler);
   }
 
   /**
@@ -89,6 +121,10 @@ class ChainTest : public testing::Test {
     return h;
   }
 
+  void TearDown() override {
+    watchdog->stop();
+  }
+
   std::shared_ptr<BlockTreeMock> tree = std::make_shared<BlockTreeMock>();
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo =
       std::make_shared<BlockHeaderRepositoryMock>();
@@ -108,19 +144,12 @@ class ChainTest : public testing::Test {
   std::shared_ptr<ApprovedAncestorMock> approved_ancestor =
       std::make_shared<ApprovedAncestorMock>();
 
-  std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
-      tree,
-      header_repo,
-      authority_manager,
-      grandpa_transmitter,
-      approved_ancestor,
-      testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
-      nullptr,
-      dispute_coordinator,
-      parachain_api,
-      backing_store,
-      hasher,
-      std::make_shared<boost::asio::io_context>());
+  std::shared_ptr<Watchdog> watchdog =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+  std::shared_ptr<MainThreadPool> main_thread_pool;
+  std::shared_ptr<MainPoolHandler> main_pool_handler;
+
+  std::shared_ptr<Chain> chain;
 };
 
 /**

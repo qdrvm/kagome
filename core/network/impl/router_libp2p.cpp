@@ -6,9 +6,31 @@
 
 #include "network/impl/router_libp2p.hpp"
 
+#include <libp2p/connection/stream.hpp>
+#include <libp2p/protocol/ping.hpp>
+#include "common/main_thread_pool.hpp"
+#include "network/impl/protocols/beefy_justification_protocol.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/fetch_attested_candidate.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/light.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/protocol_fetch_available_data.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
+#include "network/impl/protocols/protocol_req_pov.hpp"
+#include "network/impl/protocols/send_dispute_protocol.hpp"
+#include "network/protocols/beefy_protocol.hpp"
+#include "network/protocols/state_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
+#include "network/types/bootstrap_nodes.hpp"
+#include "network/warp/protocol.hpp"
+
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const OwnPeerInfo &own_info,
@@ -24,17 +46,21 @@ namespace kagome::network {
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
       LazySPtr<ValidationProtocol> validation_protocol,
       LazySPtr<CollationProtocol> collation_protocol,
+      LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
+      LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging,
       LazySPtr<ReqCollationProtocol> req_collation_protocol,
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
       LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
       LazySPtr<SendDisputeProtocol> send_dispute_protocol,
-      LazySPtr<libp2p::protocol::Ping> ping_protocol)
+      LazySPtr<libp2p::protocol::Ping> ping_protocol,
+      LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
         own_info_{own_info},
+        main_pool_handler_(std::move(main_pool_handler)),
         block_announce_protocol_(std::move(block_announce_protocol)),
         grandpa_protocol_(std::move(grandpa_protocol)),
         sync_protocol_(std::move(sync_protocol)),
@@ -48,6 +74,8 @@ namespace kagome::network {
             std::move(propagate_transactions_protocol)),
         validation_protocol_(std::move(validation_protocol)),
         collation_protocol_(std::move(collation_protocol)),
+        collation_protocol_vstaging_(std::move(collation_protocol_vstaging)),
+        validation_protocol_vstaging_(std::move(validation_protocol_vstaging)),
         req_collation_protocol_(std::move(req_collation_protocol)),
         req_pov_protocol_(std::move(req_pov_protocol)),
         fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
@@ -56,8 +84,10 @@ namespace kagome::network {
         statement_fetching_protocol_(std::move(statement_fetching_protocol)),
         send_dispute_protocol_(std::move(send_dispute_protocol)),
         ping_protocol_{std::move(ping_protocol)},
+        fetch_attested_candidate_{std::move(fetch_attested_candidate)},
         log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
 
     SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
@@ -75,49 +105,65 @@ namespace kagome::network {
     app_state_manager_->takeControl(*this);
   }
 
-  bool RouterLibp2p::prepare() {
-    app_state_manager_->takeControl(*block_announce_protocol_.get());
-    app_state_manager_->takeControl(*grandpa_protocol_.get());
+  void RouterLibp2p::start() {
+    auto lazyStart = [&](auto &lazy) {
+      main_pool_handler_->execute([weak{std::weak_ptr{lazy.get()}}] {
+        if (auto ptr = weak.lock()) {
+          ptr->start();
+        }
+      });
+    };
+    lazyStart(block_announce_protocol_);
+    lazyStart(grandpa_protocol_);
+    lazyStart(sync_protocol_);
+    lazyStart(state_protocol_);
+    lazyStart(warp_protocol_);
+    lazyStart(beefy_protocol_);
+    lazyStart(beefy_justifications_protocol_);
+    lazyStart(light_protocol_);
+    lazyStart(propagate_transactions_protocol_);
 
-    app_state_manager_->takeControl(*sync_protocol_.get());
-    app_state_manager_->takeControl(*state_protocol_.get());
-    app_state_manager_->takeControl(*warp_protocol_.get());
-    app_state_manager_->takeControl(*beefy_protocol_.get());
-    app_state_manager_->takeControl(*beefy_justifications_protocol_.get());
-    app_state_manager_->takeControl(*light_protocol_.get());
+    // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
+    // should be uncommented when this task will be implemented
+    // lazyStart(collation_protocol_);
+    // lazyStart(validation_protocol_);
 
-    app_state_manager_->takeControl(*propagate_transactions_protocol_.get());
+    lazyStart(collation_protocol_);
+    lazyStart(validation_protocol_);
+    lazyStart(req_collation_protocol_);
+    lazyStart(req_pov_protocol_);
+    lazyStart(fetch_chunk_protocol_);
+    lazyStart(fetch_available_data_protocol_);
+    lazyStart(statement_fetching_protocol_);
+    lazyStart(send_dispute_protocol_);
+    lazyStart(fetch_attested_candidate_);
 
-    app_state_manager_->takeControl(*collation_protocol_.get());
-    app_state_manager_->takeControl(*validation_protocol_.get());
-    app_state_manager_->takeControl(*req_collation_protocol_.get());
-    app_state_manager_->takeControl(*req_pov_protocol_.get());
-    app_state_manager_->takeControl(*fetch_chunk_protocol_.get());
-    app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
-    app_state_manager_->takeControl(*statement_fetching_protocol_.get());
+    ping_protocol_.get();
+    main_pool_handler_->execute([weak{weak_from_this()}] {
+      if (auto self = weak.lock()) {
+        self->host_.setProtocolHandler(
+            {self->ping_protocol_.get()->getProtocolId()},
+            [weak](libp2p::StreamAndProtocol stream_and_proto) {
+              if (auto self = weak.lock()) {
+                auto &stream = stream_and_proto.stream;
+                if (auto peer_id = stream->remotePeerId()) {
+                  SL_TRACE(self->log_,
+                           "Handled {} protocol stream from {}",
+                           self->ping_protocol_.get()->getProtocolId(),
+                           peer_id.value().toBase58());
+                  self->ping_protocol_.get()->handle(
+                      std::forward<decltype(stream_and_proto)>(
+                          stream_and_proto));
+                }
+              }
+            });
 
-    app_state_manager_->takeControl(*send_dispute_protocol_.get());
-
-    host_.setProtocolHandler(
-        {ping_protocol_.get()->getProtocolId()},
-        [wp{weak_from_this()}](auto &&stream_and_proto) {
-          if (auto self = wp.lock()) {
-            auto &stream = stream_and_proto.stream;
-            if (auto peer_id = stream->remotePeerId()) {
-              SL_TRACE(self->log_,
-                       "Handled {} protocol stream from {}",
-                       self->ping_protocol_.get()->getProtocolId(),
-                       peer_id.value().toBase58());
-              self->ping_protocol_.get()->handle(
-                  std::forward<decltype(stream_and_proto)>(stream_and_proto));
-            }
-          }
-        });
-
-    return true;
+        self->startLibp2p();
+      }
+    });
   }
 
-  bool RouterLibp2p::start() {
+  void RouterLibp2p::startLibp2p() {
     auto listen_addresses = app_config_.listenAddresses();
     for (auto &listen_address : listen_addresses) {
       // fully formatted listen address is used inside Kademlia
@@ -150,15 +196,14 @@ namespace kagome::network {
     const auto &host_addresses = host_.getAddresses();
     if (host_addresses.empty()) {
       log_->critical("Host addresses is empty");
-      return false;
+      app_state_manager_->shutdown();
+      return;
     }
 
     log_->info("Started with peer id: {}", host_.getId().toBase58());
     for (const auto &addr : host_addresses) {
       log_->info("Started listening on address: {}", addr.getStringAddress());
     }
-
-    return true;
   }
 
   void RouterLibp2p::stop() {
@@ -194,9 +239,19 @@ namespace kagome::network {
     return collation_protocol_.get();
   }
 
+  std::shared_ptr<CollationProtocolVStaging>
+  RouterLibp2p::getCollationProtocolVStaging() const {
+    return collation_protocol_vstaging_.get();
+  }
+
   std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
       const {
     return validation_protocol_.get();
+  }
+
+  std::shared_ptr<ValidationProtocolVStaging>
+  RouterLibp2p::getValidationProtocolVStaging() const {
+    return validation_protocol_vstaging_.get();
   }
 
   std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()
@@ -211,6 +266,11 @@ namespace kagome::network {
   std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
       const {
     return fetch_chunk_protocol_.get();
+  }
+
+  std::shared_ptr<FetchAttestedCandidateProtocol>
+  RouterLibp2p::getFetchAttestedCandidateProtocol() const {
+    return fetch_attested_candidate_.get();
   }
 
   std::shared_ptr<FetchAvailableDataProtocol>

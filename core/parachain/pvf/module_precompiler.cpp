@@ -83,12 +83,13 @@ namespace kagome::parachain {
     std::mutex cores_queue_mutex;
     std::vector<std::thread> threads;
     for (size_t i = 0; i < config_.precompile_threads_num; i++) {
-      auto compilation_worker =
-          [self = shared_from_this(),
-           &cores_queue_mutex,
-           &cores,
-           &stats,
-           &last_finalized]() mutable -> outcome::result<void> {
+      auto compilation_worker = [self = shared_from_this(),
+                                 &cores_queue_mutex,
+                                 &cores,
+                                 &stats,
+                                 &last_finalized,
+                                 n = i + 1]() mutable -> outcome::result<void> {
+        soralog::util::setThreadName(fmt::format("precompile.{}", n));
         while (true) {
           runtime::CoreState core;
           {
@@ -174,7 +175,8 @@ namespace kagome::parachain {
              code.size(),
              hash);
     stats.total_code_size += code.size();
-    OUTCOME_TRY(runtime_cache_->instantiateFromCode(hash, code));
+
+    OUTCOME_TRY(runtime_cache_->instantiateFromCode(hash, code, {}));
     SL_DEBUG(log_,
              "Instantiated runtime instance with code hash {} for parachain "
              "{}, {} left",

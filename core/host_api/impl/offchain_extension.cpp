@@ -36,8 +36,6 @@ namespace kagome::host_api {
         ocw_pool_(std::move(ocw_pool)),
         log_(log::createLogger("OffchainExtension", "offchain_extension")) {
     BOOST_ASSERT(memory_provider_);
-    BOOST_ASSERT(offchain_storage_);
-    BOOST_ASSERT(ocw_pool_);
   }
 
   std::shared_ptr<offchain::OffchainWorker> OffchainExtension::getWorker() {
@@ -98,8 +96,8 @@ namespace kagome::host_api {
   runtime::WasmPointer OffchainExtension::ext_offchain_random_seed_version_1() {
     auto worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto result = worker->timestamp();
-    return memory.storeBuffer(scale::encode(result).value());
+    auto result = worker->randomSeed();
+    return memory.storeBuffer(result);
   }
 
   void OffchainExtension::ext_offchain_local_storage_set_version_1(

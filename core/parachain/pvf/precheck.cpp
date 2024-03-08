@@ -12,6 +12,7 @@
 #include "metrics/histogram_timer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
+#include "parachain/pvf/pvf_thread_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
@@ -46,7 +47,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Executor> executor,
-      std::shared_ptr<Watchdog> watchdog,
+      std::shared_ptr<PvfThreadPool> pvf_thread_pool,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : hasher_{std::move(hasher)},
@@ -57,11 +58,25 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
-        thread_{std::move(watchdog), "PvfPrecheck", 1} {}
+        pvf_thread_handler_{[&] {
+          BOOST_ASSERT(pvf_thread_pool != nullptr);
+          return pvf_thread_pool->handler();
+        }()} {
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(signer_factory_ != nullptr);
+    BOOST_ASSERT(parachain_api_ != nullptr);
+    BOOST_ASSERT(module_factory_ != nullptr);
+    BOOST_ASSERT(executor_ != nullptr);
+    BOOST_ASSERT(offchain_worker_factory_ != nullptr);
+    BOOST_ASSERT(offchain_worker_pool_ != nullptr);
+  }
 
   void PvfPrecheck::start(
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
           chain_sub_engine) {
+    pvf_thread_handler_->start();
+
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         chain_sub_engine);
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -73,7 +88,7 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            self->thread_.io_context()->post([weak] {
+            self->pvf_thread_handler_->execute([weak] {
               if (auto self = weak.lock()) {
                 auto r = self->onBlock();
                 if (r.has_error()) {

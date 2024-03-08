@@ -19,8 +19,10 @@
 #include "primitives/common.hpp"
 
 namespace kagome::network {
-  class IBeefy;
+  class Beefy;
+}
 
+namespace kagome::network {
   class SyncProtocolObserverImpl
       : public SyncProtocolObserver,
         public std::enable_shared_from_this<SyncProtocolObserverImpl> {
@@ -30,7 +32,7 @@ namespace kagome::network {
     SyncProtocolObserverImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-        std::shared_ptr<IBeefy> beefy,
+        std::shared_ptr<Beefy> beefy,
         std::shared_ptr<PeerManager> peer_manager);
 
     ~SyncProtocolObserverImpl() override = default;
@@ -51,7 +53,7 @@ namespace kagome::network {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
-    std::shared_ptr<IBeefy> beefy_;
+    std::shared_ptr<Beefy> beefy_;
 
     mutable std::unordered_set<BlocksRequest::Fingerprint> requested_ids_;
     std::shared_ptr<PeerManager> peer_manager_;

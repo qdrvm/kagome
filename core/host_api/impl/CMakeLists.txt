@@ -74,7 +74,7 @@ target_link_libraries(storage_extension
     blob
     logger
     storage
-    scale::scale_encode_append
+    scale::scale
     runtime_transaction_error
     )
 kagome_install(storage_extension)
@@ -87,7 +87,7 @@ target_link_libraries(child_storage_extension
     blob
     logger
     storage
-    scale::scale_encode_append
+    scale::scale
     runtime_transaction_error
     )
 kagome_install(child_storage_extension)
