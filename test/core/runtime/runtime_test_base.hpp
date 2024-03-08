@@ -15,6 +15,7 @@
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
@@ -77,6 +78,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto ed25519_provider =
         std::make_shared<crypto::Ed25519ProviderImpl>(hasher_);
     auto secp256k1_provider = std::make_shared<crypto::Secp256k1ProviderImpl>();
+    auto elliptic_curves = std::make_shared<crypto::EllipticCurvesImpl>();
     auto pbkdf2_provider = std::make_shared<crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider =
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
@@ -100,6 +102,7 @@ class RuntimeTestBase : public ::testing::Test {
         ecdsa_provider,
         ed25519_provider,
         secp256k1_provider,
+        elliptic_curves,
         hasher_,
         crypto_store,
         offchain_storage_,

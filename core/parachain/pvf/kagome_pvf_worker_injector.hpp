@@ -64,7 +64,7 @@ namespace kagome::parachain {
         di::bind<crypto::Bip39Provider>.to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
-
+        bind_null<crypto::EllipticCurves>(),
         bind_null<crypto::CryptoStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),

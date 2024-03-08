@@ -14,7 +14,7 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::crypto {
-    class Hasher;
+  class Hasher;
 }
 
 namespace kagome::runtime {
