@@ -97,7 +97,8 @@ namespace kagome::crypto::bip39 {
       if (seed.size() != HEX_SEED_STR_LENGTH) {
         return bip39::MnemonicError::INVALID_SEED_LENGTH;
       }
-      SecureBuffer<> bytes(HEX_SEED_BIT_LENGTH, 0);
+      // only half of the buffer will be used
+      SecureBuffer<> bytes(Bip39Seed::size(), 0);
       OUTCOME_TRY(common::unhexWith0x(seed, bytes.begin()));
       OUTCOME_TRY(seed, Bip39Seed::from(std::move(bytes)));
       mnemonic.seed = std::move(seed);
