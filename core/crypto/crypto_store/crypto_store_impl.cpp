@@ -196,7 +196,8 @@ namespace kagome::crypto {
         OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
         return _seed;
       } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-        std::span<char> char_content{};
+        std::span<char> char_content{reinterpret_cast<char *>(contents.data()),
+                                     contents.size()};
         OUTCOME_TRY(_seed,
                     Ed25519Seed::fromHex(SecureCleanGuard{char_content}));
         return _seed;

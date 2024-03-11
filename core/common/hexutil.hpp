@@ -84,7 +84,7 @@ namespace kagome::common {
   template <std::output_iterator<uint8_t> Iter>
   outcome::result<void> unhexWith0x(std::string_view hex_with_prefix,
                                     Iter out) {
-    static const std::string prefix = "0x";
+    constexpr std::string_view prefix = "0x";
     if (!hex_with_prefix.starts_with(prefix)) {
       return UnhexError::MISSING_0X_PREFIX;
     }

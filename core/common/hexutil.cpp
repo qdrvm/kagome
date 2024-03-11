@@ -56,11 +56,10 @@ namespace kagome::common {
   }
 
   std::string hex_lower_0x(BufferView bytes) noexcept {
-    constexpr char prefix[] = {'0', 'x'};
-    constexpr size_t prefix_len = sizeof(prefix);
+    constexpr std::string_view prefix = "0x";
 
-    std::string res(bytes.size() * 2 + prefix_len, '\x00');
-    res.replace(0, prefix_len, prefix, prefix_len);
+    std::string res(bytes.size() * 2 + prefix_len, 0);
+    res.replace(0, prefix.size(), prefix);
 
     boost::algorithm::hex_lower(
         bytes.begin(), bytes.end(), res.begin() + prefix_len);
@@ -81,7 +80,7 @@ namespace kagome::common {
 
   outcome::result<std::vector<uint8_t>> unhexWith0x(
       std::string_view hex_with_prefix) {
-    static const std::string prefix = "0x";
+    constexpr std::string_view prefix = "0x";
     if (!hex_with_prefix.starts_with(prefix)) {
       return UnhexError::MISSING_0X_PREFIX;
     }
