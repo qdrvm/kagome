@@ -26,7 +26,7 @@ namespace kagome::consensus::beefy {
     SCALE_TIE(2);
 
     std::vector<crypto::EcdsaPublicKey> validators;
-    AuthoritySetId id;
+    AuthoritySetId id = 0;
 
     std::optional<AuthorityIndex> find(
         const crypto::EcdsaPublicKey &key) const {

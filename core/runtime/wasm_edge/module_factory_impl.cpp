@@ -77,26 +77,21 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI32())) {
-      return WasmEdge_ValueGetI32(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI64())) {
-      return WasmEdge_ValueGetI64(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF32())) {
-      return WasmEdge_ValueGetF32(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF64())) {
-      return WasmEdge_ValueGetF64(v);
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenV128())) {
-      return Error::INVALID_VALUE_TYPE;
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenFuncRef())) {
-      return Error::INVALID_VALUE_TYPE;
-    }
-    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenExternRef())) {
-      return Error::INVALID_VALUE_TYPE;
+    switch (v.Type) {
+      case WasmEdge_ValType_I32:
+        return WasmEdge_ValueGetI32(v);
+      case WasmEdge_ValType_I64:
+        return WasmEdge_ValueGetI64(v);
+      case WasmEdge_ValType_F32:
+        return WasmEdge_ValueGetF32(v);
+      case WasmEdge_ValType_F64:
+        return WasmEdge_ValueGetF64(v);
+      case WasmEdge_ValType_V128:
+        return Error::INVALID_VALUE_TYPE;
+      case WasmEdge_ValType_FuncRef:
+        return Error::INVALID_VALUE_TYPE;
+      case WasmEdge_ValType_ExternRef:
+        return Error::INVALID_VALUE_TYPE;
     }
     BOOST_UNREACHABLE_RETURN({});
   }
@@ -115,7 +110,7 @@ namespace kagome::runtime::wasm_edge {
           host_instance_{host_instance},
           executor_{executor},
           env_{std::move(env)},
-          code_hash_{} {
+          code_hash_{code_hash} {
       BOOST_ASSERT(module_ != nullptr);
       BOOST_ASSERT(instance_ != nullptr);
       BOOST_ASSERT(host_instance_ != nullptr);
@@ -298,8 +293,7 @@ namespace kagome::runtime::wasm_edge {
 
       InstanceEnvironment env = env_factory_->make(memory_provider);
 
-      register_host_api(
-          *env.host_api, module_.raw(), host_instance->raw());
+      register_host_api(*env.host_api, module_.raw(), host_instance->raw());
       WasmEdge_UNWRAP(WasmEdge_ExecutorRegisterImport(
           executor_->raw(), store.raw(), host_instance->raw()));
 

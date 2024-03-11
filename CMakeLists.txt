@@ -21,7 +21,15 @@ if (NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "")
 endif ()
 
-set(HUNTER_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE} CACHE STRING "")
+if(NOT ${CMAKE_BUILD_TYPE} MATCHES "^(Debug|Release|RelWithDebInfo)$")
+  fatal_error("CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE} but should be one of [Debug, Release, RelWithDebInfo]")
+endif()
+
+if(${CMAKE_BUILD_TYPE} MATCHES "^RelWithDebInfo$")
+  set(HUNTER_CONFIGURATION_TYPES "Release" CACHE STRING "")
+else()
+  set(HUNTER_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "")
+endif()
 
 set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
