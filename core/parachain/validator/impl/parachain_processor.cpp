@@ -387,11 +387,17 @@ namespace kagome::parachain {
       return;
     }
 
-    [[maybe_unused]] const auto _ =
+    if (const auto r =
         prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {event.new_head},
             .lost = event.lost,
-        });
+        }); r.has_error()) {
+      SL_WARN(logger_,
+              "=====> Prospective parachains leaf update failed. (relay_parent={}, error={})",
+              relay_parent,
+              r.error().message());
+        }
+
     backing_store_->onActivateLeaf(relay_parent);
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
@@ -3559,6 +3565,7 @@ namespace kagome::parachain {
                                      *our_current_state_.implicit_view,
                                      our_current_state_.active_leaves,
                                      peer_data.collator_state->para_id)) {
+      SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
     }
 
