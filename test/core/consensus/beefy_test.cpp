@@ -9,8 +9,10 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "common/main_thread_pool.hpp"
+#include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/impl/beefy_impl.hpp"
 #include "consensus/beefy/impl/beefy_thread_pool.hpp"
+#include "consensus/beefy/sig.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -26,20 +28,26 @@
 #include "testutil/lazy.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::beefyMmrDigest;
 using kagome::TestThreadPool;
 using kagome::application::AppStateManagerMock;
 using kagome::application::ChainSpecMock;
 using kagome::blockchain::BlockTreeMock;
+using kagome::common::Buffer;
 using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::consensus::Timeline;
 using kagome::consensus::TimelineMock;
+using kagome::consensus::beefy::AuthoritySetId;
 using kagome::consensus::beefy::BeefyGossipMessage;
 using kagome::consensus::beefy::BeefyJustification;
+using kagome::consensus::beefy::Commitment;
 using kagome::consensus::beefy::ConsensusDigest;
+using kagome::consensus::beefy::kMmr;
 using kagome::consensus::beefy::MmrRootHash;
 using kagome::consensus::beefy::SignedCommitment;
 using kagome::consensus::beefy::ValidatorSet;
+using kagome::consensus::beefy::VoteMessage;
 using kagome::crypto::EcdsaKeypair;
 using kagome::crypto::EcdsaProviderImpl;
 using kagome::crypto::EcdsaSeed;
@@ -97,7 +105,8 @@ struct Timer : libp2p::basic::Scheduler {
 };
 
 struct BeefyPeer {
-  EcdsaKeypair keys_;
+  bool vote_ = true;
+  std::shared_ptr<EcdsaKeypair> keys_;
   BlockNumber finalized_ = 0;
   std::vector<BlockNumber> justifications_;
 
@@ -135,17 +144,25 @@ struct BeefyTest : testing::Test {
     peers_.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
       auto &peer = peers_.emplace_back();
+
       SecureBuffer<> seed_buf(EcdsaSeed::size());
       seed_buf[0] = i;
       seed_buf[1] = 1;
       auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
-      peer.keys_ = ecdsa_->generateKeypair(seed, {}).value();
-      EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_))
-          .WillRepeatedly(Return(
-              std::make_pair(std::make_shared<EcdsaKeypair>(peer.keys_), i)));
+      peer.keys_ = std::make_shared<EcdsaKeypair>(
+          std::move(ecdsa_->generateKeypair(seed, {}).value()));
+      EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_)).WillRepeatedly([&, i]() {
+        return peer.vote_ ? std::make_optional(std::make_pair(peer.keys_, i))
+                          : std::nullopt;
+      });
 
       std::shared_ptr<AppStateManagerMock> app_state_manager_ =
           std::make_shared<AppStateManagerMock>();
+      EXPECT_CALL(*app_state_manager_, atPrepare(_))
+          .Times(testing::AnyNumber());
+      EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
+      EXPECT_CALL(*app_state_manager_, atShutdown(_))
+          .Times(testing::AnyNumber());
       std::shared_ptr<MainThreadPool> main_thread_pool_ =
           std::make_shared<MainThreadPool>(TestThreadPool{io_});
       std::shared_ptr<MainPoolHandler> main_pool_handler_ =
@@ -155,7 +172,9 @@ struct BeefyTest : testing::Test {
       std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
           std::make_shared<BeefyThreadPool>(TestThreadPool{io_});
 
-      EXPECT_CALL(*app_state_manager_, atLaunch(_));
+      EXPECT_CALL(*peer.block_tree_, bestBlock()).WillRepeatedly([&] {
+        return blocks_.back().blockInfo();
+      });
 
       EXPECT_CALL(*peer.block_tree_, getLastFinalized()).WillRepeatedly([&] {
         return blocks_[peer.finalized_].blockInfo();
@@ -207,7 +226,7 @@ struct BeefyTest : testing::Test {
   ValidatorSet genesisVoters() {
     ValidatorSet voters;
     for (auto &peer : peers_) {
-      voters.validators.emplace_back(peer.keys_.public_key);
+      voters.validators.emplace_back(peer.keys_->public_key);
     }
     return voters;
   }
@@ -316,7 +335,6 @@ TEST_F(BeefyTest, beefy_finalizing_blocks) {
 }
 
 TEST_F(BeefyTest, lagging_validators) {
-  min_delta_ = 1;
   makePeers(3);
   generate_blocks_and_sync(62, 30);
 
@@ -362,3 +380,122 @@ TEST_F(BeefyTest, lagging_validators) {
   // block #60
   expect(all(), {60});
 }
+
+TEST_F(BeefyTest, correct_beefy_payload) {
+  min_delta_ = 2;
+  makePeers(4);
+  generate_blocks_and_sync(12, 20);
+
+  // Alice, Bob, Charlie will vote on good payloads
+  // Dave will vote on bad mmr roots
+  peers_[3].vote_ = false;
+
+  // with 3 good voters and 1 bad one, consensus should happen and best blocks
+  // produced.
+  finalize_block_and_wait_for_beefy(1, {1});
+  finalize_block_and_wait_for_beefy(10, {9});
+
+  // now 2 good validators and 1 bad one are voting
+  finalize({0, 1, 3}, 11);
+  Commitment commitment{{}, 11, 0};
+  VoteMessage vote{
+      commitment,
+      peers_[3].keys_->public_key,
+      ecdsa_->signPrehashed(prehash(commitment), peers_[3].keys_->secret_key)
+          .value(),
+  };
+  for (auto &peer : peers_) {
+    peer.beefy_->onMessage(vote);
+  }
+  loop();
+  // verify consensus is _not_ reached
+  expect(all(), {});
+
+  // 3rd good validator catches up and votes as well
+  finalize({2}, 11);
+  rebroadcast();
+  loop();
+  // verify consensus is reached
+  expect(all(), {11});
+}
+
+TEST_F(BeefyTest, beefy_importing_justifications) {
+  makePeers(1);
+  auto &peer = peers_[0];
+  peer.vote_ = false;
+  generate_blocks_and_sync(3, 10);
+  finalize_block_and_wait_for_beefy(3, {});
+  auto justify = [&](BlockNumber block_number, AuthoritySetId set) {
+    auto mmr = beefyMmrDigest(blocks_[block_number]);
+    Commitment commitment{{{kMmr, Buffer{*mmr}}}, block_number, set};
+    auto sig =
+        ecdsa_->signPrehashed(prehash(commitment), peer.keys_->secret_key)
+            .value();
+    peer.beefy_->onJustification(
+        blocks_[block_number].hash(),
+        {Buffer{scale::encode(
+                    BeefyJustification{SignedCommitment{commitment, {sig}}})
+                    .value()}});
+  };
+  EXPECT_EQ(peer.beefy_->finalized(), 0);
+
+  // Import block 2 with valid justification.
+  justify(2, 0);
+  loop();
+  EXPECT_EQ(peer.beefy_->finalized(), 2);
+
+  // Import block 3 with invalid justification (incorrect validator set).
+  justify(3, 10);
+  loop();
+  EXPECT_EQ(peer.beefy_->finalized(), 2);
+}
+
+// TODO(turuslan): #1651, fetch justifications
+// TEST_F(BeefyTest, on_demand_beefy_justification_sync) {}
+
+TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
+  makePeers(1);
+  // push 15 blocks with `AuthorityChange` digests every 10 blocks
+  generate_blocks_and_sync(15, 10);
+  // finalize 10 without justifications
+  finalize(all(), 10);
+  loop();
+  // Test initialization at session boundary.
+  // verify voter initialized with two sessions starting at blocks 1 and 10
+  // verify next vote target is mandatory block 1
+  expect(all(), {1, 10});
+}
+
+TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
+  genesis_ = 7;
+  makePeers(1);
+  // push 15 blocks with `AuthorityChange` digests every 10 blocks
+  generate_blocks_and_sync(10, 10);
+  // finalize 10 without justifications
+  finalize(all(), 10);
+  loop();
+  // Test initialization at session boundary.
+  // verify voter initialized with two sessions starting at blocks 7 and 10
+  // verify next vote target is mandatory block 7
+  expect(all(), {7, 10});
+
+  // TODO(turuslan): #1651, multiple beefy genesis
+}
+
+TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
+  genesis_ = 15;
+  makePeers(2);
+  // push 42 blocks including `AuthorityChange` digests every 10 blocks.
+  generate_blocks_and_sync(42, 10);
+  // GRANDPA finalize blocks leading up to BEEFY pallet genesis -> BEEFY should
+  // finalize nothing.
+  finalize_block_and_wait_for_beefy(14, {});
+  // GRANDPA finalize block #16 -> BEEFY should finalize #15 (genesis mandatory)
+  // and #16.
+  finalize_block_and_wait_for_beefy(16, {15, 16});
+  // GRANDPA finalize #21 -> BEEFY finalize #20 (mandatory) and #21
+  finalize_block_and_wait_for_beefy(21, {20, 21});
+}
+
+// TODO(turuslan): #1651, report equivocation
+// TEST_F(BeefyTest, beefy_reports_equivocations) {}

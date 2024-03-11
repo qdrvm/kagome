@@ -58,11 +58,11 @@ namespace kagome::common {
   std::string hex_lower_0x(BufferView bytes) noexcept {
     constexpr std::string_view prefix = "0x";
 
-    std::string res(bytes.size() * 2 + prefix_len, 0);
+    std::string res(bytes.size() * 2 + prefix.size(), 0);
     res.replace(0, prefix.size(), prefix);
 
     boost::algorithm::hex_lower(
-        bytes.begin(), bytes.end(), res.begin() + prefix_len);
+        bytes.begin(), bytes.end(), res.begin() + prefix.size());
     return res;
   }
 
