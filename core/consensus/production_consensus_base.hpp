@@ -38,6 +38,11 @@ namespace kagome::blockchain {
   class BlockTree;
 }
 
+namespace kagome::common {
+  class WorkerPoolHandler;
+  class MainPoolHandler;
+}  // namespace kagome::common
+
 namespace kagome::consensus {
   class SlotsUtil;
 }
@@ -107,8 +112,8 @@ namespace kagome::consensus {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        const ThreadPool &thread_pool,
-        std::shared_ptr<boost::asio::io_context> main_thread);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
 
     bool isGenesisConsensus() const override;
 
@@ -159,8 +164,8 @@ namespace kagome::consensus {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    std::shared_ptr<boost::asio::io_context> main_thread_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

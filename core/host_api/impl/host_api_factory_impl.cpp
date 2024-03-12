@@ -15,7 +15,6 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider,
       std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::EllipticCurves> elliptic_curves,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -27,7 +26,6 @@ namespace kagome::host_api {
         ecdsa_provider_(std::move(ecdsa_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
-        bandersnatch_provider_(std::move(bandersnatch_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         elliptic_curves_(std::move(elliptic_curves)),
         hasher_(std::move(hasher)),
@@ -39,7 +37,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(ecdsa_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
-    BOOST_ASSERT(bandersnatch_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(elliptic_curves_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);

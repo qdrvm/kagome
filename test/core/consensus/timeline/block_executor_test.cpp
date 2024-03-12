@@ -285,6 +285,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   babe_config_->leadership_rate.second = 42;
   EXPECT_CALL(*production_consensus_, validateHeader(header))
       .WillOnce(testing::Return(outcome::success()));
+  EXPECT_CALL(*production_consensus_, getSlot(_)).WillOnce(testing::Return(1));
   EXPECT_CALL(*block_tree_, getBlockHeader(parent_hash))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           40, "grandparent_hash"_hash256, {}, {}, {}}));
