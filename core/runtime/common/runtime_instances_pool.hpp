@@ -8,12 +8,12 @@
 
 #include "runtime/runtime_instances_pool.hpp"
 
+#include <boost/di.hpp>
 #include <future>
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_set>
 
-#include "injector/inject.hpp"
 #include "runtime/common/stack_limiter.hpp"
 #include "runtime/module_factory.hpp"
 #include "utils/lru.hpp"
@@ -30,10 +30,6 @@ namespace kagome::runtime {
     explicit RuntimeInstancesPoolImpl(
         std::shared_ptr<ModuleFactory> module_factory,
         size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
-
-    explicit RuntimeInstancesPoolImpl(
-        Inject, std::shared_ptr<ModuleFactory> module_factory, ...)
-        : RuntimeInstancesPoolImpl{std::move(module_factory)} {}
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
         const CodeHash &code_hash,
@@ -108,3 +104,8 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+template <>
+struct boost::di::ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
+  BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>);
+};
