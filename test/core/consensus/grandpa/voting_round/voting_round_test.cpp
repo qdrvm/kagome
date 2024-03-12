@@ -26,6 +26,7 @@
 using namespace kagome::consensus::grandpa;
 using kagome::consensus::grandpa::Authority;
 using kagome::consensus::grandpa::AuthoritySet;
+using kagome::consensus::grandpa::Equivocation;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
@@ -37,6 +38,7 @@ using namespace std::chrono_literals;
 using testing::_;
 using testing::AnyNumber;
 using testing::Invoke;
+using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
 using testing::Truly;
@@ -311,12 +313,48 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
 TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
-  round_->onPrevote({}, alice1, Propagation::NEEDLESS);
   auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "ED"_H});
-  round_->onPrevote({}, alice2, Propagation::NEEDLESS);
   auto alice3 = preparePrevote(kAlice, kAliceSignature, Prevote{6, "F"_H});
+
+  Equivocation equivocation{alice1, alice2};
+
+  {
+    auto matcher = [&](const Equivocation &equivocation) {
+      auto &first = equivocation.first;
+      auto &second = equivocation.second;
+
+      if (equivocation.offender() != kAlice) {
+        return false;
+      }
+      if (first.id != equivocation.offender()
+          or second.id != equivocation.offender()) {
+        return false;
+      }
+      if (not first.is<Prevote>() or not second.is<Prevote>()) {
+        return false;
+      }
+      std::cout << "Equivocation: "  //
+                << "first vote for " << first.getBlockHash().data() << ", "
+                << "second vote for " << second.getBlockHash().data()
+                << std::endl;
+      return true;
+    };
+
+    EXPECT_CALL(*env_, reportEquivocation(_, Truly(matcher)))
+        .WillOnce(Return(outcome::success()));
+  }
+
+  // Regular vote
+  round_->onPrevote({}, alice1, Propagation::NEEDLESS);
+
+  // Different vote in the same round; equivocation must be reported
+  round_->onPrevote({}, alice2, Propagation::NEEDLESS);
+
+  // Another vote in the same round; should be ignored, cause already reported
   round_->onPrevote({}, alice3, Propagation::NEEDLESS);
+
   round_->update(false, true, false);
+
   ASSERT_EQ(round_->prevoteGhost(), std::nullopt);
   auto bob = preparePrevote(kBob, kBobSignature, Prevote{7, "FA"_H});
   round_->onPrevote({}, bob, Propagation::NEEDLESS);
@@ -511,6 +549,134 @@ ACTION_P(onFinalize, test_fixture) {
  * and `finalized` equal to the best block that Alice voted for
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
+  EXPECT_CALL(*env_, finalize(_, _))
+      .Times(AnyNumber())
+      .WillRepeatedly(Return(outcome::success()));
+  auto base_block = previous_round_->bestFinalCandidate();
+
+  ASSERT_EQ(base_block, (BlockInfo{3, "C"_H}));
+
+  BlockInfo best_block{9, "FC"_H};
+
+  // Voting round is executed by Alice.
+  // Alice is also a Primary (alice's voter index % round number is zero)
+  {
+    auto matcher = [&](const SignedMessage &primary_propose) {
+      if (primary_propose.is<PrimaryPropose>() and primary_propose.id == kAlice
+          and primary_propose.getBlockHash() == base_block.hash) {
+        std::cout << "Proposed: " << primary_propose.getBlockHash().data()
+                  << std::endl;
+        return true;
+      }
+      return false;
+    };
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
+        .WillOnce(onProposed(this));  // propose;
+  }
+
+  // After prevote stage timer is out, Alice is doing prevote
+  {
+    auto matcher = [&](const SignedMessage &prevote) {
+      if (prevote.is<Prevote>() and prevote.id == kAlice
+          and prevote.getBlockHash() == best_block.hash) {
+        std::cout << "Prevoted: " << prevote.getBlockHash().data() << std::endl;
+        return true;
+      }
+      return false;
+    };
+    // Is doing prevote
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
+        .WillOnce(onPrevoted(this));  // prevote;
+  }
+
+  // After precommit stage timer is out, Alice is doing precommit
+  {
+    auto matcher = [&](const SignedMessage &precommit) {
+      if (precommit.is<Precommit>() and precommit.id == kAlice
+          and precommit.getBlockHash() == best_block.hash) {
+        std::cout << "Precommitted: " << precommit.getBlockHash().data()
+                  << std::endl;
+        return true;
+      }
+      return false;
+    };
+    // Is doing precommit
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
+        .WillOnce(onPrecommitted(this));  // precommit;
+  }
+
+  round_->play();
+  round_->endPrevoteStage();
+  round_->endPrecommitStage();
+
+  auto state = round_->state();
+
+  Precommit precommit{best_block.number, best_block.hash};
+
+  auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, precommit);
+  auto bob_precommit = preparePrecommit(kBob, kBobSignature, precommit);
+
+  bool has_alice_precommit = false;
+  bool has_bob_precommit = false;
+
+  auto lookup = [&](const auto &vote) {
+    has_alice_precommit = vote == alice_precommit or has_alice_precommit;
+    has_bob_precommit = vote == bob_precommit or has_bob_precommit;
+  };
+
+  for (auto &vote_variant : state.votes) {
+    kagome::visit_in_place(
+        vote_variant,
+        [&](const SignedMessage &vote) { lookup(vote); },
+        [&](const EquivocatorySignedMessage &pair) {
+          lookup(pair.first);
+          lookup(pair.second);
+        });
+  }
+
+  EXPECT_TRUE(has_alice_precommit);
+  EXPECT_TRUE(has_bob_precommit);
+
+  ASSERT_TRUE(state.finalized.has_value());
+  EXPECT_EQ(state.finalized.value(), best_block);
+}
+
+/**
+ * Executes one round of grandpa round with mocked environment which mimics the
+ * network of 3 nodes: Alice (current peer), Bob and Eve. Round is executed from
+ * the Alice's perspective (so Bob's and Eve's behaviour is mocked)
+ *
+ * Scenario is the following:
+ * @given
+ * 1. Base block (last finalized one) in graph is BlockInfo{4, "C"_H}
+ * 2. Best block (the one that Alice is trying to finalize) is BlockInfo{10,
+ * "FC"_H}
+ * 3. Last round state with:
+ * prevote_ghost = Prevote{3, "B"_H}
+ * estimate = BlockInfo{4, "C"_H}
+ * finalized = BlockInfo{3, "B"_H}
+ * 4. Peers:
+ * Alice with weight 4 (primary),
+ * Bob with weight 7 and
+ * Eve with weight 3
+ *
+ * @when
+ * The following test scenario is executed:
+ * 1. Alice proposes BlockInfo{4, "C"_H} (last round's estimate)
+ * 2. Everyone receive primary propose
+ * 3. Alice prevotes Prevote{10, "FC"_H} which is the best chain containing
+ * primary vote
+ * 4. Everyone receive Prevote{10, "FC"_H} and send their prevotes for the same
+ * block
+ * 5. Alice precommits Precommit{10, "FC"_H} which is prevote_ghost for the
+ * current round
+ * 6. Everyone receive Precommit{10, "FC"_H} and send their precommit for the
+ * same round
+ * 7. Alice receives enough precommits to commit Precommit{10, "FC"_H}
+ * 8. Round completes with round state containing `prevote_ghost`, `estimate`
+ * and `finalized` equal to the best block that Alice voted for
+ */
+TEST_F(VotingRoundTest, Equivocation) {
   EXPECT_CALL(*env_, finalize(_, _))
       .Times(AnyNumber())
       .WillRepeatedly(Return(outcome::success()));
