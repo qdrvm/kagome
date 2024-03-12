@@ -14,6 +14,8 @@
 #include "application/app_configuration.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/impl/sassafras_error.hpp"
@@ -85,8 +87,8 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      const ThreadPool &thread_pool,
-      std::shared_ptr<boost::asio::io_context> main_thread)
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
       : log_(log::createLogger("Sassafras", "sassafras")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -104,8 +106,8 @@ namespace kagome::consensus {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_thread_(std::move(main_thread)),
-        io_context_(thread_pool.io_context()),
+        main_pool_handler_(std::move(main_pool_handler)),
+        worker_pool_handler_(std::move(worker_pool_handler)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(sassafras_config_repo_);
@@ -120,8 +122,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
-    BOOST_ASSERT(main_thread_);
-    BOOST_ASSERT(io_context_);
+    BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -384,10 +386,10 @@ namespace kagome::consensus {
           return;
         }
       };
-      main_thread_->post(std::move(proposed));
+      self->main_pool_handler_->execute(std::move(proposed));
     };
 
-    io_context_->post(std::move(propose));
+    worker_pool_handler_->execute(std::move(propose));
 
     return outcome::success();
   }
@@ -411,7 +413,8 @@ namespace kagome::consensus {
               storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
-              }));
+              }),
+              crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
         }(),

@@ -20,7 +20,6 @@ namespace kagome::crypto {
   class EcdsaProvider;
   class Ed25519Provider;
   class Secp256k1Provider;
-  class BandersnatchProvider;
   class Hasher;
   class CryptoStore;
   struct KeyType;
@@ -276,7 +275,6 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
-    std::shared_ptr<const crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     log::Logger logger_;

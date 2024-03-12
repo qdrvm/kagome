@@ -13,7 +13,6 @@
 #include <boost/assert.hpp>
 #include <span>
 
-#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_provider.hpp"

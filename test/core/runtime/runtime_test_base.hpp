@@ -105,7 +105,6 @@ class RuntimeTestBase : public ::testing::Test {
         ecdsa_provider,
         ed25519_provider,
         sr25519_provider,
-        bandersnatch_provider,
         secp256k1_provider,
         elliptic_curves,
         hasher_,
