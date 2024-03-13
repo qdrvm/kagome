@@ -297,7 +297,7 @@ namespace kagome::consensus::babe {
     auto &config = config_res.value();
 
     const auto &authorities = config->authorities;
-    auto authority = authorities[authority_index].id;
+    const auto &authority = authorities[authority_index].id;
 
     // TODO(xDimon):
     //  Make sense to get data of both blocks and check it for equality

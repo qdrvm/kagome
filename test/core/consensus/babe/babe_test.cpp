@@ -84,6 +84,8 @@ using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BabeLotteryMock;
 using kagome::consensus::babe::DigestError;
+using kagome::consensus::babe::EquivocationProof;
+using kagome::consensus::babe::OpaqueKeyOwnershipProof;
 using kagome::consensus::babe::Randomness;
 using kagome::consensus::babe::SlotLeadership;
 using kagome::consensus::babe::SlotType;
@@ -135,12 +137,12 @@ namespace kagome::primitives {
   }
 }  // namespace kagome::primitives
 
-static Digest make_digest(SlotNumber slot) {
+static Digest make_digest(SlotNumber slot, AuthorityIndex authority_index = 0) {
   Digest digest;
 
   BabeBlockHeader babe_header{
       .slot_assignment_type = SlotType::SecondaryPlain,
-      .authority_index = 0,
+      .authority_index = authority_index,
       .slot_number = slot,
   };
   Buffer encoded_header{scale::encode(babe_header).value()};
@@ -470,4 +472,54 @@ TEST_F(BabeTest, SlotLeader) {
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
   latch.wait();
+}
+
+TEST_F(BabeTest, EquivocationReport) {
+  SlotNumber slot = 1;
+  AuthorityIndex authority_index = 1;
+  const AuthorityId &authority_id =
+      babe_config->authorities[authority_index].id;
+
+  BlockHeader first{
+      1,                                   // number
+      "parent"_hash256,                    // parent
+      {},                                  // state_root
+      {},                                  // extrinsic_root
+      make_digest(slot, authority_index),  // digest
+      "block_#1_first"_hash256             // hash
+  };
+  BlockHeader second{
+      1,                                   // number
+      "parent"_hash256,                    // parent
+      {},                                  // state_root
+      {},                                  // extrinsic_root
+      make_digest(slot, authority_index),  // digest
+      "block_#1_second"_hash256            // hash
+  };
+
+  OpaqueKeyOwnershipProof ownership_proof{"ownership_proof"_bytes};
+
+  EquivocationProof equivocation_proof{
+      .offender = authority_id,
+      .slot = slot,
+      .first_header = first,
+      .second_header = second,
+  };
+
+  ON_CALL(*block_tree, getBlockHeader(first.hash()))
+      .WillByDefault(Return(first));
+  ON_CALL(*block_tree, getBlockHeader(second.hash()))
+      .WillByDefault(Return(second));
+  ON_CALL(*slots_util, slotToEpoch(_, _))
+      .WillByDefault(Return(outcome::success(0)));
+  EXPECT_CALL(*babe_api, generate_key_ownership_proof(_, _, _))
+      .WillOnce(Return(outcome::success(ownership_proof)));
+
+  EXPECT_CALL(*babe_api,
+              submit_report_equivocation_unsigned_extrinsic(
+                  "parent"_hash256, equivocation_proof, ownership_proof))
+      .WillOnce(Return(outcome::success()));
+
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      babe->reportEquivocation(first.hash(), second.hash()));
 }
