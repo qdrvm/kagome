@@ -44,7 +44,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const CompartmentWrapper> compartment,
         const common::Hash256 &code_hash);
 
-    const common::Hash256 &getCodeHash() const override {
+    common::Hash256 getCodeHash() const override {
       return code_hash_;
     }
 

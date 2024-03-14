@@ -20,5 +20,7 @@ namespace kagome::runtime {
                 make,
                 (common::BufferView),
                 (const, override));
+
+    MOCK_METHOD(bool, testDontInstrument, (), (const, override));
   };
 }  // namespace kagome::runtime

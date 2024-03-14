@@ -117,7 +117,7 @@ namespace kagome::runtime::wasm_edge {
       BOOST_ASSERT(executor_ != nullptr);
     }
 
-    const common::Hash256 &getCodeHash() const override {
+    common::Hash256 getCodeHash() const override {
       return code_hash_;
     }
 

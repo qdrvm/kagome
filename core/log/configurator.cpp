@@ -101,14 +101,15 @@ groups:
                   - name: warp_sync_protocol
                   - name: parachain_protocols
                     children:
-                      - name: collation_protocol
-                      - name: validation_protocol
+                      - name: collation_protocol_vstaging
+                      - name: validation_protocol_vstaging
                       - name: req_collation_protocol
                       - name: req_chunk_protocol
                       - name: req_available_data_protocol
                       - name: req_statement_protocol
                       - name: req_pov_protocol
                       - name: dispute_protocol
+                      - name: req_attested_candidate_protocol
           - name: changes_trie
           - name: storage
             children:

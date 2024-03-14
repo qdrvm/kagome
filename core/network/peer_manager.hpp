@@ -193,6 +193,8 @@ namespace kagome::network {
      */
     virtual std::optional<std::reference_wrapper<PeerState>> getPeerState(
         const PeerId &peer_id) = 0;
+    virtual std::optional<std::reference_wrapper<const PeerState>> getPeerState(
+        const PeerId &peer_id) const = 0;
 
     /**
      * @returns number of active peers

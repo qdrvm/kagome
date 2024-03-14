@@ -34,7 +34,7 @@ namespace kagome::runtime::binaryen {
                        std::shared_ptr<RuntimeExternalInterface> rei,
                        const common::Hash256 &code_hash);
 
-    const common::Hash256 &getCodeHash() const override {
+    common::Hash256 getCodeHash() const override {
       return code_hash_;
     }
 

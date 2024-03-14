@@ -98,7 +98,7 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(Return(outcome::success()));
     static const auto code_hash = "code_hash"_hash256;
     EXPECT_CALL(*module_instance, getCodeHash())
-        .WillRepeatedly(ReturnRef(code_hash));
+        .WillRepeatedly(Return(code_hash));
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*module_instance,
                 callExportFunction(_, std::string_view{"addTwo"}, _))

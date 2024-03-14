@@ -18,7 +18,7 @@ namespace kagome::runtime {
   class Module;
 
   struct CompilationError : std::runtime_error {
-    CompilationError(const std::string& message)
+    CompilationError(const std::string &message)
         : std::runtime_error(message.c_str()) {}
 
     std::string_view message() const {
@@ -40,6 +40,10 @@ namespace kagome::runtime {
 
     virtual outcome::result<std::shared_ptr<Module>, CompilationError> make(
         common::BufferView code) const = 0;
+
+    virtual bool testDontInstrument() const {
+      return false;
+    }
   };
 
 }  // namespace kagome::runtime

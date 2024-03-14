@@ -32,7 +32,7 @@ namespace kagome::runtime {
       }
     }
 
-    const common::Hash256 &getCodeHash() const override {
+    common::Hash256 getCodeHash() const override {
       return instance_->getCodeHash();
     }
 
@@ -71,10 +71,8 @@ namespace kagome::runtime {
   };
 
   RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
-      std::shared_ptr<ModuleFactory> module_factory,
-      size_t capacity)
-      : module_factory_{std::move(module_factory)},
-        pools_{capacity} {
+      std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
+      : module_factory_{std::move(module_factory)}, pools_{capacity} {
     BOOST_ASSERT(module_factory_);
   }
 
@@ -126,7 +124,8 @@ namespace kagome::runtime {
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
-      if (config.memory_limits.max_stack_values_num) {
+      if (not module_factory_->testDontInstrument()
+          and config.memory_limits.max_stack_values_num) {
         auto instr_res = instrumentWithStackLimiter(
             code, *config.memory_limits.max_stack_values_num);
         if (!instr_res) {
@@ -137,9 +136,10 @@ namespace kagome::runtime {
         }
       }
       if (!res) {
-        res = common::map_result(module_factory_->make(code), [](auto &&module) {
-          return std::shared_ptr<const Module>(module);
-        });
+        res =
+            common::map_result(module_factory_->make(code), [](auto &&module) {
+              return std::shared_ptr<const Module>(module);
+            });
       }
     }
     l.lock();
