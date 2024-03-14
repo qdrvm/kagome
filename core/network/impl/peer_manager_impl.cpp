@@ -581,6 +581,15 @@ namespace kagome::network {
     return it->second;
   }
 
+  std::optional<std::reference_wrapper<const PeerState>>
+  PeerManagerImpl::getPeerState(const PeerId &peer_id) const {
+    auto it = peer_states_.find(peer_id);
+    if (it == peer_states_.end()) {
+      return std::nullopt;
+    }
+    return it->second;
+  }
+
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
     // Ignore himself
     if (isSelfPeer(peer_id)) {
@@ -744,17 +753,6 @@ namespace kagome::network {
                        validation_protocol->protocolName(),
                        peer_id,
                        stream_result.error().message());
-              auto ps = self->getPeerState(peer_info.id);
-              if (ps) {
-                self->tryOpenValidationProtocol(
-                    peer_info, ps->get(), network::CollationVersion::V1);
-              } else {
-                SL_TRACE(
-                    self->log_,
-                    "No peer state to open V1 validation protocol {} with {}",
-                    validation_protocol->protocolName(),
-                    peer_id);
-              }
               return;
             }
 
@@ -839,11 +837,13 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    auto proto_val_vstaging = router_->getValidationProtocolVStaging();
-    BOOST_ASSERT_MSG(proto_val_vstaging,
-                     "Router did not provide validation protocol vstaging");
+    if (auto ps = getPeerState(peer_id); ps && ps->get().roles.flags.authority) {
+      auto proto_val_vstaging = router_->getValidationProtocolVStaging();
+      BOOST_ASSERT_MSG(proto_val_vstaging,
+                      "Router did not provide validation protocol vstaging");
 
-    stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
+      stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
+    }
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {

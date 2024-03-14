@@ -139,6 +139,8 @@ namespace kagome::network {
     /** @see PeerManager::getPeerState */
     std::optional<std::reference_wrapper<PeerState>> getPeerState(
         const PeerId &peer_id) override;
+    std::optional<std::reference_wrapper<const PeerState>> getPeerState(
+        const PeerId &peer_id) const override;
 
    private:
     /// Right way to check self peer as it takes into account dev mode

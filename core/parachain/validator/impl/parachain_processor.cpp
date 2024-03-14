@@ -527,7 +527,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::broadcastViewExcept(
       const libp2p::peer::PeerId &peer_id, const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(
         router_->getValidationProtocolVStaging(),
@@ -568,7 +568,7 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(msg);
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(msg);
       SL_TRACE(
           logger_,
           "Broadcasting view update to group.(relay_parent={}, group_size={})",
@@ -587,7 +587,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
@@ -2822,7 +2822,7 @@ namespace kagome::parachain {
         peer_id,
         protocol,
         std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{.view = my_view->get().view}));
   }
 
