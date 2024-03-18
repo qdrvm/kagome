@@ -224,6 +224,7 @@ namespace kagome::runtime {
     session_info_.erase(blocks);
     dmq_contents_.erase(blocks);
     inbound_hrmp_channels_contents_.erase(blocks);
+    disabled_validators_.erase(blocks);
   }
 
   outcome::result<std::optional<std::vector<ExecutorParam>>>
@@ -289,6 +290,13 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<uint32_t>(ctx,
                                      "ParachainHost_minimum_backing_votes");
+  }
+
+  outcome::result<std::vector<ValidatorIndex>>
+  ParachainHostImpl::disabled_validators(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::vector<ValidatorIndex>>(
+        ctx, "ParachainHost_disabled_validators");
   }
 
 }  // namespace kagome::runtime
