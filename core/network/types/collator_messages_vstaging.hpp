@@ -119,6 +119,11 @@ namespace kagome::network::vstaging {
 
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
 
+  enum StatementKind {
+      Seconded,
+      Valid,
+  };
+
   struct StatementFilter {
     SCALE_TIE(2);
 
@@ -131,6 +136,31 @@ namespace kagome::network::vstaging {
     StatementFilter(size_t len) {
       seconded_in_group.bits.assign(len, false);
       validated_in_group.bits.assign(len, false);
+    }
+
+    bool contains(size_t index, StatementKind statement_kind) {
+        switch (statement_kind) {
+            case StatementKind::Seconded:
+                return index < seconded_in_group.bits.size() && seconded_in_group.bits[index];
+            case StatementKind::Valid:
+                return index < validated_in_group.bits.size() && validated_in_group.bits[index];
+        }
+        return false;
+    }
+
+    void set(size_t index, StatementKind statement_kind) {
+        switch (statement_kind) {
+            case StatementKind::Seconded:
+                if (index < seconded_in_group.bits.size()) {
+                    seconded_in_group.bits[index] = true;
+                }
+                break;
+            case StatementKind::Valid:
+                if (index < validated_in_group.bits.size()) {
+                    validated_in_group.bits[index] = true;
+                }
+                break;
+        }
     }
   };
 

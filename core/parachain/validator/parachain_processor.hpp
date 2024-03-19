@@ -269,11 +269,7 @@ namespace kagome::parachain {
       Hash relay_parent;
     };
 
-    struct ManifestSummary {
-      Hash claimed_parent_hash;
-      GroupIndex claimed_group_index;
-      network::vstaging::StatementFilter statement_knowledge;
-    };
+    using ManifestSummary = parachain::grid::ManifestSummary;
 
     struct ManifestImportSuccess {
       bool acknowledge;

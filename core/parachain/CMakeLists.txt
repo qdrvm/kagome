@@ -4,6 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(grid_tracker
+    backing/grid_tracker.cpp
+    )
+
+target_link_libraries(grid_tracker
+    )
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -27,6 +34,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
+    grid_tracker
     crypto_store
     dispute_coordinator
     module_repository
