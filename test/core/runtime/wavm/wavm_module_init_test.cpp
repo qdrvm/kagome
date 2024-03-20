@@ -134,7 +134,6 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
             offchain_persistent_storage,
             offchain_worker_pool);
 
-    auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
     auto cache =
         std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 

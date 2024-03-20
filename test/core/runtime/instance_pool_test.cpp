@@ -26,6 +26,7 @@ using kagome::runtime::ModuleMock;
 using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;
+using testing::Return;
 
 RuntimeInstancesPool::CodeHash make_code_hash(int i) {
   return RuntimeInstancesPool::CodeHash::fromString(
@@ -54,6 +55,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
         times_make_called++;
         return module_mock;
       }));
+  EXPECT_CALL(*module_factory, testDontInstrument())
+      .WillRepeatedly(Return(true));
 
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
@@ -66,8 +69,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
     threads.emplace_back([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
           pool->instantiateFromCode(make_code_hash(i % POOL_SIZE),
-                                   code,
-                                   RuntimeContext::ContextParams{{{}, {}}}));
+                                    code,
+                                    RuntimeContext::ContextParams{{{}, {}}}));
     });
   }
 
@@ -82,8 +85,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   for (int i = 0; i < POOL_SIZE; i++) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         pool->instantiateFromCode(make_code_hash(i),
-                                 code.view(),
-                                 RuntimeContext::ContextParams{{{}, {}}}));
+                                  code.view(),
+                                  RuntimeContext::ContextParams{{{}, {}}}));
   }
   ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

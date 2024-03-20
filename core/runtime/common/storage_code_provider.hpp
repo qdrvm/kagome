@@ -31,8 +31,7 @@ namespace kagome::runtime {
         std::shared_ptr<const CodeSubstituteBlockIds> code_substitutes,
         std::shared_ptr<application::ChainSpec> chain_spec);
 
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &state) const override;
+    Result getCodeAt(const storage::trie::RootHash &state) const override;
 
    private:
     outcome::result<common::Buffer> setCodeFromBatch(
@@ -41,7 +40,7 @@ namespace kagome::runtime {
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
-    mutable common::Buffer cached_code_;
+    mutable Code cached_code_;
     mutable storage::trie::RootHash last_state_root_;
     log::Logger logger_;
     mutable std::mutex mutex_;

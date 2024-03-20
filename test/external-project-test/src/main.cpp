@@ -180,8 +180,6 @@ int main() {
 
   auto cache = std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 
-  auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
-
   auto instance_env_factory =
       std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
           trie_storage, serializer, host_api_factory);
@@ -195,9 +193,10 @@ int main() {
           module_factory);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
+      hasher,
       runtime_upgrade_tracker,
+      trie_storage,
       module_factory,
-      smc,
       code_provider);
 
   [[maybe_unused]] auto ctx_factory =

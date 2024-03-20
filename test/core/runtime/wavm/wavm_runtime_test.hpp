@@ -49,17 +49,12 @@ class WavmRuntimeTest : public RuntimeTestBase {
             trie_storage_,
             serializer_,
             intrinsic_module,
-            std::make_shared<kagome::runtime::SingleModuleCache>(),
             std::nullopt,
             hasher_);
 
-
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-            trie_storage_,
-            serializer_,
-            host_api_factory_,
-            module_factory);
+            trie_storage_, serializer_, host_api_factory_, module_factory);
 
     return module_factory;
   }

@@ -25,7 +25,6 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
-#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
@@ -126,7 +125,6 @@ class RuntimeTestBase : public ::testing::Test {
     initStorage();
     trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
     serializer_ = std::make_shared<storage::trie::TrieSerializerMock>();
-    hasher_ = std::make_shared<crypto::HasherMock>();
 
     auto buffer_storage = std::make_shared<storage::InMemoryStorage>();
     auto spaced_storage = std::make_shared<storage::SpacedStorageMock>();
@@ -156,11 +154,11 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-            module_factory),
+        std::make_shared<runtime::RuntimeInstancesPoolImpl>(module_factory),
+        hasher_,
         upgrade_tracker,
+        trie_storage_,
         module_factory,
-        std::make_shared<runtime::SingleModuleCache>(),
         wasm_provider_);
 
     ctx_factory_ = std::make_shared<runtime::RuntimeContextFactoryImpl>(
@@ -204,7 +202,8 @@ class RuntimeTestBase : public ::testing::Test {
       return cursor;
     }));
     static auto heappages_key = ":heappages"_buf;
-    EXPECT_CALL(batch, tryGetMock(heappages_key.view()));
+    EXPECT_CALL(batch, tryGetMock(heappages_key.view()))
+        .Times(testing::AnyNumber());
   }
 
   primitives::BlockHeader createBlockHeader(const primitives::BlockHash &hash,
@@ -249,6 +248,6 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<runtime::RuntimeContextFactoryImpl> ctx_factory_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;
   std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
-  std::shared_ptr<crypto::Hasher> hasher_;
+  std::shared_ptr<crypto::HasherImpl> hasher_;
   std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
 };

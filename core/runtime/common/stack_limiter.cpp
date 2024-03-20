@@ -13,10 +13,46 @@
 #include <wabt/binary-reader-ir.h>
 #include <wabt/binary-reader.h>
 #include <wabt/binary-writer.h>
+#include <wabt/error-formatter.h>
 #include <wabt/ir.h>
 #include <wabt/validator.h>
 
 namespace kagome::runtime {
+  WabtOutcome<void> wabtTry(auto &&f) {
+    wabt::Errors errors;
+    if (wabt::Failed(f(errors))) {
+      return StackLimiterError{
+          wabt::FormatErrorsToString(errors, wabt::Location::Type::Binary)};
+    }
+    return outcome::success();
+  }
+
+  WabtOutcome<void> wabtDecode(wabt::Module &module, common::BufferView code) {
+    return wabtTry([&](wabt::Errors &errors) {
+      return wabt::ReadBinaryIr(
+          "",
+          code.data(),
+          code.size(),
+          wabt::ReadBinaryOptions({}, nullptr, true, false, false),
+          &errors,
+          &module);
+    });
+  }
+
+  WabtOutcome<void> wabtValidate(const wabt::Module &module) {
+    return wabtTry([&](wabt::Errors &errors) {
+      return wabt::ValidateModule(&module, &errors, wabt::ValidateOptions{});
+    });
+  }
+
+  WabtOutcome<common::Buffer> wabtEncode(const wabt::Module &module) {
+    wabt::MemoryStream s;
+    if (wabt::Failed(wabt::WriteBinaryModule(
+            &s, &module, wabt::WriteBinaryOptions({}, false, false, true)))) {
+      return StackLimiterError{"Failed to serialize WASM module"};
+    }
+    return common::Buffer{std::move(s.output_buffer().data)};
+  }
 
   namespace detail {
 
@@ -234,7 +270,9 @@ namespace kagome::runtime {
         do {
           auto &frame = frames_.back();
           is_over = frame.getExprList().end() == frame.current_expr;
-          if (!is_over) ++frame.current_expr;
+          if (!is_over) {
+            ++frame.current_expr;
+          }
           is_over = frame.getExprList().end() == frame.current_expr;
           if (is_over) {
             if (std::holds_alternative<typename StackFrame::Branch>(
@@ -305,7 +343,7 @@ namespace kagome::runtime {
       uint32_t max_height = 0;
 
       while (!stack.empty()) {
-        auto& top_frame = *stack.top_frame();
+        auto &top_frame = *stack.top_frame();
         auto &expr = *top_frame.current_expr;
         SL_TRACE(logger, "{}", wabt::GetExprTypeName(expr.type()));
         using wabt::ExprType;
@@ -510,8 +548,8 @@ namespace kagome::runtime {
     };
 
     wabt::ExprList::iterator instrument_call(const InstrumentCallCtx &ctx,
-                         wabt::ExprList &exprs,
-                         wabt::ExprList::iterator call_it) {
+                                             wabt::ExprList &exprs,
+                                             wabt::ExprList::iterator call_it) {
       exprs.insert(call_it,
                    std::make_unique<wabt::GlobalGetExpr>(ctx.stack_height));
       exprs.insert(call_it,
@@ -741,27 +779,15 @@ namespace kagome::runtime {
       return outcome::success();
     }
   }  // namespace detail
-  outcome::result<common::Buffer, StackLimiterError> instrumentWithStackLimiter(
-      common::BufferView uncompressed_wasm, const size_t stack_limit) {
-    auto logger = log::createLogger("StackLimiter", "runtime");
-    KAGOME_PROFILE_START_L(logger, read_ir);
-    wabt::Errors errors;
-    wabt::Module module;
-    wabt::ReadBinaryIr("",
-                       uncompressed_wasm.data(),
-                       uncompressed_wasm.size(),
-                       wabt::ReadBinaryOptions({}, nullptr, true, false, false),
-                       &errors,
-                       &module);
-    if (!errors.empty()) {
-      std::stringstream ss;
-      for (auto &e : errors) {
-        ss << e.message << "\n";
-      }
-      return StackLimiterError{ss.str()};
-    }
-    KAGOME_PROFILE_END_L(logger, read_ir);
 
+  auto &stackLimiterLog() {
+    static auto log = log::createLogger("StackLimiter", "runtime");
+    return log;
+  }
+
+  WabtOutcome<void> instrumentWithStackLimiter(wabt::Module &module,
+                                               size_t stack_limit) {
+    auto logger = stackLimiterLog();
     KAGOME_PROFILE_START_L(logger, count_costs);
     std::unordered_map<wabt::Index, uint32_t> func_costs;
     for (size_t i = 0; i < module.num_func_imports; i++) {
@@ -800,23 +826,106 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_END_L(logger, instrument_wasm);
 
-    if (wabt::Failed(
-            wabt::ValidateModule(&module, &errors, wabt::ValidateOptions{}))) {
-      std::stringstream ss;
-      for (auto &err : errors) {
-        ss << err.message;
-      }
-      return StackLimiterError{ss.str()};
-    }
+    OUTCOME_TRY(wabtValidate(module));
+    return outcome::success();
+  }
+
+  WabtOutcome<common::Buffer> instrumentWithStackLimiter(
+      common::BufferView uncompressed_wasm, size_t stack_limit) {
+    auto logger = stackLimiterLog();
+    KAGOME_PROFILE_START_L(logger, read_ir);
+    wabt::Module module;
+    OUTCOME_TRY(wabtDecode(module, uncompressed_wasm));
+    KAGOME_PROFILE_END_L(logger, read_ir);
+
+    OUTCOME_TRY(instrumentWithStackLimiter(module, stack_limit));
 
     KAGOME_PROFILE_START_L(logger, serialize_wasm);
-    wabt::MemoryStream s;
-    if (wabt::WriteBinaryModule(
-            &s, &module, wabt::WriteBinaryOptions({}, false, false, true))
-        != wabt::Result::Ok) {
-      return StackLimiterError{"Failed to serialize WASM module"};
+    return wabtEncode(module);
+  }
+
+  WabtOutcome<void> convertMemoryImportIntoExport(wabt::Module &module) {
+    for (auto it = module.fields.begin(); it != module.fields.end(); ++it) {
+      auto import = dynamic_cast<const wabt::ImportModuleField *>(&*it);
+      if (not import) {
+        continue;
+      }
+      auto memory = dynamic_cast<wabt::MemoryImport *>(import->import.get());
+      if (not memory) {
+        continue;
+      }
+      if (std::any_of(module.fields.begin(),
+                      module.fields.end(),
+                      [&](const wabt::ModuleField &field) {
+                        return field.type() == wabt::ModuleFieldType::Memory;
+                      })) {
+        return StackLimiterError{"unexpected MemoryModuleField"};
+      }
+      auto import_it = std::find(
+          module.imports.begin(), module.imports.end(), import->import.get());
+      if (import_it == module.imports.end()) {
+        return StackLimiterError{"inconsistent Module.imports"};
+      }
+      auto memory_it = std::find(
+          module.memories.begin(), module.memories.end(), &memory->memory);
+      if (memory_it == module.memories.end()) {
+        return StackLimiterError{"inconsistent Module.memories"};
+      }
+      auto memory2 = std::make_unique<wabt::MemoryModuleField>();
+      memory2->memory.page_limits = memory->memory.page_limits;
+      auto export_ = std::make_unique<wabt::ExportModuleField>();
+      export_->export_ = {
+          import->import->field_name,
+          wabt::ExternalKind::Memory,
+          wabt::Var{0, {}},
+      };
+      module.imports.erase(import_it);
+      module.memories.erase(memory_it);
+      module.fields.erase(it);
+      --module.num_memory_imports;
+      module.AppendField(std::move(memory2));
+      module.AppendField(std::move(export_));
+      break;
     }
-    KAGOME_PROFILE_END_L(logger, serialize_wasm);
-    return common::Buffer{std::move(s.output_buffer().data)};
+    return outcome::success();
+  }
+
+  WabtOutcome<void> setupMemoryAccordingToHeapAllocStrategy(
+      wabt::Module &module, const HeapAllocStrategy &config) {
+    for (auto it = module.fields.begin(); it != module.fields.end(); ++it) {
+      auto memory = dynamic_cast<wabt::MemoryModuleField *>(&*it);
+      if (not memory) {
+        continue;
+      }
+      auto &limit = memory->memory.page_limits;
+      auto init = limit.initial;
+      if (auto v = boost::get<HeapAllocStrategyDynamic>(&config)) {
+        if (auto &max = v->maximum_pages) {
+          limit = {std::min<uint64_t>(init, *max), *max};
+        } else {
+          limit = wabt::Limits{init};
+        }
+      } else {
+        auto max =
+            init + boost::get<HeapAllocStrategyStatic>(config).extra_pages;
+        limit = {max, max};
+      }
+    }
+    return outcome::success();
+  }
+
+  WabtOutcome<common::Buffer> prepareBlobForCompilation(
+      common::BufferView code, const MemoryLimits &config) {
+    wabt::Module module;
+    OUTCOME_TRY(wabtDecode(module, code));
+    if (config.max_stack_values_num) {
+      OUTCOME_TRY(
+          instrumentWithStackLimiter(module, *config.max_stack_values_num));
+    }
+    OUTCOME_TRY(convertMemoryImportIntoExport(module));
+    OUTCOME_TRY(setupMemoryAccordingToHeapAllocStrategy(
+        module, config.heap_alloc_strategy));
+    OUTCOME_TRY(wabtValidate(module));
+    return wabtEncode(module);
   }
 }  // namespace kagome::runtime
