@@ -14,61 +14,11 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
+#include "parachain/groups.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::parachain {
-
-  struct Groups {
-    std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> groups;
-    std::unordered_map<ValidatorIndex, GroupIndex> by_validator_index;
-    uint32_t backing_threshold;
-
-    Groups(std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> &&g, uint32_t bt)
-        : groups{std::move(g)}, backing_threshold{bt} {
-      for (const auto &[g, vxs] : groups) {
-        for (const auto &v : vxs) {
-          by_validator_index[v] = g;
-        }
-      }
-    }
-
-    Groups(const std::vector<std::vector<ValidatorIndex>> &grs, uint32_t bt) : backing_threshold{bt} {
-      for (GroupIndex g = 0; g < grs.size(); ++g) {
-        const auto &group = grs[g];
-        groups[g] = group;
-        for (const auto &v : group) {
-          by_validator_index[v] = g;
-        }
-      }
-    }
-
-    std::optional<GroupIndex> byValidatorIndex(
-        ValidatorIndex validator_index) const {
-      auto it = by_validator_index.find(validator_index);
-      if (it != by_validator_index.end()) {
-        return it->second;
-      }
-      return std::nullopt;
-    }
-
-    std::optional<std::span<ValidatorIndex>> get(GroupIndex group_index) {
-        auto group = groups.find(group_index);
-        if (group == groups.end()) {
-            return std::nullopt;
-        }
-        return group->second;
-    }
-
-    std::optional<std::tuple<size_t, size_t>> get_size_and_backing_threshold(GroupIndex group_index) {
-        auto group = get(group_index);
-        if (!group) {
-            return std::nullopt;
-        }
-        return std::make_tuple(group->size(), std::min(group->size(), size_t(backing_threshold)));
-    }
-
-  };
 
   struct ValidatorMeta {
     GroupIndex group;

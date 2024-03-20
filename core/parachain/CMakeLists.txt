@@ -9,6 +9,12 @@ add_library(grid_tracker
     )
 
 target_link_libraries(grid_tracker
+    fmt::fmt
+    scale::scale
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
     )
 
 add_library(validator_parachain

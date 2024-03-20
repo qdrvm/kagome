@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "crypto/hasher/hasher_impl.hpp"
-#include "parachain/backing/chacha.hpp"
+#include "crypto/chacha.hpp"
 
 namespace kagome::parachain::grid {
   /**

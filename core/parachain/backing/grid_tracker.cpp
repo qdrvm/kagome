@@ -6,52 +6,83 @@
 
 #include "parachain/backing/grid_tracker.hpp"
 
-namespace kagome {
-
-std::tuple<GroupIndex, parachain::CandidateHash, network::vstaging::StatementKind, size_t> extract_statement_and_group_info(
-    const Groups &groups,
-    ValidatorIndex originator,
-    const network::vstaging::CompactStatement &statement
-) {
-    network::vstaging::StatementKind statement_kind;
-    parachain::CandidateHash candidate_hash;
-
-    visit_in_place(
-        statement.inner_value,
-        [&]() {
-
-        },
-        [&]() {
-            
-        }
-    )
-    if (statement == CompactStatement::Seconded) {
-        statement_kind = network::vstaging::StatementKind::Seconded;
-    } else {
-        statement_kind = network::vstaging::StatementKind::Valid;
-    }
-    auto group = groups->byValidatorIndex(originator);
-    if (!group) {
-        throw std::runtime_error("Group not found");
-    }
-    auto index_in_group = groups->get(*group).value().index_of(originator);
-    return std::make_tuple(*group, candidate_hash, statement_kind, index_in_group);
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::grid,
+                            GridTracker::Error,
+                            e) {
+  using E = kagome::parachain::grid::GridTracker::Error;
+  switch (e) {
+    case E::DISALLOWED: return "Manifest disallowed";
+        case E::MALFORMED: return "Malformed";
+        case E::INSUFFICIENT: return "Insufficient";
+            case E::CONFLICTING: return "Conflicting";
+            case E::OVERFLOW: return "Overflow";
+  }
+  return "Unknown parachain grid tracker error";
 }
 
-std::vector<std::pair<ValidatorIndex, CompactStatement>> decompose_statement_filter(
-    Groups* groups,
-    GroupIndex group_index,
-    CandidateHash candidate_hash,
-    network::vstaging::StatementFilter statement_filter
+namespace kagome {
+
+std::optional<
+std::tuple<parachain::GroupIndex, parachain::CandidateHash, network::vstaging::StatementKind, size_t>> extract_statement_and_group_info(
+    const parachain::Groups &groups,
+    parachain::ValidatorIndex originator,
+    const network::vstaging::CompactStatement &statement
 ) {
-    auto group = groups->get(group_index);
-    std::vector<std::pair<ValidatorIndex, CompactStatement>> result;
-    for (auto& i : statement_filter.seconded_in_group.ones()) {
-        result.push_back({group[i], CompactStatement::Seconded});
+    parachain::CandidateHash candidate_hash;
+    network::vstaging::StatementKind statement_kind =
+    visit_in_place(
+        statement.inner_value,
+        [&](const network::vstaging::SecondedCandidateHash &) {
+            return network::vstaging::StatementKind::Seconded;
+        },
+        [&](const network::vstaging::ValidCandidateHash &) {
+            return network::vstaging::StatementKind::Valid;
+        }
+    );
+
+    auto group = groups->byValidatorIndex(originator);
+    if (!group) {
+        return {};
     }
-    for (auto& i : statement_filter.validated_in_group.ones()) {
-        result.push_back({group[i], CompactStatement::Valid});
+
+    auto s = groups.get(*group).value();
+    for (size_t ix = 0; ix < s.size(); ++ix) {
+        if (s[ix] == originator) {
+            return std::make_tuple(*group, candidate_hash, statement_kind, ix);
+        }
     }
+    return {};
+}
+
+std::vector<std::pair<parachain::ValidatorIndex, network::vstaging::CompactStatement>> decompose_statement_filter(
+    const parachain::Groups &groups,
+    parachain::GroupIndex group_index,
+    const parachain::CandidateHash &candidate_hash,
+    const network::vstaging::StatementFilter &statement_filter
+) {
+    auto group = groups.get(group_index);
+    if (!group) {
+        return {};
+    }
+
+    std::vector<std::pair<parachain::ValidatorIndex, network::vstaging::CompactStatement>> result;
+    auto count_ones = [&](const network::vstaging::CompactStatement &s, const scale::BitVec &bf) {
+        for (size_t ix = 0; ix < bf.bits.size(); ++ix) {
+            if (bf.bits[ix]) {
+                const auto v = (*group)[ix];
+                result.emplace_back(v, s);        
+            }
+        }
+    };
+
+    count_ones(network::vstaging::SecondedCandidateHash{
+        .hash = candidate_hash,
+    }, statement_filter.seconded_in_group);
+
+    count_ones(network::vstaging::ValidCandidateHash{
+        .hash = candidate_hash,
+    }, statement_filter.validated_in_group);
+
     return result;
 }
 
@@ -59,50 +90,61 @@ std::vector<std::pair<ValidatorIndex, CompactStatement>> decompose_statement_fil
 
 namespace kagome::parachain::grid {
 
-    void GridTracker::import_manifest(
-        SessionTopologyView* session_topology,
-        Groups* groups,
-        CandidateHash candidate_hash,
+    outcome::result<bool> GridTracker::import_manifest(
+        const SessionTopologyView &session_topology,
+        const Groups &groups,
+        const CandidateHash &candidate_hash,
         size_t seconding_limit,
-        ManifestSummary manifest,
+        const ManifestSummary &manifest,
         ManifestKind kind,
         ValidatorIndex sender
     ) {
-        auto claimed_group_index = manifest.claimed_group_index;
-        auto group_topology = session_topology->group_views[manifest.claimed_group_index];
-        auto receiving_from = group_topology.receiving.count(sender);
-        auto sending_to = group_topology.sending.count(sender);
+        const auto claimed_group_index = manifest.claimed_group_index;
+        if (claimed_group_index >= session_topology.size()) {
+            return Error::DISALLOWED;
+        }
+
+        const auto &group_topology = session_topology[manifest.claimed_group_index];
+        const auto receiving_from = group_topology.receiving.contains(sender);
+        const auto sending_to = group_topology.sending.contains(sender);
+
         bool manifest_allowed;
         if (kind == ManifestKind::Full) {
             manifest_allowed = receiving_from;
         } else if (kind == ManifestKind::Acknowledgement) {
-            manifest_allowed = sending_to && confirmed_backed[candidate_hash].has_sent_manifest_to(sender);
+            auto it = confirmed_backed.find(candidate_hash);
+            manifest_allowed = sending_to && it != confirmed_backed.end() && it->second.has_sent_manifest_to(sender);
         }
         if (!manifest_allowed) {
-            throw ManifestImportError::Disallowed;
+            return Error::DISALLOWED;
         }
-        auto group_size_backing_threshold = groups->get_size_and_backing_threshold(manifest.claimed_group_index);
+
+        auto group_size_backing_threshold = groups.get_size_and_backing_threshold(manifest.claimed_group_index);
         if (!group_size_backing_threshold) {
-            throw ManifestImportError::Malformed;
+            return Error::MALFORMED;
         }
-        auto [group_size, backing_threshold] = *group_size_backing_threshold;
+
+        const auto [group_size, backing_threshold] = *group_size_backing_threshold;
         auto remote_knowledge = manifest.statement_knowledge;
-        if (remote_knowledge.size() != group_size) {
-            throw ManifestImportError::Malformed;
+        if (!remote_knowledge.has_len(group_size)) {
+            return Error::MALFORMED;
         }
         if (!remote_knowledge.has_seconded()) {
-            throw ManifestImportError::Malformed;
+            return Error::MALFORMED;
         }
-        auto votes = remote_knowledge.backing_validators();
+
+        const auto votes = remote_knowledge.backing_validators();
         if (votes < backing_threshold) {
-            throw ManifestImportError::Insufficient;
+            return Error::INSUFFICIENT;
         }
-        received[sender].import_received(
+        if (auto error = received[sender].import_received(
             group_size,
             seconding_limit,
             candidate_hash,
             manifest
-        );
+        )) {
+            return *error;
+        }
         bool ack = false;
         auto confirmed = confirmed_backed.find(candidate_hash);
         if (confirmed != confirmed_backed.end()) {
@@ -111,37 +153,47 @@ namespace kagome::parachain::grid {
                 ack = true;
             }
             confirmed->second.manifest_received_from(sender, remote_knowledge);
-            auto pending_statements = confirmed->second.pending_statements(sender);
-            if (pending_statements) {
-                for (auto& statement : *pending_statements) {
-                    pending_statements[sender].insert(statement);
-                }
+            auto ps = confirmed->second.pending_statements(sender);
+            if (ps) {
+                auto e = decompose_statement_filter(
+                        groups,
+						claimed_group_index,
+						candidate_hash,
+						*ps
+                );
+                pending_statements[sender].insert(e.begin(), e.end());
             }
         } else {
-            unconfirmed[candidate_hash].push_back({sender, claimed_group_index});
+            unconfirmed[candidate_hash].emplace_back(sender, claimed_group_index);
         }
         return ack;
     }
 
     std::vector<std::pair<ValidatorIndex, ManifestKind>> GridTracker::add_backed_candidate(
-        SessionTopologyView* session_topology,
-        CandidateHash candidate_hash,
+        const SessionTopologyView &session_topology,
+        const CandidateHash &candidate_hash,
         GroupIndex group_index,
-        network::vstaging::StatementFilter local_knowledge
+        const network::vstaging::StatementFilter &local_knowledge
     ) {
         auto confirmed = confirmed_backed.find(candidate_hash);
         if (confirmed != confirmed_backed.end()) {
             return {};
         }
+
         confirmed_backed[candidate_hash] = KnownBackedCandidate {
-            group_index,
-            {},
-            local_knowledge
+            .group_index = group_index,
+            .local_knowledge = local_knowledge,
+            .mutual_knowledge = {},
         };
+
         auto& c = confirmed_backed[candidate_hash];
         std::vector<std::pair<ValidatorIndex, ManifestKind>> result;
-        auto unconfirmed_candidates = unconfirmed[candidate_hash];
-        unconfirmed.erase(candidate_hash);
+        std::vector<std::pair<ValidatorIndex, GroupIndex>> unconfirmed_candidates;
+        if (auto it = unconfirmed.find(candidate_hash); it != unconfirmed.end()) {
+            unconfirmed_candidates = std::move(it->second);
+            unconfirmed.erase(it);
+        }
+
         for (auto& [v, claimed_group_index] : unconfirmed_candidates) {
             if (claimed_group_index != group_index) {
                 continue;
@@ -152,10 +204,16 @@ namespace kagome::parachain::grid {
             }
             c.manifest_received_from(v, *statement_filter);
         }
-        auto group_topology = session_topology->group_views[group_index];
-        auto sending_group_manifests = group_topology.sending;
-        auto receiving_group_manifests = group_topology.receiving;
-        for (auto& v : sending_group_manifests) {
+
+        if (group_index >= session_topology.size()) {
+            return {};
+        }
+
+        const auto &group_topology = session_topology[group_index];
+        const auto &sending_group_manifests = group_topology.sending;
+        const auto &receiving_group_manifests = group_topology.receiving;
+
+        for (const auto& v : sending_group_manifests) {
             gum::trace!(
                 target: LOG_TARGET,
                 validator_index = ?v,
@@ -169,30 +227,35 @@ namespace kagome::parachain::grid {
                 pending_manifests[v][candidate_hash] = ManifestKind::Acknowledgement;
             }
         }
-        for (auto& [v, k] : pending_manifests) {
-            for (auto& [c, m] : k) {
-                result.push_back({v, m});
+        for (const auto& [v, k] : pending_manifests) {
+            if (auto it = k.find(candidate_hash); it != k.end()) {
+                result.emplace_back(v, it->second);
             }
         }
         return result;
     }
 
     void GridTracker::manifest_sent_to(
-        Groups* groups,
+        const Groups &groups,
         ValidatorIndex validator_index,
-        CandidateHash candidate_hash,
-        network::vstaging::StatementFilter local_knowledge
+        const CandidateHash &candidate_hash,
+        const network::vstaging::StatementFilter &local_knowledge
     ) {
         auto confirmed = confirmed_backed.find(candidate_hash);
         if (confirmed != confirmed_backed.end()) {
             confirmed->second.manifest_sent_to(validator_index, local_knowledge);
-            auto pending_statements = confirmed->second.pending_statements(validator_index);
-            if (pending_statements) {
-                for (auto& statement : *pending_statements) {
-                    pending_statements[validator_index].insert(statement);
-                }
+            auto ps = confirmed->second.pending_statements(validator_index);
+            if (ps) {
+                auto e = decompose_statement_filter(
+						groups,
+						c.group_index,
+						candidate_hash,
+						*ps
+					);
+                pending_statements[validator_index].insert(e.begin(), e.end());
             }
         }
+
         auto pending = pending_manifests.find(validator_index);
         if (pending != pending_manifests.end()) {
             pending->second.erase(candidate_hash);
@@ -243,7 +306,7 @@ namespace kagome::parachain::grid {
         return result;
     }
 
-    bool GridTracker::can_request(ValidatorIndex validator, CandidateHash candidate_hash) {
+    bool GridTracker::can_request(ValidatorIndex validator, const CandidateHash &candidate_hash) {
         auto confirmed = confirmed_backed.find(candidate_hash);
         if (confirmed == confirmed_backed.end()) {
             return false;
@@ -252,9 +315,9 @@ namespace kagome::parachain::grid {
     }
 
     std::vector<std::pair<ValidatorIndex, bool>> GridTracker::direct_statement_providers(
-        Groups* groups,
+        const Groups &groups,
         ValidatorIndex originator,
-        CompactStatement statement
+        const CompactStatement &statement
     ) {
         auto [g, c_h, kind, in_group] = extract_statement_and_group_info(groups, originator, statement);
         auto confirmed = confirmed_backed.find(c_h);
@@ -265,9 +328,9 @@ namespace kagome::parachain::grid {
     }
 
     std::vector<ValidatorIndex> GridTracker::direct_statement_targets(
-        Groups* groups,
+        const Groups &groups,
         ValidatorIndex originator,
-        CompactStatement statement
+        const CompactStatement &statement
     ) {
         auto [g, c_h, kind, in_group] = extract_statement_and_group_info(groups, originator, statement);
         auto confirmed = confirmed_backed.find(c_h);
@@ -278,10 +341,10 @@ namespace kagome::parachain::grid {
     }
 
     void GridTracker::learned_fresh_statement(
-        Groups* groups,
-        SessionTopologyView* session_topology,
+        const Groups &groups,
+        const SessionTopologyView &session_topology,
         ValidatorIndex originator,
-        CompactStatement statement
+        const CompactStatement &statement
     ) {
         auto [g, c_h, kind, in_group] = extract_statement_and_group_info(groups, originator, statement);
         auto confirmed = confirmed_backed.find(c_h);
@@ -291,8 +354,12 @@ namespace kagome::parachain::grid {
         if (!confirmed->second.note_fresh_statement(in_group, kind)) {
             return;
         }
-        auto all_group_validators = session_topology->group_views[g].sending + session_topology->group_views[g].receiving;
-        for (auto& v : all_group_validators) {
+        for (const auto v : session_topology[g].sending) {
+            if (confirmed->second.is_pending_statement(v, in_group, kind)) {
+                pending_statements[v].insert({originator, statement});
+            }
+        }
+        for (const auto v : session_topology[g].receiving) {
             if (confirmed->second.is_pending_statement(v, in_group, kind)) {
                 pending_statements[v].insert({originator, statement});
             }
@@ -300,10 +367,10 @@ namespace kagome::parachain::grid {
     }
 
     void GridTracker::sent_or_received_direct_statement(
-        Groups* groups,
+        const Groups &groups,
         ValidatorIndex originator,
         ValidatorIndex counterparty,
-        CompactStatement statement,
+        const CompactStatement &statement,
         bool received
     ) {
         auto [g, c_h, kind, in_group] = extract_statement_and_group_info(groups, originator, statement);
@@ -320,7 +387,7 @@ namespace kagome::parachain::grid {
 
     std::optional<network::vstaging::StatementFilter> GridTracker::advertised_statements(
         ValidatorIndex validator,
-        CandidateHash candidate_hash
+        const CandidateHash &candidate_hash
     ) {
         auto received = received.find(validator);
         if (received == received.end()) {
@@ -329,96 +396,162 @@ namespace kagome::parachain::grid {
         return received->second.candidate_statement_filter(candidate_hash);
     }
 
-    KnownBackedCandidate::KnownBackedCandidate(size_t index, size_t size) : group_index(index), local_knowledge(size) {}
-
     bool KnownBackedCandidate::has_received_manifest_from(size_t validator) {
         auto it = mutual_knowledge.find(validator);
-        return it != mutual_knowledge.end() && it->second.remote_knowledge != nullptr;
+        return it != mutual_knowledge.end() && it->second.remote_knowledge;
     }
 
     bool KnownBackedCandidate::has_sent_manifest_to(size_t validator) {
         auto it = mutual_knowledge.find(validator);
-        return it != mutual_knowledge.end() && it->second.local_knowledge != nullptr;
+        return it != mutual_knowledge.end() && it->second.local_knowledge;
     }
 
-    void KnownBackedCandidate::manifest_sent_to(size_t validator, network::vstaging::StatementFilter local_knowledge) {
+    void KnownBackedCandidate::manifest_sent_to(size_t validator, const network::vstaging::StatementFilter &local_knowledge) {
         MutualKnowledge& k = mutual_knowledge[validator];
-        k.received_knowledge = new network::vstaging::StatementFilter(local_knowledge.seconded_in_group.size());
-        k.local_knowledge = new network::vstaging::StatementFilter(local_knowledge.seconded_in_group.size());
-        *k.received_knowledge = network::vstaging::StatementFilter::blank(local_knowledge.seconded_in_group.size());
-        *k.local_knowledge = local_knowledge;
+        k.received_knowledge = network::vstaging::StatementFilter(local_knowledge.seconded_in_group.bits.size());
+        k.local_knowledge = local_knowledge;
     }
 
-    void KnownBackedCandidate::manifest_received_from(size_t validator, network::vstaging::StatementFilter remote_knowledge) {
+    void KnownBackedCandidate::manifest_received_from(size_t validator, const network::vstaging::StatementFilter &remote_knowledge) {
         MutualKnowledge& k = mutual_knowledge[validator];
-        k.remote_knowledge = new network::vstaging::StatementFilter(remote_knowledge.seconded_in_group.size());
-        *k.remote_knowledge = remote_knowledge;
+        k.remote_knowledge = remote_knowledge;
     }
 
-    std::vector<std::pair<size_t, bool>> KnownBackedCandidate::direct_statement_senders(size_t group_index, size_t originator_index_in_group, StatementKind statement_kind) {
+    std::vector<std::pair<size_t, bool>> KnownBackedCandidate::direct_statement_senders(size_t gi, size_t originator_index_in_group, const StatementKind &statement_kind) {
         std::vector<std::pair<size_t, bool>> senders;
-        if (group_index != this->group_index) {
+        if (gi != this->group_index) {
             return senders;
         }
         for (const auto& [v, k] : mutual_knowledge) {
-            if (k.remote_knowledge != nullptr && !k.received_knowledge->contains(originator_index_in_group, statement_kind)) {
-                bool local_knowledge_contains = k.local_knowledge != nullptr && k.local_knowledge->contains(originator_index_in_group, statement_kind);
+            if (k.remote_knowledge && !k.received_knowledge->contains(originator_index_in_group, statement_kind)) {
+                bool local_knowledge_contains = k.local_knowledge && k.local_knowledge->contains(originator_index_in_group, statement_kind);
                 senders.push_back(std::make_pair(v, local_knowledge_contains));
             }
         }
         return senders;
     }
 
-    std::vector<size_t> KnownBackedCandidate::direct_statement_recipients(size_t group_index, size_t originator_index_in_group, StatementKind statement_kind) {
+    std::vector<size_t> KnownBackedCandidate::direct_statement_recipients(size_t gi, size_t originator_index_in_group, const StatementKind &statement_kind) {
         std::vector<size_t> recipients;
-        if (group_index != this->group_index) {
+        if (gi != this->group_index) {
             return recipients;
         }
         for (const auto& [v, k] : mutual_knowledge) {
-            if (k.local_knowledge != nullptr && !k.remote_knowledge->contains(originator_index_in_group, statement_kind)) {
+            if (k.local_knowledge && !k.remote_knowledge->contains(originator_index_in_group, statement_kind)) {
                 recipients.push_back(v);
             }
         }
         return recipients;
     }
 
-    bool KnownBackedCandidate::note_fresh_statement(size_t statement_index_in_group, StatementKind statement_kind) {
+    bool KnownBackedCandidate::note_fresh_statement(size_t statement_index_in_group, const StatementKind &statement_kind) {
         bool really_fresh = !local_knowledge.contains(statement_index_in_group, statement_kind);
         local_knowledge.set(statement_index_in_group, statement_kind);
         return really_fresh;
     }
 
-    void KnownBackedCandidate::sent_or_received_direct_statement(size_t validator, size_t statement_index_in_group, StatementKind statement_kind, bool received) {
+    void KnownBackedCandidate::sent_or_received_direct_statement(size_t validator, size_t statement_index_in_group, const StatementKind &statement_kind, bool r) {
         auto it = mutual_knowledge.find(validator);
         if (it != mutual_knowledge.end()) {
-            if (it->second.remote_knowledge != nullptr && it->second.local_knowledge != nullptr) {
+            if (it->second.remote_knowledge && it->second.local_knowledge) {
                 it->second.remote_knowledge->set(statement_index_in_group, statement_kind);
                 it->second.local_knowledge->set(statement_index_in_group, statement_kind);
             }
-            if (received && it->second.received_knowledge != nullptr) {
+            if (r && it->second.received_knowledge) {
                 it->second.received_knowledge->set(statement_index_in_group, statement_kind);
             }
         }
     }
 
-    bool KnownBackedCandidate::is_pending_statement(size_t validator, size_t statement_index_in_group, StatementKind statement_kind) {
+    bool KnownBackedCandidate::is_pending_statement(size_t validator, size_t statement_index_in_group, const StatementKind &statement_kind) {
         auto it = mutual_knowledge.find(validator);
-        if (it != mutual_knowledge.end() && it->second.local_knowledge != nullptr && it->second.remote_knowledge != nullptr) {
+        if (it != mutual_knowledge.end() && it->second.local_knowledge && it->second.remote_knowledge) {
             return !it->second.remote_knowledge->contains(statement_index_in_group, statement_kind);
         }
         return false;
     }
 
-    StatementFilter* KnownBackedCandidate::pending_statements(size_t validator) {
-        StatementFilter* full_local = &local_knowledge;
+    std::optional<network::vstaging::StatementFilter>  KnownBackedCandidate::pending_statements(size_t validator) {
+        const StatementFilter &full_local = local_knowledge;
         auto it = mutual_knowledge.find(validator);
-        if (it != mutual_knowledge.end() && it->second.local_knowledge != nullptr && it->second.remote_knowledge != nullptr) {
-            StatementFilter* remote = it->second.remote_knowledge;
-            StatementFilter* result = new StatementFilter(full_local->seconded_in_group.size());
-            result->seconded_in_group = full_local->seconded_in_group & !remote->seconded_in_group;
-            result->validated_in_group = full_local->validated_in_group & !remote->validated_in_group;
+        if (it != mutual_knowledge.end() && it->second.local_knowledge && it->second.remote_knowledge) {
+            const StatementFilter &remote = *it->second.remote_knowledge;
+            network::vstaging::StatementFilter result(full_local.seconded_in_group.bits.size());
+            for (size_t i = 0; i < full_local.seconded_in_group.bits.size(); ++i) {
+                result.seconded_in_group.bits[i] = full_local.seconded_in_group.bits[i] && !remote->seconded_in_group.bits[i];    
+                result.validated_in_group.bits[i] = full_local.validated_in_group.bits[i] && !remote->validated_in_group.bits[i];
+            }
             return result;
         }
         return nullptr;
     }
+
+    std::optional<network::vstaging::StatementFilter> ReceivedManifests::candidate_statement_filter(const CandidateHash& candidate_hash) {
+        auto it = received.find(candidate_hash);
+        if (it != received.end()) {
+            return it->second.statement_knowledge; // Assuming clone is similar to copy
+        }
+        return std::nullopt;
+    }
+
+    std::optional<GridTracker::Error> ReceivedManifests::import_received(
+        size_t group_size,
+        size_t seconding_limit,
+        const CandidateHash& candidate_hash,
+        const ManifestSummary& manifest_summary
+    ) {
+        auto it = received.find(candidate_hash);
+        if (it != received.end()) {
+            // Entry is occupied
+            auto& prev = it->second;
+            if (prev.claimed_group_index != manifest_summary.claimed_group_index ||
+                prev.claimed_parent_hash != manifest_summary.claimed_parent_hash ||
+                !std::includes(manifest_summary.statement_knowledge.seconded_in_group.begin(), manifest_summary.statement_knowledge.seconded_in_group.end(), prev.statement_knowledge.seconded_in_group.begin(), prev.statement_knowledge.seconded_in_group.end()) ||
+                !std::includes(manifest_summary.statement_knowledge.validated_in_group.begin(), manifest_summary.statement_knowledge.validated_in_group.end(), prev.statement_knowledge.validated_in_group.begin(), prev.statement_knowledge.validated_in_group.end())) {
+                return GridTracker::Error::CONFLICTING;
+            }
+            auto fresh_seconded = manifest_summary.statement_knowledge.seconded_in_group;
+            // Assuming |= operation is similar to merging vectors
+            fresh_seconded.insert(fresh_seconded.end(), prev.statement_knowledge.seconded_in_group.begin(), prev.statement_knowledge.seconded_in_group.end());
+            bool within_limits = updating_ensure_within_seconding_limit(
+                seconded_counts,
+                manifest_summary.claimed_group_index,
+                group_size,
+                seconding_limit,
+                fresh_seconded
+            );
+            if (!within_limits) {
+                return GridTracker::Error::OVERFLOW;
+            }
+            it->second = manifest_summary;
+            return {}; // Assuming this represents Ok(())
+        } else {
+            // Entry is vacant
+            bool within_limits = updating_ensure_within_seconding_limit(
+                seconded_counts,
+                manifest_summary.claimed_group_index,
+                group_size,
+                seconding_limit,
+                manifest_summary.statement_knowledge.seconded_in_group
+            );
+            if (within_limits) {
+                received[candidate_hash] = manifest_summary;
+                return {};
+            } else {
+                return GridTracker::Error::OVERFLOW;
+            }
+        }
+    }
+
+    bool ReceivedManifests::updating_ensure_within_seconding_limit(
+        std::unordered_map<GroupIndex, std::vector<size_t>>& seconded_counts,
+        int claimed_group_index,
+        size_t group_size,
+        size_t seconding_limit,
+        const std::vector<bool>& fresh_seconded
+    ) {
+        // Implementation assumed
+        return true; // Placeholder
+    }
+
 }

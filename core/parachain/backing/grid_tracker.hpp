@@ -17,6 +17,8 @@
 
 #include "parachain/types.hpp"
 #include "parachain/backing/grid.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/groups.hpp"
 
 namespace kagome::parachain::grid {
 
@@ -33,18 +35,7 @@ struct ManifestSummary {
     network::vstaging::StatementFilter statement_knowledge;
 };
 
-enum class ManifestImportError {
-    Conflicting,
-    Overflow,
-    Insufficient,
-    Malformed,
-    Disallowed,
-};
-
-struct ReceivedManifests {
-    std::unordered_map<CandidateHash, ManifestSummary> received;
-    std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
-};
+class ReceivedManifests;
 
 struct MutualKnowledge {
     std::optional<network::vstaging::StatementFilter> remote_knowledge;
@@ -53,7 +44,15 @@ struct MutualKnowledge {
 };
 
 struct GridTracker {
-    void import_manifest(
+    enum class Error {
+      DISALLOWED = 1,
+      MALFORMED,
+      INSUFFICIENT,
+      CONFLICTING,
+      OVERFLOW
+    };
+
+    outcome::result<bool> import_manifest(
         const SessionTopologyView &session_topology,
         const Groups &groups,
         const CandidateHash &candidate_hash,
@@ -132,8 +131,34 @@ struct GridTracker {
     std::unordered_map<ValidatorIndex, std::unordered_set<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>> pending_statements;
 };
 
+class ReceivedManifests {
+    std::unordered_map<CandidateHash, ManifestSummary> received;
+    std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
+
+public:
+    std::optional<network::vstaging::StatementFilter> candidate_statement_filter(const CandidateHash& candidate_hash);
+
+    std::optional<GridTracker::Error> import_received(
+        size_t group_size,
+        size_t seconding_limit,
+        const CandidateHash& candidate_hash,
+        const ManifestSummary& manifest_summary
+    );
+
+private:
+    bool updating_ensure_within_seconding_limit(
+        std::unordered_map<GroupIndex, std::vector<size_t>>& seconded_counts,
+        int claimed_group_index,
+        size_t group_size,
+        size_t seconding_limit,
+        const std::vector<bool>& fresh_seconded
+    );
+};
+
 struct KnownBackedCandidate {
-    KnownBackedCandidate(size_t index, size_t size);
+    size_t group_index;
+    network::vstaging::StatementFilter local_knowledge;
+    std::unordered_map<size_t, MutualKnowledge> mutual_knowledge;
 
     bool has_received_manifest_from(size_t validator);
     bool has_sent_manifest_to(size_t validator);
@@ -148,11 +173,9 @@ struct KnownBackedCandidate {
     std::vector<std::pair<size_t, bool>> direct_statement_senders(size_t group_index, size_t originator_index_in_group, const network::vstaging::StatementKind &statement_kind);
     std::vector<size_t> direct_statement_recipients(size_t group_index, size_t originator_index_in_group, const network::vstaging::StatementKind &statement_kind);
     std::optional<network::vstaging::StatementFilter> pending_statements(size_t validator);
-
-private:
-    size_t group_index;
-    network::vstaging::StatementFilter local_knowledge;
-    std::unordered_map<size_t, MutualKnowledge> mutual_knowledge;
 };
 
 }
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::grid, GridTracker::Error);
+

@@ -138,6 +138,31 @@ namespace kagome::network::vstaging {
       validated_in_group.bits.assign(len, false);
     }
 
+		bool has_len(size_t len) const {
+			return seconded_in_group.bits.size() == len && validated_in_group.bits.size() == len;
+		}
+
+		bool has_seconded() const {
+      for (const auto x : seconded_in_group.bits) {
+        if (x) {
+          return true;
+        }
+      }
+      return false;
+		}
+
+		size_t backing_validators() const {
+      BOOST_ASSERT(seconded_in_group.bits.size() == validated_in_group.bits.size());
+
+      size_t count = 0;
+      for (size_t ix = 0; ix < seconded_in_group.bits.size(); ++ix) {
+        const auto s = seconded_in_group.bits[ix];
+        const auto v = validated_in_group.bits[ix];
+        count += size_t(s || v);
+      }
+      return count;
+		}
+
     bool contains(size_t index, StatementKind statement_kind) {
         switch (statement_kind) {
             case StatementKind::Seconded:
