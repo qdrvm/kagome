@@ -9,18 +9,22 @@
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
+#include "mock/core/runtime/babe_api_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 
+using kagome::application::AppStateManagerMock;
 using kagome::common::Buffer;
 using kagome::common::uint256_to_le_bytes;
+using kagome::consensus::AuthorityIndex;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
@@ -28,7 +32,6 @@ using kagome::consensus::Threshold;
 using kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::Authority;
 using kagome::consensus::babe::AuthorityId;
-using kagome::consensus::babe::AuthorityIndex;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeBlockValidatorImpl;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
@@ -52,6 +55,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
+using kagome::runtime::BabeApiMock;
 using Seal = kagome::consensus::babe::Seal;
 using ValidatingError =
     kagome::consensus::babe::BabeBlockValidatorImpl::ValidationError;
@@ -71,6 +75,7 @@ class BabeBlockValidatorTest : public testing::Test {
   }
 
   void SetUp() override {
+    app_state_manager = std::make_shared<AppStateManagerMock>();
     slots_util = std::make_shared<SlotsUtilMock>();
     ON_CALL(*slots_util, slotToEpoch(_, _)).WillByDefault(Return(1));
 
@@ -88,15 +93,20 @@ class BabeBlockValidatorTest : public testing::Test {
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
     vrf_provider = std::make_shared<VRFProviderMock>();
+    babe_api = std::make_shared<BabeApiMock>();
 
     block_validator = std::make_shared<BabeBlockValidatorImpl>(
+        app_state_manager,
         testutil::sptr_to_lazy<SlotsUtil>(slots_util),
         config_repo,
         hasher,
         sr25519_provider,
-        vrf_provider);
+        vrf_provider,
+        babe_api,
+        kagome::primitives::events::SyncStateSubscriptionEnginePtr{});
   }
 
+  std::shared_ptr<AppStateManagerMock> app_state_manager;
   std::shared_ptr<SlotsUtilMock> slots_util;
   std::shared_ptr<Sr25519Keypair> our_keypair;
   std::shared_ptr<Sr25519Keypair> other_keypair;
@@ -105,6 +115,7 @@ class BabeBlockValidatorTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher;
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider;
   std::shared_ptr<VRFProviderMock> vrf_provider;
+  std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<BabeBlockValidatorImpl> block_validator;
 
   // fields for block

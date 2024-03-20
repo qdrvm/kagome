@@ -23,7 +23,7 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   std::pair<uint64_t, uint64_t> c;
   c.first = 5;
   c.second = 17;
-  consensus::babe::AuthorityIndex authority_index{3};
+  consensus::AuthorityIndex authority_index{3};
   consensus::babe::Authorities authorities;
   authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 3});
   authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 1});

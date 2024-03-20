@@ -11,6 +11,7 @@
 #include "common/outcome_throw.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/types/authority.hpp"
+#include "consensus/timeline/types.hpp"
 
 namespace kagome::consensus::grandpa {
 

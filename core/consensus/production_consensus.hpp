@@ -14,7 +14,7 @@ namespace kagome::consensus {
 
   enum class ValidatorStatus {
     NonValidator = 0,
-    InactiveValidator,
+    DisabledValidator,
     Validator,
     SingleValidator,
   };

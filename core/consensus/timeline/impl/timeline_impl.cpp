@@ -52,7 +52,7 @@ namespace kagome::consensus {
           justification_observer,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
+      primitives::events::SyncStateSubscriptionEnginePtr state_sub_engine,
       std::shared_ptr<runtime::Core> core_api)
       : log_(log::createLogger("Timeline", "timeline")),
         app_state_manager_(std::move(app_state_manager)),
@@ -361,7 +361,7 @@ namespace kagome::consensus {
       return;
     }
 
-    // Start catching up if gap recognized
+    // Start catching up if a gap recognized
     if (current_state_ == SyncState::SYNCHRONIZED
         or current_state_ == SyncState::HEADERS_LOADED) {
       if (announce.header.number > current_best_block.number + 1) {
@@ -371,7 +371,7 @@ namespace kagome::consensus {
     }
 
     // Received announce that has the same block number as ours best,
-    // or greater by one. Using of simple way to load block
+    // or greater by one. Using a simple way to load block
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,

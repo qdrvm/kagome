@@ -38,6 +38,11 @@ namespace kagome::runtime {
                  consensus::babe::EquivocationProof,
                  consensus::babe::OpaqueKeyOwnershipProof),
                 (override));
+
+    MOCK_METHOD(outcome::result<std::vector<consensus::AuthorityIndex>>,
+                disabled_validators,
+                (const primitives::BlockHash &block),
+                (override));
   };
 
 }  // namespace kagome::runtime

@@ -8,6 +8,7 @@
 
 #include <latch>
 
+#include "application/app_state_manager.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -20,8 +21,8 @@
 #include "prepare_transcript.hpp"
 #include "primitives/inherent_data.hpp"
 #include "primitives/transcript.hpp"
+#include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
-#include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "threshold_util.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
@@ -29,8 +30,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             e) {
   using E = kagome::consensus::babe::BabeBlockValidatorImpl::ValidationError;
   switch (e) {
-    case E::NO_AUTHORITIES:
-      return "no authorities are provided for the validation";
+    case E::NO_VALIDATOR:
+      return "author of block is not active validator";
+    case E::DISABLED_VALIDATOR:
+      return "author of block is disabled validator";
     case E::INVALID_SIGNATURE:
       return "SR25519 signature, which is in BABE header, is invalid";
     case E::INVALID_VRF:
@@ -46,21 +49,51 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
 namespace kagome::consensus::babe {
 
   BabeBlockValidatorImpl::BabeBlockValidatorImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       LazySPtr<SlotsUtil> slots_util,
       std::shared_ptr<BabeConfigRepository> config_repo,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::VRFProvider> vrf_provider)
+      std::shared_ptr<crypto::VRFProvider> vrf_provider,
+      std::shared_ptr<runtime::BabeApi> babe_api,
+      primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable)
       : log_(log::createLogger("BabeBlockValidatorImpl", "babe")),
         slots_util_(std::move(slots_util)),
         config_repo_(std::move(config_repo)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),
-        vrf_provider_(std::move(vrf_provider)) {
+        vrf_provider_(std::move(vrf_provider)),
+        babe_api_(std::move(babe_api)),
+        sync_state_observable_(std::move(sync_state_observable)) {
     BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(vrf_provider_);
+    BOOST_ASSERT(babe_api_);
+    BOOST_ASSERT(sync_state_observable_);
+
+    app_state_manager->takeControl(*this);
+  }
+
+  void BabeBlockValidatorImpl::prepare() {
+    sync_state_observer_ =
+        std::make_shared<primitives::events::SyncStateEventSubscriber>(
+            sync_state_observable_, false);
+    sync_state_observer_->subscribe(
+        sync_state_observer_->generateSubscriptionSetId(),
+        primitives::events::SyncStateEventType::kSyncState);
+    sync_state_observer_->setCallback(
+        [wp{weak_from_this()}](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::SyncStateEventParams &event) mutable {
+          if (auto self = wp.lock()) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
+              self->was_synchronized_ = true;
+            }
+          }
+        });
   }
 
   outcome::result<void> BabeBlockValidatorImpl::validateHeader(
@@ -94,6 +127,10 @@ namespace kagome::consensus::babe {
              epoch_number,
              config.randomness);
 
+    if (babe_header.authority_index >= config.authorities.size()) {
+      return ValidationError::NO_VALIDATOR;
+    }
+
     auto threshold = calculateThreshold(config.leadership_rate,
                                         config.authorities,
                                         babe_header.authority_index);
@@ -104,6 +141,24 @@ namespace kagome::consensus::babe {
                        config.authorities[babe_header.authority_index].id,
                        threshold,
                        config));
+
+    // If we were synchronized,
+    // we have available runtime to check disabled validators
+    if (was_synchronized_) {
+      std::vector<AuthorityIndex> disabled_validators;
+      if (auto res = babe_api_->disabled_validators(block_header.parent_hash);
+          res.has_value()) {
+        SL_CRITICAL(log_,
+                    "Can't obtain disabled validators list for block {}",
+                    block_header.blockInfo());
+      }
+
+      if (std::binary_search(disabled_validators.begin(),
+                             disabled_validators.end(),
+                             babe_header.authority_index)) {
+        return ValidationError::DISABLED_VALIDATOR;
+      }
+    }
 
     return outcome::success();
   }
