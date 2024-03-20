@@ -71,8 +71,12 @@ namespace kagome::runtime {
   };
 
   RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
-      std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
-      : module_factory_{std::move(module_factory)}, pools_{capacity} {
+      std::shared_ptr<ModuleFactory> module_factory,
+      std::shared_ptr<InstrumentWasm> instrument,
+      size_t capacity)
+      : module_factory_{std::move(module_factory)},
+        instrument_{std::move(instrument)},
+        pools_{capacity} {
     BOOST_ASSERT(module_factory_);
   }
 
@@ -124,16 +128,12 @@ namespace kagome::runtime {
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
-      if (not module_factory_->testDontInstrument()
-          and config.memory_limits.max_stack_values_num) {
-        auto instr_res = instrumentWithStackLimiter(
-            code, *config.memory_limits.max_stack_values_num);
-        if (!instr_res) {
-          res = CompilationError{fmt::format(
-              "Failed to inject stack limiter: {}", instr_res.error().msg)};
-        } else {
-          code = std::move(instr_res.value());
-        }
+      auto instr_res = instrument_->instrument(code, config.memory_limits);
+      if (!instr_res) {
+        res = CompilationError{fmt::format("Failed to inject stack limiter: {}",
+                                           instr_res.error().msg)};
+      } else {
+        code = std::move(instr_res.value());
       }
       if (!res) {
         res =

@@ -11,6 +11,7 @@
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
+#include "runtime/types.hpp"
 
 namespace wabt {
   struct Module;
@@ -25,6 +26,9 @@ namespace kagome::runtime {
     }
     std::string msg;
   };
+
+  template <typename T>
+  using WabtOutcome = outcome::result<T, StackLimiterError>;
 
   // for tests
   namespace detail {
@@ -47,8 +51,14 @@ namespace kagome::runtime {
    * @param stack_limit - the global stack limit
    * @return patched code or error
    */
-  [[nodiscard]] outcome::result<common::Buffer, StackLimiterError>
-  instrumentWithStackLimiter(common::BufferView uncompressed_wasm,
-                             size_t stack_limit);
+  [[nodiscard]] WabtOutcome<common::Buffer> instrumentWithStackLimiter(
+      common::BufferView uncompressed_wasm, size_t stack_limit);
 
+  class InstrumentWasm {
+   public:
+    virtual ~InstrumentWasm() = default;
+
+    virtual WabtOutcome<common::Buffer> instrument(
+        common::BufferView code, const MemoryLimits &config) const;
+  };
 }  // namespace kagome::runtime

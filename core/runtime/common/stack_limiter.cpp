@@ -234,7 +234,9 @@ namespace kagome::runtime {
         do {
           auto &frame = frames_.back();
           is_over = frame.getExprList().end() == frame.current_expr;
-          if (!is_over) ++frame.current_expr;
+          if (!is_over) {
+            ++frame.current_expr;
+          }
           is_over = frame.getExprList().end() == frame.current_expr;
           if (is_over) {
             if (std::holds_alternative<typename StackFrame::Branch>(
@@ -305,7 +307,7 @@ namespace kagome::runtime {
       uint32_t max_height = 0;
 
       while (!stack.empty()) {
-        auto& top_frame = *stack.top_frame();
+        auto &top_frame = *stack.top_frame();
         auto &expr = *top_frame.current_expr;
         SL_TRACE(logger, "{}", wabt::GetExprTypeName(expr.type()));
         using wabt::ExprType;
@@ -510,8 +512,8 @@ namespace kagome::runtime {
     };
 
     wabt::ExprList::iterator instrument_call(const InstrumentCallCtx &ctx,
-                         wabt::ExprList &exprs,
-                         wabt::ExprList::iterator call_it) {
+                                             wabt::ExprList &exprs,
+                                             wabt::ExprList::iterator call_it) {
       exprs.insert(call_it,
                    std::make_unique<wabt::GlobalGetExpr>(ctx.stack_height));
       exprs.insert(call_it,
@@ -818,5 +820,14 @@ namespace kagome::runtime {
     }
     KAGOME_PROFILE_END_L(logger, serialize_wasm);
     return common::Buffer{std::move(s.output_buffer().data)};
+  }
+
+  WabtOutcome<common::Buffer> InstrumentWasm::instrument(
+      common::BufferView code, const MemoryLimits &config) const {
+    // TODO(turuslan): https://github.com/qdrvm/kagome/pull/2009
+    if (config.max_stack_values_num) {
+      return instrumentWithStackLimiter(code, *config.max_stack_values_num);
+    }
+    return common::Buffer{code};
   }
 }  // namespace kagome::runtime

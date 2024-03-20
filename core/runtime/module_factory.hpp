@@ -40,10 +40,6 @@ namespace kagome::runtime {
 
     virtual outcome::result<std::shared_ptr<Module>, CompilationError> make(
         common::BufferView code) const = 0;
-
-    virtual bool testDontInstrument() const {
-      return false;
-    }
   };
 
 }  // namespace kagome::runtime
