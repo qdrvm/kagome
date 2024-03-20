@@ -34,7 +34,6 @@
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
-#include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/inherent_data.hpp"
@@ -170,10 +169,26 @@ namespace kagome::consensus::babe {
     }
 
     const auto &authorities = config.value()->authorities;
-    if (session_keys_->getBabeKeyPair(authorities)) {
+    const auto &kp_opt = session_keys_->getBabeKeyPair(authorities);
+    if (kp_opt.has_value()) {
+      const auto &authority_index = kp_opt->second;
+      std::vector<AuthorityIndex> disabled_validators;
+      if (auto res = babe_api_->disabled_validators(block.hash);
+          res.has_value()) {
+        SL_CRITICAL(
+            log_, "Can't obtain disabled validators list for block {}", block);
+      }
+
       if (authorities.size() > 1) {
         return ValidatorStatus::Validator;
       }
+
+      if (std::binary_search(disabled_validators.begin(),
+                             disabled_validators.end(),
+                             authority_index)) {
+        return ValidatorStatus::DisabledValidator;
+      }
+
       return ValidatorStatus::SingleValidator;
     }
 
@@ -205,12 +220,10 @@ namespace kagome::consensus::babe {
     if (lottery_->getEpoch() != epoch) {
       is_active_validator_ = changeEpoch(epoch, best_block);
       metric_is_relaychain_validator_->set(is_active_validator_);
-      if (not is_active_validator_) {
-        if (is_validator_by_config_) {
-          SL_VERBOSE(log_,
-                     "Authority not known, skipping slot processing. "
-                     "Probably authority list has changed.");
-        }
+      if (not is_active_validator_ and is_validator_by_config_) {
+        SL_VERBOSE(log_,
+                   "Authority not known, skipping slot processing. "
+                   "Probably authority list has changed.");
       } else {
         SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
       }
@@ -218,7 +231,12 @@ namespace kagome::consensus::babe {
 
     if (not is_active_validator_) {
       SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
-      return SlotLeadershipError::NO_VALIDATOR;
+      return SlotLeadershipError::NON_VALIDATOR;
+    }
+
+    auto validator_status = getValidatorStatus(best_block, epoch);
+    if (validator_status == ValidatorStatus::DisabledValidator) {
+      return SlotLeadershipError::DISABLED_VALIDATOR;
     }
 
     if (not checkSlotLeadership(best_block, slot)) {

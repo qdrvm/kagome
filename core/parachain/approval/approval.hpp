@@ -139,7 +139,7 @@ namespace kagome::parachain::approval {
 
     std::reference_wrapper<crypto::VRFOutput> vrf_output;
     consensus::SlotNumber slot;
-    consensus::babe::AuthorityIndex authority_index;
+    consensus::AuthorityIndex authority_index;
 
     /// Get the slot.
     consensus::SlotNumber getSlot() const {

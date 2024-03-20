@@ -61,6 +61,7 @@ using kagome::common::BufferView;
 using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
 using kagome::common::WorkerThreadPool;
+using kagome::consensus::AuthorityIndex;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -75,7 +76,6 @@ using kagome::consensus::ValidatorStatus;
 using kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::Authority;
 using kagome::consensus::babe::AuthorityId;
-using kagome::consensus::babe::AuthorityIndex;
 using kagome::consensus::babe::Babe;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeBlockValidator;
@@ -404,7 +404,7 @@ TEST_F(BabeTest, NonValidator) {
             ValidatorStatus::NonValidator);
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::NO_VALIDATOR);
+                       SlotLeadershipError::NON_VALIDATOR);
 }
 
 TEST_F(BabeTest, NoSlotLeader) {
