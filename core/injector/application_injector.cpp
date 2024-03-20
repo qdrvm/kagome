@@ -85,8 +85,8 @@
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -670,7 +670,7 @@ namespace {
                   injector.template create<const crypto::Ed25519Provider &>();
               auto &csprng = injector.template create<crypto::CSPRNG &>();
               auto &crypto_store =
-                  injector.template create<crypto::CryptoStore &>();
+                  injector.template create<crypto::KeyStore &>();
               return injector::get_peer_keypair(
                   app_config, chain, crypto_provider, csprng, crypto_store);
             })[boost::di::override],
@@ -780,7 +780,7 @@ namespace {
 
               return get_key_file_storage(config, chain_spec);
             }),
-            di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
+            di::bind<crypto::KeyStore>.template to<crypto::KeyStoreImpl>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
             makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),

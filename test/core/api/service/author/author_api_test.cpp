@@ -13,15 +13,15 @@
 
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
-#include "crypto/crypto_store/key_file_storage.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/network/transactions_transmitter_mock.hpp"
 #include "mock/core/runtime/session_keys_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
@@ -105,7 +105,7 @@ struct AuthorApiTest : public ::testing::Test {
   using sptr = std::shared_ptr<T>;
 
   kagome::network::Roles role;
-  sptr<CryptoStoreMock> store;
+  sptr<KeyStoreMock> store;
   sptr<SessionKeys> keys;
   sptr<KeyFileStorage> key_store;
   Sr25519Keypair key_pair;
@@ -140,7 +140,7 @@ struct AuthorApiTest : public ::testing::Test {
           event_receiver->receive(set_id, session, id, event);
         });
 
-    store = std::make_shared<CryptoStoreMock>();
+    store = std::make_shared<KeyStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
     ASSERT_OUTCOME_SUCCESS_TRY(
@@ -211,7 +211,7 @@ TEST_F(AuthorApiTest, InsertKeyUnsupported) {
   EXPECT_OUTCOME_ERROR(
       res,
       author_api->insertKey(decodeKeyTypeFromStr("unkn"), {}, {}),
-      CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+      KeyStoreError::UNSUPPORTED_KEY_TYPE);
 }
 
 /**
@@ -373,7 +373,7 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
   Buffer keys;
   keys.resize(32 * 6);
   outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  outcome::result<Sr25519Keypair> srErr = CryptoStoreError::KEY_NOT_FOUND;
+  outcome::result<Sr25519Keypair> srErr = KeyStoreError::KEY_NOT_FOUND;
   EXPECT_CALL(*store, findEd25519Keypair(_, _)).Times(1).WillOnce(Return(edOk));
   EXPECT_CALL(*store, findSr25519Keypair(_, _))
       .Times(1)

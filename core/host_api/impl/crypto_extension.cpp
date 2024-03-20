@@ -13,11 +13,11 @@
 #include <boost/assert.hpp>
 #include <span>
 
-#include "crypto/crypto_store.hpp"
-#include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/trace_macros.hpp"
@@ -65,14 +65,14 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store)
+      std::shared_ptr<crypto::KeyStore> key_store)
       : memory_provider_(std::move(memory_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         ecdsa_provider_(std::move(ecdsa_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
-        crypto_store_(std::move(crypto_store)),
+        key_store_(std::move(key_store)),
         logger_{log::createLogger("CryptoExtension", "crypto_extension")} {
     BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
@@ -81,6 +81,7 @@ namespace kagome::host_api {
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+    BOOST_ASSERT(key_store != nullptr);
   }
 
   // ---------------------- hashing ----------------------
@@ -181,7 +182,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getEd25519PublicKeys(key_type);
+    auto public_keys = key_store_->ed25519().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -207,10 +208,10 @@ namespace kagome::host_api {
 
     outcome::result<crypto::Ed25519Keypair> kp_res = [&] {
       if (seed_opt.has_value()) {
-        return crypto_store_->generateEd25519Keypair(key_type,
-                                                     seed_opt.value());
+        return key_store_->ed25519().generateKeypair(key_type,
+                                                        seed_opt.value());
       } else {
-        return crypto_store_->generateEd25519KeypairOnDisk(key_type);
+        return key_store_->ed25519().generateKeypairOnDisk(key_type);
       }
     }();
     if (!kp_res) {
@@ -240,7 +241,7 @@ namespace kagome::host_api {
     if (!pk) {
       BOOST_UNREACHABLE_RETURN({});
     }
-    auto key_pair = crypto_store_->findEd25519Keypair(key_type, pk.value());
+    auto key_pair = key_store_->ed25519().findKeypair(key_type, pk.value());
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
@@ -308,7 +309,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getSr25519PublicKeys(key_type);
+    auto public_keys = key_store_->sr25519().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -335,10 +336,10 @@ namespace kagome::host_api {
     outcome::result<crypto::Sr25519Keypair> kp_res = [&]() {
       auto bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
-        return crypto_store_->generateSr25519Keypair(key_type,
+        return key_store_->sr25519().generateKeypair(key_type,
                                                      bip39_seed.value());
       } else {
-        return crypto_store_->generateSr25519KeypairOnDisk(key_type);
+        return key_store_->sr25519().generateKeypairOnDisk(key_type);
       }
     }();
     if (!kp_res) {
@@ -375,7 +376,7 @@ namespace kagome::host_api {
       // error is not possible, since we loaded correct number of bytes
       BOOST_UNREACHABLE_RETURN({});
     }
-    auto key_pair = crypto_store_->findSr25519Keypair(key_type, pk.value());
+    auto key_pair = key_store_->sr25519().findKeypair(key_type, pk.value());
     if (!key_pair) {
       logger_->error("failed to find required key: {}", key_pair.error());
       return getMemory().storeBuffer(error_result);
@@ -579,7 +580,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type);
+    auto public_keys = key_store_->ecdsa().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -606,7 +607,7 @@ namespace kagome::host_api {
 
     crypto::EcdsaPublicKey pk;
     std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
-    auto key_pair = crypto_store_->findEcdsaKeypair(key_type, pk);
+    auto key_pair = key_store_->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
@@ -639,7 +640,7 @@ namespace kagome::host_api {
 
     crypto::EcdsaPublicKey pk;
     std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
-    auto key_pair = crypto_store_->findEcdsaKeypair(key_type, pk);
+    auto key_pair = key_store_->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
@@ -675,10 +676,10 @@ namespace kagome::host_api {
     outcome::result<crypto::EcdsaKeypair> kp_res = [&]() {
       auto bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
-        return crypto_store_->generateEcdsaKeypair(key_type,
-                                                   bip39_seed.value());
+        return key_store_->ecdsa().generateKeypair(key_type,
+                                                      bip39_seed.value());
       } else {
-        return crypto_store_->generateEcdsaKeypairOnDisk(key_type);
+        return key_store_->ecdsa().generateKeypairOnDisk(key_type);
       }
     }();
     if (!kp_res) {

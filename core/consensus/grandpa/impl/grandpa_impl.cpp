@@ -28,7 +28,7 @@
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/grandpa/voting_round_update.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
@@ -823,7 +823,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*current_round_, &grandpa_context};
+    VotingRoundUpdate update{*current_round_, grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
@@ -1026,7 +1026,7 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*target_round, &grandpa_context, true};
+    VotingRoundUpdate update{*target_round, grandpa_context, true};
     update.vote(msg.vote);
     update.update();
 

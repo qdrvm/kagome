@@ -10,7 +10,7 @@
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
-#include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
+#include <kagome/crypto/key_store/key_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
 #include <kagome/crypto/hasher/hasher_impl.hpp>
@@ -156,7 +156,7 @@ int main() {
           .value();
   auto csprng =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
+  auto crypto_store = std::make_shared<kagome::crypto::KeyStoreImpl>(
       ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
 
   auto offchain_persistent_storage =

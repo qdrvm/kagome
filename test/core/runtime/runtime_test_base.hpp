@@ -82,7 +82,7 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
     auto keystore_path =
         filesystem::temp_directory_path() / filesystem::unique_path();
-    auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
+    auto crypto_store = std::make_shared<crypto::KeyStoreImpl>(
         std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
         std::make_shared<crypto::Sr25519Suite>(sr25519_provider),

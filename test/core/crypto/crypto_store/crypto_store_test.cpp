@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
 
 #include <gmock/gmock.h>
 
@@ -25,15 +25,15 @@ using kagome::common::Buffer;
 using kagome::crypto::Bip39Provider;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
-using kagome::crypto::CryptoStore;
-using kagome::crypto::CryptoStoreError;
-using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::KeyStore;
+using kagome::crypto::KeyStoreError;
+using kagome::crypto::KeyStoreImpl;
 using kagome::crypto::EcdsaKeypair;
 using kagome::crypto::EcdsaPrivateKey;
 using kagome::crypto::EcdsaProvider;
 using kagome::crypto::EcdsaProviderImpl;
 using kagome::crypto::EcdsaPublicKey;
-using kagome::crypto::EcdsaSuite;
+using kagome::crypto::EcDsaSuite;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
@@ -56,15 +56,15 @@ using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Suite;
 using std::string_literals::operator""s;
 
-static CryptoStoreImpl::Path crypto_store_test_directory =
+static KeyStoreImpl::Path crypto_store_test_directory =
     kagome::filesystem::temp_directory_path() / "crypto_store_test";
 
-struct CryptoStoreTest : public test::BaseFS_Test {
+struct KeyStoreTest : public test::BaseFS_Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
-  CryptoStoreTest()
+  KeyStoreTest()
       : BaseFS_Test(crypto_store_test_directory),
         ed_pair{
             .secret_key = Ed25519PrivateKey::fromHex(
@@ -87,7 +87,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider =
         std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
-    crypto_store = std::make_shared<CryptoStoreImpl>(
+    key_store = std::make_shared<KeyStoreImpl>(
         std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
         std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
         std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
@@ -126,7 +126,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
   }
 
   std::shared_ptr<Bip39Provider> bip39_provider;
-  std::shared_ptr<CryptoStoreImpl> crypto_store;
+  std::shared_ptr<KeyStoreImpl> crypto_store;
   std::string mnemonic;
   Buffer entropy;
   Blob<32> seed;
@@ -137,15 +137,15 @@ struct CryptoStoreTest : public test::BaseFS_Test {
 };
 
 /**
- * @given cryptostore instance, type, mnemonic and predefined key pair
+ * @given KeyStore instance, type, mnemonic and predefined key pair
  * @when generateEd25519Keypair is called
  * @then method call succeeds and result matches predefined key pair
  * @and generated key pair is stored in memory
  */
-TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
+TEST_F(KeyStoreTest, generateEd25519KeypairMnemonicSuccess) {
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  ASSERT_EQ(err, KeyStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateEd25519Keypair(key_type, mnemonic));
@@ -161,12 +161,12 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
 }
 
 /**
- * @given cryptostore instance, type, mnemonic and predefined key pair
+ * @given KeyStore instance, type, mnemonic and predefined key pair
  * @when generateSr25519Keypair is called
  * @then method call succeeds and result matches predefined key pair
  * @and generated key pair is stored in memory
  */
-TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
+TEST_F(KeyStoreTest, generateSr25519KeypairMnemonicSuccess) {
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateSr25519Keypair(key_type, mnemonic));
   ASSERT_EQ(pair, sr_pair);
@@ -180,15 +180,15 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
 }
 
 /**
- * @given cryptostore instance, type, seed and predefined key pair
+ * @given KeyStore instance, type, seed and predefined key pair
  * @when generateEd25519Keypair is called
  * @then method call succeeds and result matches predefined key pair
  * @and generated key pair is stored in memory
  */
-TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
+TEST_F(KeyStoreTest, generateEd25519KeypairSeedSuccess) {
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  ASSERT_EQ(err, KeyStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateEd25519Keypair(
@@ -204,15 +204,15 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
 }
 
 /**
- * @given cryptostore instance, type, seed and predefined key pair
+ * @given KeyStore instance, type, seed and predefined key pair
  * @when generateSr25519Keypair is called
  * @then method call succeeds and result matches predefined key pair
  * @and key generated pair is stored in memory
  */
-TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
+TEST_F(KeyStoreTest, generateSr25519KeypairSeedSuccess) {
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  ASSERT_EQ(err, KeyStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateSr25519Keypair(
@@ -229,11 +229,11 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
 }
 
 /**
- * @given cryptostore instance, and key type
+ * @given KeyStore instance, and key type
  * @when call generateEd25519KeypairOnDisk(key_type)
  * @then a new ed25519 key pair is generated and stored on disk
  */
-TEST_F(CryptoStoreTest, generateEd25519KeypairStoreSuccess) {
+TEST_F(KeyStoreTest, generateEd25519KeypairStoreSuccess) {
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateEd25519KeypairOnDisk(key_type));
 
@@ -247,11 +247,11 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairStoreSuccess) {
 }
 
 /**
- * @given cryptostore instance, and key type
+ * @given KeyStore instance, and key type
  * @when call generateSr25519KeypairOnDisk(key_type)
  * @then a new ed25519 key pair is generated and stored on disk
  */
-TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
+TEST_F(KeyStoreTest, generateSr25519KeypairStoreSuccess) {
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateSr25519KeypairOnDisk(key_type));
 
@@ -265,11 +265,11 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
 }
 
 /**
- * @given cryptostore instance, and key type
+ * @given KeyStore instance, and key type
  * @when call getEd25519PublicKeys
  * @then collection of all ed25519 public keys of provided type is returned
  */
-TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
+TEST_F(KeyStoreTest, getEd25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(
       pair1, crypto_store->generateEd25519KeypairOnDisk(KeyTypes::BABE));
   EXPECT_OUTCOME_TRUE(
@@ -288,11 +288,11 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
 }
 
 /**
- * @given cryptostore instance, and key type
+ * @given KeyStore instance, and key type
  * @when call getSr25519PublicKeys
  * @then collection of all sr25519 public keys of provided type is returned
  */
-TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
+TEST_F(KeyStoreTest, getSr25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(
       pair1, crypto_store->generateSr25519KeypairOnDisk(KeyTypes::BABE));
   EXPECT_OUTCOME_TRUE(
@@ -315,7 +315,7 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
  * Currently incompatible with subkey because subkey doesn't append key type to
  * filename
  */
-TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
+TEST(KeyStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto hasher = std::make_shared<HasherImpl>();
   auto csprng = std::make_shared<BoostRandomGenerator>();
   auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
@@ -327,7 +327,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
       std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
   auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
                      / "subkey_keys" / "keystore";
-  auto crypto_store = std::make_shared<CryptoStoreImpl>(
+  auto crypto_store = std::make_shared<KeyStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
       std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
