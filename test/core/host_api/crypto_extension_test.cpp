@@ -32,8 +32,8 @@ using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::crypto::BoostRandomGenerator;
-using kagome::crypto::CryptoStore;
-using kagome::crypto::CryptoStoreMock;
+using kagome::crypto::KeyStore;
+using kagome::crypto::KeyStoreMock;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::EcdsaKeypair;
 using kagome::crypto::EcdsaPrivateKey;
@@ -98,7 +98,7 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_provider_ = std::make_shared<Ed25519ProviderImpl>(hasher_);
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
 
-    crypto_store_ = std::make_shared<CryptoStoreMock>();
+    crypto_store_ = std::make_shared<KeyStoreMock>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_provider_,
                                                     sr25519_provider_,
                                                     ecdsa_provider_,
@@ -199,7 +199,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<Ed25519Provider> ed25519_provider_;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
   std::shared_ptr<Hasher> hasher_;
-  std::shared_ptr<CryptoStoreMock> crypto_store_;
+  std::shared_ptr<KeyStoreMock> crypto_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
   KeyType key_type = KeyTypes::BABE;
@@ -494,7 +494,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
       .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+          outcome::failure(kagome::crypto::KeyStoreError::KEY_NOT_FOUND)));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_sign_version_1(
                 memory_.store32u(key_type),
@@ -534,7 +534,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
       .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+          outcome::failure(kagome::crypto::KeyStoreError::KEY_NOT_FOUND)));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_sr25519_sign_version_1(
                 memory_.store32u(key_type),

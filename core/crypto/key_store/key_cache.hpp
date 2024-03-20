@@ -12,7 +12,7 @@
 
 #include <optional>
 
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 
 namespace kagome::crypto {
 

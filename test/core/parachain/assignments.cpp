@@ -30,7 +30,7 @@ using kagome::common::Blob;
 using kagome::common::Buffer;
 using namespace kagome::crypto;
 
-static CryptoStoreImpl::Path assignments_directory =
+static KeyStoreImpl::Path assignments_directory =
     kagome::filesystem::temp_directory_path() / "assignments_test";
 
 struct AssignmentsTest : public test::BaseFS_Test {
@@ -43,7 +43,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
   void SetUp() override {}
 
   template <size_t N>
-  auto assignment_keys_plus_random(std::shared_ptr<CryptoStoreImpl> &cs,
+  auto assignment_keys_plus_random(std::shared_ptr<KeyStoreImpl> &cs,
                                    const char *const (&accounts)[N],
                                    size_t random) {
     for (const auto &acc : accounts) {
@@ -74,7 +74,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
     auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";
 
-    return std::make_shared<CryptoStoreImpl>(
+    return std::make_shared<KeyStoreImpl>(
         std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
         std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
         std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),

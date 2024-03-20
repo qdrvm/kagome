@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/crypto_store/key_file_storage.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
 
 #include <fstream>
 
 #include "common/hexutil.hpp"
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "filesystem/common.hpp"
 #include "utils/json_unquote.hpp"
 #include "utils/read_file.hpp"

@@ -14,7 +14,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/crypto/ed25519_provider_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/runtime/authority_discovery_api_mock.hpp"
@@ -25,7 +25,7 @@ using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManagerMock;
 using kagome::authority_discovery::AddressPublisher;
 using kagome::blockchain::BlockTreeMock;
-using kagome::crypto::CryptoStoreMock;
+using kagome::crypto::KeyStoreMock;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519ProviderMock;
 using kagome::crypto::Ed25519PublicKey;
@@ -100,8 +100,8 @@ struct AddressPublisherTest : public testing::Test {
   std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
   std::shared_ptr<KademliaMock> kademlia_ = std::make_shared<KademliaMock>();
   std::shared_ptr<SchedulerMock> scheduler_ = std::make_shared<SchedulerMock>();
-  std::shared_ptr<CryptoStoreMock> crypto_store_ =
-      std::make_shared<CryptoStoreMock>();
+  std::shared_ptr<KeyStoreMock> crypto_store_ =
+      std::make_shared<KeyStoreMock>();
   PeerInfo peer_info_{
       PeerId::fromBase58("12D3KooWGYLoNGrZn2nwewBiPFZuKHZebPDL9QAF26cVgLxwuiTZ")
           .value(),

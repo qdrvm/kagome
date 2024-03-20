@@ -11,9 +11,20 @@
 #include "common/buffer.hpp"
 
 namespace kagome {
-  template <typename Out>
-  bool readFile(Out &out, const std::string &path) {
-    static_assert(sizeof(*out.data()) == 1);
+
+  template<typename T>
+  concept StandardLayoutPointer = std::is_standard_layout_v<std::remove_pointer_t<T>>;
+
+  template<typename T>
+  concept ByteContainer = requires(T t, std::streampos pos) {
+    { t.data() } -> StandardLayoutPointer; 
+    { t.size() } -> std::convertible_to<std::streamsize>;
+    { t.resize(pos) };
+    { t.clear() };
+  };
+
+  template <ByteContainer Out> 
+  bool readFile(Out &out, const std::filesystem::path &path) {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
     if (not file.good()) {
       out.clear();

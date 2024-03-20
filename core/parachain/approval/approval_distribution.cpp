@@ -16,7 +16,7 @@
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "crypto/crypto_store.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -446,7 +446,7 @@ namespace kagome::parachain {
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
-      std::shared_ptr<crypto::CryptoStore> keystore,
+      std::shared_ptr<crypto::KeyStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -617,11 +617,11 @@ namespace kagome::parachain {
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
-      if (auto res = keystore->findSr25519Keypair(
+      if (auto res = keystore->sr25519().findKeypair(
               crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
@@ -633,7 +633,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentsList
   ApprovalDistribution::compute_assignments(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const CandidateIncludedList &leaving_cores) {
@@ -2352,7 +2352,7 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KeyTypes::PARACHAIN, pubkey);
+        keystore_->sr25519().findKeypair(crypto::KeyTypes::PARACHAIN, pubkey);
     if (key_pair.has_error()) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;
