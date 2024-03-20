@@ -438,10 +438,11 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {update.new_head},
-        .lost = update.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {update.new_head},
+            .lost = update.lost,
+        });
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
       return l.first < r.first;
@@ -568,10 +569,11 @@ class ProspectiveParachainsTest : public testing::Test {
         .new_head = {},
         .lost = {hash},
     };
-    (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update.lost,
+        });
   }
 
   auto get_pvd(
@@ -608,7 +610,7 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
       .WillRepeatedly(
           Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
 
-  (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
   });
@@ -1348,7 +1350,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
     }
   }
 
-  (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
   });
@@ -1393,7 +1395,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
   activate_leaf(leaf_b, test_state, async_backing_params);
   activate_leaf(leaf_b, test_state, async_backing_params);
 
-  (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {},
       .lost = {},
   });
@@ -1429,10 +1431,11 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
     };
     // handle_leaf_activation_2(update2, leaf_c, test_state,
     // async_backing_params);
-    (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update2.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update2.lost,
+        });
   }
 
   {
@@ -1465,10 +1468,11 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
         .new_head = {},
         .lost = {leaf_a.hash, leaf_b.hash, leaf_c.hash},
     };
-    (void)prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update2.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update2.lost,
+        });
   }
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
   ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
