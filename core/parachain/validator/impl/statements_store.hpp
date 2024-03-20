@@ -13,8 +13,8 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include "network/types/collator_messages_vstaging.hpp"
-#include "parachain/types.hpp"
 #include "parachain/groups.hpp"
+#include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
 

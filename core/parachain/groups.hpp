@@ -13,7 +13,8 @@ namespace kagome::parachain {
     std::unordered_map<ValidatorIndex, GroupIndex> by_validator_index;
     uint32_t backing_threshold;
 
-    Groups(std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> &&g, uint32_t bt)
+    Groups(std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> &&g,
+           uint32_t bt)
         : groups{std::move(g)}, backing_threshold{bt} {
       for (const auto &[g, vxs] : groups) {
         for (const auto &v : vxs) {
@@ -22,7 +23,8 @@ namespace kagome::parachain {
       }
     }
 
-    Groups(const std::vector<std::vector<ValidatorIndex>> &grs, uint32_t bt) : backing_threshold{bt} {
+    Groups(const std::vector<std::vector<ValidatorIndex>> &grs, uint32_t bt)
+        : backing_threshold{bt} {
       for (GroupIndex g = 0; g < grs.size(); ++g) {
         const auto &group = grs[g];
         groups[g] = group;
@@ -42,21 +44,22 @@ namespace kagome::parachain {
     }
 
     std::optional<std::span<ValidatorIndex>> get(GroupIndex group_index) {
-        auto group = groups.find(group_index);
-        if (group == groups.end()) {
-            return std::nullopt;
-        }
-        return group->second;
+      auto group = groups.find(group_index);
+      if (group == groups.end()) {
+        return std::nullopt;
+      }
+      return group->second;
     }
 
-    std::optional<std::tuple<size_t, size_t>> get_size_and_backing_threshold(GroupIndex group_index) {
-        auto group = get(group_index);
-        if (!group) {
-            return std::nullopt;
-        }
-        return std::make_tuple(group->size(), std::min(group->size(), size_t(backing_threshold)));
+    std::optional<std::tuple<size_t, size_t>> get_size_and_backing_threshold(
+        GroupIndex group_index) {
+      auto group = get(group_index);
+      if (!group) {
+        return std::nullopt;
+      }
+      return std::make_tuple(
+          group->size(), std::min(group->size(), size_t(backing_threshold)));
     }
-
   };
 
 }  // namespace kagome::parachain
