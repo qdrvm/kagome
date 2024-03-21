@@ -40,8 +40,9 @@ auto operator<=>(const SpanAdl<T> &l_, const auto &r_)
 }
 
 template <typename T>
-bool operator==(const SpanAdl<T> &l_, const auto &r)
-  requires(requires { std::span<const T>{r}; })
+bool operator==(const SpanAdl<T> &l_, const auto &r_)
+  requires(requires { std::span<const T>{r_}; })
 {
-  return (l_ <=> r) == 0;
+  std::span r{r_};
+  return l_.v.size() == r.size() and (l_ <=> r) == 0;
 }
