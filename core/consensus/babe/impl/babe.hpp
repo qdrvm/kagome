@@ -55,19 +55,25 @@ namespace kagome::dispute {
   class DisputeCoordinator;
 }
 
+namespace kagome::network {
+  class BlockAnnounceTransmitter;
+}
+
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
+
 namespace kagome::parachain {
   class BitfieldStore;
   struct ParachainProcessorImpl;
   struct BackedCandidatesSource;
 }  // namespace kagome::parachain
 
-namespace kagome::network {
-  class BlockAnnounceTransmitter;
-}
-
 namespace kagome::runtime {
+  class BabeApi;
   class OffchainWorkerApi;
-}
+}  // namespace kagome::runtime
 
 namespace kagome::storage::changes_trie {
   class StorageChangesTrackerImpl;
@@ -106,7 +112,11 @@ namespace kagome::consensus::babe {
         primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
+        std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        std::shared_ptr<offchain::OffchainWorkerFactory>
+            offchain_worker_factory,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
 
@@ -118,11 +128,18 @@ namespace kagome::consensus::babe {
     outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const override;
 
+    outcome::result<AuthorityIndex> getAuthority(
+        const primitives::BlockHeader &header) const override;
+
     outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header) const override;
+
+    outcome::result<void> reportEquivocation(
+        const primitives::BlockHash &first,
+        const primitives::BlockHash &second) const override;
 
    private:
     bool changeEpoch(EpochNumber epoch,
@@ -166,7 +183,10 @@ namespace kagome::consensus::babe {
     primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
+    std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 

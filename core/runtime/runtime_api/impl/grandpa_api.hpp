@@ -22,6 +22,17 @@ namespace kagome::runtime {
     outcome::result<AuthoritySetId> current_set_id(
         const primitives::BlockHash &block) override;
 
+    outcome::result<std::optional<consensus::grandpa::OpaqueKeyOwnershipProof>>
+    generate_key_ownership_proof(
+        const primitives::BlockHash &block_hash,
+        consensus::SlotNumber slot,
+        consensus::grandpa::AuthorityId authority_id) override;
+
+    outcome::result<void> submit_report_equivocation_unsigned_extrinsic(
+        const primitives::BlockHash &block_hash,
+        consensus::grandpa::EquivocationProof equivocation_proof,
+        consensus::grandpa::OpaqueKeyOwnershipProof key_owner_proof) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

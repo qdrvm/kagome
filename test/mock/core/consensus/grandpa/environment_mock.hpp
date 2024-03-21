@@ -60,6 +60,11 @@ namespace kagome::consensus::grandpa {
                 (const BlockHash &block_hash),
                 (override));
 
+    MOCK_METHOD(outcome::result<void>,
+                reportEquivocation,
+                (const VotingRound &, const Equivocation &),
+                (const, override));
+
     MOCK_METHOD(void,
                 onCatchUpRequested,
                 (const libp2p::peer::PeerId &peer_id,
