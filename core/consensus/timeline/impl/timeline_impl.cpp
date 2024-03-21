@@ -766,4 +766,54 @@ namespace kagome::consensus {
         remains_ms);
   }
 
+  void TimelineImpl::checkAndReportEquivocation(
+      const primitives::BlockHeader &header) {
+    auto consensus = consensus_selector_.get()->getProductionConsensus(header);
+    BOOST_ASSERT_MSG(consensus, "Must be returned at least fallback consensus");
+
+    auto slot_res = consensus->getSlot(header);
+    if (slot_res.has_error()) {
+      return;
+    }
+    auto slot = slot_res.value();
+
+    if (slot + kMaxSlotObserveForEquivocation < current_slot_) {
+      return;
+    }
+
+    auto authority_index_res = consensus->getAuthority(header);
+    if (authority_index_res.has_error()) {
+      return;
+    }
+    AuthorityIndex authority_index = authority_index_res.value();
+
+    auto &hash = header.hash();
+
+    auto [it, just_added] = data_for_equvocation_checks_.emplace(
+        std::tuple(slot, authority_index), std::tuple(hash, false));
+
+    if (just_added) {  // Newly registered block
+      return;
+    }
+
+    auto &is_reported = std::get<1>(it->second);
+    if (is_reported) {  // Known equivocation
+      return;
+    }
+
+    const auto &prev_block_hash = std::get<0>(it->second);
+    if (prev_block_hash == hash) {  // Duplicate
+      return;
+    }
+
+    auto report_res = consensus->reportEquivocation(prev_block_hash, hash);
+
+    if (report_res.has_error()) {
+      SL_WARN(log_, "Can't report equivocation: {}", report_res.error());
+      return;
+    }
+
+    is_reported = true;
+  }
+
 }  // namespace kagome::consensus

@@ -11,6 +11,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "consensus/babe/types/babe_configuration.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_header.hpp"
 
@@ -23,6 +24,10 @@ namespace kagome::crypto {
 }
 
 namespace kagome::consensus {
+  class Timeline;
+}
+
+namespace kagome::consensus {
 
   class BlockAppenderBase;
 
@@ -32,7 +37,8 @@ namespace kagome::consensus {
    public:
     BlockHeaderAppenderImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
                             std::shared_ptr<crypto::Hasher> hasher,
-                            std::unique_ptr<BlockAppenderBase> appender);
+                            std::unique_ptr<BlockAppenderBase> appender,
+                            LazySPtr<Timeline> timeline);
 
     void appendHeader(
         primitives::BlockHeader &&block_header,
@@ -42,8 +48,8 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Hasher> hasher_;
-
     std::unique_ptr<BlockAppenderBase> appender_;
+    LazySPtr<Timeline> timeline_;
 
     struct {
       std::chrono::high_resolution_clock::time_point time;
