@@ -1197,7 +1197,7 @@ namespace kagome::consensus::grandpa {
         BOOST_ASSERT(votes_opt.has_value());
         const auto &votes = votes_opt.value().get();
 
-        Equivocation equivocation{votes.first, votes.second};
+        Equivocation equivocation{round_number_, votes.first, votes.second};
 
         std::ignore = env_->reportEquivocation(*this, equivocation);
 

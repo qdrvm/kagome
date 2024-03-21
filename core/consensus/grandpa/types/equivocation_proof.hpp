@@ -25,59 +25,45 @@ namespace kagome::consensus::grandpa {
   using OpaqueKeyOwnershipProof =
       Tagged<common::Buffer, struct OpaqueKeyOwnershipProofTag>;
 
-  template <VoteType type>
-  struct EquivocationT {
-    using SignedMessage = std::conditional_t<type == VoteType::Prevote,
-                                             SignedPrevote,
-                                             SignedPrecommit>;
-    SCALE_TIE(4);
-
-    AuthorityId identity;
-    RoundNumber round_number;
-    SignedMessage first;
-    SignedMessage second;
-  };
-
-  //  /// Wrapper object for GRANDPA equivocation proofs, useful for unifying
-  //  /// prevote and precommit equivocations under a common type.
-  //  using Equivocation = boost::variant<
-  //      /// Proof of equivocation at prevote stage.
-  //      EquivocationT<VoteType::Prevote>,
-  //      /// Proof of equivocation at precommit stage.
-  //      EquivocationT<VoteType::Precommit>>;
-
-  struct Equivocation {
-    // Round stage: prevote or precommit
+  /// Wrapper object for GRANDPA equivocation proofs, useful for unifying
+  /// prevote and precommit equivocations under a common type.
+  // https://github.com/paritytech/polkadot-sdk/blob/0e49ed72aa365475e30069a5c30e251a009fdacf/substrate/primitives/consensus/grandpa/src/lib.rs#L272
+  class Equivocation {
+    /// Round stage: prevote or precommit
     VoteType stage;
-
+    /// The round number equivocated in.
     RoundNumber round_number;
-
+    /// The first vote in the equivocation.
     SignedMessage first;
+    /// The second vote in the equivocation.
     SignedMessage second;
 
-    Equivocation(const SignedMessage &first, const SignedMessage &second)
-        : stage{[&]() -> VoteType {
-            BOOST_ASSERT((first.is<Prevote>() and second.is<Prevote>())
-                         or (first.is<Precommit>() and second.is<Precommit>()));
-            return first.is<Prevote>() ? VoteType::Prevote
-                                       : VoteType::Precommit;
-          }()},
-          round_number(),
+   public:
+    Equivocation(RoundNumber round_number,
+                 const SignedMessage &first,
+                 const SignedMessage &second)
+        : stage{first.is<Prevote>() ? VoteType::Prevote : VoteType::Precommit},
+          round_number(round_number),
           first(first),
-          second(second){};
+          second(second) {
+      BOOST_ASSERT((first.is<Prevote>() and second.is<Prevote>())
+                   or (first.is<Precommit>() and second.is<Precommit>()));
+      BOOST_ASSERT(first.id == second.id);
+    };
 
     AuthorityId offender() const {
       return first.id;
     }
 
     RoundNumber round() const {
-      return 0;
+      return round_number;
     }
 
     friend scale::ScaleEncoderStream &operator<<(
         scale::ScaleEncoderStream &s, const Equivocation &equivocation) {
       return s << equivocation.stage << equivocation.round_number
-               << equivocation.first << equivocation.second;
+               << equivocation.first.id << equivocation.first
+               << equivocation.second;
     }
   };
 
