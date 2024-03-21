@@ -34,6 +34,11 @@ namespace kagome::network {
   class GrandpaTransmitter;
 }
 
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
+
 namespace kagome::runtime {
   class ParachainHost;
   class GrandpaApi;
@@ -63,7 +68,10 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        std::shared_ptr<offchain::OffchainWorkerFactory>
+            offchain_worker_factory,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
     ~EnvironmentImpl() override = default;
 
@@ -142,6 +150,8 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

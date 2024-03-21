@@ -55,15 +55,20 @@ namespace kagome::dispute {
   class DisputeCoordinator;
 }
 
+namespace kagome::network {
+  class BlockAnnounceTransmitter;
+}
+
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
+
 namespace kagome::parachain {
   class BitfieldStore;
   struct ParachainProcessorImpl;
   struct BackedCandidatesSource;
 }  // namespace kagome::parachain
-
-namespace kagome::network {
-  class BlockAnnounceTransmitter;
-}
 
 namespace kagome::runtime {
   class BabeApi;
@@ -110,7 +115,10 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+        std::shared_ptr<offchain::OffchainWorkerFactory>
+            offchain_worker_factory,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
     bool isGenesisConsensus() const override;
 
@@ -179,6 +187,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

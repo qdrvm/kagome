@@ -9,6 +9,7 @@
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -30,6 +31,8 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
+#include "offchain/offchain_worker_factory.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
@@ -87,7 +90,9 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -110,6 +115,8 @@ namespace kagome::consensus::babe {
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_pool_handler_(std::move(main_pool_handler)),
         worker_pool_handler_(std::move(worker_pool_handler)),
+        offchain_worker_factory_(std::move(offchain_worker_factory)),
+        offchain_worker_pool_(std::move(offchain_worker_pool)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -130,6 +137,8 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(offchain_worker_api_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
+    BOOST_ASSERT(offchain_worker_factory_);
+    BOOST_ASSERT(offchain_worker_pool_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -325,6 +334,9 @@ namespace kagome::consensus::babe {
     }
     auto &ownership_proof = ownership_proof_opt.value();
 
+    offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
+    ::libp2p::common::FinalAction remove(
+        [&] { offchain_worker_pool_->removeWorker(); });
     return babe_api_->submit_report_equivocation_unsigned_extrinsic(
         second_header.parent_hash,
         std::move(equivocation_proof),
