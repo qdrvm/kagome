@@ -8,6 +8,7 @@
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::crypto {
   class Hasher;
@@ -47,6 +48,7 @@ namespace kagome::parachain {
     outcome::result<void> precompileModulesForCore(
         PrecompilationStats &stats,
         const primitives::BlockHash &last_finalized,
+        const runtime::RuntimeContext::ContextParams &executor_params,
         const ParachainCore &core);
 
     Config config_;

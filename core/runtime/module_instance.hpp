@@ -84,7 +84,7 @@ namespace kagome::runtime {
 
     virtual ~ModuleInstance() = default;
 
-    virtual const common::Hash256 &getCodeHash() const = 0;
+    virtual common::Hash256 getCodeHash() const = 0;
 
     virtual std::shared_ptr<const Module> getModule() const = 0;
 

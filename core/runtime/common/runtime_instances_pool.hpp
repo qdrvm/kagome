@@ -8,6 +8,7 @@
 
 #include "runtime/runtime_instances_pool.hpp"
 
+#include <boost/di.hpp>
 #include <future>
 #include <mutex>
 #include <shared_mutex>
@@ -18,6 +19,7 @@
 #include "utils/lru.hpp"
 
 namespace kagome::runtime {
+  class InstrumentWasm;
 
   /**
    * @brief Pool of runtime instances - per state. Encapsulates modules cache.
@@ -28,6 +30,7 @@ namespace kagome::runtime {
    public:
     explicit RuntimeInstancesPoolImpl(
         std::shared_ptr<ModuleFactory> module_factory,
+        std::shared_ptr<InstrumentWasm> instrument,
         size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
@@ -93,6 +96,7 @@ namespace kagome::runtime {
         const RuntimeContext::ContextParams &config);
 
     std::shared_ptr<ModuleFactory> module_factory_;
+    std::shared_ptr<InstrumentWasm> instrument_;
 
     std::mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;
@@ -103,3 +107,9 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+template <>
+struct boost::di::ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
+  BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>,
+                         std::shared_ptr<kagome::runtime::InstrumentWasm>);
+};
