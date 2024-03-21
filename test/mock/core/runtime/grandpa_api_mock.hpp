@@ -23,6 +23,21 @@ namespace kagome::runtime {
                 current_set_id,
                 (const primitives::BlockHash &block),
                 (override));
+
+    MOCK_METHOD(outcome::result<
+                    std::optional<consensus::grandpa::OpaqueKeyOwnershipProof>>,
+                generate_key_ownership_proof,
+                (const primitives::BlockHash &,
+                 consensus::SlotNumber,
+                 consensus::grandpa::AuthorityId),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                submit_report_equivocation_unsigned_extrinsic,
+                (const primitives::BlockHash &,
+                 consensus::grandpa::EquivocationProof,
+                 consensus::grandpa::OpaqueKeyOwnershipProof),
+                (override));
   };
 
 }  // namespace kagome::runtime

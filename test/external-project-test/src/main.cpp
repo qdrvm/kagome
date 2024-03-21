@@ -192,7 +192,7 @@ int main() {
 
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPoolImpl>(
-          module_factory);
+          module_factory, std::make_shared<kagome::runtime::InstrumentWasm>());
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       runtime_upgrade_tracker,

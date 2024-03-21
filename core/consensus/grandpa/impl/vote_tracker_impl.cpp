@@ -25,7 +25,7 @@ namespace kagome::consensus::grandpa {
     return visit_in_place(
         known_vote_variant,
         [&](const SignedMessage &known_vote) {
-          // If it is known vote, it means duplicate
+          // If it is known a vote, it means duplicate
           if (vote == known_vote) {
             return PushResult::DUPLICATED;
           }
@@ -35,7 +35,7 @@ namespace kagome::consensus::grandpa {
           return PushResult::EQUIVOCATED;
         },
         [](const EquivocatorySignedMessage &) {
-          // This is vote of known equivocator
+          // This is a vote of known equivocator
           return PushResult::EQUIVOCATED;
         });
   }
@@ -65,6 +65,13 @@ namespace kagome::consensus::grandpa {
       votes.push_back(value);
     }
     return votes;
+  }
+
+  std::optional<VoteVariant> VoteTrackerImpl::getMessage(Id id) const {
+    if (auto it = messages_.find(id); it != messages_.end()) {
+      return it->second;
+    }
+    return std::nullopt;
   }
 
   size_t VoteTrackerImpl::getTotalWeight() const {

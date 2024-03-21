@@ -11,16 +11,19 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
+#include "consensus/timeline/timeline.hpp"
 
 namespace kagome::consensus {
 
   BlockHeaderAppenderImpl::BlockHeaderAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<BlockAppenderBase> appender)
+      std::unique_ptr<BlockAppenderBase> appender,
+      LazySPtr<Timeline> timeline)
       : block_tree_{std::move(block_tree)},
         hasher_{std::move(hasher)},
         appender_{std::move(appender)},
+        timeline_{std::move(timeline)},
         logger_{log::createLogger("BlockHeaderAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -59,6 +62,8 @@ namespace kagome::consensus {
       callback(res.as_failure());
       return;
     }
+
+    timeline_.get()->checkAndReportEquivocation(block.header);
 
     appender_->applyJustifications(
         block_info,
