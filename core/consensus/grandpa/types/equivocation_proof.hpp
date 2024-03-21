@@ -28,17 +28,16 @@ namespace kagome::consensus::grandpa {
   /// Wrapper object for GRANDPA equivocation proofs, useful for unifying
   /// prevote and precommit equivocations under a common type.
   // https://github.com/paritytech/polkadot-sdk/blob/0e49ed72aa365475e30069a5c30e251a009fdacf/substrate/primitives/consensus/grandpa/src/lib.rs#L272
-  class Equivocation {
+  struct Equivocation {
     /// Round stage: prevote or precommit
-    VoteType stage;
+    const VoteType stage;
     /// The round number equivocated in.
-    RoundNumber round_number;
+    const RoundNumber round_number;
     /// The first vote in the equivocation.
-    SignedMessage first;
+    const SignedMessage first;
     /// The second vote in the equivocation.
-    SignedMessage second;
+    const SignedMessage second;
 
-   public:
     Equivocation(RoundNumber round_number,
                  const SignedMessage &first,
                  const SignedMessage &second)

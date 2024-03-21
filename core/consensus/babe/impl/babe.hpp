@@ -114,11 +114,11 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
 
     bool isGenesisConsensus() const override;
 
@@ -185,10 +185,10 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

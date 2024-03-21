@@ -14,10 +14,7 @@ namespace kagome::offchain {
 
   class OffchainWorkerFactoryMock : public OffchainWorkerFactory {
    public:
-    MOCK_METHOD2(
-        make,
-        std::shared_ptr<OffchainWorker>(std::shared_ptr<runtime::Executor>,
-                                        const primitives::BlockHeader &));
+    MOCK_METHOD(std::shared_ptr<OffchainWorker>, make, (), (override));
   };
 
 }  // namespace kagome::offchain

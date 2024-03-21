@@ -55,9 +55,9 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
-      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
@@ -70,9 +70,9 @@ namespace kagome::consensus::grandpa {
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
         hasher_(std::move(hasher)),
-        main_pool_handler_(std::move(main_pool_handler)),
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
+        main_pool_handler_(std::move(main_pool_handler)),
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
@@ -83,9 +83,9 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(parachain_api_ != nullptr);
     BOOST_ASSERT(backing_store_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(offchain_worker_factory_ != nullptr);
     BOOST_ASSERT(offchain_worker_pool_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
 
     auto kApprovalLag = "kagome_parachain_approval_checking_finality_lag";
     metrics_registry_->registerGaugeFamily(

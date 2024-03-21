@@ -316,7 +316,7 @@ TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "ED"_H});
   auto alice3 = preparePrevote(kAlice, kAliceSignature, Prevote{6, "F"_H});
 
-  Equivocation equivocation{alice1, alice2};
+  Equivocation equivocation{round_->roundNumber(), alice1, alice2};
 
   {
     auto matcher = [&](const Equivocation &equivocation) {

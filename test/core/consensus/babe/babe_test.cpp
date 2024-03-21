@@ -33,6 +33,8 @@
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
+#include "mock/core/offchain/offchain_worker_factory_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/parachain/backed_candidates_source.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
@@ -103,6 +105,8 @@ using kagome::crypto::VRFVerifyOutput;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::dispute::MultiDisputeStatementSet;
 using kagome::network::BlockAnnounceTransmitterMock;
+using kagome::offchain::OffchainWorkerFactoryMock;
+using kagome::offchain::OffchainWorkerPoolMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::parachain::BitfieldStoreMock;
 using kagome::primitives::Block;
@@ -131,8 +135,7 @@ using namespace std::chrono_literals;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
 namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s,
-                           const detail::DigestItemCommon &dic) {
+  std::ostream &operator<<(std::ostream &s, const detail::DigestItemCommon &) {
     return s;
   }
 }  // namespace kagome::primitives
@@ -262,6 +265,9 @@ class BabeTest : public testing::Test {
         app_state_manager, worker_thread_pool);
     worker_pool_handler->start();
 
+    offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
+    offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
+
     babe = std::make_shared<BabeWrapper>(
         app_config,
         clock,
@@ -283,6 +289,8 @@ class BabeTest : public testing::Test {
         announce_transmitter,
         babe_api,
         offchain_worker_api,
+        offchain_worker_factory,
+        offchain_worker_pool,
         main_pool_handler,
         worker_pool_handler);
   }
@@ -313,6 +321,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<AppStateManagerMock> app_state_manager;
+  std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory;
+  std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
   std::shared_ptr<Watchdog> watchdog;
   std::shared_ptr<MainThreadPool> main_thread_pool;
   std::shared_ptr<MainPoolHandler> main_pool_handler;
@@ -450,7 +460,7 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
       .WillOnce(Return(true));
   EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
-      .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));
+      .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));  // NOLINT
 
   EXPECT_CALL(*block_tree, getBlockHeader(best_block_info.hash))
       .WillOnce(Return(best_block_header));
