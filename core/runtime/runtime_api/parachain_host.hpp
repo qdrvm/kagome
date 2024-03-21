@@ -221,6 +221,10 @@ namespace kagome::runtime {
 
     virtual outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) = 0;
+
+    /// Returns a list of all disabled validators at the given block.
+    virtual outcome::result<std::vector<ValidatorIndex>> disabled_validators(
+        const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

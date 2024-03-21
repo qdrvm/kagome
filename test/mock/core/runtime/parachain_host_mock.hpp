@@ -148,6 +148,11 @@ namespace kagome::runtime {
                 minimum_backing_votes,
                 (const primitives::BlockHash &, SessionIndex),
                 (override));
+
+    MOCK_METHOD(outcome::result<std::vector<ValidatorIndex>>,
+                disabled_validators,
+                (const primitives::BlockHash &),
+                (override));
   };
 
 }  // namespace kagome::runtime
