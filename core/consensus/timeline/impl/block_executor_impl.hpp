@@ -16,13 +16,17 @@
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::blockchain {
   class BlockTree;
 }
 
 namespace kagome::common {
   class MainPoolHandler;
-  class WorkerPoolHandler;
+  class WorkerThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::crypto {
@@ -49,7 +53,7 @@ namespace kagome::consensus {
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+        common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -77,7 +81,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

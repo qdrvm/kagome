@@ -42,7 +42,6 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
-using kagome::common::WorkerPoolHandler;
 using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
@@ -174,9 +173,6 @@ class BlockExecutorTest : public testing::Test {
     main_pool_handler_->start();
 
     worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
-    worker_pool_handler_ = std::make_shared<WorkerPoolHandler>(
-        app_state_manager, worker_thread_pool_);
-    worker_pool_handler_->start();
 
     core_ = std::make_shared<CoreMock>();
 
@@ -225,7 +221,7 @@ class BlockExecutorTest : public testing::Test {
     block_executor_ =
         std::make_shared<BlockExecutorWrapper>(block_tree_,
                                                main_pool_handler_,
-                                               worker_pool_handler_,
+                                               *worker_thread_pool_,
                                                core_,
                                                tx_pool_,
                                                hasher_,
@@ -246,7 +242,6 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<MainThreadPool> main_thread_pool_;
   std::shared_ptr<MainPoolHandler> main_pool_handler_;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool_;
-  std::shared_ptr<WorkerPoolHandler> worker_pool_handler_;
 
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;

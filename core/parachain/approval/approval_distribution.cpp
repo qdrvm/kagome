@@ -441,7 +441,7 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
@@ -459,7 +459,7 @@ namespace kagome::parachain {
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{approval_thread_pool.handler(
           app_state_manager)},
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),

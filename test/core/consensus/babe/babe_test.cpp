@@ -61,7 +61,6 @@ using kagome::common::BufferView;
 using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
-using kagome::common::WorkerPoolHandler;
 using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
@@ -261,9 +260,6 @@ class BabeTest : public testing::Test {
     main_pool_handler->start();
 
     worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
-    worker_pool_handler = std::make_shared<WorkerPoolHandler>(
-        app_state_manager, worker_thread_pool);
-    worker_pool_handler->start();
 
     offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
     offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
@@ -292,7 +288,7 @@ class BabeTest : public testing::Test {
         offchain_worker_factory,
         offchain_worker_pool,
         main_pool_handler,
-        worker_pool_handler);
+        *worker_thread_pool);
   }
 
   void TearDown() override {
@@ -327,7 +323,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<MainThreadPool> main_thread_pool;
   std::shared_ptr<MainPoolHandler> main_pool_handler;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool;
-  std::shared_ptr<WorkerPoolHandler> worker_pool_handler;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 

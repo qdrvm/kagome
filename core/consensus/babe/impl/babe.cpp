@@ -92,7 +92,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
+      common::WorkerThreadPool &worker_thread_pool)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -116,7 +116,7 @@ namespace kagome::consensus::babe {
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
         main_pool_handler_(std::move(main_pool_handler)),
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        worker_pool_handler_{worker_thread_pool.handlerStarted()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);

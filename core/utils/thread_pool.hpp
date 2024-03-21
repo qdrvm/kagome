@@ -83,6 +83,12 @@ namespace kagome {
       return std::make_shared<PoolHandler>(ioc_);
     }
 
+    std::shared_ptr<PoolHandler> handlerStarted() {
+      auto handler = handlerManual();
+      handler->start();
+      return handler;
+    }
+
     std::shared_ptr<PoolHandler> handler(
         application::AppStateManager &app_state_manager) {
       auto handler = handlerManual();

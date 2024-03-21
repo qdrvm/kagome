@@ -32,7 +32,7 @@ namespace kagome::consensus {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -42,7 +42,7 @@ namespace kagome::consensus {
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         main_pool_handler_(std::move(main_pool_handler)),
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        worker_pool_handler_{worker_thread_pool.handlerStarted()},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},

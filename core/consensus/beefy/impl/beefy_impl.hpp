@@ -33,7 +33,6 @@ namespace kagome::blockchain {
 
 namespace kagome::common {
   class MainPoolHandler;
-  class WorkerPoolHandler;
 }  // namespace kagome::common
 
 namespace kagome::consensus {
