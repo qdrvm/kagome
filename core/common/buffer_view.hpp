@@ -20,7 +20,7 @@ inline auto operator""_bytes(const char *s, std::size_t size) {
 }
 
 namespace kagome::common {
-  template <size_t MaxSize>
+  template <size_t MaxSize, typename Allocator>
   class SLBuffer;
 }
 

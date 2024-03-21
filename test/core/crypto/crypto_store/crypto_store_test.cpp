@@ -46,6 +46,7 @@ using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypes;
 using kagome::crypto::Pbkdf2Provider;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureCleanGuard;
 using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
@@ -53,6 +54,7 @@ using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Suite;
+using std::string_literals::operator""s;
 
 static CryptoStoreImpl::Path crypto_store_test_directory =
     kagome::filesystem::temp_directory_path() / "crypto_store_test";
@@ -62,7 +64,18 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     testutil::prepareLoggers();
   }
 
-  CryptoStoreTest() : BaseFS_Test(crypto_store_test_directory) {}
+  CryptoStoreTest()
+      : BaseFS_Test(crypto_store_test_directory),
+        ed_pair{
+            .secret_key = Ed25519PrivateKey::fromHex(
+                              SecureCleanGuard(
+                                  "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
+                                  "27ec35cd8325602dd47fd"s))
+                              .value(),
+            .public_key = Ed25519PublicKey::fromHex(
+                              "3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
+                              "960990fe02aa26b7fc72")
+                              .value()} {}
 
   void SetUp() override {
     auto hasher = std::make_shared<HasherImpl>();
@@ -95,24 +108,14 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     key_type = KeyTypes::BABE;
 
     EXPECT_OUTCOME_TRUE(
-        ed_publ,
-        Ed25519PublicKey::fromHex("3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
-                                  "960990fe02aa26b7fc72"));
-    EXPECT_OUTCOME_TRUE(
-        ed_priv,
-        Ed25519PrivateKey::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
-                                   "27ec35cd8325602dd47fd"));
-    ed_pair = {ed_priv, ed_publ};
-
-    EXPECT_OUTCOME_TRUE(
         sr_publ,
         Sr25519PublicKey::fromHex("56a03c8afc0e7a3a8b1d53bcc875ba5b6364754f9045"
                                   "16009b57ef3adf96f61f"));
     EXPECT_OUTCOME_TRUE(
         sr_secr,
-        Sr25519SecretKey::fromHex(
+        Sr25519SecretKey::fromHex(SecureCleanGuard{
             "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
-            "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"));
+            "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"s}));
     sr_pair = {sr_secr, sr_publ};
   }
 
@@ -187,8 +190,9 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(
-      pair, crypto_store->generateEd25519Keypair(key_type, Ed25519Seed{seed}));
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateEd25519Keypair(
+                          key_type, Ed25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -210,8 +214,9 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(
-      pair, crypto_store->generateSr25519Keypair(key_type, Sr25519Seed{seed}));
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateSr25519Keypair(
+                          key_type, Sr25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory
