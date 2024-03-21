@@ -39,7 +39,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
     std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
         intrinsic_module_instance = intrinsic_module->instantiate();
     resolver_ = std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
-        intrinsic_module_instance);
+        compartment, intrinsic_module_instance);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
@@ -53,13 +53,9 @@ class WavmRuntimeTest : public RuntimeTestBase {
             std::nullopt,
             hasher_);
 
-
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-            trie_storage_,
-            serializer_,
-            host_api_factory_,
-            module_factory);
+            trie_storage_, serializer_, host_api_factory_, module_factory);
 
     return module_factory;
   }
