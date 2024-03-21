@@ -124,7 +124,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       DisputeThreadPool &dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
@@ -147,7 +147,7 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(

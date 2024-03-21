@@ -41,7 +41,7 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
   class WorkerThreadPool;
 }  // namespace kagome::common
 
@@ -105,7 +105,7 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         common::WorkerThreadPool &worker_thread_pool,
@@ -665,7 +665,7 @@ namespace kagome::parachain {
     } our_current_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;

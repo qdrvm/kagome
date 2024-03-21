@@ -33,7 +33,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus {
@@ -116,7 +116,7 @@ namespace kagome::consensus::grandpa {
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         storage::SpacedStorage &db,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         GrandpaThreadPool &grandpa_thread_pool);
 
     /**
@@ -340,7 +340,7 @@ namespace kagome::consensus::grandpa {
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<storage::BufferStorage> db_;
 
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 

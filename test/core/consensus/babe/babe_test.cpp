@@ -58,7 +58,6 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
 using kagome::common::WorkerThreadPool;
@@ -255,9 +254,6 @@ class BabeTest : public testing::Test {
 
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
-    main_pool_handler =
-        std::make_shared<MainPoolHandler>(*app_state_manager, main_thread_pool);
-    main_pool_handler->start();
 
     worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
 
@@ -287,7 +283,7 @@ class BabeTest : public testing::Test {
         offchain_worker_api,
         offchain_worker_factory,
         offchain_worker_pool,
-        main_pool_handler,
+        *main_thread_pool,
         *worker_thread_pool);
   }
 
@@ -321,7 +317,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
   std::shared_ptr<Watchdog> watchdog;
   std::shared_ptr<MainThreadPool> main_thread_pool;
-  std::shared_ptr<MainPoolHandler> main_pool_handler;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool;
 
   std::shared_ptr<BabeConfiguration> babe_config;

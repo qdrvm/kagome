@@ -13,13 +13,17 @@
 #include "metrics/metrics.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::blockchain {
   class BlockHeaderRepository;
   class BlockTree;
 }  // namespace kagome::blockchain
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus::grandpa {
@@ -71,7 +75,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
+        common::MainThreadPool &main_thread_pool);
 
     ~EnvironmentImpl() override = default;
 
@@ -151,7 +155,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

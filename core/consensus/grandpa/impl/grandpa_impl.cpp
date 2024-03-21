@@ -79,7 +79,7 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       GrandpaThreadPool &grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
@@ -94,7 +94,7 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         grandpa_pool_handler_{grandpa_thread_pool.handler(app_state_manager)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(

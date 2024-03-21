@@ -36,7 +36,7 @@ namespace kagome::blockchain {
 
 namespace kagome::common {
   class WorkerThreadPool;
-  class MainPoolHandler;
+  class MainThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::consensus {
@@ -121,7 +121,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         common::WorkerThreadPool &worker_thread_pool);
 
     bool isGenesisConsensus() const override;
@@ -191,7 +191,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;

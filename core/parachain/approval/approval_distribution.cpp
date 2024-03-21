@@ -455,7 +455,7 @@ namespace kagome::parachain {
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
       ApprovalThreadPool &approval_thread_pool,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{approval_thread_pool.handler(
           app_state_manager)},
@@ -474,7 +474,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(

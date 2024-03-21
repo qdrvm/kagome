@@ -19,6 +19,10 @@ namespace libp2p::multi {
   class Multiaddress;
 }
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppConfiguration;
   class AppStateManager;
@@ -30,7 +34,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::network {
@@ -47,7 +51,7 @@ namespace kagome::network {
    public:
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const OwnPeerInfo &own_info,
@@ -130,7 +134,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
     const OwnPeerInfo &own_info_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
 
     LazySPtr<BlockAnnounceProtocol> block_announce_protocol_;
     LazySPtr<GrandpaProtocol> grandpa_protocol_;

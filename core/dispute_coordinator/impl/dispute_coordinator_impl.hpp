@@ -52,7 +52,7 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus {
@@ -122,7 +122,7 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         DisputeThreadPool &dispute_thread_pool,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
@@ -289,7 +289,7 @@ namespace kagome::dispute {
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> dispute_thread_handler_;
 
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;

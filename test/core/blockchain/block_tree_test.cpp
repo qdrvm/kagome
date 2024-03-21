@@ -37,7 +37,6 @@ using blockchain::BlockTreeImpl;
 using blockchain::JustificationStoragePolicyMock;
 using blockchain::TreeNode;
 using common::Buffer;
-using common::MainPoolHandler;
 using common::MainThreadPool;
 using consensus::SlotNumber;
 using consensus::babe::BabeBlockHeader;
@@ -180,10 +179,8 @@ struct BlockTreeTest : public testing::Test {
                                         extrinsic_event_key_repo,
                                         justification_storage_policy_,
                                         state_pruner_,
-                                        main_pool_handler_)
+                                        *main_thread_pool_)
                       .value();
-
-    main_pool_handler_->start();
   }
 
   void TearDown() override {
@@ -299,8 +296,6 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<MainThreadPool> main_thread_pool_ =
       std::make_shared<MainThreadPool>(
           watchdog_, std::make_shared<boost::asio::io_context>());
-  std::shared_ptr<MainPoolHandler> main_pool_handler_ =
-      std::make_shared<MainPoolHandler>(*app_state_manager_, main_thread_pool_);
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 

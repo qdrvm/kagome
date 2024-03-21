@@ -40,7 +40,6 @@ using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
@@ -168,9 +167,6 @@ class BlockExecutorTest : public testing::Test {
 
     main_thread_pool_ = std::make_shared<MainThreadPool>(
         watchdog_, std::make_shared<boost::asio::io_context>());
-    main_pool_handler_ = std::make_shared<MainPoolHandler>(*app_state_manager,
-                                                           main_thread_pool_);
-    main_pool_handler_->start();
 
     worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
 
@@ -220,7 +216,7 @@ class BlockExecutorTest : public testing::Test {
 
     block_executor_ =
         std::make_shared<BlockExecutorWrapper>(block_tree_,
-                                               main_pool_handler_,
+                                               *main_thread_pool_,
                                                *worker_thread_pool_,
                                                core_,
                                                tx_pool_,
@@ -240,7 +236,6 @@ class BlockExecutorTest : public testing::Test {
 
   std::shared_ptr<Watchdog> watchdog_;
   std::shared_ptr<MainThreadPool> main_thread_pool_;
-  std::shared_ptr<MainPoolHandler> main_pool_handler_;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool_;
 
   std::shared_ptr<CoreMock> core_;

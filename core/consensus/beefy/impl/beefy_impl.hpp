@@ -32,7 +32,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::consensus {
@@ -65,7 +65,7 @@ namespace kagome::network {
               std::shared_ptr<runtime::BeefyApi> beefy_api,
               std::shared_ptr<crypto::EcdsaProvider> ecdsa,
               std::shared_ptr<storage::SpacedStorage> db,
-              std::shared_ptr<common::MainPoolHandler> main_thread_handler,
+              common::MainThreadPool &main_thread_pool,
               BeefyThreadPool &beefy_thread_pool,
               std::shared_ptr<libp2p::basic::Scheduler> scheduler,
               LazySPtr<consensus::Timeline> timeline,
@@ -120,7 +120,7 @@ namespace kagome::network {
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> beefy_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     LazySPtr<consensus::Timeline> timeline_;
