@@ -51,6 +51,11 @@ namespace kagome::consensus {
     virtual outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header) const = 0;
 
+    /// Submit the equivocation report based on two blocks of one validator
+    /// produced during a single slot
+    /// @arg first - hash of first equivocating block
+    /// @arg second - hash of second equivocating block
+    /// @return success or error
     virtual outcome::result<void> reportEquivocation(
         const primitives::BlockHash &first,
         const primitives::BlockHash &second) const = 0;

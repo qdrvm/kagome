@@ -106,9 +106,6 @@ namespace kagome::consensus::grandpa {
     }
   };
 
-  //  using PrevoteEquivocation = detail::Equivocation<Prevote>;
-  //  using PrecommitEquivocation = detail::Equivocation<Precommit>;
-
   struct TotalWeight {
     uint64_t prevote = 0;
     uint64_t precommit = 0;

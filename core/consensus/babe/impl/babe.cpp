@@ -249,6 +249,8 @@ namespace kagome::consensus::babe {
   outcome::result<void> Babe::reportEquivocation(
       const primitives::BlockHash &first_hash,
       const primitives::BlockHash &second_hash) const {
+    BOOST_ASSERT(first_hash != second_hash);
+
     auto first_header_res = block_tree_->getBlockHeader(first_hash);
     if (first_header_res.has_error()) {
       SL_WARN(log_,
@@ -307,9 +309,6 @@ namespace kagome::consensus::babe {
 
     const auto &authorities = config->authorities;
     const auto &authority = authorities[authority_index].id;
-
-    // TODO(xDimon):
-    //  Make sense to get data of both blocks and check it for equality
 
     EquivocationProof equivocation_proof{
         .offender = authority,
