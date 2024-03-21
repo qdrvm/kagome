@@ -14,7 +14,8 @@
 
 namespace kagome::consensus::grandpa {
   /**
-   * Make ancestry merke proof for GrandpaJustification
+   * Make ancestry merke proof for GrandpaJustification.
+   * https://github.com/paritytech/polkadot-sdk/blob/4842faf65d3628586d304fbcb6cb19b17b4a629c/substrate/client/consensus/grandpa/src/justification.rs#L64-L126
    */
   inline outcome::result<void> makeAncestry(
       GrandpaJustification &justification,
