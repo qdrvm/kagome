@@ -91,6 +91,10 @@ namespace kagome::network::vstaging {
       s >> c.header >> c.inner_value;
       return s;
     }
+
+    bool operator==(const CompactStatement &r) const {
+      return inner_value == r.inner_value;
+    }
   };
 
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
@@ -165,7 +169,7 @@ namespace kagome::network::vstaging {
       return count;
     }
 
-    bool contains(size_t index, StatementKind statement_kind) {
+    bool contains(size_t index, StatementKind statement_kind) const {
       switch (statement_kind) {
         case StatementKind::Seconded:
           return index < seconded_in_group.bits.size()

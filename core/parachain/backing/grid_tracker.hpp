@@ -17,6 +17,29 @@
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
 
+template <>
+struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
+                           kagome::network::vstaging::CompactStatement>>
+    : public __hash_base<
+          size_t,
+          std::pair<kagome::parachain::ValidatorIndex,
+                    kagome::network::vstaging::CompactStatement>> {
+  size_t operator()(const std::pair<kagome::parachain::ValidatorIndex,
+                                    kagome::network::vstaging::CompactStatement>
+                        &__p) const noexcept {
+    size_t result = std::hash<kagome::parachain::ValidatorIndex>()(__p.first);
+    auto hash = kagome::visit_in_place(
+        __p.second.inner_value,
+        [](const kagome::network::vstaging::Empty &) {
+          return kagome::parachain::Hash{};
+        },
+        [](const auto &v) { return v.hash; });
+
+    boost::hash_combine(result, std::hash<kagome::parachain::Hash>()(hash));
+    return result;
+  }
+};
+
 namespace kagome::parachain::grid {
 
   using SessionTopologyView = Views;
@@ -33,6 +56,7 @@ namespace kagome::parachain::grid {
   };
 
   class ReceivedManifests;
+  struct KnownBackedCandidate;
 
   struct MutualKnowledge {
     std::optional<network::vstaging::StatementFilter> remote_knowledge;
@@ -76,7 +100,7 @@ namespace kagome::parachain::grid {
     std::optional<network::vstaging::StatementFilter> pending_statements_for(
         ValidatorIndex validator_index, const CandidateHash &candidate_hash);
 
-    std::vector<std::pair<ValidatorIndex, CompactStatement>>
+    std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
     all_pending_statements_for(ValidatorIndex validator_index);
 
     bool can_request(ValidatorIndex validator,
@@ -85,23 +109,25 @@ namespace kagome::parachain::grid {
     std::vector<std::pair<ValidatorIndex, bool>> direct_statement_providers(
         const Groups &groups,
         ValidatorIndex originator,
-        const CompactStatement &statement);
+        const network::vstaging::CompactStatement &statement);
 
     std::vector<ValidatorIndex> direct_statement_targets(
         const Groups &groups,
         ValidatorIndex originator,
-        const CompactStatement &statement);
+        const network::vstaging::CompactStatement &statement);
 
-    void learned_fresh_statement(const Groups &groups,
-                                 const SessionTopologyView &session_topology,
-                                 ValidatorIndex originator,
-                                 const CompactStatement &statement);
+    void learned_fresh_statement(
+        const Groups &groups,
+        const SessionTopologyView &session_topology,
+        ValidatorIndex originator,
+        const network::vstaging::CompactStatement &statement);
 
-    void sent_or_received_direct_statement(const Groups &groups,
-                                           ValidatorIndex originator,
-                                           ValidatorIndex counterparty,
-                                           const CompactStatement &statement,
-                                           bool received);
+    void sent_or_received_direct_statement(
+        const Groups &groups,
+        ValidatorIndex originator,
+        ValidatorIndex counterparty,
+        const network::vstaging::CompactStatement &statement,
+        bool received);
 
     std::optional<network::vstaging::StatementFilter> advertised_statements(
         ValidatorIndex validator, const CandidateHash &candidate_hash);
@@ -164,7 +190,7 @@ namespace kagome::parachain::grid {
         size_t validator,
         const network::vstaging::StatementFilter &local_knowledge);
     void manifest_received_from(
-        size_t validator,
+        ValidatorIndex validator,
         const network::vstaging::StatementFilter &remote_knowledge);
 
     void sent_or_received_direct_statement(
@@ -173,12 +199,12 @@ namespace kagome::parachain::grid {
         const network::vstaging::StatementKind &statement_kind,
         bool received);
 
-    std::vector<std::pair<size_t, bool>> direct_statement_senders(
-        size_t group_index,
+    std::vector<std::pair<ValidatorIndex, bool>> direct_statement_senders(
+        GroupIndex group_index,
         size_t originator_index_in_group,
         const network::vstaging::StatementKind &statement_kind);
-    std::vector<size_t> direct_statement_recipients(
-        size_t group_index,
+    std::vector<ValidatorIndex> direct_statement_recipients(
+        GroupIndex group_index,
         size_t originator_index_in_group,
         const network::vstaging::StatementKind &statement_kind);
     std::optional<network::vstaging::StatementFilter> pending_statements(

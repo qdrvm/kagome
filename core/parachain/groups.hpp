@@ -43,7 +43,8 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    std::optional<std::span<ValidatorIndex>> get(GroupIndex group_index) {
+    std::optional<std::span<const ValidatorIndex>> get(
+        GroupIndex group_index) const {
       auto group = groups.find(group_index);
       if (group == groups.end()) {
         return std::nullopt;
@@ -52,10 +53,10 @@ namespace kagome::parachain {
     }
 
     std::optional<std::tuple<size_t, size_t>> get_size_and_backing_threshold(
-        GroupIndex group_index) {
+        GroupIndex group_index) const {
       auto group = get(group_index);
       if (!group) {
-        return std::nullopt;
+        return {};
       }
       return std::make_tuple(
           group->size(), std::min(group->size(), size_t(backing_threshold)));

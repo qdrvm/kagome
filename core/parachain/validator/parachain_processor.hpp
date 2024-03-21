@@ -26,6 +26,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/store/store.hpp"
+#include "parachain/backing/grid_tracker.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/pvf/precheck.hpp"
 #include "parachain/pvf/pvf.hpp"
