@@ -42,4 +42,25 @@ namespace kagome::application {
     MOCK_METHOD(State, state, (), (const, override));
   };
 
+  struct StartApp : AppStateManagerMock {
+    std::pair<std::vector<OnPrepare>, std::vector<OnLaunch>> queue_;
+
+    void atPrepare(OnPrepare &&cb) override {
+      queue_.first.emplace_back(cb);
+    }
+
+    void atLaunch(OnLaunch &&cb) override {
+      queue_.second.emplace_back(cb);
+    }
+
+    void start() {
+      auto queue = std::move(queue_);
+      for (auto &cb : queue.first) {
+        EXPECT_TRUE(cb());
+      }
+      for (auto &cb : queue.second) {
+        EXPECT_TRUE(cb());
+      }
+    }
+  };
 }  // namespace kagome::application

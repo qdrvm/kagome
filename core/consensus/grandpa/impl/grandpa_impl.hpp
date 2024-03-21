@@ -103,7 +103,7 @@ namespace kagome::consensus::grandpa {
     ~GrandpaImpl() override = default;
 
     GrandpaImpl(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -117,7 +117,7 @@ namespace kagome::consensus::grandpa {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         storage::SpacedStorage &db,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool);
+        GrandpaThreadPool &grandpa_thread_pool);
 
     /**
      * Initiates grandpa voting process e.g.:

@@ -269,7 +269,7 @@ namespace kagome::parachain {
 
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
@@ -283,15 +283,13 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
+        ApprovalThreadPool &approval_thread_pool,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
     bool prepare();
-    void start();
-    void stop();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;

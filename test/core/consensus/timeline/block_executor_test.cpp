@@ -169,8 +169,8 @@ class BlockExecutorTest : public testing::Test {
 
     main_thread_pool_ = std::make_shared<MainThreadPool>(
         watchdog_, std::make_shared<boost::asio::io_context>());
-    main_pool_handler_ =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool_);
+    main_pool_handler_ = std::make_shared<MainPoolHandler>(*app_state_manager,
+                                                           main_thread_pool_);
     main_pool_handler_->start();
 
     worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);

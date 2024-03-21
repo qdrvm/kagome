@@ -9,6 +9,7 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
+#include "application/app_state_manager.hpp"
 #include "injector/inject.hpp"
 #include "log/logger.hpp"
 #include "utils/pool_handler.hpp"
@@ -77,9 +78,16 @@ namespace kagome {
       return ioc_;
     }
 
-    std::shared_ptr<PoolHandler> handler() {
+    std::shared_ptr<PoolHandler> handlerManual() {
       BOOST_ASSERT(ioc_);
       return std::make_shared<PoolHandler>(ioc_);
+    }
+
+    std::shared_ptr<PoolHandler> handler(
+        application::AppStateManager &app_state_manager) {
+      auto handler = handlerManual();
+      app_state_manager.takeControl(*handler);
+      return handler;
     }
 
    private:

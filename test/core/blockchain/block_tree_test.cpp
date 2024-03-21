@@ -300,7 +300,7 @@ struct BlockTreeTest : public testing::Test {
       std::make_shared<MainThreadPool>(
           watchdog_, std::make_shared<boost::asio::io_context>());
   std::shared_ptr<MainPoolHandler> main_pool_handler_ =
-      std::make_shared<MainPoolHandler>(app_state_manager_, main_thread_pool_);
+      std::make_shared<MainPoolHandler>(*app_state_manager_, main_thread_pool_);
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 

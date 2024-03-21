@@ -67,7 +67,7 @@ namespace kagome::network {
               std::shared_ptr<crypto::EcdsaProvider> ecdsa,
               std::shared_ptr<storage::SpacedStorage> db,
               std::shared_ptr<common::MainPoolHandler> main_thread_handler,
-              std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
+              BeefyThreadPool &beefy_thread_pool,
               std::shared_ptr<libp2p::basic::Scheduler> scheduler,
               LazySPtr<consensus::Timeline> timeline,
               std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -76,7 +76,6 @@ namespace kagome::network {
 
     void prepare();
     void start();
-    void stop();
 
     primitives::BlockNumber finalized() const override;
 

@@ -108,7 +108,7 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::ChainSpec> chain_spec,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       clock::SystemClock &system_clock,
       clock::SteadyClock &steady_clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -125,12 +125,11 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+      DisputeThreadPool &dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       LazySPtr<consensus::Timeline> timeline)
-      : app_state_manager_(std::move(app_state_manager)),
-        system_clock_(system_clock),
+      : system_clock_(system_clock),
         steady_clock_(steady_clock),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
@@ -149,17 +148,13 @@ namespace kagome::dispute {
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
         main_pool_handler_(std::move(main_pool_handler)),
-        dispute_thread_handler_{[&] {
-          BOOST_ASSERT(dispute_thread_pool != nullptr);
-          return dispute_thread_pool->handler();
-        }()},
+        dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                dispute_thread_pool->io_context()),
+                dispute_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
@@ -211,7 +206,7 @@ namespace kagome::dispute {
         disputeConcludedMetricName,
         {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
 
-    app_state_manager_->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool DisputeCoordinatorImpl::prepare() {
@@ -242,15 +237,6 @@ namespace kagome::dispute {
         });
 
     return true;
-  }
-
-  bool DisputeCoordinatorImpl::start() {
-    dispute_thread_handler_->start();
-    return true;
-  }
-
-  void DisputeCoordinatorImpl::stop() {
-    dispute_thread_handler_->stop();
   }
 
   void DisputeCoordinatorImpl::startup(const network::ExView &updated) {

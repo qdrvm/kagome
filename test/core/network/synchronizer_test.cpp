@@ -92,7 +92,7 @@ class SynchronizerTest
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
     main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+        std::make_shared<MainPoolHandler>(*app_state_manager, main_thread_pool);
     main_pool_handler->start();
 
     auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);

@@ -257,7 +257,7 @@ class BabeTest : public testing::Test {
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
     main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+        std::make_shared<MainPoolHandler>(*app_state_manager, main_thread_pool);
     main_pool_handler->start();
 
     worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
