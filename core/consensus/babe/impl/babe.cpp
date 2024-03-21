@@ -9,6 +9,7 @@
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -30,11 +31,14 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
+#include "offchain/offchain_worker_factory.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/inherent_data.hpp"
+#include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -83,7 +87,10 @@ namespace kagome::consensus::babe {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
+      std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
       : log_(log::createLogger("Babe", "babe")),
@@ -104,7 +111,10 @@ namespace kagome::consensus::babe {
         storage_sub_engine_(std::move(storage_sub_engine)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
+        babe_api_(std::move(babe_api)),
         offchain_worker_api_(std::move(offchain_worker_api)),
+        offchain_worker_factory_(std::move(offchain_worker_factory)),
+        offchain_worker_pool_(std::move(offchain_worker_pool)),
         main_pool_handler_(std::move(main_pool_handler)),
         worker_pool_handler_(std::move(worker_pool_handler)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
@@ -123,7 +133,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
+    BOOST_ASSERT(babe_api_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(offchain_worker_factory_);
+    BOOST_ASSERT(offchain_worker_pool_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
 
@@ -169,6 +182,11 @@ namespace kagome::consensus::babe {
   outcome::result<SlotNumber> Babe::getSlot(
       const primitives::BlockHeader &header) const {
     return babe::getSlot(header);
+  }
+
+  outcome::result<AuthorityIndex> Babe::getAuthority(
+      const primitives::BlockHeader &header) const {
+    return babe::getAuthority(header);
   }
 
   outcome::result<void> Babe::processSlot(
@@ -226,6 +244,102 @@ namespace kagome::consensus::babe {
   outcome::result<void> Babe::validateHeader(
       const primitives::BlockHeader &block_header) const {
     return validating_->validateHeader(block_header);
+  }
+
+  outcome::result<void> Babe::reportEquivocation(
+      const primitives::BlockHash &first_hash,
+      const primitives::BlockHash &second_hash) const {
+    BOOST_ASSERT(first_hash != second_hash);
+
+    auto first_header_res = block_tree_->getBlockHeader(first_hash);
+    if (first_header_res.has_error()) {
+      SL_WARN(log_,
+              "Can't obtain equivocating header of block {}: {}",
+              first_hash,
+              first_header_res.error());
+      return first_header_res.as_failure();
+    }
+    auto &first_header = first_header_res.value();
+
+    auto second_header_res = block_tree_->getBlockHeader(second_hash);
+    if (second_header_res.has_error()) {
+      SL_WARN(log_,
+              "Can't obtain equivocating header of block {}: {}",
+              second_hash,
+              second_header_res.error());
+      return second_header_res.as_failure();
+    }
+    auto &second_header = second_header_res.value();
+
+    auto slot_res = getSlot(first_header);
+    BOOST_ASSERT(slot_res.has_value());
+    auto slot = slot_res.value();
+    BOOST_ASSERT_MSG(
+        [&] {
+          slot_res = getSlot(second_header);
+          return slot_res.has_value() and slot_res.value() == slot;
+        }(),
+        "Equivocating blocks must be block of one slot");
+
+    auto authority_index_res = getAuthority(first_header);
+    BOOST_ASSERT(authority_index_res.has_value());
+    auto authority_index = authority_index_res.value();
+    BOOST_ASSERT_MSG(
+        [&] {
+          authority_index_res = getAuthority(second_header);
+          return authority_index_res.has_value()
+             and authority_index_res.value() == authority_index;
+        }(),
+        "Equivocating blocks must be block of one authority");
+
+    auto parent = second_header.parentInfo().value();
+    auto epoch_res = slots_util_.get()->slotToEpoch(parent, slot);
+    if (epoch_res.has_error()) {
+      SL_WARN(log_, "Can't compute epoch by slot: {}", epoch_res.error());
+      return epoch_res.as_failure();
+    }
+    auto epoch = epoch_res.value();
+
+    auto config_res = config_repo_->config(parent, epoch);
+    if (config_res.has_error()) {
+      SL_WARN(log_, "Can't obtain config: {}", config_res.error());
+      return config_res.as_failure();
+    }
+    auto &config = config_res.value();
+
+    const auto &authorities = config->authorities;
+    const auto &authority = authorities[authority_index].id;
+
+    EquivocationProof equivocation_proof{
+        .offender = authority,
+        .slot = slot,
+        .first_header = std::move(first_header),
+        .second_header = std::move(second_header),
+    };
+
+    auto ownership_proof_res = babe_api_->generate_key_ownership_proof(
+        block_tree_->bestBlock().hash, slot, equivocation_proof.offender);
+    if (ownership_proof_res.has_error()) {
+      SL_WARN(
+          log_, "Can't get ownership proof: {}", ownership_proof_res.error());
+      return ownership_proof_res.as_failure();
+    }
+    auto &ownership_proof_opt = ownership_proof_res.value();
+    if (not ownership_proof_opt.has_value()) {
+      SL_WARN(log_,
+              "Can't get ownership proof: runtime call returns none",
+              ownership_proof_res.error());
+      return ownership_proof_res.as_failure();  // FIXME;
+    }
+    auto &ownership_proof = ownership_proof_opt.value();
+
+    offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
+    ::libp2p::common::FinalAction remove(
+        [&] { offchain_worker_pool_->removeWorker(); });
+    return babe_api_->submit_report_equivocation_unsigned_extrinsic(
+        second_header.parent_hash,
+        std::move(equivocation_proof),
+        ownership_proof);
   }
 
   bool Babe::changeEpoch(EpochNumber epoch,

@@ -1118,7 +1118,7 @@ namespace kagome::consensus::grandpa {
       OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<T>());
 
-    // Check if voter is contained in current voter set
+    // Check if a voter is contained in a current voter set
     auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
     if (!index_and_weight_opt) {
       SL_DEBUG(
@@ -1189,6 +1189,18 @@ namespace kagome::consensus::grandpa {
       case VoteTracker::PushResult::EQUIVOCATED: {
         equivocators[index] = true;
         graph_->remove(type, vote.id);
+
+        auto maybe_votes_opt = tracker.getMessage(vote.id);
+        BOOST_ASSERT(maybe_votes_opt.has_value());
+        const auto &votes_opt =
+            if_type<EquivocatorySignedMessage>(maybe_votes_opt.value());
+        BOOST_ASSERT(votes_opt.has_value());
+        const auto &votes = votes_opt.value().get();
+
+        Equivocation equivocation{round_number_, votes.first, votes.second};
+
+        std::ignore = env_->reportEquivocation(*this, equivocation);
+
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
       default:

@@ -928,4 +928,9 @@ namespace kagome::runtime {
     OUTCOME_TRY(wabtValidate(module));
     return wabtEncode(module);
   }
+
+  WabtOutcome<common::Buffer> InstrumentWasm::instrument(
+      common::BufferView code, const MemoryLimits &config) const {
+    return prepareBlobForCompilation(code, config);
+  }
 }  // namespace kagome::runtime

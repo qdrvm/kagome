@@ -71,66 +71,16 @@ namespace kagome::consensus::grandpa {
     return s >> signed_msg.message >> signed_msg.signature >> signed_msg.id;
   }
 
-  template <typename Message>
-  struct Equivocated {
-    Message first;
-    Message second;
-  };
-
   using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
   using VoteVariant = boost::variant<SignedMessage, EquivocatorySignedMessage>;
-
-  namespace detail {
-    /// Proof of an equivocation (double-vote) in a given round.
-    template <typename Message>
-    struct Equivocation {  // NOLINT
-      /// The round number equivocated in.
-      RoundNumber round;
-      /// The identity of the equivocator.
-      Id id;
-      Equivocated<Message> proof;
-    };
-  }  // namespace detail
 
   class SignedPrevote : public SignedMessage {
     using SignedMessage::SignedMessage;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const SignedPrevote &signed_msg) {
-    assert(signed_msg.template is<Prevote>());
-    return s << boost::strict_get<Prevote>(signed_msg.message)
-             << signed_msg.signature << signed_msg.id;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, SignedPrevote &signed_msg) {
-    signed_msg.message = Prevote{};
-    return s >> boost::strict_get<Prevote>(signed_msg.message)
-        >> signed_msg.signature >> signed_msg.id;
-  }
-
   class SignedPrecommit : public SignedMessage {
     using SignedMessage::SignedMessage;
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const SignedPrecommit &signed_msg) {
-    assert(signed_msg.template is<Precommit>());
-    return s << boost::strict_get<Precommit>(signed_msg.message)
-             << signed_msg.signature << signed_msg.id;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, SignedPrecommit &signed_msg) {
-    signed_msg.message = Precommit{};
-    return s >> boost::strict_get<Precommit>(signed_msg.message)
-        >> signed_msg.signature >> signed_msg.id;
-  }
 
   // justification that contains a list of signed precommits justifying the
   // validity of the block
@@ -155,9 +105,6 @@ namespace kagome::consensus::grandpa {
       return vote.id;
     }
   };
-
-  using PrevoteEquivocation = detail::Equivocation<Prevote>;
-  using PrecommitEquivocation = detail::Equivocation<Precommit>;
 
   struct TotalWeight {
     uint64_t prevote = 0;

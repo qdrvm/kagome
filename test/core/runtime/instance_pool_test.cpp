@@ -15,11 +15,13 @@
 
 #include "runtime/common/runtime_instances_pool.hpp"
 
+#include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_mock.hpp"
 
 using kagome::common::Buffer;
+using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
@@ -55,14 +57,12 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
         times_make_called++;
         return module_mock;
       }));
-  EXPECT_CALL(*module_factory, testDontInstrument())
-      .WillRepeatedly(Return(true));
 
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
 
-  auto pool =
-      std::make_shared<RuntimeInstancesPoolImpl>(module_factory, POOL_SIZE);
+  auto pool = std::make_shared<RuntimeInstancesPoolImpl>(
+      module_factory, std::make_shared<DontInstrumentWasm>(), POOL_SIZE);
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {

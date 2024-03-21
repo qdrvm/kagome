@@ -75,4 +75,12 @@ namespace kagome::runtime {
   // https://github.com/paritytech/polkadot-sdk/blob/11831df8e709061e9c6b3292facb5d7d9709f151/substrate/client/executor/wasmtime/src/runtime.rs#L651
   WabtOutcome<common::Buffer> prepareBlobForCompilation(
       common::BufferView code, const MemoryLimits &config);
+
+  class InstrumentWasm {
+   public:
+    virtual ~InstrumentWasm() = default;
+
+    virtual WabtOutcome<common::Buffer> instrument(
+        common::BufferView code, const MemoryLimits &config) const;
+  };
 }  // namespace kagome::runtime
