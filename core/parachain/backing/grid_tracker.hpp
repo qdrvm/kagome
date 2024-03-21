@@ -165,7 +165,7 @@ namespace kagome::parachain::grid {
    private:
     bool updating_ensure_within_seconding_limit(
         std::unordered_map<GroupIndex, std::vector<size_t>> &seconded_counts,
-        int claimed_group_index,
+        GroupIndex group_index,
         size_t group_size,
         size_t seconding_limit,
         const std::vector<bool> &fresh_seconded);

@@ -619,35 +619,35 @@ namespace kagome::parachain::grid {
 
   bool ReceivedManifests::updating_ensure_within_seconding_limit(
       std::unordered_map<GroupIndex, std::vector<size_t>> &seconded_counts,
-      int claimed_group_index,
+      GroupIndex group_index,
       size_t group_size,
       size_t seconding_limit,
       const std::vector<bool> &new_seconded) {
     if (seconding_limit == 0) {
-      return false
+      return false;
     }
 
-    std::reference_wrapper<std::vector<size_t>> counts;
+    std::optional<std::reference_wrapper<std::vector<size_t>>> counts;
     auto it = seconded_counts.find(group_index);
     if (it == seconded_counts.end()) {
       auto i = seconded_counts.emplace(group_index,
                                        std::vector<size_t>{group_size, 0});
-      counts = i->second;
+      counts = i.first->second;
     } else {
       counts = it->second;
     }
 
     for (size_t i = 0; i < new_seconded.size(); ++i) {
       if (new_seconded[i]) {
-        if (counts.get()[i] == seconding_limit) {
-          return false
+        if (counts->get()[i] == seconding_limit) {
+          return false;
         }
       }
     }
 
     for (size_t i = 0; i < new_seconded.size(); ++i) {
       if (new_seconded[i]) {
-        counts.get()[i] += 1;
+        counts->get()[i] += 1;
       }
     }
 
