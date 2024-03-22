@@ -1060,6 +1060,18 @@ namespace kagome::dispute {
 
     auto expected_candidate_hash = votes.candidate_receipt.hash(*hasher_);
 
+    //  const auto &relay_parent = candidate_receipt.descriptor.relay_parent;
+    //  auto disabled_validators_res = api_->disabled_validators(relay_parent);
+    //  if (disabled_validators_res.has_error()) {
+    //    SL_WARN(log_,
+    //            "Can't get disabled validators: {}",
+    //            disabled_validators_res.error());
+    //    return;
+    //  }
+    //  const auto &disabled_validators = disabled_validators_res.value();
+
+    std::vector<Indexed<SignedDisputeStatement>> postponed_statements;
+
     for (auto &vote : statements) {
       auto val_index = vote.ix;
       SignedDisputeStatement &statement = vote.payload;
@@ -1080,6 +1092,17 @@ namespace kagome::dispute {
         continue;
       }
 
+      // // Don't exist any votes for candidate - check disabled
+      // if (votes.valid.empty() and votes.invalid.empty()) {
+      //   auto is_disabled_validator = std::binary_search(
+      //       disabled_validators.begin(), disabled_validators.end(),
+      //       val_index);
+      //   if (is_disabled_validator) {
+      //     postponed_statements.emplace_back(std::move(vote));
+      //     continue;
+      //   }
+      // }
+
       visit_in_place(
           statement.dispute_statement,
           [&](const ValidDisputeStatement &valid) {
@@ -1088,6 +1111,10 @@ namespace kagome::dispute {
                 std::make_tuple(valid, statement.validator_signature));
             if (fresh) {
               ++imported_valid_votes;
+              // Return postponed statements to process
+              std::move_backward(postponed_statements.begin(),
+                                 postponed_statements.end(),
+                                 statements.end());
               return true;
             }
             auto &existing = std::get<0>(it->second);
@@ -1109,6 +1136,10 @@ namespace kagome::dispute {
             if (fresh) {
               ++imported_invalid_votes;
               new_invalid_voters.push_back(val_index);
+              // Return postponed statements to process
+              std::move_backward(postponed_statements.begin(),
+                                 postponed_statements.end(),
+                                 statements.end());
               return true;
             }
             return false;
