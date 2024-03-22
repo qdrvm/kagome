@@ -18,8 +18,13 @@
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppConfiguration;
+  class AppStateManager;
 }  // namespace kagome::application
 
 namespace kagome::authorship {
@@ -31,8 +36,8 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class WorkerPoolHandler;
-  class MainPoolHandler;
+  class WorkerThreadPool;
+  class MainThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::consensus {
@@ -94,6 +99,7 @@ namespace kagome::consensus::babe {
     };
 
     Babe(
+        application::AppStateManager &app_state_manager,
         const application::AppConfiguration &app_config,
         const clock::SystemClock &clock,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -117,8 +123,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
+        common::MainThreadPool &main_thread_pool,
+        common::WorkerThreadPool &worker_thread_pool);
 
     bool isGenesisConsensus() const override;
 
@@ -187,8 +193,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

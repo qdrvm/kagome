@@ -69,6 +69,7 @@ namespace {
 namespace kagome::consensus::babe {
 
   Babe::Babe(
+      application::AppStateManager &app_state_manager,
       const application::AppConfiguration &app_config,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -91,8 +92,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
+      common::MainThreadPool &main_thread_pool,
+      common::WorkerThreadPool &worker_thread_pool)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -115,8 +116,8 @@ namespace kagome::consensus::babe {
         offchain_worker_api_(std::move(offchain_worker_api)),
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
-        main_pool_handler_(std::move(main_pool_handler)),
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);

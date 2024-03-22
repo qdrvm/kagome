@@ -57,14 +57,14 @@ namespace kagome::telemetry {
         public std::enable_shared_from_this<TelemetryServiceImpl> {
    public:
     TelemetryServiceImpl(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         const application::AppConfiguration &app_configuration,
         const application::ChainSpec &chain_spec,
         const libp2p::Host &host,
         std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const network::PeerManager> peer_manager,
-        std::shared_ptr<TelemetryThreadPool> telemetry_thread_pool);
+        TelemetryThreadPool &telemetry_thread_pool);
     TelemetryServiceImpl(const TelemetryServiceImpl &) = delete;
     TelemetryServiceImpl(TelemetryServiceImpl &&) = delete;
     TelemetryServiceImpl &operator=(const TelemetryServiceImpl &) = delete;
@@ -133,7 +133,6 @@ namespace kagome::telemetry {
      *****************************************************************/
 
     // constructor arguments
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     const application::AppConfiguration &app_configuration_;
     const application::ChainSpec &chain_spec_;
     const libp2p::Host &host_;

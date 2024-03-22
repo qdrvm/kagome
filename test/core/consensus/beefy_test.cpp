@@ -30,11 +30,10 @@
 
 using kagome::beefyMmrDigest;
 using kagome::TestThreadPool;
-using kagome::application::AppStateManagerMock;
 using kagome::application::ChainSpecMock;
+using kagome::application::StartApp;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::consensus::Timeline;
 using kagome::consensus::TimelineMock;
@@ -156,19 +155,9 @@ struct BeefyTest : testing::Test {
                           : std::nullopt;
       });
 
-      std::shared_ptr<AppStateManagerMock> app_state_manager_ =
-          std::make_shared<AppStateManagerMock>();
-      EXPECT_CALL(*app_state_manager_, atPrepare(_))
-          .Times(testing::AnyNumber());
-      EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
-      EXPECT_CALL(*app_state_manager_, atShutdown(_))
-          .Times(testing::AnyNumber());
+      StartApp app_state_manager;
       std::shared_ptr<MainThreadPool> main_thread_pool_ =
           std::make_shared<MainThreadPool>(TestThreadPool{io_});
-      std::shared_ptr<MainPoolHandler> main_pool_handler_ =
-          std::make_shared<MainPoolHandler>(app_state_manager_,
-                                            main_thread_pool_);
-      main_pool_handler_->start();
       std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
           std::make_shared<BeefyThreadPool>(TestThreadPool{io_});
 
@@ -205,21 +194,20 @@ struct BeefyTest : testing::Test {
             });
           });
       peer.beefy_ = std::make_shared<BeefyImpl>(
-          *app_state_manager_,
+          app_state_manager,
           chain_spec_,
           peer.block_tree_,
           beefy_api_,
           ecdsa_,
           std::make_shared<InMemorySpacedStorage>(),
-          main_pool_handler_,
-          beefy_thread_pool_,
+          *main_thread_pool_,
+          *beefy_thread_pool_,
           peer.timer_,
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           peer.chain_sub_);
-      peer.beefy_->prepare();
-      peer.beefy_->start();
+      app_state_manager.start();
     }
   }
 

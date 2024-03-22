@@ -94,10 +94,10 @@ namespace kagome::parachain {
       std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -107,7 +107,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
@@ -115,7 +115,7 @@ namespace kagome::parachain {
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         pvf_(std::move(pvf)),
@@ -129,7 +129,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -148,7 +148,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(prospective_parachains_);
     BOOST_ASSERT(our_current_state_.implicit_view);

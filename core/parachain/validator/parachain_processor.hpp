@@ -41,8 +41,8 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::common {
-  class MainPoolHandler;
-  class WorkerPoolHandler;
+  class MainThreadPool;
+  class WorkerThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::network {
@@ -105,10 +105,10 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+        common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
         std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -118,7 +118,7 @@ namespace kagome::parachain {
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
         const application::AppConfiguration &app_config,
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
@@ -665,7 +665,7 @@ namespace kagome::parachain {
     } our_current_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
@@ -685,7 +685,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     Candidates candidates_;

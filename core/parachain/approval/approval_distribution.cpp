@@ -442,8 +442,8 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      application::AppStateManager &app_state_manager,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
@@ -456,14 +456,12 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
-      std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      ApprovalThreadPool &approval_thread_pool,
+      common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : approval_thread_handler_{[&] {
-          BOOST_ASSERT(approval_thread_pool != nullptr);
-          return approval_thread_pool->handler();
-        }()},
-        worker_pool_handler_(std::move(worker_pool_handler)),
+      : approval_thread_handler_{approval_thread_pool.handler(
+          app_state_manager)},
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -478,11 +476,11 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                approval_thread_pool->io_context()),
+                approval_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
@@ -500,8 +498,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
 
-    BOOST_ASSERT(app_state_manager);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool ApprovalDistribution::prepare() {
@@ -553,14 +550,6 @@ namespace kagome::parachain {
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
-  }
-
-  void ApprovalDistribution::start() {
-    approval_thread_handler_->start();
-  }
-
-  void ApprovalDistribution::stop() {
-    approval_thread_handler_->stop();
   }
 
   void ApprovalDistribution::store_remote_view(

@@ -16,9 +16,9 @@ namespace kagome::network {
 
   ReputationRepositoryImpl::ReputationRepositoryImpl(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<common::MainPoolHandler> main_thread,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : main_thread_{std::move(main_thread)},
+      : main_thread_{main_thread_pool.handler(app_state_manager)},
         scheduler_{std::move(scheduler)},
         log_(log::createLogger("Reputation", "reputation")) {
     BOOST_ASSERT(scheduler_);
