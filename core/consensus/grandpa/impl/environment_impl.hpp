@@ -136,6 +136,9 @@ namespace kagome::consensus::grandpa {
         const VotingRound &round,
         const Equivocation &equivocation) const override;
 
+    outcome::result<void> makeAncestry(
+        GrandpaJustification &justification) const override;
+
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
