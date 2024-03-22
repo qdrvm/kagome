@@ -185,22 +185,27 @@ namespace kagome::crypto {
 
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
       const CryptoStore::Path &key_path) const {
-    std::string contents;
+    SecureBuffer<> contents;
     if (not readFile(contents, key_path.string())) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    Ed25519Seed seed;
-    if (ED25519_SEED_LENGTH == contents.size()) {
-      OUTCOME_TRY(_seed, Ed25519Seed::fromSpan(str2byte(contents)));
-      seed = _seed;
-    } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-      OUTCOME_TRY(_seed, Ed25519Seed::fromHex(contents));
-      seed = _seed;
-    } else {
-      return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
-    }
+    auto seed_res = [&] -> outcome::result<Ed25519Seed> {
+      if (ED25519_SEED_LENGTH == contents.size()) {
+        OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
+        return _seed;
+      } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
+        std::span<char> char_content{reinterpret_cast<char *>(contents.data()),
+                                     contents.size()};
+        OUTCOME_TRY(_seed,
+                    Ed25519Seed::fromHex(SecureCleanGuard{char_content}));
+        return _seed;
+      } else {
+        return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
+      }
+    }();
+    OUTCOME_TRY(seed, seed_res);
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     return ed25519KeyToLibp2pKeypair(kp);
   }
@@ -211,9 +216,11 @@ namespace kagome::crypto {
     libp2p::crypto::PublicKey lp2p_public{
         {libp2p::crypto::Key::Type::Ed25519,
          std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
+    auto bytes = secret_key.unsafeBytes();
+    // TODO(Harrm): implement secure private key storage in libp2p
     libp2p::crypto::PrivateKey lp2p_private{
         {libp2p::crypto::Key::Type::Ed25519,
-         std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}}};
+         std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
     return libp2p::crypto::KeyPair{
         .publicKey = lp2p_public,
         .privateKey = lp2p_private,

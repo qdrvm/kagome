@@ -52,6 +52,7 @@ using kagome::crypto::EcdsaKeypair;
 using kagome::crypto::EcdsaProviderImpl;
 using kagome::crypto::EcdsaSeed;
 using kagome::crypto::HasherImpl;
+using kagome::crypto::SecureBuffer;
 using kagome::crypto::SessionKeysMock;
 using kagome::network::BeefyImpl;
 using kagome::network::BeefyProtocol;
@@ -143,11 +144,13 @@ struct BeefyTest : testing::Test {
     peers_.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
       auto &peer = peers_.emplace_back();
-      EcdsaSeed seed;
-      seed[0] = i;
-      seed[1] = 1;
+
+      SecureBuffer<> seed_buf(EcdsaSeed::size());
+      seed_buf[0] = i;
+      seed_buf[1] = 1;
+      auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
       peer.keys_ = std::make_shared<EcdsaKeypair>(
-          ecdsa_->generateKeypair(seed, {}).value());
+          std::move(ecdsa_->generateKeypair(seed, {}).value()));
       EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_)).WillRepeatedly([&, i]() {
         return peer.vote_ ? std::make_optional(std::make_pair(peer.keys_, i))
                           : std::nullopt;
