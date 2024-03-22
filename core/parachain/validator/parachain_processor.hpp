@@ -119,8 +119,8 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable,
+        primitives::events::SyncStateSubscriptionEnginePtr
+            sync_state_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
         std::shared_ptr<ProspectiveParachains> prospective_parachains);
     ~ParachainProcessorImpl() = default;
@@ -680,8 +680,8 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::AvailabilityStore> av_store_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     const application::AppConfiguration &app_config_;
-    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
-    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+    primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
+    primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;

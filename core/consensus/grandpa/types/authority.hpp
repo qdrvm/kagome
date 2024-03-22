@@ -25,8 +25,6 @@ namespace kagome::consensus::grandpa {
   using Authorities =
       common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
 
-  using AuthorityIndex = uint32_t;
-
   using AuthoritySetId = uint64_t;
 
   /*

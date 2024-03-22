@@ -108,7 +108,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
       : pm_(std::move(pm)),
@@ -127,7 +127,7 @@ namespace kagome::parachain {
         av_store_(std::move(av_store)),
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
-        babe_status_observable_(std::move(babe_status_observable)),
+        sync_state_observable_(std::move(sync_state_observable)),
         query_audi_{std::move(query_audi)},
         worker_pool_handler_(std::move(worker_pool_handler)),
         prospective_parachains_{std::move(prospective_parachains)} {
@@ -144,7 +144,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(av_store_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
-    BOOST_ASSERT(babe_status_observable_);
+    BOOST_ASSERT(sync_state_observable_);
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
@@ -198,13 +198,13 @@ namespace kagome::parachain {
           }
         });
 
-    babe_status_observer_ =
-        std::make_shared<primitives::events::BabeStateEventSubscriber>(
-            babe_status_observable_, false);
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
+    sync_state_observer_ =
+        std::make_shared<primitives::events::SyncStateEventSubscriber>(
+            sync_state_observable_, false);
+    sync_state_observer_->subscribe(
+        sync_state_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
-    babe_status_observer_->setCallback(
+    sync_state_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
@@ -599,7 +599,7 @@ namespace kagome::parachain {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
     }
-    if (!babe_status_observer_->get()) {
+    if (!sync_state_observer_->get()) {
       return Error::NOT_SYNCHRONIZED;
     }
     return outcome::success();

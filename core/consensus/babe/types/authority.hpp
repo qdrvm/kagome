@@ -24,6 +24,4 @@ namespace kagome::consensus::babe {
 
   using Authorities = common::SLVector<Authority, kMaxValidatorsNumber>;
 
-  using AuthorityIndex = uint32_t;
-
 }  // namespace kagome::consensus::babe

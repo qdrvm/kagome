@@ -33,6 +33,10 @@ namespace kagome::runtime {
         consensus::babe::EquivocationProof equivocation_proof,
         consensus::babe::OpaqueKeyOwnershipProof key_owner_proof) override;
 
+    /// Returns a list of all disabled validators at the given block.
+    outcome::result<std::vector<consensus::AuthorityIndex>> disabled_validators(
+        const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };
