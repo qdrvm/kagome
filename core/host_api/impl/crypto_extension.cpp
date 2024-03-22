@@ -81,7 +81,7 @@ namespace kagome::host_api {
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
-    BOOST_ASSERT(key_store != nullptr);
+    BOOST_ASSERT(key_store_ != nullptr);
   }
 
   // ---------------------- hashing ----------------------
@@ -209,7 +209,7 @@ namespace kagome::host_api {
     outcome::result<crypto::Ed25519Keypair> kp_res = [&] {
       if (seed_opt.has_value()) {
         return key_store_->ed25519().generateKeypair(key_type,
-                                                        seed_opt.value());
+                                                     seed_opt.value());
       } else {
         return key_store_->ed25519().generateKeypairOnDisk(key_type);
       }
@@ -241,20 +241,20 @@ namespace kagome::host_api {
     if (!pk) {
       BOOST_UNREACHABLE_RETURN({});
     }
-    auto key_pair = key_store_->ed25519().findKeypair(key_type, pk.value());
-    if (!key_pair) {
+    auto key_pair_opt = key_store_->ed25519().findKeypair(key_type, pk.value());
+    if (!key_pair_opt) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
       return getMemory().storeBuffer(error_result);
     }
 
-    auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
+    auto sign = ed25519_provider_->sign(key_pair_opt.value(), msg_buffer);
     if (!sign) {
       throw_with_error(
           logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
-        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
+        logger_, sign.value(), key_pair_opt.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return getMemory().storeBuffer(buffer);
   }
@@ -378,7 +378,8 @@ namespace kagome::host_api {
     }
     auto key_pair = key_store_->sr25519().findKeypair(key_type, pk.value());
     if (!key_pair) {
-      logger_->error("failed to find required key: {}", key_pair.error());
+      logger_->error(
+          "failed to find required key: {} {}", key_type, pk.value());
       return getMemory().storeBuffer(error_result);
     }
 
@@ -677,7 +678,7 @@ namespace kagome::host_api {
       auto bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_->ecdsa().generateKeypair(key_type,
-                                                      bip39_seed.value());
+                                                   bip39_seed.value());
       } else {
         return key_store_->ecdsa().generateKeypairOnDisk(key_type);
       }

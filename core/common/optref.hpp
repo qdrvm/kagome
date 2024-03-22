@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 namespace kagome {
   template <typename T>
   class OptRef {
@@ -14,6 +16,10 @@ namespace kagome {
     OptRef(T &data) : data{&data} {}
     OptRef(T &&) = delete;
     OptRef(std::nullopt_t) : data{nullptr} {}
+
+    OptRef(const OptRef &) = default;
+
+    OptRef &operator=(const OptRef &) = default;
 
     T &operator*() {
       BOOST_ASSERT(data);
@@ -50,7 +56,17 @@ namespace kagome {
     }
 
     bool operator!() const noexcept {
+      return data == nullptr;
+    }
+
+    bool has_value() const noexcept {
       return data != nullptr;
+    }
+
+    bool operator==(const OptRef<T> &) const = default;
+
+    bool operator==(const T &other) const {
+      return has_value() && (*data == other);
     }
 
    private:

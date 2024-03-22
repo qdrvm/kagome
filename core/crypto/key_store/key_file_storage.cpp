@@ -50,7 +50,7 @@ namespace kagome::crypto {
 
   KeyFileStorage::KeyFileStorage(Path keystore_path)
       : keystore_path_{std::move(keystore_path)},
-        logger_{log::createLogger("KeyFileStorage", "crypto_store")} {}
+        logger_{log::createLogger("KeyFileStorage", "key_store")} {}
 
   outcome::result<std::pair<KeyType, Buffer>> KeyFileStorage::parseKeyFileName(
       std::string_view file_name) const {
@@ -122,57 +122,26 @@ namespace kagome::crypto {
     return outcome::success();
   }
 
-  outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(
-      KeyType type) const {
-    namespace fs = filesystem;
-
-    std::error_code ec{};
-
-    std::vector<Buffer> keys;
-
-    fs::directory_iterator it{keystore_path_, ec}, end{};
-    if (ec) {
-      logger_->error("Error scanning keystore: {}", ec);
-      return Error::FAILED_OPEN_FILE;
-    }
-    for (; it != end; ++it) {
-      if (!fs::is_regular_file(*it)) {
-        continue;
-      }
-      auto info = parseKeyFileName(it->path().filename().string());
-      if (!info) {
-        continue;
-      }
-      auto &[id, pk] = info.value();
-
-      if (id == type) {
-        keys.push_back(pk);
-      }
-    }
-    return keys;
-  }
-
-  outcome::result<std::optional<std::string>> KeyFileStorage::searchForPhrase(
+  outcome::result<bool> KeyFileStorage::searchForKey(
       KeyType type, common::BufferView public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
-    namespace fs = filesystem;
     std::error_code ec{};
 
-    if (not fs::exists(key_path, ec)) {
-      return std::nullopt;
+    if (not filesystem::exists(key_path, ec)) {
+      return false;
     }
     std::string content;
     if (not readFile(content, key_path.string())) {
-      return std::nullopt;
+      return false;
     }
     if (not content.empty() and content[0] == '"') {
       if (auto str = jsonUnquote(content)) {
-        return str;
+        return true;
       }
       return Error::INVALID_FILE_FORMAT;
     }
     OUTCOME_TRY(common::unhexWith0x(content));
-    return content;
+    return true;
   }
 
 }  // namespace kagome::crypto

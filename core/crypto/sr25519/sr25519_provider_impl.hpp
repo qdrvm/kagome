@@ -12,8 +12,8 @@ namespace kagome::crypto {
 
   class Sr25519ProviderImpl : public Sr25519Provider {
    public:
-    Sr25519Keypair generateKeypair(const Sr25519Seed &seed,
-                                   Junctions junctions) const override;
+    outcome::result<Sr25519Keypair> generateKeypair(
+        const Sr25519Seed &seed, Junctions junctions) const override;
 
     outcome::result<Sr25519Signature> sign(
         const Sr25519Keypair &keypair,

@@ -16,8 +16,8 @@
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "crypto/key_store.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -2353,7 +2353,7 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash) {
     auto key_pair =
         keystore_->sr25519().findKeypair(crypto::KeyTypes::PARACHAIN, pubkey);
-    if (key_pair.has_error()) {
+    if (!key_pair) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;
     }
@@ -2448,10 +2448,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay,
-                              tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

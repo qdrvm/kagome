@@ -6,11 +6,12 @@
 
 #pragma once
 
-#include <openssl/crypto.h>
-#include <boost/assert.hpp>
 #include <cstdint>
 #include <mutex>
 #include <type_traits>
+
+#include <openssl/crypto.h>
+#include <boost/assert.hpp>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -234,4 +235,5 @@ namespace kagome::crypto {
 
     SecureBuffer<Size> data;
   };
+
 }  // namespace kagome::crypto

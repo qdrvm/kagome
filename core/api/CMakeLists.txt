@@ -57,7 +57,7 @@ target_link_libraries(api
     logger
     app_state_manager
     p2p::p2p_peer_id
-    crypto_store
+    key_store
     hexutil
     scale::scale
     storage
