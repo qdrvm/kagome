@@ -81,6 +81,11 @@ namespace kagome::consensus::grandpa {
                  std::vector<SignedPrecommit> precommit_justification,
                  BlockInfo best_final_candidate),
                 (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                makeAncestry,
+                (GrandpaJustification &),
+                (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa

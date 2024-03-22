@@ -83,7 +83,7 @@ namespace kagome::api {
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<void> insertKey(crypto::KeyType key_type,
-                                    const BufferView &seed,
+                                    crypto::SecureBuffer<> seed,
                                     const BufferView &public_key) override;
 
     outcome::result<common::Buffer> rotateKeys() override;

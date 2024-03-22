@@ -20,6 +20,7 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/make_ancestry.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -504,4 +505,8 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  outcome::result<void> EnvironmentImpl::makeAncestry(
+      GrandpaJustification &justification) const {
+    return grandpa::makeAncestry(justification, *block_tree_);
+  }
 }  // namespace kagome::consensus::grandpa

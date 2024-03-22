@@ -71,13 +71,15 @@ namespace kagome::injector {
         "Can not obtain a libp2p keypair from crypto storage. "
         "A unique one will be generated");
 
-    crypto::Ed25519Seed seed;
-    csprng.fillRandomly(seed);
+    crypto::SecureBuffer<> seed_buf(crypto::Ed25519Seed::size());
+    csprng.fillRandomly(seed_buf);
+    // SAFETY: buffer is initialized with seed's size
+    auto seed = crypto::Ed25519Seed::from(std::move(seed_buf)).value();
     auto generated_keypair = crypto_provider.generateKeypair(seed, {}).value();
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
       std::ofstream file{path.c_str()};
-      file.write(byte2str(seed).data(), seed.size());
+      file.write(byte2str(seed.unsafeBytes()).data(), seed.size());
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(

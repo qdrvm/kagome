@@ -6,8 +6,6 @@
 
 #include "common/hexutil.hpp"
 
-#include <boost/algorithm/hex.hpp>
-
 #include "common/buffer_view.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
@@ -58,14 +56,13 @@ namespace kagome::common {
   }
 
   std::string hex_lower_0x(BufferView bytes) noexcept {
-    constexpr char prefix[] = {'0', 'x'};
-    constexpr size_t prefix_len = sizeof(prefix);
+    constexpr std::string_view prefix = "0x";
 
-    std::string res(bytes.size() * 2 + prefix_len, '\x00');
-    res.replace(0, prefix_len, prefix, prefix_len);
+    std::string res(bytes.size() * 2 + prefix.size(), 0);
+    res.replace(0, prefix.size(), prefix);
 
     boost::algorithm::hex_lower(
-        bytes.begin(), bytes.end(), res.begin() + prefix_len);
+        bytes.begin(), bytes.end(), res.begin() + prefix.size());
     return res;
   }
 
@@ -77,31 +74,16 @@ namespace kagome::common {
     std::vector<uint8_t> blob;
     blob.reserve((hex.size() + 1) / 2);
 
-    try {
-      boost::algorithm::unhex(hex.begin(), hex.end(), std::back_inserter(blob));
-      return blob;
-
-    } catch (const boost::algorithm::not_enough_input &e) {
-      return UnhexError::NOT_ENOUGH_INPUT;
-
-    } catch (const boost::algorithm::non_hex_input &e) {
-      return UnhexError::NON_HEX_INPUT;
-
-    } catch (const std::exception &e) {
-      return UnhexError::UNKNOWN;
-    }
+    OUTCOME_TRY(unhex_to(hex, std::back_inserter(blob)));
+    return blob;
   }
 
   outcome::result<std::vector<uint8_t>> unhexWith0x(
       std::string_view hex_with_prefix) {
-    static const std::string leading_chrs = "0x";
-
-    if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
+    constexpr std::string_view prefix = "0x";
+    if (!hex_with_prefix.starts_with(prefix)) {
       return UnhexError::MISSING_0X_PREFIX;
     }
-
-    auto without_prefix = hex_with_prefix.substr(leading_chrs.size());
-
-    return common::unhex(without_prefix);
+    return common::unhex(hex_with_prefix.substr(prefix.size()));
   }
 }  // namespace kagome::common

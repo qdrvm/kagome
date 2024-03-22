@@ -25,13 +25,13 @@ namespace kagome::common {
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
-  template <size_t MaxSize>
-  class SLBuffer : public SLVector<uint8_t, MaxSize> {
+  template <size_t MaxSize, typename Allocator = std::allocator<uint8_t>>
+  class SLBuffer : public SLVector<uint8_t, MaxSize, Allocator> {
    public:
-    using Base = SLVector<uint8_t, MaxSize>;
+    using Base = SLVector<uint8_t, MaxSize, Allocator>;
 
     template <size_t OtherMaxSize>
-    using OtherSLBuffer = SLBuffer<OtherMaxSize>;
+    using OtherSLBuffer = SLBuffer<OtherMaxSize, Allocator>;
 
     SLBuffer() = default;
 
@@ -160,6 +160,11 @@ namespace kagome::common {
       return std::span(*this).subspan(offset, length);
     }
 
+    template <size_t Offset, size_t Length>
+    BufferView view() const {
+      return std::span(*this).template subspan<Offset, Length>();
+    }
+
     /**
      * @brief encode bytearray as hex
      * @return hex-encoded string
@@ -213,7 +218,7 @@ namespace kagome::common {
     return os << BufferView(buffer);
   }
 
-  typedef SLBuffer<std::numeric_limits<size_t>::max()> Buffer;
+  using Buffer = SLBuffer<std::numeric_limits<size_t>::max()>;
 
   inline static const Buffer kEmptyBuffer{};
 

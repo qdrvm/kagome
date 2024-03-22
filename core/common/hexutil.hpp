@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <boost/algorithm/hex.hpp>
 #include <string_view>
 #include <vector>
 
@@ -25,7 +26,11 @@ namespace kagome::common {
     MISSING_0X_PREFIX,
     UNKNOWN
   };
+}  // namespace kagome::common
 
+OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);
+
+namespace kagome::common {
   /**
    * @brief Converts an integer to an uppercase hex representation
    */
@@ -59,6 +64,33 @@ namespace kagome::common {
    */
   std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept;
 
+  template <std::output_iterator<uint8_t> Iter>
+  outcome::result<void> unhex_to(std::string_view hex, Iter out) {
+    try {
+      boost::algorithm::unhex(hex.begin(), hex.end(), out);
+      return outcome::success();
+
+    } catch (const boost::algorithm::not_enough_input &e) {
+      return UnhexError::NOT_ENOUGH_INPUT;
+
+    } catch (const boost::algorithm::non_hex_input &e) {
+      return UnhexError::NON_HEX_INPUT;
+
+    } catch (const std::exception &e) {
+      return UnhexError::UNKNOWN;
+    }
+  }
+
+  template <std::output_iterator<uint8_t> Iter>
+  outcome::result<void> unhexWith0x(std::string_view hex_with_prefix,
+                                    Iter out) {
+    constexpr std::string_view prefix = "0x";
+    if (!hex_with_prefix.starts_with(prefix)) {
+      return UnhexError::MISSING_0X_PREFIX;
+    }
+    return common::unhex_to(hex_with_prefix.substr(prefix.size()), out);
+  }
+
   /**
    * @brief Converts hex representation to bytes
    * @param array individual chars
@@ -74,7 +106,7 @@ namespace kagome::common {
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex);
 
   /**
-   * @brief Unhex hex-string with 0x in the begining
+   * @brief Unhex hex-string with 0x in the beginning
    * @param hex hex string with 0x in the beginning
    * @return unhexed buffer
    */
@@ -111,5 +143,3 @@ namespace kagome::common {
   }
 
 }  // namespace kagome::common
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);

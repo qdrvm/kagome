@@ -54,6 +54,8 @@ using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypes;
 using kagome::crypto::Secp256k1Provider;
 using kagome::crypto::Secp256k1ProviderImpl;
+using kagome::crypto::SecureBuffer;
+using kagome::crypto::SecureCleanGuard;
 using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
@@ -115,11 +117,14 @@ class CryptoExtensionTest : public ::testing::Test {
     std::optional<std::string> optional_mnemonic(mnemonic);
     mnemonic_buffer.put(scale::encode(optional_mnemonic).value());
 
-    sr25519_keypair = sr25519_provider_->generateKeypair(Sr25519Seed{seed}, {});
+    sr25519_keypair = sr25519_provider_->generateKeypair(
+        Sr25519Seed::from(SecureCleanGuard{seed}), {});
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
 
     ed25519_keypair =
-        ed25519_provider_->generateKeypair(Ed25519Seed{seed}, {}).value();
+        ed25519_provider_
+            ->generateKeypair(Ed25519Seed::from(SecureCleanGuard{seed}), {})
+            .value();
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
     secp_message_hash =
@@ -309,8 +314,9 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
  * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
-  Ed25519Seed seed;
-  random_generator_->fillRandomly(seed);
+  SecureBuffer<> seed_buf(Ed25519Seed::size());
+  random_generator_->fillRandomly(seed_buf);
+  auto seed = Ed25519Seed::from(std::move(seed_buf)).value();
   auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider_->sign(keypair, input));
 
@@ -328,8 +334,10 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
  * @then verification fails
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
-  Ed25519Seed seed;
-  random_generator_->fillRandomly(seed);
+  SecureBuffer<> seed_buf(Ed25519Seed::size());
+  random_generator_->fillRandomly(seed_buf);
+  auto seed = Ed25519Seed::from(std::move(seed_buf)).value();
+
   auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
   Ed25519Signature invalid_signature;
   invalid_signature.fill(0x11);

@@ -126,6 +126,9 @@ namespace kagome::consensus::grandpa {
     /// authority set changes.
     virtual outcome::result<void> reportEquivocation(
         const VotingRound &round, const Equivocation &equivocation) const = 0;
+
+    virtual outcome::result<void> makeAncestry(
+        GrandpaJustification &justification) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

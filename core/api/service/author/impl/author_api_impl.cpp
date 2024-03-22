@@ -62,7 +62,7 @@ namespace kagome::api {
   }
 
   outcome::result<void> AuthorApiImpl::insertKey(crypto::KeyType key_type_id,
-                                                 const BufferView &seed,
+                                                 crypto::SecureBuffer<> seed,
                                                  const BufferView &public_key) {
     if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
         == kKeyTypes.end()) {
@@ -77,7 +77,7 @@ namespace kagome::api {
     };
     if (crypto::KeyTypes::BABE == key_type_id
         or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
-      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
+      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::from(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
       OUTCOME_TRY(keypair,
@@ -87,7 +87,7 @@ namespace kagome::api {
       }
     }
     if (crypto::KeyTypes::GRANDPA == key_type_id) {
-      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::fromSpan(seed));
+      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::from(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Ed25519PublicKey::fromSpan(public_key));
       OUTCOME_TRY(keypair,
@@ -97,7 +97,8 @@ namespace kagome::api {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
-    auto res = key_store_->saveKeyPair(key_type_id, public_key, seed);
+    auto res =
+        key_store_->saveKeyPair(key_type_id, public_key, std::move(seed));
     return res;
   }
 

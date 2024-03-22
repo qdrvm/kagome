@@ -225,7 +225,9 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
   EXPECT_CALL(*store, generateSr25519Keypair(KeyTypes::BABE, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
-      res, author_api->insertKey(KeyTypes::BABE, seed, public_key));
+      res,
+      author_api->insertKey(
+          KeyTypes::BABE, SecureBuffer<>{seed.unsafeBytes()}, public_key));
 }
 
 /**
@@ -241,7 +243,9 @@ TEST_F(AuthorApiTest, InsertKeyAudi) {
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
       res,
-      author_api->insertKey(KeyTypes::AUTHORITY_DISCOVERY, seed, public_key));
+      author_api->insertKey(KeyTypes::AUTHORITY_DISCOVERY,
+                            SecureBuffer<>{seed.unsafeBytes()},
+                            public_key));
 }
 
 /**
@@ -255,7 +259,9 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
   EXPECT_CALL(*store, generateEd25519Keypair(KeyTypes::GRANDPA, seed))
       .WillOnce(Return(Ed25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
-      res, author_api->insertKey(KeyTypes::GRANDPA, seed, public_key));
+      res,
+      author_api->insertKey(
+          KeyTypes::GRANDPA, SecureBuffer<>{seed.unsafeBytes()}, public_key));
 }
 
 /**
