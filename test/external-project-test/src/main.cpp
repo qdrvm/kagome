@@ -10,10 +10,10 @@
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
-#include <kagome/crypto/key_store/key_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
 #include <kagome/crypto/hasher/hasher_impl.hpp>
+#include <kagome/crypto/key_store/key_store_impl.hpp>
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
 #include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <kagome/crypto/sr25519/sr25519_provider_impl.hpp>
@@ -145,19 +145,13 @@ int main() {
   auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
       pbkdf2_provider, hasher);
 
-  auto ecdsa_suite =
-      std::make_shared<kagome::crypto::EcdsaSuite>(ecdsa_provider);
-  auto ed_suite =
-      std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
-  auto sr_suite =
-      std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
           .value();
   auto csprng =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto crypto_store = std::make_shared<kagome::crypto::KeyStoreImpl>(
-      ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
+  auto crypto_store =
+      std::make_shared<kagome::crypto::KeyStore>(ecdsa_suite, ed25519_provider);
 
   auto offchain_persistent_storage =
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(

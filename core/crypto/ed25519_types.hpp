@@ -66,4 +66,5 @@ namespace kagome::crypto {
   struct Ed25519KeypairAndSeed : Ed25519Keypair {
     Ed25519Seed seed;
   };
+
 }  // namespace kagome::crypto

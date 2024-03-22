@@ -7,6 +7,7 @@
 #include "crypto/key_store/session_keys.hpp"
 
 #include "application/app_configuration.hpp"
+#include "crypto/ed25519_provider.hpp"
 #include "crypto/key_store.hpp"
 
 namespace kagome::crypto {
@@ -39,20 +40,21 @@ namespace kagome::crypto {
       return std::nullopt;
     }
     auto &keys = keys_res.value();
-    for (auto &key : keys) {
+    for (auto &pubkey : keys) {
       auto it = std::find_if(
           authorities.begin(), authorities.end(), [&](const A &authority) {
-            return eq(key, authority);
+            return eq(pubkey, authority);
           });
       if (it == authorities.end()) {
         continue;
       }
-      auto keypair_res = store.findKeypair(type, key);
-      if (not keypair_res) {
+      auto keypair_opt = store.findKeypair(type, pubkey);
+      if (not keypair_opt) {
         continue;
       }
-      auto &keypair = keypair_res.value();
-      cache.emplace(std::make_shared<typename T::Keypair>(keypair), it - authorities.begin());
+      cache.emplace(
+          std::make_shared<typename T::Keypair>(std::move(keypair_opt.value())),
+          it - authorities.begin());
       return cache;
     }
     return std::nullopt;
@@ -60,7 +62,7 @@ namespace kagome::crypto {
 
   SessionKeysImpl::SessionKeysImpl(std::shared_ptr<KeyStore> store,
                                    const application::AppConfiguration &config)
-      : roles_(config.roles()), store_(store) {
+      : roles_(config.roles()), store_(std::move(store)) {
     if (auto dev = config.devMnemonicPhrase()) {
       // Ed25519
       store_->ed25519().generateKeypair(KeyTypes::GRANDPA, *dev).value();
@@ -80,7 +82,7 @@ namespace kagome::crypto {
   SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
   SessionKeysImpl::getBabeKeyPair(
       const consensus::babe::Authorities &authorities) {
-    return find<Sr25519Suite>(
+    return find<Sr25519Provider>(
         babe_key_pair_,
         KeyTypes::BABE,
         store_->sr25519(),
@@ -107,7 +109,7 @@ namespace kagome::crypto {
 
   std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
       const consensus::grandpa::AuthoritySet &authorities) {
-    if (auto res = find<Ed25519Suite>(
+    if (auto res = find<Ed25519Provider>(
             gran_key_pair_,
             KeyTypes::GRANDPA,
             store_->ed25519(),
@@ -122,18 +124,20 @@ namespace kagome::crypto {
   SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
   SessionKeysImpl::getParaKeyPair(
       const std::vector<Sr25519PublicKey> &authorities) {
-    return find<Sr25519Suite>(
-        para_key_pair_, KeyTypes::PARACHAIN, store_->sr25519(), authorities, std::equal_to{});
+    return find<Sr25519Provider>(para_key_pair_,
+                                 KeyTypes::PARACHAIN,
+                                 store_->sr25519(),
+                                 authorities,
+                                 std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
       const std::vector<primitives::AuthorityDiscoveryId> &authorities) {
-    if (auto res = find<Sr25519Suite>(
-            audi_key_pair_,
-            KeyTypes::AUTHORITY_DISCOVERY,
-            store_->sr25519(),
-            authorities,
-            std::equal_to{})) {
+    if (auto res = find<Sr25519Provider>(audi_key_pair_,
+                                         KeyTypes::AUTHORITY_DISCOVERY,
+                                         store_->sr25519(),
+                                         authorities,
+                                         std::equal_to{})) {
       return std::move(res->first);
     }
     return nullptr;
@@ -142,7 +146,10 @@ namespace kagome::crypto {
   SessionKeys::KeypairWithIndexOpt<EcdsaKeypair>
   SessionKeysImpl::getBeefKeyPair(
       const std::vector<EcdsaPublicKey> &authorities) {
-    return find<EcDsaSuite>(
-        beef_key_pair_, KeyTypes::BEEFY, store_->ecdsa(), authorities, std::equal_to{});
+    return find<EcdsaProvider>(beef_key_pair_,
+                               KeyTypes::BEEFY,
+                               store_->ecdsa(),
+                               authorities,
+                               std::equal_to{});
   }
 }  // namespace kagome::crypto

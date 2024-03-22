@@ -27,7 +27,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
-    crypto_store
+    key_store
     dispute_coordinator
     module_repository
     network

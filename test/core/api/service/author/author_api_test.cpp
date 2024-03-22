@@ -13,10 +13,11 @@
 
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
-#include "crypto/key_store/key_store_impl.hpp"
-#include "crypto/key_store/key_file_storage.hpp"
-#include "crypto/key_store/session_keys.hpp"
+#include "common/optref.hpp"
 #include "crypto/ed25519_types.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -43,6 +44,7 @@ using namespace kagome::crypto;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
+using kagome::OptRef;
 using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
@@ -210,7 +212,7 @@ MATCHER_P(eventsAreEqual, n, "") {
 TEST_F(AuthorApiTest, InsertKeyUnsupported) {
   EXPECT_OUTCOME_ERROR(
       res,
-      author_api->insertKey(decodeKeyTypeFromStr("unkn"), {}, {}),
+      author_api->insertKey(KeyType::fromString("unkn").value(), {}, {}),
       KeyStoreError::UNSUPPORTED_KEY_TYPE);
 }
 
@@ -222,7 +224,7 @@ TEST_F(AuthorApiTest, InsertKeyUnsupported) {
 TEST_F(AuthorApiTest, InsertKeyBabe) {
   Sr25519Seed seed;
   Sr25519PublicKey public_key;
-  EXPECT_CALL(*store, generateSr25519Keypair(KeyTypes::BABE, seed))
+  EXPECT_CALL(store->sr25519(), generateKeypair(KeyTypes::BABE, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
       res,
@@ -238,8 +240,8 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
 TEST_F(AuthorApiTest, InsertKeyAudi) {
   Sr25519Seed seed;
   Sr25519PublicKey public_key;
-  EXPECT_CALL(*store,
-              generateSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, seed))
+  EXPECT_CALL(store->sr25519(),
+              generateKeypair(KeyTypes::AUTHORITY_DISCOVERY, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
       res,
@@ -256,7 +258,7 @@ TEST_F(AuthorApiTest, InsertKeyAudi) {
 TEST_F(AuthorApiTest, InsertKeyGran) {
   Ed25519Seed seed;
   Ed25519PublicKey public_key;
-  EXPECT_CALL(*store, generateEd25519Keypair(KeyTypes::GRANDPA, seed))
+  EXPECT_CALL(store->ed25519(), generateKeypair(KeyTypes::GRANDPA, seed))
       .WillOnce(Return(Ed25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
       res,
@@ -323,27 +325,27 @@ TEST_F(AuthorApiTest, HasSessionKeysNotEqualKeys) {
 TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
   Buffer keys;
   keys.resize(32 * 6);
-  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  outcome::result<Sr25519Keypair> srOk = Sr25519Keypair{};
+  const Ed25519Keypair edOk{};
+  const Sr25519Keypair srOk{};
   InSequence s;
-  EXPECT_CALL(*store, findEd25519Keypair(KeyTypes::GRANDPA, _))
+  EXPECT_CALL(store->ed25519(), findKeypair(KeyTypes::GRANDPA, _))
       .Times(1)
-      .WillOnce(Return(edOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::BABE, _))
+      .WillOnce(Return(OptRef(edOk)));
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::BABE, _))
       .Times(1)
-      .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::IM_ONLINE, _))
+      .WillOnce(Return(OptRef(srOk)));
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::IM_ONLINE, _))
       .Times(1)
-      .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::PARACHAIN, _))
+      .WillOnce(Return(OptRef(srOk)));
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::PARACHAIN, _))
       .Times(1)
-      .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::ASSIGNMENT, _))
+      .WillOnce(Return(OptRef(srOk)));
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::ASSIGNMENT, _))
       .Times(1)
-      .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, _))
+      .WillOnce(Return(OptRef(srOk)));
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::AUTHORITY_DISCOVERY, _))
       .Times(1)
-      .WillOnce(Return(srOk));
+      .WillOnce(Return(OptRef(srOk)));
   EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), true);
 }
@@ -356,8 +358,8 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
 TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
   Buffer keys;
   keys.resize(32);
-  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  EXPECT_CALL(*store, findEd25519Keypair(KeyTypes::GRANDPA, _))
+  Ed25519Keypair edOk{};
+  EXPECT_CALL(store->ed25519(), findKeypair(KeyTypes::GRANDPA, _))
       .Times(1)
       .WillOnce(Return(edOk));
   EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
@@ -372,10 +374,12 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
 TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
   Buffer keys;
   keys.resize(32 * 6);
-  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  outcome::result<Sr25519Keypair> srErr = KeyStoreError::KEY_NOT_FOUND;
-  EXPECT_CALL(*store, findEd25519Keypair(_, _)).Times(1).WillOnce(Return(edOk));
-  EXPECT_CALL(*store, findSr25519Keypair(_, _))
+  Ed25519Keypair edOk{};
+  auto srErr = std::nullopt;
+  EXPECT_CALL(store->ed25519(), findKeypair(_, _))
+      .Times(1)
+      .WillOnce(Return(edOk));
+  EXPECT_CALL(store->sr25519(), findKeypair(_, _))
       .Times(1)
       .WillOnce(Return(srErr));
   EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));

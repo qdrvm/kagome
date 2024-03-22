@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
 
 #include <gmock/gmock.h>
 
@@ -15,6 +15,7 @@
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 
 #include <filesystem>
 #include <string_view>
@@ -30,7 +31,7 @@ using kagome::common::Blob;
 using kagome::common::Buffer;
 using namespace kagome::crypto;
 
-static KeyStoreImpl::Path assignments_directory =
+static auto assignments_directory =
     kagome::filesystem::temp_directory_path() / "assignments_test";
 
 struct AssignmentsTest : public test::BaseFS_Test {
@@ -43,21 +44,23 @@ struct AssignmentsTest : public test::BaseFS_Test {
   void SetUp() override {}
 
   template <size_t N>
-  auto assignment_keys_plus_random(std::shared_ptr<KeyStoreImpl> &cs,
+  auto assignment_keys_plus_random(std::shared_ptr<KeyStore> &cs,
                                    const char *const (&accounts)[N],
                                    size_t random) {
     for (const auto &acc : accounts) {
-      std::ignore = cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
-                                               std::string_view{acc})
-                        .value();
+      std::ignore =
+          cs->sr25519()
+              .generateKeypair(KeyTypes::ASSIGNMENT, std::string_view{acc})
+              .value();
     }
     for (size_t ix = 0ull; ix < random; ++ix) {
       auto seed = std::to_string(ix);
-      std::ignore = cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
-                                               std::string_view{seed})
-                        .value();
+      std::ignore =
+          cs->sr25519()
+              .generateKeypair(KeyTypes::ASSIGNMENT, std::string_view{seed})
+              .value();
     }
-    return cs->getSr25519PublicKeys(KeyTypes::ASSIGNMENT).value();
+    return cs->sr25519().getPublicKeys(KeyTypes::ASSIGNMENT).value();
   }
 
   auto create_crypto_store() {
@@ -73,14 +76,25 @@ struct AssignmentsTest : public test::BaseFS_Test {
 
     auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";
-
-    return std::make_shared<KeyStoreImpl>(
-        std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
-        std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
-        std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
-        bip39_provider,
-        csprng,
-        kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
+    std::shared_ptr key_file_storage =
+        kagome::crypto::KeyFileStorage::createAt(keystore_path).value();
+    KeyStore::Config config{keystore_path};
+    return std::make_shared<KeyStore>(
+        std::make_unique<KeySuiteStoreImpl<Sr25519Provider>>(
+            std::move(sr25519_provider),
+            bip39_provider,
+            csprng,
+            key_file_storage),
+        std::make_unique<KeySuiteStoreImpl<Ed25519Provider>>(
+            ed25519_provider, bip39_provider, csprng, key_file_storage),
+        std::make_unique<KeySuiteStoreImpl<EcdsaProvider>>(
+            std::move(ecdsa_provider),
+            bip39_provider,
+            csprng,
+            key_file_storage),
+        ed25519_provider,
+        std::make_shared<kagome::application::AppStateManagerMock>(),
+        config);
   }
 };
 

@@ -23,6 +23,11 @@ namespace kagome::crypto {
 
   class Sr25519Provider {
    public:
+    using Keypair = Sr25519Keypair;
+    using PublicKey = Sr25519PublicKey;
+    using PrivateKey = Sr25519SecretKey;
+    using Seed = Sr25519Seed;
+
     using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~Sr25519Provider() = default;
@@ -30,8 +35,8 @@ namespace kagome::crypto {
     /**
      * Generate random keypair from seed
      */
-    virtual Sr25519Keypair generateKeypair(const Sr25519Seed &seed,
-                                           Junctions junctions) const = 0;
+    virtual outcome::result<Sr25519Keypair> generateKeypair(
+        const Sr25519Seed &seed, Junctions junctions) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less

@@ -50,8 +50,8 @@ namespace kagome::crypto {
      * Searches for a key file for the corresponding type and public key and
      * returns its content if it's a valid hex blob or mnemonic phrase json.
      */
-    outcome::result<std::optional<SecureBuffer<>>> searchForPhrase(
-        KeyType type, common::BufferView public_key) const;
+    outcome::result<bool> searchForKey(KeyType type,
+                                       common::BufferView public_key) const;
 
     /**
      * Stores the \param seed that generates the \param public_key to the key
@@ -81,7 +81,6 @@ namespace kagome::crypto {
 
     Path composeKeyPath(KeyType key_type, common::BufferView public_key) const;
 
-    std::unordered_set<std::pair<KeyType, common::Buffer>> found_keys_;
     Path keystore_path_;
     log::Logger logger_;
   };

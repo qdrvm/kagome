@@ -18,6 +18,7 @@
 #include "crypto/key_store/crypto_suites.hpp"
 #include "crypto/key_store/key_file_storage.hpp"
 #include "crypto/key_store/session_keys.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/runtime_api/session_keys_api.hpp"
 #include "scale/scale_decoder_stream.hpp"
@@ -67,7 +68,7 @@ namespace kagome::api {
         == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
-        types.append(crypto::encodeKeyTypeToStr(type));
+        types.append(type.toString());
         types.push_back(' ');
       }
       types.pop_back();
@@ -78,8 +79,9 @@ namespace kagome::api {
         or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
+      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::from(std::move(seed)));
       OUTCOME_TRY(keypair,
-                  store_->sr25519().generateKeypair(key_type_id, seed));
+                  store_->sr25519().generateKeypair(key_type_id, seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::KeyStoreError::WRONG_PUBLIC_KEY);
       }
@@ -87,9 +89,10 @@ namespace kagome::api {
     if (crypto::KeyTypes::GRANDPA == key_type_id) {
       OUTCOME_TRY(public_key_typed,
                   crypto::Ed25519PublicKey::fromSpan(public_key));
-      OUTCOME_TRY(
-          keypair,
-          store_->ed25519().generateKeypair(crypto::KeyTypes::GRANDPA, seed));
+      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::from(std::move(seed)));
+      OUTCOME_TRY(keypair,
+                  store_->ed25519().generateKeypair(crypto::KeyTypes::GRANDPA,
+                                                    seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::KeyStoreError::WRONG_PUBLIC_KEY);
       }
@@ -139,11 +142,11 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::hasKey(const BufferView &public_key,
                                               crypto::KeyType key_type) {
-    auto res = key_store_->searchForPhrase(key_type, public_key);
+    auto res = key_store_->searchForKey(key_type, public_key);
     if (not res) {
       return res.error();
     } else {
-      return res.value() ? true : false;
+      return res.value();
     }
   }
 

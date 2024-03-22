@@ -6,7 +6,6 @@
 
 add_library(wavm_runtime_test INTERFACE)
 target_link_libraries(wavm_runtime_test INTERFACE
-    key_file_storage
     sr25519_provider
     ecdsa_provider
     ed25519_provider
@@ -14,7 +13,7 @@ target_link_libraries(wavm_runtime_test INTERFACE
     bip39_provider
     secp256k1_provider
     hasher
-    crypto_store
+    key_store
     host_api
     host_api_factory
     core_api

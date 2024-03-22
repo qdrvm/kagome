@@ -14,8 +14,8 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/crypto/ed25519_provider_mock.hpp"
+#include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/runtime/authority_discovery_api_mock.hpp"
 #include "mock/libp2p/protocol/kademlia/kademlia_mock.hpp"
@@ -25,10 +25,10 @@ using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManagerMock;
 using kagome::authority_discovery::AddressPublisher;
 using kagome::blockchain::BlockTreeMock;
-using kagome::crypto::KeyStoreMock;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519ProviderMock;
 using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::KeyStoreMock;
 using kagome::crypto::SecureBuffer;
 using kagome::crypto::SessionKeysImpl;
 using kagome::crypto::Sr25519Keypair;
@@ -118,9 +118,9 @@ struct AddressPublisherTest : public testing::Test {
  */
 TEST_F(AddressPublisherTest, Success) {
   EXPECT_CALL(*host_, getPeerInfo()).WillOnce(Return(peer_info_));
-  EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(_))
+  EXPECT_CALL(crypto_store_->sr25519(), getPublicKeys(_))
       .WillOnce(Return(std::vector{audi_key_}));
-  EXPECT_CALL(*crypto_store_, findSr25519Keypair(_, _))
+  EXPECT_CALL(crypto_store_->sr25519(), findKeypair(_, _))
       .WillOnce(Return(Sr25519Keypair{}));
   EXPECT_CALL(*block_tree_, bestBlock());
   EXPECT_CALL(*authority_discovery_api_, authorities(_))
