@@ -31,7 +31,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Watchdog;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
@@ -69,7 +69,7 @@ class ChainTest : public testing::Test {
   }
 
   void SetUp() override {
-    auto app_state_manager = std::make_shared<AppStateManagerMock>();
+    StartApp app_state_manager;
 
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
@@ -78,6 +78,7 @@ class ChainTest : public testing::Test {
     offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
 
     chain = std::make_shared<EnvironmentImpl>(
+        app_state_manager,
         tree,
         header_repo,
         authority_manager,
@@ -93,6 +94,8 @@ class ChainTest : public testing::Test {
         offchain_worker_factory,
         offchain_worker_pool,
         *main_thread_pool);
+
+    app_state_manager.start();
   }
 
   /**

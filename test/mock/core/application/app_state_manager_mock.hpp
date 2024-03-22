@@ -42,6 +42,7 @@ namespace kagome::application {
     MOCK_METHOD(State, state, (), (const, override));
   };
 
+  /// `StartApp::start` calls all `prepare` and `start` callbacks
   struct StartApp : AppStateManagerMock {
     std::pair<std::vector<OnPrepare>, std::vector<OnLaunch>> queue_;
 

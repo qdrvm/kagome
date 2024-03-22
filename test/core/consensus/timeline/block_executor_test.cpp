@@ -35,7 +35,7 @@
 
 using kagome::TestThreadPool;
 using kagome::Watchdog;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -160,8 +160,7 @@ class BlockExecutorTest : public testing::Test {
   void SetUp() override {
     block_tree_ = std::make_shared<BlockTreeMock>();
 
-    auto app_state_manager =
-        std::make_shared<kagome::application::AppStateManagerMock>();
+    StartApp app_state_manager;
 
     watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
@@ -215,7 +214,8 @@ class BlockExecutorTest : public testing::Test {
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
     block_executor_ =
-        std::make_shared<BlockExecutorWrapper>(block_tree_,
+        std::make_shared<BlockExecutorWrapper>(app_state_manager,
+                                               block_tree_,
                                                *main_thread_pool_,
                                                *worker_thread_pool_,
                                                core_,
@@ -225,6 +225,8 @@ class BlockExecutorTest : public testing::Test {
                                                storage_sub_engine_,
                                                chain_sub_engine_,
                                                std::move(appender));
+
+    app_state_manager.start();
   }
 
   void TearDown() override {

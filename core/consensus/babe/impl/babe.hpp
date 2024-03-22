@@ -24,6 +24,7 @@ namespace kagome {
 
 namespace kagome::application {
   class AppConfiguration;
+  class AppStateManager;
 }  // namespace kagome::application
 
 namespace kagome::authorship {
@@ -98,6 +99,7 @@ namespace kagome::consensus::babe {
     };
 
     Babe(
+        application::AppStateManager &app_state_manager,
         const application::AppConfiguration &app_config,
         const clock::SystemClock &clock,
         std::shared_ptr<blockchain::BlockTree> block_tree,

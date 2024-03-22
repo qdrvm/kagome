@@ -52,7 +52,7 @@
 using kagome::TestThreadPool;
 using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
@@ -249,9 +249,6 @@ class BabeTest : public testing::Test {
 
     watchdog = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
-    app_state_manager =
-        std::make_shared<kagome::application::AppStateManagerMock>();
-
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
 
@@ -260,7 +257,10 @@ class BabeTest : public testing::Test {
     offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
     offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
 
+    StartApp app_state_manager;
+
     babe = std::make_shared<BabeWrapper>(
+        app_state_manager,
         app_config,
         clock,
         block_tree,
@@ -285,6 +285,8 @@ class BabeTest : public testing::Test {
         offchain_worker_pool,
         *main_thread_pool,
         *worker_thread_pool);
+
+    app_state_manager.start();
   }
 
   void TearDown() override {
@@ -312,7 +314,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<AppStateManagerMock> app_state_manager;
   std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory;
   std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
   std::shared_ptr<Watchdog> watchdog;

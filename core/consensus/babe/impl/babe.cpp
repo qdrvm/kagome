@@ -69,6 +69,7 @@ namespace {
 namespace kagome::consensus::babe {
 
   Babe::Babe(
+      application::AppStateManager &app_state_manager,
       const application::AppConfiguration &app_config,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -115,8 +116,8 @@ namespace kagome::consensus::babe {
         offchain_worker_api_(std::move(offchain_worker_api)),
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
-        main_pool_handler_{main_thread_pool.handlerStarted()},
-        worker_pool_handler_{worker_thread_pool.handlerStarted()},
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);

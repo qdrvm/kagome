@@ -44,6 +44,7 @@ namespace kagome::consensus::grandpa {
   using primitives::Justification;
 
   EnvironmentImpl::EnvironmentImpl(
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -73,7 +74,7 @@ namespace kagome::consensus::grandpa {
         hasher_(std::move(hasher)),
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
-        main_pool_handler_{main_thread_pool.handlerStarted()},
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);

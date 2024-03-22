@@ -17,6 +17,10 @@ namespace kagome {
   class PoolHandler;
 }  // namespace kagome
 
+namespace kagome::application {
+  class AppStateManager;
+}  // namespace kagome::application
+
 namespace kagome::blockchain {
   class BlockHeaderRepository;
   class BlockTree;
@@ -59,6 +63,7 @@ namespace kagome::consensus::grandpa {
                           public std::enable_shared_from_this<EnvironmentImpl> {
    public:
     EnvironmentImpl(
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,

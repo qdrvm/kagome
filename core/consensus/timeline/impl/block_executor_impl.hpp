@@ -20,6 +20,10 @@ namespace kagome {
   class PoolHandler;
 }  // namespace kagome
 
+namespace kagome::application {
+  class AppStateManager;
+}  // namespace kagome::application
+
 namespace kagome::blockchain {
   class BlockTree;
 }
@@ -51,6 +55,7 @@ namespace kagome::consensus {
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         common::MainThreadPool &main_thread_pool,
         common::WorkerThreadPool &worker_thread_pool,

@@ -191,7 +191,7 @@ namespace kagome::crypto {
     }
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    auto seed_res = [&] -> outcome::result<Ed25519Seed> {
+    auto seed_res = [&]() -> outcome::result<Ed25519Seed> {
       if (ED25519_SEED_LENGTH == contents.size()) {
         OUTCOME_TRY(_seed, Ed25519Seed::from(std::move(contents)));
         return _seed;
