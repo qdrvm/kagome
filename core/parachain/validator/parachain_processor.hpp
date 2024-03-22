@@ -362,19 +362,29 @@ namespace kagome::parachain {
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
         const StatementStore &statement_store);
-    std::deque<network::VersionedValidatorProtocolMessage>
+    std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
+                         network::VersionedValidatorProtocolMessage>>
     acknowledgement_and_statement_messages(
-        StatementStore &statement_store,
-        const std::vector<ValidatorIndex> &group,
-        const network::vstaging::StatementFilter &local_knowledge,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version,
+        ValidatorIndex validator_index,
+        const Groups &groups,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state,
+        const RelayHash &relay_parent,
+        GroupIndex group_index,
         const CandidateHash &candidate_hash,
-        const RelayHash &relay_parent);
+        const network::vstaging::StatementFilter &local_knowledge);
     std::deque<network::VersionedValidatorProtocolMessage>
     post_acknowledgement_statement_messages(
+        ValidatorIndex recipient,
         const RelayHash &relay_parent,
+        grid::GridTracker &grid_tracker,
         const StatementStore &statement_store,
-        const std::vector<ValidatorIndex> &group,
-        const CandidateHash &candidate_hash);
+        const Groups &groups,
+        GroupIndex group_index,
+        const CandidateHash &candidate_hash,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version);
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
@@ -583,14 +593,14 @@ namespace kagome::parachain {
     pending_statement_network_message(const StatementStore &statement_store,
                                       const RelayHash &relay_parent,
                                       const libp2p::peer::PeerId &peer,
-                                      CollationVersion version,
+                                      network::CollationVersion version,
                                       ValidatorIndex originator,
                                       const CompactStatement &compact);
 
     void send_pending_grid_messages(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
-        CollationVersion version,
+        network::CollationVersion version,
         ValidatorIndex peer_validator_id,
         const Groups &groups,
         ParachainProcessorImpl::RelayParentState &relay_parent_state);

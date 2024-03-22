@@ -70,7 +70,7 @@ namespace kagome::network {
     //    discovery_ids;
     //
     //	bool is_authority(const primitives::AuthorityDiscoveryId &authority_id)
-    //const {
+    // const {
     //    return discovery_ids && discovery_ids->find(authority_id) !=
     //    discovery_ids->end();
     //	}
