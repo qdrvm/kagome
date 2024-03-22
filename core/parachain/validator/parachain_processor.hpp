@@ -242,6 +242,11 @@ namespace kagome::parachain {
       };
     }
 
+    struct LocalValidatorState {
+      grid::GridTracker grid_tracker;
+      // std::optional<ActiveValidatorState> active;
+    };
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<network::ParachainId> assignment;
@@ -255,6 +260,10 @@ namespace kagome::parachain {
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
       uint32_t minimum_backing_votes;
+      std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
+          authority_lookup;
+      std::optional<LocalValidatorState> local_validator;
+      std::optional<Groups> groups;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -568,9 +577,23 @@ namespace kagome::parachain {
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
     void send_peer_messages_for_relay_parent(
-        std::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
-            peer_id,
-        const RelayHash &relay_parent);
+        const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent);
+    std::option<std::pair<std::vector<libp2p::peer::PeerId>,
+                          network::VersionedValidatorProtocolMessage>>
+    pending_statement_network_message(const StatementStore &statement_store,
+                                      const RelayHash &relay_parent,
+                                      const libp2p::peer::PeerId &peer,
+                                      CollationVersion version,
+                                      ValidatorIndex originator,
+                                      const CompactStatement &compact);
+
+    void send_pending_grid_messages(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        const Groups &groups,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state);
 
     void createBackingTask(const primitives::BlockHash &relay_parent);
     outcome::result<RelayParentState> initNewBackingTask(

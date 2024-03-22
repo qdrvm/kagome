@@ -57,13 +57,30 @@ namespace kagome::network {
     std::optional<RoundNumber> round_number = std::nullopt;
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
-    std::optional<CollatingPeerState> collator_state = std::nullopt;
-    std::optional<View> view;
-    CollationVersion version;
     LruSet<primitives::BlockHash> known_blocks{kPeerStateMaxKnownBlocks};
     LruSet<common::Hash256> known_grandpa_messages{
         kPeerStateMaxKnownGrandpaMessages,
     };
+
+    /// @brief parachain peer state
+    std::optional<CollatingPeerState> collator_state = std::nullopt;
+    std::optional<View> view;
+    CollationVersion version;
+    //    std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
+    //    discovery_ids;
+    //
+    //	bool is_authority(const primitives::AuthorityDiscoveryId &authority_id)
+    //const {
+    //    return discovery_ids && discovery_ids->find(authority_id) !=
+    //    discovery_ids->end();
+    //	}
+    //
+    //  std::optional<std::reference_wrapper<const
+    //  std::unordered_set<primitives::AuthorityDiscoveryId>>>
+    //	known_discovery_ids() {
+    //    return utils::map(discovery_ids, [](const auto &val) { return
+    //    std::cref(val); });
+    //	}
 
     bool hasAdvertised(
         const RelayHash &relay_parent,

@@ -98,6 +98,20 @@ namespace kagome::parachain {
       }
     }
 
+    std::optional<std::reference_wrapper<const StoredStatement>>
+    validator_statement(
+        ValidatorIndex validator_index,
+        const network::vstaging::CompactStatement &statement) const {
+      auto it = known_statements.find(Fingerprint{
+          .index = validator_index,
+          .statement = statement,
+      });
+      if (it != known_statements.end()) {
+        return std::cref(it->second);
+      }
+      return {};
+    }
+
     void fill_statement_filter(
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
