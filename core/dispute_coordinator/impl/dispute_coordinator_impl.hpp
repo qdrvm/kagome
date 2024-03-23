@@ -324,6 +324,13 @@ namespace kagome::dispute {
         std::deque<std::tuple<network::DisputeMessage, CbOutcome<void>>>>
         queues_;
 
+    /// Collection of DisputeRequests from disabled validators
+    std::unordered_map<CandidateHash,
+                       std::tuple<primitives::AuthorityDiscoveryId,
+                                  network::DisputeMessage,
+                                  CbOutcome<void>>>
+        requests_from_disabled_validators_;
+
     /// Delay timer for establishing the rate limit.
     std::optional<libp2p::basic::Scheduler::Handle> rate_limit_timer_;
 
