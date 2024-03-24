@@ -490,7 +490,7 @@ namespace kagome::parachain::grid {
   }
 
   void KnownBackedCandidate::sent_or_received_direct_statement(
-      size_t validator,
+      ValidatorIndex validator,
       size_t statement_index_in_group,
       const network::vstaging::StatementKind &statement_kind,
       bool r) {

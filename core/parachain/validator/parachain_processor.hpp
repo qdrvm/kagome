@@ -264,6 +264,7 @@ namespace kagome::parachain {
           authority_lookup;
       std::optional<LocalValidatorState> local_validator;
       std::optional<Groups> groups;
+      std::optional<grid::Views> grid_view;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -356,7 +357,8 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent,
         const ManifestSummary &manifest_summary,
-        ParachainId para_id);
+        ParachainId para_id,
+        grid::ManifestKind manifest_kind);
     network::vstaging::StatementFilter local_knowledge_filter(
         size_t group_size,
         GroupIndex group_index,

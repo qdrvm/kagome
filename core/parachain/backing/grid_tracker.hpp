@@ -174,7 +174,7 @@ namespace kagome::parachain::grid {
   struct KnownBackedCandidate {
     size_t group_index;
     network::vstaging::StatementFilter local_knowledge;
-    std::unordered_map<size_t, MutualKnowledge> mutual_knowledge;
+    std::unordered_map<ValidatorIndex, MutualKnowledge> mutual_knowledge;
 
     bool has_received_manifest_from(size_t validator);
     bool has_sent_manifest_to(size_t validator);
@@ -194,7 +194,7 @@ namespace kagome::parachain::grid {
         const network::vstaging::StatementFilter &remote_knowledge);
 
     void sent_or_received_direct_statement(
-        size_t validator,
+        ValidatorIndex validator,
         size_t statement_index_in_group,
         const network::vstaging::StatementKind &statement_kind,
         bool received);
