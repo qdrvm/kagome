@@ -11,6 +11,22 @@
 #include "dispute_coordinator/participation/types.hpp"
 #include "dispute_coordinator/types.hpp"
 
+/**
+* Disputes contains 2 main classes: dispute coordinator and participation.
+The main purpose of coordinator is to restore previous state once on
+startup(because of possible previous disputes on previous launch session), to
+initialize disputes based on approval result and to handle and collect
+statements from the whole validators set. Blocks with either active disputes or
+invalid are blocked for finalization, while valid disputes are allowed to be
+finalized. The main goal of participation class is to launch our validation
+process with predefined limits. It initializez recovery process followed by
+exhaustive validation and the result statement. Which will be imported the same
+way as statements from other nodes. So the disputes workflow is a loop which
+enters on disputes initialization either disputes request or approval result and
+works until enough votes collected to make a dicision about block validity or
+another fork will be finalized.
+*/
+
 namespace kagome::dispute {
 
   class DisputeCoordinator {

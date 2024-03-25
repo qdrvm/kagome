@@ -189,7 +189,16 @@ namespace kagome::parachain {
                                                             bitfield}}}}});
   }
 
+  /**
+   * The `prepare` function is responsible for setting up the necessary
+   * components for the `ParachainProcessorImpl` class. It sets up the broadcast
+   * callback for the bitfield signer, subscribes to the BABE status observable,
+   * chain events engine, and my view observable. It also prepares the active
+   * leaves for processing parachains.
+   * @return true if the preparation is successful.
+   */
   bool ParachainProcessorImpl::prepare() {
+    // Set the broadcast callback for the bitfield signer
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield) {
@@ -198,6 +207,7 @@ namespace kagome::parachain {
           }
         });
 
+    // Subscribe to the BABE status observable
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
@@ -239,6 +249,7 @@ namespace kagome::parachain {
           }
         });
 
+    // Subscribe to the chain events engine
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         peer_view_->intoChainEventsEngine());
     chain_sub_->subscribe(
@@ -255,6 +266,11 @@ namespace kagome::parachain {
           }
         });
 
+    // Set the callback for the my view observable
+    // This callback is triggered when the kViewUpdate event is fired.
+    // It updates the active leaves, checks if parachains can be processed,
+    // creates a new backing task for the new head, and broadcasts the updated
+    // view.
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -608,6 +624,17 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
+    /**
+     * It first checks if our node is a parachain validator for the relay
+     * parent. If it is not, it returns an error. If the node is a validator, it
+     * retrieves the validator groups, availability cores, and validators for
+     * the relay parent. It then iterates over the cores and for each scheduled
+     * core, it checks if the node is part of the validator group for that core.
+     * If it is, it assigns the parachain ID and collator ID of the scheduled
+     * core to the node. It also maps the parachain ID to the validators of the
+     * group. Finally, it returns a `RelayParentState` object that contains the
+     * assignment, validator index, required collator, and table context.
+     */
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater(
         [self{this}, &is_parachain_validator] {

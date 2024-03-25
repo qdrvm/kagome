@@ -36,6 +36,15 @@
 
 namespace kagome::network {
 
+  /**
+   * @brief The `ParachainProtocol` class is a template class responsible for
+   * handling the parachain protocol. It is a request-response protocol that is
+   * used for both collation and validation protocols.
+   * @tparam Observer - observer type
+   * @tparam Message - message type
+   * @tparam kCollation - A boolean value indicating whether the protocol is for
+   * collation (true) or validation (false).
+   */
   template <typename Observer,
             typename Message,
             bool kCollation,
@@ -74,14 +83,23 @@ namespace kagome::network {
       BOOST_ASSERT(peer_view_);
     }
 
+    /**
+     * @brief Handles an incoming stream and starts the protocol
+     *
+     * @param stream The incoming stream.
+     */
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       BOOST_ASSERT(stream->remotePeerId().has_value());
+
+      // This lambda function is called when a handshake is received.
       auto on_handshake = [](std::shared_ptr<Self> self,
                              std::shared_ptr<Stream> stream,
                              Roles) {
         self->onHandshake(stream->remotePeerId().value());
         return true;
       };
+
+      // This lambda function is called when a message is received.
       auto on_message = [peer_id = stream->remotePeerId().value()](
                             std::shared_ptr<Self> self,
                             WireMessage<MessageType> message) {
@@ -100,6 +118,9 @@ namespace kagome::network {
             });
         return true;
       };
+
+      // Call the `handshakeAndReadMessages` function with the `on_handshake`
+      // and `on_message` functions as arguments.
       notifications::handshakeAndReadMessages<WireMessage<MessageType>>(
           this->weak_from_this(),
           std::move(stream),
@@ -108,6 +129,13 @@ namespace kagome::network {
           std::move(on_message));
     }
 
+    /**
+     * @brief Initiates a new outgoing stream.
+     *
+     * @param peer_info The information of the peer to connect to.
+     * @param cb The callback function to be called when the stream is
+     * established.
+     */
     void newOutgoingStream(
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
@@ -116,6 +144,8 @@ namespace kagome::network {
                "Connect for {} stream with {}",
                protocolName(),
                peer_info.id);
+
+      // This lambda function is called when a handshake is received.
       auto on_handshake =
           [cb = std::move(cb)](
               std::shared_ptr<Self> self,
@@ -135,10 +165,21 @@ namespace kagome::network {
                                          std::move(on_handshake));
     }
 
+    /**
+     * @brief Starts the protocol activating its logic in host's protocol
+     * handler.
+     *
+     * @return true if the protocol is started successfully, false otherwise.
+     */
     bool start() override {
       return base_.start(this->weak_from_this());
     }
 
+    /**
+     * @brief returns the protocol name which could be either collation or
+     * validation protocol
+     * @return the protocol name
+     */
     const std::string &protocolName() const override {
       static std::optional<std::string> protocol_name;
       if (!protocol_name) {
@@ -149,6 +190,11 @@ namespace kagome::network {
     }
 
    private:
+    /**
+     * @brief Handles the handshake with the peer.
+     *
+     * @param peer The peer to handshake with.
+     */
     void onHandshake(const PeerId &peer) {
       if constexpr (kCollation) {
         observer_->onIncomingCollationStream(peer, kProtoVersion);

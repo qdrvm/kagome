@@ -39,6 +39,17 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
+#include "utils/weak_io_context.hpp"
+
+/**
+ * Parachain Processor is a class that is responsible for processing parachain
+ * blocks.
+ *
+ * It begins from the handling of view update event.
+ */
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::common {
   class MainThreadPool;
@@ -135,6 +146,12 @@ namespace kagome::parachain {
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
+
+    /**
+     * @brief handle new stream from remote collator and open an outgoing
+     * collation stream to send notification to collator when it will be useful
+     * @param peer_id the peer id of the remote collator
+     */
     void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id,
                                    network::CollationVersion version);
     void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
@@ -568,6 +585,14 @@ namespace kagome::parachain {
         network::CollationVersion version);
     std::optional<std::reference_wrapper<RelayParentState>>
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
+
+    /**
+     * @brief Store the state of the relay parent.
+     * @param relay_parent The hash of the relay parent block for which the
+     * state is to be stored.
+     * @param val The state of the relay parent block to be stored.
+     * @return A reference to the stored state of the relay parent block.
+     */
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
     void send_peer_messages_for_relay_parent(
@@ -575,7 +600,29 @@ namespace kagome::parachain {
             peer_id,
         const RelayHash &relay_parent);
 
+    /**
+     * The `createBackingTask` function is responsible for creating a new
+     * backing task for a given relay parent. It first asserts that the function
+     * is running in the main thread context. Then, it initializes a new backing
+     * task for the relay parent by calling the `initNewBackingTask` function.
+     * If the initialization is successful, it stores the state of the relay
+     * parent by calling the `storeStateByRelayParent` function. If the
+     * initialization fails and the error is not due to the absence of a key, it
+     * logs an error message.
+     *
+     * @param relay_parent The hash of the relay parent block for which the
+     * backing task is to be created.
+     */
     void createBackingTask(const primitives::BlockHash &relay_parent);
+
+    /**
+     * @brief The `initNewBackingTask` function is responsible for initializing
+     * a new backing task for a given relay parent.
+     * @param relay_parent The hash of the relay parent block for which the
+     * backing task is to be created.
+     * @return A `RelayParentState` object that contains the assignment,
+     * validator index, required collator, and table context.
+     */
     outcome::result<RelayParentState> initNewBackingTask(
         const primitives::BlockHash &relay_parent);
 
