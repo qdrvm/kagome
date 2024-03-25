@@ -494,7 +494,7 @@ namespace kagome::parachain {
       }
     }
 
-    /// 555666
+    /// 555666 cluster(send to group)
 
     //    std::unordered_set<network::PeerId> group_set;
     //    if (auto r = runtime_info_->get_session_info(relay_parent)) {
@@ -1145,7 +1145,6 @@ namespace kagome::parachain {
       const ManifestSummary &manifest_summary,
       ParachainId para_id,
       grid::ManifestKind manifest_kind) {
-        /// 555666
     auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       SL_WARN(logger_, "No peer state. (peer_id={})", peer_id);
@@ -2493,6 +2492,159 @@ namespace kagome::parachain {
         relayParentState.prospective_parachains_mode.has_value());
   }
 
+void ParachainProcessorImpl::provide_candidate_to_grid(
+	const CandidateHash &candidate_hash,
+	RelayParentState &relay_parent_state,
+	const ConfirmedCandidate &confirmed_candidate,
+  const runtime::SessionInfo &session_info
+) {
+  if (!relay_parent_state.local_validator) {
+    return;
+  }
+  auto &local_validator = *relay_parent_state.local_validator;
+
+	const auto relay_parent = confirmed_candidate.relay_parent();
+	const auto group_index = confirmed_candidate.group_index();
+
+  if (!relay_parent_state.grid_view) {
+			SL_TRACE(logger_, "Cannot handle backable candidate due to lack of topology. (candidate={}, relay_parent={})",
+				candidate_hash, relay_parent
+			);
+    return;
+  }
+
+	const auto &grid_view = *relay_parent_state.grid_view;
+  const auto group = relay_parent_state.groups->get(group_index);
+  if (!group) {
+			SL_TRACE(logger_, "Handled backed candidate with unknown group? (candidate={}, relay_parent={}, group_index={})",
+				candidate_hash, relay_parent, group_index
+			);
+    return;
+  }
+  const auto group_size = group->size();
+
+
+	auto filter = local_knowledge_filter(
+		group_size,
+		group_index,
+		candidate_hash,
+		*relay_parent_state.statement_store
+	);
+
+	auto actions = local_validator.grid_tracker.add_backed_candidate(
+		grid_view,
+		candidate_hash,
+		group_index,
+		filter
+	);
+
+network::vstaging::BackedCandidateManifest manifest{
+                        .relay_parent = relay_parent,
+                        .candidate_hash = candidate_hash,
+                        .group_index = group_index,
+                        .para_id = confirmed_candidate.para_id(),
+                        .parent_head_data_hash =
+                            confirmed_candidate.parent_head_data_hash(),
+                        .statement_knowledge = filter};
+
+  network::vstaging::BackedCandidateAcknowledgement acknowledgement{
+                        .candidate_hash = candidate_hash,
+                        .statement_knowledge = filter};
+
+	std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>> manifest_peers;
+	std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>> ack_peers;
+	std::deque<std::pair<std::vector<libp2p::peer::PeerId>, network::VersionedValidatorProtocolMessage>> post_statements;
+
+	for (const auto &[v, action] : actions) {
+    auto peer_opt = query_audi_->get(session_info.discovery_keys[v]);
+    if (!peer_opt) {
+      continue;
+    }
+
+    /// TODO(iceseer): do check `implicit_view` for peer, saved in PeerState. Get protocol from there.
+		switch (action) {
+			case grid::ManifestKind::Full: {
+        manifest_peers.emplace_back(*peer_opt, network::CollationVersion::VStaging);
+      } break;
+			case grid::ManifestKind::Acknowledgement: {
+        ack_peers.emplace_back(*peer_opt, network::CollationVersion::VStaging);
+      } break;
+		}
+
+		local_validator.grid_tracker.manifest_sent_to(
+			*per_session.groups,
+			v,
+			candidate_hash,
+			filter
+		);
+
+    auto msgs = post_acknowledgement_statement_messages(
+				v,
+				relay_parent,
+				local_validator.grid_tracker,
+				*relay_parent_state.statement_store,
+				*relay_parent_state.groups,
+				group_index,
+				candidate_hash,
+        *peer_opt,
+        network::CollationVersion::VStaging
+			);
+
+    for (auto &msg : msgs) {
+      post_statements.emplace_back({*peer_opt}, std::move(msg));
+    }
+	}
+
+
+  if (!manifest_peers.empty()) {
+    //            kagome::network::vstaging::ValidatorProtocolMessage{
+//                kagome::network::vstaging::StatementDistributionMessage{
+//                    }}
+  }
+
+
+
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    for (auto &[peers, msg] : messages) {
+      if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+        auto message = std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            std::move(m->get()));
+        for (const auto &p : peers) {
+          se->send(p, router_->getValidationProtocolVStaging(), message);
+        }
+      } else {
+        assert(false);
+      }
+    }
+
+
+
+//    std::deque<network::VersionedValidatorProtocolMessage> messages = {
+//        network::VersionedValidatorProtocolMessage{
+//            kagome::network::vstaging::ValidatorProtocolMessage{
+//                kagome::network::vstaging::StatementDistributionMessage{
+//                    }}},
+//        network::VersionedValidatorProtocolMessage{
+//            kagome::network::vstaging::ValidatorProtocolMessage{
+//                kagome::network::vstaging::StatementDistributionMessage{
+//                    kagome::}}}};
+
+//    auto ex = post_acknowledgement_statement_messages(
+//        relay_parent,
+//        *relay_parent_state_opt->get().statement_store,
+//        opt_session_info->validator_groups[group_index],
+//        candidate_hash);
+//    messages.insert(messages.end(),
+//                    std::make_move_iterator(ex.begin()),
+//                    std::make_move_iterator(ex.end()));
+    //send_to_validators_group(relay_parent, messages);
+
+
+}
+
   void ParachainProcessorImpl::statementDistributionBackedCandidate(
       const CandidateHash &candidate_hash) {
     auto confirmed_opt = candidates_.get_confirmed(candidate_hash);
@@ -2525,41 +2677,11 @@ namespace kagome::parachain {
     const auto group_size =
         opt_session_info->validator_groups[group_index].size();
 
-    /// `provide_candidate_to_grid`
-    network::vstaging::StatementFilter filter =
-        local_knowledge_filter(group_size,
-                               group_index,
-                               candidate_hash,
-                               *relay_parent_state_opt->get().statement_store);
-
-    std::deque<network::VersionedValidatorProtocolMessage> messages = {
-        network::VersionedValidatorProtocolMessage{
-            kagome::network::vstaging::ValidatorProtocolMessage{
-                kagome::network::vstaging::StatementDistributionMessage{
-                    kagome::network::vstaging::BackedCandidateManifest{
-                        .relay_parent = relay_parent,
-                        .candidate_hash = candidate_hash,
-                        .group_index = group_index,
-                        .para_id = confirmed.para_id(),
-                        .parent_head_data_hash =
-                            confirmed.parent_head_data_hash(),
-                        .statement_knowledge = filter}}}},
-        network::VersionedValidatorProtocolMessage{
-            kagome::network::vstaging::ValidatorProtocolMessage{
-                kagome::network::vstaging::StatementDistributionMessage{
-                    kagome::network::vstaging::BackedCandidateAcknowledgement{
-                        .candidate_hash = candidate_hash,
-                        .statement_knowledge = filter}}}}};
-
-    auto ex = post_acknowledgement_statement_messages(
-        relay_parent,
-        *relay_parent_state_opt->get().statement_store,
-        opt_session_info->validator_groups[group_index],
-        candidate_hash);
-    messages.insert(messages.end(),
-                    std::make_move_iterator(ex.begin()),
-                    std::make_move_iterator(ex.end()));
-    send_to_validators_group(relay_parent, messages);
+    	provide_candidate_to_grid(
+		candidate_hash,
+		relay_parent_state_opt->get(),
+		confirmed
+	);
 
     prospective_backed_notification_fragment_tree_updates(
         confirmed.para_id(), confirmed.para_head());

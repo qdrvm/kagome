@@ -598,7 +598,12 @@ namespace kagome::parachain {
                                       network::CollationVersion version,
                                       ValidatorIndex originator,
                                       const CompactStatement &compact);
-
+void provide_candidate_to_grid(
+	const CandidateHash &candidate_hash,
+	RelayParentState &relay_parent_state,
+	const ConfirmedCandidate &confirmed_candidate,
+    const runtime::SessionInfo &session_info
+);
     void send_pending_grid_messages(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
