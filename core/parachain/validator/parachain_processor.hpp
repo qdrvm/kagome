@@ -321,6 +321,14 @@ namespace kagome::parachain {
     void process_legacy_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::StatementDistributionMessage &msg);
+    outcome::result<void> handle_grid_statement(
+        const RelayHash &relay_parent,
+        ParachainProcessorImpl::RelayParentState &per_relay_parent,
+        grid::GridTracker &grid_tracker,
+        SessionIndex session,
+        const runtime::SessionInfo &session_info,
+        const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
+        ValidatorIndex grid_sender_index);
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
@@ -590,14 +598,14 @@ namespace kagome::parachain {
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
     void send_peer_messages_for_relay_parent(
         const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent);
-    std::option<std::pair<std::vector<libp2p::peer::PeerId>,
+    std::optional<std::pair<std::vector<libp2p::peer::PeerId>,
                           network::VersionedValidatorProtocolMessage>>
     pending_statement_network_message(const StatementStore &statement_store,
                                       const RelayHash &relay_parent,
                                       const libp2p::peer::PeerId &peer,
                                       network::CollationVersion version,
                                       ValidatorIndex originator,
-                                      const CompactStatement &compact);
+                                      const network::vstaging::CompactStatement &compact);
     void provide_candidate_to_grid(
         const CandidateHash &candidate_hash,
         RelayParentState &relay_parent_state,
