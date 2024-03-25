@@ -158,13 +158,13 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
       {std::make_tuple(
            kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
                kagome::network::CandidateReceipt{}},
-           (kagome::parachain::CoreIndex)0,
-           (kagome::parachain::GroupIndex)0),
+           static_cast<kagome::parachain::CoreIndex>(0),
+           static_cast<kagome::parachain::GroupIndex>(0)),
        std::make_tuple(
            kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
                kagome::network::CandidateReceipt{}},
-           (kagome::parachain::CoreIndex)1,
-           (kagome::parachain::GroupIndex)1)};
+           static_cast<kagome::parachain::CoreIndex>(1),
+           static_cast<kagome::parachain::GroupIndex>(1))};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
           cs, si, vrf_story, leaving_cores);

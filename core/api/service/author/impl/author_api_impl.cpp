@@ -144,9 +144,8 @@ namespace kagome::api {
     auto res = key_store_->searchForKey(key_type, public_key);
     if (not res) {
       return res.error();
-    } else {
-      return res.value();
     }
+    return res.value();
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>

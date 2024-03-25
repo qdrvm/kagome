@@ -642,13 +642,13 @@ namespace kagome::parachain {
       return {};
     }
 
-    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config);
-    if (!founded_key) {
+    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>> found_key =
+        findAssignmentKey(keystore, config);
+    if (!found_key) {
       return {};
     }
 
-    const auto &[validator_ix, assignments_key] = *founded_key;
+    const auto &[validator_ix, assignments_key] = *found_key;
     std::vector<CoreIndex> lc;
     for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
          leaving_cores) {

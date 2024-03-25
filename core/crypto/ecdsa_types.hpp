@@ -8,8 +8,6 @@
 
 #include "crypto/common.hpp"
 #include "crypto/secp256k1_types.hpp"
-#include "crypto/common.hpp"
-#include "crypto/secp256k1_types.hpp"
 
 namespace kagome::crypto {
   namespace constants::ecdsa {
