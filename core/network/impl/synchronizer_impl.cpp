@@ -87,7 +87,7 @@ namespace kagome::network {
 
   SynchronizerImpl::SynchronizerImpl(
       const application::AppConfiguration &app_config,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
@@ -102,9 +102,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      common::MainThreadPool &main_thread_pool)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
-        app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
@@ -119,8 +118,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_pool_handler_(std::move(main_pool_handler)) {
-    BOOST_ASSERT(app_state_manager_);
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -142,7 +140,7 @@ namespace kagome::network {
         metrics_registry_->registerGaugeMetric(kImportQueueLength);
     metric_import_queue_length_->set(0);
 
-    app_state_manager_->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   /** @see AppStateManager::takeControl */

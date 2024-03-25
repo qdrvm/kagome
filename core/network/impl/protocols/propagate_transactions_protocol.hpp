@@ -28,12 +28,16 @@
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::blockchain {
   class GenesisBlockHash;
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus {
@@ -59,7 +63,7 @@ namespace kagome::network {
         Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -85,7 +89,7 @@ namespace kagome::network {
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     Roles roles_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

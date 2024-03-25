@@ -62,5 +62,5 @@ TEST_F(Bip39EntropyTest, DecodeSuccess) {
   ASSERT_EQ(common::Buffer(entropy).toHex(), entropy_hex);
 
   EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
-  ASSERT_EQ(seed.toHex(), seed_hex);
+  ASSERT_EQ(seed, common::unhex(seed_hex).value());
 }

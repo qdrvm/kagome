@@ -16,12 +16,16 @@
 
 #include "log/logger.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppStateManager;
 }  // namespace kagome::application
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::network {
@@ -32,7 +36,7 @@ namespace kagome::network {
    public:
     ReputationRepositoryImpl(
         application::AppStateManager &app_state_manager,
-        std::shared_ptr<common::MainPoolHandler> main_thread,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     void start();
@@ -49,7 +53,7 @@ namespace kagome::network {
     void tick();
 
     mutable std::mutex mutex_;
-    std::shared_ptr<common::MainPoolHandler> main_thread_;
+    std::shared_ptr<PoolHandler> main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::unordered_map<PeerId, Reputation> reputation_table_;
 

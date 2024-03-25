@@ -42,8 +42,7 @@ namespace kagome::crypto {
      */
     outcome::result<Keypair> generateKeypair(
         const bip39::Bip39SeedAndJunctions &bip) const {
-      OUTCOME_TRY(seed, bip.as<Seed>());
-      return generateKeypair(seed, bip.junctions);
+      return generateKeypair(Seed::from(bip.seed), bip.junctions);
     }
 
     /**
@@ -59,7 +58,7 @@ namespace kagome::crypto {
      * @see composeKeypair()
      */
     virtual std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Keypair &kp) const noexcept = 0;
+        Keypair &&kp) const noexcept = 0;
 
     /**
      * Create a public key from its bytes
@@ -71,7 +70,7 @@ namespace kagome::crypto {
      * Create a seed from its bytes
      */
     virtual outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept = 0;
+        SecureCleanGuard<uint8_t> bytes) const noexcept = 0;
   };
 
   class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
@@ -98,7 +97,7 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const EcdsaKeypair &kp) const noexcept override {
+        EcdsaKeypair &&kp) const noexcept override {
       return {kp.public_key, kp.secret_key};
     }
 
@@ -109,8 +108,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return EcdsaSeed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return EcdsaSeed::from(std::move(bytes));
     }
 
    private:
@@ -141,8 +140,8 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Ed25519Keypair &kp) const noexcept override {
-      return {kp.public_key, kp.secret_key};
+        Ed25519Keypair &&kp) const noexcept override {
+      return {kp.public_key, std::move(kp.secret_key)};
     }
 
     outcome::result<PublicKey> toPublicKey(
@@ -152,8 +151,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return Ed25519Seed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return Ed25519Seed::from(std::move(bytes));
     }
 
    private:
@@ -184,7 +183,7 @@ namespace kagome::crypto {
     }
 
     std::pair<PublicKey, PrivateKey> decomposeKeypair(
-        const Sr25519Keypair &kp) const noexcept override {
+        Sr25519Keypair &&kp) const noexcept override {
       return {kp.public_key, kp.secret_key};
     }
 
@@ -195,8 +194,8 @@ namespace kagome::crypto {
     }
 
     outcome::result<Seed> toSeed(
-        common::BufferView bytes) const noexcept override {
-      return Sr25519Seed::fromSpan(bytes);
+        SecureCleanGuard<uint8_t> bytes) const noexcept override {
+      return Sr25519Seed::from(std::move(bytes));
     }
 
    private:

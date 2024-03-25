@@ -30,7 +30,7 @@
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const OwnPeerInfo &own_info,
@@ -60,7 +60,7 @@ namespace kagome::network {
         host_{host},
         app_config_(app_config),
         own_info_{own_info},
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager_)},
         block_announce_protocol_(std::move(block_announce_protocol)),
         grandpa_protocol_(std::move(grandpa_protocol)),
         sync_protocol_(std::move(sync_protocol)),

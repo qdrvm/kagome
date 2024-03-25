@@ -52,16 +52,14 @@
 using kagome::TestThreadPool;
 using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
-using kagome::common::WorkerPoolHandler;
 using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
@@ -251,24 +249,18 @@ class BabeTest : public testing::Test {
 
     watchdog = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
-    app_state_manager =
-        std::make_shared<kagome::application::AppStateManagerMock>();
-
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
-    main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
-    main_pool_handler->start();
 
     worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
-    worker_pool_handler = std::make_shared<WorkerPoolHandler>(
-        app_state_manager, worker_thread_pool);
-    worker_pool_handler->start();
 
     offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
     offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
 
+    StartApp app_state_manager;
+
     babe = std::make_shared<BabeWrapper>(
+        app_state_manager,
         app_config,
         clock,
         block_tree,
@@ -291,8 +283,10 @@ class BabeTest : public testing::Test {
         offchain_worker_api,
         offchain_worker_factory,
         offchain_worker_pool,
-        main_pool_handler,
-        worker_pool_handler);
+        *main_thread_pool,
+        *worker_thread_pool);
+
+    app_state_manager.start();
   }
 
   void TearDown() override {
@@ -320,14 +314,11 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<AppStateManagerMock> app_state_manager;
   std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory;
   std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
   std::shared_ptr<Watchdog> watchdog;
   std::shared_ptr<MainThreadPool> main_thread_pool;
-  std::shared_ptr<MainPoolHandler> main_pool_handler;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool;
-  std::shared_ptr<WorkerPoolHandler> worker_pool_handler;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 

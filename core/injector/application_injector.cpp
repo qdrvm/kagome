@@ -342,7 +342,7 @@ namespace {
         injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
-        injector.template create<std::shared_ptr<common::MainPoolHandler>>());
+        injector.template create<common::MainThreadPool &>());
     // clang-format on
 
     if (not block_tree_res.has_value()) {

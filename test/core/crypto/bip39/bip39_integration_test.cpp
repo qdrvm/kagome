@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 #include "testutil/prepare_loggers.hpp"
 
+using namespace kagome::common;
 using namespace kagome::crypto;
 using namespace bip39;
 
@@ -48,7 +49,7 @@ TEST_P(Bip39IntegrationTest, DeriveEntropyAndSeedSuccess) {
                       bip39_provider->calculateEntropy(*mnemonic.words()));
 
   EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
-  ASSERT_EQ(seed.toHex(), item.seed);
+  ASSERT_EQ(seed, unhex(item.seed).value());
 }
 
 INSTANTIATE_TEST_SUITE_P(

@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include "common/int_serialization.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
@@ -20,6 +21,10 @@ using kagome::primitives::Transcript;
 
 class VRFProviderTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     vrf_provider_ = std::make_shared<VRFProviderImpl>(
         std::make_shared<BoostRandomGenerator>());

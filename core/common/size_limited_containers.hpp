@@ -22,7 +22,7 @@ namespace kagome::common {
     template <typename Format, typename... Args>
     MaxSizeException(const Format &format, Args &&...args)
         : std::length_error(
-            fmt::vformat(format, fmt::make_format_args(args...))) {}
+              fmt::vformat(format, fmt::make_format_args(args...))) {}
   };
 
   template <typename BaseContainer, std::size_t MaxSize>
@@ -368,8 +368,10 @@ namespace kagome::common {
     }
   };
 
-  template <typename ElementType, size_t MaxSize, typename... Args>
+  template <typename ElementType,
+            size_t MaxSize,
+            typename Allocator = std::allocator<ElementType>>
   using SLVector =
-      SizeLimitedContainer<std::vector<ElementType, Args...>, MaxSize>;
+      SizeLimitedContainer<std::vector<ElementType, Allocator>, MaxSize>;
 
 }  // namespace kagome::common

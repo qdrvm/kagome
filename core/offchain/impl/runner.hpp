@@ -37,24 +37,10 @@ namespace kagome::offchain {
     using Task = std::function<void()>;
 
     Runner(application::AppStateManager &app_state_manager,
-           std::shared_ptr<OcwThreadPool> ocw_thread_pool)
+           OcwThreadPool &ocw_thread_pool)
         : free_threads_{kMaxThreads},
           max_tasks_{kMaxTasks},
-          ocw_thread_handler_{[&] {
-            BOOST_ASSERT(ocw_thread_pool);
-            return ocw_thread_pool->handler();
-          }()} {
-      app_state_manager.takeControl(*this);
-    }
-
-    bool start() {
-      ocw_thread_handler_->start();
-      return true;
-    }
-
-    void stop() {
-      ocw_thread_handler_->stop();
-    }
+          ocw_thread_handler_{ocw_thread_pool.handler(app_state_manager)} {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};

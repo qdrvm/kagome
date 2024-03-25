@@ -20,6 +20,7 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/make_ancestry.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -43,6 +44,7 @@ namespace kagome::consensus::grandpa {
   using primitives::Justification;
 
   EnvironmentImpl::EnvironmentImpl(
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -57,7 +59,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      common::MainThreadPool &main_thread_pool)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
@@ -72,7 +74,7 @@ namespace kagome::consensus::grandpa {
         hasher_(std::move(hasher)),
         offchain_worker_factory_(std::move(offchain_worker_factory)),
         offchain_worker_pool_(std::move(offchain_worker_pool)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
@@ -504,4 +506,8 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  outcome::result<void> EnvironmentImpl::makeAncestry(
+      GrandpaJustification &justification) const {
+    return grandpa::makeAncestry(justification, *block_tree_);
+  }
 }  // namespace kagome::consensus::grandpa

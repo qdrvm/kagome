@@ -35,14 +35,12 @@
 
 using kagome::TestThreadPool;
 using kagome::Watchdog;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
-using kagome::common::WorkerPoolHandler;
 using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
@@ -162,21 +160,14 @@ class BlockExecutorTest : public testing::Test {
   void SetUp() override {
     block_tree_ = std::make_shared<BlockTreeMock>();
 
-    auto app_state_manager =
-        std::make_shared<kagome::application::AppStateManagerMock>();
+    StartApp app_state_manager;
 
     watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
     main_thread_pool_ = std::make_shared<MainThreadPool>(
         watchdog_, std::make_shared<boost::asio::io_context>());
-    main_pool_handler_ =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool_);
-    main_pool_handler_->start();
 
     worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
-    worker_pool_handler_ = std::make_shared<WorkerPoolHandler>(
-        app_state_manager, worker_thread_pool_);
-    worker_pool_handler_->start();
 
     core_ = std::make_shared<CoreMock>();
 
@@ -223,9 +214,10 @@ class BlockExecutorTest : public testing::Test {
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
     block_executor_ =
-        std::make_shared<BlockExecutorWrapper>(block_tree_,
-                                               main_pool_handler_,
-                                               worker_pool_handler_,
+        std::make_shared<BlockExecutorWrapper>(app_state_manager,
+                                               block_tree_,
+                                               *main_thread_pool_,
+                                               *worker_thread_pool_,
                                                core_,
                                                tx_pool_,
                                                hasher_,
@@ -233,6 +225,8 @@ class BlockExecutorTest : public testing::Test {
                                                storage_sub_engine_,
                                                chain_sub_engine_,
                                                std::move(appender));
+
+    app_state_manager.start();
   }
 
   void TearDown() override {
@@ -244,9 +238,7 @@ class BlockExecutorTest : public testing::Test {
 
   std::shared_ptr<Watchdog> watchdog_;
   std::shared_ptr<MainThreadPool> main_thread_pool_;
-  std::shared_ptr<MainPoolHandler> main_pool_handler_;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool_;
-  std::shared_ptr<WorkerPoolHandler> worker_pool_handler_;
 
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
