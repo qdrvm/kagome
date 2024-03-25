@@ -6,7 +6,6 @@
 
 #include "injector/application_injector.hpp"
 #include "crypto/key_store.hpp"
-#include "crypto/key_store/crypto_suites.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \

@@ -143,10 +143,7 @@ struct BeefyTest : testing::Test {
     peers_.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
       auto &peer = peers_.emplace_back();
-<<<<<<< HEAD
 
-=======
->>>>>>> a51b29bc (Make seeds protected too)
       SecureBuffer<> seed_buf(EcdsaSeed::size());
       seed_buf[0] = i;
       seed_buf[1] = 1;

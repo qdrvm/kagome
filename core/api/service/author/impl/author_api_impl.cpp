@@ -15,7 +15,6 @@
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/key_store.hpp"
-#include "crypto/key_store/crypto_suites.hpp"
 #include "crypto/key_store/key_file_storage.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_types.hpp"
