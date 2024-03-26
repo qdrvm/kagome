@@ -64,7 +64,8 @@ namespace kagome::network {
 
     /// @brief parachain peer state
     std::optional<CollatingPeerState> collator_state = std::nullopt;
-    std::optional<View> view;
+    View view;
+    std::unordered_set<common::Hash256> implicit_view;
     CollationVersion version;
     //    std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
     //    discovery_ids;
@@ -81,6 +82,45 @@ namespace kagome::network {
     //    return utils::map(discovery_ids, [](const auto &val) { return
     //    std::cref(val); });
     //	}
+
+	std::vector<common::Hash256>  update_view(const View &new_view, const parachain::ImplicitView &local_implicit) {
+    std::unordered_set<common::Hash256> next_implicit;
+    for (const auto &x : new_view.heads_) {
+      auto t = local_implicit.knownAllowedRelayParentsUnder(x, std::nullopt);
+      next_implicit.insert(t.begin(), t.end());
+    }
+
+    std::vector<common::Hash256> fresh_implicit;
+    for (const auto& x : next_implicit) {
+        if (implicit_view.find(x) == implicit_view.end()) {
+            fresh_implicit.emplace_back(x);
+        }
+    }
+
+		view = new_view;
+		implicit_view = next_implicit;
+    return fresh_implicit;
+	}
+
+	bool knows_relay_parent(const common::Hash256 &relay_parent) {
+		return implicit_view.contains(relay_parent) || view.contains(relay_parent);
+	}
+
+  	std::vector<common::Hash256> reconcile_active_leaf(const common::Hash256 &leaf_hash, std::span<const common::Hash256> implicit) {
+      if (!view.contains(leaf_hash)) {
+        return {};
+      }
+
+      std::vector<common::Hash256> v;
+      v.reserve(implicit.size());
+      for (const auto &i : implicit) {
+        auto [_, inserted] = implicit_view.insert(i);
+        if (inserted) {
+          v.emplace_back(i);
+        }
+      }
+      return v;
+    }
 
     bool hasAdvertised(
         const RelayHash &relay_parent,

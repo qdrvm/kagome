@@ -288,14 +288,17 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onUpdatePeerView(
-      const libp2p::peer::PeerId &peer_id, const network::View &view) {
-    REINVOKE(*main_pool_handler_, onUpdatePeerView, peer_id, view);
+      const libp2p::peer::PeerId &peer, const network::View &new_view) {
+    REINVOKE(*main_pool_handler_, onUpdatePeerView, peer, new_view);
 
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// `handle_peer_view_update` keep peer view to send only
-    /// perfect messages
-    for (const auto &h : view.heads_) {
-      send_peer_messages_for_relay_parent({{peer_id}}, h);
+    auto peer_state = pm->getPeerState(peer);
+    if (!peer_state) {
+      return;
+    }
+
+    auto fresh_implicit = peer_state->get().update_view(new_view, *our_current_state_.implicit_view);
+    for (const auto &new_relay_parent : fresh_implicit) {
+      send_peer_messages_for_relay_parent(peer, new_relay_parent);
     }
   }
 
@@ -587,6 +590,27 @@ namespace kagome::parachain {
              event.view.heads_.size());
     broadcastView(event.view);
     broadcastViewToGroup(relay_parent, event.view);
+
+
+/// 555666
+//    {
+//      let mut update_peers = Vec::new();
+//      for (peer, peer_state) in state.peers.iter_mut() {
+//        let fresh = peer_state.reconcile_active_leaf(activated.hash, &new_relay_parents);
+//        if !fresh.is_empty() {
+//          update_peers.push((*peer, fresh));
+//        }
+//      }
+//
+//      for (peer, fresh) in update_peers {
+//        for fresh_relay_parent in fresh {
+//          send_peer_messages_for_relay_parent(ctx, state, peer, fresh_relay_parent).await;
+//        }
+//      }
+//    }
+//
+
+
     for (const auto &h : event.view.heads_) {
       send_peer_messages_for_relay_parent(std::nullopt, h);
     }
