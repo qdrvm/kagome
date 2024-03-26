@@ -47,7 +47,7 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyStoreError);
 
 namespace kagome::crypto {
   template <typename T>
-  concept Suite = requires(T t) {
+  concept Suite = requires() {
     typename T::Keypair;
     typename T::PrivateKey;
     typename T::PublicKey;
