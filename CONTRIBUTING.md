@@ -90,6 +90,25 @@ void Example::exampleMethod(int param1, std::string param2) {
   ...
 }
 ```
+
+5. **References**: If you're using external libraries, APIs, or resources, provide references to them in your comments. Considering that we are developing a Polkadot Host, it is important to reference the Polkadot Wiki, Polkadot Spec, Polkadot-SDK documentation, or other relevant resources when necessary. This helps other developers understand where the code comes from and how it works.
+
+```cpp
+// This code is based on the algorithm described in the paper "Title of the Paper" by Author et al.
+```
+
+```cpp
+/**
+* Make ancestry merke proof for GrandpaJustification.
+* https://github.com/paritytech/polkadot-sdk/blob/4842faf65d3628586d304fbcb6cb19b17b4a629c/substrate/client/consensus/grandpa/src/justification.rs#L64-L126
+*/
+inline outcome::result<void> makeAncestry(
+  GrandpaJustification &justification,
+  const blockchain::BlockTree &block_tree) {
+...
+}
+```
+
 Remember, the goal of comments is to help other developers (and your future self) understand the code. They should be clear, concise, and informative.
 
 #### Commit Messages
