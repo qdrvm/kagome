@@ -9,7 +9,7 @@
 #include "crypto/sr25519_types.hpp"
 
 namespace kagome::crypto {
-  Sr25519Keypair Sr25519ProviderImpl::generateKeypair(
+  outcome::result<Sr25519Keypair> Sr25519ProviderImpl::generateKeypair(
       const Sr25519Seed &seed, Junctions junctions) const {
     std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.unsafeBytes().data());

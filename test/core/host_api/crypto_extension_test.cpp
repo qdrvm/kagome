@@ -11,14 +11,14 @@
 #include <gtest/gtest.h>
 #include <span>
 
-#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-#include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
@@ -32,8 +32,6 @@ using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::crypto::BoostRandomGenerator;
-using kagome::crypto::CryptoStore;
-using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::EcdsaKeypair;
 using kagome::crypto::EcdsaPrivateKey;
@@ -50,6 +48,9 @@ using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
+using kagome::crypto::KeyStore;
+using kagome::crypto::KeyStoreMock;
+using kagome::crypto::KeySuiteStoreMock;
 using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypes;
 using kagome::crypto::Secp256k1Provider;
@@ -98,14 +99,14 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_provider_ = std::make_shared<Ed25519ProviderImpl>(hasher_);
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
 
-    crypto_store_ = std::make_shared<CryptoStoreMock>();
+    key_store_ = std::make_shared<KeyStoreMock>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_provider_,
                                                     sr25519_provider_,
                                                     ecdsa_provider_,
                                                     ed25519_provider_,
                                                     secp256k1_provider_,
                                                     hasher_,
-                                                    crypto_store_);
+                                                    key_store_);
 
     EXPECT_OUTCOME_TRUE(seed_tmp,
                         kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
@@ -117,8 +118,10 @@ class CryptoExtensionTest : public ::testing::Test {
     std::optional<std::string> optional_mnemonic(mnemonic);
     mnemonic_buffer.put(scale::encode(optional_mnemonic).value());
 
-    sr25519_keypair = sr25519_provider_->generateKeypair(
-        Sr25519Seed::from(SecureCleanGuard{seed}), {});
+    sr25519_keypair =
+        sr25519_provider_
+            ->generateKeypair(Sr25519Seed::from(SecureCleanGuard{seed}), {})
+            .value();
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
 
     ed25519_keypair =
@@ -199,7 +202,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<Ed25519Provider> ed25519_provider_;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
   std::shared_ptr<Hasher> hasher_;
-  std::shared_ptr<CryptoStoreMock> crypto_store_;
+  std::shared_ptr<KeyStoreMock> key_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
   KeyType key_type = KeyTypes::BABE;
@@ -445,7 +448,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
  * @then we get serialized set of existing ed25519 keys
  */
 TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
-  EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
+  EXPECT_CALL(key_store_->ed25519(), getPublicKeys(key_type))
       .WillOnce(Return(ed_public_keys));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_public_keys_version_1(
@@ -459,7 +462,7 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
  * @then we get serialized set of existing sr25519 keys
  */
 TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
-  EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
+  EXPECT_CALL(key_store_->sr25519(), getPublicKeys(key_type))
       .WillOnce(Return(sr_public_keys));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_sr25519_public_keys_version_1(
@@ -473,8 +476,8 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              findEd25519Keypair(key_type, ed25519_keypair.public_key))
+  EXPECT_CALL(key_store_->ed25519(),
+              findKeypair(key_type, ed25519_keypair.public_key))
       .WillOnce(Return(ed25519_keypair));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_sign_version_1(
@@ -491,10 +494,9 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
-  EXPECT_CALL(*crypto_store_,
-              findEd25519Keypair(key_type, ed25519_keypair.public_key))
-      .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+  EXPECT_CALL(key_store_->ed25519(),
+              findKeypair(key_type, ed25519_keypair.public_key))
+      .WillOnce(Return(std::nullopt));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_sign_version_1(
                 memory_.store32u(key_type),
@@ -509,8 +511,8 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              findSr25519Keypair(key_type, sr25519_keypair.public_key))
+  EXPECT_CALL(key_store_->sr25519(),
+              findKeypair(key_type, sr25519_keypair.public_key))
       .WillOnce(Return(sr25519_keypair));
 
   auto sig = memory_
@@ -531,10 +533,9 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
-  EXPECT_CALL(*crypto_store_,
-              findSr25519Keypair(key_type, sr25519_keypair.public_key))
-      .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+  EXPECT_CALL(key_store_->sr25519(),
+              findKeypair(key_type, sr25519_keypair.public_key))
+      .WillOnce(Return(std::nullopt));
 
   ASSERT_EQ(memory_[crypto_ext_->ext_crypto_sr25519_sign_version_1(
                 memory_.store32u(key_type),
@@ -549,8 +550,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              generateEd25519Keypair(key_type, std::string_view(mnemonic)))
+  EXPECT_CALL(key_store_->ed25519(),
+              generateKeypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
   bytesN(crypto_ext_->ext_crypto_ed25519_generate_version_1(
              memory_.store32u(key_type), memory_[mnemonic_buffer]),
@@ -563,8 +564,8 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              generateEd25519Keypair(key_type, std::string_view(mnemonic)))
+  EXPECT_CALL(key_store_->ed25519(),
+              generateKeypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
   bytesN(crypto_ext_->ext_crypto_ed25519_generate_version_1(
              memory_.store32u(key_type), memory_[mnemonic_buffer]),
@@ -577,8 +578,8 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              generateSr25519Keypair(key_type, std::string_view(mnemonic)))
+  EXPECT_CALL(key_store_->sr25519(),
+              generateKeypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
   bytesN(crypto_ext_->ext_crypto_sr25519_generate_version_1(
              memory_.store32u(key_type), memory_[mnemonic_buffer]),
@@ -591,8 +592,8 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
-  EXPECT_CALL(*crypto_store_,
-              generateSr25519Keypair(key_type, std::string_view(mnemonic)))
+  EXPECT_CALL(key_store_->sr25519(),
+              generateKeypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
   bytesN(crypto_ext_->ext_crypto_sr25519_generate_version_1(
              memory_.store32u(key_type), memory_[mnemonic_buffer]),

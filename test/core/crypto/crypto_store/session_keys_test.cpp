@@ -6,9 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
-#include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/crypto/key_store_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppConfigurationMock;
@@ -27,7 +27,7 @@ struct SessionKeysTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    store = std::make_shared<CryptoStoreMock>();
+    store = std::make_shared<KeyStoreMock>();
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
     session_keys = std::make_shared<SessionKeysImpl>(store, *config);
@@ -36,7 +36,7 @@ struct SessionKeysTest : public ::testing::Test {
   std::shared_ptr<AppConfigurationMock> config =
       std::make_shared<AppConfigurationMock>();
   network::Roles role;
-  std::shared_ptr<CryptoStoreMock> store;
+  std::shared_ptr<KeyStoreMock> store;
   std::shared_ptr<SessionKeysImpl> session_keys;
 };
 
@@ -49,10 +49,10 @@ struct SessionKeysTest : public ::testing::Test {
 TEST_F(SessionKeysTest, SessionKeys) {
   outcome::result<Ed25519Keys> ed_keys_empty = Ed25519Keys{};
   outcome::result<Sr25519Keys> sr_keys_empty = Sr25519Keys{};
-  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType(KeyTypes::BABE)))
+  EXPECT_CALL(store->sr25519(), getPublicKeys(KeyType(KeyTypes::BABE)))
       .Times(1)
       .WillOnce(Return(sr_keys_empty));
-  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType(KeyTypes::GRANDPA)))
+  EXPECT_CALL(store->ed25519(), getPublicKeys(KeyType(KeyTypes::GRANDPA)))
       .Times(1)
       .WillOnce(Return(ed_keys_empty));
   ASSERT_FALSE(session_keys->getBabeKeyPair({}));
@@ -71,10 +71,10 @@ TEST_F(SessionKeysTest, SessionKeys) {
   outcome::result<Ed25519Keys> ed_keys = Ed25519Keys{ed_key};
   outcome::result<Sr25519Keys> sr_keys = Sr25519Keys{sr_key};
 
-  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType(KeyTypes::BABE)))
+  EXPECT_CALL(store->sr25519(), getPublicKeys(KeyType(KeyTypes::BABE)))
       .Times(1)
       .WillOnce(Return(sr_keys));
-  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType(KeyTypes::GRANDPA)))
+  EXPECT_CALL(store->ed25519(), getPublicKeys(KeyType(KeyTypes::GRANDPA)))
       .Times(1)
       .WillOnce(Return(ed_keys));
 
@@ -91,15 +91,15 @@ TEST_F(SessionKeysTest, SessionKeys) {
               "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"s})
           .value();
 
-  outcome::result<Ed25519Keypair> ed_pair = Ed25519Keypair{ed_priv, ed_key};
-  outcome::result<Sr25519Keypair> sr_pair = Sr25519Keypair{sr_priv, sr_key};
+  Ed25519Keypair ed_pair{ed_priv, ed_key};
+  Sr25519Keypair sr_pair{sr_priv, sr_key};
 
-  EXPECT_CALL(*store, findSr25519Keypair(KeyType(KeyTypes::BABE), _))
+  EXPECT_CALL(store->sr25519(), findKeypair(KeyType(KeyTypes::BABE), _))
       .Times(1)
-      .WillOnce(Return(sr_pair));
-  EXPECT_CALL(*store, findEd25519Keypair(KeyType(KeyTypes::GRANDPA), _))
+      .WillOnce(Return(OptRef<const Sr25519Keypair>(sr_pair)));
+  EXPECT_CALL(store->ed25519(), findKeypair(KeyType(KeyTypes::GRANDPA), _))
       .Times(1)
-      .WillOnce(Return(ed_pair));
+      .WillOnce(Return(OptRef<const Ed25519Keypair>(ed_pair)));
   ASSERT_TRUE(session_keys->getBabeKeyPair({{{sr_key}, {}}}));
   ASSERT_TRUE(session_keys->getGranKeyPair({{}, {{{ed_key}, {}}}}));
 

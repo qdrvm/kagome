@@ -10,6 +10,7 @@
 
 #include "api/service/author/author_api.hpp"
 #include "api/service/base_request.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::api::author::request {
@@ -23,8 +24,11 @@ namespace kagome::api::author::request {
 
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
-      return api_->hasKey(public_key,
-                          crypto::decodeKeyTypeFromStr(getParam<1>()));
+      if (auto key_type = crypto::KeyType::fromString(getParam<1>())) {
+        return api_->hasKey(public_key, *key_type);
+      } else {
+        return crypto::KeyTypeError::UNSUPPORTED_KEY_TYPE;
+      }
     }
 
    private:

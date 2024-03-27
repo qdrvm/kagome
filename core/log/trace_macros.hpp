@@ -65,12 +65,9 @@ namespace kagome::log {
 
 #else
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...)                               \
-  ::kagome::log::trace_function_call((logger),                             \
-                                     reinterpret_cast<const void *>(this), \
-                                     __FUNCTION__,                         \
-                                     (ret),                                \
-                                     ##__VA_ARGS__)
+#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
+  ::kagome::log::trace_function_call(        \
+      (logger), fmt::ptr(this), __FUNCTION__, (ret), ##__VA_ARGS__)
 
 #define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
   ::kagome::log::trace_void_function_call(   \

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -19,17 +20,21 @@ namespace rapidjson {
 #include <rapidjson/reader.h>
 
 namespace kagome {
-  inline std::optional<std::string> jsonUnquote(std::string_view json) {
+
+  // Remove outer quotes and parse escape sequences in a JSON string
+  template <typename StringType = std::string>
+  inline std::optional<StringType> jsonUnquote(std::string_view json) {
     struct Handler : rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler> {
       bool Default() const {
         return false;
       }
       bool String(const char *ptr, size_t size, bool) {
-        str.assign(ptr, size);
+        str.resize(size);
+        std::copy_n(ptr, size, std::begin(str));
         return true;
       }
 
-      std::string str;
+      StringType str;
     };
     rapidjson::MemoryStream stream{json.data(), json.size()};
     rapidjson::Reader reader;

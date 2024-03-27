@@ -13,12 +13,11 @@
 
 #include "api/service/api_service.hpp"
 #include "blockchain/block_tree.hpp"
-#include "crypto/crypto_store.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
-#include "crypto/crypto_store/crypto_suites.hpp"
-#include "crypto/crypto_store/key_file_storage.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/session_keys.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/runtime_api/session_keys_api.hpp"
 #include "scale/scale_decoder_stream.hpp"
@@ -34,7 +33,7 @@ namespace kagome::api {
 
   AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
                                sptr<transaction_pool::TransactionPool> pool,
-                               sptr<crypto::CryptoStore> store,
+                               sptr<crypto::KeyStore> store,
                                sptr<crypto::SessionKeys> keys,
                                sptr<crypto::KeyFileStorage> key_store,
                                LazySPtr<blockchain::BlockTree> block_tree,
@@ -68,33 +67,33 @@ namespace kagome::api {
         == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
-        types.append(crypto::encodeKeyTypeToStr(type));
+        types.append(type.toString());
         types.push_back(' ');
       }
       types.pop_back();
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
-      return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+      return outcome::failure(crypto::KeyStoreError::UNSUPPORTED_KEY_TYPE);
     };
     if (crypto::KeyTypes::BABE == key_type_id
         or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
-      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::from(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
+      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::from(std::move(seed)));
       OUTCOME_TRY(keypair,
-                  store_->generateSr25519Keypair(key_type_id, seed_typed));
+                  store_->sr25519().generateKeypair(key_type_id, seed_typed));
       if (public_key_typed != keypair.public_key) {
-        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+        return outcome::failure(crypto::KeyStoreError::WRONG_PUBLIC_KEY);
       }
     }
     if (crypto::KeyTypes::GRANDPA == key_type_id) {
-      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::from(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Ed25519PublicKey::fromSpan(public_key));
+      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::from(std::move(seed)));
       OUTCOME_TRY(keypair,
-                  store_->generateEd25519Keypair(crypto::KeyTypes::GRANDPA,
-                                                 seed_typed));
+                  store_->ed25519().generateKeypair(crypto::KeyTypes::GRANDPA,
+                                                    seed_typed));
       if (public_key_typed != keypair.public_key) {
-        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+        return outcome::failure(crypto::KeyStoreError::WRONG_PUBLIC_KEY);
       }
     }
     auto res =
@@ -123,13 +122,13 @@ namespace kagome::api {
       return false;
     }
     stream >> key;
-    if (store_->findEd25519Keypair(
+    if (store_->ed25519().findKeypair(
             crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       unsigned count = 1;
       while (stream.currentIndex() < keys.size()) {
         stream >> key;
-        if (not store_->findSr25519Keypair(
+        if (not store_->sr25519().findKeypair(
                 crypto::polkadot_key_order[count++],
                 crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
           return false;
@@ -142,12 +141,11 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::hasKey(const BufferView &public_key,
                                               crypto::KeyType key_type) {
-    auto res = key_store_->searchForPhrase(key_type, public_key);
+    auto res = key_store_->searchForKey(key_type, public_key);
     if (not res) {
       return res.error();
-    } else {
-      return res.value() ? true : false;
     }
+    return res.value();
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>

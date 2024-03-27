@@ -9,7 +9,7 @@
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
 
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"

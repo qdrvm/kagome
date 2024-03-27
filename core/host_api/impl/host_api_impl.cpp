@@ -29,7 +29,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
@@ -47,7 +47,7 @@ namespace kagome::host_api {
                     std::move(ed25519_provider),
                     std::move(secp256k1_provider),
                     hasher,
-                    std::move(crypto_store)),
+                    std::move(key_store)),
         io_ext_(memory_provider_),
         memory_ext_(memory_provider_),
         misc_ext_{DEFAULT_CHAIN_ID,

@@ -19,7 +19,7 @@ namespace kagome::crypto {
 
 namespace kagome::dispute {
 
-  struct SyncCryptoStorePtr {};
+  struct SyncKeyStorePtr {};
 
   /// Information about ourselves, in case we are an `Authority`.
   ///

@@ -11,7 +11,7 @@
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/interval.hpp"
 #include "blockchain/block_tree.hpp"
-#include "crypto/crypto_store.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/authority_discovery_api.hpp"
@@ -38,7 +38,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-        std::shared_ptr<crypto::CryptoStore> crypto_store,
+        std::shared_ptr<crypto::KeyStore> key_store,
         std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
         std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
         std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>
@@ -64,7 +64,7 @@ namespace kagome::authority_discovery {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
-    std::shared_ptr<crypto::CryptoStore> crypto_store_;
+    std::shared_ptr<crypto::KeyStore> key_store_;
     std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;
     std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider_;
     std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller_;

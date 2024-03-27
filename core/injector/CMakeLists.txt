@@ -32,7 +32,7 @@ target_link_libraries(application_injector
     clock
     consensus
     core_api
-    crypto_store
+    key_store
     dispute_coordinator
     ecdsa_provider
     ed25519_provider
@@ -42,7 +42,6 @@ target_link_libraries(application_injector
     grandpa_api
     host_api_factory
     kagome_benchmarks
-    key_file_storage
     log_configurator
     metadata_api
     metrics

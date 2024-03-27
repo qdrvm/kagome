@@ -48,7 +48,7 @@ groups:
           - name: crypto
             children:
               - name: bip39
-              - name: crypto_store
+              - name: key_store
               - name: ed25519
               - name: ecdsa
           - name: consensus

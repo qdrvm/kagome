@@ -8,10 +8,8 @@
 
 #include <string_view>
 
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 
-using kagome::crypto::decodeKeyTypeFromStr;
-using kagome::crypto::encodeKeyTypeToStr;
 using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypes;
 
@@ -33,7 +31,7 @@ struct KeyTypeTest : public ::testing::TestWithParam<
 
 TEST_P(KeyTypeTest, DecodeSuccess) {
   auto [key_type, repr, should_succeed] = GetParam();
-  auto &&key_type_str = encodeKeyTypeToStr(key_type);
+  auto &&key_type_str = key_type.toString();
 
   if (should_succeed) {
     ASSERT_EQ(key_type_str, repr);
@@ -44,7 +42,7 @@ TEST_P(KeyTypeTest, DecodeSuccess) {
 
 TEST_P(KeyTypeTest, EncodeSuccess) {
   auto [repr, key_type_str, should_succeed] = GetParam();
-  auto key_type = decodeKeyTypeFromStr(std::string(key_type_str));
+  auto key_type = KeyType::fromString(std::string(key_type_str));
 
   if (should_succeed) {
     ASSERT_EQ(key_type, repr);

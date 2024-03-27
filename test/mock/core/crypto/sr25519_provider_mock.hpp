@@ -11,7 +11,7 @@
 
 namespace kagome::crypto {
   struct Sr25519ProviderMock : public Sr25519Provider {
-    MOCK_METHOD(Sr25519Keypair,
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 generateKeypair,
                 (const Sr25519Seed &, Junctions),
                 (const, override));

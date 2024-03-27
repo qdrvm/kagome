@@ -18,7 +18,7 @@
 #include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "runtime/common/runtime_execution_error.hpp"

@@ -8,7 +8,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"

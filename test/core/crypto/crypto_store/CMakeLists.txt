@@ -8,14 +8,14 @@ addtest(key_type_test
     key_type_test.cpp
     )
 target_link_libraries(key_type_test
-    crypto_store_key_type
+    key_store
     )
 
 addtest(crypto_store_test
     crypto_store_test.cpp
     )
 target_link_libraries(crypto_store_test
-    crypto_store
+    key_store
     base_fs_test
     )
 
@@ -24,6 +24,6 @@ addtest(session_keys_test
     )
 
 target_link_libraries(session_keys_test
-    crypto_store
+    key_store
     log_configurator
     )

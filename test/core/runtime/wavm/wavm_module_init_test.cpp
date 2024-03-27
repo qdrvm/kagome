@@ -104,7 +104,7 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
             .value();
     auto csprng =
         std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-    auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
+    auto crypto_store = std::make_shared<kagome::crypto::KeyStoreImpl>(
         ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
 
     rocksdb::Options db_options{};

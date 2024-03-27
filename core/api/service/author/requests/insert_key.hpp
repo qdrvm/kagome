@@ -11,6 +11,7 @@
 #include "api/service/author/author_api.hpp"
 #include "api/service/base_request.hpp"
 #include "crypto/common.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::api::author::request {
@@ -33,9 +34,10 @@ namespace kagome::api::author::request {
           std::string_view{seed_hex.data(), seed_hex.size()},
           seed_buf.begin()));
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<2>()));
-      return api_->insertKey(crypto::decodeKeyTypeFromStr(getParam<0>()),
-                             std::move(seed_buf),
-                             public_key);
+      if (auto key_type = crypto::KeyType::fromString(getParam<0>())) {
+        return api_->insertKey(*key_type, std::move(seed_buf), public_key);
+      }
+      return crypto::KeyTypeError::UNSUPPORTED_KEY_TYPE;
     }
 
    private:

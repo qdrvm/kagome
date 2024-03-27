@@ -11,7 +11,7 @@
 #include <span>
 
 #include "application/app_configuration.hpp"
-#include "crypto/crypto_store.hpp"
+#include "crypto/key_store.hpp"
 #include "scale/libp2p_types.hpp"
 
 namespace kagome::network {

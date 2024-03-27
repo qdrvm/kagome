@@ -9,7 +9,7 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/prepare_transcript.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
 

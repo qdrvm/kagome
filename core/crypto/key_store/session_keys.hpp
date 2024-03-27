@@ -10,8 +10,9 @@
 #include "consensus/babe/types/authority.hpp"
 // #include "consensus/sassafras/types/authority.hpp"
 #include "consensus/grandpa/types/authority.hpp"
-#include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_types.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/authority_discovery_id.hpp"
 
@@ -21,7 +22,7 @@ namespace kagome::application {
 
 namespace kagome::crypto {
 
-  class CryptoStore;
+  class KeyStore;
   struct Ed25519Keypair;
   struct Sr25519Keypair;
   struct Sr25519PublicKey;
@@ -91,26 +92,28 @@ namespace kagome::crypto {
     KeypairWithIndexOpt<Sr25519Keypair> audi_key_pair_;
     KeypairWithIndexOpt<EcdsaKeypair> beef_key_pair_;
     network::Roles roles_;
-    std::shared_ptr<CryptoStore> store_;
+    std::shared_ptr<KeyStore> store_;
 
-    template <typename T>
-    using FnListPublic = outcome::result<std::vector<decltype(T::public_key)>> (
-        CryptoStore::*)(KeyType) const;
-    template <typename T>
-    using FnGetPrivate = outcome::result<T> (CryptoStore::*)(
-        KeyType, const decltype(T::public_key) &) const;
-    template <typename T,
-              FnListPublic<T> list_public,
-              FnGetPrivate<T> get_private,
+    template <Suite T>
+    using FnListPublic = outcome::result<std::vector<typename T::PublicKey>> (
+        KeySuiteStore<T>::*)(KeyType) const;
+
+    template <Suite T>
+    using FnGetKeypair = outcome::result<typename T::Keypair> (
+        KeySuiteStore<T>::*)(KeyType, const typename T::PublicKey &) const;
+
+    template <Suite T,
               typename A,
               typename Eq>
-    KeypairWithIndexOpt<T> find(KeypairWithIndexOpt<T> &cache,
-                                KeyType type,
-                                const std::vector<A> &authorities,
-                                const Eq &eq);
+    KeypairWithIndexOpt<typename T::Keypair> find(
+        KeypairWithIndexOpt<typename T::Keypair> &cache,
+        KeyType type,
+        const KeySuiteStore<T> &store,
+        const std::vector<A> &authorities,
+        const Eq &eq);
 
    public:
-    SessionKeysImpl(std::shared_ptr<CryptoStore> store,
+    SessionKeysImpl(std::shared_ptr<KeyStore> store,
                     const application::AppConfiguration &config);
 
     KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(

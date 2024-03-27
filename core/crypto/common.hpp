@@ -6,11 +6,12 @@
 
 #pragma once
 
-#include <openssl/crypto.h>
-#include <boost/assert.hpp>
 #include <cstdint>
 #include <mutex>
 #include <type_traits>
+
+#include <openssl/crypto.h>
+#include <boost/assert.hpp>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -63,14 +64,14 @@ namespace kagome::crypto {
   template <size_t N>
   SecureCleanGuard(common::Blob<N> &&) -> SecureCleanGuard<uint8_t, N>;
 
+  inline std::once_flag secure_heap_init_flag{};
+  inline log::Logger secure_heap_logger;
+
   /**
    * An allocator on the OpenSSL secure heap
    */
-  template <typename T, size_t HeapSize = 4096, size_t MinAllocationSize = 32>
+  template <typename T, size_t HeapSize = 16384, size_t MinAllocationSize = 32>
   class SecureHeapAllocator {
-    inline static std::once_flag flag;
-    inline static log::Logger logger;
-
    public:
     using value_type = T;
     using pointer = T *;
@@ -82,15 +83,15 @@ namespace kagome::crypto {
     };
 
     static pointer allocate(size_type n) {
-      std::call_once(flag, []() {
+      std::call_once(secure_heap_init_flag, []() {
         if (CRYPTO_secure_malloc_init(HeapSize, MinAllocationSize) != 1) {
           throw std::runtime_error{"Failed to allocate OpenSSL secure heap"};
         }
-        logger = log::createLogger("SecureAllocator", "crypto");
+        secure_heap_logger = log::createLogger("SecureAllocator", "crypto");
       });
       BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
       auto p = OPENSSL_secure_malloc(n * sizeof(T));
-      SL_TRACE(logger,
+      SL_TRACE(secure_heap_logger,
                "allocated {} bytes in secure heap, {} used",
                OPENSSL_secure_actual_size(p),
                CRYPTO_secure_used());
@@ -103,6 +104,10 @@ namespace kagome::crypto {
 
     static void deallocate(pointer p, size_type) noexcept {
       BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
+      SL_TRACE(secure_heap_logger,
+               "free {} bytes in secure heap, {} used",
+               OPENSSL_secure_actual_size(p),
+               CRYPTO_secure_used());
       OPENSSL_secure_free(p);
     }
 
@@ -231,4 +236,5 @@ namespace kagome::crypto {
 
     SecureBuffer<Size> data;
   };
+
 }  // namespace kagome::crypto
