@@ -15,6 +15,7 @@
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 
 #include <filesystem>
@@ -47,20 +48,23 @@ struct AssignmentsTest : public test::BaseFS_Test {
   auto assignment_keys_plus_random(std::shared_ptr<KeyStore> &cs,
                                    const char *const (&accounts)[N],
                                    size_t random) {
+    std::vector<Sr25519PublicKey> keys;
     for (const auto &acc : accounts) {
-      std::ignore =
+      auto keypair =
           cs->sr25519()
               .generateKeypair(KeyTypes::ASSIGNMENT, std::string_view{acc})
               .value();
+      keys.push_back(keypair.public_key);
     }
     for (size_t ix = 0ull; ix < random; ++ix) {
       auto seed = std::to_string(ix);
-      std::ignore =
+      auto keypair =
           cs->sr25519()
               .generateKeypair(KeyTypes::ASSIGNMENT, std::string_view{seed})
               .value();
+      keys.push_back(keypair.public_key);
     }
-    return cs->sr25519().getPublicKeys(KeyTypes::ASSIGNMENT).value();
+    return keys;
   }
 
   auto create_crypto_store() {
@@ -116,7 +120,7 @@ TEST_F(AssignmentsTest, succeeds_empty_for_0_cores) {
 
   si.n_cores = 0;
   si.zeroth_delay_tranche_width = 10;
-  si.relay_vrf_modulo_samples = 3;
+  si.relay_vrf_modulo_samples = 10;
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList
@@ -151,7 +155,7 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
       std::vector<kagome::parachain::ValidatorIndex>{1, 2});
   si.n_cores = 2;
   si.zeroth_delay_tranche_width = 10;
-  si.relay_vrf_modulo_samples = 3;
+  si.relay_vrf_modulo_samples = 10;
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
@@ -222,7 +226,7 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
       std::vector<kagome::parachain::ValidatorIndex>{1, 2});
   si.n_cores = 2;
   si.zeroth_delay_tranche_width = 10;
-  si.relay_vrf_modulo_samples = 3;
+  si.relay_vrf_modulo_samples = 10;
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
