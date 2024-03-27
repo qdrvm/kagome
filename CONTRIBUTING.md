@@ -150,7 +150,7 @@ If you've found a bug in KAGOME, your contribution towards fixing it is greatly 
 
 3. **Describe the Bug**: In the issue description, provide a detailed explanation of the bug. Include information about what you expected to happen and what actually happened. If possible, provide steps to reproduce the bug. This will help others to understand and fix the bug.
 
-4. **Include Error Messages**: If there are any error messages or logs related to the bug, include them in the issue. This can provide valuable information for diagnosing the problem.
+4. **Include Error Messages and Debugging Artifacts**: If there are any error messages, stack traces, or core dumps related to the bug, include them in the issue. These can provide valuable information for diagnosing the problem.
 
 5. **Provide System Information**: Include information about your system, such as the operating system, the version of KAGOME you're using, and any other relevant software versions. This can help identify if the bug is specific to certain environments.
 
