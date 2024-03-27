@@ -140,6 +140,8 @@ namespace kagome::network {
     std::optional<std::reference_wrapper<PeerState>> getPeerState(
         const PeerId &peer_id) override;
 
+    void enumeratePeerState(const PeersCallback &callback) override;
+
    private:
     /// Right way to check self peer as it takes into account dev mode
     bool isSelfPeer(const PeerId &peer_id) const;

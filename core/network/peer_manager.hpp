@@ -173,6 +173,7 @@ namespace kagome::network {
     using BlockInfo = primitives::BlockInfo;
     using AdvResult = outcome::result<
         std::pair<const network::CollatorPublicKey &, network::ParachainId>>;
+    using PeersCallback = std::function<void(const PeerId &, PeerState &)>;
 
     virtual ~PeerManager() = default;
 
@@ -250,6 +251,8 @@ namespace kagome::network {
      */
     virtual std::optional<std::reference_wrapper<PeerState>> getPeerState(
         const PeerId &peer_id) = 0;
+
+    virtual void enumeratePeerState(const PeersCallback &callback) = 0;
 
     /**
      * @returns number of active peers

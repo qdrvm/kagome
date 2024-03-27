@@ -592,27 +592,19 @@ namespace kagome::parachain {
     broadcastViewToGroup(relay_parent, event.view);
 
 
-/// 555666
-//    {
-//      let mut update_peers = Vec::new();
-//      for (peer, peer_state) in state.peers.iter_mut() {
-//        let fresh = peer_state.reconcile_active_leaf(activated.hash, &new_relay_parents);
-//        if !fresh.is_empty() {
-//          update_peers.push((*peer, fresh));
-//        }
-//      }
-//
-//      for (peer, fresh) in update_peers {
-//        for fresh_relay_parent in fresh {
-//          send_peer_messages_for_relay_parent(ctx, state, peer, fresh_relay_parent).await;
-//        }
-//      }
-//    }
-//
-
-
-    for (const auto &h : event.view.heads_) {
-      send_peer_messages_for_relay_parent(std::nullopt, h);
+    {
+      std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>> update_peers;
+      pm_->enumeratePeerState([&](const libp2p::peer::PeerId &peer, network::PeerState &peer_state) {
+          std::vector<Hash> fresh = peer_state.reconcile_active_leaf(activated.hash, new_relay_parents);
+          if (!fresh.empty()) {
+              update_peers.push_back(std::make_pair(peer, fresh));
+          }
+      });
+      for (const auto &[peer, fresh] : update_peers) {
+          for (const auto &fresh_relay_parent : fresh) {
+              send_peer_messages_for_relay_parent(peer, fresh_relay_parent);
+          }
+      }
     }
     new_leaf_fragment_tree_updates(relay_parent);
 
