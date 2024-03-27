@@ -13,8 +13,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "crypto/chacha.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "parachain/backing/chacha.hpp"
 
 namespace kagome::parachain::grid {
   /**

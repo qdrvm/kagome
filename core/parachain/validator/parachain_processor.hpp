@@ -26,6 +26,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/store/store.hpp"
+#include "parachain/backing/grid_tracker.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/pvf/precheck.hpp"
 #include "parachain/pvf/pvf.hpp"
@@ -241,6 +242,11 @@ namespace kagome::parachain {
       };
     }
 
+    struct LocalValidatorState {
+      grid::GridTracker grid_tracker;
+      // std::optional<ActiveValidatorState> active;
+    };
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<network::ParachainId> assignment;
@@ -254,6 +260,11 @@ namespace kagome::parachain {
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
       uint32_t minimum_backing_votes;
+      std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
+          authority_lookup;
+      std::optional<LocalValidatorState> local_validator;
+      std::optional<Groups> groups;
+      std::optional<grid::Views> grid_view;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -269,11 +280,7 @@ namespace kagome::parachain {
       Hash relay_parent;
     };
 
-    struct ManifestSummary {
-      Hash claimed_parent_hash;
-      GroupIndex claimed_group_index;
-      network::vstaging::StatementFilter statement_knowledge;
-    };
+    using ManifestSummary = parachain::grid::ManifestSummary;
 
     struct ManifestImportSuccess {
       bool acknowledge;
@@ -314,6 +321,14 @@ namespace kagome::parachain {
     void process_legacy_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::StatementDistributionMessage &msg);
+    outcome::result<void> handle_grid_statement(
+        const RelayHash &relay_parent,
+        ParachainProcessorImpl::RelayParentState &per_relay_parent,
+        grid::GridTracker &grid_tracker,
+        SessionIndex session,
+        const runtime::SessionInfo &session_info,
+        const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
+        ValidatorIndex grid_sender_index);
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
@@ -350,25 +365,36 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent,
         const ManifestSummary &manifest_summary,
-        ParachainId para_id);
+        ParachainId para_id,
+        grid::ManifestKind manifest_kind);
     network::vstaging::StatementFilter local_knowledge_filter(
         size_t group_size,
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
         const StatementStore &statement_store);
-    std::deque<network::VersionedValidatorProtocolMessage>
+    std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
+                         network::VersionedValidatorProtocolMessage>>
     acknowledgement_and_statement_messages(
-        StatementStore &statement_store,
-        const std::vector<ValidatorIndex> &group,
-        const network::vstaging::StatementFilter &local_knowledge,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version,
+        ValidatorIndex validator_index,
+        const Groups &groups,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state,
+        const RelayHash &relay_parent,
+        GroupIndex group_index,
         const CandidateHash &candidate_hash,
-        const RelayHash &relay_parent);
+        const network::vstaging::StatementFilter &local_knowledge);
     std::deque<network::VersionedValidatorProtocolMessage>
     post_acknowledgement_statement_messages(
+        ValidatorIndex recipient,
         const RelayHash &relay_parent,
+        grid::GridTracker &grid_tracker,
         const StatementStore &statement_store,
-        const std::vector<ValidatorIndex> &group,
-        const CandidateHash &candidate_hash);
+        const Groups &groups,
+        GroupIndex group_index,
+        const CandidateHash &candidate_hash,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version);
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
@@ -571,9 +597,27 @@ namespace kagome::parachain {
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
     void send_peer_messages_for_relay_parent(
-        std::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
-            peer_id,
-        const RelayHash &relay_parent);
+        const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent);
+    std::optional<std::pair<std::vector<libp2p::peer::PeerId>,
+                          network::VersionedValidatorProtocolMessage>>
+    pending_statement_network_message(const StatementStore &statement_store,
+                                      const RelayHash &relay_parent,
+                                      const libp2p::peer::PeerId &peer,
+                                      network::CollationVersion version,
+                                      ValidatorIndex originator,
+                                      const network::vstaging::CompactStatement &compact);
+    void provide_candidate_to_grid(
+        const CandidateHash &candidate_hash,
+        RelayParentState &relay_parent_state,
+        const ConfirmedCandidate &confirmed_candidate,
+        const runtime::SessionInfo &session_info);
+    void send_pending_grid_messages(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        const Groups &groups,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state);
 
     void createBackingTask(const primitives::BlockHash &relay_parent);
     outcome::result<RelayParentState> initNewBackingTask(
