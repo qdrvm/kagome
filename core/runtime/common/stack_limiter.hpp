@@ -72,7 +72,13 @@ namespace kagome::runtime {
   WabtOutcome<void> setupMemoryAccordingToHeapAllocStrategy(
       wabt::Module &module, const HeapAllocStrategy &config);
 
-  // https://github.com/paritytech/polkadot-sdk/blob/11831df8e709061e9c6b3292facb5d7d9709f151/substrate/client/executor/wasmtime/src/runtime.rs#L651
+  /**
+   * Instrument wasm code:
+   * - add stack limiting
+   * - convert imported memory (if any) to exported memory
+   * - set memory limit
+   * https://github.com/paritytech/polkadot-sdk/blob/11831df8e709061e9c6b3292facb5d7d9709f151/substrate/client/executor/wasmtime/src/runtime.rs#L651
+   */
   WabtOutcome<common::Buffer> prepareBlobForCompilation(
       common::BufferView code, const MemoryLimits &config);
 

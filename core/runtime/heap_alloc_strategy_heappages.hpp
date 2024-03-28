@@ -11,6 +11,7 @@
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome {
+  /// Convert ":heappages" from state trie to `HeapAllocStrategy`.
   inline outcome::result<std::optional<HeapAllocStrategy>>
   heapAllocStrategyHeappages(const storage::trie::TrieBatch &trie) {
     OUTCOME_TRY(raw, trie.tryGet(storage::kRuntimeHeappagesKey));
