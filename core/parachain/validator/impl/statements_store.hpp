@@ -182,7 +182,7 @@ namespace kagome::parachain {
     }
 
     template <typename F>
-    void groupStatements(const std::vector<ValidatorIndex> &group_validators,
+    void groupStatements(const std::span<const ValidatorIndex> &group_validators,
                          const CandidateHash &candidate_hash,
                          const network::vstaging::StatementFilter &filter,
                          F &&cb) const {

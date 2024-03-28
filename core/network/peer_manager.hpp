@@ -20,6 +20,7 @@
 #include "primitives/common.hpp"
 #include "utils/lru.hpp"
 #include "utils/non_copyable.hpp"
+#include "parachain/validator/backing_implicit_view.hpp"
 
 namespace kagome::network {
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
