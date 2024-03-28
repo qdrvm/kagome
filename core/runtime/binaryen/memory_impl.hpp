@@ -64,6 +64,8 @@ namespace kagome::runtime::binaryen {
       return memory_->getSize();
     }
 
+    std::optional<WasmSize> pagesMax() const override;
+
     outcome::result<BytesOut> view(WasmPointer ptr,
                                    WasmSize size) const override;
 

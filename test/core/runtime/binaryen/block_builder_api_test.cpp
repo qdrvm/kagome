@@ -64,6 +64,7 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
  */
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
+  prepareEphemeralStorageExpects();
   createBlock("block_hash_43"_hash256, 43);
   auto ctx =
       ctx_factory_->persistentAt("block_hash_43"_hash256, std::nullopt).value();
@@ -88,6 +89,7 @@ TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed){
  */
 TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   preparePersistentStorageExpects();
+  prepareEphemeralStorageExpects();
   createBlock("block_hash_44"_hash256, 44);
   auto ctx =
       ctx_factory_->persistentAt("block_hash_44"_hash256, std::nullopt).value();

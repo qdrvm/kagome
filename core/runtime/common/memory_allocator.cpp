@@ -33,8 +33,7 @@ namespace kagome::runtime {
   MemoryAllocator::MemoryAllocator(Memory &memory, const MemoryConfig &config)
       : memory_{memory},
         offset_{roundUpAlign(config.heap_base)},
-        max_memory_pages_num_{
-            config.limits.max_memory_pages_num.value_or(kMaxPages)} {
+        max_memory_pages_num_{memory_.pagesMax().value_or(kMaxPages)} {
     BOOST_ASSERT(max_memory_pages_num_ > 0);
   }
 

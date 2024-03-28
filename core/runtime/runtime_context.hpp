@@ -159,3 +159,5 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+SCALE_TIE_HASH_STD(kagome::runtime::RuntimeContext::ContextParams);

@@ -20,7 +20,6 @@ namespace kagome::blockchain {
 
 namespace kagome::runtime {
   class ModuleFactory;
-  class SingleModuleCache;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime {
@@ -29,7 +28,8 @@ namespace kagome::runtime {
       : public runtime::CoreApiFactory,
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
-    explicit CoreApiFactoryImpl(std::shared_ptr<const ModuleFactory> module_factory);
+    explicit CoreApiFactoryImpl(
+        std::shared_ptr<const ModuleFactory> module_factory);
     ~CoreApiFactoryImpl() = default;
 
     outcome::result<std::unique_ptr<RestrictedCore>> make(

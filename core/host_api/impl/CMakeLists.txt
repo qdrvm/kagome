@@ -51,7 +51,6 @@ add_library(misc_extension
 target_link_libraries(misc_extension
     scale::scale
     logger
-    constant_code_provider
     outcome
     blob
     )

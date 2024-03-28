@@ -12,18 +12,23 @@
 namespace kagome::parachain {
   inline outcome::result<runtime::RuntimeContext::ContextParams> sessionParams(
       runtime::ParachainHost &api, const primitives::BlockHash &relay_parent) {
+    constexpr uint32_t kDefaultHeapPagesEstimate = 32;
+    constexpr uint32_t kExtraHeapPages = 2048;
     OUTCOME_TRY(session_index, api.session_index_for_child(relay_parent));
     OUTCOME_TRY(session_params,
                 api.session_executor_params(relay_parent, session_index));
     runtime::RuntimeContext::ContextParams config;
     config.memory_limits.max_stack_values_num =
         runtime::RuntimeContext::DEFAULT_STACK_MAX;
+    config.memory_limits.heap_alloc_strategy =
+        HeapAllocStrategyDynamic{kDefaultHeapPagesEstimate + kExtraHeapPages};
     if (session_params) {
       for (auto &param : *session_params) {
         if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
           config.memory_limits.max_stack_values_num = stack_max->max_values_num;
         } else if (auto *pages_max = get_if<runtime::MaxMemoryPages>(&param)) {
-          config.memory_limits.max_memory_pages_num = pages_max->limit;
+          config.memory_limits.heap_alloc_strategy = HeapAllocStrategyDynamic{
+              kDefaultHeapPagesEstimate + pages_max->limit};
         }
       }
     }

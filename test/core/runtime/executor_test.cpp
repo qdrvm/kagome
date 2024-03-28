@@ -119,11 +119,6 @@ class ExecutorTest : public testing::Test {
       EXPECT_CALL(*storage_provider, setToEphemeralAt(storage_state))
           .WillOnce(Return(outcome::success()));
     }
-    auto batch = std::make_shared<kagome::storage::trie::TrieBatchMock>();
-    EXPECT_CALL(*storage_provider, getCurrentBatch()).WillOnce(Return(batch));
-    static const auto heappages = ":heappages"_buf;
-    EXPECT_CALL(*batch, tryGetMock(heappages.view()))
-        .WillOnce(Return(kagome::common::Buffer{}));
 
     auto env = std::make_shared<kagome::runtime::InstanceEnvironment>(
         memory_provider, storage_provider, nullptr, nullptr);

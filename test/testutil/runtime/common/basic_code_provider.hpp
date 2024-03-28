@@ -14,15 +14,12 @@ namespace kagome::runtime {
    public:
     explicit BasicCodeProvider(std::string_view path);
 
-    ~BasicCodeProvider() override = default;
-
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &state) const override;
+    Result getCodeAt(const storage::trie::RootHash &state) const override;
 
    private:
     void initialize(std::string_view path);
 
-    kagome::common::Buffer buffer_;
+    Code buffer_;
   };
 
 }  // namespace kagome::runtime

@@ -9,17 +9,29 @@
 #include <wabt/binary-reader-ir.h>
 #include <wabt/binary-reader.h>
 #include <wabt/binary-writer.h>
+#include <wabt/ir.h>
 #include <wabt/stream.h>
 #include <wabt/wast-lexer.h>
 #include <wabt/wast-parser.h>
 #include <wabt/wat-writer.h>
 
+#include "common/bytestr.hpp"
 #include "log/logger.hpp"
 #include "runtime/common/stack_limiter.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 static constexpr uint32_t ACTIVATION_FRAME_COST = 2;
+
+using kagome::byte2str;
+using kagome::HeapAllocStrategy;
+using kagome::HeapAllocStrategyDynamic;
+using kagome::HeapAllocStrategyStatic;
+using kagome::str2byte;
+using kagome::runtime::convertMemoryImportIntoExport;
+using kagome::runtime::setupMemoryAccordingToHeapAllocStrategy;
+using kagome::runtime::wabtDecode;
+using kagome::runtime::wabtEncode;
 
 std::unique_ptr<wabt::Module> wat_to_module(std::span<const uint8_t> wat) {
   wabt::Result result;
@@ -52,9 +64,27 @@ std::vector<uint8_t> wat_to_wasm(std::span<const uint8_t> wat) {
   return std::move(stream.output_buffer().data);
 }
 
+auto fromWat(std::string_view wat) {
+  return wat_to_module(str2byte(wat));
+}
+
+std::string toWat(const wabt::Module &module) {
+  wabt::MemoryStream s;
+  EXPECT_TRUE(
+      wabt::Succeeded(wabt::WriteWat(&s, &module, wabt::WriteWatOptions{})));
+  return std::string{byte2str(s.output_buffer().data)};
+}
+
+void expectWasm(const wabt::Module &actual, std::string_view expected) {
+  auto expected_fmt = toWat(*fromWat(expected));
+  EXPECT_EQ(toWat(actual), expected_fmt);
+  wabt::Module actual2;
+  EXPECT_TRUE(wabtDecode(actual2, wabtEncode(actual).value()));
+  EXPECT_EQ(toWat(actual2), expected_fmt);
+}
+
 uint32_t compute_cost(std::string_view data) {
-  auto module = wat_to_module(
-      std::span{reinterpret_cast<const uint8_t *>(data.data()), data.size()});
+  auto module = fromWat(data);
   EXPECT_OUTCOME_TRUE(cost,
                       kagome::runtime::detail::compute_stack_cost(
                           kagome::log::createLogger("StackLimiterTest"),
@@ -213,15 +243,7 @@ TEST_P(StackLimiterCompareTest, output_matches_expected) {
     throw std::runtime_error{"Failed to read binary module"};
   }
 
-  wabt::MemoryStream result_stream;
-  wabt::WriteWat(&result_stream, &result_module, wabt::WriteWatOptions{});
-
-  wabt::MemoryStream expected_stream;
-  wabt::WriteWat(
-      &expected_stream, expected_module.get(), wabt::WriteWatOptions{});
-
-  if (result_stream.output_buffer().data
-      != expected_stream.output_buffer().data) {
+  if (toWat(result_module) != toWat(*expected_module)) {
     std::filesystem::create_directories(std::filesystem::temp_directory_path()
                                         / "kagome_test");
     auto base_path = std::filesystem::temp_directory_path() / "kagome_test";
@@ -250,3 +272,47 @@ INSTANTIATE_TEST_SUITE_P(SuiteFromSubstrate,
                                          "simple",
                                          "start",
                                          "table"));
+
+auto wat_memory_import = R"(
+  (module
+    (import "env" "mem" (memory (;0;) 100)))
+)";
+auto wat_memory_export = R"(
+  (module
+    (memory (;0;) 100)
+    (export "mem" (memory 0)))
+)";
+auto memory_limit_static = std::make_pair(HeapAllocStrategyStatic{100}, R"(
+  (module
+    (memory (;0;) 200 200)
+    (export "mem" (memory 0)))
+)");
+
+TEST(StackLimiterTest, memory_import) {
+  auto module = fromWat(wat_memory_import);
+  convertMemoryImportIntoExport(*module).value();
+  expectWasm(*module, wat_memory_export);
+}
+
+TEST(StackLimiterTest, memory_limit) {
+  auto test = [](HeapAllocStrategy config, std::string_view expected) {
+    auto module = fromWat(wat_memory_export);
+    setupMemoryAccordingToHeapAllocStrategy(*module, config).value();
+    expectWasm(*module, expected);
+  };
+  test(HeapAllocStrategyDynamic{}, wat_memory_export);
+  test(HeapAllocStrategyDynamic{200}, R"(
+    (module
+      (memory (;0;) 100 200)
+      (export "mem" (memory 0)))
+  )");
+  test(memory_limit_static.first, memory_limit_static.second);
+}
+
+TEST(StackLimiterTest, memory_import_limit) {
+  auto module = fromWat(wat_memory_import);
+  convertMemoryImportIntoExport(*module).value();
+  setupMemoryAccordingToHeapAllocStrategy(*module, memory_limit_static.first)
+      .value();
+  expectWasm(*module, memory_limit_static.second);
+}

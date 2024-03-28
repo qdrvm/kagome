@@ -42,6 +42,8 @@ namespace kagome::runtime::wavm {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kMemoryPageSize;
     }
 
+    std::optional<WasmSize> pagesMax() const override;
+
     void resize(WasmSize new_size) override {
       /**
        * We use this condition to avoid deallocated_ pointers fixup

@@ -49,7 +49,6 @@ class WavmRuntimeTest : public RuntimeTestBase {
             trie_storage_,
             serializer_,
             intrinsic_module,
-            std::make_shared<kagome::runtime::SingleModuleCache>(),
             std::nullopt,
             hasher_);
 

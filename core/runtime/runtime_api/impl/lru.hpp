@@ -11,6 +11,7 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 #include "utils/lru_encoded.hpp"
 #include "utils/safe_object.hpp"
+#include "utils/tuple_hash.hpp"
 
 namespace kagome::runtime {
   constexpr auto DISABLE_RUNTIME_LRU = false;
@@ -163,6 +164,7 @@ template <typename Arg>
 struct std::hash<kagome::runtime::RuntimeApiLruBlockArgKey<Arg>> {
   size_t operator()(
       const kagome::runtime::RuntimeApiLruBlockArgKey<Arg> &x) const {
-    return boost::hash_value(std::tie(x.first, x.second));
+    auto t = std::tie(x.first, x.second);
+    return std::hash<decltype(t)>{}(t);
   }
 };

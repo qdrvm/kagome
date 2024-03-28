@@ -52,6 +52,8 @@ namespace kagome::runtime {
      */
     virtual WasmSize size() const = 0;
 
+    virtual std::optional<WasmSize> pagesMax() const = 0;
+
     /**
      * Resizes memory to the given size
      * @param new_size

@@ -14,7 +14,8 @@ namespace kagome::storage::changes_trie {
       const primitives::events::StorageSubscriptionEnginePtr
           &storage_sub_engine,
       const primitives::events::ChainSubscriptionEnginePtr &chain_sub_engine) {
-    if (actual_val_.find(storage::kRuntimeCodeKey) != actual_val_.cend()) {
+    if (actual_val_.contains(storage::kRuntimeCodeKey)
+        or actual_val_.contains(storage::kRuntimeHeappagesKey)) {
       chain_sub_engine->notify(primitives::events::ChainEventType::kNewRuntime,
                                hash);
     }

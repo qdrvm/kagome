@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "outcome/outcome.hpp"
+#include "runtime/heap_alloc_strategy.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::runtime {
@@ -53,7 +54,7 @@ namespace kagome::runtime {
     SCALE_TIE(2);
 
     std::optional<uint32_t> max_stack_values_num{};
-    std::optional<uint32_t> max_memory_pages_num{};
+    HeapAllocStrategy heap_alloc_strategy;
   };
 
   struct MemoryConfig {
@@ -77,9 +78,11 @@ namespace kagome::runtime {
 
   enum class Error {
     COMPILATION_FAILED = 1,
-    INSTRUMENTATION_FAILED
+    INSTRUMENTATION_FAILED,
   };
 
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, Error);
+
+SCALE_TIE_HASH_STD(kagome::runtime::MemoryLimits);

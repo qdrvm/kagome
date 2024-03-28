@@ -6,12 +6,10 @@
 
 #pragma once
 
-#include <optional>
-#include <span>
-
-#include "common/buffer_view.hpp"
-#include "primitives/block_id.hpp"
+#include "common/buffer.hpp"
 #include "storage/trie/types.hpp"
+
+#include <memory>
 
 namespace kagome::runtime {
   /**
@@ -21,8 +19,10 @@ namespace kagome::runtime {
    public:
     virtual ~RuntimeCodeProvider() = default;
 
-    virtual outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &state) const = 0;
+    using Code = std::shared_ptr<const common::Buffer>;
+    using Result = outcome::result<Code>;
+
+    virtual Result getCodeAt(const storage::trie::RootHash &state) const = 0;
   };
 
 }  // namespace kagome::runtime

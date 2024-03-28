@@ -404,7 +404,6 @@ namespace {
               injector.template create<sptr<storage::trie::TrieStorage>>(),
               injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              injector.template create<sptr<runtime::SingleModuleCache>>(),
               module_cache_opt,
               injector.template create<sptr<crypto::Hasher>>());
         }),
@@ -560,7 +559,6 @@ namespace {
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
         di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
-        di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         di::bind<runtime::RuntimePropertiesCache>.template to<runtime::RuntimePropertiesCacheImpl>(),
         std::forward<Ts>(args)...);
   }

@@ -35,10 +35,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
         std::make_unique<runtime::binaryen::RuntimeExternalInterface>(host_api);
 
     memory_ = std::make_unique<MemoryImpl>(
-        rei_->getMemory(),
-        runtime::MemoryConfig{
-            kDefaultHeapBase,
-            runtime::MemoryLimits{.max_memory_pages_num = memory_page_limit_}});
+        rei_->getMemory(), runtime::MemoryConfig{kDefaultHeapBase, {}});
   }
 
   void TearDown() override {

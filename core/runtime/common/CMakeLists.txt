@@ -27,14 +27,6 @@ target_link_libraries(storage_code_provider
     )
 kagome_install(storage_code_provider)
 
-add_library(constant_code_provider
-    constant_code_provider.cpp
-    )
-target_link_libraries(constant_code_provider
-    uncompress_if_needed
-    )
-kagome_install(constant_code_provider)
-
 add_library(uncompress_if_needed
     uncompress_code_if_needed.cpp
     )

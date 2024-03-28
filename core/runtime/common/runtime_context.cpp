@@ -54,17 +54,8 @@ namespace kagome::runtime {
       ContextParams params) {
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    if (params.memory_limits.max_stack_values_num) {
-      auto res = instrumentWithStackLimiter(
-          code, *params.memory_limits.max_stack_values_num);
-      if (!res) {
-        log::createLogger("RuntimeContextFactory", "runtime")
-            ->error("Failed to instrument wasm code with stack limiter: {}",
-                    res.error().message());
-        return Error::INSTRUMENTATION_FAILED;
-      }
-      code = std::move(res.value());
-    }
+    BOOST_OUTCOME_TRY(code,
+                      prepareBlobForCompilation(code, params.memory_limits));
     auto runtime_module_res = module_factory.make(code);
     if (!runtime_module_res) {
       return Error::COMPILATION_FAILED;
