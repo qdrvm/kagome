@@ -1488,8 +1488,6 @@ namespace kagome::parachain {
       const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &per_relay_parent,
       grid::GridTracker &grid_tracker,
-      SessionIndex session,
-      const runtime::SessionInfo &session_info,
       const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
       ValidatorIndex grid_sender_index) {
     /// TODO(iceseer): do Ensure the statement is correctly signed. Signature
@@ -1674,28 +1672,28 @@ namespace kagome::parachain {
         /// not used because of `acknowledge` = true. Implement `grid_view` to
         /// retrieve real `acknowledge`.
 
-        network::vstaging::StatementFilter unwanted_mask{group->size()}; /// 555666
-        router_->getFetchAttestedCandidateProtocol()->doRequest(
-            peer_id,
-            network::vstaging::AttestedCandidateRequest{
-                .candidate_hash = manifest->get().candidate_hash,
-                .mask = std::move(unwanted_mask),
-            },
-            [wptr{weak_from_this()},
-             relay_parent{manifest->get().relay_parent},
-             candidate_hash{manifest->get().candidate_hash},
-             groups{Groups{opt_session_info->validator_groups}},
-             group_index{manifest->get().group_index}](
-                outcome::result<network::vstaging::AttestedCandidateResponse>
-                    r) mutable {
-              if (auto self = wptr.lock()) {
-                self->handleFetchedStatementResponse(std::move(r),
-                                                     relay_parent,
-                                                     candidate_hash,
-                                                     std::move(groups),
-                                                     group_index);
-              }
-            });
+//        network::vstaging::StatementFilter unwanted_mask{group->size()}; /// 555666 `dispatch_requests`
+//        router_->getFetchAttestedCandidateProtocol()->doRequest(
+//            peer_id,
+//            network::vstaging::AttestedCandidateRequest{
+//                .candidate_hash = manifest->get().candidate_hash,
+//                .mask = std::move(unwanted_mask),
+//            },
+//            [wptr{weak_from_this()},
+//             relay_parent{manifest->get().relay_parent},
+//             candidate_hash{manifest->get().candidate_hash},
+//             groups{Groups{opt_session_info->validator_groups}},
+//             group_index{manifest->get().group_index}](
+//                outcome::result<network::vstaging::AttestedCandidateResponse>
+//                    r) mutable {
+//              if (auto self = wptr.lock()) {
+//                self->handleFetchedStatementResponse(std::move(r),
+//                                                     relay_parent,
+//                                                     candidate_hash,
+//                                                     std::move(groups),
+//                                                     group_index);
+//              }
+//            });
       }
       return;
     }
@@ -1745,17 +1743,17 @@ namespace kagome::parachain {
       /// TODO(iceseer): do `cluster validators`
 
       std::optional<std::pair<ValidatorIndex, bool>> grid_sender_index;
-      for (const auto &[i, validator_knows_statement] =
+      for (const auto &[i, validator_knows_statement] :
                local_validator.grid_tracker.direct_statement_providers(
                    *parachain_state->get().groups,
                    stm->get().compact.payload.ix,
-                   stm->get().compact.signature)) {
+                   getPayload(stm->get().compact))) {
         if (i >= opt_session_info->discovery_keys.size()) {
           continue;
         }
 
         /// TODO(iceseer): do check is authority
-        const auto &ad = opt_session_info->discovery_keys[i];
+        /// const auto &ad = opt_session_info->discovery_keys[i];
         grid_sender_index.emplace(i, validator_knows_statement);
         break;
       }
@@ -1764,15 +1762,14 @@ namespace kagome::parachain {
         return;
       }
 
-      const auto &[grid_sender_index, validator_knows_statement] =
+      const auto &[gsi, validator_knows_statement] =
           *grid_sender_index;
       if (!validator_knows_statement) {
-        auto res = handle_grid_statement(relay_parent,
-                                         &mut local_validator.grid_tracker,
-                                         per_relay_parent.session,
-                                         &per_session,
+        auto res = handle_grid_statement(stm->get().relay_parent,
+                                          parachain_state->get(),
+                                         local_validator.grid_tracker,
                                          stm->get().compact,
-                                         grid_sender_index, );
+                                         gsi);
         if (res.has_error()) {
           return;
         }
@@ -1821,27 +1818,28 @@ namespace kagome::parachain {
           }
         }
 
-        router_->getFetchAttestedCandidateProtocol()->doRequest(
-            peer_id,
-            network::vstaging::AttestedCandidateRequest{
-                .candidate_hash = candidate_hash,
-                .mask = std::move(unwanted_mask),
-            },
-            [wptr{weak_from_this()},
-             relay_parent{stm->get().relay_parent},
-             candidate_hash,
-             groups{Groups{opt_session_info->validator_groups}},
-             group_index{*originator_group}](
-                outcome::result<network::vstaging::AttestedCandidateResponse>
-                    r) mutable {
-              if (auto self = wptr.lock()) {
-                self->handleFetchedStatementResponse(std::move(r),
-                                                     relay_parent,
-                                                     candidate_hash,
-                                                     std::move(groups),
-                                                     group_index);
-              }
-            });
+        /// 555666
+//        router_->getFetchAttestedCandidateProtocol()->doRequest(
+//            peer_id,
+//            network::vstaging::AttestedCandidateRequest{
+//                .candidate_hash = candidate_hash,
+//                .mask = std::move(unwanted_mask),
+//            },
+//            [wptr{weak_from_this()},
+//             relay_parent{stm->get().relay_parent},
+//             candidate_hash,
+//             groups{Groups{opt_session_info->validator_groups}},
+//             group_index{*originator_group}](
+//                outcome::result<network::vstaging::AttestedCandidateResponse>
+//                    r) mutable {
+//              if (auto self = wptr.lock()) {
+//                self->handleFetchedStatementResponse(std::move(r),
+//                                                     relay_parent,
+//                                                     candidate_hash,
+//                                                     std::move(groups),
+//                                                     group_index);
+//              }
+//            });
       }
 
       /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -2680,17 +2678,17 @@ namespace kagome::parachain {
       /// Get protocol from there.
       switch (action) {
         case grid::ManifestKind::Full: {
-          manifest_peers.emplace_back(*peer_opt,
+          manifest_peers.emplace_back(peer_opt->id,
                                       network::CollationVersion::VStaging);
         } break;
         case grid::ManifestKind::Acknowledgement: {
-          ack_peers.emplace_back(*peer_opt,
+          ack_peers.emplace_back(peer_opt->id,
                                  network::CollationVersion::VStaging);
         } break;
       }
 
       local_validator.grid_tracker.manifest_sent_to(
-          *per_session.groups, v, candidate_hash, filter);
+          *relay_parent_state.groups, v, candidate_hash, filter);
 
       auto msgs = post_acknowledgement_statement_messages(
           v,
@@ -2700,11 +2698,11 @@ namespace kagome::parachain {
           *relay_parent_state.groups,
           group_index,
           candidate_hash,
-          *peer_opt,
+          peer_opt->id,
           network::CollationVersion::VStaging);
 
       for (auto &msg : msgs) {
-        post_statements.emplace_back({*peer_opt}, std::move(msg));
+        post_statements.emplace_back(std::vector<libp2p::peer::PeerId>{peer_opt->id}, std::move(msg));
       }
     }
 
@@ -2802,7 +2800,7 @@ namespace kagome::parachain {
         opt_session_info->validator_groups[group_index].size();
 
     provide_candidate_to_grid(
-        candidate_hash, relay_parent_state_opt->get(), confirmed);
+        candidate_hash, relay_parent_state_opt->get(), confirmed, *opt_session_info);
 
     prospective_backed_notification_fragment_tree_updates(
         confirmed.para_id(), confirmed.para_head());
@@ -3744,8 +3742,7 @@ namespace kagome::parachain {
       return;
     }
 
-    Groups groups{opt_session_info->validator_groups};
-
+    const Groups &groups = *per_relay_parent.groups;
     const std::optional<network::ParachainId> &local_assignment =
         per_relay_parent.assignment;
     const network::ValidatorIndex local_index = *per_relay_parent.our_index;

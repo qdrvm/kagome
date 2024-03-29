@@ -325,8 +325,6 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &per_relay_parent,
         grid::GridTracker &grid_tracker,
-        SessionIndex session,
-        const runtime::SessionInfo &session_info,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
         ValidatorIndex grid_sender_index);
     void process_vstaging_statement(
