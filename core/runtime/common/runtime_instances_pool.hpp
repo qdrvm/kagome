@@ -14,7 +14,6 @@
 #include <shared_mutex>
 #include <unordered_set>
 
-#include "runtime/common/stack_limiter.hpp"
 #include "runtime/module_factory.hpp"
 #include "utils/lru.hpp"
 

@@ -181,6 +181,7 @@
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 

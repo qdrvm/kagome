@@ -81,7 +81,7 @@ target_link_libraries(instance_pool_test
 
 addtest(stack_limiter_test stack_limiter_test.cpp)
 target_link_libraries(stack_limiter_test
-    runtime_common
     logger
     log_configurator
+    wasm_instrument
     )

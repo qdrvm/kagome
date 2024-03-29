@@ -32,6 +32,7 @@
 #include <kagome/runtime/executor.hpp>
 #include <kagome/runtime/module.hpp>
 #include <kagome/runtime/runtime_context.hpp>
+#include <kagome/runtime/wabt/instrument.hpp>
 #include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>

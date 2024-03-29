@@ -7,12 +7,12 @@
 #include "runtime/common/runtime_instances_pool.hpp"
 
 #include "common/monadic_utils.hpp"
-#include "runtime/common/stack_limiter.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::runtime {
   /**

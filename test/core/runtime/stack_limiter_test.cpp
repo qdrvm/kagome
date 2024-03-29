@@ -17,7 +17,9 @@
 
 #include "common/bytestr.hpp"
 #include "log/logger.hpp"
-#include "runtime/common/stack_limiter.hpp"
+#include "runtime/wabt/instrument.hpp"
+#include "runtime/wabt/stack_limiter.hpp"
+#include "runtime/wabt/util.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -78,8 +80,7 @@ std::string toWat(const wabt::Module &module) {
 void expectWasm(const wabt::Module &actual, std::string_view expected) {
   auto expected_fmt = toWat(*fromWat(expected));
   EXPECT_EQ(toWat(actual), expected_fmt);
-  wabt::Module actual2;
-  EXPECT_TRUE(wabtDecode(actual2, wabtEncode(actual).value()));
+  auto actual2 = wabtDecode(wabtEncode(actual).value()).value();
   EXPECT_EQ(toWat(actual2), expected_fmt);
 }
 
@@ -288,13 +289,13 @@ auto memory_limit_static = std::make_pair(HeapAllocStrategyStatic{100}, R"(
     (export "mem" (memory 0)))
 )");
 
-TEST(StackLimiterTest, memory_import) {
+TEST(WasmInstrumentTest, memory_import) {
   auto module = fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
   expectWasm(*module, wat_memory_export);
 }
 
-TEST(StackLimiterTest, memory_limit) {
+TEST(WasmInstrumentTest, memory_limit) {
   auto test = [](HeapAllocStrategy config, std::string_view expected) {
     auto module = fromWat(wat_memory_export);
     setupMemoryAccordingToHeapAllocStrategy(*module, config).value();
@@ -309,7 +310,7 @@ TEST(StackLimiterTest, memory_limit) {
   test(memory_limit_static.first, memory_limit_static.second);
 }
 
-TEST(StackLimiterTest, memory_import_limit) {
+TEST(WasmInstrumentTest, memory_import_limit) {
   auto module = fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
   setupMemoryAccordingToHeapAllocStrategy(*module, memory_limit_static.first)
