@@ -341,6 +341,10 @@ namespace kagome::parachain {
         const std::vector<runtime::CoreState> &availability_cores,
         const runtime::GroupDescriptor &group_rotation_info,
         ParachainId para_id) const;
+    void send_cluster_candidate_statements(
+    const CandidateHash &candidate_hash,
+    const RelayHash &relay_parent
+  );
     void new_confirmed_candidate_fragment_tree_updates(
         const HypotheticalCandidate &candidate);
     void new_leaf_fragment_tree_updates(const Hash &leaf_hash);

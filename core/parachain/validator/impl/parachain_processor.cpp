@@ -2115,10 +2115,19 @@ namespace kagome::parachain {
                                             availability_cores.size());
   }
 
+  void ParachainProcessorImpl::send_cluster_candidate_statements(
+    const CandidateHash &candidate_hash,
+    const RelayHash &relay_parent
+  ) {
+
+  }
+
   void ParachainProcessorImpl::apply_post_confirmation(
       const PostConfirmation &post_confirmation) {
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// `send_cluster_candidate_statements`
+    const auto candidate_hash = candidateHash(post_confirmation.hypothetical);
+    send_cluster_candidate_statements(
+      candidate_hash,
+      relayParent(post_confirmation.hypothetical));
 
     new_confirmed_candidate_fragment_tree_updates(
         post_confirmation.hypothetical);
