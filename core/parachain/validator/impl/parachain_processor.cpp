@@ -3834,6 +3834,16 @@ namespace kagome::parachain {
       return;
     }
 
+ 		if (per_relay_parent.grid_view) {
+			auto &l = *per_relay_parent.local_validator;
+			l.grid_tracker.learned_fresh_statement(
+				*per_relay_parent.groups,
+				*per_relay_parent.grid_view,
+				local_index,
+				getPayload(compact_statement)
+			);
+		}
+
     circulate_statement(relay_parent, compact_statement);
     if (post_confirmation) {
       apply_post_confirmation(*post_confirmation);
