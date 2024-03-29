@@ -182,10 +182,11 @@ namespace kagome::parachain {
     }
 
     template <typename F>
-    void groupStatements(const std::span<const ValidatorIndex> &group_validators,
-                         const CandidateHash &candidate_hash,
-                         const network::vstaging::StatementFilter &filter,
-                         F &&cb) const {
+    void groupStatements(
+        const std::span<const ValidatorIndex> &group_validators,
+        const CandidateHash &candidate_hash,
+        const network::vstaging::StatementFilter &filter,
+        F &&cb) const {
       auto call = [&](const scale::BitVec &target,
                       network::vstaging::CompactStatement &&stm) {
         Fingerprint fingerprint{

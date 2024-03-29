@@ -17,10 +17,10 @@
 #include "network/types/collator_messages_vstaging.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/validator/backing_implicit_view.hpp"
 #include "primitives/common.hpp"
 #include "utils/lru.hpp"
 #include "utils/non_copyable.hpp"
-#include "parachain/validator/backing_implicit_view.hpp"
 
 namespace kagome::network {
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
@@ -84,30 +84,34 @@ namespace kagome::network {
     //    std::cref(val); });
     //	}
 
-	std::vector<common::Hash256>  update_view(const View &new_view, const parachain::ImplicitView &local_implicit) {
-    std::unordered_set<common::Hash256> next_implicit;
-    for (const auto &x : new_view.heads_) {
-      auto t = local_implicit.knownAllowedRelayParentsUnder(x, std::nullopt);
-      next_implicit.insert(t.begin(), t.end());
-    }
+    std::vector<common::Hash256> update_view(
+        const View &new_view, const parachain::ImplicitView &local_implicit) {
+      std::unordered_set<common::Hash256> next_implicit;
+      for (const auto &x : new_view.heads_) {
+        auto t = local_implicit.knownAllowedRelayParentsUnder(x, std::nullopt);
+        next_implicit.insert(t.begin(), t.end());
+      }
 
-    std::vector<common::Hash256> fresh_implicit;
-    for (const auto& x : next_implicit) {
+      std::vector<common::Hash256> fresh_implicit;
+      for (const auto &x : next_implicit) {
         if (implicit_view.find(x) == implicit_view.end()) {
-            fresh_implicit.emplace_back(x);
+          fresh_implicit.emplace_back(x);
         }
+      }
+
+      view = new_view;
+      implicit_view = next_implicit;
+      return fresh_implicit;
     }
 
-		view = new_view;
-		implicit_view = next_implicit;
-    return fresh_implicit;
-	}
+    bool knows_relay_parent(const common::Hash256 &relay_parent) {
+      return implicit_view.contains(relay_parent)
+          || view.contains(relay_parent);
+    }
 
-	bool knows_relay_parent(const common::Hash256 &relay_parent) {
-		return implicit_view.contains(relay_parent) || view.contains(relay_parent);
-	}
-
-  	std::vector<common::Hash256> reconcile_active_leaf(const common::Hash256 &leaf_hash, std::span<const common::Hash256> implicit) {
+    std::vector<common::Hash256> reconcile_active_leaf(
+        const common::Hash256 &leaf_hash,
+        std::span<const common::Hash256> implicit) {
       if (!view.contains(leaf_hash)) {
         return {};
       }

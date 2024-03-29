@@ -341,10 +341,8 @@ namespace kagome::parachain {
         const std::vector<runtime::CoreState> &availability_cores,
         const runtime::GroupDescriptor &group_rotation_info,
         ParachainId para_id) const;
-    void send_cluster_candidate_statements(
-    const CandidateHash &candidate_hash,
-    const RelayHash &relay_parent
-  );
+    void send_cluster_candidate_statements(const CandidateHash &candidate_hash,
+                                           const RelayHash &relay_parent);
     void new_confirmed_candidate_fragment_tree_updates(
         const HypotheticalCandidate &candidate);
     void new_leaf_fragment_tree_updates(const Hash &leaf_hash);
@@ -601,13 +599,14 @@ namespace kagome::parachain {
     void send_peer_messages_for_relay_parent(
         const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent);
     std::optional<std::pair<std::vector<libp2p::peer::PeerId>,
-                          network::VersionedValidatorProtocolMessage>>
-    pending_statement_network_message(const StatementStore &statement_store,
-                                      const RelayHash &relay_parent,
-                                      const libp2p::peer::PeerId &peer,
-                                      network::CollationVersion version,
-                                      ValidatorIndex originator,
-                                      const network::vstaging::CompactStatement &compact);
+                            network::VersionedValidatorProtocolMessage>>
+    pending_statement_network_message(
+        const StatementStore &statement_store,
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version,
+        ValidatorIndex originator,
+        const network::vstaging::CompactStatement &compact);
     void provide_candidate_to_grid(
         const CandidateHash &candidate_hash,
         RelayParentState &relay_parent_state,
