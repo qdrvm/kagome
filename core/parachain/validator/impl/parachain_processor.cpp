@@ -912,11 +912,16 @@ namespace kagome::parachain {
                validator->validatorIndex(),
                relay_parent);
 
+    std::optional<GroupIndex> our_group;
+    if (groups_p) {
+      our_group = groups_p->byValidatorIndex(validator->validatorIndex());
+    }
     return RelayParentState{
         .prospective_parachains_mode = mode,
         .assignment = assignment,
         .seconded = {},
         .our_index = validator->validatorIndex(),
+        .our_group = our_group,
         .required_collator = required_collator,
         .collations = {},
         .table_context =
@@ -2146,7 +2151,30 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::send_cluster_candidate_statements(
-      const CandidateHash &candidate_hash, const RelayHash &relay_parent) {}
+      const CandidateHash &candidate_hash, const RelayHash &relay_parent) {
+    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
+    if (!relay_parent_state) {
+      return;
+    }
+
+    auto local_group = relay_parent_state->get().our_group;
+    if (!local_group) {
+      return;
+    }
+
+    auto group = relay_parent_state->get().groups->get(*local_group);
+    if (!group) {
+      return;
+    }
+    auto group_size = group->size();
+
+    relay_parent_state->get().statement_store->groupStatements(
+        *group,
+        candidate_hash,
+        network::vstaging::StatementFilter(group_size, true),
+        [&](const IndexedAndSigned<network::vstaging::CompactStatement>
+                &statement) { circulate_statement(relay_parent, statement); });
+  }
 
   void ParachainProcessorImpl::apply_post_confirmation(
       const PostConfirmation &post_confirmation) {

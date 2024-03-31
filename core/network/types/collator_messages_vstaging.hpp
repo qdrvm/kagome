@@ -137,9 +137,9 @@ namespace kagome::network::vstaging {
     scale::BitVec validated_in_group;
 
     StatementFilter() = default;
-    StatementFilter(size_t len) {
-      seconded_in_group.bits.assign(len, false);
-      validated_in_group.bits.assign(len, false);
+    StatementFilter(size_t len, bool val = false) {
+      seconded_in_group.bits.assign(len, val);
+      validated_in_group.bits.assign(len, val);
     }
 
     bool has_len(size_t len) const {

@@ -252,6 +252,7 @@ namespace kagome::parachain {
       std::optional<network::ParachainId> assignment;
       std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
+      std::optional<network::GroupIndex> our_group;
       std::optional<network::CollatorPublicKey> required_collator;
 
       Collations collations;
