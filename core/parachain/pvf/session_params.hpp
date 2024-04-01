@@ -12,6 +12,7 @@
 namespace kagome::parachain {
   inline outcome::result<runtime::RuntimeContext::ContextParams> sessionParams(
       runtime::ParachainHost &api, const primitives::BlockHash &relay_parent) {
+    // https://github.com/paritytech/polkadot-sdk/blob/e0c081dbd46c1e6edca1ce2c62298f5f3622afdd/polkadot/node/core/pvf/common/src/executor_interface.rs#L46-L47
     constexpr uint32_t kDefaultHeapPagesEstimate = 32;
     constexpr uint32_t kExtraHeapPages = 2048;
     OUTCOME_TRY(session_index, api.session_index_for_child(relay_parent));

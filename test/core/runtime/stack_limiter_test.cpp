@@ -289,12 +289,14 @@ auto memory_limit_static = std::make_pair(HeapAllocStrategyStatic{100}, R"(
     (export "mem" (memory 0)))
 )");
 
+/// Check `convertMemoryImportIntoExport`.
 TEST(WasmInstrumentTest, memory_import) {
   auto module = fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
   expectWasm(*module, wat_memory_export);
 }
 
+/// Check `setupMemoryAccordingToHeapAllocStrategy`.
 TEST(WasmInstrumentTest, memory_limit) {
   auto test = [](HeapAllocStrategy config, std::string_view expected) {
     auto module = fromWat(wat_memory_export);
@@ -310,6 +312,9 @@ TEST(WasmInstrumentTest, memory_limit) {
   test(memory_limit_static.first, memory_limit_static.second);
 }
 
+/// Check both `convertMemoryImportIntoExport` and
+/// `setupMemoryAccordingToHeapAllocStrategy` to check wabt encoding
+/// consistency.
 TEST(WasmInstrumentTest, memory_import_limit) {
   auto module = fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
