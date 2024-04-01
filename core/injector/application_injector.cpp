@@ -5,6 +5,7 @@
  */
 
 #include "injector/application_injector.hpp"
+#include "crypto/key_store.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -85,11 +86,11 @@
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
@@ -625,7 +626,15 @@ namespace {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
             useConfig(wasmedge_config),
 #endif
-
+            di::bind<crypto::KeyStore::Config>.to([](const auto &injector) {
+              const auto &config =
+                  injector
+                      .template create<application::AppConfiguration const &>();
+              auto chain_spec =
+                  injector.template create<sptr<application::ChainSpec>>();
+              return crypto::KeyStore::Config{config.keystorePath(chain_spec->id())};
+            }),
+            
             // inherit host injector
             libp2p::injector::makeHostInjector(
                 libp2p::injector::useWssPem(config->nodeWssPem()),
@@ -663,7 +672,7 @@ namespace {
                   injector.template create<const crypto::Ed25519Provider &>();
               auto &csprng = injector.template create<crypto::CSPRNG &>();
               auto &crypto_store =
-                  injector.template create<crypto::CryptoStore &>();
+                  injector.template create<crypto::KeyStore &>();
               return injector::get_peer_keypair(
                   app_config, chain, crypto_provider, csprng, crypto_store);
             })[boost::di::override],
@@ -765,7 +774,7 @@ namespace {
             di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
             di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
             bind_by_lambda<crypto::KeyFileStorage>([](const auto &injector) {
-              const application::AppConfiguration &config =
+              const auto &config =
                   injector
                       .template create<application::AppConfiguration const &>();
               auto chain_spec =
@@ -773,7 +782,9 @@ namespace {
 
               return get_key_file_storage(config, chain_spec);
             }),
-            di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
+            di::bind<crypto::KeySuiteStore<crypto::Sr25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Sr25519Provider>>(),
+            di::bind<crypto::KeySuiteStore<crypto::Ed25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Ed25519Provider>>(),
+            di::bind<crypto::KeySuiteStore<crypto::EcdsaProvider>>.template to<crypto::KeySuiteStoreImpl<crypto::EcdsaProvider>>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
             makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),

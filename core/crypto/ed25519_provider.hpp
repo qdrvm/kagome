@@ -13,6 +13,11 @@ namespace kagome::crypto {
 
   class Ed25519Provider {
    public:
+    using Keypair = Ed25519Keypair;
+    using PublicKey = Ed25519PublicKey;
+    using PrivateKey = Ed25519PrivateKey;
+    using Seed = Ed25519Seed;
+
     using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~Ed25519Provider() = default;
