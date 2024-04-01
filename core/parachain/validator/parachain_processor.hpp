@@ -401,6 +401,7 @@ namespace kagome::parachain {
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
     void circulate_statement(
         const RelayHash &relay_parent,
+        RelayParentState &relay_parent_state,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(

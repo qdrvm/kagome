@@ -492,13 +492,18 @@ namespace kagome::parachain {
       return;
     }
 
+    network::CollationVersion version = network::CollationVersion::VStaging;
+    if (peer_state->get().version) {
+      version = *peer_state->get().version;
+    }
+
     if (auto auth_id = query_audi_->get(peer_id)) {
       if (auto it = parachain_state->get().authority_lookup.find(*auth_id);
           it != parachain_state->get().authority_lookup.end()) {
         ValidatorIndex vi = it->second;
         send_pending_grid_messages(relay_parent,
                                    peer_id,
-                                   peer_state->get().version,
+                                   version,
                                    vi,
                                    *parachain_state->get().groups,
                                    parachain_state->get());
@@ -1918,7 +1923,8 @@ namespace kagome::parachain {
                                       candidate_hash);
       }
 
-      circulate_statement(stm->get().relay_parent, stm->get().compact);
+      circulate_statement(
+          stm->get().relay_parent, parachain_state->get(), stm->get().compact);
       return;
     }
 
@@ -1927,29 +1933,74 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::circulate_statement(
       const RelayHash &relay_parent,
+      RelayParentState &relay_parent_state,
       const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
-    /// 555666
-    //		let grid_targets = local_validator
-    //			.grid_tracker
-    //			.direct_statement_targets(&per_session.groups,
-    // originator, &compact_statement) 			.into_iter()
-    // .filter(|v| !cluster_relevant
-    //|| !all_cluster_targets.contains(v)) 			.map(|v| (v,
-    // DirectTargetKind::Grid));
+    auto session_info = retrieveSessionInfo(relay_parent);
+    if (!session_info) {
+      return;
+    }
 
-    // const auto &session_info = &per_session.session_info;
-    const auto &candidate_hash = candidateHash(getPayload(statement));
+    const auto &compact_statement = getPayload(statement);
+    const auto &candidate_hash = candidateHash(compact_statement);
+    const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
+    const auto originator = statement.payload.ix;
 
-    send_to_validators_group(
-        relay_parent,
-        {network::VersionedValidatorProtocolMessage{
-            kagome::network::vstaging::ValidatorProtocolMessage{
-                kagome::network::vstaging::StatementDistributionMessage{
-                    kagome::network::vstaging::
-                        StatementDistributionMessageStatement{
-                            .relay_parent = relay_parent,
-                            .compact = statement,
-                        }}}}});
+    if (!relay_parent_state.local_validator) {
+      return;
+    }
+
+    auto &local_validator = *relay_parent_state.local_validator;
+    auto statement_group =
+        relay_parent_state.groups->byValidatorIndex(originator);
+
+    /// TODO(iceseer): do `cluster` targets
+    std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>>
+        statement_to_peers;
+    for (const auto v : local_validator.grid_tracker.direct_statement_targets(
+             *relay_parent_state.groups, originator, compact_statement)) {
+      auto peer = query_audi_->get(session_info->discovery_keys[v]);
+      if (!peer) {
+        continue;
+      }
+
+      auto peer_state = pm_->getPeerState(peer->id);
+      if (!peer_state) {
+        continue;
+      }
+
+      if (!peer_state->get().knows_relay_parent(relay_parent)) {
+        continue;
+      }
+
+      network::CollationVersion version = network::CollationVersion::VStaging;
+      if (peer_state->get().version) {
+        version = *peer_state->get().version;
+      }
+
+      statement_to_peers.emplace_back(peer->id, version);
+      local_validator.grid_tracker.sent_or_received_direct_statement(
+          *relay_parent_state.groups, originator, v, compact_statement, false);
+    }
+
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    auto message_v2 = std::make_shared<
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        kagome::network::vstaging::ValidatorProtocolMessage{
+            kagome::network::vstaging::StatementDistributionMessage{
+                kagome::network::vstaging::
+                    StatementDistributionMessageStatement{
+                        .relay_parent = relay_parent,
+                        .compact = statement,
+                    }}});
+    for (const auto &[peer, version] : statement_to_peers) {
+      if (version == network::CollationVersion::VStaging) {
+        se->send(peer, router_->getValidationProtocolVStaging(), message_v2);
+      } else {
+        assert(false);
+      }
+    }
   }
 
   void ParachainProcessorImpl::handleFetchedStatementResponse(
@@ -2173,7 +2224,10 @@ namespace kagome::parachain {
         candidate_hash,
         network::vstaging::StatementFilter(group_size, true),
         [&](const IndexedAndSigned<network::vstaging::CompactStatement>
-                &statement) { circulate_statement(relay_parent, statement); });
+                &statement) {
+          circulate_statement(
+              relay_parent, relay_parent_state->get(), statement);
+        });
   }
 
   void ParachainProcessorImpl::apply_post_confirmation(
@@ -3907,7 +3961,7 @@ namespace kagome::parachain {
                                              getPayload(compact_statement));
     }
 
-    circulate_statement(relay_parent, compact_statement);
+    circulate_statement(relay_parent, per_relay_parent, compact_statement);
     if (post_confirmation) {
       apply_post_confirmation(*post_confirmation);
     }
@@ -4535,9 +4589,13 @@ namespace kagome::parachain {
         utils::map(pc.prospective_candidate,
                    [](const auto &pair) { return std::cref(pair.first); });
 
+    network::CollationVersion version = network::CollationVersion::VStaging;
+    if (peer_state->get().version) {
+      version = *peer_state->get().version;
+    }
+
     if (peer_state->get().hasAdvertised(pc.relay_parent, candidate_hash)) {
-      fetchCollation(
-          per_relay_parent, std::move(pc), id, peer_state->get().version);
+      fetchCollation(per_relay_parent, std::move(pc), id, version);
       return;
     }
     SL_WARN(logger_, "Not advertised. (peer id={})", pc.peer_id);

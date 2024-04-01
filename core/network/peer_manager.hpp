@@ -67,7 +67,7 @@ namespace kagome::network {
     std::optional<CollatingPeerState> collator_state = std::nullopt;
     View view;
     std::unordered_set<common::Hash256> implicit_view;
-    CollationVersion version;
+    std::optional<CollationVersion> version;
     //    std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
     //    discovery_ids;
     //
