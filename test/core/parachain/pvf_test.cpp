@@ -13,6 +13,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_mock.hpp"
@@ -36,6 +37,8 @@ using kagome::parachain::ParachainRuntime;
 using kagome::parachain::Pvf;
 using kagome::parachain::PvfImpl;
 using kagome::parachain::ValidationResult;
+using kagome::runtime::DontInstrumentWasm;
+using kagome::runtime::MemoryLimits;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
@@ -58,9 +61,6 @@ class PvfTest : public testing::Test {
   void SetUp() {
     testutil::prepareLoggers();
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
-
-    EXPECT_CALL(*module_factory_, testDontInstrument())
-        .WillRepeatedly(Return(true));
 
     auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderMock>();
@@ -95,6 +95,7 @@ class PvfTest : public testing::Test {
         nullptr,
         hasher_,
         module_factory_,
+        std::make_shared<DontInstrumentWasm>(),
         block_tree,
         sr25519_provider,
         parachain_api,

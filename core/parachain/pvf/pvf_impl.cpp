@@ -138,6 +138,7 @@ namespace kagome::parachain {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<runtime::InstrumentWasm> instrument,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -156,7 +157,9 @@ namespace kagome::parachain {
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         runtime_cache_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-            std::move(module_factory), config_.runtime_instance_cache_size)},
+            std::move(module_factory),
+            std::move(instrument),
+            config_.runtime_instance_cache_size)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,

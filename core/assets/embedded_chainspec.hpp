@@ -23,6 +23,8 @@ namespace kagome::assets {
       res = embedded_chainspec_rococo;
     } else if (name == "westend") {
       res = embedded_chainspec_westend;
+    } else if (name == "paseo") {
+      res = embedded_chainspec_paseo;
     }
     if (res == nullptr) {
       return std::nullopt;

@@ -205,13 +205,14 @@ namespace kagome::host_api {
     }
     auto &&seed_opt = seed_res.value();
 
-    outcome::result<crypto::Ed25519Keypair> kp_res{{}};
-    if (seed_opt.has_value()) {
-      kp_res =
-          crypto_store_->generateEd25519Keypair(key_type, seed_opt.value());
-    } else {
-      kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::Ed25519Keypair> kp_res = [&] {
+      if (seed_opt.has_value()) {
+        return crypto_store_->generateEd25519Keypair(key_type,
+                                                     seed_opt.value());
+      } else {
+        return crypto_store_->generateEd25519KeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate ed25519 key pair: {}", kp_res.error());
@@ -331,14 +332,15 @@ namespace kagome::host_api {
       throw_with_error(logger_, "failed to decode seed");
     }
 
-    outcome::result<crypto::Sr25519Keypair> kp_res{{}};
-    auto bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
-      kp_res =
-          crypto_store_->generateSr25519Keypair(key_type, bip39_seed.value());
-    } else {
-      kp_res = crypto_store_->generateSr25519KeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::Sr25519Keypair> kp_res = [&]() {
+      auto bip39_seed = seed_res.value();
+      if (bip39_seed.has_value()) {
+        return crypto_store_->generateSr25519Keypair(key_type,
+                                                     bip39_seed.value());
+      } else {
+        return crypto_store_->generateSr25519KeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate sr25519 key pair: {}", kp_res.error());
@@ -670,14 +672,15 @@ namespace kagome::host_api {
       throw_with_error(logger_, "failed to decode seed");
     }
 
-    outcome::result<crypto::EcdsaKeypair> kp_res{{}};
-    auto bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
-      kp_res =
-          crypto_store_->generateEcdsaKeypair(key_type, bip39_seed.value());
-    } else {
-      kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::EcdsaKeypair> kp_res = [&]() {
+      auto bip39_seed = seed_res.value();
+      if (bip39_seed.has_value()) {
+        return crypto_store_->generateEcdsaKeypair(key_type,
+                                                   bip39_seed.value());
+      } else {
+        return crypto_store_->generateEcdsaKeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate ecdsa key pair: {}", kp_res.error());

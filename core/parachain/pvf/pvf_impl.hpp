@@ -34,6 +34,7 @@ namespace kagome::blockchain {
 namespace kagome::runtime {
   class ModuleInstance;
   class ModuleFactory;
+  class InstrumentWasm;
   class Executor;
   class RuntimeContextFactory;
   class RuntimeInstancesPool;
@@ -86,6 +87,7 @@ namespace kagome::parachain {
             std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::shared_ptr<runtime::InstrumentWasm> instrument,
             std::shared_ptr<blockchain::BlockTree> block_tree,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,

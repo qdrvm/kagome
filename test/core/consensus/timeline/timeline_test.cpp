@@ -143,6 +143,8 @@ class TimelineTest : public testing::Test {
     production_consensus = std::make_shared<ProductionConsensusMock>();
     ON_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillByDefault(Return(production_consensus));
+    ON_CALL(*consensus_selector, getProductionConsensusByHeader(_))
+        .WillByDefault(Return(production_consensus));
     ON_CALL(*production_consensus, getSlot(best_block_header))
         .WillByDefault(Return(1));
 
@@ -418,4 +420,92 @@ TEST_F(TimelineTest, Validator) {
     Mock::VerifyAndClearExpectations(production_consensus.get());
     Mock::VerifyAndClearExpectations(scheduler.get());
   }
+}
+
+/**
+ * @given start timeline
+ * @when consensus returns we are not validator
+ * @then we has not synchronized and waiting announce or incoming stream
+ */
+TEST_F(TimelineTest, Equivocation) {
+  BlockHeader new_block{
+      10,                         // number
+      "block_#9"_hash256,         // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(10),            // digest
+      "block_#10_s10_a0"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(new_block)).WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(new_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(new_block);
+
+  BlockHeader another_slot_block{
+      10,                         // number
+      "block_#9_fork"_hash256,    // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(11),            // digest
+      "block_#10_s11_a0"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(another_slot_block))
+      .WillOnce(Return(11));
+  EXPECT_CALL(*production_consensus, getAuthority(another_slot_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(another_slot_block);
+
+  BlockHeader another_validator_block{
+      10,                         // number
+      "block_#9"_hash256,         // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(10),            // digest
+      "block_#10_s10_a1"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(another_validator_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(another_validator_block))
+      .WillOnce(Return(1));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(another_validator_block);
+
+  BlockHeader equivocating_block{
+      10,                            // number
+      "block_#9"_hash256,            // parent
+      {},                            // state_root
+      {},                            // extrinsic_root
+      make_digest(10),               // digest
+      "block_#10_s10_a0_e1"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(equivocating_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(equivocating_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus,
+              reportEquivocation(new_block.hash(), equivocating_block.hash()))
+      .WillOnce(Return(outcome::success()));
+  timeline->checkAndReportEquivocation(equivocating_block);
+
+  BlockHeader one_more_equivocating_block{
+      10,                            // number
+      "block_#9"_hash256,            // parent
+      {},                            // state_root
+      {},                            // extrinsic_root
+      make_digest(10),               // digest
+      "block_#10_s10_a0_e2"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(one_more_equivocating_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(one_more_equivocating_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(one_more_equivocating_block);
 }

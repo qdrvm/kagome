@@ -216,13 +216,6 @@
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
-namespace boost::di {
-  template <>
-  struct ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
-    BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>);
-  };
-}  // namespace boost::di
-
 namespace {
   template <class T>
   using sptr = std::shared_ptr<T>;
@@ -349,7 +342,7 @@ namespace {
         injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
-        injector.template create<std::shared_ptr<common::MainPoolHandler>>());
+        injector.template create<common::MainThreadPool &>());
     // clang-format on
 
     if (not block_tree_res.has_value()) {

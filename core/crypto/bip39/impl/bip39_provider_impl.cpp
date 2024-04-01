@@ -69,23 +69,35 @@ namespace kagome::crypto {
     salt.put(default_salt);
     salt.put(password);
 
-    return pbkdf2_provider_->deriveKey(
-        entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
+    OUTCOME_TRY(
+        key,
+        pbkdf2_provider_->deriveKey(entropy,
+                                    salt,
+                                    iterations_count,
+                                    bip39::constants::BIP39_SEED_LEN_512));
+    return bip39::Bip39Seed::from(std::move(key));
   }
 
   outcome::result<bip39::Bip39SeedAndJunctions> Bip39ProviderImpl::generateSeed(
       std::string_view mnemonic_phrase) const {
     OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
-    bip39::Bip39SeedAndJunctions result;
-    if (auto words = mnemonic.words()) {
-      if (words->empty()) {
-        words = &kDevWords;
+    auto seed_res = [&]() -> outcome::result<bip39::Bip39Seed> {
+      if (auto words = mnemonic.words()) {
+        if (words->empty()) {
+          words = &kDevWords;
+        }
+        OUTCOME_TRY(entropy, calculateEntropy(*words));
+        return makeSeed(entropy, mnemonic.password);
+      } else {
+        return std::get<bip39::Bip39Seed>(std::move(mnemonic.seed));
       }
-      OUTCOME_TRY(entropy, calculateEntropy(*words));
-      BOOST_OUTCOME_TRY(result.seed, makeSeed(entropy, mnemonic.password));
-    } else {
-      result.seed = std::move(boost::get<common::Buffer>(mnemonic.seed));
-    }
+    }();
+    OUTCOME_TRY(seed, seed_res);
+    bip39::Bip39SeedAndJunctions result{
+        .seed = std::move(seed),
+        .junctions = {},
+    };
+
     for (auto &junction : mnemonic.junctions) {
       result.junctions.emplace_back(junction.raw(*hasher_));
     }

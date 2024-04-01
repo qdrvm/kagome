@@ -112,6 +112,9 @@ namespace kagome::runtime {
     outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) override;
 
+    outcome::result<std::vector<ValidatorIndex>> disabled_validators(
+        const primitives::BlockHash &block) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);
@@ -146,6 +149,7 @@ namespace kagome::runtime {
         ParachainId,
         std::map<ParachainId, std::vector<InboundHrmpMessage>>>
         inbound_hrmp_channels_contents_{10};
+    RuntimeApiLruBlock<std::vector<ValidatorIndex>> disabled_validators_{10};
   };
 
 }  // namespace kagome::runtime

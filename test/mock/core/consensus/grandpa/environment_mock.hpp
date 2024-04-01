@@ -60,6 +60,11 @@ namespace kagome::consensus::grandpa {
                 (const BlockHash &block_hash),
                 (override));
 
+    MOCK_METHOD(outcome::result<void>,
+                reportEquivocation,
+                (const VotingRound &, const Equivocation &),
+                (const, override));
+
     MOCK_METHOD(void,
                 onCatchUpRequested,
                 (const libp2p::peer::PeerId &peer_id,
@@ -76,6 +81,11 @@ namespace kagome::consensus::grandpa {
                  std::vector<SignedPrecommit> precommit_justification,
                  BlockInfo best_final_candidate),
                 (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                makeAncestry,
+                (GrandpaJustification &),
+                (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa

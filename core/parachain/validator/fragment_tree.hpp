@@ -523,8 +523,14 @@ namespace kagome::parachain::fragment {
     }
 
     std::vector<CandidateHash> getCandidates() const {
-      auto kv = std::views::keys(candidates);
-      return {kv.begin(), kv.end()};
+      // doesn't compile in clang-15 due to a bug
+      // std::views::keys(candidates)
+      std::vector<CandidateHash> res;
+      res.reserve(candidates.size());
+      for (auto &pair : candidates) {
+        res.push_back(pair.first);
+      }
+      return res;
     }
 
     template <typename Func>
@@ -699,7 +705,13 @@ namespace kagome::parachain::fragment {
               hasher_->blake2b_256(child_constraints.required_parent);
 
           storage.iterParaChildren(
-              required_head_hash, [&](const CandidateEntry &candidate) {
+              required_head_hash,
+              // clang-15 doesn't like capturing structured bindings into
+              // lambdas
+              [&,
+               earliest_rp = earliest_rp,
+               child_depth = child_depth,
+               modifications = modifications](const CandidateEntry &candidate) {
                 auto pending =
                     scope.getPendingAvailability(candidate.candidate_hash);
                 Option<RelayChainBlockInfo> relay_parent_opt;

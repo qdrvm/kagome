@@ -45,6 +45,8 @@ namespace kagome::consensus::grandpa {
      */
     virtual std::vector<VoteVariant> getMessages() const = 0;
 
+    virtual std::optional<VoteVariant> getMessage(Id id) const = 0;
+
     /**
      * @returns total weight of all accepted (non-duplicate) messages
      */

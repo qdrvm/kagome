@@ -8,6 +8,7 @@
 
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/types/equivocation_proof.hpp"
 
 namespace kagome::primitives {
   struct Justification;
@@ -18,7 +19,7 @@ namespace libp2p::peer {
 }
 
 namespace kagome::consensus::grandpa {
-  class Grandpa;
+  class VotingRound;
   struct MovableRoundState;
 }  // namespace kagome::consensus::grandpa
 
@@ -116,6 +117,18 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<GrandpaJustification> getJustification(
         const BlockHash &block_hash) = 0;
+
+    /// Report the given equivocation to the GRANDPA runtime module. This method
+    /// generates a session membership proof of the offender and then submits an
+    /// extrinsic to report the equivocation. In particular, the session
+    /// membership proof must be generated at the block at which the given set
+    /// was active which isn't necessarily the best block if there are pending
+    /// authority set changes.
+    virtual outcome::result<void> reportEquivocation(
+        const VotingRound &round, const Equivocation &equivocation) const = 0;
+
+    virtual outcome::result<void> makeAncestry(
+        GrandpaJustification &justification) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

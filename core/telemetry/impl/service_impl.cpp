@@ -40,35 +40,33 @@ namespace {
 namespace kagome::telemetry {
 
   TelemetryServiceImpl::TelemetryServiceImpl(
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       const application::AppConfiguration &app_configuration,
       const application::ChainSpec &chain_spec,
       const libp2p::Host &host,
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const network::PeerManager> peer_manager,
-      std::shared_ptr<TelemetryThreadPool> telemetry_thread_pool)
-      : app_state_manager_{std::move(app_state_manager)},
-        app_configuration_{app_configuration},
+      TelemetryThreadPool &telemetry_thread_pool)
+      : app_configuration_{app_configuration},
         chain_spec_{chain_spec},
         host_{host},
         tx_pool_{std::move(tx_pool)},
         buffer_storage_{storage->getSpace(storage::Space::kDefault)},
         peer_manager_{std::move(peer_manager)},
-        pool_handler_{telemetry_thread_pool->handler()},
-        io_context_{telemetry_thread_pool->io_context()},
+        pool_handler_{telemetry_thread_pool.handler(app_state_manager)},
+        io_context_{telemetry_thread_pool.io_context()},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                telemetry_thread_pool->io_context()),
+                telemetry_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})},
         enabled_{app_configuration_.isTelemetryEnabled()},
         log_{log::createLogger("TelemetryService", "telemetry")} {
-    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(tx_pool_);
     BOOST_ASSERT(buffer_storage_);
     BOOST_ASSERT(peer_manager_);
     if (enabled_) {
-      app_state_manager_->takeControl(*this);
+      app_state_manager.takeControl(*this);
     } else {
       SL_INFO(log_, "Telemetry disabled");
     }
@@ -101,7 +99,6 @@ namespace kagome::telemetry {
   }
 
   bool TelemetryServiceImpl::start() {
-    pool_handler_->start();
     for (auto &connection : connections_) {
       connection->connect();
     }
@@ -119,7 +116,6 @@ namespace kagome::telemetry {
     for (auto &connection : connections_) {
       connection->shutdown();
     }
-    pool_handler_->stop();
   }
 
   std::vector<TelemetryEndpoint> TelemetryServiceImpl::chainSpecEndpoints()

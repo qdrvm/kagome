@@ -26,6 +26,7 @@ embedded_chainspec(embedded_chainspec_polkadot ${PROJECT_SOURCE_DIR}/examples/po
 embedded_chainspec(embedded_chainspec_kusama ${PROJECT_SOURCE_DIR}/examples/kusama/kusama.json)
 embedded_chainspec(embedded_chainspec_rococo ${PROJECT_SOURCE_DIR}/examples/rococo/rococo.json)
 embedded_chainspec(embedded_chainspec_westend ${PROJECT_SOURCE_DIR}/examples/westend/westend.json)
+embedded_chainspec(embedded_chainspec_paseo ${PROJECT_SOURCE_DIR}/examples/paseo/paseo.json)
 
 set(OUTPUT embedded_keys.cpp)
 if(EMBEDDINGS)
