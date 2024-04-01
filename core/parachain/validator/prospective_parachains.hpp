@@ -77,15 +77,17 @@ namespace kagome::parachain {
     answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const {
       std::vector<std::pair<ParachainId, BlockNumber>> v;
       SL_TRACE(logger,
-               "=====> Search for minimum relay parents. (relay_parent={})",
+               "Search for minimum relay parents. (relay_parent={})",
                relay_parent);
 
       auto it = view.active_leaves.find(relay_parent);
       if (it != view.active_leaves.end()) {
         const RelayBlockViewData &leaf_data = it->second;
-        SL_TRACE(logger,
-                "=====> Found active list. (relay_parent={}, fragment_trees_count={})",
-                relay_parent, leaf_data.fragment_trees.size());
+        SL_TRACE(
+            logger,
+            "Found active list. (relay_parent={}, fragment_trees_count={})",
+            relay_parent,
+            leaf_data.fragment_trees.size());
 
         for (const auto &[para_id, fragment_tree] : leaf_data.fragment_trees) {
           v.emplace_back(para_id,
@@ -101,14 +103,14 @@ namespace kagome::parachain {
         uint32_t count,
         const std::vector<CandidateHash> &required_path) {
       SL_TRACE(logger,
-               "=====> Search for backable candidates. (para_id={}, "
+               "Search for backable candidates. (para_id={}, "
                "relay_parent={})",
                para,
                relay_parent);
       auto data_it = view.active_leaves.find(relay_parent);
       if (data_it == view.active_leaves.end()) {
         SL_TRACE(logger,
-                 "=====> Requested backable candidate for inactive relay-parent. "
+                 "Requested backable candidate for inactive relay-parent. "
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
@@ -119,7 +121,7 @@ namespace kagome::parachain {
       auto tree_it = data.fragment_trees.find(para);
       if (tree_it == data.fragment_trees.end()) {
         SL_TRACE(logger,
-                 "=====> Requested backable candidate for inactive para. "
+                 "Requested backable candidate for inactive para. "
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
@@ -130,7 +132,7 @@ namespace kagome::parachain {
       auto storage_it = view.candidate_storage.find(para);
       if (storage_it == view.candidate_storage.end()) {
         SL_WARN(logger,
-                "=====> No candidate storage for active para. (relay_parent={}, "
+                "No candidate storage for active para. (relay_parent={}, "
                 "para_id={})",
                 relay_parent,
                 para);
@@ -151,7 +153,7 @@ namespace kagome::parachain {
         } else {
           SL_ERROR(
               logger,
-              "=====> Candidate is present in fragment tree but not in candidate's storage! (child_hash={}, para_id={})",
+              "Candidate is present in fragment tree but not in candidate's storage! (child_hash={}, para_id={})",
               child_hash,
               para);
         }
@@ -160,12 +162,12 @@ namespace kagome::parachain {
       if (backable_candidates.empty()) {
         SL_TRACE(
             logger,
-            "=====> Could not find any backable candidate. (relay_parent={}, para_id={})",
+            "Could not find any backable candidate. (relay_parent={}, para_id={})",
             relay_parent,
             para);
       } else {
         SL_TRACE(logger,
-                 "=====> Found backable candidates. (relay_parent={}, count={})",
+                 "Found backable candidates. (relay_parent={}, count={})",
                  relay_parent,
                  backable_candidates.size());
       }
@@ -176,9 +178,10 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership answerTreeMembershipRequest(
         ParachainId para, const CandidateHash &candidate) {
       SL_TRACE(logger,
-                "=====> Answer tree membership request. "
-                "(para_id={}, candidate_hash={})",
-                para, candidate);
+               "Answer tree membership request. "
+               "(para_id={}, candidate_hash={})",
+               para,
+               candidate);
       return fragmentTreeMembership(view.active_leaves, para, candidate);
     }
 
@@ -241,7 +244,7 @@ namespace kagome::parachain {
       auto result = parachain_host_->staging_async_backing_params(relay_parent);
       if (result.has_error()) {
         SL_TRACE(logger,
-                 "=====> Prospective parachains are disabled, is not supported by the "
+                 "Prospective parachains are disabled, is not supported by the "
                  "current Runtime API. (relay parent={}, error={})",
                  relay_parent,
                  result.error().message());
@@ -263,7 +266,7 @@ namespace kagome::parachain {
           parachain_host_->staging_para_backing_state(relay_parent, para_id);
       if (result.has_error()) {
         SL_TRACE(logger,
-                 "=====> Staging para backing state failed. (relay parent={}, "
+                 "Staging para backing state failed. (relay parent={}, "
                  "para_id={}, error={})",
                  relay_parent,
                  para_id,
@@ -338,17 +341,20 @@ namespace kagome::parachain {
           block_tree_->getDescendingChainToBlock(relay_hash, ancestors + 1));
       for (const auto &h : hashes) {
         SL_TRACE(logger,
-                "=====> Ancestor hash. "
-                "(relay_hash={}, ancestor_hash={})",
-                relay_hash, h);
+                 "Ancestor hash. "
+                 "(relay_hash={}, ancestor_hash={})",
+                 relay_hash,
+                 h);
       }
-        
+
       OUTCOME_TRY(required_session,
                   parachain_host_->session_index_for_child(relay_hash));
       SL_TRACE(logger,
-              "=====> Get ancestors. "
-              "(relay_hash={}, ancestors={}, hashes_len={})",
-              relay_hash, ancestors, hashes.size());
+               "Get ancestors. "
+               "(relay_hash={}, ancestors={}, hashes_len={})",
+               relay_hash,
+               ancestors,
+               hashes.size());
 
       if (hashes.size() > 1) {
         block_info.reserve(hashes.size() - 1);
@@ -358,7 +364,7 @@ namespace kagome::parachain {
         OUTCOME_TRY(info, fetchBlockInfo(hash));
         if (!info) {
           SL_WARN(logger,
-                  "=====> Failed to fetch info for hash returned from ancestry. "
+                  "Failed to fetch info for hash returned from ancestry. "
                   "(relay_hash={})",
                   hash);
           break;
@@ -366,15 +372,17 @@ namespace kagome::parachain {
         OUTCOME_TRY(session, parachain_host_->session_index_for_child(hash));
         if (session == required_session) {
           SL_TRACE(logger,
-                  "=====> Add block. "
-                  "(relay_hash={}, hash={})",
-                  relay_hash, hash);
+                   "Add block. "
+                   "(relay_hash={}, hash={})",
+                   relay_hash,
+                   hash);
           block_info.emplace_back(*info);
         } else {
           SL_TRACE(logger,
-                  "=====> Skipped block. "
-                  "(relay_hash={}, hash={})",
-                  relay_hash, hash);
+                   "Skipped block. "
+                   "(relay_hash={}, hash={})",
+                   relay_hash,
+                   hash);
           break;
         }
       }
@@ -397,7 +405,7 @@ namespace kagome::parachain {
                     fetchBlockInfo(pending.descriptor.relay_parent));
         if (!relay_parent) {
           SL_DEBUG(logger,
-                   "=====> Had to stop processing pending candidates early due to "
+                   "Had to stop processing pending candidates early due to "
                    "missing info. (candidate hash={}, parachain id={}, "
                    "index={}, expected count={})",
                    pending.candidate_hash,
@@ -432,7 +440,7 @@ namespace kagome::parachain {
         const network::ExViewRef &update) {
       for (const auto &deactivated : update.lost) {
         SL_TRACE(logger,
-                 "=====> Remove from active leaves. (relay_parent={})",
+                 "Remove from active leaves. (relay_parent={})",
                  deactivated);
         view.active_leaves.erase(deactivated);
       }
@@ -447,19 +455,15 @@ namespace kagome::parachain {
         const auto mode = prospectiveParachainsMode(hash);
         if (!mode) {
           SL_TRACE(logger,
-                   "=====> Skipping leaf activation since async backing is disabled. "
+                   "Skipping leaf activation since async backing is disabled. "
                    "(block_hash={})",
                    hash);
           return outcome::success();
         }
-        SL_TRACE(logger,"=====> 1 max_candidate_depth:{}   allowed_ancestry_len:{}",
-          mode->max_candidate_depth, mode->allowed_ancestry_len);
-
         std::unordered_set<Hash> pending_availability{};
         OUTCOME_TRY(scheduled_paras,
                     fetchUpcomingParas(hash, pending_availability));
 
-        SL_TRACE(logger,"=====> 2");
         const fragment::RelayChainBlockInfo block_info{
             .hash = hash,
             .number = activated.number,
@@ -468,16 +472,14 @@ namespace kagome::parachain {
 
         OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
 
-        SL_TRACE(logger,"=====> 3  ancestry_len:{}", ancestry.size());
         std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
         for (ParachainId para : scheduled_paras) {
           auto &candidate_storage = view.candidate_storage[para];
           OUTCOME_TRY(backing_state, fetchBackingState(hash, para));
-          SL_TRACE(logger,"=====> 3. backing stater fetched");
 
           if (!backing_state) {
             SL_TRACE(logger,
-                     "=====> Failed to get inclusion backing state. (para={}, relay "
+                     "Failed to get inclusion backing state. (para={}, relay "
                      "parent={})",
                      para,
                      hash);
@@ -487,7 +489,6 @@ namespace kagome::parachain {
           OUTCOME_TRY(pending_availability,
                       preprocessCandidatesPendingAvailability(
                           constraints.required_parent, pe));
-          SL_TRACE(logger,"=====> 3. pending availability preprocessed");
 
           std::vector<fragment::PendingAvailability> compact_pending;
           compact_pending.reserve(pending_availability.size());
@@ -511,7 +512,7 @@ namespace kagome::parachain {
               candidate_storage.markBacked(candidate_hash);
             } else {
               SL_WARN(logger,
-                      "=====> Scraped invalid candidate pending availability. "
+                      "Scraped invalid candidate pending availability. "
                       "(candidate_hash={}, para={}, error={})",
                       candidate_hash,
                       para,
@@ -519,7 +520,6 @@ namespace kagome::parachain {
             }
           }
 
-          SL_TRACE(logger,"=====> 3. loop finished  para={}, ancestry_len={}", para, ancestry.size());
           OUTCOME_TRY(scope,
                       fragment::Scope::withAncestors(para,
                                                      block_info,
@@ -527,22 +527,19 @@ namespace kagome::parachain {
                                                      compact_pending,
                                                      mode->max_candidate_depth,
                                                      ancestry));
-          SL_TRACE(logger,"=====> 3. with ancestors complete");
 
           SL_TRACE(logger,
-                  "=====> Create fragment. "
-                  "(relay_parent={}, para={}, min_relay_parent={})",
-                  hash,
-                  para,
-                  scope.earliestRelayParent().number);
+                   "Create fragment. "
+                   "(relay_parent={}, para={}, min_relay_parent={})",
+                   hash,
+                   para,
+                   scope.earliestRelayParent().number);
           fragment_trees.emplace(para,
                                  fragment::FragmentTree::populate(
                                      hasher_, scope, candidate_storage));
         }
 
-        SL_TRACE(logger,
-                 "=====> Insert active leave. (relay parent={})",
-                 hash);
+        SL_TRACE(logger, "Insert active leave. (relay parent={})", hash);
         view.active_leaves.emplace(
             hash, RelayBlockViewData{fragment_trees, pending_availability});
       }
@@ -672,7 +669,7 @@ namespace kagome::parachain {
       auto it = view.candidate_storage.find(para);
       if (it == view.candidate_storage.end()) {
         SL_WARN(logger,
-                "=====> Received instruction to second unknown candidate. (para "
+                "Received instruction to second unknown candidate. (para "
                 "id={}, candidate hash={})",
                 para,
                 candidate_hash);
@@ -682,7 +679,7 @@ namespace kagome::parachain {
       auto &storage = it->second;
       if (!storage.contains(candidate_hash)) {
         SL_WARN(logger,
-                "=====> Received instruction to second unknown candidate in storage. "
+                "Received instruction to second unknown candidate in storage. "
                 "(para "
                 "id={}, candidate hash={})",
                 para,
@@ -698,7 +695,7 @@ namespace kagome::parachain {
       auto storage = view.candidate_storage.find(para);
       if (storage == view.candidate_storage.end()) {
         SL_WARN(logger,
-                "=====> Received instruction to back unknown candidate. (para_id={}, "
+                "Received instruction to back unknown candidate. (para_id={}, "
                 "candidate_hash={})",
                 para,
                 candidate_hash);
@@ -706,7 +703,7 @@ namespace kagome::parachain {
       }
       if (!storage->second.contains(candidate_hash)) {
         SL_WARN(logger,
-                "=====> Received instruction to back unknown candidate. (para_id={}, "
+                "Received instruction to back unknown candidate. (para_id={}, "
                 "candidate_hash={})",
                 para,
                 candidate_hash);
@@ -714,7 +711,7 @@ namespace kagome::parachain {
       }
       if (storage->second.isBacked(candidate_hash)) {
         SL_DEBUG(logger,
-                 "=====> Received redundant instruction to mark candidate as backed. "
+                 "Received redundant instruction to mark candidate as backed. "
                  "(para_id={}, candidate_hash={})",
                  para,
                  candidate_hash);
@@ -733,7 +730,7 @@ namespace kagome::parachain {
       auto it_storage = view.candidate_storage.find(para);
       if (it_storage == view.candidate_storage.end()) {
         SL_WARN(logger,
-                "=====> Received seconded candidate for inactive para. (parachain "
+                "Received seconded candidate for inactive para. (parachain "
                 "id={}, candidate hash={})",
                 para,
                 candidate_hash);
@@ -753,7 +750,7 @@ namespace kagome::parachain {
             == fragment::CandidateStorage::Error::
                 PERSISTED_VALIDATION_DATA_MISMATCH) {
           SL_WARN(logger,
-                  "=====> Received seconded candidate had mismatching validation "
+                  "Received seconded candidate had mismatching validation "
                   "data. (parachain id={}, candidate hash={})",
                   para,
                   candidate_hash);

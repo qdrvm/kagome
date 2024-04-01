@@ -388,15 +388,17 @@ namespace kagome::parachain {
     }
 
     if (const auto r =
-        prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-            .new_head = {event.new_head},
-            .lost = event.lost,
-        }); r.has_error()) {
-      SL_WARN(logger_,
-              "=====> Prospective parachains leaf update failed. (relay_parent={}, error={})",
-              relay_parent,
-              r.error().message());
-        }
+            prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+                .new_head = {event.new_head},
+                .lost = event.lost,
+            });
+        r.has_error()) {
+      SL_WARN(
+          logger_,
+          "Prospective parachains leaf update failed. (relay_parent={}, error={})",
+          relay_parent,
+          r.error().message());
+    }
 
     backing_store_->onActivateLeaf(relay_parent);
     createBackingTask(relay_parent);
@@ -568,7 +570,8 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(msg);
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          msg);
       SL_TRACE(
           logger_,
           "Broadcasting view update to group.(relay_parent={}, group_size={})",
@@ -2262,23 +2265,27 @@ namespace kagome::parachain {
             [&](const network::ScheduledCore &scheduled_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               if (auto i = prospective_parachains_->answerGetBackableCandidates(
-                  relay_parent, scheduled_core.para_id, 1, {}); !i.empty()) {
-                    return i[0];
-                  }
-                  return std::nullopt;
+                      relay_parent, scheduled_core.para_id, 1, {});
+                  !i.empty()) {
+                return i[0];
+              }
+              return std::nullopt;
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
               /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
-                if (auto i = prospective_parachains_->answerGetBackableCandidates(
-                    relay_parent,
-                    occupied_core.next_up_on_available->para_id, 1,
-                    {occupied_core.candidate_hash}); !i.empty()) {
-                    return i[0];
-                  }
-                  return std::nullopt;
+                if (auto i =
+                        prospective_parachains_->answerGetBackableCandidates(
+                            relay_parent,
+                            occupied_core.next_up_on_available->para_id,
+                            1,
+                            {occupied_core.candidate_hash});
+                    !i.empty()) {
+                  return i[0];
+                }
+                return std::nullopt;
               }
               return std::nullopt;
             },
