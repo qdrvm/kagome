@@ -26,9 +26,8 @@ namespace kagome::api::author::request {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
       if (auto key_type = crypto::KeyType::fromString(getParam<1>())) {
         return api_->hasKey(public_key, *key_type);
-      } else {
-        return crypto::KeyTypeError::UNSUPPORTED_KEY_TYPE;
       }
+      return crypto::KeyTypeError::UNSUPPORTED_KEY_TYPE;
     }
 
    private:
