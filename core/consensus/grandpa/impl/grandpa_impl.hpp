@@ -22,7 +22,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -103,7 +104,7 @@ namespace kagome::consensus::grandpa {
     ~GrandpaImpl() override = default;
 
     GrandpaImpl(
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -127,7 +128,7 @@ namespace kagome::consensus::grandpa {
      * @return true if grandpa was executed
      * @see kagome::application::AppStateManager::takeControl()
      */
-    bool start();
+    void start();
 
     /**
      * Does nothing. Needed only for AppStateManager
@@ -263,6 +264,8 @@ namespace kagome::consensus::grandpa {
       MissingBlocks blocks;
     };
 
+    bool tryStart();
+
     void callbackCall(ApplyJustificationCb &&callback,
                       outcome::result<void> &&result);
     /**
@@ -326,6 +329,7 @@ namespace kagome::consensus::grandpa {
 
     const Clock::Duration round_time_factor_;
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
@@ -341,7 +345,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> db_;
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
-    std::shared_ptr<PoolHandler> grandpa_pool_handler_;
+    std::shared_ptr<PoolHandlerReady> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
@@ -349,6 +353,7 @@ namespace kagome::consensus::grandpa {
         const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
         pending_catchup_request_;
     libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
+    // TODO(turuslan): #2023, use with libp2p thread
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;

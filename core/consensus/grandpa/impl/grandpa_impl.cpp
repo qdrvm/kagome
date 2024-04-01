@@ -34,6 +34,7 @@
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready.hpp"
 #include "utils/retain_if.hpp"
 
 namespace {
@@ -66,7 +67,7 @@ namespace kagome::consensus::grandpa {
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -82,6 +83,7 @@ namespace kagome::consensus::grandpa {
       common::MainThreadPool &main_thread_pool,
       GrandpaThreadPool &grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
+        app_state_manager_{std::move(app_state_manager)},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
@@ -94,8 +96,9 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
-        grandpa_pool_handler_{grandpa_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager_)},
+        grandpa_pool_handler_{std::make_shared<PoolHandlerReady>(
+            grandpa_thread_pool.io_context())},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool.io_context()),
@@ -119,19 +122,22 @@ namespace kagome::consensus::grandpa {
 
     // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
-    app_state_manager.takeControl(*this);
+    app_state_manager_->takeControl(*grandpa_pool_handler_);
+    app_state_manager_->takeControl(*this);
   }
 
-  bool GrandpaImpl::start() {
-    if (!grandpa_pool_handler_->isInCurrentThread()) {
-      grandpa_pool_handler_->execute([wptr{weak_from_this()}] {
-        if (auto self = wptr.lock()) {
-          self->start();
+  void GrandpaImpl::start() {
+    grandpa_pool_handler_->postAlways([wptr{weak_from_this()}] {
+      if (auto self = wptr.lock()) {
+        if (not self->tryStart()) {
+          SL_ERROR(self->logger_, "start failed");
+          self->app_state_manager_->shutdown();
         }
-      });
-      return true;
-    }
+      }
+    });
+  }
 
+  bool GrandpaImpl::tryStart() {
     if (auto r = db_->get(storage::kGrandpaVotesKey)) {
       if (auto r2 = scale::decode<CachedVotes>(r.value())) {
         cached_votes_ = std::move(r2.value());
@@ -209,6 +215,9 @@ namespace kagome::consensus::grandpa {
             self->onHead(block.blockInfo());
           }
         });
+
+    grandpa_pool_handler_->setReady();
+
     return true;
   }
 
@@ -437,7 +446,6 @@ namespace kagome::consensus::grandpa {
              std::move(info),
              std::move(msg));
 
-    BOOST_ASSERT(grandpa_pool_handler_->isInCurrentThread());
     SL_DEBUG(logger_,
              "NeighborMessage set_id={} round={} last_finalized={} "
              "has received from {}",
@@ -1366,9 +1374,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::reload() {
-    if (not start()) {
-      SL_ERROR(logger_, "reload: start failed");
-    }
+    start();
   }
 
   void GrandpaImpl::loadMissingBlocks(WaitingBlock &&waiting) {
@@ -1418,7 +1424,7 @@ namespace kagome::consensus::grandpa {
           self->onCommitMessage(peer, std::move(commit), false);
         }
       };
-      grandpa_pool_handler_->execute(std::move(f));
+      post(*grandpa_pool_handler_, std::move(f));
       return false;
     };
     retain_if(waiting_blocks_, f);
