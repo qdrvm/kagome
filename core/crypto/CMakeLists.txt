@@ -117,7 +117,7 @@ kagome_install(pbkdf2_provider)
 
 add_subdirectory(bip39)
 add_subdirectory(blake2)
-add_subdirectory(crypto_store)
+add_subdirectory(key_store)
 add_subdirectory(keccak)
 add_subdirectory(sha)
 add_subdirectory(twox)

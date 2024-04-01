@@ -16,8 +16,8 @@
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -446,7 +446,7 @@ namespace kagome::parachain {
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
-      std::shared_ptr<crypto::CryptoStore> keystore,
+      std::shared_ptr<crypto::KeyStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -617,11 +617,11 @@ namespace kagome::parachain {
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
-      if (auto res = keystore->findSr25519Keypair(
+      if (auto res = keystore->sr25519().findKeypair(
               crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
@@ -633,7 +633,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentsList
   ApprovalDistribution::compute_assignments(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const CandidateIncludedList &leaving_cores) {
@@ -642,13 +642,13 @@ namespace kagome::parachain {
       return {};
     }
 
-    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config);
-    if (!founded_key) {
+    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>> found_key =
+        findAssignmentKey(keystore, config);
+    if (!found_key) {
       return {};
     }
 
-    const auto &[validator_ix, assignments_key] = *founded_key;
+    const auto &[validator_ix, assignments_key] = *found_key;
     std::vector<CoreIndex> lc;
     for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
          leaving_cores) {
@@ -2352,8 +2352,8 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KeyTypes::PARACHAIN, pubkey);
-    if (key_pair.has_error()) {
+        keystore_->sr25519().findKeypair(crypto::KeyTypes::PARACHAIN, pubkey);
+    if (!key_pair) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;
     }
@@ -2448,10 +2448,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay,
-                              tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

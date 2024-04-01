@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -17,6 +18,11 @@ namespace kagome {
   inline common::BufferView str2byte(std::span<const char> s) {
     // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
+  }
+
+  inline std::span<uint8_t> str2byte(std::span<char> s) {
+    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return {reinterpret_cast<uint8_t *>(s.data()), s.size()};
   }
 
   inline std::string_view byte2str(const common::BufferView &s) {
