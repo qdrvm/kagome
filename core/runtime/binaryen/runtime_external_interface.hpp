@@ -37,8 +37,11 @@ namespace kagome::runtime::binaryen {
   class RuntimeExternalInterface
       : public wasm::ModuleInstance::ExternalInterface {
     class Memory {
+      friend class RuntimeExternalInterface;
+
       using Mem = std::vector<char>;
       Mem memory;
+      std::optional<WasmSize> pages_max;
       template <typename T>
       static bool aligned(const char *address) {
         static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
@@ -65,6 +68,9 @@ namespace kagome::runtime::binaryen {
       }
       auto getSize() const {
         return memory.size();
+      }
+      std::optional<WasmSize> pagesMax() const {
+        return pages_max;
       }
       template <typename T>
       void set(size_t address, T value) {
@@ -169,8 +175,7 @@ namespace kagome::runtime::binaryen {
       memory.resize(newSize);
     }
 
-    [[noreturn]]
-    void trap(const char *why) override {
+    [[noreturn]] void trap(const char *why) override {
       logger_->error("Trap: {}", why);
       throw wasm::TrapException{};
     }
