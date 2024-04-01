@@ -735,30 +735,29 @@ namespace kagome::network {
 
       log_->trace("Try to open outgoing validation protocol.(peer={})",
                   peer_info.id);
-      openOutgoing(
-          stream_engine_,
-          validation_protocol,
-          peer_info,
-          [validation_protocol, peer_info, wptr{weak_from_this()}](
-              outcome::result<std::shared_ptr<Stream>> stream_result) {
-            auto self = wptr.lock();
-            if (not self) {
-              return;
-            }
+      openOutgoing(stream_engine_,
+                   validation_protocol,
+                   peer_info,
+                   [validation_protocol, peer_info, wptr{weak_from_this()}](
+                       outcome::result<std::shared_ptr<Stream>> stream_result) {
+                     auto self = wptr.lock();
+                     if (not self) {
+                       return;
+                     }
 
-            auto &peer_id = peer_info.id;
-            if (!stream_result.has_value()) {
-              SL_TRACE(self->log_,
-                       "Unable to create stream {} with {}: {}",
-                       validation_protocol->protocolName(),
-                       peer_id,
-                       stream_result.error().message());
-              return;
-            }
+                     auto &peer_id = peer_info.id;
+                     if (!stream_result.has_value()) {
+                       SL_TRACE(self->log_,
+                                "Unable to create stream {} with {}: {}",
+                                validation_protocol->protocolName(),
+                                peer_id,
+                                stream_result.error().message());
+                       return;
+                     }
 
-            self->stream_engine_->addOutgoing(stream_result.value(),
-                                              validation_protocol);
-          });
+                     self->stream_engine_->addOutgoing(stream_result.value(),
+                                                       validation_protocol);
+                   });
     }
   }
 
@@ -837,10 +836,11 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    if (auto ps = getPeerState(peer_id); ps && ps->get().roles.flags.authority) {
+    if (auto ps = getPeerState(peer_id);
+        ps && ps->get().roles.flags.authority) {
       auto proto_val_vstaging = router_->getValidationProtocolVStaging();
       BOOST_ASSERT_MSG(proto_val_vstaging,
-                      "Router did not provide validation protocol vstaging");
+                       "Router did not provide validation protocol vstaging");
 
       stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
     }
