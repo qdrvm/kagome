@@ -146,13 +146,24 @@ int main() {
   auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
       pbkdf2_provider, hasher);
 
+  auto key_store_dir = "/tmp/kagome_tmp_key_storage";
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
-      kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
-          .value();
+      kagome::crypto::KeyFileStorage::createAt(key_store_dir).value();
   auto csprng =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto crypto_store =
-      std::make_shared<kagome::crypto::KeyStore>(ecdsa_suite, ed25519_provider);
+  auto crypto_store = std::make_shared<kagome::crypto::KeyStore>(
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::Sr25519Provider>>(
+          sr25519_provider, bip39_provider, csprng, key_fs),
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::Ed25519Provider>>(
+          ed25519_provider, bip39_provider, csprng, key_fs),
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::EcdsaProvider>>(
+          ecdsa_provider, bip39_provider, csprng, key_fs),
+      ed25519_provider,
+      app_state_manager,
+      kagome::crypto::KeyStore::Config{key_store_dir});
 
   auto offchain_persistent_storage =
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
