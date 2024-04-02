@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <list>
+#include <deque>
 
 #include "utils/pool_handler.hpp"
 #include "utils/safe_object.hpp"
@@ -51,14 +51,13 @@ namespace kagome {
 
     void setReady() {
       SAFE_UNIQUE(pending_) {
-        if (not pending_) {
-          throw std::logic_error{"already ready"};
-        }
-        auto pending = std::move(*pending_);
-        pending_.reset();
-        if (not stopped_.test()) {
-          for (auto &f : pending) {
-            io_->post(std::move(f));
+        if (pending_) {
+          auto pending = std::move(*pending_);
+          pending_.reset();
+          if (not stopped_.test()) {
+            for (auto &f : pending) {
+              io_->post(std::move(f));
+            }
           }
         }
       };
@@ -91,7 +90,7 @@ namespace kagome {
 
    private:
     std::shared_ptr<boost::asio::io_context> io_;
-    using Pending = std::list<std::function<void()>>;
+    using Pending = std::deque<std::function<void()>>;
     SafeObject<std::optional<Pending>> pending_{Pending{}};
     std::atomic_flag stopped_ = ATOMIC_FLAG_INIT;
   };
