@@ -23,6 +23,11 @@ namespace kagome::runtime::wavm {
     resize(kInitialMemorySize);
   }
 
+  std::optional<WasmSize> MemoryImpl::pagesMax() const {
+    auto max = WAVM::Runtime::getMemoryType(memory_).size.max;
+    return max != UINT64_MAX ? std::make_optional<WasmSize>(max) : std::nullopt;
+  }
+
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
   }

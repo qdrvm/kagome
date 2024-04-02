@@ -6,12 +6,9 @@
 
 #pragma once
 
-#include <string>
-
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
-#include "runtime/types.hpp"
+#include "runtime/wabt/error.hpp"
 
 namespace wabt {
   struct Module;
@@ -19,27 +16,11 @@ namespace wabt {
 }  // namespace wabt
 
 namespace kagome::runtime {
-
-  struct StackLimiterError {
-    [[nodiscard]] const std::string &message() const {
-      return msg;
-    }
-    std::string msg;
-  };
-
-  template <typename T>
-  using WabtOutcome = outcome::result<T, StackLimiterError>;
-
   // for tests
   namespace detail {
-    outcome::result<uint32_t, StackLimiterError> compute_stack_cost(
-        const log::Logger &logger,
-        const wabt::Func &func,
-        const wabt::Module &module);
-  }
-
-  inline boost::exception_ptr make_exception_ptr(const StackLimiterError &e) {
-    return std::make_exception_ptr(std::runtime_error{e.msg});
+    WabtOutcome<uint32_t> compute_stack_cost(const log::Logger &logger,
+                                             const wabt::Func &func,
+                                             const wabt::Module &module);
   }
 
   /**
@@ -54,11 +35,6 @@ namespace kagome::runtime {
   [[nodiscard]] WabtOutcome<common::Buffer> instrumentWithStackLimiter(
       common::BufferView uncompressed_wasm, size_t stack_limit);
 
-  class InstrumentWasm {
-   public:
-    virtual ~InstrumentWasm() = default;
-
-    virtual WabtOutcome<common::Buffer> instrument(
-        common::BufferView code, const MemoryLimits &config) const;
-  };
+  WabtOutcome<void> instrumentWithStackLimiter(wabt::Module &module,
+                                               size_t stack_limit);
 }  // namespace kagome::runtime

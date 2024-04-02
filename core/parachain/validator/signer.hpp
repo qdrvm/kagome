@@ -8,7 +8,7 @@
 
 #include <optional>
 
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/types/collator_messages.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"

@@ -123,18 +123,15 @@ namespace kagome::benchmark {
       std::shared_ptr<runtime::Core> core_api,
       std::shared_ptr<const blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
-      std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage)
       : logger_{log::createLogger("BlockExecutionBenchmark", "benchmark")},
         core_api_{core_api},
         block_tree_{block_tree},
         module_repo_{module_repo},
-        code_provider_{code_provider},
         trie_storage_{trie_storage} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);
-    BOOST_ASSERT(code_provider_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
 
