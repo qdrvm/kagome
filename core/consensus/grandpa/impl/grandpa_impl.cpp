@@ -130,7 +130,7 @@ namespace kagome::consensus::grandpa {
     grandpa_pool_handler_->postAlways([wptr{weak_from_this()}] {
       if (auto self = wptr.lock()) {
         if (not self->tryStart()) {
-          SL_ERROR(self->logger_, "start failed");
+          SL_CRITICAL(self->logger_, "start failed");
           self->app_state_manager_->shutdown();
         }
       }

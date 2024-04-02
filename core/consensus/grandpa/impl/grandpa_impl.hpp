@@ -264,6 +264,11 @@ namespace kagome::consensus::grandpa {
       MissingBlocks blocks;
     };
 
+    /**
+     * Initialize component.
+     * May fail.
+     * Must run on grandpa thread.
+     */
     bool tryStart();
 
     void callbackCall(ApplyJustificationCb &&callback,
