@@ -107,7 +107,6 @@ namespace kagome::parachain {
               injector.template create<sptr<storage::trie::TrieStorage>>(),
               injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              injector.template create<sptr<runtime::SingleModuleCache>>(),
               module_cache_opt,
               injector.template create<sptr<crypto::Hasher>>());
         }),

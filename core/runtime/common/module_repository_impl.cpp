@@ -8,12 +8,14 @@
 
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/heap_alloc_strategy_heappages.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
   using kagome::primitives::ThreadNumber;
@@ -21,20 +23,22 @@ namespace kagome::runtime {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<RuntimeInstancesPool> runtime_instances_pool,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<const ModuleFactory> module_factory,
-      std::shared_ptr<SingleModuleCache> last_compiled_module,
       std::shared_ptr<const RuntimeCodeProvider> code_provider)
       : runtime_instances_pool_{std::move(runtime_instances_pool)},
+        hasher_{std::move(hasher)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
+        trie_storage_{std::move(trie_storage)},
         module_factory_{std::move(module_factory)},
-        last_compiled_module_{std::move(last_compiled_module)},
         code_provider_{code_provider},
+        cache_{4},
         logger_{log::createLogger("Module Repository", "runtime")} {
     BOOST_ASSERT(runtime_instances_pool_);
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
-    BOOST_ASSERT(last_compiled_module_);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
@@ -45,33 +49,34 @@ namespace kagome::runtime {
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
 
-    KAGOME_PROFILE_START(module_retrieval) {
-      // Add compiled module if any
-      if (auto module = last_compiled_module_->try_extract();
-          module.has_value()) {
-        runtime_instances_pool_->putModule(state, module.value());
-      }
-
-      // Compile new module if required
-      if (auto opt_module = runtime_instances_pool_->getModule(state);
-          !opt_module.has_value()) {
-        SL_DEBUG(logger_, "Runtime module cache miss for state {}", state);
+    KAGOME_PROFILE_START(module_retrieval)
+    constexpr uint32_t kDefaultHeapAllocPages = 2048;
+    MemoryLimits config;
+    config.heap_alloc_strategy =
+        HeapAllocStrategyStatic{kDefaultHeapAllocPages};
+    Item item;
+    OUTCOME_TRY(SAFE_UNIQUE(cache_)->outcome::result<void> {
+      if (auto r = cache_.get(state)) {
+        item = r->get();
+      } else {
         auto code = code_provider_->getCodeAt(state);
         if (not code.has_value()) {
           code = code_provider_->getCodeAt(storage_state);
         }
-        if (not code.has_value()) {
-          return code.as_failure();
+        BOOST_OUTCOME_TRY(item.code, std::move(code));
+        item.hash = hasher_->blake2b_256(*item.code);
+        OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(storage_state));
+        OUTCOME_TRY(heappages, heapAllocStrategyHeappages(*batch));
+        if (heappages) {
+          item.config.heap_alloc_strategy = *heappages;
         }
-        OUTCOME_TRY(new_module, module_factory_->make(code.value()));
-        runtime_instances_pool_->putModule(state, std::move(new_module));
+        cache_.put(state, item);
       }
-    }
-
-    // Try to acquire an instance (instantiate if needed)
+      return outcome::success();
+    });
     OUTCOME_TRY(runtime_instance,
-                runtime_instances_pool_->instantiateFromState(
-                    state, RuntimeContext::ContextParams{}));
+                runtime_instances_pool_->instantiateFromCode(
+                    item.hash, *item.code, {config}));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;

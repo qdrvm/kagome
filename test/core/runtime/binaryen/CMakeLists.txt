@@ -85,7 +85,6 @@ addtest(runtime_external_interface_test
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
     executor
-    constant_code_provider
     blob
     logger_for_tests
     )
