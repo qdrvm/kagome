@@ -30,14 +30,10 @@ SPDX-License-Identifier: Apache-2.0
 
 Before you open a Pull Request (PR), please make sure you've completed the following steps and confirm by answering 'Yes' to each item:
 
-1. **Code is formatted**: Have you run your code through clang-format to ensure it adheres to the project's coding standards? 
-<!-- Yes/No -->
-2. **Code is documented**: Have you added comments and documentation to your code according to the guidelines in the project's [contributing guidelines](https://github.com/qdrvm/kagome/CONTRIBUTING.md)? 
-<!-- Yes/No -->
-3. **Self-review**: Have you reviewed your own code to ensure it is free of typos, syntax errors, logical errors, and unresolved TODOs or FIXME without linking to an issue?
-<!-- Yes/No -->
-4. **Zombienet Tests**: Have you ensured that the zombienet tests are passing? Zombienet is a network simulation and testing tool used in this project. It's important to ensure that these tests pass to maintain the stability and reliability of the project.
-<!-- Yes/No -->
+1. **Code is formatted**: Have you run your code through clang-format to ensure it adheres to the project's coding standards? **[Yes|No]**
+2. **Code is documented**: Have you added comments and documentation to your code according to the guidelines in the project's [contributing guidelines](https://github.com/qdrvm/kagome/CONTRIBUTING.md)? **[Yes|No]**
+3. **Self-review**: Have you reviewed your own code to ensure it is free of typos, syntax errors, logical errors, and unresolved TODOs or FIXME without linking to an issue? **[Yes|No]**
+4. **Zombienet Tests**: Have you ensured that the zombienet tests are passing? Zombienet is a network simulation and testing tool used in this project. It's important to ensure that these tests pass to maintain the stability and reliability of the project. **[Yes|No]**
 
 <!-- Please answer 'Yes' to each of these items in your PR description to confirm that you've completed them. This will help maintain the quality of the project and facilitate efficient collaboration. -->
 
