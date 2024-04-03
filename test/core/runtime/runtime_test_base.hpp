@@ -12,10 +12,10 @@
 #include <memory>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
@@ -23,6 +23,7 @@
 #include "filesystem/common.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
@@ -82,13 +83,25 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
     auto keystore_path =
         filesystem::temp_directory_path() / filesystem::unique_path();
-    auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
-        std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
-        std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
-        std::make_shared<crypto::Sr25519Suite>(sr25519_provider),
-        bip39_provider,
-        random_generator,
-        crypto::KeyFileStorage::createAt(keystore_path).value());
+    std::shared_ptr key_file_storage =
+        kagome::crypto::KeyFileStorage::createAt(keystore_path).value();
+    crypto::KeyStore::Config config{keystore_path};
+    auto key_store = std::make_shared<crypto::KeyStore>(
+        std::make_unique<crypto::KeySuiteStoreImpl<crypto::Sr25519Provider>>(
+            sr25519_provider,
+            bip39_provider,
+            random_generator,
+            key_file_storage),
+        std::make_unique<crypto::KeySuiteStoreImpl<crypto::Ed25519Provider>>(
+            ed25519_provider,
+            bip39_provider,
+            random_generator,
+            key_file_storage),
+        std::make_unique<crypto::KeySuiteStoreImpl<crypto::EcdsaProvider>>(
+            ecdsa_provider, bip39_provider, random_generator, key_file_storage),
+        ed25519_provider,
+        std::make_shared<kagome::application::AppStateManagerMock>(),
+        config);
     offchain_storage_ =
         std::make_shared<offchain::OffchainPersistentStorageMock>();
     offchain_worker_pool_ =
@@ -101,7 +114,7 @@ class RuntimeTestBase : public ::testing::Test {
         ed25519_provider,
         secp256k1_provider,
         hasher_,
-        crypto_store,
+        key_store,
         offchain_storage_,
         offchain_worker_pool_);
 

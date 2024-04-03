@@ -42,7 +42,7 @@ namespace {
               kagome::crypto::SecureCleanGuard{random_generator->randomBytes(
                   kagome::crypto::constants::sr25519::SEED_SIZE)})
               .value();
-      auto babe = sr25519_provider->generateKeypair(seed, {});
+      auto babe = sr25519_provider->generateKeypair(seed, {}).value();
       auto babe_path =
           (keystore_dir / fmt::format("babe{}", babe.public_key.toHex()))
               .native();
@@ -69,7 +69,7 @@ namespace {
               kagome::crypto::SecureCleanGuard{random_generator->randomBytes(
                   kagome::crypto::constants::sr25519::SEED_SIZE)})
               .value();
-      auto libp2p = sr25519_provider->generateKeypair(seed, {});
+      auto libp2p = sr25519_provider->generateKeypair(seed, {}).value();
       auto libp2p_path =
           (keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()))
               .native();
