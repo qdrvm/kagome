@@ -1,0 +1,80 @@
+name: Bug report
+description: Create a bug report to help us improve the project
+title: "[Bug]: "
+labels: ["bug"]
+projects: ["qdrvm/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+
+        Before you submit a bug report, please ensure that:
+
+        - The bug has not already been reported in the project.
+        - You have searched the existing issues to make sure the bug has not already been reported.
+
+        If the above conditions are met, please fill out the following information.
+
+  - type: input
+    id: bug-summary
+    attributes:
+      label: Bug Summary
+      description: Provide a brief summary of the bug.
+      placeholder: e.g., "Error occurs when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: Provide a detailed description of the bug.
+      placeholder: Describe the bug in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide detailed steps to reproduce the bug. Explain what command was executed to start the node, what mode (validator, sync node, etc.) was used, how many nodes were running, etc.
+      placeholder: e.g., "1. Start the node with the following command..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-effects
+    attributes:
+      label: Effects of the Bug
+      description: Explain the effects of the bug, including any incorrect behavior, error messages, logs, stack traces, core dumps, etc.
+      placeholder: e.g., "The application crashes with the error message..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: Describe what you expected to happen.
+      placeholder: e.g., "I expected the application to..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: bug-system-info
+    attributes:
+      label: System Information
+      description: Provide information about your system, such as OS, compiler, and docker image version or project version (or commit hash).
+      placeholder: e.g., OS, Compiler, Project Version
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+      placeholder: e.g., "This bug only seems to occur when..."
+    validations:
+      required: false
