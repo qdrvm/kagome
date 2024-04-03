@@ -16,7 +16,7 @@ body:
 
         If the above conditions are met, please fill out the following information.
 
-  -type: dropdown
+  - type: dropdown
     id: feature-type
     attributes:
       label: Component
@@ -35,7 +35,7 @@ body:
         - Consensus
         - Utilities
         - Other
-      default: Other
+      default: 12 # index of "Other"
 
   - type: textarea
     id: feature-description
