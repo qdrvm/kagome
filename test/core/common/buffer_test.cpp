@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// TODO: CLANG-TIDY DEBUG TEST
+
 #include "common/buffer.hpp"
 
 #include <gtest/gtest.h>
