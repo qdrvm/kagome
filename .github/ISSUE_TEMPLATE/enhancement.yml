@@ -1,5 +1,8 @@
 name: Enhancement for KAGOME
 description: Suggest an improvement to an existing feature in the KAGOME project.
+title: "[Bug]: "
+labels: ["Enhancement"]
+projects: ["qdrvm/1"]
 body:
   - type: textarea
     attributes:
