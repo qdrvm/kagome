@@ -14,6 +14,7 @@ namespace kagome::storage {
   using namespace common::literals;
 
   inline const common::Buffer kRuntimeCodeKey = ":code"_buf;
+  inline const common::Buffer kRuntimeHeappagesKey = ":heappages"_buf;
 
   inline const common::Buffer kExtrinsicIndexKey = ":extrinsic_index"_buf;
 

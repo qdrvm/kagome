@@ -14,9 +14,14 @@
 namespace kagome::runtime {
   struct TestMemory : Memory {
     mutable common::Buffer m;
+    std::optional<WasmSize> pages_max;
 
     WasmSize size() const override {
       return m.size();
+    }
+
+    std::optional<WasmSize> pagesMax() const override {
+      return pages_max;
     }
 
     void resize(WasmSize size) override {
