@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest a new feature for the KAGOME project
+title: "[Feature Request]: "
+projects: ["qdrvm/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+
+        Before you submit a feature request, please ensure that:
+
+        - The feature does not already exist in the project.
+        - The feature is aligned with the project's goals and roadmap.
+        - You have searched the existing issues to make sure the feature has not already been requested.
+
+        If the above conditions are met, please fill out the following information.
+
+  -type: dropdown
+    id: feature-type
+    attributes:
+      label: Component
+      description: Select the component that this feature request is related to.
+      options:
+        - Grandpa
+        - Babe
+        - Parachains validation
+        - Runtime
+        - Host functions
+        - Network
+        - RPC
+        - Storage
+        - Transaction pool
+        - Off-chain workers
+        - Consensus
+        - Utilities
+        - Other
+      default: Other
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: Provide a detailed description of the feature. Mention benefits this feature will bring to the project and its users or developers.
+      placeholder: Describe the feature in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature-additional-info
+    attributes:
+      label: References and additional Information
+      description: Add any references (e.g. to specification or existing implementation in other repos) or additional information that may be relevant to the feature request.
+      placeholder: e.g., "This feature is important because..."
+    validations:
+      required: false
