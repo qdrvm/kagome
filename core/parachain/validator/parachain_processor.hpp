@@ -359,7 +359,6 @@ namespace kagome::parachain {
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
         const RelayHash &relay_parent,
         const CandidateHash &candidate_hash,
-        Groups &&groups,
         GroupIndex group_index);
     ManifestImportSuccessOpt handle_incoming_manifest_common(
         const libp2p::peer::PeerId &peer_id,

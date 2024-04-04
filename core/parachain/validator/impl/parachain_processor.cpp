@@ -618,6 +618,7 @@ namespace kagome::parachain {
         if (!fresh.empty()) {
           update_peers.push_back(std::make_pair(peer, fresh));
         }
+        return true;
       });
       for (const auto &[peer, fresh] : update_peers) {
         for (const auto &fresh_relay_parent : fresh) {
@@ -1619,7 +1620,7 @@ namespace kagome::parachain {
           peer_id,
           network::CollationVersion::VStaging);
       if (!messages.empty()) {
-        send_to_validators_group(relay_parent, messages);
+        send_to_validators_group(relay_parent, messages); /// 555666
       }
       return;
     }
@@ -1705,36 +1706,113 @@ namespace kagome::parachain {
             manifest->get().group_index,
             manifest->get().candidate_hash,
             local_knowledge);
-        // send_to_validators_group(manifest->get().relay_parent, messages); ///
-        // 555666
-      } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
-        /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-        /// not used because of `acknowledge` = true. Implement `grid_view` to
-        /// retrieve real `acknowledge`.
 
-        //        network::vstaging::StatementFilter
-        //        unwanted_mask{group->size()}; /// 555666 `dispatch_requests`
-        //        router_->getFetchAttestedCandidateProtocol()->doRequest(
-        //            peer_id,
-        //            network::vstaging::AttestedCandidateRequest{
-        //                .candidate_hash = manifest->get().candidate_hash,
-        //                .mask = std::move(unwanted_mask),
-        //            },
-        //            [wptr{weak_from_this()},
-        //             relay_parent{manifest->get().relay_parent},
-        //             candidate_hash{manifest->get().candidate_hash},
-        //             groups{Groups{opt_session_info->validator_groups}},
-        //             group_index{manifest->get().group_index}](
-        //                outcome::result<network::vstaging::AttestedCandidateResponse>
-        //                    r) mutable {
-        //              if (auto self = wptr.lock()) {
-        //                self->handleFetchedStatementResponse(std::move(r),
-        //                                                     relay_parent,
-        //                                                     candidate_hash,
-        //                                                     std::move(groups),
-        //                                                     group_index);
-        //              }
-        //            });
+        if (messages.empty()) {
+          return;
+        }
+
+        auto se = pm_->getStreamEngine();
+        for (auto &[peers, msg] : messages) {
+          if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+            auto message = std::make_shared<
+                network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+                std::move(m->get()));
+            for (const auto &p : peers) {
+              se->send(p, router_->getValidationProtocolVStaging(), message);
+            }
+          } else {
+            assert(false);
+          }
+        }
+      } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
+        if (!relay_parent_state->get().local_validator) {
+          return;
+        }
+        auto &local_validator = *relay_parent_state->get().local_validator;
+
+        auto opt_session_info = retrieveSessionInfo(manifest->get().relay_parent);
+        if (!opt_session_info) {
+          SL_WARN(logger_, "No session info for current parrent. (relay parent={})", manifest->get().relay_parent);
+          return;
+        }
+
+        auto group = relay_parent_state->get().groups->get(manifest->get().group_index);
+        if (!group) {
+          return;
+        }
+        const auto seconding_limit = relay_parent_state->get().prospective_parachains_mode->max_candidate_depth + 1;
+
+        network::vstaging::StatementFilter unwanted_mask(group->size());
+        for (size_t i = 0; i < group->size(); ++i) {
+          const auto v = (*group)[i];
+          if (relay_parent_state->get().statement_store->seconded_count(v) >= seconding_limit) {
+            unwanted_mask.seconded_in_group.bits[i] = true;
+          }
+        }
+
+        /// TODO(iceseer): do `disabled validators`
+        /// Add disabled validators to the unwanted mask.
+
+    		auto backing_threshold = [&]() -> std::optional<size_t> {
+          auto bt = relay_parent_state->get().groups->get_size_and_backing_threshold(manifest->get().group_index);
+          return bt ? std::get<1>(*bt) : std::optional<size_t>{};
+        }();
+
+        std::optional<std::pair<network::vstaging::StatementFilter, std::reference_wrapper<const libp2p::peer::PeerId>>> target;
+        pm_->enumeratePeerState([&](const libp2p::peer::PeerId &peer,
+                                    network::PeerState &peer_state) {
+          auto audi = query_audi_->get(peer);
+          if (!audi) {
+            return true;
+          }
+
+          ValidatorIndex validator_id = 0;
+          for (; validator_id < opt_session_info->discovery_keys.size(); ++validator_id) {
+            if (opt_session_info->discovery_keys[validator_id] == *audi) {
+              break;
+            }
+          }
+                                  
+          auto filter = local_validator.grid_tracker.advertised_statements(validator_id, manifest->get().candidate_hash);
+          if (!filter) {
+            return true;
+          }
+
+          filter->mask_seconded(unwanted_mask.seconded_in_group);
+          filter->mask_valid(unwanted_mask.validated_in_group);
+
+          if (!backing_threshold || (filter->has_seconded() && filter->backing_validators() >= *backing_threshold)) {
+            target.emplace(std::move(*filter), std::cref(peer));
+            return false;
+          }
+
+          return true;
+        });
+
+        if (!target) {
+          return;
+        }
+
+        const auto &[um, peer] = *target;
+        router_->getFetchAttestedCandidateProtocol()->doRequest(
+            peer.get(),
+            network::vstaging::AttestedCandidateRequest{
+                .candidate_hash = manifest->get().candidate_hash,
+                .mask = um,
+            },
+            [wptr{weak_from_this()},
+             relay_parent{manifest->get().relay_parent},
+             candidate_hash{manifest->get().candidate_hash},
+             group_index{manifest->get().group_index}](
+                outcome::result<network::vstaging::AttestedCandidateResponse>
+                    r) mutable {
+              if (auto self = wptr.lock()) {
+                self->handleFetchedStatementResponse(std::move(r),
+                                                     relay_parent,
+                                                     candidate_hash,
+                                                     group_index);
+              }
+            });
       }
       return;
     }
@@ -2007,14 +2085,12 @@ namespace kagome::parachain {
       outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
-      Groups &&groups,
       GroupIndex group_index) {
     REINVOKE(*main_pool_handler_,
              handleFetchedStatementResponse,
              std::move(r),
              relay_parent,
              candidate_hash,
-             std::move(groups),
              group_index);
 
     if (r.has_error()) {
@@ -2052,7 +2128,7 @@ namespace kagome::parachain {
     const network::vstaging::AttestedCandidateResponse &response = r.value();
     for (const auto &statement : response.statements) {
       parachain_state->get().statement_store->insert(
-          groups, statement, StatementOrigin::Remote);
+          *parachain_state->get().groups, statement, StatementOrigin::Remote);
     }
 
     auto opt_post_confirmation =
@@ -2080,6 +2156,7 @@ namespace kagome::parachain {
       return;
     }
 
+    const auto &groups = *parachain_state->get().groups;
     auto it = groups.groups.find(group_index);
     if (it == groups.groups.end()) {
       SL_WARN(logger_,
