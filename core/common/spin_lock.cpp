@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// TODO: CLANG-TIDY DEBUG TEST
-
 #include "common/spin_lock.hpp"
 
 namespace kagome::common {
