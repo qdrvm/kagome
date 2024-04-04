@@ -34,7 +34,7 @@
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler.hpp"
-#include "utils/pool_handler_ready.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/retain_if.hpp"
 
 namespace {
@@ -83,7 +83,6 @@ namespace kagome::consensus::grandpa {
       common::MainThreadPool &main_thread_pool,
       GrandpaThreadPool &grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
-        app_state_manager_{std::move(app_state_manager)},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
@@ -96,9 +95,9 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_{main_thread_pool.handler(*app_state_manager_)},
-        grandpa_pool_handler_{std::make_shared<PoolHandlerReady>(
-            grandpa_thread_pool.io_context())},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        grandpa_pool_handler_{poolHandlerReadyMake(
+            this, app_state_manager, grandpa_thread_pool, logger_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool.io_context()),
@@ -122,19 +121,7 @@ namespace kagome::consensus::grandpa {
 
     // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
-    app_state_manager_->takeControl(*grandpa_pool_handler_);
-    app_state_manager_->takeControl(*this);
-  }
-
-  void GrandpaImpl::start() {
-    grandpa_pool_handler_->postAlways([wptr{weak_from_this()}] {
-      if (auto self = wptr.lock()) {
-        if (not self->tryStart()) {
-          SL_CRITICAL(self->logger_, "start failed");
-          self->app_state_manager_->shutdown();
-        }
-      }
-    });
+    app_state_manager->takeControl(*this);
   }
 
   bool GrandpaImpl::tryStart() {
@@ -215,9 +202,6 @@ namespace kagome::consensus::grandpa {
             self->onHead(block.blockInfo());
           }
         });
-
-    grandpa_pool_handler_->setReady();
-
     return true;
   }
 
@@ -1374,7 +1358,10 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::reload() {
-    start();
+    REINVOKE(*grandpa_pool_handler_, reload);
+    if (not tryStart()) {
+      SL_CRITICAL(logger_, "reload failed");
+    }
   }
 
   void GrandpaImpl::loadMissingBlocks(WaitingBlock &&waiting) {

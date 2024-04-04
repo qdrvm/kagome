@@ -39,7 +39,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::common {
   class MainThreadPool;
@@ -269,7 +270,7 @@ namespace kagome::parachain {
 
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
@@ -289,7 +290,7 @@ namespace kagome::parachain {
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
-    bool prepare();
+    bool tryStart();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
@@ -707,8 +708,11 @@ namespace kagome::parachain {
       return as<StorePair<Hash, DistribBlockEntry>>(store_);
     }
 
+    log::Logger logger_ =
+        log::createLogger("ApprovalDistribution", "parachain");
+
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<PoolHandler> approval_thread_handler_;
+    std::shared_ptr<PoolHandlerReady> approval_thread_handler_;
 
     std::shared_ptr<PoolHandler> worker_pool_handler_;
 
@@ -761,9 +765,6 @@ namespace kagome::parachain {
     };
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
-
-    log::Logger logger_ =
-        log::createLogger("ApprovalDistribution", "parachain");
   };
 
 }  // namespace kagome::parachain

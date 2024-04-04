@@ -128,7 +128,7 @@ namespace kagome::consensus::grandpa {
      * @return true if grandpa was executed
      * @see kagome::application::AppStateManager::takeControl()
      */
-    void start();
+    bool tryStart();
 
     /**
      * Does nothing. Needed only for AppStateManager
@@ -264,13 +264,6 @@ namespace kagome::consensus::grandpa {
       MissingBlocks blocks;
     };
 
-    /**
-     * Initialize component.
-     * May fail.
-     * Must run on grandpa thread.
-     */
-    bool tryStart();
-
     void callbackCall(ApplyJustificationCb &&callback,
                       outcome::result<void> &&result);
     /**
@@ -330,11 +323,12 @@ namespace kagome::consensus::grandpa {
     void saveCachedVotes();
     void applyCachedVotes(VotingRound &round);
 
+    log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
+
     const size_t kVotesCacheSize = 5;
 
     const Clock::Duration round_time_factor_;
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
@@ -358,7 +352,6 @@ namespace kagome::consensus::grandpa {
         const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
         pending_catchup_request_;
     libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
-    // TODO(turuslan): #2023, use with libp2p thread
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;
@@ -375,8 +368,6 @@ namespace kagome::consensus::grandpa {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
-
-    log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -14,7 +14,7 @@
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready.hpp"
 
 namespace kagome::dispute {
 
@@ -25,7 +25,7 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<PoolHandler> dispute_thread_handler,
+      std::shared_ptr<PoolHandlerReady> dispute_thread_handler,
       std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),
@@ -66,13 +66,14 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      dispute_thred_handler_->execute([wp{weak_from_this()},
-                                       request{std::move(request)},
-                                       recent_head{std::move(recent_head)}]() {
-        if (auto self = wp.lock()) {
-          self->participate(std::move(request), std::move(recent_head));
-        }
-      });
+      post(*dispute_thred_handler_,
+           [wp{weak_from_this()},
+            request{std::move(request)},
+            recent_head{std::move(recent_head)}]() {
+             if (auto self = wp.lock()) {
+               self->participate(std::move(request), std::move(recent_head));
+             }
+           });
     }
     return outcome::success();
   }

@@ -35,7 +35,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -106,7 +107,7 @@ namespace kagome::dispute {
 
     DisputeCoordinatorImpl(
         std::shared_ptr<application::ChainSpec> chain_spec,
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         clock::SystemClock &system_clock,
         clock::SteadyClock &steady_clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -128,7 +129,7 @@ namespace kagome::dispute {
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::Timeline> timeline);
 
-    bool prepare();
+    bool tryStart();
 
     void onDisputeRequest(const libp2p::peer::PeerId &peer_id,
                           const network::DisputeMessage &request,
@@ -271,6 +272,8 @@ namespace kagome::dispute {
 
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
+    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
+
     clock::SystemClock &system_clock_;
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -290,7 +293,7 @@ namespace kagome::dispute {
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
-    std::shared_ptr<PoolHandler> dispute_thread_handler_;
+    std::shared_ptr<PoolHandlerReady> dispute_thread_handler_;
 
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
 
@@ -367,8 +370,6 @@ namespace kagome::dispute {
     metrics::Counter *metric_concluded_valid_;
     metrics::Counter *metric_concluded_invalid_;
     metrics::Gauge *metric_disputes_finality_lag_;
-
-    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };
 
 }  // namespace kagome::dispute

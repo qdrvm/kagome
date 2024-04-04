@@ -35,6 +35,7 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
@@ -108,7 +109,7 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::ChainSpec> chain_spec,
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       clock::SystemClock &system_clock,
       clock::SteadyClock &steady_clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -147,8 +148,9 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
-        dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        dispute_thread_handler_{poolHandlerReadyMake(
+            this, app_state_manager, dispute_thread_pool, log_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 dispute_thread_pool.io_context()),
@@ -205,11 +207,9 @@ namespace kagome::dispute {
     metric_concluded_invalid_ = metrics_registry_->registerCounterMetric(
         disputeConcludedMetricName,
         {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
-
-    app_state_manager.takeControl(*this);
   }
 
-  bool DisputeCoordinatorImpl::prepare() {
+  bool DisputeCoordinatorImpl::tryStart() {
     auto leaves = block_tree_->getLeaves();
     active_heads_.insert(leaves.begin(), leaves.end());
 
@@ -812,7 +812,7 @@ namespace kagome::dispute {
         waiting_for_active_disputes_.emplace(
             WaitForActiveDisputesState{sessions_updated});
 
-        dispute_thread_handler_->execute([wp{weak_from_this()}] {
+        post(*dispute_thread_handler_, [wp{weak_from_this()}] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
@@ -2145,7 +2145,7 @@ namespace kagome::dispute {
       rate_limit_timer_ =
           scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
             if (auto self = wp.lock()) {
-              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
+              BOOST_ASSERT(runningInThisThread(*self->dispute_thread_handler_));
               self->process_portion_incoming_disputes();
             }
           });

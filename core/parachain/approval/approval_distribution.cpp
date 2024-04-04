@@ -10,6 +10,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
@@ -30,6 +31,7 @@
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
@@ -442,7 +444,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
@@ -459,9 +461,9 @@ namespace kagome::parachain {
       ApprovalThreadPool &approval_thread_pool,
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : approval_thread_handler_{approval_thread_pool.handler(
-          app_state_manager)},
-        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
+      : approval_thread_handler_{poolHandlerReadyMake(
+          this, app_state_manager, approval_thread_pool, logger_)},
+        worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -476,7 +478,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -497,11 +499,9 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
-
-    app_state_manager.takeControl(*this);
   }
 
-  bool ApprovalDistribution::prepare() {
+  bool ApprovalDistribution::tryStart() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -729,7 +729,7 @@ namespace kagome::parachain {
   template <typename Func>
   void ApprovalDistribution::for_ACU(const primitives::BlockHash &block_hash,
                                      Func &&func) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
     if (auto it = approving_context_map_.find(block_hash);
         it != approving_context_map_.end()) {
       std::forward<Func>(func)(*it);
@@ -1098,10 +1098,10 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
-    approval_thread_handler_->execute([wself{weak_from_this()},
-                                       new_hash,
-                                       finalized_block_number,
-                                       meta{std::move(meta)}]() {
+    auto cb = [wself{weak_from_this()},
+               new_hash,
+               finalized_block_number,
+               meta{std::move(meta)}]() {
       if (auto self = wself.lock()) {
         SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
         for (const auto &[peed_id, view] : self->peer_views_) {
@@ -1159,14 +1159,15 @@ namespace kagome::parachain {
           }
         }
       }
-    });
+    };
+    post(*approval_thread_handler_, std::move(cb));
   }
 
   template <typename Func>
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
 
     const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
@@ -1243,7 +1244,7 @@ namespace kagome::parachain {
               return;
             }
 
-            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
+            BOOST_ASSERT(runningInThisThread(*self->approval_thread_handler_));
             self->scheduleTranche(head, std::move(possible_candidate.value()));
           }
         });
@@ -1379,7 +1380,7 @@ namespace kagome::parachain {
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex candidate_index) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
     const auto tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
@@ -1578,7 +1579,7 @@ namespace kagome::parachain {
       DeferedSender<network::Assignment> &defered_sender,
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex claimed_candidate_index) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
     const auto &block_hash = assignment.block_hash;
     const auto validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -1768,7 +1769,7 @@ namespace kagome::parachain {
       const MessageSource &source,
       DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
       const network::IndirectSignedApprovalVote &vote) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
     const auto candidate_index = vote.payload.payload.candidate_index;
@@ -2601,7 +2602,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::scheduleTranche(
       const primitives::BlockHash &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
     SL_TRACE(logger_,
              "Imported new block {}:{} with candidates count {}",
              candidate.block_number,
@@ -2652,7 +2653,7 @@ namespace kagome::parachain {
     auto handle = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}, block_hash, block_number, candidate_hash]() {
           if (auto self = wself.lock()) {
-            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
+            BOOST_ASSERT(runningInThisThread(*self->approval_thread_handler_));
             if (auto target_block_it = self->active_tranches_.find(block_hash);
                 target_block_it != self->active_tranches_.end()) {
               self->handleTranche(block_hash, block_number, candidate_hash);
@@ -2667,7 +2668,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash) {
-    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
+    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
 
     auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
@@ -2887,11 +2888,14 @@ namespace kagome::parachain {
   primitives::BlockInfo ApprovalDistribution::approvedAncestor(
       const primitives::BlockInfo &min,
       const primitives::BlockInfo &max) const {
-    if (not approval_thread_handler_->isInCurrentThread()) {
-      std::promise<primitives::BlockInfo> p;
-      approval_thread_handler_->execute(
-          [&] { p.set_value(approvedAncestor(min, max)); });
-      return p.get_future().get();
+    if (not runningInThisThread(*approval_thread_handler_)) {
+      std::promise<primitives::BlockInfo> promise;
+      auto future = promise.get_future();
+      post(*approval_thread_handler_,
+           libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
+             promise.set_value(approvedAncestor(min, max));
+           }});
+      return future.get();
     }
 
     if (max.number <= min.number) {
