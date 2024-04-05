@@ -26,7 +26,6 @@ namespace WAVM::Runtime {
 }
 
 namespace kagome::runtime {
-  class SingleModuleCache;
   class ModuleFactory;
 }  // namespace kagome::runtime
 
@@ -53,7 +52,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<const ModuleFactory> module_factory_;
-
   };
 
 }  // namespace kagome::runtime::wavm

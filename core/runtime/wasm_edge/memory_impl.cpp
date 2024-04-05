@@ -20,6 +20,16 @@ namespace kagome::runtime::wasm_edge {
              fmt::ptr(mem_instance_));
   }
 
+  std::optional<WasmSize> MemoryImpl::pagesMax() const {
+    auto type = WasmEdge_MemoryInstanceGetMemoryType(mem_instance_);
+    if (type == nullptr) {
+      throw std::runtime_error{
+          "WasmEdge_MemoryInstanceGetMemoryType returned nullptr"};
+    }
+    auto limit = WasmEdge_MemoryTypeGetLimit(type);
+    return limit.HasMax ? std::make_optional(limit.Max) : std::nullopt;
+  }
+
   void MemoryImpl::resize(WasmSize new_size) {
     if (new_size > size()) {
       auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);

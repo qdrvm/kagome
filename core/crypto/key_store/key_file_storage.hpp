@@ -11,7 +11,8 @@
 #include <optional>
 
 #include "common/buffer.hpp"
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/common.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
 
@@ -46,16 +47,11 @@ namespace kagome::crypto {
         Path keystore_path);
 
     /**
-     * Collects all public keys of the given type from the key storage
-     */
-    outcome::result<std::vector<Buffer>> collectPublicKeys(KeyType type) const;
-
-    /**
      * Searches for a key file for the corresponding type and public key and
      * returns its content if it's a valid hex blob or mnemonic phrase json.
      */
-    outcome::result<std::optional<std::string>> searchForPhrase(
-        KeyType type, common::BufferView public_key_bytes) const;
+    outcome::result<bool> searchForKey(KeyType type,
+                                       common::BufferView public_key) const;
 
     /**
      * Stores the \param seed that generates the \param public_key to the key

@@ -29,6 +29,8 @@ namespace kagome::runtime::wasm_edge {
            * kMemoryPageSize;
     }
 
+    std::optional<WasmSize> pagesMax() const override;
+
     /**
      * Resizes memory to the given size
      * @param new_size

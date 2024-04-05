@@ -23,6 +23,10 @@ namespace kagome::runtime::binaryen {
     memory_->resize(kInitialMemorySize);
   }
 
+  std::optional<WasmSize> MemoryImpl::pagesMax() const {
+    return memory_->pagesMax();
+  }
+
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
   }
