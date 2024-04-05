@@ -126,7 +126,6 @@ namespace kagome::consensus::grandpa {
      *  - Obtains authority set corresponding to the latest completed round
      *  - Uses obtained data to create and execute initial round
      * @return true if grandpa was executed
-     * @see kagome::application::AppStateManager::takeControl()
      */
     bool tryStart();
 
