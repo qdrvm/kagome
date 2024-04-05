@@ -1596,7 +1596,18 @@ namespace kagome::parachain {
         peer_id,
         network::CollationVersion::VStaging);
     if (!messages.empty()) {
-      send_to_validators_group(relay_parent, messages);  /// 555666
+      auto se = pm_->getStreamEngine();
+      for (auto &msg : messages) {
+        if (auto m =
+                if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+          auto message = std::make_shared<network::WireMessage<
+              network::vstaging::ValidatorProtocolMessage>>(
+              std::move(m->get()));
+          se->send(peer_id, router_->getValidationProtocolVStaging(), message);
+        } else {
+          assert(false);
+        }
+      }
     }
   }
 
