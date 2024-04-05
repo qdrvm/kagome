@@ -89,7 +89,8 @@ namespace kagome::parachain {
       NO_STATE,
       NO_SESSION_INFO,
       OUT_OF_BOUND,
-      REJECTED_BY_PROSPECTIVE_PARACHAINS
+      REJECTED_BY_PROSPECTIVE_PARACHAINS,
+      INCORRECT_BITFIELD_SIZE
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 

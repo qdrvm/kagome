@@ -77,6 +77,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "No session info";
     case E::OUT_OF_BOUND:
       return "Index out of bound";
+    case E::INCORRECT_BITFIELD_SIZE:
+      return "Incorrect bitfield size";
   }
   return "Unknown parachain processor error";
 }
@@ -2561,20 +2563,21 @@ namespace kagome::parachain {
     BOOST_ASSERT(relay_parent_state->get().statement_store);
     BOOST_ASSERT(relay_parent_state->get().our_index);
 
-    std::optional<runtime::SessionInfo> opt_session_info =
-        retrieveSessionInfo(confirmed->get().relay_parent());
-    if (!opt_session_info) {
-      return Error::NO_SESSION_INFO;
-    }
-    if (confirmed->get().group_index()
-        >= opt_session_info->validator_groups.size()) {
+    auto group =
+        relay_parent_state->get().groups->get(confirmed->get().group_index());
+    if (!group) {
       SL_ERROR(logger_,
                "Unexpected array bound for groups. (relay parent={})",
                confirmed->get().relay_parent());
       return Error::OUT_OF_BOUND;
     }
-    const auto &group =
-        opt_session_info->validator_groups[confirmed->get().group_index()];
+
+    const auto group_size = group->size();
+    auto &mask = request.mask;
+    if (mask.seconded_in_group.bits.size() != group_size
+        || mask.validated_in_group.bits.size() != group_size) {
+      return Error::INCORRECT_BITFIELD_SIZE;
+    }
 
     auto init_with_not = [](scale::BitVec &dst, const scale::BitVec &src) {
       dst.bits.reserve(src.bits.size());
@@ -2587,10 +2590,11 @@ namespace kagome::parachain {
     init_with_not(and_mask.seconded_in_group, request.mask.seconded_in_group);
     init_with_not(and_mask.validated_in_group, request.mask.validated_in_group);
 
+    /// TODO(iceseer): do `disabled validators` check
     std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
         statements;
     relay_parent_state->get().statement_store->groupStatements(
-        group,
+        *group,
         request.candidate_hash,
         and_mask,
         [&](const IndexedAndSigned<network::vstaging::CompactStatement>
