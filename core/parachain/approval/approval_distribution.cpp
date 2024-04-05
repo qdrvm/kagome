@@ -729,7 +729,7 @@ namespace kagome::parachain {
   template <typename Func>
   void ApprovalDistribution::for_ACU(const primitives::BlockHash &block_hash,
                                      Func &&func) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     if (auto it = approving_context_map_.find(block_hash);
         it != approving_context_map_.end()) {
       std::forward<Func>(func)(*it);
@@ -1167,7 +1167,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
     const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
@@ -1244,7 +1244,7 @@ namespace kagome::parachain {
               return;
             }
 
-            BOOST_ASSERT(runningInThisThread(*self->approval_thread_handler_));
+            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
             self->scheduleTranche(head, std::move(possible_candidate.value()));
           }
         });
@@ -1380,7 +1380,7 @@ namespace kagome::parachain {
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex candidate_index) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
@@ -1579,7 +1579,7 @@ namespace kagome::parachain {
       DeferedSender<network::Assignment> &defered_sender,
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex claimed_candidate_index) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = assignment.block_hash;
     const auto validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -1769,7 +1769,7 @@ namespace kagome::parachain {
       const MessageSource &source,
       DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
       const network::IndirectSignedApprovalVote &vote) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
     const auto candidate_index = vote.payload.payload.candidate_index;
@@ -2602,7 +2602,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::scheduleTranche(
       const primitives::BlockHash &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     SL_TRACE(logger_,
              "Imported new block {}:{} with candidates count {}",
              candidate.block_number,
@@ -2653,7 +2653,7 @@ namespace kagome::parachain {
     auto handle = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}, block_hash, block_number, candidate_hash]() {
           if (auto self = wself.lock()) {
-            BOOST_ASSERT(runningInThisThread(*self->approval_thread_handler_));
+            BOOST_ASSERT(self->approval_thread_handler_->isInCurrentThread());
             if (auto target_block_it = self->active_tranches_.find(block_hash);
                 target_block_it != self->active_tranches_.end()) {
               self->handleTranche(block_hash, block_number, candidate_hash);
@@ -2668,7 +2668,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash) {
-    BOOST_ASSERT(runningInThisThread(*approval_thread_handler_));
+    BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
     auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);

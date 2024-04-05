@@ -88,6 +88,11 @@ namespace kagome {
       return kagome::runningInThisThread(self.io_);
     }
 
+    // https://github.com/qdrvm/kagome/pull/2024#discussion_r1553225410
+    bool isInCurrentThread() const {
+      return runningInThisThread(*this);
+    }
+
    private:
     std::shared_ptr<boost::asio::io_context> io_;
     using Pending = std::deque<std::function<void()>>;
