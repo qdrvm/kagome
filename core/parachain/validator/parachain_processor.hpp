@@ -331,6 +331,16 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
+    void handle_incoming_manifest(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::BackedCandidateManifest &msg);
+    void handle_incoming_statement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::StatementDistributionMessageStatement &stm);
+    void handle_incoming_acknowledgement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::BackedCandidateAcknowledgement
+            &acknowledgement);
     void send_backing_fresh_statements(
         const ConfirmedCandidate &confirmed,
         const RelayHash &relay_parent,

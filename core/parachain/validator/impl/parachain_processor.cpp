@@ -1532,357 +1532,332 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
+  void ParachainProcessorImpl::handle_incoming_acknowledgement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::vstaging::BackedCandidateAcknowledgement
+          &acknowledgement) {
+    SL_TRACE(logger_,
+             "`BackedCandidateAcknowledgement`. (candidate_hash={})",
+             acknowledgement.candidate_hash);
+    const auto &candidate_hash = acknowledgement.candidate_hash;
+    SL_TRACE(logger_,
+             "Received incoming acknowledgement. (peer={}, candidate hash={})",
+             peer_id,
+             candidate_hash);
+
+    auto c = candidates_.get_confirmed(candidate_hash);
+    if (!c) {
+      return;
+    }
+    const RelayHash &relay_parent = c->get().relay_parent();
+    const Hash &parent_head_data_hash = c->get().parent_head_data_hash();
+    GroupIndex group_index = c->get().group_index();
+    ParachainId para_id = c->get().para_id();
+
+    auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
+    if (!opt_parachain_state) {
+      SL_TRACE(logger_, "Handled statement from {} out of view", relay_parent);
+      return;
+    }
+    auto &relay_parent_state = opt_parachain_state->get();
+    BOOST_ASSERT(relay_parent_state.statement_store);
+
+    ManifestImportSuccessOpt x = handle_incoming_manifest_common(
+        peer_id,
+        candidate_hash,
+        relay_parent,
+        ManifestSummary{
+            .claimed_parent_hash = parent_head_data_hash,
+            .claimed_group_index = group_index,
+            .statement_knowledge = acknowledgement.statement_knowledge,
+        },
+        para_id,
+        grid::ManifestKind::Acknowledgement);
+    if (!x) {
+      return;
+    }
+
+    if (!relay_parent_state.local_validator) {
+      return;
+    }
+
+    const auto sender_index = x->sender_index;
+    auto &local_validator = *relay_parent_state.local_validator;
+    auto messages = post_acknowledgement_statement_messages(
+        sender_index,
+        relay_parent,
+        local_validator.grid_tracker,
+        *relay_parent_state.statement_store,
+        *relay_parent_state.groups,
+        group_index,
+        candidate_hash,
+        peer_id,
+        network::CollationVersion::VStaging);
+    if (!messages.empty()) {
+      send_to_validators_group(relay_parent, messages);  /// 555666
+    }
+  }
+
+  void ParachainProcessorImpl::handle_incoming_manifest(
+      const libp2p::peer::PeerId &peer_id,
+      const network::vstaging::BackedCandidateManifest &manifest) {
+    SL_TRACE(logger_,
+             "`BackedCandidateManifest`. (relay_parent={}, "
+             "candidate_hash={}, para_id={}, parent_head_data_hash={})",
+             manifest.relay_parent,
+             manifest.candidate_hash,
+             manifest.para_id,
+             manifest.parent_head_data_hash);
+    auto relay_parent_state = tryGetStateByRelayParent(manifest.relay_parent);
+    if (!relay_parent_state) {
+      SL_WARN(logger_,
+              "After BackedCandidateManifest no parachain state on "
+              "relay_parent. (relay "
+              "parent={})",
+              manifest.relay_parent);
+      return;
+    }
+
+    if (!relay_parent_state->get().statement_store) {
+      SL_ERROR(logger_,
+               "Statement store is not initialized. (relay parent={})",
+               manifest.relay_parent);
+      return;
+    }
+
+    ManifestImportSuccessOpt x = handle_incoming_manifest_common(
+        peer_id,
+        manifest.candidate_hash,
+        manifest.relay_parent,
+        ManifestSummary{
+            .claimed_parent_hash = manifest.parent_head_data_hash,
+            .claimed_group_index = manifest.group_index,
+            .statement_knowledge = manifest.statement_knowledge,
+        },
+        manifest.para_id,
+        grid::ManifestKind::Full);
+    if (!x) {
+      return;
+    }
+
+    const auto sender_index = x->sender_index;
+    if (x->acknowledge) {
+      SL_TRACE(logger_,
+               "Known candidate - acknowledging manifest. (candidate hash={})",
+               manifest.candidate_hash);
+
+      auto group = relay_parent_state->get().groups->get(manifest.group_index);
+      if (!group) {
+        return;
+      }
+
+      network::vstaging::StatementFilter local_knowledge =
+          local_knowledge_filter(group->size(),
+                                 manifest.group_index,
+                                 manifest.candidate_hash,
+                                 *relay_parent_state->get().statement_store);
+      auto messages = acknowledgement_and_statement_messages(
+          peer_id,
+          network::CollationVersion::VStaging,
+          sender_index,
+          *relay_parent_state->get().groups,
+          relay_parent_state->get(),
+          manifest.relay_parent,
+          manifest.group_index,
+          manifest.candidate_hash,
+          local_knowledge);
+
+      if (messages.empty()) {
+        return;
+      }
+
+      auto se = pm_->getStreamEngine();
+      for (auto &[peers, msg] : messages) {
+        if (auto m =
+                if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+          auto message = std::make_shared<network::WireMessage<
+              network::vstaging::ValidatorProtocolMessage>>(
+              std::move(m->get()));
+          for (const auto &p : peers) {
+            se->send(p, router_->getValidationProtocolVStaging(), message);
+          }
+        } else {
+          assert(false);
+        }
+      }
+    } else if (!candidates_.is_confirmed(manifest.candidate_hash)) {
+      request_attested_candidate(relay_parent_state->get(),
+                                 manifest.relay_parent,
+                                 manifest.candidate_hash,
+                                 manifest.group_index);
+    }
+  }
+
+  void ParachainProcessorImpl::handle_incoming_statement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::vstaging::StatementDistributionMessageStatement &stm) {
+    SL_TRACE(logger_,
+             "`StatementDistributionMessageStatement`. (relay_parent={}, "
+             "candidate_hash={})",
+             stm.relay_parent,
+             candidateHash(getPayload(stm.compact)));
+    auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
+    if (!parachain_state) {
+      SL_TRACE(logger_,
+               "After request pov no parachain state on relay_parent. (relay "
+               "parent={})",
+               stm.relay_parent);
+      return;
+    }
+
+    auto opt_session_info = retrieveSessionInfo(stm.relay_parent);
+    if (!opt_session_info) {
+      SL_WARN(logger_,
+              "No session info for current parrent. (relay parent={})",
+              stm.relay_parent);
+      return;
+    }
+
+    if (!parachain_state->get().local_validator) {
+      return;
+    }
+
+    auto &local_validator = *parachain_state->get().local_validator;
+    auto originator_group =
+        parachain_state->get().groups->byValidatorIndex(stm.compact.payload.ix);
+    if (!originator_group) {
+      SL_TRACE(logger_,
+               "No correct validator index in statement. (relay parent={}, "
+               "validator={})",
+               stm.relay_parent,
+               stm.compact.payload.ix);
+      return;
+    }
+
+    /// TODO(iceseer): do `disabled validators`
+    /// TODO(iceseer): do `cluster validators`
+
+    std::optional<std::pair<ValidatorIndex, bool>> grid_sender_index;
+    for (const auto &[i, validator_knows_statement] :
+         local_validator.grid_tracker.direct_statement_providers(
+             *parachain_state->get().groups,
+             stm.compact.payload.ix,
+             getPayload(stm.compact))) {
+      if (i >= opt_session_info->discovery_keys.size()) {
+        continue;
+      }
+
+      /// TODO(iceseer): do check is authority
+      /// const auto &ad = opt_session_info->discovery_keys[i];
+      grid_sender_index.emplace(i, validator_knows_statement);
+      break;
+    }
+
+    if (!grid_sender_index) {
+      return;
+    }
+
+    const auto &[gsi, validator_knows_statement] = *grid_sender_index;
+    if (!validator_knows_statement) {
+      auto res = handle_grid_statement(stm.relay_parent,
+                                       parachain_state->get(),
+                                       local_validator.grid_tracker,
+                                       stm.compact,
+                                       gsi);
+      if (res.has_error()) {
+        return;
+      }
+    } else {
+      return;
+    }
+
+    const auto &statement = getPayload(stm.compact);
+    const auto originator_index = stm.compact.payload.ix;
+    const auto &candidate_hash = candidateHash(getPayload(stm.compact));
+    const bool res = candidates_.insert_unconfirmed(peer_id,
+                                                    candidate_hash,
+                                                    stm.relay_parent,
+                                                    *originator_group,
+                                                    std::nullopt);
+    if (!res) {
+      return;
+    }
+
+    const auto confirmed = candidates_.get_confirmed(candidate_hash);
+    const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
+    const auto &group = opt_session_info->validator_groups[*originator_group];
+
+    if (!is_confirmed) {
+      request_attested_candidate(parachain_state->get(),
+                                 stm.relay_parent,
+                                 candidate_hash,
+                                 *originator_group);
+    }
+
+    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+    /// check statement signature
+
+    const auto was_fresh_opt = parachain_state->get().statement_store->insert(
+        *parachain_state->get().groups, stm.compact, StatementOrigin::Remote);
+    if (!was_fresh_opt) {
+      SL_WARN(logger_,
+              "Accepted message from unknown validator. (relay parent={}, "
+              "validator={})",
+              stm.relay_parent,
+              stm.compact.payload.ix);
+      return;
+    }
+
+    if (!*was_fresh_opt) {
+      SL_TRACE(logger_,
+               "Statement was not fresh. (relay parent={}, validator={})",
+               stm.relay_parent,
+               stm.compact.payload.ix);
+      return;
+    }
+
+    const auto is_importable = candidates_.is_importable(candidate_hash);
+    if (parachain_state->get().grid_view) {
+      local_validator.grid_tracker.learned_fresh_statement(
+          *parachain_state->get().groups,
+          *parachain_state->get().grid_view,
+          originator_index,
+          statement);
+    }
+
+    if (is_importable && confirmed) {
+      send_backing_fresh_statements(confirmed->get(),
+                                    stm.relay_parent,
+                                    parachain_state->get(),
+                                    group,
+                                    candidate_hash);
+    }
+
+    circulate_statement(stm.relay_parent, parachain_state->get(), stm.compact);
+  }
+
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessage &msg) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     SL_TRACE(
         logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
+
     if (auto inner =
             if_type<const network::vstaging::BackedCandidateAcknowledgement>(
                 msg)) {
-      SL_TRACE(logger_,
-               "`BackedCandidateAcknowledgement`. (candidate_hash={})",
-               inner->get().candidate_hash);
-      const network::vstaging::BackedCandidateAcknowledgement &acknowledgement =
-          inner->get();
-      const auto &candidate_hash = acknowledgement.candidate_hash;
-      SL_TRACE(
-          logger_,
-          "Received incoming acknowledgement. (peer={}, candidate hash={})",
-          peer_id,
-          candidate_hash);
-
-      auto c = candidates_.get_confirmed(candidate_hash);
-      if (!c) {
-        return;
-      }
-      const RelayHash &relay_parent = c->get().relay_parent();
-      const Hash &parent_head_data_hash = c->get().parent_head_data_hash();
-      GroupIndex group_index = c->get().group_index();
-      ParachainId para_id = c->get().para_id();
-
-      auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
-      if (!opt_parachain_state) {
-        SL_TRACE(
-            logger_, "Handled statement from {} out of view", relay_parent);
-        return;
-      }
-      auto &relay_parent_state = opt_parachain_state->get();
-      BOOST_ASSERT(relay_parent_state.statement_store);
-
-      //      std::optional<runtime::SessionInfo> opt_session_info =
-      //          retrieveSessionInfo(relay_parent);
-      //      if (!opt_session_info) {
-      //        SL_WARN(logger_,
-      //                "No session info for current parrent. (relay
-      //                parent={})", relay_parent);
-      //        return;
-      //      }
-      //      if (group_index >= opt_session_info->validator_groups.size()) {
-      //        SL_WARN(logger_,
-      //                "Group index out of bound. (relay parent={}, group={})",
-      //                relay_parent,
-      //                group_index);
-      //        return;
-      //      }
-      // const auto &group = opt_session_info->validator_groups[group_index];
-
-      ManifestImportSuccessOpt x = handle_incoming_manifest_common(
-          peer_id,
-          candidate_hash,
-          relay_parent,
-          ManifestSummary{
-              .claimed_parent_hash = parent_head_data_hash,
-              .claimed_group_index = group_index,
-              .statement_knowledge = acknowledgement.statement_knowledge,
-          },
-          para_id,
-          grid::ManifestKind::Acknowledgement);
-      if (!x) {
-        return;
-      }
-
-      if (!relay_parent_state.local_validator) {
-        return;
-      }
-
-      const auto sender_index = x->sender_index;
-      auto &local_validator = *relay_parent_state.local_validator;
-      auto messages = post_acknowledgement_statement_messages(
-          sender_index,
-          relay_parent,
-          local_validator.grid_tracker,
-          *relay_parent_state.statement_store,
-          *relay_parent_state.groups,
-          group_index,
-          candidate_hash,
-          peer_id,
-          network::CollationVersion::VStaging);
-      if (!messages.empty()) {
-        send_to_validators_group(relay_parent, messages);  /// 555666
-      }
-      return;
+      return handle_incoming_acknowledgement(peer_id, inner->get());
+    } else if (auto manifest =
+                   if_type<const network::vstaging::BackedCandidateManifest>(
+                       msg)) {
+      return handle_incoming_manifest(peer_id, manifest->get());
+    } else if (auto stm =
+                   if_type<const network::vstaging::
+                               StatementDistributionMessageStatement>(msg)) {
+      return handle_incoming_statement(peer_id, stm->get());
     }
 
-    if (auto manifest =
-            if_type<const network::vstaging::BackedCandidateManifest>(msg)) {
-      SL_TRACE(logger_,
-               "`BackedCandidateManifest`. (relay_parent={}, "
-               "candidate_hash={}, para_id={}, parent_head_data_hash={})",
-               manifest->get().relay_parent,
-               manifest->get().candidate_hash,
-               manifest->get().para_id,
-               manifest->get().parent_head_data_hash);
-      auto relay_parent_state =
-          tryGetStateByRelayParent(manifest->get().relay_parent);
-      if (!relay_parent_state) {
-        SL_WARN(logger_,
-                "After BackedCandidateManifest no parachain state on "
-                "relay_parent. (relay "
-                "parent={})",
-                manifest->get().relay_parent);
-        return;
-      }
-
-      if (!relay_parent_state->get().statement_store) {
-        SL_ERROR(logger_,
-                 "Statement store is not initialized. (relay parent={})",
-                 manifest->get().relay_parent);
-        return;
-      }
-
-      ManifestImportSuccessOpt x = handle_incoming_manifest_common(
-          peer_id,
-          manifest->get().candidate_hash,
-          manifest->get().relay_parent,
-          ManifestSummary{
-              .claimed_parent_hash = manifest->get().parent_head_data_hash,
-              .claimed_group_index = manifest->get().group_index,
-              .statement_knowledge = manifest->get().statement_knowledge,
-          },
-          manifest->get().para_id,
-          grid::ManifestKind::Full);
-      if (!x) {
-        return;
-      }
-
-      //      std::optional<runtime::SessionInfo> opt_session_info =
-      //          retrieveSessionInfo(manifest->get().relay_parent);
-      //      if (!opt_session_info) {
-      //        SL_WARN(logger_,
-      //                "No session info for current parrent. (relay
-      //                parent={})", manifest->get().relay_parent);
-      //        return;
-      //      }
-      //      const auto &group =
-      //          opt_session_info->validator_groups[manifest->get().group_index];
-
-      const auto sender_index = x->sender_index;
-      if (x->acknowledge) {
-        SL_TRACE(
-            logger_,
-            "Known candidate - acknowledging manifest. (candidate hash={})",
-            manifest->get().candidate_hash);
-
-        auto group =
-            relay_parent_state->get().groups->get(manifest->get().group_index);
-        if (!group) {
-          return;
-        }
-
-        network::vstaging::StatementFilter local_knowledge =
-            local_knowledge_filter(group->size(),
-                                   manifest->get().group_index,
-                                   manifest->get().candidate_hash,
-                                   *relay_parent_state->get().statement_store);
-        auto messages = acknowledgement_and_statement_messages(
-            peer_id,
-            network::CollationVersion::VStaging,
-            sender_index,
-            *relay_parent_state->get().groups,
-            relay_parent_state->get(),
-            manifest->get().relay_parent,
-            manifest->get().group_index,
-            manifest->get().candidate_hash,
-            local_knowledge);
-
-        if (messages.empty()) {
-          return;
-        }
-
-        auto se = pm_->getStreamEngine();
-        for (auto &[peers, msg] : messages) {
-          if (auto m =
-                  if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-            auto message = std::make_shared<network::WireMessage<
-                network::vstaging::ValidatorProtocolMessage>>(
-                std::move(m->get()));
-            for (const auto &p : peers) {
-              se->send(p, router_->getValidationProtocolVStaging(), message);
-            }
-          } else {
-            assert(false);
-          }
-        }
-      } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
-        request_attested_candidate(relay_parent_state->get(),
-                                   manifest->get().relay_parent,
-                                   manifest->get().candidate_hash,
-                                   manifest->get().group_index);
-      }
-      return;
-    }
-
-    if (auto stm = if_type<
-            const network::vstaging::StatementDistributionMessageStatement>(
-            msg)) {
-      SL_TRACE(logger_,
-               "`StatementDistributionMessageStatement`. (relay_parent={}, "
-               "candidate_hash={})",
-               stm->get().relay_parent,
-               candidateHash(getPayload(stm->get().compact)));
-      auto parachain_state = tryGetStateByRelayParent(stm->get().relay_parent);
-      if (!parachain_state) {
-        SL_TRACE(logger_,
-                 "After request pov no parachain state on relay_parent. (relay "
-                 "parent={})",
-                 stm->get().relay_parent);
-        return;
-      }
-
-      auto opt_session_info = retrieveSessionInfo(stm->get().relay_parent);
-      if (!opt_session_info) {
-        SL_WARN(logger_,
-                "No session info for current parrent. (relay parent={})",
-                stm->get().relay_parent);
-        return;
-      }
-
-      if (!parachain_state->get().local_validator) {
-        return;
-      }
-
-      auto &local_validator = *parachain_state->get().local_validator;
-      auto originator_group = parachain_state->get().groups->byValidatorIndex(
-          stm->get().compact.payload.ix);
-      if (!originator_group) {
-        SL_TRACE(logger_,
-                 "No correct validator index in statement. (relay parent={}, "
-                 "validator={})",
-                 stm->get().relay_parent,
-                 stm->get().compact.payload.ix);
-        return;
-      }
-
-      /// TODO(iceseer): do `disabled validators`
-      /// TODO(iceseer): do `cluster validators`
-
-      std::optional<std::pair<ValidatorIndex, bool>> grid_sender_index;
-      for (const auto &[i, validator_knows_statement] :
-           local_validator.grid_tracker.direct_statement_providers(
-               *parachain_state->get().groups,
-               stm->get().compact.payload.ix,
-               getPayload(stm->get().compact))) {
-        if (i >= opt_session_info->discovery_keys.size()) {
-          continue;
-        }
-
-        /// TODO(iceseer): do check is authority
-        /// const auto &ad = opt_session_info->discovery_keys[i];
-        grid_sender_index.emplace(i, validator_knows_statement);
-        break;
-      }
-
-      if (!grid_sender_index) {
-        return;
-      }
-
-      const auto &[gsi, validator_knows_statement] = *grid_sender_index;
-      if (!validator_knows_statement) {
-        auto res = handle_grid_statement(stm->get().relay_parent,
-                                         parachain_state->get(),
-                                         local_validator.grid_tracker,
-                                         stm->get().compact,
-                                         gsi);
-        if (res.has_error()) {
-          return;
-        }
-      } else {
-        return;
-      }
-
-      const auto &statement = getPayload(stm->get().compact);
-      const auto originator_index = stm->get().compact.payload.ix;
-      const auto &candidate_hash =
-          candidateHash(getPayload(stm->get().compact));
-      const bool res = candidates_.insert_unconfirmed(peer_id,
-                                                      candidate_hash,
-                                                      stm->get().relay_parent,
-                                                      *originator_group,
-                                                      std::nullopt);
-      if (!res) {
-        return;
-      }
-
-      const auto confirmed = candidates_.get_confirmed(candidate_hash);
-      const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
-      const auto &group = opt_session_info->validator_groups[*originator_group];
-
-      if (!is_confirmed) {
-        request_attested_candidate(parachain_state->get(),
-                                   stm->get().relay_parent,
-                                   candidate_hash,
-                                   *originator_group);
-      }
-
-      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-      /// check statement signature
-
-      const auto was_fresh_opt = parachain_state->get().statement_store->insert(
-          *parachain_state->get().groups,
-          stm->get().compact,
-          StatementOrigin::Remote);
-      if (!was_fresh_opt) {
-        SL_WARN(logger_,
-                "Accepted message from unknown validator. (relay parent={}, "
-                "validator={})",
-                stm->get().relay_parent,
-                stm->get().compact.payload.ix);
-        return;
-      }
-
-      if (!*was_fresh_opt) {
-        SL_TRACE(logger_,
-                 "Statement was not fresh. (relay parent={}, validator={})",
-                 stm->get().relay_parent,
-                 stm->get().compact.payload.ix);
-        return;
-      }
-
-      const auto is_importable = candidates_.is_importable(candidate_hash);
-      if (parachain_state->get().grid_view) {
-        local_validator.grid_tracker.learned_fresh_statement(
-            *parachain_state->get().groups,
-            *parachain_state->get().grid_view,
-            originator_index,
-            statement);
-      }
-
-      if (is_importable && confirmed) {
-        send_backing_fresh_statements(confirmed->get(),
-                                      stm->get().relay_parent,
-                                      parachain_state->get(),
-                                      group,
-                                      candidate_hash);
-      }
-
-      circulate_statement(
-          stm->get().relay_parent, parachain_state->get(), stm->get().compact);
-      return;
-    }
-
-    SL_INFO(logger_, "Skipped message.");
+    SL_ERROR(logger_, "Skipped message.");
   }
 
   void ParachainProcessorImpl::circulate_statement(
@@ -1896,7 +1871,6 @@ namespace kagome::parachain {
 
     const auto &compact_statement = getPayload(statement);
     const auto &candidate_hash = candidateHash(compact_statement);
-    const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
     const auto originator = statement.payload.ix;
 
     if (!relay_parent_state.local_validator) {
