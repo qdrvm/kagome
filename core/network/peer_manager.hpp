@@ -25,6 +25,11 @@ namespace kagome::network {
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
   constexpr size_t kPeerStateMaxKnownGrandpaMessages = 8192;
 
+  /**
+   * @struct CollatingPeerState
+   * @brief This structure encapsulates the state of a collating peer in the
+   * context of parachain processing.
+   */
   struct CollatingPeerState {
     network::ParachainId para_id;
     network::CollatorPublicKey collator_id;
@@ -32,6 +37,11 @@ namespace kagome::network {
     std::chrono::system_clock::time_point last_active;
   };
 
+  /**
+   * @struct CollationEvent
+   * @brief This structure encapsulates a collation event in the context of
+   * parachain processing.
+   */
   struct CollationEvent {
     CollatorId collator_id;
     struct {

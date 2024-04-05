@@ -39,13 +39,26 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/weak_io_context.hpp"
 
 /**
- * Parachain Processor is a class that is responsible for processing parachain
- * blocks.
+ * The ParachainProcessorImpl class is responsible for handling the validation
+ * and processing of parachains in the network. It manages the lifecycle of
+ * parachains, including their creation, validation, and destruction.
  *
- * It begins from the handling of view update event.
+ * The class contains methods for handling incoming streams of data, processing
+ * parachain blocks, and managing peer states. It also handles the validation of
+ * candidates for the parachain, including checking the validity of the erasure
+ * coding and the availability of data.
+ *
+ * In addition, the class manages the communication with
+ * other nodes in the network, sending and receiving messages related to the
+ * state of the parachains. It also handles the storage and retrieval of data
+ * related to the parachains.
+ *
+ * The class uses a variety of helper methods and
+ * data structures to perform its tasks, including a main pool handler for
+ * managing tasks, a logger for logging events, and various data structures for
+ * storing the state of the parachains and the peers in the network
  */
 namespace kagome {
   class ThreadHandler;
@@ -136,38 +149,103 @@ namespace kagome::parachain {
         std::shared_ptr<ProspectiveParachains> prospective_parachains);
     ~ParachainProcessorImpl() = default;
 
+    /**
+     * @brief Prepares the Parachain Processor for operation.
+     *
+     * This method is responsible for setting up necessary configurations and
+     * initializations for the Parachain Processor. It should be called before
+     * the Parachain Processor starts processing parachain blocks.
+     *
+     * @return Returns true if the preparation is successful, false otherwise.
+     */
     bool prepare();
 
+    /**
+     * @brief Handles an incoming advertisement for a collation.
+     *
+     * @param pending_collation The CollationEvent representing the collation
+     * being advertised.
+     * @param prospective_candidate An optional pair containing the hash of the
+     * prospective candidate and the hash of the parent block.
+     */
     void handleAdvertisement(
         network::CollationEvent &&pending_collation,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
+
+    /**
+     * @ brief We should only process parachains if we are validator and we are
+     * @return outcome::result<void> Returns an error if we cannot process the
+     * parachains.
+     */
     outcome::result<void> canProcessParachains() const;
 
+    /**
+     * @brief Handles an incoming collator.
+     *
+     * This function is called when a new collator is detected. It updates the
+     * internal state with the information about the new collator.
+     *
+     * @param peer_id The peer id of the collator.
+     * @param pubkey The public key of the collator.
+     * @param para_id The id of the parachain the collator is associated with.
+     */
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
 
     /**
-     * @brief handle new stream from remote collator and open an outgoing
-     * collation stream to send notification to collator when it will be useful
-     * @param peer_id the peer id of the remote collator
+     * @brief Handles an incoming collation stream from a peer.
+     *
+     * @param peer_id The ID of the peer from which the collation stream is
+     * received.
+     * @param version The version of the collation protocol used in the stream.
      */
     void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id,
                                    network::CollationVersion version);
+
+    /**
+     * @brief Handles an incoming validation stream from a peer.
+     *
+     * @param peer_id The ID of the peer from which the validation stream is
+     * received.
+     * @param version The version of the collation protocol used in the
+     * validation stream.
+     */
     void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
                                     network::CollationVersion version);
+
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
+
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
+
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request);
 
+    /**
+     * @brief Fetches the list of backed candidates for a given relay parent.
+     *
+     * @param relay_parent The hash of the relay chain block where the parachain
+     * block is attached.
+     * @return std::vector<network::BackedCandidate> A vector of backed
+     * candidates for the given relay parent.
+     */
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
+
+    /**
+     * @brief Fetches the Proof of Validity (PoV) for a given candidate.
+     *
+     * @param candidate_hash The hash of the candidate for which the PoV is to
+     * be fetched.
+     * @return network::ResponsePov The PoV associated with the given candidate
+     * hash.
+     */
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
+
     auto getAvStore() {
       return av_store_;
     }
@@ -232,6 +310,11 @@ namespace kagome::parachain {
         boost::variant<StatementWithPVDSeconded, StatementWithPVDValid>;
 
     using SignedFullStatementWithPVD = IndexedAndSigned<StatementWithPVD>;
+
+    /**
+     * @brief Converts a SignedFullStatementWithPVD to an IndexedAndSigned
+     * CompactStatement.
+     */
     IndexedAndSigned<network::vstaging::CompactStatement> signed_to_compact(
         const SignedFullStatementWithPVD &s) const {
       const Hash h = candidateHashFrom(getPayload(s));
@@ -258,6 +341,11 @@ namespace kagome::parachain {
       };
     }
 
+    /**
+     * @struct RelayParentState
+     * @brief This structure encapsulates the state of a relay parent in the
+     * context of parachain processing.
+     */
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<network::ParachainId> assignment;
@@ -279,6 +367,11 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes{};
     };
 
+    /**
+     * @struct PerCandidateState
+     * @brief This structure represents the state of a candidate in the
+     * parachain validation process.
+     */
     struct PerCandidateState {
       runtime::PersistedValidationData persisted_validation_data;
       bool seconded_locally;
@@ -301,17 +394,66 @@ namespace kagome::parachain {
     /*
      * Validation.
      */
+
+    /**
+     * @brief Checks if an advertisement can be processed.
+     *
+     * This function checks if an advertisement can be processed based on the
+     * relay parent and the peer id. It ensures that the relay parent is in the
+     * current view and that the advertisement has not been processed before. If
+     * the advertisement can be processed, it is added to the set of processed
+     * advertisements.
+     */
     outcome::result<void> advCanBeProcessed(
         const primitives::BlockHash &relay_parent,
         const libp2p::peer::PeerId &peer_id);
+
+    /**
+     * @brief Validates a candidate for a parachain block.
+     *
+     * @param candidate The candidate receipt for the parachain block.
+     * @param pov The parachain block that needs to be validated.
+     * @param pvd The persisted validation data required for validation.
+     *
+     * @return An outcome::result containing the validation result. If the
+     * validation is successful, the result will contain a Pvf::Result. If the
+     * validation fails, the result will contain an error.
+     */
     outcome::result<Pvf::Result> validateCandidate(
         const network::CandidateReceipt &candidate,
         const network::ParachainBlock &pov,
         runtime::PersistedValidationData &&pvd);
 
+    /**
+     * @brief Validates the erasure coding of the provided data.
+     *
+     * This function takes the available data from a runtime and the number of
+     * validators, and validates the erasure coding of the data.
+     *
+     * @param validating_data The available data from a runtime that needs to be
+     * validated.
+     * @param n_validators The number of validators that will be used for the
+     * validation process.
+     * @return Returns a vector of erasure chunks if the validation is
+     * successful, otherwise returns an error.
+     */
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);
 
+    /**
+     * @brief This function is a template function that validates a candidate
+     * asynchronously.
+     *
+     * @tparam kMode The type of validation task to be performed.
+     *
+     * @param candidate The candidate receipt to be validated.
+     * @param pov The parachain block to be validated.
+     * @param pvd The persisted validation data to be used in the validation
+     * process.
+     * @param peer_id The peer ID of the node performing the validation.
+     * @param relay_parent The block hash of the relay parent.
+     * @param n_validators The number of validators in the network.
+     */
     template <ParachainProcessorImpl::ValidationTaskType kMode>
     void validateAsync(network::CandidateReceipt &&candidate,
                        network::ParachainBlock &&pov,
@@ -320,20 +462,72 @@ namespace kagome::parachain {
                        const primitives::BlockHash &relay_parent,
                        size_t n_validators);
 
+    /**
+     * @brief This function is used to make a candidate available for
+     * validation.
+     *
+     * @tparam kMode The type of validation task to be performed. It can be
+     * either 'Second' or 'Attest'.
+     * @param peer_id The ID of the peer that the candidate is being made
+     * available to.
+     * @param candidate_hash The hash of the candidate that is being made
+     * available.
+     * @param result The result of the validation and seconding process.
+     */
     template <ParachainProcessorImpl::ValidationTaskType kMode>
     void makeAvailable(const libp2p::peer::PeerId &peer_id,
                        const primitives::BlockHash &candidate_hash,
                        ValidateAndSecondResult &&result);
+
+    /**
+     * @brief Handles a statement related to a specific relay parent.
+     *
+     * This function is responsible for processing a signed statement associated
+     * with a specific relay parent. The statement is provided in the form of a
+     * SignedFullStatementWithPVD object, which includes the payload and
+     * signature. The relay parent is identified by its block hash.
+     *
+     * @param relay_parent The block hash of the relay parent associated with
+     * the statement.
+     * @param statement The signed statement to be processed, encapsulated in a
+     * SignedFullStatementWithPVD object.
+     */
     void handleStatement(const primitives::BlockHash &relay_parent,
                          const SignedFullStatementWithPVD &statement);
+
+    /**
+     * @brief Processes a bitfield distribution message.
+     *
+     * This function is responsible for handling a bitfield distribution message
+     * received from the network. The bitfield distribution message contains
+     * information about the availability of pieces of data in the network.
+     */
     void process_bitfield_distribution(
         const network::BitfieldDistributionMessage &val);
+
     void process_legacy_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::StatementDistributionMessage &msg);
+
+    /**
+     * @brief Processes a vstaging statement.
+     *
+     * This function is responsible for processing a vstaging statement received
+     * from a peer. It handles different types of messages:
+     * BackedCandidateAcknowledgement, BackedCandidateManifest, and
+     * StatementDistributionMessageStatement. Depending on the type of the
+     * message, it performs different actions such as handling incoming
+     * manifest, sending acknowledgement and statement messages, fetching
+     * attested candidate response, inserting statement to the store, and
+     * circulating the statement.
+     *
+     * @param peer_id The id of the peer from which the statement is received.
+     * @param msg The vstaging statement message to be processed.
+     */
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
+
     void send_backing_fresh_statements(
         const ConfirmedCandidate &confirmed,
         const RelayHash &relay_parent,
@@ -389,10 +583,36 @@ namespace kagome::parachain {
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
+
+    /**
+     * @brief Circulates a statement to the validators group.
+     * @param relay_parent The hash of the relay parent block. This is used to
+     * identify the group of validators to which the statement should be sent.
+     * @param statement The statement to be circulated. This is an indexed and
+     * signed compact statement.
+     */
     void circulate_statement(
         const RelayHash &relay_parent,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement);
 
+    /**
+     * @brief Inserts an advertisement into the peer's data.
+     *
+     * This function is responsible for inserting an advertisement into the
+     * peer's data. It performs several checks to ensure that the advertisement
+     * can be inserted, such as checking if the collator is declared, if the
+     * relay parent is in the implicit view, and if there are any duplicates. If
+     * all checks pass, the advertisement is inserted and the function returns
+     * the collator ID and parachain ID.
+     *
+     * @param peer_data The peer's data where the advertisement will be
+     * inserted.
+     * @param on_relay_parent The hash of the relay parent block.
+     * @param relay_parent_mode The mode of the relay parent.
+     * @param candidate_hash The hash of the candidate block.
+     * @return A pair containing the collator ID and the parachain ID if the
+     * advertisement was inserted successfully, or an error otherwise.
+     */
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
         const RelayHash &relay_parent,
@@ -595,6 +815,14 @@ namespace kagome::parachain {
      */
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
+
+    /**
+     * @brief Sends peer messages corresponding for a given relay parent.
+     *
+     * @param peer_id Optional reference to the PeerId of the peer to send the
+     * messages to.
+     * @param relay_parent The hash of the relay parent block
+     */
     void send_peer_messages_for_relay_parent(
         std::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
             peer_id,
