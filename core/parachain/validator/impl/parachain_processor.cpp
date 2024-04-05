@@ -1620,7 +1620,7 @@ namespace kagome::parachain {
           peer_id,
           network::CollationVersion::VStaging);
       if (!messages.empty()) {
-        send_to_validators_group(relay_parent, messages); /// 555666
+        send_to_validators_group(relay_parent, messages);  /// 555666
       }
       return;
     }
@@ -1713,9 +1713,10 @@ namespace kagome::parachain {
 
         auto se = pm_->getStreamEngine();
         for (auto &[peers, msg] : messages) {
-          if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-            auto message = std::make_shared<
-                network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          if (auto m =
+                  if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+            auto message = std::make_shared<network::WireMessage<
+                network::vstaging::ValidatorProtocolMessage>>(
                 std::move(m->get()));
             for (const auto &p : peers) {
               se->send(p, router_->getValidationProtocolVStaging(), message);
@@ -1725,94 +1726,10 @@ namespace kagome::parachain {
           }
         }
       } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
-        if (!relay_parent_state->get().local_validator) {
-          return;
-        }
-        auto &local_validator = *relay_parent_state->get().local_validator;
-
-        auto opt_session_info = retrieveSessionInfo(manifest->get().relay_parent);
-        if (!opt_session_info) {
-          SL_WARN(logger_, "No session info for current parrent. (relay parent={})", manifest->get().relay_parent);
-          return;
-        }
-
-        auto group = relay_parent_state->get().groups->get(manifest->get().group_index);
-        if (!group) {
-          return;
-        }
-        const auto seconding_limit = relay_parent_state->get().prospective_parachains_mode->max_candidate_depth + 1;
-
-        network::vstaging::StatementFilter unwanted_mask(group->size());
-        for (size_t i = 0; i < group->size(); ++i) {
-          const auto v = (*group)[i];
-          if (relay_parent_state->get().statement_store->seconded_count(v) >= seconding_limit) {
-            unwanted_mask.seconded_in_group.bits[i] = true;
-          }
-        }
-
-        /// TODO(iceseer): do `disabled validators`
-        /// Add disabled validators to the unwanted mask.
-
-    		auto backing_threshold = [&]() -> std::optional<size_t> {
-          auto bt = relay_parent_state->get().groups->get_size_and_backing_threshold(manifest->get().group_index);
-          return bt ? std::get<1>(*bt) : std::optional<size_t>{};
-        }();
-
-        std::optional<std::pair<network::vstaging::StatementFilter, std::reference_wrapper<const libp2p::peer::PeerId>>> target;
-        pm_->enumeratePeerState([&](const libp2p::peer::PeerId &peer,
-                                    network::PeerState &peer_state) {
-          auto audi = query_audi_->get(peer);
-          if (!audi) {
-            return true;
-          }
-
-          ValidatorIndex validator_id = 0;
-          for (; validator_id < opt_session_info->discovery_keys.size(); ++validator_id) {
-            if (opt_session_info->discovery_keys[validator_id] == *audi) {
-              break;
-            }
-          }
-                                  
-          auto filter = local_validator.grid_tracker.advertised_statements(validator_id, manifest->get().candidate_hash);
-          if (!filter) {
-            return true;
-          }
-
-          filter->mask_seconded(unwanted_mask.seconded_in_group);
-          filter->mask_valid(unwanted_mask.validated_in_group);
-
-          if (!backing_threshold || (filter->has_seconded() && filter->backing_validators() >= *backing_threshold)) {
-            target.emplace(std::move(*filter), std::cref(peer));
-            return false;
-          }
-
-          return true;
-        });
-
-        if (!target) {
-          return;
-        }
-
-        const auto &[um, peer] = *target;
-        router_->getFetchAttestedCandidateProtocol()->doRequest(
-            peer.get(),
-            network::vstaging::AttestedCandidateRequest{
-                .candidate_hash = manifest->get().candidate_hash,
-                .mask = um,
-            },
-            [wptr{weak_from_this()},
-             relay_parent{manifest->get().relay_parent},
-             candidate_hash{manifest->get().candidate_hash},
-             group_index{manifest->get().group_index}](
-                outcome::result<network::vstaging::AttestedCandidateResponse>
-                    r) mutable {
-              if (auto self = wptr.lock()) {
-                self->handleFetchedStatementResponse(std::move(r),
-                                                     relay_parent,
-                                                     candidate_hash,
-                                                     group_index);
-              }
-            });
+        request_attested_candidate(relay_parent_state->get(),
+                                   manifest->get().relay_parent,
+                                   manifest->get().candidate_hash,
+                                   manifest->get().group_index);
       }
       return;
     }
@@ -1913,51 +1830,10 @@ namespace kagome::parachain {
       const auto &group = opt_session_info->validator_groups[*originator_group];
 
       if (!is_confirmed) {
-        network::vstaging::StatementFilter unwanted_mask{group.size()};
-
-        if (!parachain_state->get().statement_store) {
-          SL_ERROR(logger_, "Statement store is not initialized.");
-          return;
-        }
-        if (!parachain_state->get().prospective_parachains_mode) {
-          SL_ERROR(logger_, "No prospective parachains.");
-          return;
-        }
-
-        const auto seconding_limit =
-            parachain_state->get()
-                .prospective_parachains_mode->max_candidate_depth
-            + 1;
-        for (size_t i = 0; i < group.size(); ++i) {
-          const auto &v = group[i];
-          if (parachain_state->get().statement_store->seconded_count(v)
-              >= seconding_limit) {
-            unwanted_mask.seconded_in_group.bits[i] = true;
-          }
-        }
-
-        /// 555666
-        //        router_->getFetchAttestedCandidateProtocol()->doRequest(
-        //            peer_id,
-        //            network::vstaging::AttestedCandidateRequest{
-        //                .candidate_hash = candidate_hash,
-        //                .mask = std::move(unwanted_mask),
-        //            },
-        //            [wptr{weak_from_this()},
-        //             relay_parent{stm->get().relay_parent},
-        //             candidate_hash,
-        //             groups{Groups{opt_session_info->validator_groups}},
-        //             group_index{*originator_group}](
-        //                outcome::result<network::vstaging::AttestedCandidateResponse>
-        //                    r) mutable {
-        //              if (auto self = wptr.lock()) {
-        //                self->handleFetchedStatementResponse(std::move(r),
-        //                                                     relay_parent,
-        //                                                     candidate_hash,
-        //                                                     std::move(groups),
-        //                                                     group_index);
-        //              }
-        //            });
+        request_attested_candidate(parachain_state->get(),
+                                   stm->get().relay_parent,
+                                   candidate_hash,
+                                   *originator_group);
       }
 
       /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -2079,6 +1955,110 @@ namespace kagome::parachain {
         assert(false);
       }
     }
+  }
+
+  void ParachainProcessorImpl::request_attested_candidate(
+      RelayParentState &relay_parent_state,
+      const RelayHash &relay_parent,
+      const CandidateHash &candidate_hash,
+      GroupIndex group_index) {
+    if (!relay_parent_state.local_validator) {
+      return;
+    }
+    auto &local_validator = *relay_parent_state.local_validator;
+
+    auto opt_session_info = retrieveSessionInfo(relay_parent);
+    if (!opt_session_info) {
+      SL_WARN(logger_,
+              "No session info for current parrent. (relay parent={})",
+              relay_parent);
+      return;
+    }
+
+    auto group = relay_parent_state.groups->get(group_index);
+    if (!group) {
+      return;
+    }
+    const auto seconding_limit =
+        relay_parent_state.prospective_parachains_mode->max_candidate_depth + 1;
+
+    network::vstaging::StatementFilter unwanted_mask(group->size());
+    for (size_t i = 0; i < group->size(); ++i) {
+      const auto v = (*group)[i];
+      if (relay_parent_state.statement_store->seconded_count(v)
+          >= seconding_limit) {
+        unwanted_mask.seconded_in_group.bits[i] = true;
+      }
+    }
+
+    /// TODO(iceseer): do `disabled validators`
+    /// Add disabled validators to the unwanted mask.
+
+    auto backing_threshold = [&]() -> std::optional<size_t> {
+      auto bt = relay_parent_state.groups->get_size_and_backing_threshold(
+          group_index);
+      return bt ? std::get<1>(*bt) : std::optional<size_t>{};
+    }();
+
+    std::optional<std::pair<network::vstaging::StatementFilter,
+                            std::reference_wrapper<const libp2p::peer::PeerId>>>
+        target;
+    pm_->enumeratePeerState(
+        [&](const libp2p::peer::PeerId &peer, network::PeerState &peer_state) {
+          auto audi = query_audi_->get(peer);
+          if (!audi) {
+            return true;
+          }
+
+          ValidatorIndex validator_id = 0;
+          for (; validator_id < opt_session_info->discovery_keys.size();
+               ++validator_id) {
+            if (opt_session_info->discovery_keys[validator_id] == *audi) {
+              break;
+            }
+          }
+
+          auto filter = local_validator.grid_tracker.advertised_statements(
+              validator_id, candidate_hash);
+          if (!filter) {
+            return true;
+          }
+
+          filter->mask_seconded(unwanted_mask.seconded_in_group);
+          filter->mask_valid(unwanted_mask.validated_in_group);
+
+          if (!backing_threshold
+              || (filter->has_seconded()
+                  && filter->backing_validators() >= *backing_threshold)) {
+            target.emplace(std::move(*filter), std::cref(peer));
+            return false;
+          }
+
+          return true;
+        });
+
+    if (!target) {
+      return;
+    }
+
+    const auto &[um, peer] = *target;
+    router_->getFetchAttestedCandidateProtocol()->doRequest(
+        peer.get(),
+        network::vstaging::AttestedCandidateRequest{
+            .candidate_hash = candidate_hash,
+            .mask = um,
+        },
+        [wptr{weak_from_this()},
+         relay_parent{relay_parent},
+         candidate_hash{candidate_hash},
+         group_index{group_index}](
+            outcome::result<network::vstaging::AttestedCandidateResponse>
+                r) mutable {
+          if (auto self = wptr.lock()) {
+            self->handleFetchedStatementResponse(
+                std::move(r), relay_parent, candidate_hash, group_index);
+          }
+        });
   }
 
   void ParachainProcessorImpl::handleFetchedStatementResponse(

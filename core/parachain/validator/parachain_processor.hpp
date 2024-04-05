@@ -360,6 +360,10 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         const CandidateHash &candidate_hash,
         GroupIndex group_index);
+    void request_attested_candidate(RelayParentState &relay_parent_state,
+                                    const RelayHash &relay_parent,
+                                    const CandidateHash &candidate_hash,
+                                    GroupIndex group_index);
     ManifestImportSuccessOpt handle_incoming_manifest_common(
         const libp2p::peer::PeerId &peer_id,
         const CandidateHash &candidate_hash,
