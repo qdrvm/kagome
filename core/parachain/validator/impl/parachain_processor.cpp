@@ -108,6 +108,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
@@ -129,6 +130,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
+        chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
@@ -201,9 +203,6 @@ namespace kagome::parachain {
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
@@ -213,10 +212,8 @@ namespace kagome::parachain {
           if (auto self = wself.lock()) {
             if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
-                self->bitfield_signer_->start(
-                    self->peer_view_->intoChainEventsEngine());
-                self->pvf_precheck_->start(
-                    self->peer_view_->intoChainEventsEngine());
+                self->bitfield_signer_->start();
+                self->pvf_precheck_->start();
                 was_synchronized = true;
               }
             }
@@ -238,18 +235,13 @@ namespace kagome::parachain {
             }
           }
         });
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::SyncStateEventType::kSyncState);
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->onDeactivateBlocks(event);
           }
@@ -257,13 +249,10 @@ namespace kagome::parachain {
 
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->onViewUpdated(event);
           }
@@ -271,13 +260,10 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->onUpdatePeerView(peer_id, view);
@@ -501,20 +487,16 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      for (const auto &lost : value->get()) {
-        SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
+    for (const auto &lost : event) {
+      SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
 
-        backing_store_->onDeactivateLeaf(lost);
-        av_store_->remove(lost);
-        bitfield_store_->remove(lost);
-        our_current_state_.active_leaves.erase(lost);
-      }
+      backing_store_->onDeactivateLeaf(lost);
+      av_store_->remove(lost);
+      bitfield_store_->remove(lost);
+      our_current_state_.active_leaves.erase(lost);
     }
   }
 
