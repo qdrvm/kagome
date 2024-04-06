@@ -13,6 +13,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 #include <libp2p/protocol/ping.hpp>
 
+#include "aio/timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -74,7 +75,7 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      aio::TimerPtr scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SteadyClock> clock,
@@ -308,7 +309,7 @@ namespace kagome::network {
                           + app_config_.outPeers();
     const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
-    align_timer_.cancel();
+    align_timer_.reset();
 
     clearClosedPingingConnections();
 

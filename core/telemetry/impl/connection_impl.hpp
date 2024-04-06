@@ -21,7 +21,9 @@
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
-#include <libp2p/basic/scheduler.hpp>
+
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "log/logger.hpp"
 #include "telemetry/impl/message_pool.hpp"
 #include "utils/asio_ssl_context_client.hpp"
@@ -53,12 +55,11 @@ namespace kagome::telemetry {
      * @param message_pool - the pool to read messages passed by handle
      * @param scheduler - scheduler for reconnecting in case of line failure
      */
-    TelemetryConnectionImpl(
-        std::shared_ptr<boost::asio::io_context> io_context,
-        const TelemetryEndpoint &endpoint,
-        OnConnectedCallback callback,
-        std::shared_ptr<MessagePool> message_pool,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+    TelemetryConnectionImpl(std::shared_ptr<boost::asio::io_context> io_context,
+                            const TelemetryEndpoint &endpoint,
+                            OnConnectedCallback callback,
+                            std::shared_ptr<MessagePool> message_pool,
+                            aio::TimerPtr scheduler);
     TelemetryConnectionImpl(const TelemetryConnectionImpl &) = delete;
     TelemetryConnectionImpl(TelemetryConnectionImpl &&) = delete;
 
@@ -125,7 +126,7 @@ namespace kagome::telemetry {
     const TelemetryEndpoint endpoint_;
     OnConnectedCallback callback_;
     std::shared_ptr<MessagePool> message_pool_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     bool is_connected_ = false;
     bool shutdown_requested_ = false;
     log::Logger log_;

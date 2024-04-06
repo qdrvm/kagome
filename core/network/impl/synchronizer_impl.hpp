@@ -13,8 +13,7 @@
 #include <queue>
 #include <unordered_set>
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/timer.fwd.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/sync_method.hpp"
 #include "consensus/timeline/block_executor.hpp"
@@ -118,7 +117,8 @@ namespace kagome::network {
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<PeerManager> peer_manager,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<clock::SteadyClock> clock,
+        aio::TimerPtr scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline,
@@ -247,7 +247,8 @@ namespace kagome::network {
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<PeerManager> peer_manager_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    std::shared_ptr<clock::SteadyClock> clock_;
+    aio::TimerPtr scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<Beefy> beefy_;
@@ -304,7 +305,7 @@ namespace kagome::network {
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
     std::unordered_set<primitives::BlockInfo> load_blocks_;
-    std::pair<primitives::BlockNumber, std::chrono::milliseconds>
+    std::pair<primitives::BlockNumber, clock::SteadyClock::TimePoint>
         load_blocks_max_{};
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,

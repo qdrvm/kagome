@@ -8,9 +8,8 @@
 
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
+#include "aio/timer.hpp"
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "common/worker_thread_pool.hpp"
@@ -457,6 +456,7 @@ namespace kagome::parachain {
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
       ApprovalThreadPool &approval_thread_pool,
+      aio::TimerPtr timer,
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{approval_thread_pool.handler(
@@ -478,10 +478,7 @@ namespace kagome::parachain {
         recovery_(std::move(recovery)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
-        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
-            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                approval_thread_pool.io_context()),
-            libp2p::basic::Scheduler::Config{})} {
+        scheduler_{std::move(timer)} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);

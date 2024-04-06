@@ -8,9 +8,13 @@
 
 #include "consensus/grandpa/voting_round.hpp"
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "log/logger.hpp"
+
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
 
 namespace kagome::consensus::grandpa {
   class Environment;
@@ -43,7 +47,9 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteTracker> prevotes,
                     std::shared_ptr<VoteTracker> precommits,
                     std::shared_ptr<VoteGraph> vote_graph,
-                    std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+                    std::shared_ptr<clock::SteadyClock> clock,
+                    std::shared_ptr<PoolHandler> grandpa_pool_handler,
+                    aio::TimerPtr scheduler);
 
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
@@ -55,7 +61,9 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
         const std::shared_ptr<VoteGraph> &vote_graph,
-        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
+        std::shared_ptr<clock::SteadyClock> clock,
+        std::shared_ptr<PoolHandler> grandpa_pool_handler,
+        const aio::TimerPtr &scheduler,
         const MovableRoundState &round_state);
 
     VotingRoundImpl(
@@ -68,7 +76,9 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
         const std::shared_ptr<VoteGraph> &vote_graph,
-        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
+        std::shared_ptr<clock::SteadyClock> clock,
+        std::shared_ptr<PoolHandler> grandpa_pool_handler,
+        const aio::TimerPtr &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
 
     enum class Stage {
@@ -307,9 +317,9 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;                      // supermajority threshold
-    const std::optional<Id> id_;            // id of current peer
-    std::chrono::milliseconds start_time_;  // time of start round to play
+    size_t threshold_;                          // supermajority threshold
+    const std::optional<Id> id_;                // id of current peer
+    clock::SteadyClock::TimePoint start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<crypto::Hasher> hasher_;
@@ -317,7 +327,9 @@ namespace kagome::consensus::grandpa {
     SaveCachedVotes save_cached_votes_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     std::shared_ptr<VoteGraph> graph_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    std::shared_ptr<clock::SteadyClock> clock_;
+    std::shared_ptr<PoolHandler> grandpa_pool_handler_;
+    aio::TimerPtr scheduler_;
 
     std::function<void()> on_complete_handler_;
 
@@ -364,8 +376,8 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> estimate_;
     std::optional<BlockInfo> finalized_;
 
-    libp2p::basic::Scheduler::Handle stage_timer_handle_;
-    libp2p::basic::Scheduler::Handle pending_timer_handle_;
+    aio::Cancel stage_timer_handle_;
+    aio::Cancel pending_timer_handle_;
 
     log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 

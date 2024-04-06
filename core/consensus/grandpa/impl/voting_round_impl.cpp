@@ -8,6 +8,7 @@
 
 #include <unordered_set>
 
+#include "aio/timer.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/grandpa/ancestry_verifier.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -21,6 +22,7 @@
 #include "consensus/grandpa/vote_weight.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/grandpa/voting_round_update.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -61,7 +63,9 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> vote_graph,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      std::shared_ptr<clock::SteadyClock> clock,
+      std::shared_ptr<PoolHandler> grandpa_pool_handler,
+      aio::TimerPtr scheduler)
       : voter_set_{std::move(config.voters)},
         round_number_{config.round_number},
         duration_{config.duration},
@@ -72,6 +76,8 @@ namespace kagome::consensus::grandpa {
         save_cached_votes_{std::move(save_cached_votes)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
+        clock_{std::move(clock)},
+        grandpa_pool_handler_{std::move(grandpa_pool_handler)},
         scheduler_{std::move(scheduler)},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)} {
@@ -110,7 +116,9 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
       const std::shared_ptr<VoteGraph> &vote_graph,
-      const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
+      std::shared_ptr<clock::SteadyClock> clock,
+      std::shared_ptr<PoolHandler> grandpa_pool_handler,
+      const aio::TimerPtr &scheduler,
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
@@ -121,6 +129,8 @@ namespace kagome::consensus::grandpa {
                         prevotes,
                         precommits,
                         vote_graph,
+                        std::move(clock),
+                        std::move(grandpa_pool_handler),
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
 
@@ -139,7 +149,9 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
       const std::shared_ptr<VoteGraph> &vote_graph,
-      const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
+      std::shared_ptr<clock::SteadyClock> clock,
+      std::shared_ptr<PoolHandler> grandpa_pool_handler,
+      const aio::TimerPtr &scheduler,
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
@@ -150,6 +162,8 @@ namespace kagome::consensus::grandpa {
                         prevotes,
                         precommits,
                         vote_graph,
+                        std::move(clock),
+                        std::move(grandpa_pool_handler),
                         scheduler) {
     last_finalized_block_ = round_state.last_finalized_block;
 
@@ -212,7 +226,7 @@ namespace kagome::consensus::grandpa {
     sendNeighborMessage();
 
     // Current local time (Tstart)
-    start_time_ = scheduler_->now();
+    start_time_ = clock_->now();
 
     // Derive-Primary
     // see ctor
@@ -270,7 +284,7 @@ namespace kagome::consensus::grandpa {
             }
           }
         },
-        toMilliseconds(duration_ * 2 - (scheduler_->now() - start_time_)));
+        toMilliseconds(duration_ * 2 - (clock_->now() - start_time_)));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
@@ -288,7 +302,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PREVOTE_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PREVOTE;
@@ -337,7 +351,7 @@ namespace kagome::consensus::grandpa {
             }
           }
         },
-        toMilliseconds(duration_ * 4 - (scheduler_->now() - start_time_)));
+        toMilliseconds(duration_ * 4 - (clock_->now() - start_time_)));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PRECOMMIT_RUNS) {
@@ -356,7 +370,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS
                  || stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
 
     // https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/voter/voting_round.rs#L630-L633
     if (not prevote_ghost_) {
@@ -438,7 +452,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     // Final attempt to finalize round what should be success
@@ -452,8 +466,8 @@ namespace kagome::consensus::grandpa {
     if (stage_ != Stage::COMPLETED) {
       SL_DEBUG(logger_, "Round #{}: End round", round_number_);
       on_complete_handler_ = nullptr;
-      stage_timer_handle_.cancel();
-      pending_timer_handle_.cancel();
+      stage_timer_handle_.reset();
+      pending_timer_handle_.reset();
       stage_ = Stage::COMPLETED;
     }
   }
@@ -1064,7 +1078,7 @@ namespace kagome::consensus::grandpa {
         need_to_update_estimate = true;
       }
       if (prevote_ghost_) {
-        scheduler_->schedule([wself{weak_from_this()}] {
+        post(*grandpa_pool_handler_, [wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
             if (self->stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
               self->endPrecommitStage();
@@ -1105,14 +1119,14 @@ namespace kagome::consensus::grandpa {
     // spec: Play-Grandpa-round(r + 1);
 
     if (can_start_next_round) {
-      scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round_wp{weak_from_this()}] {
-            if (auto grandpa = grandpa_wp.lock()) {
-              if (auto round = round_wp.lock()) {
-                grandpa->tryExecuteNextRound(round);
-              }
-            }
-          });
+      post(*grandpa_pool_handler_,
+           [grandpa_wp = std::move(grandpa_), round_wp{weak_from_this()}] {
+             if (auto grandpa = grandpa_wp.lock()) {
+               if (auto round = round_wp.lock()) {
+                 grandpa->tryExecuteNextRound(round);
+               }
+             }
+           });
     }
   }
 

@@ -9,8 +9,8 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "consensus/grandpa/impl/votes_cache.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "injector/lazy.hpp"
@@ -116,6 +116,8 @@ namespace kagome::consensus::grandpa {
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         storage::SpacedStorage &db,
+        std::shared_ptr<clock::SteadyClock> clock,
+        aio::TimerPtr timer,
         common::MainThreadPool &main_thread_pool,
         GrandpaThreadPool &grandpa_thread_pool);
 
@@ -322,6 +324,8 @@ namespace kagome::consensus::grandpa {
     void saveCachedVotes();
     void applyCachedVotes(VotingRound &round);
 
+    void fallbackTimer();
+
     const size_t kVotesCacheSize = 5;
 
     const Clock::Duration round_time_factor_;
@@ -342,14 +346,15 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> grandpa_pool_handler_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    std::shared_ptr<clock::SteadyClock> clock_;
+    aio::TimerPtr scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
     std::optional<
         const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
         pending_catchup_request_;
-    libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
-    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
+    aio::Cancel catchup_request_timer_handle_;
+    aio::Cancel fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;
 

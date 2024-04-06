@@ -8,6 +8,7 @@
 
 #include "consensus/timeline/timeline.hpp"
 
+#include "aio/timer.fwd.hpp"
 #include "application/sync_method.hpp"
 #include "clock/clock.hpp"
 #include "injector/lazy.hpp"
@@ -55,10 +56,6 @@ namespace kagome::runtime {
   class Core;
 }
 
-namespace libp2p::basic {
-  class Scheduler;
-}
-
 namespace kagome::consensus {
 
   class TimelineImpl final : public Timeline,
@@ -84,7 +81,7 @@ namespace kagome::consensus {
         LazySPtr<network::WarpProtocol> warp_protocol,
         std::shared_ptr<consensus::grandpa::JustificationObserver>
             justification_observer,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        aio::TimerPtr timer,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
         std::shared_ptr<runtime::Core> core_api);
@@ -151,7 +148,7 @@ namespace kagome::consensus {
     LazySPtr<network::WarpProtocol> warp_protocol_;
     std::shared_ptr<consensus::grandpa::JustificationObserver>
         justification_observer_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     primitives::events::ChainSub chain_sub_;
     primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine_;

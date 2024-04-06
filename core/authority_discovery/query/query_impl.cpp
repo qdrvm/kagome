@@ -9,6 +9,7 @@
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 #include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
+#include "common/main_thread_pool.hpp"
 #include "crypto/sha/sha256.hpp"
 #include "utils/retain_if.hpp"
 
@@ -40,25 +41,23 @@ namespace kagome::authority_discovery {
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
       std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller,
+      common::MainThreadPool &main_thread_pool,
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      aio::TimerPtr scheduler)
       : block_tree_{std::move(block_tree)},
         authority_discovery_api_{std::move(authority_discovery_api)},
         key_store_{std::move(key_store)},
         sr_crypto_provider_{std::move(sr_crypto_provider)},
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
         key_marshaller_{std::move(key_marshaller)},
+        main_thread_{main_thread_pool.io_context()},
         host_{host},
         kademlia_{std::move(kademlia)},
-        scheduler_{[&] {
-          BOOST_ASSERT(scheduler != nullptr);
-          return std::move(scheduler);
-        }()},
         interval_{
             kIntervalInitial,
             kIntervalMax,
-            scheduler_,
+            std::move(scheduler),
         },
         log_{log::createLogger("AuthorityDiscoveryQuery",
                                "authority_discovery")} {
@@ -142,7 +141,7 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       common::Buffer hash{crypto::sha256(authority)};
-      scheduler_->schedule([=, this, wp{weak_from_this()}] {
+      main_thread_->post([=, this, wp{weak_from_this()}] {
         if (auto self = wp.lock()) {
           std::ignore = kademlia_->getValue(
               hash, [=, this](outcome::result<std::vector<uint8_t>> res) {

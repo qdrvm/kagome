@@ -6,6 +6,7 @@
 
 #include "network/impl/protocols/grandpa_protocol.hpp"
 
+#include "aio/timer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
@@ -29,7 +30,7 @@ namespace kagome::network {
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<PeerManager> peer_manager,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      aio::TimerPtr scheduler)
       : base_(kGrandpaProtocolName,
               host,
               make_protocols(

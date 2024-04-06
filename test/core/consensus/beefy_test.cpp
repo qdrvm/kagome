@@ -6,8 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/timer.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/impl/beefy_impl.hpp"
@@ -30,6 +29,7 @@
 
 using kagome::beefyMmrDigest;
 using kagome::TestThreadPool;
+using kagome::aio::Cancel;
 using kagome::application::ChainSpecMock;
 using kagome::application::StartApp;
 using kagome::blockchain::BlockTreeMock;
@@ -70,26 +70,14 @@ using kagome::storage::InMemorySpacedStorage;
 using testing::_;
 using testing::Return;
 
-struct Timer : libp2p::basic::Scheduler {
-  void pulse(std::chrono::milliseconds current_clock) noexcept override {
+struct Timer : kagome::aio::Timer {
+  void timer(Cb, Delay) override {
     abort();
   }
-  std::chrono::milliseconds now() const noexcept override {
-    abort();
-  }
-  Handle scheduleImpl(Callback &&cb,
-                      std::chrono::milliseconds,
-                      bool) noexcept override {
+
+  Cancel timerCancel(Cb cb, Delay) override {
     cb_.emplace(std::move(cb));
-    return Handle{};
-  }
-  void cancel(Handle::Ticket ticket) noexcept override {
-    abort();
-  }
-  outcome::result<Handle::Ticket> reschedule(
-      Handle::Ticket ticket,
-      std::chrono::milliseconds delay_from_now) noexcept override {
-    abort();
+    return Cancel{};
   }
 
   void call() {
@@ -100,7 +88,7 @@ struct Timer : libp2p::basic::Scheduler {
     }
   }
 
-  std::optional<Callback> cb_;
+  std::optional<Cb> cb_;
 };
 
 struct BeefyPeer {

@@ -6,9 +6,7 @@
 
 #include "consensus/beefy/impl/beefy_impl.hpp"
 
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
-
+#include "aio/timer.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
@@ -50,7 +48,7 @@ namespace kagome::network {
       std::shared_ptr<storage::SpacedStorage> db,
       common::MainThreadPool &main_thread_pool,
       BeefyThreadPool &beefy_thread_pool,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      aio::TimerPtr scheduler,
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       LazySPtr<BeefyProtocol> beefy_protocol,

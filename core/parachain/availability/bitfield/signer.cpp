@@ -6,6 +6,7 @@
 
 #include "parachain/availability/bitfield/signer.hpp"
 
+#include "aio/timer.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_header.hpp"
 
@@ -15,7 +16,7 @@ namespace kagome::parachain {
   BitfieldSigner::BitfieldSigner(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      aio::TimerPtr scheduler,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<AvailabilityStore> store,
       std::shared_ptr<Fetch> fetch,

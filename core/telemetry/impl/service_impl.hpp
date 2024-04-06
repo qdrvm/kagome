@@ -21,8 +21,9 @@ namespace rapidjson {
 #include <rapidjson/document.h>
 
 #include <boost/asio/io_context.hpp>
-#include <libp2p/basic/scheduler.hpp>
-#include <libp2p/host/host.hpp>
+
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -33,6 +34,10 @@ namespace rapidjson {
 #include "telemetry/connection.hpp"
 #include "telemetry/impl/message_pool.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+
+namespace libp2p {
+  struct Host;
+}  // namespace libp2p
 
 namespace kagome {
   class PoolHandler;
@@ -64,6 +69,7 @@ namespace kagome::telemetry {
         std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const network::PeerManager> peer_manager,
+        aio::TimerPtr timer,
         TelemetryThreadPool &telemetry_thread_pool);
     TelemetryServiceImpl(const TelemetryServiceImpl &) = delete;
     TelemetryServiceImpl(TelemetryServiceImpl &&) = delete;
@@ -141,7 +147,7 @@ namespace kagome::telemetry {
     std::shared_ptr<const network::PeerManager> peer_manager_;
     std::shared_ptr<PoolHandler> pool_handler_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
 
     const bool enabled_;
 
@@ -149,8 +155,8 @@ namespace kagome::telemetry {
     std::atomic_bool shutdown_requested_ = false;
 
     std::vector<std::shared_ptr<TelemetryConnection>> connections_;
-    libp2p::basic::Scheduler::Handle frequent_timer_;
-    libp2p::basic::Scheduler::Handle delayed_timer_;
+    aio::Cancel frequent_timer_;
+    aio::Cancel delayed_timer_;
 
     // data cache before serialization and sending over
     common::spin_lock cache_mutex_;

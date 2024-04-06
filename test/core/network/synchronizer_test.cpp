@@ -7,9 +7,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <libp2p/common/literals.hpp>
-#include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <stdexcept>
 
+#include "aio/timer.hpp"
 #include "common/main_thread_pool.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -33,6 +33,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::aio::Cancel;
 using namespace kagome;
 using namespace clock;
 using consensus::BlockExecutorMock;
@@ -57,6 +58,14 @@ using ::testing::Return;
 using ::testing::Truly;
 using ::testing::Values;
 
+struct Timer : kagome::aio::Timer {
+  void timer(Cb, Delay) override {}
+
+  Cancel timerCancel(Cb, Delay) override {
+    abort();
+  }
+};
+
 class SyncResultHandlerMock {
  public:
   MOCK_METHOD(void, call, (outcome::result<primitives::BlockInfo>), ());
@@ -80,8 +89,6 @@ class SynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
-
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::SyncMethod::Full));
 
@@ -102,6 +109,7 @@ class SynchronizerTest
                                                     storage,
                                                     state_pruner,
                                                     router,
+                                                    nullptr,
                                                     nullptr,
                                                     scheduler,
                                                     hasher,
@@ -133,8 +141,7 @@ class SynchronizerTest
       std::make_shared<network::SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
       std::make_shared<network::RouterMock>();
-  std::shared_ptr<libp2p::basic::SchedulerMock> scheduler =
-      std::make_shared<libp2p::basic::SchedulerMock>();
+  aio::TimerPtr scheduler = std::make_shared<Timer>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =

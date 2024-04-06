@@ -10,10 +10,9 @@
 
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/asio_buffer.hpp>
 
+#include "aio/timer.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 
@@ -31,7 +30,7 @@ namespace kagome::parachain {
    */
   template <std::invocable<outcome::result<common::Buffer>> Cb>
   void runWorker(boost::asio::io_context &io_context,
-                 std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+                 aio::TimerPtr scheduler,
                  std::chrono::milliseconds timeout,
                  const std::string &exe,
                  common::Buffer input_,

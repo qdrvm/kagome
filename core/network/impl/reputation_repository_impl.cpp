@@ -8,6 +8,7 @@
 
 #include <boost/assert.hpp>
 
+#include "aio/timer.hpp"
 #include "common/main_thread_pool.hpp"
 
 using namespace std::chrono_literals;
@@ -17,7 +18,7 @@ namespace kagome::network {
   ReputationRepositoryImpl::ReputationRepositoryImpl(
       application::AppStateManager &app_state_manager,
       common::MainThreadPool &main_thread_pool,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      aio::TimerPtr scheduler)
       : main_thread_{main_thread_pool.handler(app_state_manager)},
         scheduler_{std::move(scheduler)},
         log_(log::createLogger("Reputation", "reputation")) {
@@ -27,12 +28,13 @@ namespace kagome::network {
   }
 
   void ReputationRepositoryImpl::start() {
-    main_thread_->execute([weak{weak_from_this()}] {
-      if (auto self = weak.lock()) {
-        self->tick_handler_ =
-            self->scheduler_->scheduleWithHandle([self] { self->tick(); }, 1s);
-      }
-    });
+    tick_handler_ = scheduler_->timerCancel(
+        [weak{weak_from_this()}] {
+          if (auto self = weak.lock()) {
+            self->tick();
+          }
+        },
+        1s);
   }
 
   Reputation ReputationRepositoryImpl::reputation(
@@ -137,7 +139,13 @@ namespace kagome::network {
         reputation_table_.erase(cit);
       }
     }
-    std::ignore = tick_handler_.reschedule(1s);
+    tick_handler_ = scheduler_->timerCancel(
+        [weak{weak_from_this()}] {
+          if (auto self = weak.lock()) {
+            self->tick();
+          }
+        },
+        1s);
   }
 
 }  // namespace kagome::network

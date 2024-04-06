@@ -11,9 +11,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
-
+#include "aio/timer.hpp"
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -125,6 +123,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
       common::MainThreadPool &main_thread_pool,
+      aio::TimerPtr timer,
       DisputeThreadPool &dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
@@ -149,10 +148,7 @@ namespace kagome::dispute {
         timeline_(std::move(timeline)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
-        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
-            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                dispute_thread_pool.io_context()),
-            libp2p::basic::Scheduler::Config{})},
+        scheduler_{std::move(timer)},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(session_keys_ != nullptr);
@@ -2142,21 +2138,19 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_ =
-          scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
+      rate_limit_timer_ = scheduler_->scheduleWithHandle(
+          [wp{weak_from_this()}]() {
             if (auto self = wp.lock()) {
               BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
               self->process_portion_incoming_disputes();
             }
-          });
+          },
+          kReceiveRateLimit);
     }
   }
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
-    if (rate_limit_timer_) {
-      rate_limit_timer_->cancel();
-      rate_limit_timer_.reset();
-    }
+    rate_limit_timer_.reset();
 
     std::vector<std::tuple<libp2p::peer::PeerId,
                            network::DisputeMessage,

@@ -1,0 +1,12 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_library(aio
+    impl/timer.cpp
+    )
+target_link_libraries(aio
+    p2p::p2p
+    )

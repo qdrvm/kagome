@@ -11,8 +11,8 @@
 
 #include <list>
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -123,6 +123,7 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
         common::MainThreadPool &main_thread_pool,
+        aio::TimerPtr timer,
         DisputeThreadPool &dispute_thread_pool,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
@@ -325,9 +326,9 @@ namespace kagome::dispute {
         queues_;
 
     /// Delay timer for establishing the rate limit.
-    std::optional<libp2p::basic::Scheduler::Handle> rate_limit_timer_;
+    std::optional<aio::Cancel> rate_limit_timer_;
 
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
 
     std::unique_ptr<RuntimeInfo> runtime_info_;
 

@@ -11,10 +11,10 @@
 #include <memory>
 #include <random>
 
-#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "aio/timer.fwd.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
@@ -52,7 +52,7 @@ namespace kagome::network {
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+        aio::TimerPtr scheduler);
 
     bool start() override;
 
@@ -99,7 +99,7 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
 
     std::set<std::tuple<consensus::grandpa::RoundNumber,
                         consensus::grandpa::VoterSetId>>

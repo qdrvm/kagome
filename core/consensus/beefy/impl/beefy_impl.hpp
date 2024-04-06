@@ -8,8 +8,8 @@
 
 #include <map>
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "consensus/beefy/beefy.hpp"
 #include "consensus/beefy/types.hpp"
 #include "injector/lazy.hpp"
@@ -67,7 +67,7 @@ namespace kagome::network {
               std::shared_ptr<storage::SpacedStorage> db,
               common::MainThreadPool &main_thread_pool,
               BeefyThreadPool &beefy_thread_pool,
-              std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+              aio::TimerPtr scheduler,
               LazySPtr<consensus::Timeline> timeline,
               std::shared_ptr<crypto::SessionKeys> session_keys,
               LazySPtr<BeefyProtocol> beefy_protocol,
@@ -122,7 +122,7 @@ namespace kagome::network {
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> beefy_pool_handler_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;
@@ -137,7 +137,7 @@ namespace kagome::network {
     Sessions sessions_;
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
-    libp2p::basic::Scheduler::Handle timer_;
+    aio::Cancel timer_;
 
     log::Logger log_;
   };

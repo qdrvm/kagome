@@ -6,6 +6,7 @@
 
 #include "consensus/timeline/impl/timeline_impl.hpp"
 
+#include "aio/timer.hpp"
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -22,8 +23,6 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
-
-#include <libp2p/basic/scheduler.hpp>
 
 namespace {
   constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
@@ -50,7 +49,7 @@ namespace kagome::consensus {
       LazySPtr<network::WarpProtocol> warp_protocol,
       std::shared_ptr<consensus::grandpa::JustificationObserver>
           justification_observer,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      aio::TimerPtr scheduler,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
       std::shared_ptr<runtime::Core> core_api)

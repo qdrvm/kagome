@@ -23,6 +23,10 @@
 #include <mutex>
 #include <random>
 
+namespace kagome::common {
+  class MainThreadPool;
+}  // namespace kagome::common
+
 namespace kagome::authority_discovery {
   class QueryImpl : public Query,
                     public std::enable_shared_from_this<QueryImpl> {
@@ -43,9 +47,10 @@ namespace kagome::authority_discovery {
         std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
         std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>
             key_marshaller,
+        common::MainThreadPool &main_thread_pool,
         libp2p::Host &host,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+        aio::TimerPtr scheduler);
 
     bool start();
 
@@ -68,9 +73,9 @@ namespace kagome::authority_discovery {
     std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;
     std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider_;
     std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     ExpIncInterval interval_;
 
     mutable std::mutex mutex_;

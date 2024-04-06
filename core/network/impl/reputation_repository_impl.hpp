@@ -12,8 +12,8 @@
 #include <mutex>
 #include <unordered_map>
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "log/logger.hpp"
 
 namespace kagome {
@@ -34,10 +34,9 @@ namespace kagome::network {
       : public ReputationRepository,
         public std::enable_shared_from_this<ReputationRepositoryImpl> {
    public:
-    ReputationRepositoryImpl(
-        application::AppStateManager &app_state_manager,
-        common::MainThreadPool &main_thread_pool,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+    ReputationRepositoryImpl(application::AppStateManager &app_state_manager,
+                             common::MainThreadPool &main_thread_pool,
+                             aio::TimerPtr scheduler);
 
     void start();
 
@@ -54,10 +53,10 @@ namespace kagome::network {
 
     mutable std::mutex mutex_;
     std::shared_ptr<PoolHandler> main_thread_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     std::unordered_map<PeerId, Reputation> reputation_table_;
 
-    libp2p::basic::Scheduler::Handle tick_handler_;
+    aio::Cancel tick_handler_;
 
     log::Logger log_;
   };

@@ -16,8 +16,6 @@
 
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/asio_buffer.hpp>
 
 #include "common/bytestr.hpp"

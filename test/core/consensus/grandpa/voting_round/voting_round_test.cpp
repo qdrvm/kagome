@@ -8,13 +8,13 @@
 
 #include <gtest/gtest.h>
 
-#include <mock/libp2p/basic/scheduler_mock.hpp>
-
+#include "aio/timer.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
+#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
@@ -22,7 +22,11 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/pool_handler.hpp"
 
+using kagome::PoolHandler;
+using kagome::aio::Cancel;
+using kagome::clock::SteadyClockMock;
 using namespace kagome::consensus::grandpa;
 using kagome::consensus::grandpa::Authority;
 using kagome::consensus::grandpa::AuthoritySet;
@@ -32,6 +36,16 @@ using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
 using kagome::runtime::GrandpaApiMock;
 using Propagation = kagome::consensus::grandpa::VotingRound::Propagation;
+
+struct Timer : kagome::aio::Timer {
+  void timer(Cb, Delay) override {
+    abort();
+  }
+
+  Cancel timerCancel(Cb, Delay) override {
+    return Cancel{};
+  }
+};
 
 using namespace std::chrono_literals;
 
@@ -146,9 +160,7 @@ class VotingRoundTest : public testing::Test,
 
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
-    scheduler_ = std::make_shared<libp2p::basic::SchedulerMock>();
-    EXPECT_CALL(*scheduler_, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
-    EXPECT_CALL(*scheduler_, nowMockCall()).Times(AnyNumber());
+    EXPECT_CALL(*clock_, now()).Times(AnyNumber());
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
@@ -164,6 +176,9 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
     EXPECT_CALL(*previous_round_, doCommit()).Times(AnyNumber());
 
+    auto pool_handler = std::make_shared<PoolHandler>(nullptr);
+    pool_handler->start();
+    pool_handler->stop();
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
                                                hasher_,
@@ -173,6 +188,8 @@ class VotingRoundTest : public testing::Test,
                                                prevotes_,
                                                precommits_,
                                                vote_graph_,
+                                               clock_,
+                                               pool_handler,
                                                scheduler_,
                                                previous_round_);
   }
@@ -230,7 +247,8 @@ class VotingRoundTest : public testing::Test,
   std::shared_ptr<EnvironmentMock> env_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
 
-  std::shared_ptr<libp2p::basic::SchedulerMock> scheduler_;
+  std::shared_ptr<SteadyClockMock> clock_ = std::make_shared<SteadyClockMock>();
+  kagome::aio::TimerPtr scheduler_ = std::make_shared<Timer>();
 
   const std::optional<BlockInfo> finalized_in_prev_round_{{2, "B"_H}};
   std::shared_ptr<VotingRoundMock> previous_round_;

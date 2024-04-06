@@ -10,6 +10,7 @@
 
 #include <thread>
 
+#include "aio/timer.fwd.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
@@ -17,10 +18,6 @@
 namespace boost::asio {
   class io_context;
 }  // namespace boost::asio
-
-namespace libp2p::basic {
-  class Scheduler;
-}  // namespace libp2p::basic
 
 namespace kagome::application {
   class AppConfiguration;
@@ -84,7 +81,7 @@ namespace kagome::parachain {
 
     PvfImpl(const Config &config,
             std::shared_ptr<boost::asio::io_context> io_context,
-            std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+            aio::TimerPtr scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::InstrumentWasm> instrument,
@@ -127,7 +124,7 @@ namespace kagome::parachain {
 
     Config config_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;

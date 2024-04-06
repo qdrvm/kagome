@@ -20,10 +20,10 @@ namespace rapidjson {
 #include <rapidjson/writer.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/host/host.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "aio/timer.hpp"
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 #include "telemetry/impl/telemetry_thread_pool.hpp"
@@ -47,6 +47,7 @@ namespace kagome::telemetry {
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const network::PeerManager> peer_manager,
+      aio::TimerPtr timer,
       TelemetryThreadPool &telemetry_thread_pool)
       : app_configuration_{app_configuration},
         chain_spec_{chain_spec},
@@ -56,10 +57,7 @@ namespace kagome::telemetry {
         peer_manager_{std::move(peer_manager)},
         pool_handler_{telemetry_thread_pool.handler(app_state_manager)},
         io_context_{telemetry_thread_pool.io_context()},
-        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
-            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                telemetry_thread_pool.io_context()),
-            libp2p::basic::Scheduler::Config{})},
+        scheduler_{std::move(timer)},
         enabled_{app_configuration_.isTelemetryEnabled()},
         log_{log::createLogger("TelemetryService", "telemetry")} {
     BOOST_ASSERT(tx_pool_);
@@ -111,8 +109,8 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::stop() {
     shutdown_requested_ = true;
-    frequent_timer_.cancel();
-    delayed_timer_.cancel();
+    frequent_timer_.reset();
+    delayed_timer_.reset();
     for (auto &connection : connections_) {
       connection->shutdown();
     }
@@ -181,7 +179,7 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::frequentNotificationsRoutine() {
-    frequent_timer_.cancel();
+    frequent_timer_.reset();
     if (shutdown_requested_) {
       return;
     }
@@ -217,7 +215,7 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::delayedNotificationsRoutine() {
-    delayed_timer_.cancel();
+    delayed_timer_.reset();
     if (shutdown_requested_) {
       return;
     }

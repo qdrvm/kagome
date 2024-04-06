@@ -8,6 +8,7 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
+    aio
     Boost::Boost.DI
     account_nonce_api
     address_publisher

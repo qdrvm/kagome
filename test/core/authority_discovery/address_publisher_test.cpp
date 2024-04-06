@@ -7,7 +7,6 @@
 #include "authority_discovery/publisher/address_publisher.hpp"
 
 #include <gtest/gtest.h>
-#include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <mock/libp2p/crypto/key_marshaller_mock.hpp>
 #include <mock/libp2p/host/host_mock.hpp>
 
@@ -38,7 +37,6 @@ using kagome::crypto::Sr25519SecretKey;
 using kagome::network::Roles;
 using kagome::runtime::AuthorityDiscoveryApiMock;
 using libp2p::HostMock;
-using libp2p::basic::SchedulerMock;
 using libp2p::crypto::marshaller::KeyMarshallerMock;
 using libp2p::multi::Multiaddress;
 using libp2p::peer::PeerId;
@@ -76,8 +74,7 @@ struct AddressPublisherTest : public testing::Test {
                                                     ed25519_provider_,
                                                     sr25519_provider_,
                                                     *host_,
-                                                    kademlia_,
-                                                    scheduler_);
+                                                    kademlia_);
   }
 
   std::shared_ptr<AppConfigurationMock> config_ =
@@ -99,7 +96,6 @@ struct AddressPublisherTest : public testing::Test {
       std::make_shared<Sr25519ProviderMock>();
   std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
   std::shared_ptr<KademliaMock> kademlia_ = std::make_shared<KademliaMock>();
-  std::shared_ptr<SchedulerMock> scheduler_ = std::make_shared<SchedulerMock>();
   std::shared_ptr<KeyStoreMock> crypto_store_ =
       std::make_shared<KeyStoreMock>();
   PeerInfo peer_info_{

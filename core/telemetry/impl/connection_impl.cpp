@@ -10,6 +10,8 @@
 
 #include <openssl/tls1.h>
 
+#include "aio/timer.hpp"
+
 namespace kagome::telemetry {
 
   std::size_t TelemetryConnectionImpl::instance_ = 0;
@@ -19,7 +21,7 @@ namespace kagome::telemetry {
       const TelemetryEndpoint &endpoint,
       OnConnectedCallback callback,
       std::shared_ptr<MessagePool> message_pool,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      aio::TimerPtr scheduler)
       : io_context_{std::move(io_context)},
         endpoint_{endpoint},
         callback_{std::move(callback)},

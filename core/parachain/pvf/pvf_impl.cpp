@@ -135,7 +135,7 @@ namespace kagome::parachain {
   PvfImpl::PvfImpl(
       const Config &config,
       std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      aio::TimerPtr scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::InstrumentWasm> instrument,

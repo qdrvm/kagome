@@ -11,12 +11,13 @@
 #include <memory>
 #include <queue>
 
-#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -61,7 +62,7 @@ namespace kagome::network {
         libp2p::Host &host,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        aio::TimerPtr scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SteadyClock> clock,
@@ -185,7 +186,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SteadyClock> clock_;
@@ -206,7 +207,7 @@ namespace kagome::network {
 
     std::map<PeerId, PeerDescriptor> active_peers_;
     std::unordered_map<PeerId, PeerState> peer_states_;
-    libp2p::basic::Scheduler::Handle align_timer_;
+    aio::Cancel align_timer_;
     std::set<PeerId> recently_active_peers_;
 
     // metrics

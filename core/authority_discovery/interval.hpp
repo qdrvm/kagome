@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <libp2p/basic/scheduler.hpp>
+#include "aio/timer.hpp"
 
 namespace kagome::authority_discovery {
   /**
@@ -19,7 +19,7 @@ namespace kagome::authority_discovery {
    public:
     ExpIncInterval(std::chrono::milliseconds initial,
                    std::chrono::milliseconds max,
-                   std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+                   aio::TimerPtr scheduler)
         : delay_{initial}, max_{max}, scheduler_{scheduler} {}
 
     void start(std::function<void()> cb) {
@@ -42,8 +42,8 @@ namespace kagome::authority_discovery {
 
     std::chrono::milliseconds delay_;
     std::chrono::milliseconds max_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     std::function<void()> cb_;
-    libp2p::basic::Scheduler::Handle handle_;
+    aio::Cancel handle_;
   };
 }  // namespace kagome::authority_discovery

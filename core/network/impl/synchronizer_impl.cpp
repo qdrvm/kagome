@@ -11,6 +11,7 @@
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "aio/timer.hpp"
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -96,7 +97,8 @@ namespace kagome::network {
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<PeerManager> peer_manager,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      std::shared_ptr<clock::SteadyClock> clock,
+      aio::TimerPtr scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline,
@@ -112,6 +114,7 @@ namespace kagome::network {
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
         peer_manager_(std::move(peer_manager)),
+        clock_{std::move(clock)},
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
         timeline_{std::move(timeline)},
@@ -152,16 +155,16 @@ namespace kagome::network {
       const primitives::BlockInfo &block_info, SyncResultHandler &&handler) {
     // Check if block is already in tree
     if (block_tree_->has(block_info.hash)) {
-      scheduler_->schedule(
-          [handler = std::move(handler), block_info] { handler(block_info); });
+      post(*main_pool_handler_,
+           [handler = std::move(handler), block_info] { handler(block_info); });
       return false;
     }
 
     auto last_finalized_block = block_tree_->getLastFinalized();
     // Check if block from discarded side-chain
     if (last_finalized_block.number >= block_info.number) {
-      scheduler_->schedule(
-          [handler = std::move(handler)] { handler(Error::DISCARDED_BLOCK); });
+      post(*main_pool_handler_,
+           [handler = std::move(handler)] { handler(Error::DISCARDED_BLOCK); });
       return false;
     }
 
@@ -169,7 +172,7 @@ namespace kagome::network {
     auto best_block = block_tree_->bestBlock();
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
-      scheduler_->schedule([handler = std::move(handler)] {
+      post(*main_pool_handler_, [handler = std::move(handler)] {
         handler(Error::ARRIVED_TOO_EARLY);
       });
       return false;
@@ -187,11 +190,11 @@ namespace kagome::network {
       if (auto node = subscriptions_.extract(cit)) {
         if (res.has_error()) {
           auto error = res.as_failure();
-          scheduler_->schedule(
-              [handler = std::move(node.mapped()), error] { handler(error); });
+          post(*main_pool_handler_,
+               [handler = std::move(node.mapped()), error] { handler(error); });
         } else {
-          scheduler_->schedule(
-              [handler = std::move(node.mapped()), block] { handler(block); });
+          post(*main_pool_handler_,
+               [handler = std::move(node.mapped()), block] { handler(block); });
         }
       }
     }
@@ -535,7 +538,7 @@ namespace kagome::network {
       return;
     }
 
-    auto now = scheduler_->now();
+    auto now = clock_->now();
     if (from.number < load_blocks_max_.first
         and now - load_blocks_max_.second < kLoadBlocksMaxExpire
         and not timeline_.get()->wasSynchronized()) {
@@ -767,7 +770,7 @@ namespace kagome::network {
 
       if (some_blocks_added) {
         SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
-        self->scheduler_->schedule([wp] {
+        post(*self->main_pool_handler_, [wp] {
           if (auto self = wp.lock()) {
             self->applyNextBlock();
           }
@@ -1066,7 +1069,7 @@ namespace kagome::network {
       SL_TRACE(log_, "{} blocks in queue", known_blocks_.size());
     }
     metric_import_queue_length_->set(known_blocks_.size());
-    scheduler_->schedule([wp{weak_from_this()}] {
+    post(*main_pool_handler_, [wp{weak_from_this()}] {
       if (auto self = wp.lock()) {
         self->applyNextBlock();
       }

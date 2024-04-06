@@ -15,8 +15,9 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/variant.hpp>
-#include <libp2p/basic/scheduler.hpp>
 
+#include "aio/cancel.hpp"
+#include "aio/timer.fwd.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -284,6 +285,7 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
         ApprovalThreadPool &approval_thread_pool,
+        aio::TimerPtr timer,
         common::MainThreadPool &main_thread_pool,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
@@ -739,7 +741,7 @@ namespace kagome::parachain {
     std::shared_ptr<PoolHandler> main_pool_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
 
     std::unordered_map<
         Hash,
@@ -749,9 +751,9 @@ namespace kagome::parachain {
     std::map<primitives::BlockNumber, std::unordered_set<primitives::BlockHash>>
         blocks_by_number_;
 
-    using ScheduledCandidateTimer = std::unordered_map<
-        CandidateHash,
-        std::vector<std::pair<Tick, libp2p::basic::Scheduler::Handle>>>;
+    using ScheduledCandidateTimer =
+        std::unordered_map<CandidateHash,
+                           std::vector<std::pair<Tick, aio::Cancel>>>;
     std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 

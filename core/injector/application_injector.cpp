@@ -23,6 +23,7 @@
 
 #undef U64  // comes from OpenSSL and messes with WAVM
 
+#include "aio/impl/timer.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/beefy/rpc.hpp"
@@ -633,6 +634,8 @@ namespace {
                   injector.template create<sptr<application::ChainSpec>>();
               return crypto::KeyStore::Config{config.keystorePath(chain_spec->id())};
             }),
+
+            di::bind<aio::Timer>.template to<aio::TimerImpl>(),
             
             // inherit host injector
             libp2p::injector::makeHostInjector(

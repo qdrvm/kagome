@@ -6,8 +6,7 @@
 
 #pragma once
 
-#include <libp2p/basic/scheduler.hpp>
-
+#include "aio/timer.fwd.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "parachain/availability/bitfield/store.hpp"
@@ -27,7 +26,7 @@ namespace kagome::parachain {
 
     BitfieldSigner(std::shared_ptr<crypto::Hasher> hasher,
                    std::shared_ptr<ValidatorSignerFactory> signer_factory,
-                   std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+                   aio::TimerPtr scheduler,
                    std::shared_ptr<runtime::ParachainHost> parachain_api,
                    std::shared_ptr<AvailabilityStore> store,
                    std::shared_ptr<Fetch> fetch,
@@ -50,7 +49,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ValidatorSignerFactory> signer_factory_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    aio::TimerPtr scheduler_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<AvailabilityStore> store_;
     std::shared_ptr<Fetch> fetch_;

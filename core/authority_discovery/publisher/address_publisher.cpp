@@ -34,8 +34,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<crypto::Ed25519Provider> ed_crypto_provider,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       libp2p::Host &host,
-      std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia)
       : authority_discovery_api_(std::move(authority_discovery_api)),
         roles_(roles),
         block_tree_(std::move(block_tree)),
@@ -44,7 +43,6 @@ namespace kagome::authority_discovery {
         sr_crypto_provider_(std::move(sr_crypto_provider)),
         host_(host),
         kademlia_(std::move(kademlia)),
-        scheduler_(std::move(scheduler)),
         log_{log::createLogger("AddressPublisher", "authority_discovery")} {
     BOOST_ASSERT(authority_discovery_api_ != nullptr);
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -53,7 +51,6 @@ namespace kagome::authority_discovery {
     BOOST_ASSERT(ed_crypto_provider_ != nullptr);
     BOOST_ASSERT(sr_crypto_provider_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
-    BOOST_ASSERT(scheduler_ != nullptr);
     app_state_manager->atLaunch([this] { return start(); });
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
       std::array<uint8_t, crypto::constants::ed25519::PRIVKEY_SIZE>

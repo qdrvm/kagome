@@ -6,8 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include <mock/libp2p/basic/scheduler_mock.hpp>
-
+#include "aio/timer.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/babe/types/slot_type.hpp"
@@ -32,6 +31,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::aio::Cancel;
 using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -72,7 +72,6 @@ using kagome::primitives::events::BabeStateSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::CoreMock;
 using kagome::storage::trie::TrieStorageMock;
-using libp2p::basic::SchedulerMock;
 
 using Seal = kagome::consensus::babe::Seal;
 using SealDigest = kagome::primitives::Seal;
@@ -85,6 +84,26 @@ using testing::Ref;
 using testing::Return;
 using testing::WithArg;
 using namespace std::chrono_literals;
+
+struct Timer : kagome::aio::Timer {
+  MOCK_METHOD(void, timerMock, (Cb), ());
+
+  void timer(Cb cb, Delay) override {
+    timerMock(std::move(cb));
+  }
+
+  Cancel timerCancel(Cb cb, Delay) override {
+    abort();
+  }
+
+  void expect(Cb *cb_out) {
+    EXPECT_CALL(*this, timerMock(_)).WillOnce([cb_out](Cb cb) {
+      if (cb_out) {
+        *cb_out = std::move(cb);
+      }
+    });
+  }
+};
 
 static Digest make_digest(SlotNumber slot) {
   Digest digest;
@@ -153,10 +172,7 @@ class TimelineTest : public testing::Test {
     hasher = std::make_shared<HasherMock>();
     block_announce_transmitter =
         std::make_shared<BlockAnnounceTransmitterMock>();
-    // warp_sync = std::make_shared<WarpSync>();
-    // warp_protocol = std::make_shared<WarpProtocol>();
     justification_observer = std::make_shared<GrandpaMock>();
-    scheduler = std::make_shared<SchedulerMock>();
     core_api = std::make_shared<CoreMock>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
     state_sub_engine = std::make_shared<BabeStateSubscriptionEngine>();
@@ -195,7 +211,7 @@ class TimelineTest : public testing::Test {
   std::shared_ptr<WarpSync> warp_sync;
   std::shared_ptr<WarpProtocol> warp_protocol;
   std::shared_ptr<GrandpaMock> justification_observer;
-  std::shared_ptr<SchedulerMock> scheduler;
+  std::shared_ptr<Timer> scheduler = std::make_shared<Timer>();
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BabeStateSubscriptionEngine> state_sub_engine;
   std::shared_ptr<CoreMock> core_api;
@@ -259,19 +275,12 @@ TEST_F(TimelineTest, SingleValidator) {
         .WillRepeatedly(Return(ValidatorStatus::SingleValidator));
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
-          on_run_slot = std::move(cb);
-          return SchedulerMock::Handle{};
-        })));
+    scheduler->expect(&on_run_slot);
 
     timeline->start();
 
     EXPECT_TRUE(timeline->wasSynchronized());
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 
   // SLOT 2
@@ -285,17 +294,12 @@ TEST_F(TimelineTest, SingleValidator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-        .WillOnce(WithArg<0>(
-            Invoke([&](auto cb) { return SchedulerMock::Handle{}; })));
+    scheduler->expect(nullptr);
 
     on_run_slot();
 
     // - node continues to be synchronized
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 }
 
@@ -324,7 +328,6 @@ TEST_F(TimelineTest, Validator) {
     //  - don't process slot, because node is not synchronized
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - don't wait time to run slot, because node is not synchronized
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(0);
 
     timeline->start();
 
@@ -332,9 +335,6 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_FALSE(timeline->wasSynchronized());
     //  - node is waiting data from remove peers
     EXPECT_EQ(timeline->getCurrentState(), SyncState::WAIT_REMOTE_STATUS);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 
   // SYNC (will be finished on slot 1)
@@ -349,11 +349,7 @@ TEST_F(TimelineTest, Validator) {
     //  - process slot won't start, because slot is not changed
     EXPECT_CALL(*production_consensus, processSlot(_, _)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
-          on_run_slot_2 = std::move(cb);
-          return SchedulerMock::Handle{};
-        })));
+    scheduler->expect(&on_run_slot_2);
 
     timeline->onBlockAnnounceHandshake("peer"_peerid,
                                        {{}, best_block, best_block.hash});
@@ -361,9 +357,6 @@ TEST_F(TimelineTest, Validator) {
     // - node is synchronized now
     EXPECT_TRUE(timeline->wasSynchronized());
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 
   // SLOT 2 (nobody will add new block for this case)
@@ -380,19 +373,12 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(SlotLeadershipError::NO_SLOT_LEADER));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
-          on_run_slot_3 = std::move(cb);
-          return SchedulerMock::Handle{};
-        })));
+    scheduler->expect(&on_run_slot_3);
 
     on_run_slot_2();
 
     // - node is synchronized now
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 
   // SLOT 3
@@ -406,19 +392,12 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
-          on_run_slot_3 = std::move(cb);
-          return SchedulerMock::Handle{};
-        })));
+    scheduler->expect(&on_run_slot_3);
 
     on_run_slot_3();
 
     // - node continues to be synchronized
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-
-    Mock::VerifyAndClearExpectations(production_consensus.get());
-    Mock::VerifyAndClearExpectations(scheduler.get());
   }
 }
 

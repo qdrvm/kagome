@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(aio)
 add_subdirectory(api)
 add_subdirectory(application)
 add_subdirectory(authority_discovery)
