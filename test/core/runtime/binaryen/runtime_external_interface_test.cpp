@@ -9,7 +9,7 @@
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
 
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
@@ -19,7 +19,6 @@
 #include "mock/core/runtime/module_repository_mock.hpp"
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "runtime/common/constant_code_provider.hpp"
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -34,7 +33,6 @@ using kagome::crypto::KeyTypes;
 using kagome::host_api::HostApi;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
-using kagome::runtime::ConstantCodeProvider;
 using kagome::runtime::CoreApiFactoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleRepositoryMock;
@@ -89,8 +87,6 @@ class REITest : public ::testing::Test {
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     core_api_factory_ = std::make_shared<CoreApiFactoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
-    auto code_provider =
-        std::make_shared<ConstantCodeProvider>(kagome::common::Buffer{});
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
   }

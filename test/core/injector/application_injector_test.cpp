@@ -37,38 +37,44 @@ namespace {
         std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
 
     {
-      auto seed = kagome::crypto::Sr25519Seed::fromSpan(
-                      random_generator->randomBytes(
-                          kagome::crypto::constants::sr25519::SEED_SIZE))
-                      .value();
-      auto babe = sr25519_provider->generateKeypair(seed, {});
+      auto seed =
+          kagome::crypto::Sr25519Seed::from(
+              kagome::crypto::SecureCleanGuard{random_generator->randomBytes(
+                  kagome::crypto::constants::sr25519::SEED_SIZE)})
+              .value();
+      auto babe = sr25519_provider->generateKeypair(seed, {}).value();
       auto babe_path =
           (keystore_dir / fmt::format("babe{}", babe.public_key.toHex()))
               .native();
       std::ofstream babe_file{babe_path};
-      babe_file << seed.toHex();
+      babe_file << kagome::common::hex_lower_0x(seed.unsafeBytes());
     }
     {
-      kagome::crypto::Ed25519Seed seed;
-      random_generator->fillRandomly(seed);
+      auto seed =
+          kagome::crypto::Ed25519Seed::from(
+              kagome::crypto::SecureCleanGuard{random_generator->randomBytes(
+                  kagome::crypto::Ed25519Seed::size())})
+              .value();
       auto grandpa = ed25519_provider->generateKeypair(seed, {}).value();
       auto grandpa_path =
           (keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()))
               .native();
       std::ofstream grandpa_file{grandpa_path};
-      grandpa_file << grandpa.secret_key.toHex();
+      auto hex = kagome::common::hex_lower(grandpa.secret_key.unsafeBytes());
+      grandpa_file.write(hex.c_str(), hex.size());
     }
     {
-      auto seed = kagome::crypto::Sr25519Seed::fromSpan(
-                      random_generator->randomBytes(
-                          kagome::crypto::constants::sr25519::SEED_SIZE))
-                      .value();
-      auto libp2p = sr25519_provider->generateKeypair(seed, {});
+      auto seed =
+          kagome::crypto::Sr25519Seed::from(
+              kagome::crypto::SecureCleanGuard{random_generator->randomBytes(
+                  kagome::crypto::constants::sr25519::SEED_SIZE)})
+              .value();
+      auto libp2p = sr25519_provider->generateKeypair(seed, {}).value();
       auto libp2p_path =
           (keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()))
               .native();
       std::ofstream libp2p_file{libp2p_path};
-      libp2p_file << seed.toHex();
+      libp2p_file << kagome::common::hex_lower_0x(seed.unsafeBytes());
     }
   }
 

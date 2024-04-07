@@ -22,16 +22,4 @@ namespace kagome::common {
     // Ctor for test purposes
     MainThreadPool(TestThreadPool test) : ThreadPool{test} {}
   };
-
-  class MainPoolHandler final : public PoolHandler {
-   public:
-    MainPoolHandler(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<MainThreadPool> thread_pool)
-        : PoolHandler(thread_pool->io_context()) {
-      BOOST_ASSERT(app_state_manager);
-      start();
-      app_state_manager->takeControl(*this);
-    }
-  };
 }  // namespace kagome::common

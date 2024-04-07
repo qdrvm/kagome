@@ -18,7 +18,7 @@
 #include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
@@ -48,8 +48,8 @@ namespace kagome::network {
       std::shared_ptr<runtime::BeefyApi> beefy_api,
       std::shared_ptr<crypto::EcdsaProvider> ecdsa,
       std::shared_ptr<storage::SpacedStorage> db,
-      std::shared_ptr<common::MainPoolHandler> main_thread_handler,
-      std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
+      common::MainThreadPool &main_thread_pool,
+      BeefyThreadPool &beefy_thread_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -59,11 +59,8 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        main_pool_handler_(std::move(main_thread_handler)),
-        beefy_pool_handler_{[&] {
-          BOOST_ASSERT(beefy_thread_pool != nullptr);
-          return beefy_thread_pool->handler();
-        }()},
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        beefy_pool_handler_{beefy_thread_pool.handler(app_state_manager)},
         scheduler_{std::move(scheduler)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
@@ -249,17 +246,12 @@ namespace kagome::network {
   }
 
   void BeefyImpl::start() {
-    beefy_pool_handler_->start();
     beefy_pool_handler_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
     });
     setTimer();
-  }
-
-  void BeefyImpl::stop() {
-    beefy_pool_handler_->stop();
   }
 
   bool BeefyImpl::hasJustification(primitives::BlockNumber block) const {

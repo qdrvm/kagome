@@ -139,6 +139,8 @@ namespace kagome::network {
     /** @see PeerManager::getPeerState */
     std::optional<std::reference_wrapper<PeerState>> getPeerState(
         const PeerId &peer_id) override;
+    std::optional<std::reference_wrapper<const PeerState>> getPeerState(
+        const PeerId &peer_id) const override;
 
     void enumeratePeerState(const PeersCallback &callback) override;
 

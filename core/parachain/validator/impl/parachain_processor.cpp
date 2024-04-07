@@ -96,10 +96,10 @@ namespace kagome::parachain {
       std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -109,7 +109,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
@@ -117,7 +117,7 @@ namespace kagome::parachain {
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         pvf_(std::move(pvf)),
@@ -131,7 +131,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -150,7 +150,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(prospective_parachains_);
     BOOST_ASSERT(our_current_state_.implicit_view);
@@ -593,11 +593,19 @@ namespace kagome::parachain {
       return;
     }
 
-    [[maybe_unused]] const auto _ =
-        prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-            .new_head = {event.new_head},
-            .lost = event.lost,
-        });
+    if (const auto r =
+            prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+                .new_head = {event.new_head},
+                .lost = event.lost,
+            });
+        r.has_error()) {
+      SL_WARN(
+          logger_,
+          "Prospective parachains leaf update failed. (relay_parent={}, error={})",
+          relay_parent,
+          r.error().message());
+    }
+
     backing_store_->onActivateLeaf(relay_parent);
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
@@ -745,7 +753,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::broadcastViewExcept(
       const libp2p::peer::PeerId &peer_id, const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(
         router_->getValidationProtocolVStaging(),
@@ -786,7 +794,8 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(msg);
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          msg);
       SL_TRACE(
           logger_,
           "Broadcasting view update to group.(relay_parent={}, group_size={})",
@@ -805,7 +814,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
@@ -2991,18 +3000,28 @@ namespace kagome::parachain {
             core,
             [&](const network::ScheduledCore &scheduled_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
-              return prospective_parachains_->answerGetBackableCandidate(
-                  relay_parent, scheduled_core.para_id, {});
+              if (auto i = prospective_parachains_->answerGetBackableCandidates(
+                      relay_parent, scheduled_core.para_id, 1, {});
+                  !i.empty()) {
+                return i[0];
+              }
+              return std::nullopt;
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
               /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
-                return prospective_parachains_->answerGetBackableCandidate(
-                    relay_parent,
-                    occupied_core.next_up_on_available->para_id,
-                    {occupied_core.candidate_hash});
+                if (auto i =
+                        prospective_parachains_->answerGetBackableCandidates(
+                            relay_parent,
+                            occupied_core.next_up_on_available->para_id,
+                            1,
+                            {occupied_core.candidate_hash});
+                    !i.empty()) {
+                  return i[0];
+                }
+                return std::nullopt;
               }
               return std::nullopt;
             },
@@ -3546,7 +3565,7 @@ namespace kagome::parachain {
         peer_id,
         protocol,
         std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{.view = my_view->get().view}));
   }
 
@@ -4296,6 +4315,7 @@ namespace kagome::parachain {
                                      *our_current_state_.implicit_view,
                                      our_current_state_.active_leaves,
                                      peer_data.collator_state->para_id)) {
+      SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
     }
 

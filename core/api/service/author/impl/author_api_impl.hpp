@@ -30,7 +30,7 @@ namespace kagome::blockchain {
   class BlockTree;
 }
 namespace kagome::crypto {
-  class CryptoStore;
+  class KeyStore;
   class Hasher;
   class KeyFileStorage;
   class SessionKeys;
@@ -70,7 +70,7 @@ namespace kagome::api {
      */
     AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
                   sptr<transaction_pool::TransactionPool> pool,
-                  sptr<crypto::CryptoStore> store,
+                  sptr<crypto::KeyStore> store,
                   sptr<crypto::SessionKeys> keys,
                   sptr<crypto::KeyFileStorage> key_store,
                   LazySPtr<blockchain::BlockTree> block_tree,
@@ -83,7 +83,7 @@ namespace kagome::api {
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<void> insertKey(crypto::KeyType key_type,
-                                    const BufferView &seed,
+                                    crypto::SecureBuffer<> seed,
                                     const BufferView &public_key) override;
 
     outcome::result<common::Buffer> rotateKeys() override;
@@ -108,7 +108,7 @@ namespace kagome::api {
    private:
     sptr<runtime::SessionKeysApi> keys_api_;
     sptr<transaction_pool::TransactionPool> pool_;
-    sptr<crypto::CryptoStore> store_;
+    sptr<crypto::KeyStore> store_;
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
     LazySPtr<api::ApiService> api_service_;

@@ -16,8 +16,8 @@
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -82,7 +82,8 @@ namespace {
   }
 
   void computeVrfModuloAssignments(
-      const kagome::common::Buffer &keypair_buf,
+      std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+          keypair_buf,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const std::vector<kagome::parachain::CoreIndex> &lc,
@@ -136,7 +137,8 @@ namespace {
   }
 
   void computeVrfDelayAssignments(
-      const kagome::common::Buffer &keypair_buf,
+      std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+          keypair_buf,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const std::vector<kagome::parachain::CoreIndex> &lc,
@@ -334,7 +336,7 @@ namespace {
       const kagome::parachain::ApprovalDistribution::CandidateEntry
           &candidate_entry,
       const kagome::parachain::approval::RequiredTranches &required_tranches,
-      kagome::network::DelayTranche const tranche_now) {
+      const kagome::network::DelayTranche tranche_now) {
     if (!approval_entry.our_assignment) {
       return false;
     }
@@ -440,11 +442,11 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+      application::AppStateManager &app_state_manager,
+      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
-      std::shared_ptr<crypto::CryptoStore> keystore,
+      std::shared_ptr<crypto::KeyStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -454,14 +456,12 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
-      std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      ApprovalThreadPool &approval_thread_pool,
+      common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : approval_thread_handler_{[&] {
-          BOOST_ASSERT(approval_thread_pool != nullptr);
-          return approval_thread_pool->handler();
-        }()},
-        worker_pool_handler_(std::move(worker_pool_handler)),
+      : approval_thread_handler_{approval_thread_pool.handler(
+          app_state_manager)},
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -476,11 +476,11 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                approval_thread_pool->io_context()),
+                approval_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
@@ -498,8 +498,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
 
-    BOOST_ASSERT(app_state_manager);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool ApprovalDistribution::prepare() {
@@ -551,14 +550,6 @@ namespace kagome::parachain {
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
-  }
-
-  void ApprovalDistribution::start() {
-    approval_thread_handler_->start();
-  }
-
-  void ApprovalDistribution::stop() {
-    approval_thread_handler_->stop();
   }
 
   void ApprovalDistribution::store_remote_view(
@@ -626,11 +617,11 @@ namespace kagome::parachain {
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
-      if (auto res = keystore->findSr25519Keypair(
+      if (auto res = keystore->sr25519().findKeypair(
               crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
@@ -642,7 +633,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentsList
   ApprovalDistribution::compute_assignments(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const CandidateIncludedList &leaving_cores) {
@@ -651,13 +642,13 @@ namespace kagome::parachain {
       return {};
     }
 
-    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config);
-    if (!founded_key) {
+    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>> found_key =
+        findAssignmentKey(keystore, config);
+    if (!found_key) {
       return {};
     }
 
-    const auto &[validator_ix, assignments_key] = *founded_key;
+    const auto &[validator_ix, assignments_key] = *found_key;
     std::vector<CoreIndex> lc;
     for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
          leaving_cores) {
@@ -667,8 +658,12 @@ namespace kagome::parachain {
       lc.push_back(core_ix);
     }
 
-    common::Buffer keypair_buf{};
-    keypair_buf.put(assignments_key.secret_key).put(assignments_key.public_key);
+    common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
+    crypto::SecureCleanGuard g{keypair_buf};
+    std::ranges::copy(assignments_key.secret_key.unsafeBytes(),
+                      keypair_buf.begin());
+    std::ranges::copy(assignments_key.public_key,
+                      keypair_buf.begin() + crypto::Sr25519SecretKey::size());
 
     std::unordered_map<CoreIndex, ApprovalDistribution::OurAssignment>
         assignments;
@@ -2357,8 +2352,8 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KeyTypes::PARACHAIN, pubkey);
-    if (key_pair.has_error()) {
+        keystore_->sr25519().findKeypair(crypto::KeyTypes::PARACHAIN, pubkey);
+    if (!key_pair) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;
     }

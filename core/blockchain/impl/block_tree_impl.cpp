@@ -126,7 +126,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler) {
+      common::MainThreadPool &main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -285,7 +285,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
                           state_pruner,
-                          std::move(main_pool_handler)));
+                          main_thread_pool));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -421,7 +421,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
@@ -435,7 +435,7 @@ namespace kagome::blockchain {
           .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
-        main_pool_handler_(std::move(main_pool_handler)) {
+        main_pool_handler_{main_thread_pool.handlerStarted()} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);

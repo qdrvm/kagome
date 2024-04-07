@@ -26,6 +26,8 @@ using kagome::crypto::EcdsaSeed;
 using kagome::crypto::EcdsaSignature;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureBuffer;
+using kagome::crypto::SecureCleanGuard;
 
 struct EcdsaProviderTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -39,8 +41,9 @@ struct EcdsaProviderTest : public ::testing::Test {
   }
 
   auto generate() {
-    EcdsaSeed seed;
-    csprng->fillRandomly(seed);
+    SecureBuffer<> seed_buf(EcdsaSeed::size());
+    csprng->fillRandomly(seed_buf);
+    auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
     return ecdsa_provider_->generateKeypair(seed, {}).value();
   }
 
@@ -109,10 +112,9 @@ TEST_F(EcdsaProviderTest, Junctions) {
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {
     auto bip = bip_provider.generateSeed(phrase).value();
-    auto keys =
-        ecdsa_provider_
-            ->generateKeypair(bip.as<EcdsaSeed>().value(), bip.junctions)
-            .value();
+    auto keys = ecdsa_provider_
+                    ->generateKeypair(EcdsaSeed::from(bip.seed), bip.junctions)
+                    .value();
     EXPECT_EQ(keys.public_key.toHex(), pub_str);
   };
   f("//Alice",
@@ -126,7 +128,8 @@ TEST_F(EcdsaProviderTest, Junctions) {
 TEST_F(EcdsaProviderTest, Compatible) {
   auto seed =
       EcdsaSeed::fromHex(
-          "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+          SecureCleanGuard{std::string(
+              "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")})
           .value();
   auto keys = ecdsa_provider_->generateKeypair(seed, {}).value();
   auto sig =

@@ -51,6 +51,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
       return "Can't get best prevote candidate";
     case E::ROUND_IS_NOT_FINALIZABLE:
       return "Round is not finalizable";
+    case E::CANT_MAKE_ANCESTRY:
+      return "Can't make ancestry";
   }
   return "Unknown error (invalid VotingRoundError)";
 }

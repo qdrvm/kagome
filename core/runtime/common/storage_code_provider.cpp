@@ -31,7 +31,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
   }
 
-  outcome::result<common::BufferView> StorageCodeProvider::getCodeAt(
+  RuntimeCodeProvider::Result StorageCodeProvider::getCodeAt(
       const storage::trie::RootHash &state) const {
     std::unique_lock lock{mutex_};
     if (last_state_root_ != state) {
@@ -42,13 +42,14 @@ namespace kagome::runtime {
           OUTCOME_TRY(
               code,
               chain_spec_->fetchCodeSubstituteByBlockInfo(block_info.value()));
-          OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
-          return cached_code_;
+          common::Buffer code2;
+          OUTCOME_TRY(uncompressCodeIfNeeded(code, code2));
+          return std::make_shared<common::Buffer>(std::move(code2));
         }
       }
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
       OUTCOME_TRY(code, setCodeFromBatch(*batch.get()));
-      cached_code_ = std::move(code);
+      cached_code_ = std::make_shared<common::Buffer>(std::move(code));
       last_state_root_ = state;
     }
     return cached_code_;

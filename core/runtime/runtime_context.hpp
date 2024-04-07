@@ -52,8 +52,7 @@ namespace kagome::runtime {
 
     struct ContextParams {
       SCALE_TIE(1);
-      MemoryLimits memory_limits{.max_stack_values_num = DEFAULT_STACK_MAX,
-                                 .max_memory_pages_num = {}};
+      MemoryLimits memory_limits;
     };
 
     const std::shared_ptr<ModuleInstance> module_instance;
@@ -160,3 +159,5 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+SCALE_TIE_HASH_STD(kagome::runtime::RuntimeContext::ContextParams);

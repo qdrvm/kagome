@@ -20,13 +20,13 @@ namespace kagome::consensus::grandpa {
 
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<AuthorityManager> authority_manager,
       LazySPtr<network::Synchronizer> synchronizer,
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
-      : main_pool_handler_(std::move(main_pool_handler)),
+      : main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         synchronizer_{std::move(synchronizer)},

@@ -15,8 +15,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<consensus::babe::BabeConfiguration> BabeApiImpl::configuration(
-      const primitives::BlockHash &block) {
+  outcome::result<consensus::babe::BabeConfiguration>
+  BabeApiImpl::configuration(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<consensus::babe::BabeConfiguration>(
         ctx, "BabeApi_configuration");
@@ -27,4 +27,29 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<consensus::babe::Epoch>(ctx, "BabeApi_next_epoch");
   }
+
+  outcome::result<std::optional<consensus::babe::OpaqueKeyOwnershipProof>>
+  BabeApiImpl::generate_key_ownership_proof(
+      const primitives::BlockHash &block_hash,
+      consensus::SlotNumber slot,
+      consensus::babe::AuthorityId authority_id) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_
+        ->call<std::optional<consensus::babe::OpaqueKeyOwnershipProof>>(
+            ctx, "BabeApi_generate_key_ownership_proof", slot, authority_id);
+  }
+
+  outcome::result<void>
+  BabeApiImpl::submit_report_equivocation_unsigned_extrinsic(
+      const primitives::BlockHash &block_hash,
+      consensus::babe::EquivocationProof equivocation_proof,
+      consensus::babe::OpaqueKeyOwnershipProof key_owner_proof) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_->call<void>(
+        ctx,
+        "BabeApi_submit_report_equivocation_unsigned_extrinsic",
+        equivocation_proof,
+        key_owner_proof);
+  }
+
 }  // namespace kagome::runtime

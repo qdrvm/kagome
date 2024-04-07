@@ -14,7 +14,7 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/batches.hpp"
@@ -52,7 +52,7 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus {
@@ -106,7 +106,7 @@ namespace kagome::dispute {
 
     DisputeCoordinatorImpl(
         std::shared_ptr<application::ChainSpec> chain_spec,
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         clock::SystemClock &system_clock,
         clock::SteadyClock &steady_clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -122,15 +122,13 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-        std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+        common::MainThreadPool &main_thread_pool,
+        DisputeThreadPool &dispute_thread_pool,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::Timeline> timeline);
 
     bool prepare();
-    bool start();
-    void stop();
 
     void onDisputeRequest(const libp2p::peer::PeerId &peer_id,
                           const network::DisputeMessage &request,
@@ -273,7 +271,6 @@ namespace kagome::dispute {
 
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     clock::SystemClock &system_clock_;
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -292,7 +289,7 @@ namespace kagome::dispute {
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandler> dispute_thread_handler_;
 
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;

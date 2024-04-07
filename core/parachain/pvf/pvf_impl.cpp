@@ -16,8 +16,9 @@
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
+#include "parachain/pvf/session_params.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/runtime_instances_pool.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
@@ -136,8 +137,8 @@ namespace kagome::parachain {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
-      std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
+      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<runtime::InstrumentWasm> instrument,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -149,14 +150,16 @@ namespace kagome::parachain {
         io_context_{std::move(io_context)},
         scheduler_{std::move(scheduler)},
         hasher_{std::move(hasher)},
-        runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_tree_{std::move(block_tree)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
-        runtime_cache_{std::move(instance_pool)},
+        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
+            std::move(module_factory),
+            std::move(instrument),
+            config_.runtime_instance_cache_size)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
@@ -290,26 +293,9 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    auto &parent_hash = receipt.descriptor.relay_parent;
-    OUTCOME_TRY(session_index,
-                parachain_api_->session_index_for_child(parent_hash));
     OUTCOME_TRY(
-        session_params,
-        parachain_api_->session_executor_params(parent_hash, session_index));
-
-    runtime::RuntimeContext::ContextParams executor_params{};
-    if (session_params) {
-      for (auto &param : *session_params) {
-        if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
-          executor_params.memory_limits.max_stack_values_num =
-              stack_max->max_values_num;
-        } else if (auto *pages_max =
-                       get_if<runtime::MaxMemoryPages>(&param)) {
-          executor_params.memory_limits.max_memory_pages_num =
-              pages_max->limit;
-        }
-      }
-    }
+        executor_params,
+        sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
 
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {

@@ -28,7 +28,7 @@
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/grandpa/voting_round_update.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
@@ -66,7 +66,7 @@ namespace kagome::consensus::grandpa {
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -79,8 +79,8 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool)
+      common::MainThreadPool &main_thread_pool,
+      GrandpaThreadPool &grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -94,14 +94,11 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_(std::move(main_pool_handler)),
-        grandpa_pool_handler_{[&] {
-          BOOST_ASSERT(grandpa_thread_pool != nullptr);
-          return grandpa_thread_pool->handler();
-        }()},
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        grandpa_pool_handler_{grandpa_thread_pool.handler(app_state_manager)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                grandpa_thread_pool->io_context()),
+                grandpa_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -113,8 +110,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(grandpa_pool_handler_ != nullptr);
 
-    BOOST_ASSERT(app_state_manager != nullptr);
-
     // Register metrics
     metrics_registry_->registerGaugeFamily(highestGrandpaRoundMetricName,
                                            "Highest GRANDPA round");
@@ -124,12 +119,10 @@ namespace kagome::consensus::grandpa {
 
     // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool GrandpaImpl::start() {
-    grandpa_pool_handler_->start();
-
     if (!grandpa_pool_handler_->isInCurrentThread()) {
       grandpa_pool_handler_->execute([wptr{weak_from_this()}] {
         if (auto self = wptr.lock()) {
@@ -220,7 +213,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    grandpa_pool_handler_->stop();
     fallback_timer_handle_.cancel();
   }
 
@@ -823,7 +815,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*current_round_, &grandpa_context};
+    VotingRoundUpdate update{*current_round_, grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
@@ -1026,7 +1018,7 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*target_round, &grandpa_context, true};
+    VotingRoundUpdate update{*target_round, grandpa_context, true};
     update.vote(msg.vote);
     update.update();
 

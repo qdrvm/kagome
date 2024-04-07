@@ -13,7 +13,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "runtime/runtime_properties_cache.hpp"
 
 namespace boost::asio {
   class io_context;
@@ -35,6 +34,7 @@ namespace kagome::blockchain {
 namespace kagome::runtime {
   class ModuleInstance;
   class ModuleFactory;
+  class InstrumentWasm;
   class Executor;
   class RuntimeContextFactory;
   class RuntimeInstancesPool;
@@ -70,8 +70,8 @@ namespace kagome::parachain {
     std::optional<ParachainRuntime> new_validation_code;
     std::vector<UpwardMessage> upward_messages;
     std::vector<network::OutboundHorizontal> horizontal_messages;
-    uint32_t processed_downward_messages;
-    BlockNumber hrmp_watermark;
+    uint32_t processed_downward_messages{};
+    BlockNumber hrmp_watermark{};
   };
 
   class PvfImpl : public Pvf, public std::enable_shared_from_this<PvfImpl> {
@@ -79,7 +79,6 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       size_t runtime_instance_cache_size{16};
-      size_t max_stack_depth{};
       unsigned precompile_threads_num{1};
     };
 
@@ -87,9 +86,8 @@ namespace kagome::parachain {
             std::shared_ptr<boost::asio::io_context> io_context,
             std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::unique_ptr<runtime::RuntimeInstancesPool> instance_pool,
-            std::shared_ptr<runtime::RuntimePropertiesCache>
-                runtime_properties_cache,
+            std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::shared_ptr<runtime::InstrumentWasm> instrument,
             std::shared_ptr<blockchain::BlockTree> block_tree,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -131,7 +129,6 @@ namespace kagome::parachain {
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;

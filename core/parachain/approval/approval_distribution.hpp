@@ -21,8 +21,8 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/crypto_store/key_file_storage.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
@@ -42,8 +42,8 @@ namespace kagome {
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
-  class WorkerPoolHandler;
+  class MainThreadPool;
+  class WorkerThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::consensus::babe {
@@ -269,11 +269,11 @@ namespace kagome::parachain {
 
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+        application::AppStateManager &app_state_manager,
+        common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<crypto::CryptoStore> keystore,
+        std::shared_ptr<crypto::KeyStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -283,22 +283,20 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        ApprovalThreadPool &approval_thread_pool,
+        common::MainThreadPool &main_thread_pool,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
     bool prepare();
-    void start();
-    void stop();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
 
     static AssignmentsList compute_assignments(
-        const std::shared_ptr<crypto::CryptoStore> &keystore,
+        const std::shared_ptr<crypto::KeyStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
         const CandidateIncludedList &leaving_cores);
@@ -585,7 +583,7 @@ namespace kagome::parachain {
         const runtime::SessionInfo &session_info);
 
     static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-    findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
+    findAssignmentKey(const std::shared_ptr<crypto::KeyStore> &keystore,
                       const runtime::SessionInfo &config);
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
@@ -712,11 +710,11 @@ namespace kagome::parachain {
     ApprovingContextMap approving_context_map_;
     std::shared_ptr<PoolHandler> approval_thread_handler_;
 
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    std::shared_ptr<PoolHandler> worker_pool_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
-    std::shared_ptr<crypto::CryptoStore> keystore_;
+    std::shared_ptr<crypto::KeyStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
@@ -738,7 +736,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "log/logger.hpp"
+#include <functional>
+#include <stdexcept>
+#include <string>
 
 namespace kagome::application {
 
