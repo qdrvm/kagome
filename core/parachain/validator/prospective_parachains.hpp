@@ -76,9 +76,19 @@ namespace kagome::parachain {
     std::vector<std::pair<ParachainId, BlockNumber>>
     answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const {
       std::vector<std::pair<ParachainId, BlockNumber>> v;
+      SL_TRACE(logger,
+               "Search for minimum relay parents. (relay_parent={})",
+               relay_parent);
+
       auto it = view.active_leaves.find(relay_parent);
       if (it != view.active_leaves.end()) {
         const RelayBlockViewData &leaf_data = it->second;
+        SL_TRACE(
+            logger,
+            "Found active list. (relay_parent={}, fragment_trees_count={})",
+            relay_parent,
+            leaf_data.fragment_trees.size());
+
         for (const auto &[para_id, fragment_tree] : leaf_data.fragment_trees) {
           v.emplace_back(para_id,
                          fragment_tree.scope.earliestRelayParent().number);
@@ -87,9 +97,10 @@ namespace kagome::parachain {
       return v;
     }
 
-    std::optional<std::pair<CandidateHash, Hash>> answerGetBackableCandidate(
+    std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
         const RelayHash &relay_parent,
         ParachainId para,
+        uint32_t count,
         const std::vector<CandidateHash> &required_path) {
       SL_TRACE(logger,
                "Search for backable candidates. (para_id={}, "
@@ -103,7 +114,7 @@ namespace kagome::parachain {
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
-        return std::nullopt;
+        return {};
       }
       const RelayBlockViewData &data = data_it->second;
 
@@ -114,7 +125,7 @@ namespace kagome::parachain {
                  "(relay_parent={}, para_id={})",
                  relay_parent,
                  para);
-        return std::nullopt;
+        return {};
       }
       const fragment::FragmentTree &tree = tree_it->second;
 
@@ -125,40 +136,51 @@ namespace kagome::parachain {
                 "para_id={})",
                 relay_parent,
                 para);
-        return std::nullopt;
+        return {};
       }
       const fragment::CandidateStorage &storage = storage_it->second;
 
-      auto child_hash = tree.selectChild(
-          required_path, [&](const CandidateHash &candidate) -> bool {
+      std::vector<std::pair<CandidateHash, Hash>> backable_candidates;
+      const auto children = tree.selectChildren(
+          required_path, count, [&](const CandidateHash &candidate) -> bool {
             return storage.isBacked(candidate);
           });
-      if (!child_hash) {
+      for (const auto &child_hash : children) {
+        if (auto parent_hash_opt =
+                storage.relayParentByCandidateHash(child_hash)) {
+          backable_candidates.emplace_back(child_hash, *parent_hash_opt);
+        } else {
+          SL_ERROR(
+              logger,
+              "Candidate is present in fragment tree but not in candidate's storage! (child_hash={}, para_id={})",
+              child_hash,
+              para);
+        }
+      }
+
+      if (backable_candidates.empty()) {
+        SL_TRACE(
+            logger,
+            "Could not find any backable candidate. (relay_parent={}, para_id={})",
+            relay_parent,
+            para);
+      } else {
         SL_TRACE(logger,
-                 "Child hash is null. (para_id={}, "
-                 "relay_parent={})",
-                 para,
-                 relay_parent);
-        return std::nullopt;
-      }
-
-      auto candidate_relay_parent =
-          storage.relayParentByCandidateHash(*child_hash);
-      if (!candidate_relay_parent) {
-        SL_ERROR(logger,
-                 "Candidate is present in fragment tree but not in candidate's "
-                 "storage! (relay_parent={}, para_id={}, child_hash={})",
+                 "Found backable candidates. (relay_parent={}, count={})",
                  relay_parent,
-                 para,
-                 *child_hash);
-        return std::nullopt;
+                 backable_candidates.size());
       }
 
-      return std::make_pair(*child_hash, *candidate_relay_parent);
+      return backable_candidates;
     }
 
     fragment::FragmentTreeMembership answerTreeMembershipRequest(
         ParachainId para, const CandidateHash &candidate) {
+      SL_TRACE(logger,
+               "Answer tree membership request. "
+               "(para_id={}, candidate_hash={})",
+               para,
+               candidate);
       return fragmentTreeMembership(view.active_leaves, para, candidate);
     }
 
@@ -315,12 +337,32 @@ namespace kagome::parachain {
 
       OUTCOME_TRY(
           hashes,
-          block_tree_->getDescendingChainToBlock(relay_hash, ancestors));
+          block_tree_->getDescendingChainToBlock(relay_hash, ancestors + 1));
+
+      if (logger->level() >= soralog::Level::TRACE) {
+        for (const auto &h : hashes) {
+          SL_TRACE(logger,
+                   "Ancestor hash. "
+                   "(relay_hash={}, ancestor_hash={})",
+                   relay_hash,
+                   h);
+        }
+      }
+
       OUTCOME_TRY(required_session,
                   parachain_host_->session_index_for_child(relay_hash));
+      SL_TRACE(logger,
+               "Get ancestors. "
+               "(relay_hash={}, ancestors={}, hashes_len={})",
+               relay_hash,
+               ancestors,
+               hashes.size());
 
-      block_info.reserve(hashes.size());
-      for (const auto &hash : hashes) {
+      if (hashes.size() > 1) {
+        block_info.reserve(hashes.size() - 1);
+      }
+      for (size_t i = 1; i < hashes.size(); ++i) {
+        const auto &hash = hashes[i];
         OUTCOME_TRY(info, fetchBlockInfo(hash));
         if (!info) {
           SL_WARN(logger,
@@ -331,8 +373,18 @@ namespace kagome::parachain {
         }
         OUTCOME_TRY(session, parachain_host_->session_index_for_child(hash));
         if (session == required_session) {
+          SL_TRACE(logger,
+                   "Add block. "
+                   "(relay_hash={}, hash={})",
+                   relay_hash,
+                   hash);
           block_info.emplace_back(*info);
         } else {
+          SL_TRACE(logger,
+                   "Skipped block. "
+                   "(relay_hash={}, hash={})",
+                   relay_hash,
+                   hash);
           break;
         }
       }
@@ -389,6 +441,9 @@ namespace kagome::parachain {
     outcome::result<void> onActiveLeavesUpdate(
         const network::ExViewRef &update) {
       for (const auto &deactivated : update.lost) {
+        SL_TRACE(logger,
+                 "Remove from active leaves. (relay_parent={})",
+                 deactivated);
         view.active_leaves.erase(deactivated);
       }
 
@@ -418,10 +473,12 @@ namespace kagome::parachain {
         };
 
         OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
+
         std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
         for (ParachainId para : scheduled_paras) {
           auto &candidate_storage = view.candidate_storage[para];
           OUTCOME_TRY(backing_state, fetchBackingState(hash, para));
+
           if (!backing_state) {
             SL_TRACE(logger,
                      "Failed to get inclusion backing state. (para={}, relay "
@@ -472,11 +529,19 @@ namespace kagome::parachain {
                                                      compact_pending,
                                                      mode->max_candidate_depth,
                                                      ancestry));
+
+          SL_TRACE(logger,
+                   "Create fragment. "
+                   "(relay_parent={}, para={}, min_relay_parent={})",
+                   hash,
+                   para,
+                   scope.earliestRelayParent().number);
           fragment_trees.emplace(para,
                                  fragment::FragmentTree::populate(
                                      hasher_, scope, candidate_storage));
         }
 
+        SL_TRACE(logger, "Insert active leave. (relay parent={})", hash);
         view.active_leaves.emplace(
             hash, RelayBlockViewData{fragment_trees, pending_availability});
       }
