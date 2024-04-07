@@ -141,12 +141,11 @@ namespace kagome::parachain {
       const fragment::CandidateStorage &storage = storage_it->second;
 
       std::vector<std::pair<CandidateHash, Hash>> backable_candidates;
-      for (const auto &child_hash :
-           tree.selectChildren(required_path,
-                               count,
-                               [&](const CandidateHash &candidate) -> bool {
-                                 return storage.isBacked(candidate);
-                               })) {
+      const auto children = tree.selectChildren(
+          required_path, count, [&](const CandidateHash &candidate) -> bool {
+            return storage.isBacked(candidate);
+          });
+      for (const auto &child_hash : children) {
         if (auto parent_hash_opt =
                 storage.relayParentByCandidateHash(child_hash)) {
           backable_candidates.emplace_back(child_hash, *parent_hash_opt);
@@ -339,12 +338,15 @@ namespace kagome::parachain {
       OUTCOME_TRY(
           hashes,
           block_tree_->getDescendingChainToBlock(relay_hash, ancestors + 1));
-      for (const auto &h : hashes) {
-        SL_TRACE(logger,
-                 "Ancestor hash. "
-                 "(relay_hash={}, ancestor_hash={})",
-                 relay_hash,
-                 h);
+
+      if (logger->level() >= soralog::Level::TRACE) {
+        for (const auto &h : hashes) {
+          SL_TRACE(logger,
+                   "Ancestor hash. "
+                   "(relay_hash={}, ancestor_hash={})",
+                   relay_hash,
+                   h);
+        }
       }
 
       OUTCOME_TRY(required_session,

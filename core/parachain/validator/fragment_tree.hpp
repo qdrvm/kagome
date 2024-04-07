@@ -533,6 +533,21 @@ namespace kagome::parachain::fragment {
       return res;
     }
 
+    /**
+     * @brief Select `count` candidates after the given `required_path` which
+     * pass	the predicate and have not already been backed on chain.
+     * Does an exhaustive search into the tree starting after `required_path`.
+     * If there are multiple possibilities of size `count`, this will select the
+     * first one.	If there is no chain of size `count` that matches the
+     * criteria, this will return the largest	chain it could find with the
+     * criteria.	If there are no candidates meeting those criteria,
+     * returns an empty `Vec`.	Cycles are accepted, see module docs for the
+     * `Cycles` section.		The intention of the `required_path` is
+     * to allow queries on the basis of	one or more candidates which were
+     * previously pending availability becoming	available and opening up more
+     * room on the core.
+     */
+
     template <typename Func>
     std::vector<CandidateHash> selectChildren(
         const std::vector<CandidateHash> &required_path,
@@ -552,6 +567,29 @@ namespace kagome::parachain::fragment {
           std::move(base_node), count, count, std::forward<Func>(pred), accum);
     }
 
+    /**
+     * @brief Try finding a candidate chain starting from `base_node` of length
+     * `expected_count`.	 If not possible, return the longest one we
+     * could find.	 Does a depth-first search, since we're optimistic that
+     * there won't be more than one such	 chains (parachains shouldn't
+     * usually have forks). So in the usual case, this will conclude	 in
+     * `O(expected_count)`.	 Cycles are accepted, but this doesn't allow for
+     * infinite execution time, because the maximum	 depth we'll reach is
+     * `expected_count`.		 Worst case performance is `O(num_forks
+     * ^ expected_count)`.	 Although an exponential function, this is
+     * actually a constant that can only be altered via	 sudo/governance,
+     * because:	 1. `num_forks` at a given level is at most `max_candidate_depth
+     * * max_validators_per_core`	    (because each validator in the
+     * assigned group can second `max_candidate_depth`	    candidates). The
+     * prospective-parachains subsystem assumes that the number of para forks is
+     * limited by collator-protocol and backing subsystems. In practice, this is
+     * a constant which	    can only be altered by sudo or governance.	 2.
+     * `expected_count` is equal to the number of cores a para is scheduled on
+     * (in an elastic	    scaling scenario). For non-elastic-scaling, this is
+     * just 1. In practice, this should be a	    small number (1-3), capped
+     * by the total number of available cores (a constant alterable	    only
+     * via governance/sudo).
+     */
     template <typename Func>
     std::vector<CandidateHash> selectChildrenInner(
         NodePointer base_node,
