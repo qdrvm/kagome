@@ -107,7 +107,7 @@ namespace kagome::dispute {
   }  // namespace
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
-      std::shared_ptr<application::ChainSpec> chain_spec,
+      const std::shared_ptr<application::ChainSpec>& chain_spec,
       application::AppStateManager &app_state_manager,
       clock::SystemClock &system_clock,
       clock::SteadyClock &steady_clock,
@@ -146,7 +146,7 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
-        timeline_(std::move(timeline)),
+        timeline_(timeline),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
@@ -1039,9 +1039,9 @@ namespace kagome::dispute {
     struct ImportResult {
       CandidateVoteState old_state;
       CandidateVoteState new_state;
-      size_t imported_invalid_votes;
-      size_t imported_valid_votes;
-      size_t imported_approval_votes;
+      size_t imported_invalid_votes{};
+      size_t imported_valid_votes{};
+      size_t imported_approval_votes{};
       std::vector<ValidatorIndex> new_invalid_voters;
     };
 

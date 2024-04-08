@@ -56,7 +56,7 @@ namespace {
   }
 
   kagome::network::Tick tickNow() {
-    return msNow() / kTickDurationMs;
+    return static_cast<int>(msNow() / kTickDurationMs);
   }
 
   kagome::parachain::approval::DelayTranche trancheNow(
@@ -323,9 +323,8 @@ namespace {
       if (n_approved + exact->tolerated_missing >= n_assigned) {
         return std::make_pair(exact->tolerated_missing,
                               exact->last_assignment_tick);
-      } else {
-        return kagome::parachain::approval::Unapproved{};
       }
+      return kagome::parachain::approval::Unapproved{};
     }
     UNREACHABLE;
   }
@@ -460,7 +459,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{approval_thread_pool.handler(
-          app_state_manager)},
+            app_state_manager)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
@@ -1189,7 +1188,7 @@ namespace kagome::parachain {
                  block_hash{head},
                  block_number,
                  finalized_block_number{updated.view.finalized_number_},
-                 parent_hash{std::move(parent_hash)},
+                 parent_hash{parent_hash},
                  func(std::forward<Func>(func))](
                     outcome::result<ImportedBlockInfo> &&block_info) mutable {
                   auto self = wself.lock();
@@ -1256,93 +1255,108 @@ namespace kagome::parachain {
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
-    auto on_recover_complete =
-        [wself{weak_from_this()},
-         hashed_candidate{hashed_candidate},
-         block_hash,
-         session_index,
-         validator_index,
-         relay_block_hash](
-            std::optional<outcome::result<runtime::AvailableData>>
-                &&opt_result) mutable {
-          auto self = wself.lock();
-          if (!self) {
-            return;
-          }
+    auto on_recover_complete = [wself{weak_from_this()},
+                                hashed_candidate{hashed_candidate},
+                                block_hash,
+                                session_index,
+                                validator_index,
+                                relay_block_hash](
+                                   std::optional<
+                                       outcome::result<runtime::AvailableData>>
+                                       &&opt_result) mutable {
+      auto self = wself.lock();
+      if (!self) {
+        return;
+      }
 
-          const auto &candidate_receipt = hashed_candidate.get();
-          if (!opt_result) {  // Unavailable
-            self->logger_->warn(
-                "No available parachain data.(session index={}, candidate "
-                "hash={}, relay block hash={})",
-                session_index,
-                hashed_candidate.getHash(),
-                relay_block_hash);
-            return;
-          }
+      const auto &candidate_receipt = hashed_candidate.get();
+      if (!opt_result) {  // Unavailable
+        self->logger_->warn(
+            "No available parachain data.(session index={}, candidate "
+            "hash={}, relay block hash={})",
+            session_index,
+            hashed_candidate.getHash(),
+            relay_block_hash);
+        return;
+      }
 
-          if (opt_result->has_error()) {
-            self->logger_->warn(
-                "Parachain data recovery failed.(error={}, session index={}, "
-                "candidate hash={}, relay block hash={})",
-                opt_result->error(),
-                session_index,
-                hashed_candidate.getHash(),
-                relay_block_hash);
-            self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index,
-                hashed_candidate.getHash(),
-                hashed_candidate.get(),
-                false);
-            return;
-          }
-          auto &available_data = opt_result->value();
-          auto result = self->parachain_host_->validation_code_by_hash(
-              block_hash, candidate_receipt.descriptor.validation_code_hash);
-          if (result.has_error() || !result.value()) {
-            self->logger_->warn(
-                "Approval state is failed. Block hash {}, session index {}, "
-                "validator index {}, relay parent {}",
-                block_hash,
-                session_index,
-                validator_index,
-                candidate_receipt.descriptor.relay_parent);
-            return;  /// ApprovalState::failed
-          }
+      if (opt_result->has_error()) {
+        self->logger_->warn(
+            "Parachain data recovery failed.(error={}, session index={}, "
+            "candidate hash={}, relay block hash={})",
+            opt_result->error(),
+            session_index,
+            hashed_candidate.getHash(),
+            relay_block_hash);
+        self->dispute_coordinator_.get()->issueLocalStatement(
+            session_index,
+            hashed_candidate.getHash(),
+            hashed_candidate.get(),
+            false);
+        return;
+      }
+      auto &available_data = opt_result->value();
+      auto result = self->parachain_host_->validation_code_by_hash(
+          block_hash, candidate_receipt.descriptor.validation_code_hash);
+      if (result.has_error() || !result.value()) {
+        self->logger_->warn(
+            "Approval state is failed. Block hash {}, session index {}, "
+            "validator index {}, relay parent {}",
+            block_hash,
+            session_index,
+            validator_index,
+            candidate_receipt.descriptor.relay_parent);
+        return;  /// ApprovalState::failed
+      }
 
-          self->logger_->info(
-              "Make exhaustive validation. Candidate hash {}, validator index "
-              "{}, block hash {}",
-              hashed_candidate.getHash(),
-              validator_index,
-              block_hash);
+      self->logger_->info(
+          "Make exhaustive validation. Candidate hash {}, validator index "
+          "{}, block hash {}",
+          hashed_candidate.getHash(),
+          validator_index,
+          block_hash);
 
-          runtime::ValidationCode &validation_code = *result.value();
+      runtime::ValidationCode &validation_code = *result.value();
 
-          auto outcome = self->validate_candidate_exhaustive(
-              available_data.validation_data,
-              available_data.pov,
-              candidate_receipt,
-              validation_code);
+      auto outcome =
+          self->validate_candidate_exhaustive(available_data.validation_data,
+                                              available_data.pov,
+                                              candidate_receipt,
+                                              validation_code);
 
-          self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-            if (auto it = approvals_cache.find(hashed_candidate.getHash());
-                it != approvals_cache.end()) {
-              ApprovalCache &ac = it->second;
-              ac.approval_result = outcome;
-            }
-          });
-          if (ApprovalOutcome::Approved == outcome) {
-            self->issue_approval(
-                hashed_candidate.getHash(), validator_index, relay_block_hash);
-          } else if (ApprovalOutcome::Failed == outcome) {
-            self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index,
-                hashed_candidate.getHash(),
-                candidate_receipt,
-                false);
-          }
-        };
+      self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+        if (auto it = approvals_cache.find(hashed_candidate.getHash());
+            it != approvals_cache.end()) {
+          ApprovalCache &ac = it->second;
+          ac.approval_result = outcome;
+        }
+      });
+      if (ApprovalOutcome::Approved == outcome) {
+        self->issue_approval(
+            hashed_candidate.getHash(), validator_index, relay_block_hash);
+      } else if (ApprovalOutcome::Failed == outcome) {
+        self->logger_->warn(
+            "Approval validation failed. Block hash {}, session index {}, "
+            "validator index {}, relay parent {}",
+            block_hash,
+            session_index,
+            validator_index,
+            candidate_receipt.descriptor.relay_parent);
+        self->dispute_coordinator_.get()->issueLocalStatement(
+            session_index,
+            hashed_candidate.getHash(),
+            candidate_receipt,
+            false);
+      } else if (ApprovalOutcome::TimedOut == outcome) {
+        self->logger_->warn(
+            "Approval validation timed out. Block hash {}, session index {}, "
+            "validator index {}, relay parent {}",
+            block_hash,
+            session_index,
+            validator_index,
+            candidate_receipt.descriptor.relay_parent);
+      }
+    };
 
     recovery_->recover(hashed_candidate,
                        session_index,
@@ -2448,9 +2462,10 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

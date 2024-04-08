@@ -105,7 +105,7 @@ namespace kagome::dispute {
     static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
 
     DisputeCoordinatorImpl(
-        std::shared_ptr<application::ChainSpec> chain_spec,
+        const std::shared_ptr<application::ChainSpec>& chain_spec,
         application::AppStateManager &app_state_manager,
         clock::SystemClock &system_clock,
         clock::SteadyClock &steady_clock,
@@ -297,7 +297,7 @@ namespace kagome::dispute {
     std::atomic_bool initialized_ = false;
 
     std::unique_ptr<ChainScraper> scraper_;
-    SessionIndex highest_session_;
+    SessionIndex highest_session_{};
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;
     std::unique_ptr<RollingSessionWindow> rolling_session_window_;
