@@ -55,13 +55,73 @@ namespace kagome::parachain::grid {
     network::vstaging::StatementFilter statement_knowledge;
   };
 
-  class ReceivedManifests;
-  struct KnownBackedCandidate;
+  class ReceivedManifests {
+    std::unordered_map<CandidateHash, ManifestSummary> received;
+    std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
+
+   public:
+    std::optional<network::vstaging::StatementFilter>
+    candidate_statement_filter(const CandidateHash &candidate_hash);
+
+    outcome::result<void> import_received(
+        size_t group_size,
+        size_t seconding_limit,
+        const CandidateHash &candidate_hash,
+        const ManifestSummary &manifest_summary);
+
+   private:
+    bool updating_ensure_within_seconding_limit(
+        std::unordered_map<GroupIndex, std::vector<size_t>> &seconded_counts,
+        GroupIndex group_index,
+        size_t group_size,
+        size_t seconding_limit,
+        const std::vector<bool> &fresh_seconded);
+  };
 
   struct MutualKnowledge {
     std::optional<network::vstaging::StatementFilter> remote_knowledge;
     std::optional<network::vstaging::StatementFilter> local_knowledge;
     std::optional<network::vstaging::StatementFilter> received_knowledge;
+  };
+
+  struct KnownBackedCandidate {
+    size_t group_index;
+    network::vstaging::StatementFilter local_knowledge;
+    std::unordered_map<ValidatorIndex, MutualKnowledge> mutual_knowledge;
+
+    bool has_received_manifest_from(size_t validator);
+    bool has_sent_manifest_to(size_t validator);
+    bool note_fresh_statement(
+        size_t statement_index_in_group,
+        const network::vstaging::StatementKind &statement_kind);
+    bool is_pending_statement(
+        size_t validator,
+        size_t statement_index_in_group,
+        const network::vstaging::StatementKind &statement_kind);
+
+    void manifest_sent_to(
+        size_t validator,
+        const network::vstaging::StatementFilter &local_knowledge);
+    void manifest_received_from(
+        ValidatorIndex validator,
+        const network::vstaging::StatementFilter &remote_knowledge);
+
+    void sent_or_received_direct_statement(
+        ValidatorIndex validator,
+        size_t statement_index_in_group,
+        const network::vstaging::StatementKind &statement_kind,
+        bool received);
+
+    std::vector<std::pair<ValidatorIndex, bool>> direct_statement_senders(
+        GroupIndex group_index,
+        size_t originator_index_in_group,
+        const network::vstaging::StatementKind &statement_kind);
+    std::vector<ValidatorIndex> direct_statement_recipients(
+        GroupIndex group_index,
+        size_t originator_index_in_group,
+        const network::vstaging::StatementKind &statement_kind);
+    std::optional<network::vstaging::StatementFilter> pending_statements(
+        size_t validator);
   };
 
   struct GridTracker {
@@ -146,69 +206,6 @@ namespace kagome::parachain::grid {
         std::unordered_set<
             std::pair<ValidatorIndex, network::vstaging::CompactStatement>>>
         pending_statements;
-  };
-
-  class ReceivedManifests {
-    std::unordered_map<CandidateHash, ManifestSummary> received;
-    std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
-
-   public:
-    std::optional<network::vstaging::StatementFilter>
-    candidate_statement_filter(const CandidateHash &candidate_hash);
-
-    std::optional<GridTracker::Error> import_received(
-        size_t group_size,
-        size_t seconding_limit,
-        const CandidateHash &candidate_hash,
-        const ManifestSummary &manifest_summary);
-
-   private:
-    bool updating_ensure_within_seconding_limit(
-        std::unordered_map<GroupIndex, std::vector<size_t>> &seconded_counts,
-        GroupIndex group_index,
-        size_t group_size,
-        size_t seconding_limit,
-        const std::vector<bool> &fresh_seconded);
-  };
-
-  struct KnownBackedCandidate {
-    size_t group_index;
-    network::vstaging::StatementFilter local_knowledge;
-    std::unordered_map<ValidatorIndex, MutualKnowledge> mutual_knowledge;
-
-    bool has_received_manifest_from(size_t validator);
-    bool has_sent_manifest_to(size_t validator);
-    bool note_fresh_statement(
-        size_t statement_index_in_group,
-        const network::vstaging::StatementKind &statement_kind);
-    bool is_pending_statement(
-        size_t validator,
-        size_t statement_index_in_group,
-        const network::vstaging::StatementKind &statement_kind);
-
-    void manifest_sent_to(
-        size_t validator,
-        const network::vstaging::StatementFilter &local_knowledge);
-    void manifest_received_from(
-        ValidatorIndex validator,
-        const network::vstaging::StatementFilter &remote_knowledge);
-
-    void sent_or_received_direct_statement(
-        ValidatorIndex validator,
-        size_t statement_index_in_group,
-        const network::vstaging::StatementKind &statement_kind,
-        bool received);
-
-    std::vector<std::pair<ValidatorIndex, bool>> direct_statement_senders(
-        GroupIndex group_index,
-        size_t originator_index_in_group,
-        const network::vstaging::StatementKind &statement_kind);
-    std::vector<ValidatorIndex> direct_statement_recipients(
-        GroupIndex group_index,
-        size_t originator_index_in_group,
-        const network::vstaging::StatementKind &statement_kind);
-    std::optional<network::vstaging::StatementFilter> pending_statements(
-        size_t validator);
   };
 
 }  // namespace kagome::parachain::grid

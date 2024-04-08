@@ -153,10 +153,11 @@ namespace kagome::parachain::grid {
     if (votes < backing_threshold) {
       return Error::INSUFFICIENT;
     }
-    if (auto error = received[sender].import_received(
-            group_size, seconding_limit, candidate_hash, manifest)) {
-      return *error;
-    }
+    OUTCOME_TRY(received[sender].import_received(
+        group_size, seconding_limit, candidate_hash, manifest));
+    //    if (auto error = ; error.has_error()) {
+    //      return error.error();
+    //    }
     bool ack = false;
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
@@ -555,7 +556,7 @@ namespace kagome::parachain::grid {
     return std::nullopt;
   }
 
-  std::optional<GridTracker::Error> ReceivedManifests::import_received(
+  outcome::result<void> ReceivedManifests::import_received(
       size_t group_size,
       size_t seconding_limit,
       const CandidateHash &candidate_hash,
@@ -599,7 +600,7 @@ namespace kagome::parachain::grid {
         return GridTracker::Error::OVERFLOW;
       }
       it->second = manifest_summary;
-      return {};  // Assuming this represents Ok(())
+      return outcome::success();
     } else {
       // Entry is vacant
       bool within_limits = updating_ensure_within_seconding_limit(
@@ -610,7 +611,7 @@ namespace kagome::parachain::grid {
           manifest_summary.statement_knowledge.seconded_in_group.bits);
       if (within_limits) {
         received[candidate_hash] = manifest_summary;
-        return {};
+        return outcome::success();
       } else {
         return GridTracker::Error::OVERFLOW;
       }

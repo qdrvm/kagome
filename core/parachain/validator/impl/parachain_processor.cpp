@@ -1654,6 +1654,11 @@ namespace kagome::parachain {
       return;
     }
 
+    SL_TRACE(
+        logger_,
+        "Handling incoming manifest common. (relay_parent={}, candidate_hash={})",
+        manifest.relay_parent,
+        manifest.candidate_hash);
     ManifestImportSuccessOpt x = handle_incoming_manifest_common(
         peer_id,
         manifest.candidate_hash,
@@ -1675,6 +1680,10 @@ namespace kagome::parachain {
                "Known candidate - acknowledging manifest. (candidate hash={})",
                manifest.candidate_hash);
 
+      SL_TRACE(logger_,
+               "Get groups. (relay_parent={}, candidate_hash={})",
+               manifest.relay_parent,
+               manifest.candidate_hash);
       auto group = relay_parent_state->get().groups->get(manifest.group_index);
       if (!group) {
         return;
@@ -1685,6 +1694,11 @@ namespace kagome::parachain {
                                  manifest.group_index,
                                  manifest.candidate_hash,
                                  *relay_parent_state->get().statement_store);
+      SL_TRACE(
+          logger_,
+          "Get ack and statement messages. (relay_parent={}, candidate_hash={})",
+          manifest.relay_parent,
+          manifest.candidate_hash);
       auto messages = acknowledgement_and_statement_messages(
           peer_id,
           network::CollationVersion::VStaging,
@@ -1700,6 +1714,10 @@ namespace kagome::parachain {
         return;
       }
 
+      SL_TRACE(logger_,
+               "Send messages. (relay_parent={}, candidate_hash={})",
+               manifest.relay_parent,
+               manifest.candidate_hash);
       auto se = pm_->getStreamEngine();
       for (auto &[peers, msg] : messages) {
         if (auto m =
@@ -1715,6 +1733,11 @@ namespace kagome::parachain {
         }
       }
     } else if (!candidates_.is_confirmed(manifest.candidate_hash)) {
+      SL_TRACE(
+          logger_,
+          "Request attested candidate. (relay_parent={}, candidate_hash={})",
+          manifest.relay_parent,
+          manifest.candidate_hash);
       request_attested_candidate(relay_parent_state->get(),
                                  manifest.relay_parent,
                                  manifest.candidate_hash,
@@ -1987,6 +2010,10 @@ namespace kagome::parachain {
     const auto seconding_limit =
         relay_parent_state.prospective_parachains_mode->max_candidate_depth + 1;
 
+    SL_TRACE(logger_,
+             "Form unwanted mask. (relay_parent={}, candidate_hash={})",
+             relay_parent,
+             candidate_hash);
     network::vstaging::StatementFilter unwanted_mask(group->size());
     for (size_t i = 0; i < group->size(); ++i) {
       const auto v = (*group)[i];
@@ -2005,48 +2032,78 @@ namespace kagome::parachain {
       return bt ? std::get<1>(*bt) : std::optional<size_t>{};
     }();
 
+    SL_TRACE(logger_,
+             "Enumerate peers. (relay_parent={}, candidate_hash={})",
+             relay_parent,
+             candidate_hash);
     std::optional<std::pair<network::vstaging::StatementFilter,
                             std::reference_wrapper<const libp2p::peer::PeerId>>>
         target;
-    pm_->enumeratePeerState(
-        [&](const libp2p::peer::PeerId &peer, network::PeerState &peer_state) {
-          auto audi = query_audi_->get(peer);
-          if (!audi) {
-            return true;
-          }
+    pm_->enumeratePeerState([&](const libp2p::peer::PeerId &peer,
+                                network::PeerState &peer_state) {
+      auto audi = query_audi_->get(peer);
+      if (!audi) {
+        SL_TRACE(logger_,
+                 "No audi. (relay_parent={}, candidate_hash={})",
+                 relay_parent,
+                 candidate_hash);
+        return true;
+      }
 
-          ValidatorIndex validator_id = 0;
-          for (; validator_id < opt_session_info->discovery_keys.size();
-               ++validator_id) {
-            if (opt_session_info->discovery_keys[validator_id] == *audi) {
-              break;
-            }
-          }
+      ValidatorIndex validator_id = 0;
+      for (; validator_id < opt_session_info->discovery_keys.size();
+           ++validator_id) {
+        if (opt_session_info->discovery_keys[validator_id] == *audi) {
+          SL_TRACE(logger_,
+                   "Captured validator. (relay_parent={}, candidate_hash={})",
+                   relay_parent,
+                   candidate_hash);
+          break;
+        }
+      }
 
-          auto filter = local_validator.grid_tracker.advertised_statements(
-              validator_id, candidate_hash);
-          if (!filter) {
-            return true;
-          }
+      auto filter = local_validator.grid_tracker.advertised_statements(
+          validator_id, candidate_hash);
+      if (!filter) {
+        SL_TRACE(logger_,
+                 "No filter. (relay_parent={}, candidate_hash={})",
+                 relay_parent,
+                 candidate_hash);
+        return true;
+      }
 
-          filter->mask_seconded(unwanted_mask.seconded_in_group);
-          filter->mask_valid(unwanted_mask.validated_in_group);
+      filter->mask_seconded(unwanted_mask.seconded_in_group);
+      filter->mask_valid(unwanted_mask.validated_in_group);
 
-          if (!backing_threshold
-              || (filter->has_seconded()
-                  && filter->backing_validators() >= *backing_threshold)) {
-            target.emplace(std::move(*filter), std::cref(peer));
-            return false;
-          }
+      if (!backing_threshold
+          || (filter->has_seconded()
+              && filter->backing_validators() >= *backing_threshold)) {
+        target.emplace(std::move(*filter), std::cref(peer));
+        return false;
+      }
 
-          return true;
-        });
+      SL_TRACE(
+          logger_,
+          "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
+          relay_parent,
+          candidate_hash);
+      return true;
+    });
 
     if (!target) {
+      SL_TRACE(logger_,
+               "Target not found. (relay_parent={}, candidate_hash={})",
+               relay_parent,
+               candidate_hash);
       return;
     }
 
     const auto &[um, peer] = *target;
+    SL_TRACE(logger_,
+             "Requesting. (peer={}, relay_parent={}, candidate_hash={})",
+             peer.get(),
+             relay_parent,
+             candidate_hash);
     router_->getFetchAttestedCandidateProtocol()->doRequest(
         peer.get(),
         network::vstaging::AttestedCandidateRequest{
@@ -2111,6 +2168,14 @@ namespace kagome::parachain {
     }
 
     const network::vstaging::AttestedCandidateResponse &response = r.value();
+
+    SL_INFO(logger_,
+            "Fetch attested candidate success. (relay parent={}, "
+            "candidate={}, group index={}, statements={})",
+            relay_parent,
+            candidate_hash,
+            group_index,
+            response.statements.size());
     for (const auto &statement : response.statements) {
       parachain_state->get().statement_store->insert(
           *parachain_state->get().groups, statement, StatementOrigin::Remote);
@@ -2138,6 +2203,12 @@ namespace kagome::parachain {
     BOOST_ASSERT(opt_confirmed);
 
     if (!opt_confirmed->get().is_importable(std::nullopt)) {
+      SL_INFO(logger_,
+              "Not importable. (relay parent={}, "
+              "candidate={}, group index={})",
+              relay_parent,
+              candidate_hash,
+              group_index);
       return;
     }
 
@@ -2153,6 +2224,11 @@ namespace kagome::parachain {
       return;
     }
 
+    SL_INFO(logger_,
+            "Send fresh statements. (relay parent={}, "
+            "candidate={})",
+            relay_parent,
+            candidate_hash);
     send_backing_fresh_statements(opt_confirmed->get(),
                                   relay_parent,
                                   parachain_state->get(),
@@ -2323,6 +2399,7 @@ namespace kagome::parachain {
           const auto &compact = getPayload(statement);
           imported.emplace_back(v, compact);
 
+          SL_TRACE(logger_, "Handle statement {}", relay_parent);
           handleStatement(
               relay_parent,
               SignedFullStatementWithPVD{

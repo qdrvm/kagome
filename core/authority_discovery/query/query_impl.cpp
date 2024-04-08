@@ -144,18 +144,20 @@ namespace kagome::authority_discovery {
       common::Buffer hash{crypto::sha256(authority)};
       scheduler_->schedule([=, this, wp{weak_from_this()}] {
         if (auto self = wp.lock()) {
+          SL_ERROR(log_, "===> get value: {}", authority);
           std::ignore = kademlia_->getValue(
               hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
                 --active_;
                 pop();
                 if (res.has_error()) {
-                  SL_DEBUG(log_, "Kademlia can't get value: {}", res.error());
+                  SL_ERROR(
+                      log_, "===> Kademlia can't get value: {}", res.error());
                   return;
                 }
                 auto r = add(authority, std::move(res.value()));
                 if (not r) {
-                  SL_DEBUG(log_, "Can't add: {}", r.error());
+                  SL_ERROR(log_, "===> Can't add: {}", r.error());
                 }
               });
         }
@@ -172,6 +174,8 @@ namespace kagome::authority_discovery {
                                          signed_record_pb.size())) {
       return Error::DECODE_ERROR;
     }
+
+    SL_ERROR(log_, "===> Got answer");
     libp2p::crypto::ProtobufKey protobuf_key{
         common::Buffer{str2byte(signed_record.peer_signature().public_key())}};
     OUTCOME_TRY(peer_key, key_marshaller_->unmarshalPublicKey(protobuf_key));
@@ -224,6 +228,7 @@ namespace kagome::authority_discovery {
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
         peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
 
+    SL_ERROR(log_, "===> ADDED: {}   {}", peer.id, authority);
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
 
