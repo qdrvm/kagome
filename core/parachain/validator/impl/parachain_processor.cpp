@@ -1573,6 +1573,9 @@ namespace kagome::parachain {
     auto &relay_parent_state = opt_parachain_state->get();
     BOOST_ASSERT(relay_parent_state.statement_store);
 
+    SL_TRACE(logger_,
+             "Handling incoming manifest common {} out of view",
+             relay_parent);
     ManifestImportSuccessOpt x = handle_incoming_manifest_common(
         peer_id,
         candidate_hash,
@@ -1588,12 +1591,15 @@ namespace kagome::parachain {
       return;
     }
 
+    SL_TRACE(logger_, "Check local validator {} out of view", relay_parent);
     if (!relay_parent_state.local_validator) {
       return;
     }
 
     const auto sender_index = x->sender_index;
     auto &local_validator = *relay_parent_state.local_validator;
+
+    SL_TRACE(logger_, "Post ack {} out of view", relay_parent);
     auto messages = post_acknowledgement_statement_messages(
         sender_index,
         relay_parent,
@@ -1606,6 +1612,7 @@ namespace kagome::parachain {
         network::CollationVersion::VStaging);
     if (!messages.empty()) {
       auto se = pm_->getStreamEngine();
+      SL_TRACE(logger_, "Sending messages {} out of view", relay_parent);
       for (auto &msg : messages) {
         if (auto m =
                 if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
@@ -1895,12 +1902,14 @@ namespace kagome::parachain {
     const auto &candidate_hash = candidateHash(compact_statement);
     const auto originator = statement.payload.ix;
 
+    [[maybe_unused]] const auto is_confirmed =
+        candidates_.is_confirmed(candidate_hash);
     if (!relay_parent_state.local_validator) {
       return;
     }
 
     auto &local_validator = *relay_parent_state.local_validator;
-    auto statement_group =
+    [[maybe_unused]] auto statement_group =
         relay_parent_state.groups->byValidatorIndex(originator);
 
     /// TODO(iceseer): do `cluster` targets
@@ -2963,13 +2972,6 @@ namespace kagome::parachain {
     if (!opt_session_info) {
       return;
     }
-
-    const auto group_index = confirmed.group_index();
-    if (group_index >= opt_session_info->validator_groups.size()) {
-      return;
-    }
-    const auto group_size =
-        opt_session_info->validator_groups[group_index].size();
 
     provide_candidate_to_grid(candidate_hash,
                               relay_parent_state_opt->get(),
