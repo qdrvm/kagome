@@ -10,7 +10,7 @@
 
 #include <libp2p/common/final_action.hpp>
 
-#include "aio/timer.hpp"
+#include "aio/timer_thread.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/main_thread_pool.hpp"
@@ -98,7 +98,8 @@ namespace kagome::consensus::grandpa {
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         grandpa_pool_handler_{grandpa_thread_pool.handler(app_state_manager)},
         clock_{std::move(clock)},
-        scheduler_{std::move(timer)} {
+        scheduler_{std::make_shared<aio::TimerThread>(
+            std::move(timer), grandpa_thread_pool.io_context())} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);

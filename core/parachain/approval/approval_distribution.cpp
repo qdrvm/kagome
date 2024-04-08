@@ -9,7 +9,7 @@
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "aio/timer.hpp"
+#include "aio/timer_thread.hpp"
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "common/worker_thread_pool.hpp"
@@ -478,7 +478,8 @@ namespace kagome::parachain {
         recovery_(std::move(recovery)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
-        scheduler_{std::move(timer)} {
+        scheduler_{std::make_shared<aio::TimerThread>(
+            std::move(timer), approval_thread_pool.io_context())} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);

@@ -23,7 +23,7 @@ namespace rapidjson {
 #include <libp2p/host/host.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
-#include "aio/timer.hpp"
+#include "aio/timer_thread.hpp"
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 #include "telemetry/impl/telemetry_thread_pool.hpp"
@@ -57,7 +57,8 @@ namespace kagome::telemetry {
         peer_manager_{std::move(peer_manager)},
         pool_handler_{telemetry_thread_pool.handler(app_state_manager)},
         io_context_{telemetry_thread_pool.io_context()},
-        scheduler_{std::move(timer)},
+        scheduler_{std::make_shared<aio::TimerThread>(
+            std::move(timer), telemetry_thread_pool.io_context())},
         enabled_{app_configuration_.isTelemetryEnabled()},
         log_{log::createLogger("TelemetryService", "telemetry")} {
     BOOST_ASSERT(tx_pool_);

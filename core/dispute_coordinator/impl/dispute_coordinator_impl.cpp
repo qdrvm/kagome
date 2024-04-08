@@ -11,7 +11,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "aio/timer.hpp"
+#include "aio/timer_thread.hpp"
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -148,7 +148,8 @@ namespace kagome::dispute {
         timeline_(std::move(timeline)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
-        scheduler_{std::move(timer)},
+        scheduler_{std::make_shared<aio::TimerThread>(
+            std::move(timer), dispute_thread_pool.io_context())},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(session_keys_ != nullptr);
