@@ -109,6 +109,32 @@ namespace kagome::runtime {
       return GroupIndex((size_t(core_index) + size_t(rotations))
                         % cores_normalized);
     }
+
+    /// Returns the index of the group assigned to the given core. This does no checking or
+    /// whether the group index is in-bounds.
+    ///
+    /// `core_index` should be less than `cores`, which is capped at `u32::max()`.
+    CoreIndex coreForGroup(GroupIndex group_index, size_t cores_) const {
+      if (group_rotation_frequency == 0) {
+        return group_index;
+      }
+      if (cores_ == 0) {
+        return 0;
+      }
+
+      const auto cores = std::min(cores_, size_t(std::numeric_limits<uint32_t>::max()));
+      const auto blocks_since_start = math::sat_sub_unsigned(now_block_num, session_start_block);
+      const auto r = blocks_since_start / group_rotation_frequency;
+      const auto rotations = r % uint32_t(cores);
+
+      // g = c + r mod cores
+      // c = g - r mod cores
+      // x = x + cores mod cores
+      // c = (g + cores) - r mod cores
+
+      const auto idx = (size_t(group_index) + cores - size_t(rotations)) % cores;
+      return CoreIndex(idx);
+    }
   };
 
   struct ValidatorGroup {

@@ -60,24 +60,29 @@ namespace kagome::parachain {
       ValidatorIndex from,
       const CandidateHash &digest,
       const ValidityVote &vote) {
+    std::cout << fmt::format("1 {}\n", __PRETTY_FUNCTION__);
     auto it = state.candidate_votes_.find(digest);
     if (it == state.candidate_votes_.end()) {
+      std::cout << fmt::format("2 {}\n", __PRETTY_FUNCTION__);
       return std::nullopt;
     }
     BackingStore::StatementInfo &votes = it->second;
 
     if (!is_in_group(groups, votes.group_id, from)) {
+      std::cout << fmt::format("3 {}\n", __PRETTY_FUNCTION__);
       return Error::UNAUTHORIZED_STATEMENT;
     }
 
     auto i = votes.validity_votes.find(from);
     if (i != votes.validity_votes.end()) {
       if (i->second != vote) {
+        std::cout << fmt::format("4 {}\n", __PRETTY_FUNCTION__);
         return Error::DOUBLE_VOTE;
       }
       return std::nullopt;
     }
 
+    std::cout << fmt::format("5 {}\n", __PRETTY_FUNCTION__);
     votes.validity_votes[from] = vote;
     return BackingStore::ImportResult{
         .candidate = digest,
@@ -89,17 +94,19 @@ namespace kagome::parachain {
   outcome::result<std::optional<BackingStore::ImportResult>>
   BackingStoreImpl::import_candidate(
       PerRelayParent &state,
-      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+      GroupIndex group_id,
+      const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>>
           &groups,
       ValidatorIndex authority,
       const network::CommittedCandidateReceipt &candidate,
       const ValidatorSignature &signature,
       bool allow_multiple_seconded) {
-    const auto group = candidate.descriptor.para_id;
-    if (auto it = groups.find(group);
+    std::cout << fmt::format("1 {}\n", __PRETTY_FUNCTION__);
+    if (auto it = groups.find(group_id);
         it == groups.end()
         || std::find(it->second.begin(), it->second.end(), authority)
                == it->second.end()) {
+      std::cout << fmt::format("2 {}\n", __PRETTY_FUNCTION__);
       return Error::UNAUTHORIZED_STATEMENT;
     }
 
@@ -111,8 +118,10 @@ namespace kagome::parachain {
       if (!allow_multiple_seconded && existing.proposals.size() == 1) {
         const auto &[old_digest, old_sig] = existing.proposals[0];
         if (old_digest != digest) {
+          std::cout << fmt::format("3 {}\n", __PRETTY_FUNCTION__);
           return Error::MULTIPLE_CANDIDATES;
         }
+        std::cout << fmt::format("4 {}\n", __PRETTY_FUNCTION__);
         new_proposal = false;
       } else if (allow_multiple_seconded
                  && std::find_if(existing.proposals.begin(),
@@ -122,21 +131,26 @@ namespace kagome::parachain {
                                    return h == digest;
                                  })
                         != existing.proposals.end()) {
+        std::cout << fmt::format("5 {}\n", __PRETTY_FUNCTION__);
         new_proposal = false;
       } else {
+        std::cout << fmt::format("6 {}\n", __PRETTY_FUNCTION__);
         existing.proposals.emplace_back(digest, signature);
         new_proposal = true;
       }
     } else {
+      std::cout << fmt::format("7 {}\n", __PRETTY_FUNCTION__);
       auto &ad = state.authority_data_[authority];
       ad.proposals.emplace_back(digest, signature);
       new_proposal = true;
     }
 
+    std::cout << fmt::format("8 {}\n", __PRETTY_FUNCTION__);
     if (new_proposal) {
+      std::cout << fmt::format("9 {}\n", __PRETTY_FUNCTION__);
       auto &cv = state.candidate_votes_[digest];
       cv.candidate = candidate;
-      cv.group_id = group;
+      cv.group_id = group_id;
     }
 
     return validity_vote(
@@ -145,7 +159,8 @@ namespace kagome::parachain {
 
   std::optional<BackingStore::ImportResult> BackingStoreImpl::put(
       const RelayHash &relay_parent,
-      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+      GroupIndex group_id,
+      const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>>
           &groups,
       Statement stm,
       bool allow_multiple_seconded) {
@@ -154,6 +169,7 @@ namespace kagome::parachain {
                   [&](PerRelayParent &state) { per_rp_state = state; });
 
     if (!per_rp_state) {
+      std::cout << fmt::format("1 {}\n", __PRETTY_FUNCTION__);
       return std::nullopt;
     }
 
@@ -165,6 +181,7 @@ namespace kagome::parachain {
         statement.candidate_state,
         [&](const network::CommittedCandidateReceipt &candidate) {
           return import_candidate(per_rp_state->get(),
+                                  group_id,
                                   groups,
                                   signer,
                                   candidate,
@@ -180,10 +197,12 @@ namespace kagome::parachain {
         },
         [](const auto &) {
           UNREACHABLE;
+          std::cout << fmt::format("UNREACHABLE\n");
           return Error::CRITICAL_ERROR;
         });
 
     if (res.has_error()) {
+      std::cout << fmt::format("2 {}\n", __PRETTY_FUNCTION__);
       return std::nullopt;
     }
     return res.value();

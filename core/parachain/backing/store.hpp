@@ -43,7 +43,8 @@ namespace kagome::parachain {
 
     virtual std::optional<ImportResult> put(
         const RelayHash &relay_parent,
-        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+        GroupIndex group_id,
+        const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>>
             &groups,
         Statement statement,
         bool allow_multiple_seconded) = 0;

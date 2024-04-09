@@ -90,7 +90,8 @@ namespace kagome::parachain {
       NO_SESSION_INFO,
       OUT_OF_BOUND,
       REJECTED_BY_PROSPECTIVE_PARACHAINS,
-      INCORRECT_BITFIELD_SIZE
+      INCORRECT_BITFIELD_SIZE,
+      CORE_INDEX_UNAVAILABLE
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -186,7 +187,7 @@ namespace kagome::parachain {
 
     struct TableContext {
       std::optional<ValidatorSigner> validator;
-      std::unordered_map<ParachainId, std::vector<ValidatorIndex>> groups;
+      std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> groups;
       std::vector<ValidatorId> validators;
 
       size_t minimum_votes(size_t n_validators) const {
@@ -250,11 +251,13 @@ namespace kagome::parachain {
 
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
-      std::optional<network::ParachainId> assignment;
+      std::optional<CoreIndex> assigned_core;
+      std::optional<ParachainId> assigned_para;
+      std::vector<std::optional<GroupIndex>> validator_to_group;
+
       std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
       std::optional<network::GroupIndex> our_group;
-      std::optional<network::CollatorPublicKey> required_collator;
 
       Collations collations;
       TableContext table_context;
@@ -505,7 +508,12 @@ namespace kagome::parachain {
         const network::RelayHash &relay_parent,
         const SignedFullStatementWithPVD &statement,
         ParachainProcessorImpl::RelayParentState &relayParentState);
-
+    std::optional<CoreIndex> core_index_from_statement(
+	const std::vector<std::optional<GroupIndex>> &validator_to_group,
+	const runtime::GroupDescriptor &group_rotation_info,
+	const std::vector<runtime::CoreState> &cores,
+	const SignedFullStatementWithPVD &statement
+);
     const network::CandidateDescriptor &candidateDescriptorFrom(
         const network::CollationFetchingResponse &collation) {
       return visit_in_place(
@@ -687,6 +695,7 @@ namespace kagome::parachain {
     std::optional<BackingStore::ImportResult> importStatementToTable(
         const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &relayParentState,
+        GroupIndex group_id,
         const primitives::BlockHash &candidate_hash,
         const network::SignedStatement &statement);
 
