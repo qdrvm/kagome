@@ -6,6 +6,7 @@
 
 addtest(pvf_test
     pvf_test.cpp
+    secure_mode.cpp
     )
 
 target_link_libraries(pvf_test

@@ -315,9 +315,7 @@ namespace kagome::parachain {
         name,
         common::Buffer{scale::encode(params).value()},
         executor_params,
-        app_configuration_->useWavmCache()
-            ? std::make_optional(app_configuration_->runtimeCacheDirPath())
-            : std::nullopt,
+        app_configuration_->runtimeCacheDirPath(),
         app_configuration_->log(),
     };
     std::promise<outcome::result<common::Buffer>> promise;

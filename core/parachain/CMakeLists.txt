@@ -65,5 +65,7 @@ target_link_libraries(kagome_pvf_worker
     host_api_factory
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend
+
+    seccomp
     )
 

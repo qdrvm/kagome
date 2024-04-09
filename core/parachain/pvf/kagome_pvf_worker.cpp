@@ -7,18 +7,25 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <ranges>
+#include <soralog/macro.hpp>
 #include <span>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #ifdef __linux__
+#include <linux/landlock.h>
 #include <sched.h>
+#include <seccomp.h>
 #include <sys/mount.h>
-#include <linux/seccomp.h>
+#include <sys/prctl.h>
 #endif
 
 #include <fmt/format.h>
+#include <libp2p/common/final_action.hpp>
 #include <libp2p/log/configurator.hpp>
+#include <libp2p/outcome/outcome-register.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
@@ -29,6 +36,7 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "outcome/outcome.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
@@ -40,101 +48,162 @@
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
-bool check_env_vars_are_empty(const char **env) {
-  if (env != nullptr) {
-    std::cout << "Env variables are set!:\n";
-    while (env) {
-      std::cout << *env << "\n";
-      env++;
-    }
-    std::cout
-        << "All env variables should be unset for PVF workers for security reasons\n";
-    return false;
-  }
-  return true;
+bool checkEnvVarsEmpty(const char **env) {
+  return env != nullptr;
 }
 
-std::error_code get_last_err() {
-  return std::error_code{static_cast<std::errc>(errno)};
+std::error_code getLastErr(std::string_view call_name) {
+  return make_error_code(static_cast<std::errc>(errno));
 }
 
-enum class WorkerKind { Prepare, Execute, CheckPivotRoot };
+#define EXPECT_NON_NEG(func, ...)                  \
+  if (auto res = ::func(__VA_ARGS__); res == -1) { \
+    return getLastErr(#func);                      \
+  }
 
-// This should not be called in a multi-threaded context. `unshare(2)`:
-// "CLONE_NEWUSER requires that the calling process is not threaded."
-std::error_code change_root(const std::filesystem::path &worker_dir,
-                            WorkerKind kind) {
-  if (::unshare(CLONE_NEWUSER | CLONE_NEWNS) == -1) {
-    return get_last_err();
+#define EXPECT_NON_NULL(func, args)           \
+  if (auto res = func args; res == nullptr) { \
+    return getLastErr(#func);                 \
   }
-  if (::mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) == -1) {
-    return get_last_err();
-  }
-  int additional_flags = 0;
-  if (kind == WorkerKind::Prepare || kind == WorkerKind::CheckPivotRoot) {
-    additional_flags = MS_RDONLY;
-  }
-  if (::mount(worker_dir.c_str(),
-              worker_dir.c_str(),
-              nullptr,
-              MS_BIND | MS_REC | MS_NOEXEC | MS_NODEV | MS_NOSUID | MS_NOATIME
-                  | additional_flags,
-              nullptr)) {
-    return get_last_err();
-  }
-  if (::chdir(worker_dir.c_str()) == -1) {
-    return get_last_err();
-  }
-  if (::syscall(SYS_pivot_root, ".", ".") == -1) {
-    return get_last_err();
-  }
-  if (::umount2(".", MNT_DETACH) == -1) {
-    return get_last_err();
-  }
-  if (std::filesystem::current_path() != "/") {
-    return Error("Failed to change process mount root");
-  }
-  std::error_code err{};
-  std::filesystem::current_path("..", err);
-  if (err) {
-    return err;
-  }
-  if (std::filesystem::current_path() != "/") {
-    return Error(
-        "Successfully broke out of new root using .., which must not happen");
-  }
-  return {};
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, SecureModeError, e) {
+  return "e";
 }
-
-void enable_seccomp() {
-  std::array forbidden_calls {
-    SYS_socketpair,
-    SYS_socket,
-    SYS_connect,
-    SYS_io_uring_setup,
-    SYS_io_uring_enter,
-    SYS_io_uring_register,
-  };
-
-  // maybe 
-  if(prctl(PR_SET_NO_NEW_PRIVS, 1) == -1) {
-    return get_last_err();
-  }
-  struct sock_filter filter[] {
-    {},
-  };
-  struct sock_fprog filter_rules {
-
-  };
-  if(syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, 0, ) == -1) {
-    return get_last_err();
-  }
-}
-
-void enable_landlock() {}
 
 namespace kagome::parachain {
   static kagome::log::Logger logger;
+
+  // This should not be called in a multi-threaded context. `unshare(2)`:
+  // "CLONE_NEWUSER requires that the calling process is not threaded."
+  outcome::result<void> changeRoot(const std::filesystem::path &worker_dir) {
+    EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
+    EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
+
+    EXPECT_NON_NEG(
+        mount,
+        worker_dir.c_str(),
+        worker_dir.c_str(),
+        nullptr,
+        MS_BIND | MS_REC | MS_NOEXEC | MS_NODEV | MS_NOSUID | MS_NOATIME,
+        nullptr);
+    EXPECT_NON_NEG(chdir, (worker_dir.c_str()));
+
+    EXPECT_NON_NEG(syscall, SYS_pivot_root, ".", ".");
+    EXPECT_NON_NEG(umount2, ".", MNT_DETACH);
+    if (std::filesystem::current_path() != "/") {
+      return std::error_code{SecureModeError::CHROOT_FAILED};
+    }
+    std::error_code err{};
+    std::filesystem::current_path("..", err);
+    if (err) {
+      return err;
+    }
+    if (std::filesystem::current_path() != "/") {
+      return std::error_code{SecureModeError::ESCAPED_FROM_CHROOT};
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> enableSeccomp() {
+    std::array forbidden_calls{
+        SCMP_SYS(socketpair),
+        SCMP_SYS(socket),
+        SCMP_SYS(connect),
+        SCMP_SYS(io_uring_setup),
+        SCMP_SYS(io_uring_enter),
+        SCMP_SYS(io_uring_register),
+    };
+    auto scmp_ctx = seccomp_init(SCMP_ACT_ALLOW);
+    if (!scmp_ctx) {
+      return getLastErr("seccomp_init");
+    }
+    libp2p::common::FinalAction cleanup{
+        [scmp_ctx]() { seccomp_release(scmp_ctx); }};
+
+    for (auto &call : forbidden_calls) {
+      EXPECT_NON_NEG(
+          seccomp_rule_add, scmp_ctx, SCMP_ACT_KILL_PROCESS, call, 0);
+    }
+
+    EXPECT_NON_NEG(seccomp_load, scmp_ctx);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> enableLandlock(
+      const std::filesystem::path &worker_dir) {
+    std::array<std::pair<std::filesystem::path, uint64_t>, 0>
+        allowed_exceptions;
+    // TODO(Harrm): Separate PVF workers on prepare and execute workers, and
+    // separate FS permissions accordingly
+    // allowed_exceptions[0] =
+    //     std::pair{worker_dir,
+    //               LANDLOCK_ACCESS_FS_READ_FILE |
+    //               LANDLOCK_ACCESS_FS_WRITE_FILE
+    //                   | LANDLOCK_ACCESS_FS_MAKE_REG};
+
+    int abi{};
+
+    abi = ::syscall(
+        SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
+    if (abi < 0) {
+      return SecureModeError::LANDLOCK_FAILED;
+    }
+
+    struct landlock_ruleset_attr ruleset_attr = {
+        .handled_access_fs =
+            LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_WRITE_FILE
+            | LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR
+            | LANDLOCK_ACCESS_FS_REMOVE_DIR | LANDLOCK_ACCESS_FS_REMOVE_FILE
+            | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR
+            | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK
+            | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
+            | LANDLOCK_ACCESS_FS_MAKE_SYM | LANDLOCK_ACCESS_FS_REFER
+            | LANDLOCK_ACCESS_FS_TRUNCATE,
+        .handled_access_net =
+            LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP,
+    };
+
+    int ruleset_fd{};
+
+    ruleset_fd = ::syscall(
+        SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
+    if (ruleset_fd < 0) {
+      return SecureModeError::LANDLOCK_FAILED;
+    }
+    libp2p::common::FinalAction cleanup = [ruleset_fd]() { close(ruleset_fd); };
+
+    for (auto &[path, access_flags] : allowed_exceptions) {
+      struct landlock_path_beneath_attr path_beneath = {
+          .allowed_access = access_flags,
+          .parent_fd = ::open(path.c_str(), O_PATH | O_CLOEXEC),
+      };
+
+      if (path_beneath.parent_fd < 0) {
+        return SecureModeError::LANDLOCK_FAILED;
+      }
+      auto err = ::syscall(SYS_landlock_add_rule,
+                           ruleset_fd,
+                           LANDLOCK_RULE_PATH_BENEATH,
+                           &path_beneath,
+                           0);
+      ::close(path_beneath.parent_fd);
+      if (err == -1) {
+        return SecureModeError::LANDLOCK_FAILED;
+      }
+    }
+
+    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
+      ::close(ruleset_fd);
+      return getLastErr("prctl PR_SET_NO_NEW_PRIVS");
+    }
+
+    if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0)) {
+      return SecureModeError::LANDLOCK_FAILED;
+    }
+
+    return outcome::success();
+  }
 
   outcome::result<void> readStdin(std::span<uint8_t> out) {
     std::cin.read(reinterpret_cast<char *>(out.data()), out.size());
@@ -188,6 +257,14 @@ namespace kagome::parachain {
   outcome::result<void> pvf_worker_main_outcome() {
     OUTCOME_TRY(input, decodeInput());
     kagome::log::tuneLoggingSystem(input.log_params);
+
+    // OUTCOME_TRY(changeRoot(input.cache_dir));
+    // input.cache_dir = "/";
+    // OUTCOME_TRY(enableLandlock(input.cache_dir));
+    // OUTCOME_TRY(enableSeccomp());
+
+    SL_INFO(logger, "Successfully enabled secure validator mode");
+
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
     OUTCOME_TRY(ctx,
@@ -198,27 +275,31 @@ namespace kagome::parachain {
                     ctx, input.function, input.params));
     OUTCOME_TRY(ctx.module_instance->resetEnvironment());
     OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
-    std::cout.write((const char *)len.data(), len.size());
-    std::cout.write((const char *)result.data(), result.size());
+    std::cout.write(reinterpret_cast<const char *>(len.data()), len.size());
+    std::cout.write(reinterpret_cast<const char *>(result.data()),
+                    result.size());
     return outcome::success();
   }
 
   int pvf_worker_main(int argc, const char **argv, const char **env) {
-    if (!check_env_vars_are_empty(env)) {
-      return -1;
-    }
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));
     auto r = logging_system->configure();
     if (not r.message.empty()) {
-      std::cerr << r.message << std::endl;
+      std::cerr << r.message << '\n';
     }
     if (r.has_error) {
       return EXIT_FAILURE;
     }
     kagome::log::setLoggingSystem(logging_system);
-    logger = kagome::log::createLogger("Pvf Worker", "parachain");
+    logger = kagome::log::createLogger("PVF Worker", "parachain");
+
+    if (!checkEnvVarsEmpty(env)) {
+      logger->error(
+          "PVF worker processes must not have any environment variables.");
+      return EXIT_FAILURE;
+    }
 
     if (auto r = pvf_worker_main_outcome(); not r) {
       SL_ERROR(logger, "{}", r.error());

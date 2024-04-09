@@ -6,10 +6,12 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include "common/buffer.hpp"
+#include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
-#include "runtime/runtime_context.hpp"
 
 namespace kagome::parachain {
 
@@ -28,7 +30,7 @@ namespace kagome::parachain {
     std::string function;
     common::Buffer params;
     runtime::RuntimeContextFactory::ContextParams runtime_params;
-    std::optional<std::string> cache_dir;
+    std::filesystem::path cache_dir;
     std::vector<std::string> log_params;
   };
 }  // namespace kagome::parachain
