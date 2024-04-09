@@ -2078,7 +2078,8 @@ namespace kagome::parachain {
       if (!backing_threshold
           || (filter->has_seconded()
               && filter->backing_validators() >= *backing_threshold)) {
-        target.emplace(std::move(*filter), std::cref(peer));
+        network::vstaging::StatementFilter f(group->size());
+        target.emplace(std::move(f), std::cref(peer));
         return false;
       }
 
