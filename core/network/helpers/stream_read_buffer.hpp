@@ -10,6 +10,10 @@
 
 #include <libp2p/basic/read_return_size.hpp>
 #include <libp2p/common/ambigous_size.hpp>
+#include <libp2p/connection/stream_and_protocol.hpp>
+#include <thread>
+
+#include "log/logger.hpp"
 
 namespace libp2p::connection {
   /**
