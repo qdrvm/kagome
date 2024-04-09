@@ -410,11 +410,19 @@ namespace kagome::parachain {
       return;
     }
 
-    [[maybe_unused]] const auto _ =
-        prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-            .new_head = {event.new_head},
-            .lost = event.lost,
-        });
+    if (const auto r =
+            prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+                .new_head = {event.new_head},
+                .lost = event.lost,
+            });
+        r.has_error()) {
+      SL_WARN(
+          logger_,
+          "Prospective parachains leaf update failed. (relay_parent={}, error={})",
+          relay_parent,
+          r.error().message());
+    }
+
     backing_store_->onActivateLeaf(relay_parent);
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
@@ -544,7 +552,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::broadcastViewExcept(
       const libp2p::peer::PeerId &peer_id, const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(
         router_->getValidationProtocolVStaging(),
@@ -585,7 +593,8 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(msg);
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          msg);
       SL_TRACE(
           logger_,
           "Broadcasting view update to group.(relay_parent={}, group_size={})",
@@ -604,7 +613,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
@@ -2308,18 +2317,28 @@ namespace kagome::parachain {
             core,
             [&](const network::ScheduledCore &scheduled_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
-              return prospective_parachains_->answerGetBackableCandidate(
-                  relay_parent, scheduled_core.para_id, {});
+              if (auto i = prospective_parachains_->answerGetBackableCandidates(
+                      relay_parent, scheduled_core.para_id, 1, {});
+                  !i.empty()) {
+                return i[0];
+              }
+              return std::nullopt;
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
               /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
-                return prospective_parachains_->answerGetBackableCandidate(
-                    relay_parent,
-                    occupied_core.next_up_on_available->para_id,
-                    {occupied_core.candidate_hash});
+                if (auto i =
+                        prospective_parachains_->answerGetBackableCandidates(
+                            relay_parent,
+                            occupied_core.next_up_on_available->para_id,
+                            1,
+                            {occupied_core.candidate_hash});
+                    !i.empty()) {
+                  return i[0];
+                }
+                return std::nullopt;
               }
               return std::nullopt;
             },
@@ -2864,7 +2883,7 @@ namespace kagome::parachain {
         peer_id,
         protocol,
         std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{.view = my_view->get().view}));
   }
 
@@ -3616,6 +3635,7 @@ namespace kagome::parachain {
                                      *our_current_state_.implicit_view,
                                      our_current_state_.active_leaves,
                                      peer_data.collator_state->para_id)) {
+      SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
     }
 
