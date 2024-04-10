@@ -61,15 +61,16 @@ namespace kagome::parachain {
                 // clang-format on
             } {}
     };
-    std::cerr << "Run pvf worker\n";
+    auto logger = log::createLogger("A", "parachain"); 
+    logger->info("Run pvf worker");
     auto process = std::make_shared<ProcessAndPipes>(io_context, exe);
 
     auto cb = [cb_ = std::make_shared<std::optional<Cb>>(std::move(cb_)),
-               process](outcome::result<common::Buffer> r) mutable {
+               process, logger](outcome::result<common::Buffer> r) mutable {
       if (*cb_) {
         auto cb = std::move(*cb_);
         cb_->reset();
-        std::cerr << "Stop pvf worker\n";
+        logger->info("Stop pvf worker");
         process->process.terminate();
         (*cb)(std::move(r));
       }

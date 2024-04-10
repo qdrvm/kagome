@@ -322,10 +322,15 @@ namespace kagome::parachain {
     auto cb = [&](outcome::result<common::Buffer> r) {
       promise.set_value(std::move(r));
     };
+    std::error_code ec;
+    auto path = std::filesystem::read_symlink("/proc/self/exe", ec);
+    if (ec) {
+      return ec;
+    }
     runWorker(*io_context_,
               scheduler_,
               app_configuration_->pvfSubprocessDeadline(),
-              argv0().value(),
+              path,
               common::Buffer{scale::encode(input).value()},
               cb);
     OUTCOME_TRY(result, promise.get_future().get());
