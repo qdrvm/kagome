@@ -117,7 +117,7 @@ jobs:
           du -hd1 /__w /github || true
 
   Linux-PR:
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
+    if: ${{ github.ref != 'refs/heads/master' }}
     strategy:
       fail-fast: false
       matrix:
