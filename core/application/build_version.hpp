@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#pragma once
+
+#include <string>
+
 namespace kagome {
   /**
    * @returns String indicating current build version. Might to contain: tag,

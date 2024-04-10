@@ -198,19 +198,10 @@ namespace kagome::runtime {
             chain_sub_engine);
     BOOST_ASSERT(chain_subscription_ != nullptr);
 
-    auto chain_subscription_set_id =
-        chain_subscription_->generateSubscriptionSetId();
-    chain_subscription_->subscribe(
-        chain_subscription_set_id,
-        primitives::events::ChainEventType::kNewRuntime);
-    chain_subscription_->setCallback(
-        [this](auto set_id,
-               auto &receiver,
-               primitives::events::ChainEventType event_type,
-               const primitives::events::ChainEventParams &event_params) {
-          if (event_type != primitives::events::ChainEventType::kNewRuntime) {
-            return;
-          }
+    primitives::events::subscribe(
+        *chain_subscription_,
+        primitives::events::ChainEventType::kNewRuntime,
+        [this](const primitives::events::ChainEventParams &event_params) {
           const auto &block_hash =
               boost::get<primitives::events::NewRuntimeEventParams>(
                   event_params)
