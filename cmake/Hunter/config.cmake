@@ -27,26 +27,26 @@ hunter_config(
 
 hunter_config(
     benchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.7.1.zip
-    SHA1 988246a257b0eeb1a8b112cff6ab3edfbe162912
+    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
+    SHA1 bf9870756ee3f8d2d3b346b24ee3600a41c74d3d
     CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
 )
 
 hunter_config(
     soralog
-    VERSION 0.2.2
+    VERSION 0.2.3
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     libp2p
-    VERSION 0.1.18
+    VERSION 0.1.19
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     rocksdb
-    VERSION 8.0.0
+    VERSION 9.0.0
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
