@@ -10,6 +10,10 @@
 
 #include <libp2p/basic/read_return_size.hpp>
 #include <libp2p/common/ambigous_size.hpp>
+#include <libp2p/connection/stream_and_protocol.hpp>
+#include <thread>
+
+#include "log/logger.hpp"
 
 namespace libp2p::connection {
   /**
@@ -99,73 +103,78 @@ namespace kagome::network {
     StreamWrapper(std::shared_ptr<libp2p::connection::StreamReadBuffer> stream)
         : stream_{std::move(stream)} {}
 
-    bool isClosedForRead() const {
+    bool isClosedForRead() const override {
       return stream_->isClosedForRead();
     }
 
-    bool isClosedForWrite() const {
+    bool isClosedForWrite() const override {
       return stream_->isClosedForWrite();
     }
 
-    bool isClosed() const {
+    bool isClosed() const override {
       return stream_->isClosed();
     }
 
-    void close(VoidResultHandlerFunc cb) {
+    void close(VoidResultHandlerFunc cb) override {
       check();
       stream_->close(std::move(cb));
     }
 
-    void reset() {
+    void reset() override {
       check();
       stream_->reset();
     }
 
-    void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) {
+    void adjustWindowSize(uint32_t new_size,
+                          VoidResultHandlerFunc cb) override {
       stream_->adjustWindowSize(new_size, std::move(cb));
     }
 
-    outcome::result<bool> isInitiator() const {
+    outcome::result<bool> isInitiator() const override {
       return stream_->isInitiator();
     }
 
-    outcome::result<libp2p::peer::PeerId> remotePeerId() const {
+    outcome::result<libp2p::peer::PeerId> remotePeerId() const override {
       return stream_->remotePeerId();
     }
 
-    outcome::result<libp2p::multi::Multiaddress> localMultiaddr() const {
+    outcome::result<libp2p::multi::Multiaddress> localMultiaddr()
+        const override {
       return stream_->localMultiaddr();
     }
 
-    outcome::result<libp2p::multi::Multiaddress> remoteMultiaddr() const {
+    outcome::result<libp2p::multi::Multiaddress> remoteMultiaddr()
+        const override {
       return stream_->remoteMultiaddr();
     }
 
-    void read(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
+    void read(libp2p::BytesOut out,
+              size_t bytes,
+              ReadCallbackFunc cb) override {
       check();
       stream_->read(out, bytes, std::move(cb));
     }
 
-    void readSome(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
+    void readSome(libp2p::BytesOut out,
+                  size_t bytes,
+                  ReadCallbackFunc cb) override {
       check();
       stream_->readSome(out, bytes, std::move(cb));
     }
 
-    void deferReadCallback(outcome::result<size_t> res, ReadCallbackFunc cb) {
+    void deferReadCallback(outcome::result<size_t> res,
+                           ReadCallbackFunc cb) override {
       stream_->deferReadCallback(std::move(res), std::move(cb));
     }
 
-    void write(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
-      check();
-      stream_->write(in, bytes, std::move(cb));
-    }
-
-    void writeSome(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
+    void writeSome(libp2p::BytesIn in,
+                   size_t bytes,
+                   WriteCallbackFunc cb) override {
       check();
       stream_->writeSome(in, bytes, std::move(cb));
     }
 
-    void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) {
+    void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) override {
       stream_->deferWriteCallback(ec, std::move(cb));
     }
   };

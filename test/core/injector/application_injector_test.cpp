@@ -16,7 +16,7 @@
 #include "filesystem/common.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "network/impl/router_libp2p.hpp"
-#include "testutil/prepare_loggers.hpp"
+#include "testutil/storage/base_fs_test.hpp"
 #include "utils/watchdog.hpp"
 
 namespace fs = kagome::filesystem;
@@ -128,16 +128,12 @@ namespace {
   }
 }  // namespace
 
-class KagomeInjectorTest : public testing::Test {
+class KagomeInjectorTest : public test::BaseFS_Test {
  public:
-  static void SetUpTestCase() {
-    testutil::prepareLoggers();
-    fs::create_directories(db_path_);
-    fs::create_directories(db_path_ / "keys");
-    writeKeys(db_path_ / "keys");
-  }
+  KagomeInjectorTest() : BaseFS_Test{db_path_} {}
 
   void SetUp() override {
+    writeKeys(db_path_ / "keys");
     config_ = std::make_shared<kagome::application::AppConfigurationMock>();
     initConfig(db_path_, *config_);
     injector_ = std::make_unique<kagome::injector::KagomeNodeInjector>(config_);
@@ -146,10 +142,6 @@ class KagomeInjectorTest : public testing::Test {
   void TearDown() override {
     injector_->injectWatchdog()->stop();
     injector_.reset();
-  }
-
-  static void TearDownTestCase() {
-    fs::remove_all(db_path_);
   }
 
  protected:
