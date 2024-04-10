@@ -18,7 +18,7 @@ addtest(assignments_test
     assignments.cpp
     )
 target_link_libraries(assignments_test
-    crypto_store
+    key_store
     base_fs_test
     validator_parachain
     )

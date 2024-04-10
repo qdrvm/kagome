@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "runtime/common/stack_limiter.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 #include <gmock/gmock.h>
 

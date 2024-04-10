@@ -4,20 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/common/stack_limiter.hpp"
+#include "runtime/wabt/stack_limiter.hpp"
 
 #include "common/visitor.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
-
-#include <wabt/binary-reader-ir.h>
-#include <wabt/binary-reader.h>
-#include <wabt/binary-writer.h>
-#include <wabt/ir.h>
-#include <wabt/validator.h>
+#include "runtime/wabt/util.hpp"
 
 namespace kagome::runtime {
-
   namespace detail {
 
     template <bool IsConst, typename T>
@@ -119,9 +113,9 @@ namespace kagome::runtime {
             frames_{},
             logger_{std::move(logger)} {}
 
-      outcome::result<void, StackLimiterError> unreachable() {
+      WabtOutcome<void> unreachable() {
         if (frames_.empty()) {
-          return StackLimiterError{"Stack must not be empty"};
+          return WabtError{"Stack must not be empty"};
         }
         frames_.back().is_polymorphic = true;
         return outcome::success();
@@ -148,8 +142,8 @@ namespace kagome::runtime {
         });
       }
 
-      outcome::result<void, StackLimiterError> push_frame(
-          MaybeConst<wabt::IfExpr &> branch, bool check_frame_boundary) {
+      WabtOutcome<void> push_frame(MaybeConst<wabt::IfExpr &> branch,
+                                   bool check_frame_boundary) {
         uint32_t end_arity = branch.true_.decl.GetNumResults() != 0;
         uint32_t branch_arity = end_arity;
         auto res = pop_values(1);
@@ -178,9 +172,9 @@ namespace kagome::runtime {
         });
       }
 
-      outcome::result<void, StackLimiterError> pop_frame() {
+      WabtOutcome<void> pop_frame() {
         if (frames_.empty()) {
-          return StackLimiterError{"Stack is empty"};
+          return WabtError{"Stack is empty"};
         }
         height_ = frames_.back().start_height;
         push_values(frames_.back().end_value_num);
@@ -202,24 +196,23 @@ namespace kagome::runtime {
         SL_TRACE(logger_, "push {}, now height_ {}", num, height_);
       }
 
-      outcome::result<void, StackLimiterError> pop_values(uint32_t num) {
+      WabtOutcome<void> pop_values(uint32_t num) {
         if (num == 0) {
           return outcome::success();
         }
         if (frames_.empty()) {
-          return StackLimiterError{"Stack is empty"};
+          return WabtError{"Stack is empty"};
         }
         SL_TRACE(logger_, "pop {}, now height_ {}", num, height_ - num);
         if (height_ - num < frames_.back().start_height) {
           if (!frames_.back().is_polymorphic) {
-            return StackLimiterError{
-                "Popping values not pushed in the current frame"};
+            return WabtError{"Popping values not pushed in the current frame"};
           } else {
             return outcome::success();
           }
         }
         if (height_ < num) {
-          return StackLimiterError{"Stack underflow"};
+          return WabtError{"Stack underflow"};
         }
         height_ -= num;
         return outcome::success();
@@ -229,7 +222,7 @@ namespace kagome::runtime {
         return frames_.empty();
       }
 
-      outcome::result<void, StackLimiterError> advance() {
+      WabtOutcome<void> advance() {
         bool is_over = false;
         do {
           auto &frame = frames_.back();
@@ -273,11 +266,10 @@ namespace kagome::runtime {
         return &frames_.back();
       }
 
-      [[nodiscard]] outcome::result<std::reference_wrapper<const StackFrame>,
-                                    StackLimiterError>
+      [[nodiscard]] WabtOutcome<std::reference_wrapper<const StackFrame>>
       get_frame(size_t idx_from_top) const {
         if (frames_.size() <= idx_from_top) {
-          return StackLimiterError{"Stack frame underflow"};
+          return WabtError{"Stack frame underflow"};
         }
         return frames_.at(frames_.size() - idx_from_top - 1);
       }
@@ -291,10 +283,9 @@ namespace kagome::runtime {
     using ConstStack = Stack<true>;
     using MutStack = Stack<false>;
 
-    outcome::result<uint32_t, StackLimiterError> compute_stack_cost(
-        const log::Logger &logger,
-        const wabt::Func &func,
-        const wabt::Module &module) {
+    WabtOutcome<uint32_t> compute_stack_cost(const log::Logger &logger,
+                                             const wabt::Func &func,
+                                             const wabt::Module &module) {
       uint32_t locals_num = func.GetNumLocals();
 
       ConstStack stack{logger};
@@ -374,7 +365,7 @@ namespace kagome::runtime {
               OUTCOME_TRY(frame, stack.get_frame(v.index()));
               uint32_t arity = frame.get().branch_value_num;
               if (arity != target_arity) {
-                return StackLimiterError{
+                return WabtError{
                     "All jump-targets should have equal frame arities"};
               }
             }
@@ -491,9 +482,8 @@ namespace kagome::runtime {
             break;
           }
           default:
-            return StackLimiterError{
-                fmt::format("Unsupported instruction: {}",
-                            wabt::GetExprTypeName(expr.type()))};
+            return WabtError{fmt::format("Unsupported instruction: {}",
+                                         wabt::GetExprTypeName(expr.type()))};
         }
         if (!pushed_frame) {
           if (auto expr_opt = stack.advance(); !expr_opt.has_value()) {
@@ -555,7 +545,7 @@ namespace kagome::runtime {
       return next_it;
     }
 
-    outcome::result<void, StackLimiterError> instrument_func(
+    WabtOutcome<void> instrument_func(
         wabt::Func &func,
         const wabt::Var &stack_height,
         uint32_t stack_limit,
@@ -628,7 +618,7 @@ namespace kagome::runtime {
       return outcome::success();
     }
 
-    outcome::result<void, StackLimiterError> generate_thunks(
+    WabtOutcome<void> generate_thunks(
         const log::Logger &logger,
         wabt::Module &module,
         const wabt::Var &stack_height,
@@ -666,7 +656,7 @@ namespace kagome::runtime {
               break;
             }
             default:
-              return StackLimiterError{
+              return WabtError{
                   fmt::format("Unsupported element expression of type {}",
                               GetExprTypeName(expr.type()))};
           }
@@ -730,7 +720,7 @@ namespace kagome::runtime {
               break;
             }
             default:
-              return StackLimiterError{
+              return WabtError{
                   fmt::format("Invalid element expression of type {}",
                               GetExprTypeName(expr.type()))};
           }
@@ -743,27 +733,15 @@ namespace kagome::runtime {
       return outcome::success();
     }
   }  // namespace detail
-  outcome::result<common::Buffer, StackLimiterError> instrumentWithStackLimiter(
-      common::BufferView uncompressed_wasm, const size_t stack_limit) {
-    auto logger = log::createLogger("StackLimiter", "runtime");
-    KAGOME_PROFILE_START_L(logger, read_ir);
-    wabt::Errors errors;
-    wabt::Module module;
-    wabt::ReadBinaryIr("",
-                       uncompressed_wasm.data(),
-                       uncompressed_wasm.size(),
-                       wabt::ReadBinaryOptions({}, nullptr, true, false, false),
-                       &errors,
-                       &module);
-    if (!errors.empty()) {
-      std::stringstream ss;
-      for (auto &e : errors) {
-        ss << e.message << "\n";
-      }
-      return StackLimiterError{ss.str()};
-    }
-    KAGOME_PROFILE_END_L(logger, read_ir);
 
+  auto &stackLimiterLog() {
+    static auto log = log::createLogger("StackLimiter", "runtime");
+    return log;
+  }
+
+  WabtOutcome<void> instrumentWithStackLimiter(wabt::Module &module,
+                                               size_t stack_limit) {
+    auto logger = stackLimiterLog();
     KAGOME_PROFILE_START_L(logger, count_costs);
     std::unordered_map<wabt::Index, uint32_t> func_costs;
     for (size_t i = 0; i < module.num_func_imports; i++) {
@@ -802,32 +780,20 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_END_L(logger, instrument_wasm);
 
-    if (wabt::Failed(
-            wabt::ValidateModule(&module, &errors, wabt::ValidateOptions{}))) {
-      std::stringstream ss;
-      for (auto &err : errors) {
-        ss << err.message;
-      }
-      return StackLimiterError{ss.str()};
-    }
-
-    KAGOME_PROFILE_START_L(logger, serialize_wasm);
-    wabt::MemoryStream s;
-    if (wabt::WriteBinaryModule(
-            &s, &module, wabt::WriteBinaryOptions({}, false, false, true))
-        != wabt::Result::Ok) {
-      return StackLimiterError{"Failed to serialize WASM module"};
-    }
-    KAGOME_PROFILE_END_L(logger, serialize_wasm);
-    return common::Buffer{std::move(s.output_buffer().data)};
+    OUTCOME_TRY(wabtValidate(module));
+    return outcome::success();
   }
 
-  WabtOutcome<common::Buffer> InstrumentWasm::instrument(
-      common::BufferView code, const MemoryLimits &config) const {
-    // TODO(turuslan): https://github.com/qdrvm/kagome/pull/2009
-    if (config.max_stack_values_num) {
-      return instrumentWithStackLimiter(code, *config.max_stack_values_num);
-    }
-    return common::Buffer{code};
+  WabtOutcome<common::Buffer> instrumentWithStackLimiter(
+      common::BufferView uncompressed_wasm, size_t stack_limit) {
+    auto logger = stackLimiterLog();
+    KAGOME_PROFILE_START_L(logger, read_ir);
+    OUTCOME_TRY(module, wabtDecode(uncompressed_wasm));
+    KAGOME_PROFILE_END_L(logger, read_ir);
+
+    OUTCOME_TRY(instrumentWithStackLimiter(module, stack_limit));
+
+    KAGOME_PROFILE_START_L(logger, serialize_wasm);
+    return wabtEncode(module);
   }
 }  // namespace kagome::runtime

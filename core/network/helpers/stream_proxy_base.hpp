@@ -30,9 +30,6 @@ namespace libp2p::connection {
       stream->deferReadCallback(res, std::move(cb));
     }
 
-    void write(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
-      stream->write(in, bytes, std::move(cb));
-    }
     void writeSome(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
       stream->writeSome(in, bytes, std::move(cb));
     }

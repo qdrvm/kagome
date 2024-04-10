@@ -24,11 +24,6 @@ namespace libp2p::basic {
                 (override));
 
     MOCK_METHOD(void,
-                write,
-                (BytesIn, size_t, Writer::WriteCallbackFunc),
-                (override));
-
-    MOCK_METHOD(void,
                 writeSome,
                 (BytesIn, size_t, Writer::WriteCallbackFunc),
                 (override));

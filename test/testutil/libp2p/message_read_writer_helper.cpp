@@ -62,7 +62,7 @@ namespace libp2p::basic {
     msg.insert(msg.begin(),
                varint_to_write.toVector().begin(),
                varint_to_write.toVector().end());
-    EXPECT_CALL(*read_writer_mock, write(_, msg.size(), _))
+    EXPECT_CALL(*read_writer_mock, writeSome(_, msg.size(), _))
         .WillOnce(CheckBytes(msg));
   }
 
@@ -78,7 +78,7 @@ namespace libp2p::basic {
             Return(libp2p::peer::PeerId::fromBase58(
                        "12D3KooWE77U4m1d5mJxmU61AEsXewKjKnG7LiW2UQEPFnS6FXhv")
                        .value()));
-    EXPECT_CALL(*stream_mock, write(_, msg.size(), _))  // NOLINT
+    EXPECT_CALL(*stream_mock, writeSome(_, msg.size(), _))  // NOLINT
         .WillOnce(CheckBytes(msg));
   }
 }  // namespace libp2p::basic
