@@ -81,13 +81,11 @@ namespace kagome::network {
     void removePeer(const PeerId &peer_id);
     void updateRemoteView(const PeerId &peer_id, network::View &&view);
     std::optional<std::reference_wrapper<const ExView>> getMyView() const;
-    primitives::events::ChainSubscriptionEnginePtr intoChainEventsEngine();
 
    private:
     void updateMyView(network::ExView &&view);
 
-    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     MyViewSubscriptionEnginePtr my_view_update_observable_;
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
