@@ -18,7 +18,7 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : executor_{std::move(executor)},
-        chain_events_engine_{std::move(chain_events_engine)} {
+        chain_sub_{std::move(chain_events_engine)} {
     BOOST_ASSERT(executor_);
   }
 
@@ -187,26 +187,13 @@ namespace kagome::runtime {
   }
 
   bool ParachainHostImpl::prepare() {
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_events_engine_);
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback([wptr{weak_from_this()}](
-                                auto /*set_id*/,
-                                auto && /*internal_obj*/,
-                                auto /*event_type*/,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (auto self = wptr.lock()) {
-        auto event_opt =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event);
-        if (event_opt.has_value()) {
-          self->clearCaches(event_opt.value());
-        }
-      }
-    });
+    chain_sub_.onDeactivate(
+        [wptr{weak_from_this()}](
+            const primitives::events::RemoveAfterFinalizationParams &event) {
+          if (auto self = wptr.lock()) {
+            self->clearCaches(event);
+          }
+        });
 
     return false;
   }

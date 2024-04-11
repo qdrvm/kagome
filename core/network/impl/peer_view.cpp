@@ -14,55 +14,35 @@ namespace kagome::network {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       LazySPtr<blockchain::BlockTree> block_tree)
-      : chain_events_engine_{chain_events_engine},
+      : chain_sub_{std::move(chain_events_engine)},
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
             std::make_shared<PeerViewSubscriptionEngine>()},
         block_tree_(std::move(block_tree)) {
-    BOOST_ASSERT(chain_events_engine_);
     app_state_manager->takeControl(*this);
   }
 
   void PeerView::stop() {
-    if (chain_sub_) {
-      chain_sub_->unsubscribe();
-    }
-    chain_sub_.reset();
-  }
-
-  primitives::events::ChainSubscriptionEnginePtr
-  PeerView::intoChainEventsEngine() {
-    return chain_events_engine_;
+    chain_sub_.sub->unsubscribe();
   }
 
   bool PeerView::prepare() {
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_events_engine_);
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kNewHeads);
-    chain_sub_->setCallback([wptr{weak_from_this()}](
-                                auto /*set_id*/,
-                                auto && /*internal_obj*/,
-                                auto /*event_type*/,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (auto self = wptr.lock()) {
-        if (auto value =
-                if_type<const primitives::events::HeadsEventParams>(event)) {
-          self->updateMyView(ExView{
-              .view =
-                  View{
-                      .heads_ = self->block_tree_.get()->getLeaves(),
-                      .finalized_number_ =
-                          self->block_tree_.get()->getLastFinalized().number,
-                  },
-              .new_head = value->get().get(),
-              .lost = {},
-          });
-        }
-      }
-    });
+    chain_sub_.onHead(
+        [weak{weak_from_this()}](const primitives::BlockHeader &header) {
+          if (auto self = weak.lock()) {
+            self->updateMyView(ExView{
+                .view =
+                    View{
+                        .heads_ = self->block_tree_.get()->getLeaves(),
+                        .finalized_number_ =
+                            self->block_tree_.get()->getLastFinalized().number,
+                    },
+                .new_head = header,
+                .lost = {},
+            });
+          }
+        });
     return true;
   }
 
