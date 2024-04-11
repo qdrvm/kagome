@@ -133,7 +133,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    container: kamilsa/kagome-dev@sha256:0919cdb9232fd6a40c75b8e31e6ff6396145143713872c04ab7e2f9c3c1904b6
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
