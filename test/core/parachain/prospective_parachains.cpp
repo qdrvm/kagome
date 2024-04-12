@@ -461,7 +461,7 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    EXPECT_OUTCOME_TRUE_1(
+    ASSERT_OUTCOME_SUCCESS_TRY(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {update.new_head},
             .lost = update.lost,
