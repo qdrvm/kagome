@@ -21,6 +21,7 @@
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
 #include "testutil/literals.hpp"
@@ -150,6 +151,23 @@ class PvfTest : public testing::Test {
       std::make_shared<ModuleFactoryMock>();
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
 };
+
+TEST_F(PvfTest, InputEncodeDecode) {
+  kagome::parachain::PvfWorkerInput input{
+      .engine = kagome::parachain::RuntimeEngine::kWasmEdgeInterpreted,
+      .runtime_code = {1, 2, 3, 4},
+      .function = "test",
+      .params = {1, 2, 3, 4},
+      .runtime_params{.memory_limits = {}},
+      .cache_dir = "/tmp/somedir",
+      .log_params = {},
+  };
+  ASSERT_OUTCOME_SUCCESS(buf, scale::encode(input));
+  ASSERT_OUTCOME_SUCCESS(dec_input,
+                         scale::decode<kagome::parachain::PvfWorkerInput>(buf));
+
+  ASSERT_EQ(dec_input, input);
+}
 
 TEST_F(PvfTest, InstancesCached) {
   auto module1 = mockModule(1);

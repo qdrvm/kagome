@@ -1493,6 +1493,7 @@ namespace kagome::application {
     if (find_argument(vm, "parachain-single-process")) {
       use_pvf_subprocess_ = false;
     }
+    logger_->info("Parachain multi process: {}", use_pvf_subprocess_);
 
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {

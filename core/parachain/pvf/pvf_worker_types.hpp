@@ -30,7 +30,8 @@ namespace kagome::parachain {
     std::string function;
     common::Buffer params;
     runtime::RuntimeContextFactory::ContextParams runtime_params;
-    std::filesystem::path cache_dir;
+    std::string cache_dir;
     std::vector<std::string> log_params;
   };
+
 }  // namespace kagome::parachain

@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include <boost/asio/buffer.hpp>
 #include <chrono>
-#include <iostream>
 
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
@@ -43,30 +43,27 @@ namespace kagome::parachain {
     struct ProcessAndPipes {
       bp::async_pipe pipe_stdin;
       bp::async_pipe pipe_stdout;
-      bp::async_pipe pipe_stderr;
       bp::child process;
 
       ProcessAndPipes(boost::asio::io_context &io_context,
                       const std::string &exe)
           : pipe_stdin{io_context},
             pipe_stdout{io_context},
-            pipe_stderr{io_context},
             process{
                 exe,
-                // clang-format off
                 bp::args({"pvf-worker"}),
                 bp::std_out > pipe_stdout,
-                bp::std_in < pipe_stdin, 
-                bp::std_err > pipe_stderr,
-                // clang-format on
+                bp::std_in < pipe_stdin,
             } {}
     };
-    auto logger = log::createLogger("A", "parachain"); 
+    auto logger = log::createLogger("A", "parachain");
     logger->info("Run pvf worker");
+
     auto process = std::make_shared<ProcessAndPipes>(io_context, exe);
 
     auto cb = [cb_ = std::make_shared<std::optional<Cb>>(std::move(cb_)),
-               process, logger](outcome::result<common::Buffer> r) mutable {
+               process,
+               logger](outcome::result<common::Buffer> r) mutable {
       if (*cb_) {
         auto cb = std::move(*cb_);
         cb_->reset();
@@ -114,21 +111,14 @@ namespace kagome::parachain {
             return cb(len_res.error());
           }
           auto output = std::make_shared<common::Buffer>(len_res.value());
-          boost::asio::async_read(
-              process->pipe_stdout,
-              libp2p::asioBuffer(libp2p::BytesOut{*output}),
-              [cb, process, output](EC ec, size_t) mutable {
-                if (ec) {
-                  return cb(ec);
-                }
-                std::cerr << "Print pvf worker stderr\n";
-                std::string line(256, 0);
-                while (process->pipe_stderr.read_some(boost::asio::buffer(line))
-                       > 0) {
-                  std::cerr << line;
-                }
-                cb(std::move(*output));
-              });
+          boost::asio::async_read(process->pipe_stdout,
+                                  libp2p::asioBuffer(libp2p::BytesOut{*output}),
+                                  [cb, process, output](EC ec, size_t) mutable {
+                                    if (ec) {
+                                      return cb(ec);
+                                    }
+                                    cb(std::move(*output));
+                                  });
         });
   }
 
