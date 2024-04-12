@@ -14,7 +14,7 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/batches.hpp"
@@ -126,6 +126,7 @@ namespace kagome::dispute {
         DisputeThreadPool &dispute_thread_pool,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline);
 
     bool prepare();

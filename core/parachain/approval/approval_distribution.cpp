@@ -16,8 +16,8 @@
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -443,10 +443,11 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       application::AppStateManager &app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
-      std::shared_ptr<crypto::CryptoStore> keystore,
+      std::shared_ptr<crypto::KeyStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -468,6 +469,7 @@ namespace kagome::parachain {
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
         peer_view_(std::move(peer_view)),
+        chain_sub_{std::move(chain_sub_engine)},
         parachain_processor_(std::move(parachain_processor)),
         crypto_provider_(std::move(crypto_provider)),
         pm_(std::move(pm)),
@@ -504,13 +506,10 @@ namespace kagome::parachain {
   bool ApprovalDistribution::prepare() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->on_active_leaves_update(event);
           }
@@ -518,30 +517,19 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->store_remote_view(peer_id, view);
           }
         });
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->clearCaches(event);
           }
@@ -578,50 +566,46 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::clearCaches(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*approval_thread_handler_, clearCaches, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-        for (const auto &lost : value->get()) {
-          SL_TRACE(logger_,
-                   "Cleaning up stale pending messages.(block hash={})",
-                   lost);
-          pending_known_.erase(lost);
-          active_tranches_.erase(lost);
-          approving_context_map_.erase(lost);
-          /// TODO(iceseer): `blocks_by_number_` clear on finalization
+    approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+      for (const auto &lost : event) {
+        SL_TRACE(logger_,
+                 "Cleaning up stale pending messages.(block hash={})",
+                 lost);
+        pending_known_.erase(lost);
+        active_tranches_.erase(lost);
+        approving_context_map_.erase(lost);
+        /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
-          if (auto block_entry = storedBlockEntries().get(lost)) {
-            for (const auto &candidate : block_entry->get().candidates) {
-              recovery_->remove(candidate.second);
-              storedCandidateEntries().extract(candidate.second);
-              if (auto it_cached = approvals_cache.find(candidate.second);
-                  it_cached != approvals_cache.end()) {
-                ApprovalCache &approval_cache = it_cached->second;
-                approval_cache.blocks_.erase(lost);
-                if (approval_cache.blocks_.empty()) {
-                  approvals_cache.erase(it_cached);
-                }
+        if (auto block_entry = storedBlockEntries().get(lost)) {
+          for (const auto &candidate : block_entry->get().candidates) {
+            recovery_->remove(candidate.second);
+            storedCandidateEntries().extract(candidate.second);
+            if (auto it_cached = approvals_cache.find(candidate.second);
+                it_cached != approvals_cache.end()) {
+              ApprovalCache &approval_cache = it_cached->second;
+              approval_cache.blocks_.erase(lost);
+              if (approval_cache.blocks_.empty()) {
+                approvals_cache.erase(it_cached);
               }
             }
-            storedBlockEntries().extract(lost);
           }
-          storedDistribBlockEntries().extract(lost);
+          storedBlockEntries().extract(lost);
         }
-      });
-    }
+        storedDistribBlockEntries().extract(lost);
+      }
+    });
   }
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
-      if (auto res = keystore->findSr25519Keypair(
+      if (auto res = keystore->sr25519().findKeypair(
               crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
@@ -633,7 +617,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentsList
   ApprovalDistribution::compute_assignments(
-      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const CandidateIncludedList &leaving_cores) {
@@ -642,13 +626,13 @@ namespace kagome::parachain {
       return {};
     }
 
-    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config);
-    if (!founded_key) {
+    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>> found_key =
+        findAssignmentKey(keystore, config);
+    if (!found_key) {
       return {};
     }
 
-    const auto &[validator_ix, assignments_key] = *founded_key;
+    const auto &[validator_ix, assignments_key] = *found_key;
     std::vector<CoreIndex> lc;
     for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
          leaving_cores) {
@@ -2352,8 +2336,8 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KeyTypes::PARACHAIN, pubkey);
-    if (key_pair.has_error()) {
+        keystore_->sr25519().findKeypair(crypto::KeyTypes::PARACHAIN, pubkey);
+    if (!key_pair) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;
     }
@@ -2448,10 +2432,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay,
-                              tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

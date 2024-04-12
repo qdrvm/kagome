@@ -75,8 +75,8 @@ struct Sr25519ProviderTest : public ::testing::Test {
  */
 TEST_F(Sr25519ProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    auto kp1 = generate();
-    auto kp2 = generate();
+    EXPECT_OUTCOME_TRUE(kp1, generate());
+    EXPECT_OUTCOME_TRUE(kp2, generate());
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -90,7 +90,7 @@ TEST_F(Sr25519ProviderTest, GenerateKeysNotEqual) {
  * @then verification succeeds
  */
 TEST_F(Sr25519ProviderTest, SignVerifySuccess) {
-  auto kp = generate();
+  EXPECT_OUTCOME_TRUE(kp, generate());
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   EXPECT_OUTCOME_TRUE(
       res, sr25519_provider->verify(signature, message_span, kp.public_key));
@@ -107,7 +107,7 @@ TEST_F(Sr25519ProviderTest, SignVerifySuccess) {
  * @then sign fails
  */
 TEST_F(Sr25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
-  auto kp = generate();
+  EXPECT_OUTCOME_TRUE(kp, generate());
   kp.public_key.fill(1);
   EXPECT_OUTCOME_FALSE_1(sr25519_provider->sign(kp, message_span));
 }
@@ -120,10 +120,10 @@ TEST_F(Sr25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
  * @then verification succeeds, but verification result is false
  */
 TEST_F(Sr25519ProviderTest, VerifyWrongKeyFail) {
-  auto kp = generate();
+  EXPECT_OUTCOME_TRUE(kp, generate());
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   // generate another valid key pair and take public one
-  auto kp1 = generate();
+  EXPECT_OUTCOME_TRUE(kp1, generate());
   EXPECT_OUTCOME_TRUE(
       ver_res,
       sr25519_provider->verify(signature, message_span, kp1.public_key));
@@ -143,7 +143,7 @@ TEST_F(Sr25519ProviderTest, VerifyWrongKeyFail) {
  * @then verification fails
  */
 TEST_F(Sr25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
-  auto kp = generate();
+  EXPECT_OUTCOME_TRUE(kp, generate());
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   // make public key invalid
   kp.public_key.fill(1);
@@ -166,7 +166,7 @@ TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
       secret_key,
       Sr25519SecretKey::fromHex(SecureCleanGuard{std::string{hex_sk}}));
 
-  auto &&kp = sr25519_provider->generateKeypair(seed, {});
+  EXPECT_OUTCOME_TRUE(kp, sr25519_provider->generateKeypair(seed, {}));
 
   ASSERT_EQ(kp.secret_key, secret_key);
   ASSERT_EQ(kp.public_key, public_key);
@@ -180,8 +180,10 @@ TEST_F(Sr25519ProviderTest, Junctions) {
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {
     auto bip = bip_provider.generateSeed(phrase).value();
-    auto keys = sr25519_provider->generateKeypair(Sr25519Seed::from(bip.seed),
-                                                  bip.junctions);
+    auto keys =
+        sr25519_provider
+            ->generateKeypair(Sr25519Seed::from(bip.seed), bip.junctions)
+            .value();
     EXPECT_EQ(keys.public_key.toHex(), pub_str);
   };
   f("//Alice",

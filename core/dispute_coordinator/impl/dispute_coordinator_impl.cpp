@@ -128,6 +128,7 @@ namespace kagome::dispute {
       DisputeThreadPool &dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline)
       : system_clock_(system_clock),
         steady_clock_(steady_clock),
@@ -145,7 +146,7 @@ namespace kagome::dispute {
         authority_discovery_(std::move(authority_discovery)),
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
-        chain_sub_{peer_view_->intoChainEventsEngine()},
+        chain_sub_{std::move(chain_sub_engine)},
         timeline_(std::move(timeline)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
@@ -216,13 +217,10 @@ namespace kagome::dispute {
     // subscribe to leaves update
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->on_active_leaves_update(event);
           }

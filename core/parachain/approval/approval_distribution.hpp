@@ -21,8 +21,8 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/crypto_store/key_file_storage.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
@@ -270,10 +270,11 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         application::AppStateManager &app_state_manager,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<crypto::CryptoStore> keystore,
+        std::shared_ptr<crypto::KeyStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -296,7 +297,7 @@ namespace kagome::parachain {
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
 
     static AssignmentsList compute_assignments(
-        const std::shared_ptr<crypto::CryptoStore> &keystore,
+        const std::shared_ptr<crypto::KeyStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
         const CandidateIncludedList &leaving_cores);
@@ -583,7 +584,7 @@ namespace kagome::parachain {
         const runtime::SessionInfo &session_info);
 
     static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-    findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
+    findAssignmentKey(const std::shared_ptr<crypto::KeyStore> &keystore,
                       const runtime::SessionInfo &config);
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
@@ -681,7 +682,8 @@ namespace kagome::parachain {
                            const CandidateHash &candidate_hash,
                            Tick tick);
 
-    void clearCaches(const primitives::events::ChainEventParams &event);
+    void clearCaches(
+        const primitives::events::RemoveAfterFinalizationParams &event);
 
     void store_remote_view(const libp2p::peer::PeerId &peer_id,
                            const network::View &view);
@@ -714,13 +716,13 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
-    std::shared_ptr<crypto::CryptoStore> keystore_;
+    std::shared_ptr<crypto::KeyStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
     network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
           StorePair<CandidateHash, CandidateEntry>,

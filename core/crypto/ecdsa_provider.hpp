@@ -13,6 +13,11 @@ namespace kagome::crypto {
 
   class EcdsaProvider {
    public:
+    using Keypair = EcdsaKeypair;
+    using PublicKey = EcdsaPublicKey;
+    using PrivateKey = EcdsaPrivateKey;
+    using Seed = EcdsaSeed;
+
     using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~EcdsaProvider() = default;

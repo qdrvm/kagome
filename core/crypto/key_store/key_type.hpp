@@ -14,23 +14,21 @@ namespace kagome::crypto {
 
   enum class KeyTypeError {
     UNSUPPORTED_KEY_TYPE = 1,
-    UNSUPPORTED_KEY_TYPE_ID,
   };
-
-  /**
-   * Makes 32bit integer which represent encoded 4-char strings
-   * Little-endian byte order is used
-   */
-  constexpr uint32_t operator""_key(const char *s, std::size_t size) {
-    return (static_cast<uint32_t>(s[0]) << (CHAR_BIT * 0))
-         | (static_cast<uint32_t>(s[1]) << (CHAR_BIT * 1))
-         | (static_cast<uint32_t>(s[2]) << (CHAR_BIT * 2))
-         | (static_cast<uint32_t>(s[3]) << (CHAR_BIT * 3));
-  }
 
   struct KeyType {
     KeyType() = default;
     constexpr KeyType(uint32_t id) : id_(id){};
+
+    static constexpr std::optional<KeyType> fromString(std::string_view s) {
+      if (s.size() != 4) {
+        return std::nullopt;
+      }
+      return KeyType((static_cast<uint32_t>(s[0]) << (CHAR_BIT * 0))
+                     | (static_cast<uint32_t>(s[1]) << (CHAR_BIT * 1))
+                     | (static_cast<uint32_t>(s[2]) << (CHAR_BIT * 2))
+                     | (static_cast<uint32_t>(s[3]) << (CHAR_BIT * 3)));
+    }
 
     constexpr operator uint32_t() const {
       return id_;
@@ -50,9 +48,21 @@ namespace kagome::crypto {
       return s >> v.id_;
     }
 
+    std::string toString() const {
+      return {reinterpret_cast<const char *>(&id_), 4};
+    }
+
    private:
     uint32_t id_{0};
   };
+
+  /**
+   * Makes 32bit integer which represent encoded 4-char strings
+   * Little-endian byte order is used
+   */
+  consteval uint32_t operator""_key(const char *s, size_t len) {
+    return *KeyType::fromString(s);
+  }
 
   struct KeyTypes {
     /// Key type for Babe module, built-in.
@@ -104,20 +114,6 @@ namespace kagome::crypto {
       return false;
     }
   };
-
-  /**
-   * @brief makes string representation of KeyType
-   * @param key_type KeyType
-   * @return string representation of KeyType
-   */
-  std::string encodeKeyTypeToStr(const KeyType &key_type);
-
-  /**
-   * @brief restores KeyType from its string representation
-   * @param param string representation of key type
-   * @return KeyType
-   */
-  KeyType decodeKeyTypeFromStr(std::string_view str);
 
   std::string encodeKeyFileName(const KeyType &type, common::BufferView key);
 

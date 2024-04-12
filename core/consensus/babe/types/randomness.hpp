@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#pragma once
+
 #include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus::babe {

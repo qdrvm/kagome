@@ -19,31 +19,21 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<AvailabilityStore> store,
       std::shared_ptr<Fetch> fetch,
-      std::shared_ptr<BitfieldStore> bitfield_store)
+      std::shared_ptr<BitfieldStore> bitfield_store,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : hasher_{std::move(hasher)},
         signer_factory_{std::move(signer_factory)},
         scheduler_{std::move(scheduler)},
         parachain_api_{std::move(parachain_api)},
         store_{std::move(store)},
         fetch_{std::move(fetch)},
-        bitfield_store_{std::move(bitfield_store)} {}
+        bitfield_store_{std::move(bitfield_store)},
+        chain_sub_{std::move(chain_sub_engine)} {}
 
-  void BitfieldSigner::start(
-      std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-          chain_sub_engine) {
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine);
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kNewHeads);
-    chain_sub_->setCallback(
-        [weak{weak_from_this()}](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType,
-            const primitives::events::ChainEventParams &event) {
+  void BitfieldSigner::start() {
+    chain_sub_.onHead(
+        [weak{weak_from_this()}](const primitives::BlockHeader &header) {
           if (auto self = weak.lock()) {
-            const auto &header =
-                boost::get<primitives::events::HeadsEventParams>(event).get();
             auto r = self->onBlock(header.hash());
             if (r.has_error()) {
               SL_DEBUG(self->logger_, "onBlock error {}", r.error());

@@ -28,6 +28,7 @@ using kagome::runtime::ModuleMock;
 using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;
+using testing::Return;
 
 RuntimeInstancesPool::CodeHash make_code_hash(int i) {
   return RuntimeInstancesPool::CodeHash::fromString(

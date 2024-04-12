@@ -12,13 +12,13 @@ namespace outcome {
   /// Wraps value or returns original result
   template <typename T>
   struct Into {
-    static outcome::result<T> into(T &&r) {
-      return outcome::success(std::move(r));
+    static result<T> into(T &&r) {
+      return success(std::move(r));
     }
   };
   template <typename T>
-  struct Into<outcome::result<T>> {
-    static outcome::result<T> into(outcome::result<T> &&r) {
+  struct Into<result<T>> {
+    static result<T> into(result<T> &&r) {
       return std::move(r);
     }
   };

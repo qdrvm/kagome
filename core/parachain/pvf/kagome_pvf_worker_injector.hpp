@@ -65,7 +65,7 @@ namespace kagome::parachain {
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
 
-        bind_null<crypto::CryptoStore>(),
+        bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
@@ -107,7 +107,6 @@ namespace kagome::parachain {
               injector.template create<sptr<storage::trie::TrieStorage>>(),
               injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              injector.template create<sptr<runtime::SingleModuleCache>>(),
               module_cache_opt,
               injector.template create<sptr<crypto::Hasher>>());
         }),

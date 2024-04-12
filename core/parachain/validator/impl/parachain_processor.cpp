@@ -108,6 +108,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
@@ -129,6 +130,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
+        chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
@@ -201,9 +203,6 @@ namespace kagome::parachain {
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
@@ -213,10 +212,8 @@ namespace kagome::parachain {
           if (auto self = wself.lock()) {
             if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
-                self->bitfield_signer_->start(
-                    self->peer_view_->intoChainEventsEngine());
-                self->pvf_precheck_->start(
-                    self->peer_view_->intoChainEventsEngine());
+                self->bitfield_signer_->start();
+                self->pvf_precheck_->start();
                 was_synchronized = true;
               }
             }
@@ -238,18 +235,13 @@ namespace kagome::parachain {
             }
           }
         });
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::SyncStateEventType::kSyncState);
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->onDeactivateBlocks(event);
           }
@@ -257,13 +249,10 @@ namespace kagome::parachain {
 
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->onViewUpdated(event);
           }
@@ -271,13 +260,10 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->onUpdatePeerView(peer_id, view);
@@ -387,11 +373,19 @@ namespace kagome::parachain {
       return;
     }
 
-    [[maybe_unused]] const auto _ =
-        prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-            .new_head = {event.new_head},
-            .lost = event.lost,
-        });
+    if (const auto r =
+            prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+                .new_head = {event.new_head},
+                .lost = event.lost,
+            });
+        r.has_error()) {
+      SL_WARN(
+          logger_,
+          "Prospective parachains leaf update failed. (relay_parent={}, error={})",
+          relay_parent,
+          r.error().message());
+    }
+
     backing_store_->onActivateLeaf(relay_parent);
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
@@ -501,27 +495,23 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      for (const auto &lost : value->get()) {
-        SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
+    for (const auto &lost : event) {
+      SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
 
-        backing_store_->onDeactivateLeaf(lost);
-        av_store_->remove(lost);
-        bitfield_store_->remove(lost);
-        our_current_state_.active_leaves.erase(lost);
-      }
+      backing_store_->onDeactivateLeaf(lost);
+      av_store_->remove(lost);
+      bitfield_store_->remove(lost);
+      our_current_state_.active_leaves.erase(lost);
     }
   }
 
   void ParachainProcessorImpl::broadcastViewExcept(
       const libp2p::peer::PeerId &peer_id, const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(
         router_->getValidationProtocolVStaging(),
@@ -562,7 +552,8 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(msg);
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          msg);
       SL_TRACE(
           logger_,
           "Broadcasting view update to group.(relay_parent={}, group_size={})",
@@ -581,7 +572,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
@@ -2255,18 +2246,28 @@ namespace kagome::parachain {
             core,
             [&](const network::ScheduledCore &scheduled_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
-              return prospective_parachains_->answerGetBackableCandidate(
-                  relay_parent, scheduled_core.para_id, {});
+              if (auto i = prospective_parachains_->answerGetBackableCandidates(
+                      relay_parent, scheduled_core.para_id, 1, {});
+                  !i.empty()) {
+                return i[0];
+              }
+              return std::nullopt;
             },
             [&](const runtime::OccupiedCore &occupied_core)
                 -> std::optional<std::pair<CandidateHash, Hash>> {
               /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
               /// `bitfields_indicate_availability` check
               if (occupied_core.next_up_on_available) {
-                return prospective_parachains_->answerGetBackableCandidate(
-                    relay_parent,
-                    occupied_core.next_up_on_available->para_id,
-                    {occupied_core.candidate_hash});
+                if (auto i =
+                        prospective_parachains_->answerGetBackableCandidates(
+                            relay_parent,
+                            occupied_core.next_up_on_available->para_id,
+                            1,
+                            {occupied_core.candidate_hash});
+                    !i.empty()) {
+                  return i[0];
+                }
+                return std::nullopt;
               }
               return std::nullopt;
             },
@@ -2810,7 +2811,7 @@ namespace kagome::parachain {
         peer_id,
         protocol,
         std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{.view = my_view->get().view}));
   }
 
@@ -3553,6 +3554,7 @@ namespace kagome::parachain {
                                      *our_current_state_.implicit_view,
                                      our_current_state_.active_leaves,
                                      peer_data.collator_state->para_id)) {
+      SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
     }
 
