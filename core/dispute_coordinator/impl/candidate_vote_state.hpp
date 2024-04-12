@@ -18,6 +18,7 @@ namespace kagome::dispute {
    public:
     static CandidateVoteState create(CandidateVotes votes,
                                      CandidateEnvironment &env,
+                                     std::vector<ValidatorIndex> &disabled,
                                      Timestamp now);
 
     /// Votes already existing for the candidate + receipt.
