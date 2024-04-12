@@ -361,7 +361,7 @@ namespace kagome::parachain {
       if (hashes.size() > 1) {
         block_info.reserve(hashes.size() - 1);
       }
-      for (size_t i = 0; i < hashes.size(); ++i) {
+      for (size_t i = 1; i < hashes.size(); ++i) {
         const auto &hash = hashes[i];
         OUTCOME_TRY(info, fetchBlockInfo(hash));
         if (!info) {
