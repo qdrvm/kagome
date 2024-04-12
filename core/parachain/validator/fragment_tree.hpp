@@ -989,15 +989,15 @@ namespace kagome::parachain::fragment {
                     std::reference_wrapper<const RelayChainBlockInfo>> {
               const auto &node = nodes[ptr];
               if (auto opt_rcbi = scope.ancestorByHash(node.relayParent())) {
-                return std::make_tuple(node.cumulative_modifications,
-                                       node.depth + 1,
-                                       *opt_rcbi);
+                return std::make_tuple(
+                    node.cumulative_modifications, node.depth + 1, *opt_rcbi);
               } else {
                 if (auto r =
                         scope.getPendingAvailability(node.candidate_hash)) {
-                  return std::make_tuple(node.cumulative_modifications,
-                                         node.depth + 1,
-                                         std::cref(scope.earliestRelayParent()));
+                  return std::make_tuple(
+                      node.cumulative_modifications,
+                      node.depth + 1,
+                      std::cref(scope.earliestRelayParent()));
                 }
                 UNREACHABLE;
               }

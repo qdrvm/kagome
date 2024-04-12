@@ -408,7 +408,7 @@ class ProspectiveParachainsTest : public testing::Test {
 
     if (ancestry_len > 0) {
       EXPECT_CALL(*block_tree_,
-                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
+                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN + 1))
           .WillRepeatedly(Return(ancestry_hashes));
       EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
           .WillRepeatedly(Return(1));
@@ -461,11 +461,11 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    std::ignore =
+    EXPECT_OUTCOME_TRUE_1(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {update.new_head},
             .lost = update.lost,
-        });
+        }));
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
       return l.first < r.first;
@@ -1693,7 +1693,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   EXPECT_CALL(*block_tree_, getBlockHeader(hash))
       .WillRepeatedly(Return(header));
 
-  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len))
+  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len + 1))
       .WillRepeatedly(Return(ancestry_hashes));
 
   EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
