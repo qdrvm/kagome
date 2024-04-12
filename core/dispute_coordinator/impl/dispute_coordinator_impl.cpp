@@ -358,11 +358,15 @@ namespace kagome::dispute {
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
       auto is_disputed = vote_state.dispute_status.has_value();
+      auto is_postponed =
+          is_disputed ? is_type<Postponed>(vote_state.dispute_status.value())
+                      : false;
       auto is_confirmed =
           is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
                       : false;
-      auto is_potential_spam =
-          is_disputed && !is_included && !is_backed && !is_confirmed;
+      auto is_potential_spam = is_disputed  //
+                           and not is_included and not is_backed
+                           and not is_confirmed and not is_postponed;
 
       if (is_potential_spam) {
         SL_TRACE(log_,
@@ -1360,11 +1364,15 @@ namespace kagome::dispute {
         is_type<CannotVote>(new_state.own_vote)
         or boost::relaxed_get<Voted>(new_state.own_vote).empty();
     auto is_disputed = new_state.dispute_status.has_value();
+    auto is_postponed = is_disputed
+                          ? is_type<Postponed>(new_state.dispute_status.value())
+                          : false;
     auto is_confirmed = is_disputed
                           ? is_type<Confirmed>(new_state.dispute_status.value())
                           : false;
-    auto is_potential_spam =
-        is_disputed && !is_included && !is_backed && !is_confirmed;
+    auto is_potential_spam = is_disputed  //
+                         and not is_included and not is_backed
+                         and not is_confirmed and not is_postponed;
 
     // We participate only in disputes which are not potential spam.
     auto allow_participation = not is_potential_spam;
@@ -1400,12 +1408,15 @@ namespace kagome::dispute {
     // Participate in dispute if we did not cast a vote before and actually
     // have keys to cast a local vote. Disputes should fall in one of the
     // categories below, otherwise we will refrain from participation:
-    // - `is_included` lands in prioritised queue
-    // - `is_confirmed` | `is_backed` lands in best effort queue
+    // - `is_included` lands in prioritized queue
+    // - `is_confirmed` | `is_backed` lands in the best effort queue
+    // We don't participate in disputes escalated by disabled validators only.
     // We don't participate in disputes on finalized candidates.
     // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:907
 
-    if (own_vote_missing && is_disputed && allow_participation) {
+    if (own_vote_missing                      //
+        and is_disputed and not is_postponed  //
+        and allow_participation) {
       auto priority = static_cast<ParticipationPriority>(is_included);
 
       auto &receipt = new_state.votes.candidate_receipt;
@@ -1427,7 +1438,7 @@ namespace kagome::dispute {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L947
     is_freshly_disputed = not import_result.old_state.dispute_status.has_value()
                       and import_result.new_state.dispute_status.has_value();
-    if (is_freshly_disputed) {
+    if (is_freshly_disputed and not is_postponed) {
       if (is_type<Voted>(new_state.own_vote)) {
         auto &own_votes = boost::relaxed_get<Voted>(new_state.own_vote);
 
