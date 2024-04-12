@@ -49,7 +49,8 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::Executor> executor,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
-      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
         signer_factory_{std::move(signer_factory)},
@@ -58,6 +59,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
+        chain_sub_{std::move(chain_sub_engine)},
         pvf_thread_handler_{pvf_thread_pool.handlerManual()} {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -69,32 +71,21 @@ namespace kagome::parachain {
     BOOST_ASSERT(offchain_worker_pool_ != nullptr);
   }
 
-  void PvfPrecheck::start(
-      std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-          chain_sub_engine) {
+  void PvfPrecheck::start() {
     pvf_thread_handler_->start();
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine);
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kNewHeads);
-    chain_sub_->setCallback(
-        [weak{weak_from_this()}](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType,
-            const primitives::events::ChainEventParams &event) {
+    chain_sub_.onHead([weak{weak_from_this()}] {
+      if (auto self = weak.lock()) {
+        self->pvf_thread_handler_->execute([weak] {
           if (auto self = weak.lock()) {
-            self->pvf_thread_handler_->execute([weak] {
-              if (auto self = weak.lock()) {
-                auto r = self->onBlock();
-                if (r.has_error()) {
-                  SL_DEBUG(self->logger_, "onBlock error {}", r.error());
-                }
-              }
-            });
+            auto r = self->onBlock();
+            if (r.has_error()) {
+              SL_DEBUG(self->logger_, "onBlock error {}", r.error());
+            }
           }
         });
+      }
+    });
   }
 
   outcome::result<void> PvfPrecheck::onBlock() {

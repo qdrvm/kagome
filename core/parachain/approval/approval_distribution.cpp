@@ -445,6 +445,7 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
@@ -470,6 +471,7 @@ namespace kagome::parachain {
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
         peer_view_(std::move(peer_view)),
+        chain_sub_{std::move(chain_sub_engine)},
         parachain_processor_(std::move(parachain_processor)),
         crypto_provider_(std::move(crypto_provider)),
         pm_(std::move(pm)),
@@ -504,13 +506,10 @@ namespace kagome::parachain {
   bool ApprovalDistribution::tryStart() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->on_active_leaves_update(event);
           }
@@ -518,30 +517,19 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->store_remote_view(peer_id, view);
           }
         });
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->clearCaches(event);
           }
@@ -578,41 +566,37 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::clearCaches(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*approval_thread_handler_, clearCaches, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-        for (const auto &lost : value->get()) {
-          SL_TRACE(logger_,
-                   "Cleaning up stale pending messages.(block hash={})",
-                   lost);
-          pending_known_.erase(lost);
-          active_tranches_.erase(lost);
-          approving_context_map_.erase(lost);
-          /// TODO(iceseer): `blocks_by_number_` clear on finalization
+    approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+      for (const auto &lost : event) {
+        SL_TRACE(logger_,
+                 "Cleaning up stale pending messages.(block hash={})",
+                 lost);
+        pending_known_.erase(lost);
+        active_tranches_.erase(lost);
+        approving_context_map_.erase(lost);
+        /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
-          if (auto block_entry = storedBlockEntries().get(lost)) {
-            for (const auto &candidate : block_entry->get().candidates) {
-              recovery_->remove(candidate.second);
-              storedCandidateEntries().extract(candidate.second);
-              if (auto it_cached = approvals_cache.find(candidate.second);
-                  it_cached != approvals_cache.end()) {
-                ApprovalCache &approval_cache = it_cached->second;
-                approval_cache.blocks_.erase(lost);
-                if (approval_cache.blocks_.empty()) {
-                  approvals_cache.erase(it_cached);
-                }
+        if (auto block_entry = storedBlockEntries().get(lost)) {
+          for (const auto &candidate : block_entry->get().candidates) {
+            recovery_->remove(candidate.second);
+            storedCandidateEntries().extract(candidate.second);
+            if (auto it_cached = approvals_cache.find(candidate.second);
+                it_cached != approvals_cache.end()) {
+              ApprovalCache &approval_cache = it_cached->second;
+              approval_cache.blocks_.erase(lost);
+              if (approval_cache.blocks_.empty()) {
+                approvals_cache.erase(it_cached);
               }
             }
-            storedBlockEntries().extract(lost);
           }
-          storedDistribBlockEntries().extract(lost);
+          storedBlockEntries().extract(lost);
         }
-      });
-    }
+        storedDistribBlockEntries().extract(lost);
+      }
+    });
   }
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>

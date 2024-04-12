@@ -127,6 +127,7 @@ namespace kagome::dispute {
         DisputeThreadPool &dispute_thread_pool,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline);
 
     bool tryStart();

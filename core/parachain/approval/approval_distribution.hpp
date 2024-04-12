@@ -271,6 +271,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
@@ -682,7 +683,8 @@ namespace kagome::parachain {
                            const CandidateHash &candidate_hash,
                            Tick tick);
 
-    void clearCaches(const primitives::events::ChainEventParams &event);
+    void clearCaches(
+        const primitives::events::RemoveAfterFinalizationParams &event);
 
     void store_remote_view(const libp2p::peer::PeerId &peer_id,
                            const network::View &view);
@@ -724,7 +726,7 @@ namespace kagome::parachain {
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
     network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
           StorePair<CandidateHash, CandidateEntry>,

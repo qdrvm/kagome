@@ -13,12 +13,12 @@ namespace kagome::network::notifications {
 
   inline void waitReadClose(std::shared_ptr<Stream> stream) {
     auto buf = std::make_shared<std::vector<uint8_t>>(1);
-    auto cb = [stream, buf](libp2p::outcome::result<size_t> r) {
+    auto cb = [stream, buf](outcome::result<size_t> r) {
       if (r) {
         stream->reset();
         return;
       }
-      stream->close([](libp2p::outcome::result<void>) {});
+      stream->close([](outcome::result<void>) {});
     };
     stream->read(*buf, buf->size(), std::move(cb));
   }

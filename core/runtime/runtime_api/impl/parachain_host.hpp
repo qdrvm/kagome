@@ -120,9 +120,8 @@ namespace kagome::runtime {
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);
 
     std::shared_ptr<Executor> executor_;
-    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
 
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     RuntimeApiLruBlock<std::vector<ParachainId>> active_parachains_{10};
     RuntimeApiLruBlockArg<ParachainId, std::optional<Buffer>> parachain_head_{
