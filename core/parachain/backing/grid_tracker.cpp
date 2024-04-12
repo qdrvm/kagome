@@ -155,9 +155,6 @@ namespace kagome::parachain::grid {
     }
     OUTCOME_TRY(received[sender].import_received(
         group_size, seconding_limit, candidate_hash, manifest));
-    //    if (auto error = ; error.has_error()) {
-    //      return error.error();
-    //    }
     bool ack = false;
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
@@ -226,12 +223,6 @@ namespace kagome::parachain::grid {
     const auto &receiving_group_manifests = group_topology.receiving;
 
     for (const auto &v : sending_group_manifests) {
-      // gum::trace!(
-      //     target: LOG_TARGET,
-      //     validator_index = ?v,
-      //     ?manifest_mode,
-      //     "Preparing to send manifest/acknowledgement"
-      //);
       pending_manifests[v][candidate_hash] = ManifestKind::Full;
     }
     for (auto &v : receiving_group_manifests) {

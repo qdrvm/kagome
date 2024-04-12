@@ -590,7 +590,7 @@ namespace kagome::network {
       }
     }
   }
-  
+
   std::optional<std::reference_wrapper<const PeerState>>
   PeerManagerImpl::getPeerState(const PeerId &peer_id) const {
     auto it = peer_states_.find(peer_id);

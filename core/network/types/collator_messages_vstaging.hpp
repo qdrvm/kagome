@@ -142,19 +142,19 @@ namespace kagome::network::vstaging {
       validated_in_group.bits.assign(len, val);
     }
 
-		void mask_seconded(const scale::BitVec &mask) {
+    void mask_seconded(const scale::BitVec &mask) {
       for (size_t i = 0; i < seconded_in_group.bits.size(); ++i) {
         const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
         seconded_in_group.bits[i] = seconded_in_group.bits[i] && !m;
       }
-		}
+    }
 
-		void mask_valid(const scale::BitVec &mask) {
+    void mask_valid(const scale::BitVec &mask) {
       for (size_t i = 0; i < validated_in_group.bits.size(); ++i) {
         const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
         validated_in_group.bits[i] = validated_in_group.bits[i] && !m;
       }
-		}
+    }
 
     bool has_len(size_t len) const {
       return seconded_in_group.bits.size() == len

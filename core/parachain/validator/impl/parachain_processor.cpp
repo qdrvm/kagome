@@ -57,7 +57,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Validate and make available skipped";
     case E::OUT_OF_VIEW:
       return "Out of view";
-      case E::CORE_INDEX_UNAVAILABLE:
+    case E::CORE_INDEX_UNAVAILABLE:
       return "Core index unavailable";
     case E::DUPLICATE:
       return "Duplicate";
@@ -481,7 +481,6 @@ namespace kagome::parachain {
 
     auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
-      SL_WARN(logger_, "No peer state. (peer_id={})", peer_id);
       return;
     }
 
@@ -492,7 +491,6 @@ namespace kagome::parachain {
 
     auto opt_session_info = retrieveSessionInfo(relay_parent);
     if (!opt_session_info) {
-      SL_WARN(logger_, "No session info. (relay_parent={})", relay_parent);
       return;
     }
 
@@ -514,77 +512,7 @@ namespace kagome::parachain {
       }
     }
 
-    /// 555666 cluster(send to group)
-
-    //    std::unordered_set<network::PeerId> group_set;
-    //    if (auto r = runtime_info_->get_session_info(relay_parent)) {
-    //      auto &[session, info] = r.value();
-    //      if (info.our_group) {
-    //        for (auto &i : session.validator_groups[*info.our_group]) {
-    //        }
-    //      }
-    //    }
-    //
-    //    std::deque<network::VersionedValidatorProtocolMessage> messages;
-    //
-    //    for (const auto &candidate_hash :
-    //         parachain_state->get().issued_statements) {
-    //      if (auto confirmed_candidate =
-    //              candidates_.get_confirmed(candidate_hash)) {
-    //        const auto group_index = confirmed_candidate->get().group_index();
-    //        const auto group_size = groups.groups[group_index].size();
-    //
-    //        auto local_knowledge =
-    //            local_knowledge_filter(group_size,
-    //                                   group_index,
-    //                                   candidate_hash,
-    //                                   *parachain_state->get().statement_store);
-    //        network::VersionedValidatorProtocolMessage manifest{
-    //            kagome::network::vstaging::ValidatorProtocolMessage{
-    //                kagome::network::vstaging::StatementDistributionMessage{
-    //                    kagome::network::vstaging::BackedCandidateManifest{
-    //                        .relay_parent = relay_parent,
-    //                        .candidate_hash = candidate_hash,
-    //                        .group_index = group_index,
-    //                        .para_id = confirmed_candidate->get().para_id(),
-    //                        .parent_head_data_hash =
-    //                            confirmed_candidate->get().parent_head_data_hash(),
-    //                        .statement_knowledge = local_knowledge,
-    //                    }}}};
-    //
-    //        auto m = acknowledgement_and_statement_messages(
-    //            *parachain_state->get().statement_store,
-    //            groups.groups[group_index],
-    //            local_knowledge,
-    //            candidate_hash,
-    //            relay_parent);
-    //
-    //        messages.emplace_back(std::move(manifest));
-    //        messages.insert(messages.end(),
-    //                        std::move_iterator(m.begin()),
-    //                        std::move_iterator(m.end()));
-    //      }
-    //    }
-    //
-    //    if (peer_id) {
-    //      auto se = pm_->getStreamEngine();
-    //      BOOST_ASSERT(se);
-    //
-    //      for (auto &msg : messages) {
-    //        if (auto m =
-    //                if_type<network::vstaging::ValidatorProtocolMessage>(msg))
-    //                {
-    //          auto message = std::make_shared<network::WireMessage<
-    //              network::vstaging::ValidatorProtocolMessage>>(
-    //              std::move(m->get()));
-    //          se->send(peer_id->get(),
-    //                   router_->getValidationProtocolVStaging(),
-    //                   message);
-    //        }
-    //      }
-    //    } else {
-    //      send_to_validators_group(relay_parent, std::move(messages));
-    //    }
+    /// TODO(iceseer): do `cluster view`
   }
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
@@ -873,32 +801,33 @@ namespace kagome::parachain {
     std::optional<ParachainId> assigned_para;
 
     for (CoreIndex idx = 0; idx < static_cast<CoreIndex>(cores.size()); ++idx) {
-      std::optional<ParachainId> core_para_id = visit_in_place(cores[idx],
-        [&](const runtime::OccupiedCore &occupied) -> std::optional<ParachainId> {
-          if (mode) {
-            if (occupied.next_up_on_available) {
-              return occupied.next_up_on_available->para_id;
+      std::optional<ParachainId> core_para_id = visit_in_place(
+          cores[idx],
+          [&](const runtime::OccupiedCore &occupied)
+              -> std::optional<ParachainId> {
+            if (mode) {
+              if (occupied.next_up_on_available) {
+                return occupied.next_up_on_available->para_id;
+              } else {
+                return std::nullopt;
+              }
             } else {
               return std::nullopt;
             }
-          } else {
+          },
+          [](const runtime::ScheduledCore &scheduled)
+              -> std::optional<ParachainId> { return scheduled.para_id; },
+          [](const runtime::FreeCore &) -> std::optional<ParachainId> {
             return std::nullopt;
-          }
-        },
-        [](const runtime::ScheduledCore &scheduled) -> std::optional<ParachainId> {
-          return scheduled.para_id;
-        },
-        [](const runtime::FreeCore &) -> std::optional<ParachainId> {
-          return std::nullopt;
-        }
-      );
+          });
 
       if (!core_para_id) {
         continue;
       }
 
-   		const CoreIndex core_index = idx;
-  		const GroupIndex group_index = group_rotation_info.groupForCore(core_index, n_cores);
+      const CoreIndex core_index = idx;
+      const GroupIndex group_index =
+          group_rotation_info.groupForCore(core_index, n_cores);
 
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
@@ -912,13 +841,14 @@ namespace kagome::parachain {
 
     std::vector<std::optional<GroupIndex>> validator_to_group;
     validator_to_group.resize(validators.size());
-    for (GroupIndex group_idx = 0; group_idx < validator_groups.size(); ++group_idx) {
+    for (GroupIndex group_idx = 0; group_idx < validator_groups.size();
+         ++group_idx) {
       const auto &validator_group = validator_groups[group_idx];
       for (const auto v : validator_group.validators) {
         SL_TRACE(logger_, "Bind {} -> {}", v, group_idx);
         validator_to_group[v] = group_idx;
       }
-    }    
+    }
 
     uint32_t minimum_backing_votes = 2;  /// legacy value
     if (auto r =
@@ -955,13 +885,14 @@ namespace kagome::parachain {
       }
     }
 
-    SL_VERBOSE(logger_,
-               "Inited new backing task v2.(assigned_para={}, assigned_core={}, our index={}, relay "
-               "parent={})",
-               assigned_para,
-               assigned_core,
-               validator->validatorIndex(),
-               relay_parent);
+    SL_VERBOSE(
+        logger_,
+        "Inited new backing task v2.(assigned_para={}, assigned_core={}, our index={}, relay "
+        "parent={})",
+        assigned_para,
+        assigned_core,
+        validator->validatorIndex(),
+        relay_parent);
 
     std::optional<GroupIndex> our_group;
     if (groups_p) {
@@ -1779,7 +1710,6 @@ namespace kagome::parachain {
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger_,
@@ -2163,7 +2093,6 @@ namespace kagome::parachain {
              candidate_hash,
              group_index);
 
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     if (r.has_error()) {
       SL_INFO(logger_,
               "Fetch attested candidate returned an error. (relay parent={}, "
@@ -2267,20 +2196,17 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::new_confirmed_candidate_fragment_tree_updates(
       const HypotheticalCandidate &candidate) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     fragment_tree_update_inner(std::nullopt, std::nullopt, {candidate});
   }
 
   void ParachainProcessorImpl::new_leaf_fragment_tree_updates(
       const Hash &leaf_hash) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     fragment_tree_update_inner({leaf_hash}, std::nullopt, std::nullopt);
   }
 
   void
   ParachainProcessorImpl::prospective_backed_notification_fragment_tree_updates(
       ParachainId para_id, const Hash &para_head) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     std::pair<std::reference_wrapper<const Hash>, ParachainId> p{{para_head},
                                                                  para_id};
     fragment_tree_update_inner(std::nullopt, p, std::nullopt);
@@ -2292,8 +2218,6 @@ namespace kagome::parachain {
           required_parent_info,
       std::optional<std::reference_wrapper<const HypotheticalCandidate>>
           known_hypotheticals) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
-
     std::vector<HypotheticalCandidate> hypotheticals;
     if (!known_hypotheticals) {
       hypotheticals = candidates_.frontier_hypotheticals(required_parent_info);
@@ -2422,7 +2346,6 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
         imported;
     per_relay_parent.statement_store->fresh_statements_for_backing(
@@ -2787,15 +2710,12 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
 
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
       logger_->trace("Handled statement from {} out of view", relay_parent);
       return;
     }
-
-    SL_TRACE(logger_, "=====> 111  2");
 
     auto &parachain_state = opt_parachain_state->get();
     const auto &assigned_para = parachain_state.assigned_para;
@@ -2896,7 +2816,6 @@ namespace kagome::parachain {
       const network::SignedStatement &statement) {
     SL_TRACE(
         logger_, "Import statement into table.(candidate={})", candidate_hash);
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     return backing_store_->put(
         relay_parent,
         group_id,
@@ -3069,7 +2988,6 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::statementDistributionBackedCandidate(
       const CandidateHash &candidate_hash) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     auto confirmed_opt = candidates_.get_confirmed(candidate_hash);
     if (!confirmed_opt) {
       SL_TRACE(logger_,
@@ -3234,7 +3152,6 @@ namespace kagome::parachain {
       const CandidateHash &digest,
       const ParachainProcessorImpl::TableContext &context,
       uint32_t minimum_backing_votes) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     if (auto opt_validity_votes =
             backing_store_->getCadidateInfo(relay_parent, digest)) {
       auto &data = opt_validity_votes->get();
@@ -3254,7 +3171,6 @@ namespace kagome::parachain {
   std::optional<BackingStore::BackedCandidate>
   ParachainProcessorImpl::table_attested_to_backed(
       AttestedCandidate &&attested, TableContext &table_context) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     const auto para_id = attested.group_id;
     if (auto it = table_context.groups.find(para_id);
         it != table_context.groups.end()) {
@@ -3314,7 +3230,6 @@ namespace kagome::parachain {
       const network::RelayHash &relay_parent,
       const SignedFullStatementWithPVD &statement,
       ParachainProcessorImpl::RelayParentState &rp_state) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     const CandidateHash candidate_hash =
         candidateHashFrom(parachain::getPayload(statement));
 
@@ -3376,12 +3291,10 @@ namespace kagome::parachain {
         .signature = statement.signature,
     };
 
-   	auto core = core_index_from_statement(
-      rp_state.validator_to_group,
-      rp_state.group_rotation_info,
-      rp_state.availability_cores,
-      statement
-    );
+    auto core = core_index_from_statement(rp_state.validator_to_group,
+                                          rp_state.group_rotation_info,
+                                          rp_state.availability_cores,
+                                          statement);
     if (!core) {
       return Error::CORE_INDEX_UNAVAILABLE;
     };
@@ -3390,70 +3303,104 @@ namespace kagome::parachain {
         relay_parent, rp_state, *core, candidate_hash, stmnt);
   }
 
-std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
-	const std::vector<std::optional<GroupIndex>> &validator_to_group,
-	const runtime::GroupDescriptor &group_rotation_info,
-	const std::vector<runtime::CoreState> &cores,
-	const SignedFullStatementWithPVD &statement
-) {
-  const auto &compact_statement = getPayload(statement);
-  const auto candidate_hash = candidateHashFrom(compact_statement);
+  std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
+      const std::vector<std::optional<GroupIndex>> &validator_to_group,
+      const runtime::GroupDescriptor &group_rotation_info,
+      const std::vector<runtime::CoreState> &cores,
+      const SignedFullStatementWithPVD &statement) {
+    const auto &compact_statement = getPayload(statement);
+    const auto candidate_hash = candidateHashFrom(compact_statement);
 
-  const auto n_cores = cores.size();
-  SL_TRACE(logger_, "Extracting core index from statement. (candidate_hash={}, n_cores={})", candidate_hash, n_cores);
+    const auto n_cores = cores.size();
+    SL_TRACE(
+        logger_,
+        "Extracting core index from statement. (candidate_hash={}, n_cores={})",
+        candidate_hash,
+        n_cores);
 
-  const auto statement_validator_index = statement.payload.ix;
-  if (statement_validator_index >= validator_to_group.size()) {
-    SL_TRACE(logger_, "Invalid validator index. (candidate_hash={}, validator_to_group={}, statement_validator_index={}, n_cores={})", candidate_hash, validator_to_group.size(), statement_validator_index, n_cores);
-    return std::nullopt;
-  }
-
-  const auto group_index = validator_to_group[statement_validator_index];
-  if (!group_index) {
-    SL_TRACE(logger_, "Invalid validator index. Empty group. (candidate_hash={}, statement_validator_index={}, n_cores={})", candidate_hash, statement_validator_index, n_cores);
-    return std::nullopt;
-  }
-
-  const auto core_index = group_rotation_info.coreForGroup(*group_index, n_cores);
-
-	if (size_t(core_index) > n_cores) {
-    SL_WARN(logger_, "Invalid CoreIndex. (candidate_hash={}, core_index={}, validator={}, n_cores={})", candidate_hash, core_index, statement_validator_index, n_cores);
-		return std::nullopt;
-	}
-
-  if (auto s = if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
-    const auto candidate_para_id = s->get().committed_receipt.descriptor.para_id;
-    std::optional<ParachainId> assigned_para_id =
-    visit_in_place(cores[core_index],
-        [&](const runtime::OccupiedCore &occupied) -> std::optional<ParachainId> {
-          if (occupied.next_up_on_available) {
-            return occupied.next_up_on_available->para_id;
-          } else {
-            return std::nullopt;
-          }
-        },
-        [&](const runtime::ScheduledCore &scheduled) -> std::optional<ParachainId> {
-          return scheduled.para_id;
-        },
-        [&](const runtime::FreeCore &) -> std::optional<ParachainId> {
-          SL_TRACE(logger_, "Invalid CoreIndex, core is not assigned to any para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})", candidate_hash, core_index, statement_validator_index, n_cores);
-          return std::nullopt;
-        }
-    );
-
-    if (!assigned_para_id) {
+    const auto statement_validator_index = statement.payload.ix;
+    if (statement_validator_index >= validator_to_group.size()) {
+      SL_TRACE(
+          logger_,
+          "Invalid validator index. (candidate_hash={}, validator_to_group={}, statement_validator_index={}, n_cores={})",
+          candidate_hash,
+          validator_to_group.size(),
+          statement_validator_index,
+          n_cores);
       return std::nullopt;
     }
 
-		if (*assigned_para_id != candidate_para_id) {
-      SL_TRACE(logger_, "Invalid CoreIndex, core is assigned to a different para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})", candidate_hash, core_index, statement_validator_index, n_cores);
-			return std::nullopt;
-		}
-		return core_index;
-  } else {
-    return core_index;
+    const auto group_index = validator_to_group[statement_validator_index];
+    if (!group_index) {
+      SL_TRACE(
+          logger_,
+          "Invalid validator index. Empty group. (candidate_hash={}, statement_validator_index={}, n_cores={})",
+          candidate_hash,
+          statement_validator_index,
+          n_cores);
+      return std::nullopt;
+    }
+
+    const auto core_index =
+        group_rotation_info.coreForGroup(*group_index, n_cores);
+
+    if (size_t(core_index) > n_cores) {
+      SL_WARN(
+          logger_,
+          "Invalid CoreIndex. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
+          candidate_hash,
+          core_index,
+          statement_validator_index,
+          n_cores);
+      return std::nullopt;
+    }
+
+    if (auto s =
+            if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
+      const auto candidate_para_id =
+          s->get().committed_receipt.descriptor.para_id;
+      std::optional<ParachainId> assigned_para_id = visit_in_place(
+          cores[core_index],
+          [&](const runtime::OccupiedCore &occupied)
+              -> std::optional<ParachainId> {
+            if (occupied.next_up_on_available) {
+              return occupied.next_up_on_available->para_id;
+            } else {
+              return std::nullopt;
+            }
+          },
+          [&](const runtime::ScheduledCore &scheduled)
+              -> std::optional<ParachainId> { return scheduled.para_id; },
+          [&](const runtime::FreeCore &) -> std::optional<ParachainId> {
+            SL_TRACE(
+                logger_,
+                "Invalid CoreIndex, core is not assigned to any para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
+                candidate_hash,
+                core_index,
+                statement_validator_index,
+                n_cores);
+            return std::nullopt;
+          });
+
+      if (!assigned_para_id) {
+        return std::nullopt;
+      }
+
+      if (*assigned_para_id != candidate_para_id) {
+        SL_TRACE(
+            logger_,
+            "Invalid CoreIndex, core is assigned to a different para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
+            candidate_hash,
+            core_index,
+            statement_validator_index,
+            n_cores);
+        return std::nullopt;
+      }
+      return core_index;
+    } else {
+      return core_index;
+    }
   }
-}
 
   void ParachainProcessorImpl::unblockAdvertisements(
       ParachainProcessorImpl::RelayParentState &rp_state,
@@ -3523,7 +3470,6 @@ std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
   ParachainProcessorImpl::sign_import_and_distribute_statement(
       ParachainProcessorImpl::RelayParentState &rp_state,
       const ValidateAndSecondResult &validation_result) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     if (auto statement =
             createAndSignStatement<kStatementType>(validation_result)) {
       const SignedFullStatementWithPVD stm = visit_in_place(
@@ -3560,7 +3506,6 @@ std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
           [&](const auto &) -> SignedFullStatementWithPVD {
             return SignedFullStatementWithPVD{};
           });
-      SL_TRACE(logger_, "=====> 111  1");
 
       OUTCOME_TRY(
           summary,
@@ -3579,7 +3524,6 @@ std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
       const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &rp_state,
       std::optional<BackingStore::ImportResult> &summary) {
-    SL_TRACE(logger_, "{}", __PRETTY_FUNCTION__);
     if (!summary) {
       return;
     }

@@ -68,21 +68,6 @@ namespace kagome::network {
     View view;
     std::unordered_set<common::Hash256> implicit_view;
     std::optional<CollationVersion> version;
-    //    std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
-    //    discovery_ids;
-    //
-    //	bool is_authority(const primitives::AuthorityDiscoveryId &authority_id)
-    // const {
-    //    return discovery_ids && discovery_ids->find(authority_id) !=
-    //    discovery_ids->end();
-    //	}
-    //
-    //  std::optional<std::reference_wrapper<const
-    //  std::unordered_set<primitives::AuthorityDiscoveryId>>>
-    //	known_discovery_ids() {
-    //    return utils::map(discovery_ids, [](const auto &val) { return
-    //    std::cref(val); });
-    //	}
 
     std::vector<common::Hash256> update_view(
         const View &new_view, const parachain::ImplicitView &local_implicit) {

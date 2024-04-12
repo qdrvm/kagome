@@ -509,11 +509,10 @@ namespace kagome::parachain {
         const SignedFullStatementWithPVD &statement,
         ParachainProcessorImpl::RelayParentState &relayParentState);
     std::optional<CoreIndex> core_index_from_statement(
-	const std::vector<std::optional<GroupIndex>> &validator_to_group,
-	const runtime::GroupDescriptor &group_rotation_info,
-	const std::vector<runtime::CoreState> &cores,
-	const SignedFullStatementWithPVD &statement
-);
+        const std::vector<std::optional<GroupIndex>> &validator_to_group,
+        const runtime::GroupDescriptor &group_rotation_info,
+        const std::vector<runtime::CoreState> &cores,
+        const SignedFullStatementWithPVD &statement);
     const network::CandidateDescriptor &candidateDescriptorFrom(
         const network::CollationFetchingResponse &collation) {
       return visit_in_place(
