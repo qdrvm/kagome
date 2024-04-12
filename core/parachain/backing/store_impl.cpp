@@ -180,7 +180,6 @@ namespace kagome::parachain {
         },
         [](const auto &) {
           UNREACHABLE;
-          std::cout << fmt::format("UNREACHABLE\n");
           return Error::CRITICAL_ERROR;
         });
 
