@@ -269,8 +269,12 @@ namespace kagome::runtime::wasm_edge {
         const override {
       StoreContext store = WasmEdge_StoreCreate();
 
+      auto env_name = WasmEdge_StringCreateByCString("env");
+
       auto host_instance = std::make_shared<ModuleInstanceContext>(
-          WasmEdge_ModuleInstanceCreate(WasmEdge_StringCreateByCString("env")));
+          WasmEdge_ModuleInstanceCreate(env_name));
+
+      WasmEdge_StringDelete(env_name);
 
       std::shared_ptr<MemoryProvider> memory_provider;
       if (memory_type_) {

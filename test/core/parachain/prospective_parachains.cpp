@@ -461,11 +461,11 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    std::ignore =
+    ASSERT_OUTCOME_SUCCESS_TRY(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {update.new_head},
             .lost = update.lost,
-        });
+        }));
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
       return l.first < r.first;
