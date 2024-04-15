@@ -971,7 +971,7 @@ namespace kagome::parachain::fragment {
       depths.bits.resize(max_depth + 1);
 
       auto process_parent_pointer = [&](const NodePointer &parent_pointer) {
-        const auto &[modifications, child_depth, earliest_rp] = visit_in_place(
+        const auto [modifications, child_depth, earliest_rp] = visit_in_place(
             parent_pointer,
             [&](const NodePointerRoot &)
                 -> std::tuple<
@@ -980,7 +980,7 @@ namespace kagome::parachain::fragment {
                     std::reference_wrapper<const RelayChainBlockInfo>> {
               return std::make_tuple(ConstraintModifications{},
                                      size_t{0ull},
-                                     scope.earliestRelayParent());
+                                     std::cref(scope.earliestRelayParent()));
             },
             [&](const NodePointerStorage &ptr)
                 -> std::tuple<
@@ -989,15 +989,15 @@ namespace kagome::parachain::fragment {
                     std::reference_wrapper<const RelayChainBlockInfo>> {
               const auto &node = nodes[ptr];
               if (auto opt_rcbi = scope.ancestorByHash(node.relayParent())) {
-                return std::make_tuple(node.cumulative_modifications,
-                                       size_t(node.depth + 1),
-                                       opt_rcbi->get());
+                return std::make_tuple(
+                    node.cumulative_modifications, node.depth + 1, *opt_rcbi);
               } else {
                 if (auto r =
                         scope.getPendingAvailability(node.candidate_hash)) {
-                  return std::make_tuple(node.cumulative_modifications,
-                                         size_t(node.depth + 1),
-                                         scope.earliestRelayParent());
+                  return std::make_tuple(
+                      node.cumulative_modifications,
+                      node.depth + 1,
+                      std::cref(scope.earliestRelayParent()));
                 }
                 UNREACHABLE;
               }
