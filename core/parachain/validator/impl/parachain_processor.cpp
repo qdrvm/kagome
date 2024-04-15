@@ -551,8 +551,17 @@ namespace kagome::parachain {
     }
     new_leaf_fragment_tree_updates(relay_parent);
 
+    // need to lock removing session infoes
+    std::vector<
+        std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>>
+        _keeper_;
+    _keeper_.reserve(event.lost.size());
+
     for (const auto &lost : event.lost) {
       SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
+      if (auto relay_parent_state = tryGetStateByRelayParent(lost)) {
+        _keeper_.emplace_back(relay_parent_state->get().per_session_state);
+      }
 
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.implicit_view->deactivate_leaf(lost);
