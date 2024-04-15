@@ -805,11 +805,11 @@ namespace kagome::parachain {
               grid::makeViews(session_info.validator_groups,
                               session_info.active_validator_indices,
                               validator_index);
+          Groups g{session_info.validator_groups, minimum_backing_votes};
           return RefCache<SessionIndex, PerSessionState>::RefObj(
               PerSessionState{
                   .session_info = std::move(session_info),
-                  .groups = Groups{session_info.validator_groups,
-                                   minimum_backing_votes},
+                  .groups = std::move(g),
                   .grid_view = grid_view,
               });
         });
@@ -874,8 +874,11 @@ namespace kagome::parachain {
 
     std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
         authority_lookup;
-    for (ValidatorIndex v = 0; v < session_info->discovery_keys.size(); ++v) {
-      authority_lookup[session_info->discovery_keys[v]] = v;
+    for (ValidatorIndex v = 0;
+         v < per_session_state->value().session_info.discovery_keys.size();
+         ++v) {
+      authority_lookup[per_session_state->value()
+                           .session_info.discovery_keys[v]] = v;
     }
 
     std::optional<StatementStore> statement_store;
@@ -4042,10 +4045,13 @@ namespace kagome::parachain {
       const SignedFullStatementWithPVD &statement) {
     const CandidateHash candidate_hash =
         candidateHashFrom(getPayload(statement));
-    SL_TRACE(logger_,
-             "Sharing statement. (relay parent={}, candidate hash={})",
-             relay_parent,
-             candidate_hash);
+    SL_TRACE(
+        logger_,
+        "Sharing statement. (relay parent={}, candidate hash={}, our_index={}, statement_ix={})",
+        relay_parent,
+        candidate_hash,
+        *per_relay_parent.our_index,
+        statement.payload.ix);
 
     BOOST_ASSERT(per_relay_parent.our_index);
 
