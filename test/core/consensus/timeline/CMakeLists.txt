@@ -10,10 +10,10 @@ addtest(block_executor_test
 
 addtest(slots_util_test
     slots_util_test.cpp
-    transaction_pool_error
 )
 target_link_libraries(slots_util_test
     logger_for_tests
+    transaction_pool_error
 )
 
 addtest(timeline_test
