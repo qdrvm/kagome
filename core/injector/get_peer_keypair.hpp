@@ -11,8 +11,8 @@
 #include "application/app_configuration.hpp"
 #include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
-#include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "crypto/key_store/key_store_impl.hpp"
 
 namespace kagome::injector {
   inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
