@@ -1,0 +1,1 @@
+// Empty file for kagome_deps dynamic library
