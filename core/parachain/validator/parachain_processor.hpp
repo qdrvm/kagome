@@ -484,8 +484,6 @@ namespace kagome::parachain {
         AttestingData &attesting_data,
         const runtime::PersistedValidationData &persisted_validation_data,
         RelayParentState &parachain_state);
-    std::optional<runtime::SessionInfo> retrieveSessionInfo(
-        const RelayHash &relay_parent);
     void handleFetchedCollation(PendingCollation &&pending_collation,
                                 network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
