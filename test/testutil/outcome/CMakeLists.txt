@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(dummy_error
+add_library(dummy_error SHARED
     dummy_error.cpp
     )
 target_link_libraries(dummy_error

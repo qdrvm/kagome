@@ -7,7 +7,3 @@
 addtest(child_state_api_test
     child_state_api_test.cpp
     )
-target_link_libraries(child_state_api_test
-    api
-    blob
-    )

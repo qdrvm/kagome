@@ -33,6 +33,14 @@ target_link_libraries(kagome
     storage_explorer
     filesystem
     )
+
+add_library(kagome_deps SHARED
+    deps.cpp
+    )
+target_link_libraries(kagome_deps
+    kagome_application
+    )
+
 if (BACKWARD)
   add_backward(kagome)
 endif ()

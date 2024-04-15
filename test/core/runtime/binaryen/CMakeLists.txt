@@ -30,13 +30,8 @@ addtest(tagged_transaction_queue_test
     )
 target_link_libraries(tagged_transaction_queue_test
     binaryen_runtime_test
-    tagged_transaction_queue_api
-    testutil_primitives_generator
     basic_code_provider
-    core_api
-    core_api_factory
     logger_for_tests
-    filesystem
     )
 
 addtest(block_builder_api_test
@@ -44,10 +39,7 @@ addtest(block_builder_api_test
     )
 target_link_libraries(block_builder_api_test
     binaryen_runtime_test
-    block_builder_api
     basic_code_provider
-    core_api
-    filesystem
     logger_for_tests
     )
 
@@ -56,14 +48,7 @@ addtest(parachain_test
     )
 target_link_libraries(parachain_test
     binaryen_runtime_test
-    parachain_host_api
     basic_code_provider
-    core_api
-    core_api_factory
-    filesystem
-    hasher
-    pbkdf2_provider
-    network
     )
 
 addtest(metadata_test
@@ -71,11 +56,7 @@ addtest(metadata_test
     )
 target_link_libraries(metadata_test
     binaryen_runtime_test
-    metadata_api
     basic_code_provider
-    storage
-    core_api
-    core_api_factory
     logger_for_tests
     )
 
@@ -83,18 +64,9 @@ addtest(runtime_external_interface_test
     runtime_external_interface_test.cpp
     )
 target_link_libraries(runtime_external_interface_test
-    binaryen_runtime_external_interface
-    executor
-    blob
     logger_for_tests
     )
 
 addtest(binaryen_memory_test
     wasm_memory_test.cpp
-    )
-target_link_libraries(binaryen_memory_test
-    binaryen_wasm_memory
-    binaryen_runtime_external_interface
-    log_configurator
-    hexutil
     )

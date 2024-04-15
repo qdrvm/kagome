@@ -9,6 +9,7 @@ function(addtest test_name)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
   target_link_libraries(${test_name}
+      kagome_deps
       GTest::gmock_main
       )
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xunit)

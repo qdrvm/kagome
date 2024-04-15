@@ -13,5 +13,4 @@ addtest(beefy_test
     )
 target_link_libraries(beefy_test
     logger_for_tests
-    network
     )

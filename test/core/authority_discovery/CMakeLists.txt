@@ -8,8 +8,5 @@ addtest(address_publisher_test
     address_publisher_test.cpp
     )
 target_link_libraries(address_publisher_test
-    address_publisher
-    key_store
     logger_for_tests
-    network
     )

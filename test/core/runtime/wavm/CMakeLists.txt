@@ -29,7 +29,6 @@ addtest(wavm_memory_test
     )
 target_link_libraries(wavm_memory_test
     logger_for_tests
-    runtime_wavm
     )
 
 addtest(core_integration_test
@@ -37,10 +36,6 @@ addtest(core_integration_test
     )
 target_link_libraries(core_integration_test
     wavm_runtime_test
-    core_api
-    basic_code_provider
-    storage
-    filesystem
     logger_for_tests
     )
 
@@ -48,15 +43,5 @@ addtest(wavm_module_init_test
     wavm_module_init_test.cpp
 )
 target_link_libraries(wavm_module_init_test
-    runtime_wavm
-    basic_code_provider
-    blockchain
-    hasher
-    core_api
-    host_api_factory
-    offchain_persistent_storage
-    offchain_worker_pool
-    runtime_properties_cache
     logger_for_tests
-    module_repository
 )

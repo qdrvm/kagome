@@ -14,16 +14,10 @@ addtest(polkadot_trie_storage_test
     ordered_trie_hash_test.cpp
     )
 target_link_libraries(polkadot_trie_storage_test
-    storage
-    Boost::boost
     base_rocksdb_test
     logger_for_tests
     )
 
 addtest(trie_storage_backend_test
     trie_storage_backend_test.cpp
-    )
-target_link_libraries(trie_storage_backend_test
-    storage
-    blob
     )

@@ -9,10 +9,5 @@ addtest(voting_round_test
     )
 
 target_link_libraries(voting_round_test
-    consensus
-    blob
-    clock
     logger_for_tests
-    network
-    p2p::p2p_basic_scheduler
     )
