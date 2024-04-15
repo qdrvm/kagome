@@ -13,3 +13,6 @@ target_link_libraries(testutil_read_writer_helper
     p2p::p2p_peer_id
     GTest::gmock_main
     )
+set_target_properties(testutil_read_writer_helper
+    PROPERTIES POSITION_INDEPENDENT_CODE ON
+)
