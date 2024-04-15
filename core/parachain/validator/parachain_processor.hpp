@@ -16,6 +16,7 @@
 
 #include "application/app_configuration.hpp"
 #include "authority_discovery/query/query.hpp"
+#include "common/ref_cache.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
@@ -40,7 +41,6 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
-#include "common/ref_cache.hpp"
 
 namespace kagome::common {
   class MainThreadPool;
@@ -251,9 +251,9 @@ namespace kagome::parachain {
     };
 
     struct PerSessionState {
-        runtime::SessionInfo session_info;
-        Groups groups;
-        std::optional<grid::Views> grid_view;
+      runtime::SessionInfo session_info;
+      Groups groups;
+      std::optional<grid::Views> grid_view;
     };
 
     struct RelayParentState {
@@ -261,7 +261,8 @@ namespace kagome::parachain {
       std::optional<CoreIndex> assigned_core;
       std::optional<ParachainId> assigned_para;
       std::vector<std::optional<GroupIndex>> validator_to_group;
-      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj> per_session_state;
+      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
+          per_session_state;
 
       std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
