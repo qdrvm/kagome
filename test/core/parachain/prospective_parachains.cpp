@@ -408,7 +408,7 @@ class ProspectiveParachainsTest : public testing::Test {
 
     if (ancestry_len > 0) {
       EXPECT_CALL(*block_tree_,
-                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN + 1))
+                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
           .WillRepeatedly(Return(ancestry_hashes));
       EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
           .WillRepeatedly(Return(1));
@@ -1693,7 +1693,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   EXPECT_CALL(*block_tree_, getBlockHeader(hash))
       .WillRepeatedly(Return(header));
 
-  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len + 1))
+  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len))
       .WillRepeatedly(Return(ancestry_hashes));
 
   EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
