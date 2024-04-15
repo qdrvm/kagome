@@ -132,7 +132,7 @@ jobs:
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller ]
+    runs-on: ubuntu-latest
     container: kamilsa/kagome-dev@sha256:fcfb1a3734949afd8e201e62c981add8cc650f5f943d1535ffcf322a18260b54
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
