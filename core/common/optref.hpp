@@ -7,6 +7,7 @@
 #pragma once
 
 #include <type_traits>
+#include <optional>
 
 namespace kagome {
   template <typename T>
