@@ -40,6 +40,7 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
+#include "common/ref_cache.hpp"
 
 namespace kagome::common {
   class MainThreadPool;
@@ -250,11 +251,18 @@ namespace kagome::parachain {
       // std::optional<ActiveValidatorState> active;
     };
 
+    struct PerSessionState {
+        runtime::SessionInfo session_info;
+        Groups groups;
+        std::optional<grid::Views> grid_view;
+    };
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<CoreIndex> assigned_core;
       std::optional<ParachainId> assigned_para;
       std::vector<std::optional<GroupIndex>> validator_to_group;
+      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj> per_session_state;
 
       std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
@@ -269,8 +277,6 @@ namespace kagome::parachain {
       std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
           authority_lookup;
       std::optional<LocalValidatorState> local_validator;
-      std::optional<Groups> groups;
-      std::optional<grid::Views> grid_view;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -754,6 +760,7 @@ namespace kagome::parachain {
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
+    std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
 
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
