@@ -89,6 +89,11 @@ namespace kagome {
     }
 
     // https://github.com/qdrvm/kagome/pull/2024#discussion_r1553225410
+    void execute(auto &&f) {
+      post(*this, std::forward<decltype(f)>(f));
+    }
+
+    // https://github.com/qdrvm/kagome/pull/2024#discussion_r1553225410
     bool isInCurrentThread() const {
       return runningInThisThread(*this);
     }

@@ -1082,10 +1082,10 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
-    auto cb = [wself{weak_from_this()},
-               new_hash,
-               finalized_block_number,
-               meta{std::move(meta)}]() {
+    approval_thread_handler_->execute([wself{weak_from_this()},
+                                       new_hash,
+                                       finalized_block_number,
+                                       meta{std::move(meta)}]() {
       if (auto self = wself.lock()) {
         SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
         for (const auto &[peed_id, view] : self->peer_views_) {
@@ -1143,8 +1143,7 @@ namespace kagome::parachain {
           }
         }
       }
-    };
-    post(*approval_thread_handler_, std::move(cb));
+    });
   }
 
   template <typename Func>
@@ -2872,10 +2871,10 @@ namespace kagome::parachain {
   primitives::BlockInfo ApprovalDistribution::approvedAncestor(
       const primitives::BlockInfo &min,
       const primitives::BlockInfo &max) const {
-    if (not runningInThisThread(*approval_thread_handler_)) {
+    if (not approval_thread_handler_->isInCurrentThread()) {
       std::promise<primitives::BlockInfo> promise;
       auto future = promise.get_future();
-      post(*approval_thread_handler_,
+      approval_thread_handler_->execute(
            libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
              promise.set_value(approvedAncestor(min, max));
            }});

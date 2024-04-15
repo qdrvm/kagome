@@ -810,7 +810,7 @@ namespace kagome::dispute {
         waiting_for_active_disputes_.emplace(
             WaitForActiveDisputesState{sessions_updated});
 
-        post(*dispute_thread_handler_, [wp{weak_from_this()}] {
+        dispute_thread_handler_->execute([wp{weak_from_this()}] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
@@ -2143,7 +2143,7 @@ namespace kagome::dispute {
       rate_limit_timer_ =
           scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
             if (auto self = wp.lock()) {
-              BOOST_ASSERT(runningInThisThread(*self->dispute_thread_handler_));
+              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
               self->process_portion_incoming_disputes();
             }
           });

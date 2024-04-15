@@ -430,6 +430,7 @@ namespace kagome::consensus::grandpa {
              std::move(info),
              std::move(msg));
 
+    BOOST_ASSERT(grandpa_pool_handler_->isInCurrentThread());
     SL_DEBUG(logger_,
              "NeighborMessage set_id={} round={} last_finalized={} "
              "has received from {}",
@@ -1411,7 +1412,7 @@ namespace kagome::consensus::grandpa {
           self->onCommitMessage(peer, std::move(commit), false);
         }
       };
-      post(*grandpa_pool_handler_, std::move(f));
+      grandpa_pool_handler_->execute(std::move(f));
       return false;
     };
     retain_if(waiting_blocks_, f);

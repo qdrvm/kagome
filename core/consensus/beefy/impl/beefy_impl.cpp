@@ -222,14 +222,14 @@ namespace kagome::network {
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
-        post(*self->beefy_pool_handler_, [weak] {
+        self->beefy_pool_handler_->execute([weak] {
           if (auto self = weak.lock()) {
             std::ignore = self->update();
           }
         });
       }
     });
-    post(*beefy_pool_handler_, [weak{weak_from_this()}] {
+    beefy_pool_handler_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -355,7 +355,7 @@ namespace kagome::network {
     if (broadcast) {
       this->broadcast(std::move(justification_v1));
     }
-    post(*beefy_pool_handler_, [weak{weak_from_this()}] {
+    beefy_pool_handler_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -514,7 +514,7 @@ namespace kagome::network {
         }
         self->broadcast(*self->last_vote_);
       };
-      post(*self->beefy_pool_handler_, std::move(f));
+      self->beefy_pool_handler_->execute(std::move(f));
     };
     timer_ = scheduler_->scheduleWithHandle(std::move(f), kRebroadcastAfter);
   }
