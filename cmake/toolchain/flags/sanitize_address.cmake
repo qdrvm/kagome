@@ -14,7 +14,7 @@ set(FLAGS
     -fsanitize-address-use-after-scope
     -fno-omit-frame-pointer
     -g
-    -O1
+    -O0
     -DNDEBUG
     )
 foreach(FLAG IN LISTS FLAGS)
