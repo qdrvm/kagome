@@ -512,7 +512,7 @@ class ProspectiveParachainsTest : public testing::Test {
     [[maybe_unused]] const auto _ = prospective_parachain_->introduceCandidate(
         candidate.descriptor.para_id,
         candidate,
-        crypto::Hashed<const runtime::PersistedValidationData &,
+        crypto::Hashed<runtime::PersistedValidationData,
                        32,
                        crypto::Blake2b_StreamHasher<32>>(pvd),
         network::candidateHash(*hasher_, candidate));

@@ -24,12 +24,12 @@ namespace kagome::crypto {
   struct Hashed {
     static_assert(N == 8 || N == 16 || N == 32 || N == 64,
                   "Unexpected hash size");
-    using Type = std::decay_t<T>;
+    static_assert(std::is_same_v<T, std::decay_t<T>>);
+    using Type = T;
     using HashType = common::Blob<N>;
 
    public:
-    template <typename... Args>
-    Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {}
+    Hashed(Type type) : type_{std::move(type)} {}
 
     Hashed(const Hashed &c) = default;
     Hashed(Hashed &&c) = default;

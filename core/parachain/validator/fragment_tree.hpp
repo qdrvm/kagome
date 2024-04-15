@@ -96,7 +96,7 @@ namespace kagome::parachain::fragment {
     outcome::result<void> addCandidate(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,

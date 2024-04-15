@@ -25,6 +25,7 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -47,6 +48,23 @@ using kagome::injector::bind_by_lambda;
 #endif
 
 namespace kagome::parachain {
+  struct NullTrieStorage : storage::trie::TrieStorage {
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getPersistentBatchAt(const storage::trie::RootHash &root,
+                         TrieChangesTrackerOpt changes_tracker) override {
+      return nullptr;
+    }
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getEphemeralBatchAt(const storage::trie::RootHash &root) const override {
+      return nullptr;
+    }
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getProofReaderBatchAt(const storage::trie::RootHash &root,
+                          const OnNodeLoaded &on_node_loaded) const override {
+      return nullptr;
+    }
+  };
+
   template <typename T>
   auto bind_null() {
     return bind_by_lambda<T>([](auto &) { return nullptr; });
@@ -69,7 +87,7 @@ namespace kagome::parachain {
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
-        bind_null<storage::trie::TrieStorage>(),
+        di::bind<storage::trie::TrieStorage>.to<NullTrieStorage>(),
         bind_null<storage::trie::TrieSerializer>()
 
 #if KAGOME_WASM_COMPILER_WAVM == 1

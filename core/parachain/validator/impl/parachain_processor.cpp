@@ -2457,7 +2457,7 @@ namespace kagome::parachain {
             prospective_parachains_->introduceCandidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &,
+                crypto::Hashed<runtime::PersistedValidationData,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},
@@ -3271,14 +3271,6 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<kagome::parachain::Pvf::Result>
-  ParachainProcessorImpl::validateCandidate(
-      const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov,
-      runtime::PersistedValidationData &&pvd) {
-    return pvf_->pvfSync(candidate, pov, pvd);
-  }
-
   outcome::result<std::vector<network::ErasureChunk>>
   ParachainProcessorImpl::validateErasureCoding(
       const runtime::AvailableData &validating_data, size_t n_validators) {
@@ -3356,7 +3348,7 @@ namespace kagome::parachain {
             relay_parent,
             peer_id);
 
-    TicToc _measure{"Parachain validation", logger_};
+    auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     const auto candidate_hash{candidate.hash(*hasher_)};
 
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -3373,71 +3365,98 @@ namespace kagome::parachain {
                candidate_hash);
       return;
     }
-
-    auto pvd_copy{pvd};
-    auto validation_result = validateCandidate(candidate, pov, std::move(pvd));
-    if (!validation_result) {
-      logger_->warn(
-          "Candidate {} on relay_parent {}, para_id {} validation failed with "
-          "error: {}",
-          candidate_hash,
-          candidate.descriptor.relay_parent,
-          candidate.descriptor.para_id,
-          validation_result.error().message());
-      return;
-    }
-
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// checks if we still need to execute parachain task
-    need_to_process =
-        our_current_state_.active_leaves.count(relay_parent) != 0ull;
-
-    if (!need_to_process) {
-      SL_TRACE(logger_,
-               "Candidate validation skipped before erasure-coding because of "
-               "extruded relay parent. "
-               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+    auto cb = [weak_self{weak_from_this()},
+               candidate,
+               pov,
+               pvd,
+               peer_id,
                relay_parent,
-               candidate.descriptor.para_id,
-               candidate_hash);
-      return;
-    }
+               n_validators,
+               _measure,
+               candidate_hash](outcome::result<Pvf::Result> validation_result) {
+      auto self = weak_self.lock();
+      if (not self) {
+        return;
+      }
+      if (!validation_result) {
+        SL_WARN(
+            self->logger_,
+            "Candidate {} on relay_parent {}, para_id {} validation failed with "
+            "error: {}",
+            candidate_hash,
+            candidate.descriptor.relay_parent,
+            candidate.descriptor.para_id,
+            validation_result.error().message());
+        return;
+      }
 
-    auto &[comms, data] = validation_result.value();
-    runtime::AvailableData available_data{
-        .pov = std::move(pov),
-        .validation_data = std::move(data),
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+      /// checks if we still need to execute parachain task
+      auto need_to_process =
+          self->our_current_state_.active_leaves.count(relay_parent) != 0ull;
+
+      if (!need_to_process) {
+        SL_TRACE(
+            self->logger_,
+            "Candidate validation skipped before erasure-coding because of "
+            "extruded relay parent. "
+            "(relay_parent={}, parachain_id={}, candidate_hash={})",
+            relay_parent,
+            candidate.descriptor.para_id,
+            candidate_hash);
+        return;
+      }
+
+      auto &[comms, data] = validation_result.value();
+      runtime::AvailableData available_data{
+          .pov = std::move(pov),
+          .validation_data = std::move(data),
+      };
+
+      std::vector<network::ErasureChunk> chunks;
+      if (auto res = self->validateErasureCoding(available_data, n_validators);
+          res.has_error()) {
+        SL_WARN(self->logger_,
+                "Erasure coding validation failed. (error={})",
+                res.error().message());
+        return;
+      } else {
+        chunks = std::move(res.value());
+      }
+
+      self->notifyAvailableData(std::move(chunks),
+                                relay_parent,
+                                candidate_hash,
+                                available_data.pov,
+                                available_data.validation_data);
+
+      self->makeAvailable<kMode>(
+          peer_id,
+          candidate_hash,
+          ValidateAndSecondResult{
+              .result = outcome::success(),
+              .relay_parent = relay_parent,
+              .commitments = std::make_shared<network::CandidateCommitments>(
+                  std::move(comms)),
+              .candidate = std::move(candidate),
+              .pov = std::move(available_data.pov),
+              .pvd = std::move(pvd),
+          });
     };
-
-    std::vector<network::ErasureChunk> chunks;
-    if (auto res = validateErasureCoding(available_data, n_validators);
-        res.has_error()) {
-      SL_WARN(logger_,
-              "Erasure coding validation failed. (error={})",
-              res.error().message());
-      return;
-    } else {
-      chunks = std::move(res.value());
-    }
-
-    notifyAvailableData(std::move(chunks),
-                        relay_parent,
-                        candidate_hash,
-                        available_data.pov,
-                        available_data.validation_data);
-
-    makeAvailable<kMode>(
-        peer_id,
-        candidate_hash,
-        ValidateAndSecondResult{
-            .result = outcome::success(),
-            .relay_parent = relay_parent,
-            .commitments = std::make_shared<network::CandidateCommitments>(
-                std::move(comms)),
-            .candidate = std::move(candidate),
-            .pov = std::move(available_data.pov),
-            .pvd = std::move(pvd_copy),
-        });
+    pvf_->pvf(candidate,
+              pov,
+              pvd,
+              [weak_self{weak_from_this()},
+               cb{std::move(cb)}](outcome::result<Pvf::Result> r) mutable {
+                auto self = weak_self.lock();
+                if (not self) {
+                  return;
+                }
+                post(*self->main_pool_handler_,
+                     [cb{std::move(cb)}, r{std::move(r)}]() mutable {
+                       cb(std::move(r));
+                     });
+              });
   }
 
   void ParachainProcessorImpl::onAttestComplete(

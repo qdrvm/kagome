@@ -500,7 +500,7 @@ namespace kagome::parachain {
             auto res = candidate_storage.addCandidate(
                 candidate_hash,
                 c.candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &,
+                crypto::Hashed<runtime::PersistedValidationData,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     c.persisted_validation_data},
@@ -725,7 +725,7 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) {

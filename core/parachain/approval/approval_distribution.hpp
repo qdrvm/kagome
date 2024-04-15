@@ -532,12 +532,6 @@ namespace kagome::parachain {
     void imported_block_info(const primitives::BlockHash &block_hash,
                              const primitives::BlockHeader &block_header);
 
-    ApprovalOutcome validate_candidate_exhaustive(
-        const runtime::PersistedValidationData &data,
-        const network::ParachainBlock &pov,
-        const network::CandidateReceipt &receipt,
-        const ParachainRuntime &code);
-
     AssignmentCheckResult check_and_import_assignment(
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);

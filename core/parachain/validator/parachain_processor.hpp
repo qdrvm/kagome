@@ -288,10 +288,6 @@ namespace kagome::parachain {
     outcome::result<void> advCanBeProcessed(
         const primitives::BlockHash &relay_parent,
         const libp2p::peer::PeerId &peer_id);
-    outcome::result<Pvf::Result> validateCandidate(
-        const network::CandidateReceipt &candidate,
-        const network::ParachainBlock &pov,
-        runtime::PersistedValidationData &&pvd);
 
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);

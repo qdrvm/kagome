@@ -81,7 +81,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
-    BOOST_ASSERT(key_store_ != nullptr);
   }
 
   // ---------------------- hashing ----------------------
