@@ -6,12 +6,24 @@
 
 #pragma once
 
-#include <optional>
 #include <string>
 
 namespace kagome {
-  inline auto &argv0() {
-    static std::optional<std::string> executable;
-    return executable;
-  }
+  inline const std::string &exePath();
 }  // namespace kagome
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+
+const std::string &kagome::exePath() {
+  static std::string path{_dyld_get_image_name(0)};
+  return path;
+}
+#else
+#include <filesystem>
+
+const std::string &kagome::exePath() {
+  static std::string path{std::filesystem::read_symlink("/proc/self/exe")};
+  return path;
+}
+#endif

@@ -327,7 +327,7 @@ namespace kagome::parachain {
     runWorker(*io_context_,
               scheduler_,
               app_configuration_->pvfSubprocessDeadline(),
-              argv0().value(),
+              exePath(),
               common::Buffer{scale::encode(input).value()},
               cb);
     OUTCOME_TRY(result, promise.get_future().get());
