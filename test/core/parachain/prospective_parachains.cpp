@@ -1650,7 +1650,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   std::vector<Hash> ancestry_hashes{
-      fromNumber(4), fromNumber(3), fromNumber(2)};
+      fromNumber(4), fromNumber(3), fromNumber(2), fromNumber(1)};
   const BlockNumber number = 5;
   const Hash hash = fromNumber(5);
   const uint32_t ancestry_len = 3;
