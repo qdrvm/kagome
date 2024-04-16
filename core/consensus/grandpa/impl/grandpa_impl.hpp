@@ -22,7 +22,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -103,7 +104,7 @@ namespace kagome::consensus::grandpa {
     ~GrandpaImpl() override = default;
 
     GrandpaImpl(
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -125,9 +126,8 @@ namespace kagome::consensus::grandpa {
      *  - Obtains authority set corresponding to the latest completed round
      *  - Uses obtained data to create and execute initial round
      * @return true if grandpa was executed
-     * @see kagome::application::AppStateManager::takeControl()
      */
-    bool start();
+    bool tryStart();
 
     /**
      * Does nothing. Needed only for AppStateManager
@@ -322,6 +322,8 @@ namespace kagome::consensus::grandpa {
     void saveCachedVotes();
     void applyCachedVotes(VotingRound &round);
 
+    log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
+
     const size_t kVotesCacheSize = 5;
 
     const Clock::Duration round_time_factor_;
@@ -341,7 +343,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> db_;
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
-    std::shared_ptr<PoolHandler> grandpa_pool_handler_;
+    std::shared_ptr<PoolHandlerReady> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
@@ -365,8 +367,6 @@ namespace kagome::consensus::grandpa {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
-
-    log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
 
 }  // namespace kagome::consensus::grandpa
