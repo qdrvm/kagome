@@ -252,12 +252,6 @@ namespace kagome::dispute {
             cb(ParticipationOutcome::Valid);
             return;
           }
-
-          // SL_WARN(log_,
-          //         "Candidate {} considered invalid: {}",
-          //         ctx->request.candidate_hash,
-          //         res.error());
-
           cb(ParticipationOutcome::Invalid);
         });
   }
