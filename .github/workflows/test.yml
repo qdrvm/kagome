@@ -173,8 +173,7 @@ jobs:
         # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
         # isn't able to find headers
         run: |
-          ./housekeeping/make_build.sh -DWASM_COMPILER=WAVM
-          ./housekeeping/make_build.sh -DWASM_COMPILER=WasmEdge
+          ./housekeeping/make_build.sh 
           ./housekeeping/clang-tidy-diff.sh
 
   coverage-self-hosted:
