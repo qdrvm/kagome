@@ -215,12 +215,12 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
-    OUTCOME_TRY(forEachChildTrie(
-        *trie,
-        [this, &node_batch](common::BufferView child_key,
-                                          const trie::RootHash &child_hash) {
-          return prune(node_batch, child_hash);
-        }));
+    OUTCOME_TRY(
+        forEachChildTrie(*trie,
+                         [this, &node_batch](common::BufferView child_key,
+                                             const trie::RootHash &child_hash) {
+                           return prune(node_batch, child_hash);
+                         }));
 
     size_t nodes_removed = 0;
     size_t values_removed = 0;
@@ -407,8 +407,7 @@ namespace kagome::storage::trie_pruner {
         auto value_hash_opt = encoder.getValueHash(*node, version);
         if (value_hash_opt) {
           auto &value_ref_count = value_ref_count_[*value_hash_opt];
-          OUTCOME_TRY(contains_value,
-                      node_storage_->contains(*value_hash_opt));
+          OUTCOME_TRY(contains_value, node_storage_->contains(*value_hash_opt));
           if (value_ref_count == 0 && contains_value && !thorough_pruning_) {
             value_ref_count++;
           }
@@ -474,7 +473,7 @@ namespace kagome::storage::trie_pruner {
                    "Failed to restore trie pruner state starting from last "
                    "finalized "
                    "block: {}",
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {
@@ -495,7 +494,7 @@ namespace kagome::storage::trie_pruner {
                 "Failed to restore trie pruner state starting from base "
                 "block {}: {}",
                 last_pruned_block.value(),
-                res.error().message());
+                res.error());
       }
     }
     return outcome::success();

@@ -23,7 +23,7 @@ namespace kagome::api {
         }
         return {};
       }
-      throw jsonrpc::Fault(result.error().message());
+      throw jsonrpc::Fault(fmt::to_string(result.error()));
     } else {
       call();
       return {};

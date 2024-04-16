@@ -65,7 +65,7 @@ namespace {
       "kagome_import_queue_blocks_submitted";
   constexpr auto kLoadBlocksMaxExpire = std::chrono::seconds{5};
 
-  kagome::network::BlockAttributes attributesForSync(
+  kagome::network::BlockAttribute attributesForSync(
       kagome::application::SyncMethod method) {
     using SM = kagome::application::SyncMethod;
     switch (method) {
@@ -558,7 +558,7 @@ namespace kagome::network {
                              peer_id,
                              handler = std::move(handler),
                              need_body =
-                                 request.attributeIsSet(BlockAttribute::BODY),
+                                 has(request.fields, BlockAttribute::BODY),
                              parent_hash = primitives::BlockHash{}](
                                 outcome::result<BlocksResponse>
                                     response_res) mutable {

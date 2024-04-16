@@ -488,10 +488,6 @@ namespace {
                                                    std::move(storage),
                                                    std::move(substitutes),
                                                    std::move(block_storage));
-    if (res.has_error()) {
-      throw std::runtime_error("Error creating RuntimeUpgradeTrackerImpl: "
-                               + res.error().message());
-    }
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
