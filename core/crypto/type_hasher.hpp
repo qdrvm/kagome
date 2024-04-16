@@ -29,7 +29,7 @@ namespace kagome::crypto {
     using HashType = common::Blob<N>;
 
    public:
-    Hashed(Type type) : type_{std::move(type)} {}
+    explicit Hashed(Type type) : type_{std::move(type)} {}
 
     Hashed(const Hashed &c) = default;
     Hashed(Hashed &&c) = default;

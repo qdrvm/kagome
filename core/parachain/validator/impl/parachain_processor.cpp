@@ -3373,7 +3373,8 @@ namespace kagome::parachain {
                relay_parent,
                n_validators,
                _measure,
-               candidate_hash](outcome::result<Pvf::Result> validation_result) {
+               candidate_hash](
+                  outcome::result<Pvf::Result> validation_result) mutable {
       auto self = weak_self.lock();
       if (not self) {
         return;
@@ -3413,16 +3414,15 @@ namespace kagome::parachain {
           .validation_data = std::move(data),
       };
 
-      std::vector<network::ErasureChunk> chunks;
-      if (auto res = self->validateErasureCoding(available_data, n_validators);
-          res.has_error()) {
+      auto chunks_res =
+          self->validateErasureCoding(available_data, n_validators);
+      if (chunks_res.has_error()) {
         SL_WARN(self->logger_,
                 "Erasure coding validation failed. (error={})",
-                res.error().message());
+                chunks_res.error());
         return;
-      } else {
-        chunks = std::move(res.value());
       }
+      auto &chunks = chunks_res.value();
 
       self->notifyAvailableData(std::move(chunks),
                                 relay_parent,

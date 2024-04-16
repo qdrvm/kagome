@@ -162,7 +162,8 @@ namespace kagome::dispute {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L279
 
     recovery_->recover(
-        ctx->request.candidate_receipt,
+        parachain::Recovery::HashedCandidateReceipt{
+            ctx->request.candidate_receipt},
         ctx->request.session,
         std::nullopt,
         [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
@@ -243,7 +244,7 @@ namespace kagome::dispute {
         ctx->available_data->pov,
         ctx->request.candidate_receipt,
         ctx->validation_code.value(),
-        [cb{std::move(cb)}](outcome::result<parachain::Pvf::Result> res) {
+        [cb{std::move(cb)}](outcome::result<parachain::Pvf::Result> &&res) {
           // we cast votes (either positive or negative)
           // depending on the outcome of the validation and if
           // valid, whether the commitments hash matches

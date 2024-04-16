@@ -272,7 +272,7 @@ namespace kagome::parachain {
                if (not self) {
                  return;
                }
-               CB_TRY(auto result, r);
+               CB_TRY(auto result, std::move(r));
                CB_TRY(auto commitments,
                       self->fromOutputs(receipt, std::move(result)));
                cb(std::make_pair(std::move(commitments), data));
