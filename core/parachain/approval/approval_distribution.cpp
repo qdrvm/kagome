@@ -10,6 +10,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
@@ -30,6 +31,7 @@
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
@@ -442,7 +444,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
@@ -460,9 +462,9 @@ namespace kagome::parachain {
       ApprovalThreadPool &approval_thread_pool,
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : approval_thread_handler_{approval_thread_pool.handler(
-          app_state_manager)},
-        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
+      : approval_thread_handler_{poolHandlerReadyMake(
+          this, app_state_manager, approval_thread_pool, logger_)},
+        worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -478,7 +480,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -499,11 +501,9 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
-
-    app_state_manager.takeControl(*this);
   }
 
-  bool ApprovalDistribution::prepare() {
+  bool ApprovalDistribution::tryStart() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     primitives::events::subscribe(
@@ -2872,10 +2872,13 @@ namespace kagome::parachain {
       const primitives::BlockInfo &min,
       const primitives::BlockInfo &max) const {
     if (not approval_thread_handler_->isInCurrentThread()) {
-      std::promise<primitives::BlockInfo> p;
+      std::promise<primitives::BlockInfo> promise;
+      auto future = promise.get_future();
       approval_thread_handler_->execute(
-          [&] { p.set_value(approvedAncestor(min, max)); });
-      return p.get_future().get();
+           libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
+             promise.set_value(approvedAncestor(min, max));
+           }});
+      return future.get();
     }
 
     if (max.number <= min.number) {
