@@ -21,7 +21,7 @@ requests = { memory = "2G", cpu = "1" }
 [[relaychain.node_groups]]
 name = "honest-validator"
 count = 3
-args = [ "-lruntime=debug,parachain=trace" ]
+args = [ "-lruntime=debug", "-lparachain=trace" ]
 command = "kagome"
 prometheus_prefix = "kagome"
 
