@@ -13,6 +13,8 @@
 #include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/random_generator.hpp"
 
 namespace kagome::injector {
   inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
