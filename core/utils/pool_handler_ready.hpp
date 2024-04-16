@@ -38,6 +38,9 @@ namespace kagome {
    */
   class PoolHandlerReady {
    public:
+    // clang-tidy cppcoreguidelines-special-member-functions
+    ~PoolHandlerReady() = default;
+
     PoolHandlerReady(PoolHandlerReady &&) = delete;
     PoolHandlerReady(const PoolHandlerReady &) = delete;
 

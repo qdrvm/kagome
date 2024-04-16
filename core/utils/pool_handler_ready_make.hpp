@@ -15,7 +15,7 @@ namespace kagome {
   auto poolHandlerReadyMake(auto *self,
                             std::shared_ptr<application::AppStateManager> app,
                             const ThreadPool &thread_pool,
-                            log::Logger log) {
+                            const log::Logger &log) {
     auto thread = std::make_shared<PoolHandlerReady>(thread_pool.io_context());
     app->atLaunch([self, weak_app{std::weak_ptr{app}}, log, thread] {
       thread->postAlways([weak{self->weak_from_this()}, weak_app, log, thread] {
