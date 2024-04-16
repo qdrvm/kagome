@@ -11,17 +11,17 @@
 #include "parachain/availability/erasure_coding_error.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
-#define _EC_CPP_TRY_void(tmp, expr)                                            \
+#define _EC_CPP_TRY_VOID(tmp, expr)                                            \
   auto &&tmp = expr;                                                           \
   if (ec_cpp::resultHasError(tmp)) {                                           \
     return kagome::ErasureCodingError(                                         \
         kagome::toErasureCodingError(ec_cpp::resultGetError(std::move(tmp)))); \
   }
-#define _EC_CPP_TRY_out(tmp, out, expr) \
-  _EC_CPP_TRY_void(tmp, expr);          \
+#define _EC_CPP_TRY_OUT(tmp, out, expr) \
+  _EC_CPP_TRY_VOID(tmp, expr);          \
   auto out = ec_cpp::resultGetValue(std::move(tmp));
 #define EC_CPP_TRY(out, expr) \
-  _EC_CPP_TRY_out(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
+  _EC_CPP_TRY_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
 
 namespace kagome::parachain {
   inline outcome::result<size_t> minChunks(size_t validators) {
