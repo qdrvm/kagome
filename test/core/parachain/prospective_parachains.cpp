@@ -394,7 +394,7 @@ class ProspectiveParachainsTest : public testing::Test {
     std::deque<BlockNumber> ancestry_numbers;
 
     Hash d = hash;
-    for (BlockNumber x = 0; x <= ancestry_len; ++x) {
+    for (BlockNumber x = 0; x <= ancestry_len + 1; ++x) {
       assert(number - x - 1 != 0);
       if (x == 0) {
         d = get_parent_hash(d);
@@ -408,7 +408,7 @@ class ProspectiveParachainsTest : public testing::Test {
 
     if (ancestry_len > 0) {
       EXPECT_CALL(*block_tree_,
-                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
+                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN + 1))
           .WillRepeatedly(Return(ancestry_hashes));
       EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
           .WillRepeatedly(Return(1));
@@ -1654,7 +1654,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   std::vector<Hash> ancestry_hashes{
-      fromNumber(4), fromNumber(3), fromNumber(2)};
+      fromNumber(4), fromNumber(3), fromNumber(2), fromNumber(1)};
   const BlockNumber number = 5;
   const Hash hash = fromNumber(5);
   const uint32_t ancestry_len = 3;
@@ -1693,7 +1693,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   EXPECT_CALL(*block_tree_, getBlockHeader(hash))
       .WillRepeatedly(Return(header));
 
-  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len))
+  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len + 1))
       .WillRepeatedly(Return(ancestry_hashes));
 
   EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
