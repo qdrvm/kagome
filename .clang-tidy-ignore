@@ -5,3 +5,7 @@ test/.*
 deps/.*
 .*\.pb\.h
 .*\.pb\.cc
+
+# meant as a temporary solution because clang-tidy on CI doesn't have
+# WAVM headers when kagome is built with WasmEdge
+core/runtime/wavm/.*
