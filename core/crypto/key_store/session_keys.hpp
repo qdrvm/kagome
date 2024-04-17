@@ -102,9 +102,7 @@ namespace kagome::crypto {
     using FnGetKeypair = outcome::result<typename T::Keypair> (
         KeySuiteStore<T>::*)(KeyType, const typename T::PublicKey &) const;
 
-    template <Suite T,
-              typename A,
-              typename Eq>
+    template <Suite T, typename A, typename Eq>
     KeypairWithIndexOpt<typename T::Keypair> find(
         KeypairWithIndexOpt<typename T::Keypair> &cache,
         KeyType type,
