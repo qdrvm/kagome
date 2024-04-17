@@ -6,8 +6,8 @@
 
 #include <libp2p/log/configurator.hpp>
 
-#include "application/impl/app_configuration_impl.hpp"
 #include "application/chain_spec.hpp"
+#include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
@@ -545,7 +545,6 @@ class ChainInfoCommand final : public Command {
   std::shared_ptr<kagome::blockchain::BlockTree> block_tree;
 };
 
-
 class DbStatsCommand : public Command {
  public:
   DbStatsCommand(std::filesystem::path db_path)
@@ -578,11 +577,16 @@ class DbStatsCommand : public Command {
 
     std::vector<rocksdb::ColumnFamilyMetaData> columns_data;
     db->GetAllColumnFamilyMetaData(&columns_data);
-    fmt::print(out, "{:{}} | {:{}}    | {:{}} |\n", "NAME", 30, "SIZE", 10, "COUNT", 5);
+    fmt::print(out,
+               "{:{}} | {:{}}    | {:{}} |\n",
+               "NAME",
+               30,
+               "SIZE",
+               10,
+               "COUNT",
+               5);
     for (auto column_data : columns_data) {
-      constexpr std::array sizes {
-          "B ", "KB", "MB", "GB", "TB"
-      };
+      constexpr std::array sizes{"B ", "KB", "MB", "GB", "TB"};
       double size = column_data.size;
       int idx = 0;
       while (size > 1024.0) {
@@ -591,10 +595,13 @@ class DbStatsCommand : public Command {
       }
       fmt::print(out,
                  "{:{}} | {:{}.2f} {} | {:{}} |\n",
-                 column_data.name, 30,
-                 size, 10,
+                 column_data.name,
+                 30,
+                 size,
+                 10,
                  sizes[idx],
-                 column_data.file_count, 5);
+                 column_data.file_count,
+                 5);
     }
   }
 

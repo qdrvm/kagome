@@ -32,7 +32,8 @@ namespace kagome::storage::trie {
       NO_NODE_VALUE       ///< leaf node without value
     };
 
-    PolkadotCodec(RootHashFunc hash_func = crypto::blake2b<32>): hash_func_{hash_func} {}
+    PolkadotCodec(RootHashFunc hash_func = crypto::blake2b<32>)
+        : hash_func_{hash_func} {}
 
     ~PolkadotCodec() override = default;
 
@@ -88,7 +89,7 @@ namespace kagome::storage::trie {
     bool shouldBeHashed(const ValueAndHash &value,
                         StateVersion version) const override;
 
-    RootHashFunc hash_func_;    
+    RootHashFunc hash_func_;
   };
 
 }  // namespace kagome::storage::trie
