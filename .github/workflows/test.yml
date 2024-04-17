@@ -170,8 +170,10 @@ jobs:
         env:
           # build only generated files, so clang-tidy will work correctly
           BUILD_FINAL_TARGET: generated
+        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
+        # isn't able to find headers
         run: |
-          ./housekeeping/make_build.sh
+          ./housekeeping/make_build.sh 
           ./housekeeping/clang-tidy-diff.sh
 
   coverage-self-hosted:
