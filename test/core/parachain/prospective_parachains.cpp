@@ -24,6 +24,10 @@
 #include "scale/scale.hpp"
 #include "testutil/scale_test_comparator.hpp"
 
+using kagome::crypto::Blake2b_StreamHasher;
+using kagome::crypto::Hashed;
+using kagome::runtime::PersistedValidationData;
+using HashedPvd = Hashed<PersistedValidationData, 32, Blake2b_StreamHasher<32>>;
 using namespace kagome::primitives;
 using namespace kagome::parachain;
 
@@ -1948,9 +1952,10 @@ TEST_F(ProspectiveParachainsTest, Storage_AddCandidate) {
   const Hash candidate_hash = network::candidateHash(*hasher_, candidate);
   const Hash parent_head_hash = hasher_->blake2b_256(pvd.get().parent_head);
 
-  ASSERT_TRUE(
-      storage.addCandidate(candidate_hash, candidate, pvd.get(), hasher_)
-          .has_value());
+  ASSERT_TRUE(storage
+                  .addCandidate(
+                      candidate_hash, candidate, HashedPvd{pvd.get()}, hasher_)
+                  .has_value());
   ASSERT_TRUE(storage.contains(candidate_hash));
 
   size_t counter = 0ull;
@@ -1992,11 +1997,15 @@ TEST_F(ProspectiveParachainsTest, Storage_PopulateWorksRecursively) {
   };
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
 
   auto scope =
@@ -2060,11 +2069,15 @@ TEST_F(ProspectiveParachainsTest, Storage_childrenOfRootAreContiguous) {
   };
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
 
   auto scope =
@@ -2076,7 +2089,8 @@ TEST_F(ProspectiveParachainsTest, Storage_childrenOfRootAreContiguous) {
       fragment::FragmentTree::populate(hasher_, scope, storage);
   ASSERT_TRUE(
       storage
-          .addCandidate(candidate_a2_hash, candidate_a2, pvd_a2.get(), hasher_)
+          .addCandidate(
+              candidate_a2_hash, candidate_a2, HashedPvd{pvd_a2.get()}, hasher_)
           .has_value());
 
   tree.addAndPopulate(candidate_a2_hash, storage);
@@ -2111,7 +2125,9 @@ TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfRoot) {
   };
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
 
   auto scope = fragment::Scope::withAncestors(
@@ -2121,7 +2137,9 @@ TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfRoot) {
   fragment::FragmentTree tree =
       fragment::FragmentTree::populate(hasher_, scope, storage);
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
 
   tree.addAndPopulate(candidate_b_hash, storage);
@@ -2153,7 +2171,9 @@ TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfNonRoot) {
   };
 
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
 
   auto scope = fragment::Scope::withAncestors(
@@ -2163,7 +2183,9 @@ TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfNonRoot) {
   fragment::FragmentTree tree =
       fragment::FragmentTree::populate(hasher_, scope, storage);
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
 
   tree.addAndPopulate(candidate_b_hash, storage);
@@ -2193,7 +2215,9 @@ TEST_F(ProspectiveParachainsTest, Storage_gracefulCycleOf_0) {
 
   const size_t max_depth = 4ull;
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
   auto scope =
       fragment::Scope::withAncestors(
@@ -2242,10 +2266,14 @@ TEST_F(ProspectiveParachainsTest, Storage_gracefulCycleOf_1) {
 
   const size_t max_depth = 4ull;
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
   auto scope =
       fragment::Scope::withAncestors(
@@ -2294,10 +2322,14 @@ TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsKnownAndUnknown) {
 
   const size_t max_depth = 4ull;
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
   auto scope =
       fragment::Scope::withAncestors(
@@ -2437,13 +2469,19 @@ TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsBackedInPath) {
 
   const size_t max_depth = 4ull;
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
   ASSERT_TRUE(
-      storage.addCandidate(candidate_c_hash, candidate_c, pvd_c.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_c_hash, candidate_c, HashedPvd{pvd_c.get()}, hasher_)
           .has_value());
 
   storage.markBacked(candidate_a_hash);
@@ -2551,10 +2589,14 @@ TEST_F(ProspectiveParachainsTest, Storage_pendingAvailabilityInScope) {
 
   const size_t max_depth = 4ull;
   ASSERT_TRUE(
-      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_a_hash, candidate_a, HashedPvd{pvd_a.get()}, hasher_)
           .has_value());
   ASSERT_TRUE(
-      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+      storage
+          .addCandidate(
+              candidate_b_hash, candidate_b, HashedPvd{pvd_b.get()}, hasher_)
           .has_value());
 
   storage.markBacked(candidate_a_hash);
