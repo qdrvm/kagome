@@ -3200,6 +3200,10 @@ namespace kagome::parachain {
     const auto &validity_votes = data.validity_votes;
     const auto valid_votes = validity_votes.size();
     if (valid_votes < validity_threshold) {
+      SL_TRACE(logger_,
+               "Under threshold. (valid_votes={}, validity_threshold={})",
+               valid_votes,
+               validity_threshold);
       return std::nullopt;
     }
 
@@ -3248,10 +3252,17 @@ namespace kagome::parachain {
       if (auto it = context.groups.find(data.group_id);
           it != context.groups.end()) {
         len = it->second.size();
+      } else {
+        SL_TRACE(logger_,
+                 "No table group. (relay_parent={}, group_id={})",
+                 relay_parent,
+                 data.group_id);
       }
 
       const auto v_threshold = std::min(len, size_t(minimum_backing_votes));
       return attested(data.candidate, data, v_threshold);
+    } else {
+      SL_TRACE(logger_, "No candidate info. (relay_parent={})", relay_parent);
     }
     return std::nullopt;
   }
