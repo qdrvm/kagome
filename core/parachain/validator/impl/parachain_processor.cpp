@@ -1553,7 +1553,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(relay_parent_state.statement_store);
 
     SL_TRACE(logger_,
-             "Handling incoming manifest common {} out of view",
+             "Handling incoming acknowledgement. (relay_parent={})",
              relay_parent);
     ManifestImportSuccessOpt x = handle_incoming_manifest_common(
         peer_id,
@@ -1570,7 +1570,7 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(logger_, "Check local validator {} out of view", relay_parent);
+    SL_TRACE(logger_, "Check local validator. (relay_parent = {})", relay_parent);
     if (!relay_parent_state.local_validator) {
       return;
     }
@@ -1578,7 +1578,7 @@ namespace kagome::parachain {
     const auto sender_index = x->sender_index;
     auto &local_validator = *relay_parent_state.local_validator;
 
-    SL_TRACE(logger_, "Post ack {} out of view", relay_parent);
+    SL_TRACE(logger_, "Post ack. (relay_parent = {})", relay_parent);
     auto messages = post_acknowledgement_statement_messages(
         sender_index,
         relay_parent,
@@ -1591,7 +1591,7 @@ namespace kagome::parachain {
         network::CollationVersion::VStaging);
     if (!messages.empty()) {
       auto se = pm_->getStreamEngine();
-      SL_TRACE(logger_, "Sending messages {} out of view", relay_parent);
+      SL_TRACE(logger_, "Sending messages. (relay_parent = {})", relay_parent);
       for (auto &msg : messages) {
         if (auto m =
                 if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
@@ -3040,6 +3040,7 @@ namespace kagome::parachain {
   std::vector<network::BackedCandidate>
   ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    SL_TRACE(logger_, "Get backed candidates. (relay_parent={})", relay_parent);
 
     auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state_opt) {
