@@ -30,16 +30,16 @@
 #include "scale/std_variant.hpp"
 #include "utils/argv0.hpp"
 
-#define _CB_TRY_void(tmp, expr) \
+#define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
   if (tmp.has_error()) {        \
     return cb(tmp.error());     \
   }
-#define _CB_TRY_out(tmp, out, expr) \
-  _CB_TRY_void(tmp, expr);          \
+#define _CB_TRY_OUT(tmp, out, expr) \
+  _CB_TRY_VOID(tmp, expr);          \
   out = std::move(tmp.value());
-#define CB_TRYV(expr) _CB_TRY_void(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
-#define CB_TRY(out, expr) _CB_TRY_out(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
+#define CB_TRYV(expr) _CB_TRY_VOID(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
+#define CB_TRY(out, expr) _CB_TRY_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;

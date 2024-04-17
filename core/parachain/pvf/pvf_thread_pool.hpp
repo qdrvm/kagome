@@ -15,6 +15,6 @@ namespace kagome::parachain {
     PvfThreadPool(std::shared_ptr<Watchdog> watchdog, Inject, ...)
         : ThreadPool(std::move(watchdog), "pvf", 1, std::nullopt) {}
 
-    PvfThreadPool(TestThreadPool test) : ThreadPool{test} {}
+    PvfThreadPool(TestThreadPool test) : ThreadPool{std::move(test)} {}
   };
 }  // namespace kagome::parachain
