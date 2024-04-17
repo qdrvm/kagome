@@ -1614,7 +1614,8 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(logger_, "Check local validator. (relay_parent = {})", relay_parent);
+    SL_TRACE(
+        logger_, "Check local validator. (relay_parent = {})", relay_parent);
     if (!relay_parent_state.local_validator) {
       return;
     }
@@ -3135,6 +3136,13 @@ namespace kagome::parachain {
                    relay_parent,
                    core_idx);
           continue;
+        } else {
+          SL_TRACE(
+              logger_,
+              "Have backable candidate returned by prospective parachains. "
+              "(relay_parent={}, core_idx={})",
+              relay_parent,
+              core_idx);
         }
 
         const CandidateHash &c_hash = response->first;
@@ -3142,6 +3150,12 @@ namespace kagome::parachain {
 
         auto per_relay_state = tryGetStateByRelayParent(r_hash);
         if (!per_relay_state) {
+          SL_TRACE(logger_,
+                   "No relay parent state. "
+                   "(relay_parent={}, r_state={}, core_idx={})",
+                   relay_parent,
+                   r_hash,
+                   core_idx);
           continue;
         }
 
@@ -3153,7 +3167,23 @@ namespace kagome::parachain {
           if (auto b = table_attested_to_backed(
                   std::move(*attested), per_relay_state->get().table_context)) {
             backed.emplace_back(std::move(*b));
+          } else {
+            SL_TRACE(logger_,
+                     "Candidate not attested -> backed. "
+                     "(relay_parent={}, r_state={}, c_hash={}, core_idx={})",
+                     relay_parent,
+                     r_hash,
+                     c_hash,
+                     core_idx);
           }
+        } else {
+          SL_TRACE(logger_,
+                   "Candidate not attested. "
+                   "(relay_parent={}, r_state={}, c_hash={}, core_idx={})",
+                   relay_parent,
+                   r_hash,
+                   c_hash,
+                   core_idx);
         }
       }
       return backed;
