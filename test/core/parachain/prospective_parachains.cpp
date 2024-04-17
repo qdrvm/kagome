@@ -3141,3 +3141,30 @@ TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
                 != hypotheticals.end());
   }
 }
+
+TEST_F(ProspectiveParachainsTest, StatementsStore_always_provides_fresh_statements_in_order) {
+		const ValidatorIndex validator_a{1};
+		const ValidatorIndex validator_b{2};
+		const auto candidate_hash = fromNumber(42);
+
+            //SecondedCandidateHash, ValidCandidateHash
+		const network::vstaging::CompactStatement valid_statement{
+            network::vstaging::ValidCandidateHash {
+                .hash = candidate_hash,
+            }
+        };
+		const network::vstaging::CompactStatement seconded_statement{
+            network::vstaging::SecondedCandidateHash {
+                .hash = candidate_hash,
+            }
+        };
+
+        const SigningContext res_sc{ 
+            .session_index = 1, 
+            .relay_parent = fromNumber(0),
+        };
+
+		const Groups groups({{validator_a, validator_b}}, 2);
+		StatementStore store(groups);
+
+}
