@@ -19,3 +19,4 @@ honest-validator: reports polkadot_parachain_candidate_dispute_concluded{validit
 
 # Wait for a few blocks for the disabling to take place.
 honest-validator: log line contains "Disabled validators detected" within 180 seconds
+
