@@ -396,10 +396,6 @@ class ProspectiveParachainsTest : public testing::Test {
     Hash d = hash;
     for (BlockNumber x = 0; x <= ancestry_len + 1; ++x) {
       assert(number - x - 1 != 0);
-      if (x == 0) {
-        d = get_parent_hash(d);
-        continue;
-      }
       ancestry_hashes.emplace_back(d);
       ancestry_numbers.push_front(number - ancestry_len + x - 1);
       d = get_parent_hash(d);
