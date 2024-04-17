@@ -7,6 +7,9 @@
 #pragma once
 
 #include <type_traits>
+#include <optional>
+
+#include <boost/assert.hpp>
 
 namespace kagome {
   template <typename T>

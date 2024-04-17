@@ -6,10 +6,10 @@
 
 #pragma once
 
+#include "common/optref.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/round_observer.hpp"
-#include "common/optref.hpp"
 
 namespace kagome::consensus::grandpa {
 

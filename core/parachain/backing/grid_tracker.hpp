@@ -19,11 +19,7 @@
 
 template <>
 struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
-                           kagome::network::vstaging::CompactStatement>>
-    : public __hash_base<
-          size_t,
-          std::pair<kagome::parachain::ValidatorIndex,
-                    kagome::network::vstaging::CompactStatement>> {
+                           kagome::network::vstaging::CompactStatement>> {
   size_t operator()(const std::pair<kagome::parachain::ValidatorIndex,
                                     kagome::network::vstaging::CompactStatement>
                         &__p) const noexcept {

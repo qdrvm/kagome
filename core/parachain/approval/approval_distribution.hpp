@@ -153,7 +153,7 @@ namespace kagome::parachain {
       }
 
       // Note that our assignment is triggered. No-op if already triggered.
-      MaybeCert trigger_our_assignment(network::Tick const tick_now) {
+      MaybeCert trigger_our_assignment(const network::Tick tick_now) {
         if (!our_assignment || our_assignment->triggered) {
           return std::nullopt;
         }
