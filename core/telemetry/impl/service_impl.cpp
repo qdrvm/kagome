@@ -27,6 +27,7 @@ namespace rapidjson {
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 #include "telemetry/impl/telemetry_thread_pool.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 namespace {
   std::string json2string(rapidjson::Document &document) {
@@ -40,7 +41,7 @@ namespace {
 namespace kagome::telemetry {
 
   TelemetryServiceImpl::TelemetryServiceImpl(
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       const application::AppConfiguration &app_configuration,
       const application::ChainSpec &chain_spec,
       const libp2p::Host &host,
@@ -54,7 +55,6 @@ namespace kagome::telemetry {
         tx_pool_{std::move(tx_pool)},
         buffer_storage_{storage->getSpace(storage::Space::kDefault)},
         peer_manager_{std::move(peer_manager)},
-        pool_handler_{telemetry_thread_pool.handler(app_state_manager)},
         io_context_{telemetry_thread_pool.io_context()},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -66,13 +66,15 @@ namespace kagome::telemetry {
     BOOST_ASSERT(buffer_storage_);
     BOOST_ASSERT(peer_manager_);
     if (enabled_) {
-      app_state_manager.takeControl(*this);
+      pool_handler_ = poolHandlerReadyMake(
+          this, app_state_manager, telemetry_thread_pool, log_);
+      app_state_manager->takeControl(*this);
     } else {
       SL_INFO(log_, "Telemetry disabled");
     }
   }
 
-  bool TelemetryServiceImpl::prepare() {
+  bool TelemetryServiceImpl::tryStart() {
     message_pool_ = std::make_shared<MessagePool>(
         kTelemetryMessageMaxLengthBytes, kTelemetryMessagePoolSize);
     prepareGreetingMessage();
@@ -95,10 +97,7 @@ namespace kagome::telemetry {
           scheduler_);
       connections_.emplace_back(std::move(connection));
     }
-    return true;
-  }
 
-  bool TelemetryServiceImpl::start() {
     for (auto &connection : connections_) {
       connection->connect();
     }
@@ -316,8 +315,11 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::pushBlockStats() {
-    io_context_->post(
-        [self{shared_from_this()}] { self->frequentNotificationsRoutine(); });
+    if (not enabled_) {
+      return;
+    }
+    REINVOKE(*pool_handler_, pushBlockStats);
+    frequentNotificationsRoutine();
   }
 
   std::string TelemetryServiceImpl::blockNotification(

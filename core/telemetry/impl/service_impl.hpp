@@ -35,7 +35,7 @@ namespace rapidjson {
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome {
-  class PoolHandler;
+  class PoolHandlerReady;
 }
 
 namespace kagome::telemetry {
@@ -57,7 +57,7 @@ namespace kagome::telemetry {
         public std::enable_shared_from_this<TelemetryServiceImpl> {
    public:
     TelemetryServiceImpl(
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         const application::AppConfiguration &app_configuration,
         const application::ChainSpec &chain_spec,
         const libp2p::Host &host,
@@ -84,8 +84,7 @@ namespace kagome::telemetry {
     bool isEnabled() const override;
 
     // handlers for AppStateManager
-    bool prepare();
-    bool start();
+    bool tryStart();
     void stop();
 
    private:
@@ -139,7 +138,7 @@ namespace kagome::telemetry {
     std::shared_ptr<const transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<const storage::BufferStorage> buffer_storage_;
     std::shared_ptr<const network::PeerManager> peer_manager_;
-    std::shared_ptr<PoolHandler> pool_handler_;
+    std::shared_ptr<PoolHandlerReady> pool_handler_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
