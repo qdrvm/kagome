@@ -103,8 +103,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModuleInstance>(
             intrinsic_module_->instantiate());
 
-    auto resolver =
-        std::make_shared<IntrinsicResolverImpl>(compartment_, new_intrinsic_module_instance);
+    auto resolver = std::make_shared<IntrinsicResolverImpl>(
+        compartment_, new_intrinsic_module_instance);
 
     auto internal_instance =
         WAVM::Runtime::instantiateModule(compartment_->getCompartment(),

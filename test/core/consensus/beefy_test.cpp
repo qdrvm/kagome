@@ -155,7 +155,7 @@ struct BeefyTest : testing::Test {
                           : std::nullopt;
       });
 
-      StartApp app_state_manager;
+      auto app_state_manager = std::make_shared<StartApp>();
       std::shared_ptr<MainThreadPool> main_thread_pool_ =
           std::make_shared<MainThreadPool>(TestThreadPool{io_});
       std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
@@ -207,7 +207,7 @@ struct BeefyTest : testing::Test {
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           peer.chain_sub_);
-      app_state_manager.start();
+      app_state_manager->start();
     }
   }
 
