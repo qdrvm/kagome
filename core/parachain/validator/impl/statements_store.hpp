@@ -171,6 +171,8 @@ namespace kagome::parachain {
                     .hash = candidate_hash,
                 },
         });
+      }
+      for (const auto &vi : validators) {
         call(Fingerprint{
             .index = vi,
             .statement =
