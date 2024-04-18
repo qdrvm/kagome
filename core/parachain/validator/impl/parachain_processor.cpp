@@ -4688,14 +4688,14 @@ namespace kagome::parachain {
 
     if (prospective_candidate) {
       auto &&[ch, parent_head_data_hash] = *prospective_candidate;
-      const bool is_seconding_allowed = !relay_parent_mode
-                                     || canSecond(per_relay_parent,
+      const bool queue_advertisement = relay_parent_mode
+                                     && !canSecond(per_relay_parent,
                                                   collator_para_id,
                                                   relay_parent,
                                                   ch,
                                                   parent_head_data_hash);
 
-      if (!is_seconding_allowed) {
+      if (queue_advertisement) {
         SL_TRACE(logger_,
                  "Seconding is not allowed by backing, queueing advertisement. "
                  "(candidate hash={}, relay_parent = {}, para id={})",
