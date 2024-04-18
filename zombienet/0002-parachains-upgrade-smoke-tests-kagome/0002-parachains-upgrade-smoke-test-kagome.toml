@@ -4,21 +4,29 @@ bootnode = true
 
 [relaychain]
 chain = "rococo-local"
-default_command = "polkadot"
+command = "polkadot"
 
   [[relaychain.nodes]]
   name = "alice"
   command = "kagome"
+  extra_args = [ "--alice" ]
   prometheus_prefix = "kagome"
 
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
+  extra_args = [ "--bob" ]
   prometheus_prefix = "kagome"
 
 [[parachains]]
 id = 100
+addToGenesis = true
+cumulus_based = true
 
   [parachains.collator]
   name = "collator01"
   command = "polkadot-parachain"
+
+  [[parachains.collator.env]]
+  name = "RUST_LOG"
+  value = "runtime=debug,parachain=trace,cumulus-collator=trace,aura=trace"

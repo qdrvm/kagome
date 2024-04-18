@@ -4,19 +4,27 @@ bootnode = false
 
 [relaychain]
 chain = "rococo-local"
-default_command = "polkadot"
+command = "polkadot"
+
+[relaychain.genesis.runtimeGenesis.patch.configuration.config]
+  needed_approvals = 2
+
+[relaychain.genesis.runtimeGenesis.patch.configuration.config.scheduler_params]
+  max_validators_per_core = 2
 
   [[relaychain.nodes]]
   name = "alice"
+  args = [ "--alice" ]
 
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
+  args = [ "--bob" ]
   prometheus_prefix = "kagome"
 
 [[parachains]]
 id = 100
-add_to_genesis = true
+addToGenesis = true
 
   [[parachains.collators]]
     name = "collator-1"

@@ -3,23 +3,23 @@ timeout = 1000
 
 [relaychain]
 chain = "rococo-local"
-default_command = "polkadot"
+command = "polkadot"
 
   [[relaychain.nodes]]
   name = "alice"
-  args = [ "-lruntime=debug,parachain=trace" ]
+  args = [ "--alice", "-lruntime=debug,parachain=trace" ]
   command = "kagome"
   prometheus_prefix = "kagome"
 
   [[relaychain.nodes]]
   name = "bob"
-  args = [ "-lruntime=debug,parachain=trace" ]
+  args = [ "--bob", "-lruntime=debug,parachain=trace" ]
   command = "kagome"
   prometheus_prefix = "kagome"
 
 [[parachains]]
 id = 100
-add_to_genesis = false
+addToGenesis = false
 
   [parachains.collator]
   name = "collator01"
