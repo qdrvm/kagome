@@ -22,3 +22,7 @@ if(EXTERNAL_PROJECT)
   include(external-project-test/link_libraries.cmake)
   external_project_link_libraries(external_project "")
 endif()
+
+if(TEST_SHARED_LIBRARY)
+  include(libtest.cmake)
+endif()

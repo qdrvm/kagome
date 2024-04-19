@@ -15,9 +15,10 @@ function(kagome_clear_objects target)
     if(CLEAR_OBJS)
         add_custom_command(TARGET ${target}
             POST_BUILD
-            COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
+            COMMAND rm $<TARGET_OBJECTS:${target}>
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
+            COMMENT "Removing object files from target ${target}"
+            COMMAND_EXPAND_LISTS
         )
     endif()
 endfunction()

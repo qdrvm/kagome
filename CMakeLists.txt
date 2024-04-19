@@ -72,6 +72,7 @@ option(EMBEDDINGS "Embed developers assets" ON)
 option(PROFILING "Enable internal profiling instruments" OFF)
 option(BACKWARD "Enable stacktrace logging instruments" ON)
 option(CLEAR_OBJS "Clear object files" OFF)
+option(TEST_SHARED_LIBRARY "Reduce test executables size" OFF)
 
 if (NOT ($ENV{CI}) OR NOT ($ENV{GITHUB_ACTIONS}))
   set(_EXTERNAL_PROJECT_DEFAULT ON)
