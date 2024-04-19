@@ -3438,7 +3438,7 @@ namespace kagome::parachain {
               .relay_parent = relay_parent,
               .commitments = std::make_shared<network::CandidateCommitments>(
                   std::move(comms)),
-              .candidate = std::move(candidate),
+              .candidate = candidate,
               .pov = std::move(available_data.pov),
               .pvd = std::move(pvd),
           });
