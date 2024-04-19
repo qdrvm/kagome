@@ -10,6 +10,12 @@
 
 #include <libp2p/common/final_action.hpp>
 
+#define LAZY_METRIC(type, name, ...)                  \
+  inline ::kagome::metrics::type &name() {            \
+    static ::kagome::metrics::type lazy{__VA_ARGS__}; \
+    return lazy;                                      \
+  }
+
 namespace kagome::metrics {
   inline std::vector<double> exponentialBuckets(double start,
                                                 double factor,

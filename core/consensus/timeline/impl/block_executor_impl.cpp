@@ -22,12 +22,11 @@
 #include "transaction_pool/transaction_pool_error.hpp"
 
 namespace kagome::consensus {
-
-  metrics::HistogramTimer metric_block_execution_time{
-      "kagome_block_verification_and_import_time",
-      "Time taken to verify and import blocks",
-      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-  };
+  LAZY_METRIC(HistogramTimer,
+              metric_block_execution_time,
+              "kagome_block_verification_and_import_time",
+              "Time taken to verify and import blocks",
+              {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
 
   BlockExecutorImpl::BlockExecutorImpl(
       application::AppStateManager &app_state_manager,
@@ -124,7 +123,7 @@ namespace kagome::consensus {
                     block_info,
                     start_time,
                     previous_best_block]() mutable {
-      auto timer = metric_block_execution_time.manual();
+      auto timer = metric_block_execution_time().manual();
 
       auto parent =
           block_tree_->getBlockHeader(block.header.parent_hash).value();

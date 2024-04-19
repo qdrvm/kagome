@@ -59,11 +59,11 @@ namespace {
   constexpr const char *kIsRelayChainValidator =
       "kagome_node_is_active_validator";
 
-  kagome::metrics::HistogramTimer metric_block_proposal_time{
-      "kagome_proposer_block_constructed",
-      "Time taken to construct new block",
-      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-  };
+  LAZY_METRIC(HistogramTimer,
+              metric_block_proposal_time,
+              "kagome_proposer_block_constructed",
+              "Time taken to construct new block",
+              {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
 }  // namespace
 
 namespace kagome::consensus::babe {
@@ -545,7 +545,7 @@ namespace kagome::consensus::babe {
           &&changes_tracker,
       primitives::Block &&block) {
     auto duration_ms =
-        metric_block_proposal_time.observe(proposal_start).count();
+        metric_block_proposal_time().observe(proposal_start).count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
 
     // Ensure block's extrinsics root matches extrinsics in block's body

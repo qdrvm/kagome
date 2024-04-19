@@ -20,25 +20,25 @@
 namespace kagome::parachain {
   constexpr size_t kSessions = 3;
 
-  metrics::HistogramTimer metric_pvf_preparation_time{
-      "kagome_pvf_preparation_time",
-      "Time spent in preparing PVF artifacts in seconds",
-      {
-          0.1,
-          0.5,
-          1.0,
-          2.0,
-          3.0,
-          10.0,
-          20.0,
-          30.0,
-          60.0,
-          120.0,
-          240.0,
-          360.0,
-          480.0,
-      },
-  };
+  LAZY_METRIC(HistogramTimer,
+              metric_pvf_preparation_time,
+              "kagome_pvf_preparation_time",
+              "Time spent in preparing PVF artifacts in seconds",
+              {
+                  0.1,
+                  0.5,
+                  1.0,
+                  2.0,
+                  3.0,
+                  10.0,
+                  20.0,
+                  30.0,
+                  60.0,
+                  120.0,
+                  240.0,
+                  360.0,
+                  480.0,
+              });
 
   PvfPrecheck::PvfPrecheck(
       std::shared_ptr<crypto::Hasher> hasher,
@@ -120,7 +120,7 @@ namespace kagome::parachain {
         }
         auto &code_zstd = *code_zstd_res.value();
         ParachainRuntime code;
-        auto timer = metric_pvf_preparation_time.timer();
+        auto timer = metric_pvf_preparation_time().timer();
         auto res = [&]() -> outcome::result<void> {
           OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
           OUTCOME_TRY(module_factory_->make(code));

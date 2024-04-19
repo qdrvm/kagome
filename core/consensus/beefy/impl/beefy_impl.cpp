@@ -33,14 +33,14 @@
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
 
-  metrics::GaugeHelper metric_validator_set_id{
-      "kagome_beefy_validator_set_id",
-      "Current BEEFY active validator set id.",
-  };
-  metrics::GaugeHelper metric_finalized{
-      "kagome_beefy_best_block",
-      "Best block finalized by BEEFY",
-  };
+  LAZY_METRIC(GaugeHelper,
+              metric_validator_set_id,
+              "kagome_beefy_validator_set_id",
+              "Current BEEFY active validator set id.");
+  LAZY_METRIC(GaugeHelper,
+              metric_finalized,
+              "kagome_beefy_best_block",
+              "Best block finalized by BEEFY");
 
   BeefyImpl::BeefyImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -217,7 +217,7 @@ namespace kagome::network {
     std::ignore = cursor->seekLast();
     if (cursor->isValid()) {
       beefy_finalized_ = BlockNumberKey::decode(*cursor->key()).value();
-      metric_finalized->set(beefy_finalized_);
+      metric_finalized()->set(beefy_finalized_);
     }
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
@@ -350,7 +350,7 @@ namespace kagome::network {
     }
     SL_INFO(log_, "finalized {}", block_number);
     beefy_finalized_ = block_number;
-    metric_finalized->set(beefy_finalized_);
+    metric_finalized()->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
       this->broadcast(std::move(justification_v1));
@@ -484,7 +484,7 @@ namespace kagome::network {
 
   void BeefyImpl::metricValidatorSetId() {
     if (not sessions_.empty()) {
-      metric_validator_set_id->set(
+      metric_validator_set_id()->set(
           std::prev(sessions_.end())->second.validators.id);
     }
   }

@@ -66,34 +66,34 @@ namespace kagome::parachain {
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
 
-  metrics::HistogramTimer metric_pvf_execution_time{
-      "kagome_pvf_execution_time",
-      "Time spent in executing PVFs",
-      {
-          0.01,
-          0.025,
-          0.05,
-          0.1,
-          0.25,
-          0.5,
-          1.0,
-          2.0,
-          3.0,
-          4.0,
-          5.0,
-          6.0,
-          8.0,
-          10.0,
-          12.0,
-      },
-  };
+  LAZY_METRIC(HistogramTimer,
+              metric_pvf_execution_time,
+              "kagome_pvf_execution_time",
+              "Time spent in executing PVFs",
+              {
+                  0.01,
+                  0.025,
+                  0.05,
+                  0.1,
+                  0.25,
+                  0.5,
+                  1.0,
+                  2.0,
+                  3.0,
+                  4.0,
+                  5.0,
+                  6.0,
+                  8.0,
+                  10.0,
+                  12.0,
+              });
 
-  metrics::HistogramHelper metric_code_size{
+  LAZY_METRIC(
+      HistogramHelper,
+      metric_code_size,
       "kagome_parachain_candidate_validation_code_size",
-      "The size of the decompressed WASM validation blob used for checking a "
-      "candidate",
-      metrics::exponentialBuckets(16384, 2, 10),
-  };
+      "The size of the decompressed WASM validation blob used for checking a candidate",
+      metrics::exponentialBuckets(16384, 2, 10));
 
   RuntimeEngine pvf_runtime_engine(
       const application::AppConfiguration &app_conf) {
@@ -227,10 +227,10 @@ namespace kagome::parachain {
       return PvfError::SIGNATURE;
     }
 
-    auto timer = metric_pvf_execution_time.timer();
+    auto timer = metric_pvf_execution_time().timer();
     ParachainRuntime code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    metric_code_size.observe(code.size());
+    metric_code_size().observe(code.size());
     ValidationParams params;
     params.parent_head = data.parent_head;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(pov.payload,
