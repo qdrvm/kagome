@@ -1764,7 +1764,7 @@ namespace kagome::parachain {
           "Request attested candidate. (relay_parent={}, candidate_hash={})",
           manifest.relay_parent,
           manifest.candidate_hash);
-      request_attested_candidate(relay_parent_state->get(),
+      request_attested_candidate(peer_id, relay_parent_state->get(),
                                  manifest.relay_parent,
                                  manifest.candidate_hash,
                                  manifest.group_index);
@@ -1864,7 +1864,7 @@ namespace kagome::parachain {
     const auto &group = session_info.validator_groups[*originator_group];
 
     if (!is_confirmed) {
-      request_attested_candidate(parachain_state->get(),
+      request_attested_candidate(peer_id, parachain_state->get(),
                                  stm.relay_parent,
                                  candidate_hash,
                                  *originator_group);
@@ -2016,6 +2016,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::request_attested_candidate(
+    const libp2p::peer::PeerId &peer,
       RelayParentState &relay_parent_state,
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
@@ -2062,18 +2063,14 @@ namespace kagome::parachain {
              "Enumerate peers. (relay_parent={}, candidate_hash={})",
              relay_parent,
              candidate_hash);
-    std::optional<std::pair<network::vstaging::StatementFilter,
-                            std::reference_wrapper<const libp2p::peer::PeerId>>>
-        target;
-    pm_->enumeratePeerState([&](const libp2p::peer::PeerId &peer,
-                                network::PeerState &peer_state) {
+    std::optional<network::vstaging::StatementFilter> target;
       auto audi = query_audi_->get(peer);
       if (!audi) {
         SL_TRACE(logger_,
                  "No audi. (relay_parent={}, candidate_hash={})",
                  relay_parent,
                  candidate_hash);
-        return true;
+        return;
       }
 
       ValidatorIndex validator_id = 0;
@@ -2095,7 +2092,7 @@ namespace kagome::parachain {
                  "No filter. (relay_parent={}, candidate_hash={})",
                  relay_parent,
                  candidate_hash);
-        return true;
+        return;
       }
 
       filter->mask_seconded(unwanted_mask.seconded_in_group);
@@ -2105,17 +2102,15 @@ namespace kagome::parachain {
           || (filter->has_seconded()
               && filter->backing_validators() >= *backing_threshold)) {
         network::vstaging::StatementFilter f(group->size());
-        target.emplace(std::move(f), std::cref(peer));
-        return false;
+        target.emplace(std::move(f));
+      } else {
+        SL_TRACE(
+            logger_,
+            "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
+            relay_parent,
+            candidate_hash);
+        return;
       }
-
-      SL_TRACE(
-          logger_,
-          "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
-          relay_parent,
-          candidate_hash);
-      return true;
-    });
 
     if (!target) {
       SL_TRACE(logger_,
@@ -2125,14 +2120,14 @@ namespace kagome::parachain {
       return;
     }
 
-    const auto &[um, peer] = *target;
+    const auto &um = *target;
     SL_TRACE(logger_,
              "Requesting. (peer={}, relay_parent={}, candidate_hash={})",
-             peer.get(),
+             peer,
              relay_parent,
              candidate_hash);
     router_->getFetchAttestedCandidateProtocol()->doRequest(
-        peer.get(),
+        peer,
         network::vstaging::AttestedCandidateRequest{
             .candidate_hash = candidate_hash,
             .mask = um,
