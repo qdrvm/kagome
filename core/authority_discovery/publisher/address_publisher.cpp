@@ -89,7 +89,6 @@ namespace kagome::authority_discovery {
       if (not self) {
         return;
       }
-      self->log_->info("INTERVAL PUBLISH");
       auto maybe_error = self->publishOwnAddress();
       if (not maybe_error) {
         SL_WARN(
