@@ -110,8 +110,8 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::stop() {
     shutdown_requested_ = true;
-    frequent_timer_.cancel();
-    delayed_timer_.cancel();
+    frequent_timer_.reset();
+    delayed_timer_.reset();
     for (auto &connection : connections_) {
       connection->shutdown();
     }
@@ -180,7 +180,7 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::frequentNotificationsRoutine() {
-    frequent_timer_.cancel();
+    frequent_timer_.reset();
     if (shutdown_requested_) {
       return;
     }
@@ -216,7 +216,7 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::delayedNotificationsRoutine() {
-    delayed_timer_.cancel();
+    delayed_timer_.reset();
     if (shutdown_requested_) {
       return;
     }
