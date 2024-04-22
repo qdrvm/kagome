@@ -1724,7 +1724,8 @@ namespace kagome::parachain {
           "Request attested candidate. (relay_parent={}, candidate_hash={})",
           manifest.relay_parent,
           manifest.candidate_hash);
-      request_attested_candidate(peer_id, relay_parent_state->get(),
+      request_attested_candidate(peer_id,
+                                 relay_parent_state->get(),
                                  manifest.relay_parent,
                                  manifest.candidate_hash,
                                  manifest.group_index);
@@ -1824,7 +1825,8 @@ namespace kagome::parachain {
     const auto &group = session_info.validator_groups[*originator_group];
 
     if (!is_confirmed) {
-      request_attested_candidate(peer_id, parachain_state->get(),
+      request_attested_candidate(peer_id,
+                                 parachain_state->get(),
                                  stm.relay_parent,
                                  candidate_hash,
                                  *originator_group);
@@ -1976,7 +1978,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::request_attested_candidate(
-    const libp2p::peer::PeerId &peer,
+      const libp2p::peer::PeerId &peer,
       RelayParentState &relay_parent_state,
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
@@ -2024,53 +2026,52 @@ namespace kagome::parachain {
              relay_parent,
              candidate_hash);
     std::optional<network::vstaging::StatementFilter> target;
-      auto audi = query_audi_->get(peer);
-      if (!audi) {
+    auto audi = query_audi_->get(peer);
+    if (!audi) {
+      SL_TRACE(logger_,
+               "No audi. (relay_parent={}, candidate_hash={})",
+               relay_parent,
+               candidate_hash);
+      return;
+    }
+
+    ValidatorIndex validator_id = 0;
+    for (; validator_id < session_info.discovery_keys.size(); ++validator_id) {
+      if (session_info.discovery_keys[validator_id] == *audi) {
         SL_TRACE(logger_,
-                 "No audi. (relay_parent={}, candidate_hash={})",
+                 "Captured validator. (relay_parent={}, candidate_hash={})",
                  relay_parent,
                  candidate_hash);
-        return;
+        break;
       }
+    }
 
-      ValidatorIndex validator_id = 0;
-      for (; validator_id < session_info.discovery_keys.size();
-           ++validator_id) {
-        if (session_info.discovery_keys[validator_id] == *audi) {
-          SL_TRACE(logger_,
-                   "Captured validator. (relay_parent={}, candidate_hash={})",
-                   relay_parent,
-                   candidate_hash);
-          break;
-        }
-      }
+    auto filter = local_validator.grid_tracker.advertised_statements(
+        validator_id, candidate_hash);
+    if (!filter) {
+      SL_TRACE(logger_,
+               "No filter. (relay_parent={}, candidate_hash={})",
+               relay_parent,
+               candidate_hash);
+      return;
+    }
 
-      auto filter = local_validator.grid_tracker.advertised_statements(
-          validator_id, candidate_hash);
-      if (!filter) {
-        SL_TRACE(logger_,
-                 "No filter. (relay_parent={}, candidate_hash={})",
-                 relay_parent,
-                 candidate_hash);
-        return;
-      }
+    filter->mask_seconded(unwanted_mask.seconded_in_group);
+    filter->mask_valid(unwanted_mask.validated_in_group);
 
-      filter->mask_seconded(unwanted_mask.seconded_in_group);
-      filter->mask_valid(unwanted_mask.validated_in_group);
-
-      if (!backing_threshold
-          || (filter->has_seconded()
-              && filter->backing_validators() >= *backing_threshold)) {
-        network::vstaging::StatementFilter f(group->size());
-        target.emplace(std::move(f));
-      } else {
-        SL_TRACE(
-            logger_,
-            "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
-            relay_parent,
-            candidate_hash);
-        return;
-      }
+    if (!backing_threshold
+        || (filter->has_seconded()
+            && filter->backing_validators() >= *backing_threshold)) {
+      network::vstaging::StatementFilter f(group->size());
+      target.emplace(std::move(f));
+    } else {
+      SL_TRACE(
+          logger_,
+          "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
+          relay_parent,
+          candidate_hash);
+      return;
+    }
 
     if (!target) {
       SL_TRACE(logger_,
@@ -4753,7 +4754,7 @@ namespace kagome::parachain {
     if (prospective_candidate) {
       auto &&[ch, parent_head_data_hash] = *prospective_candidate;
       const bool queue_advertisement = relay_parent_mode
-                                     && !canSecond(per_relay_parent,
+                                    && !canSecond(per_relay_parent,
                                                   collator_para_id,
                                                   relay_parent,
                                                   ch,

@@ -576,7 +576,8 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         const CandidateHash &candidate_hash,
         GroupIndex group_index);
-    void request_attested_candidate(const libp2p::peer::PeerId &peer, RelayParentState &relay_parent_state,
+    void request_attested_candidate(const libp2p::peer::PeerId &peer,
+                                    RelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
