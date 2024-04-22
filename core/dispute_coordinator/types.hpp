@@ -48,10 +48,21 @@ namespace kagome::dispute {
   using BackingValid = Tagged<CandidateHash, struct BackingValidTag>;
   /// An approval vote from the approval checking phase.
   using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
+  /// An approval vote from the new version.
+  /// We can't create this version until all nodes have been updated to support
+  /// it and max_approval_coalesce_count is set to more than 1.
+  using ApprovalCheckingMultipleCandidates =
+      Tagged<std::vector<CandidateHash>,
+             struct ApprovalCheckingMultipleCandidatesTag>;
 
   /// A valid statement, of the given kind
   using ValidDisputeStatement =
-      boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
+      boost::variant<Explicit,                           // 0
+                     BackingSeconded,                    // 1
+                     BackingValid,                       // 2
+                     ApprovalChecking,                   // 3
+                     ApprovalCheckingMultipleCandidates  // 4
+                     >;
 
   /// An invalid statement, of the given kind.
   using InvalidDisputeStatement = boost::variant<Explicit>;
@@ -152,7 +163,7 @@ namespace kagome::dispute {
     /// The session the candidate appeared in.
     SessionIndex session_index;
     /// Session for above index.
-    SessionInfo &session;
+    SessionInfo session;
     /// Validator indices controlled by this node.
     std::unordered_set<ValidatorIndex> controlled_indices{};
   };
@@ -219,7 +230,7 @@ namespace kagome::dispute {
 
   /// A set of statements about a specific candidate.
   struct DisputeStatementSet {
-    SCALE_TIE(3);
+    //    SCALE_TIE(3);
 
     /// The candidate referenced by this set.
     CandidateHash candidate_hash;
@@ -231,6 +242,22 @@ namespace kagome::dispute {
     std::vector<
         std::tuple<DisputeStatement, ValidatorIndex, ValidatorSignature>>
         statements;
+
+    template <class Stream>
+    friend inline Stream &operator<<(Stream &s, const DisputeStatementSet &x) {
+      s << x.candidate_hash;
+      s << x.session;
+      s << x.statements;
+      return s;
+    }
+
+    template <class Stream>
+    friend inline Stream &operator>>(Stream &s, DisputeStatementSet &x) {
+      s >> x.candidate_hash;
+      s >> x.session;
+      s >> x.statements;
+      return s;
+    }
   };
 
   /// A set of dispute statements.
@@ -238,7 +265,7 @@ namespace kagome::dispute {
 
   /// Scraped runtime backing votes and resolved disputes.
   struct ScrapedOnChainVotes {
-    SCALE_TIE(3);
+    // SCALE_TIE(3);
 
     /// The session in which the block was included.
     SessionIndex session;
@@ -254,6 +281,22 @@ namespace kagome::dispute {
     /// Note that the above `backing_validators` are
     /// unrelated to the backers of the disputes candidates.
     MultiDisputeStatementSet disputes;
+
+    template <class Stream>
+    friend inline Stream &operator<<(Stream &s, const ScrapedOnChainVotes &x) {
+      s << x.session;
+      s << x.backing_validators_per_candidate;
+      s << x.disputes;
+      return s;
+    }
+
+    template <class Stream>
+    friend inline Stream &operator>>(Stream &s, ScrapedOnChainVotes &x) {
+      s >> x.session;
+      s >> x.backing_validators_per_candidate;
+      s >> x.disputes;
+      return s;
+    }
   };
 
   /// Describes a relay-chain block by the para-chain candidates

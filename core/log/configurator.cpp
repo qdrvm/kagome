@@ -14,7 +14,7 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
-    stream: stderr
+    stream: stdout
     thread: name
     color: false
     latency: 0

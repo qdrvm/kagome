@@ -299,6 +299,8 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::align() {
+    SL_INFO(log_, "DEBUG: call align()");
+
     SL_TRACE(log_, "Try to align peers number");
 
     const auto hard_limit = app_config_.inPeers() + app_config_.inPeersLight()
@@ -598,6 +600,8 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
+    SL_INFO(log_, "DEBUG: call processDiscoveredPeer()");
+
     // Ignore himself
     if (isSelfPeer(peer_id)) {
       return;
@@ -648,13 +652,16 @@ namespace kagome::network {
                 return;
               }
 
+              SL_INFO(self->log_, "DEBUG: call openOutgoing::<lambda>()");
+
               auto &peer_id = peer_info.id;
 
               if (not stream_res.has_value()) {
-                self->log_->verbose("Unable to create stream {} with {}: {}",
-                                    protocol->protocolName(),
-                                    peer_id,
-                                    stream_res.error());
+                SL_VERBOSE(self->log_,
+                           "Unable to create stream {} with {}: {}",
+                           protocol->protocolName(),
+                           peer_id,
+                           stream_res.error());
                 self->connecting_peers_.erase(peer_id);
                 self->disconnectFromPeer(peer_id);
                 return;
@@ -663,7 +670,7 @@ namespace kagome::network {
                                      ? PeerType::PEER_TYPE_OUT
                                      : PeerType::PEER_TYPE_IN;
 
-              // Add to active peer list
+              // Add to the active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
                       peer_id, PeerDescriptor{peer_type, self->clock_->now()});
                   added) {
@@ -672,12 +679,11 @@ namespace kagome::network {
                 // And remove from queue
                 if (auto piq_it = self->peers_in_queue_.find(peer_id);
                     piq_it != self->peers_in_queue_.end()) {
-                  auto qtc_it =
-                      std::find_if(self->queue_to_connect_.cbegin(),
-                                   self->queue_to_connect_.cend(),
-                                   [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item.get();
-                                   });
+                  auto qtc_it = std::find_if(self->queue_to_connect_.cbegin(),
+                                             self->queue_to_connect_.cend(),
+                                             [&peer_id](const auto &item) {
+                                               return peer_id == item.get();
+                                             });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
                   BOOST_ASSERT(self->queue_to_connect_.size()
@@ -769,6 +775,8 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
+    SL_INFO(log_, "DEBUG: call processFullyConnectedPeer()");
+
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
