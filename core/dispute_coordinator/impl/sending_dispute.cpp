@@ -41,15 +41,15 @@ namespace kagome::dispute {
     std::for_each(new_authorities.begin(),
                   new_authorities.end(),
                   [&](const auto &authority) {
-                    if (deliveries_.count(authority) == 0) {
+                    if (not deliveries_.contains(authority)) {
                       add_authorities.emplace_back(authority);
                     }
                   });
 
     // Get rid of dead/irrelevant tasks/statuses:
-    // SL_TRACE "Cleaning up deliveries"
+    SL_TRACE(logger_, "Cleaning up deliveries");
     for (auto it = deliveries_.begin(); it != deliveries_.end();) {
-      if (new_authorities.count(it->first) == 0) {
+      if (not new_authorities.contains(it->first)) {
         it = deliveries_.erase(it);
       } else {
         ++it;
@@ -136,9 +136,13 @@ namespace kagome::dispute {
 
     auto size = receivers.size();
 
+    for (auto &[authority_id, peer_id] : receivers) {
+      deliveries_.emplace(authority_id, DeliveryStatus::Pending);
+    }
+
     asyncSendRequests(std::move(protocol), std::move(receivers));
 
-    SL_TRACE(logger_, "Requests dispatched. Sent {} requests", size);
+    SL_TRACE(logger_, "Requests dispatched ({} receivers)", size);
 
     return true;
   }
@@ -153,12 +157,10 @@ namespace kagome::dispute {
              std::move(receivers));
 
     for (auto &[authority_id, peer_id] : receivers) {
-      deliveries_.emplace(authority_id, DeliveryStatus::Pending);
       protocol->doRequest(
           peer_id,
           request_,
-          [wp{weak_from_this()}, authority_id(authority_id), peer_id](
-              auto res) mutable {
+          [wp{weak_from_this()}, authority_id, peer_id](auto res) mutable {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
