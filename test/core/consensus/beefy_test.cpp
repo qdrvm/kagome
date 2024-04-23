@@ -71,9 +71,6 @@ using testing::_;
 using testing::Return;
 
 struct Timer : libp2p::basic::Scheduler {
-  void pulse(std::chrono::milliseconds current_clock) noexcept override {
-    abort();
-  }
   std::chrono::milliseconds now() const noexcept override {
     abort();
   }
@@ -82,14 +79,6 @@ struct Timer : libp2p::basic::Scheduler {
                       bool) noexcept override {
     cb_.emplace(std::move(cb));
     return Handle{};
-  }
-  void cancel(Handle::Ticket ticket) noexcept override {
-    abort();
-  }
-  outcome::result<Handle::Ticket> reschedule(
-      Handle::Ticket ticket,
-      std::chrono::milliseconds delay_from_now) noexcept override {
-    abort();
   }
 
   void call() {

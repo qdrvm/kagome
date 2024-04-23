@@ -80,7 +80,7 @@ class SynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::SyncMethod::Full));

@@ -322,6 +322,8 @@ namespace kagome::consensus::grandpa {
     void saveCachedVotes();
     void applyCachedVotes(VotingRound &round);
 
+    void setTimerFallback();
+
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
 
     const size_t kVotesCacheSize = 5;
