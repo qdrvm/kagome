@@ -40,6 +40,10 @@
 #include "scale/libp2p_types.hpp"
 #include "storage/spaced_storage.hpp"
 
+namespace kagome::authority_discovery {
+  class Query;
+}
+
 namespace kagome::network {
 
   enum class PeerType { PEER_TYPE_IN = 0, PEER_TYPE_OUT };
@@ -71,7 +75,8 @@ namespace kagome::network {
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<ReputationRepository> reputation_repository,
-        std::shared_ptr<PeerView> peer_view);
+        std::shared_ptr<PeerView> peer_view,
+        std::shared_ptr<authority_discovery::Query> authority_discovery);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -195,6 +200,8 @@ namespace kagome::network {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
+    std::shared_ptr<network::PeerView> peer_view_;
+    std::shared_ptr<authority_discovery::Query> authority_discovery_;
 
     libp2p::event::Handle add_peer_handle_;
     libp2p::event::Handle peer_disconnected_handler_;
@@ -213,9 +220,6 @@ namespace kagome::network {
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *sync_peer_num_;
     metrics::Gauge *peers_count_metric_;
-
-    // parachain
-    std::shared_ptr<network::PeerView> peer_view_;
 
     log::Logger log_;
   };
