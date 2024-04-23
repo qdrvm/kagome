@@ -40,7 +40,7 @@ jobs:
             test: "test0010"
           - name: "Block building warp sync"
             test: "test0011"
-    runs-on: [ self-hosted ]
+    runs-on: [ actions-runner-controller ]
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Set owner of working dir recurively

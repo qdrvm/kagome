@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_and_push_zombie_builder:
-    runs-on: [ kagome, self-hosted, linux ]
+    runs-on: [ actions-runner-controller ]
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
