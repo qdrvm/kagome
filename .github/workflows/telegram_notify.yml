@@ -1,12 +1,13 @@
 name: Telegram Notification
 
 on:
-  pull_request:
-    types: [created, closed, opened, reopened]
-  pull_request_target:
-    types: [ created, closed, opened, reopened]
-  issues:
-    types: [created, closed, opended, reopened]
+  # pull_request:
+  #   types: [created, closed, opened, reopened]
+  # pull_request_target:
+  #   types: [ created, closed, opened, reopened]
+  # issues:
+  #   types: [created, closed, opended, reopened]
+  workflow_dispatch:
 
 jobs:
   notify:
