@@ -1099,6 +1099,9 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
 
+    SL_TRACE(logger_,
+             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
+             bd->relay_parent);
     auto parachain_state = tryGetStateByRelayParent(bd->relay_parent);
     if (!parachain_state) {
       return;
@@ -2487,12 +2490,8 @@ namespace kagome::parachain {
                 process_vstaging_statement(peer_id, val);
               },
               [&](const auto &) {});
-        });
-
-    //    if (auto
-    //    msg{boost::get<network::StatementDistributionMessage>(&message)}) {
-    //      return;
-    //    }
+        },
+        [&](const auto &m) { SL_WARN(logger_, "UNSUPPORTED Version"); });
   }
 
   template <typename F>
