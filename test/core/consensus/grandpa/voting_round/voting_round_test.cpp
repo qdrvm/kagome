@@ -147,8 +147,8 @@ class VotingRoundTest : public testing::Test,
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
     scheduler_ = std::make_shared<libp2p::basic::SchedulerMock>();
-    EXPECT_CALL(*scheduler_, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
-    EXPECT_CALL(*scheduler_, nowMockCall()).Times(AnyNumber());
+    EXPECT_CALL(*scheduler_, scheduleImpl(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(*scheduler_, now()).Times(AnyNumber());
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
