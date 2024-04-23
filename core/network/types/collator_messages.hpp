@@ -400,7 +400,7 @@ namespace kagome::network {
 
   /// Statements that can be made about parachain candidates. These are the
   /// actual values that are signed.
-  using CompactStatement = boost::variant<
+  using CompactStatement = std::variant<
       Tagged<CompactStatementSeconded,
              struct SecondedTag>,  /// Proposal of a parachain candidate.
       Tagged<CompactStatementValid, struct ValidTag>  /// State that a parachain
