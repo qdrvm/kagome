@@ -1,9 +1,12 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 name: Zombie-Tests
 
 on:
-  push:
-    branches:
-      - "feature/zobbie-tests-python-fix"
   workflow_dispatch: 
 
 jobs:
@@ -41,7 +44,6 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ actions-runner-controller ]
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
