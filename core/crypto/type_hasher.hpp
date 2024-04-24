@@ -7,7 +7,7 @@
 #pragma once
 
 #include <optional>
-#include <span>
+
 #include "crypto/hasher/blake2b_stream_hasher.hpp"
 #include "scale/kagome_scale.hpp"
 
@@ -29,7 +29,12 @@ namespace kagome::crypto {
     using HashType = common::Blob<N>;
 
    public:
-    explicit Hashed(Type type) : type_{std::move(type)} {}
+    explicit Hashed(Type &&type) : type_{std::move(type)} {}
+    explicit Hashed(const Type &type) : type_{type} {}
+
+    template <typename... Args>
+    explicit Hashed(std::in_place_t, Args &&...args)
+        : type_{std::forward<Args>(args)...} {}
 
     Hashed(const Hashed &c) = default;
     Hashed(Hashed &&c) = default;
