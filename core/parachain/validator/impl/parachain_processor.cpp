@@ -2457,7 +2457,7 @@ namespace kagome::parachain {
             prospective_parachains_->introduceCandidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<runtime::PersistedValidationData,
+                crypto::Hashed<const runtime::PersistedValidationData &,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},

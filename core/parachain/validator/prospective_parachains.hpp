@@ -377,14 +377,16 @@ namespace kagome::parachain {
                    "Add block. "
                    "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash, info->number);
+                   hash,
+                   info->number);
           block_info.emplace_back(*info);
         } else {
           SL_TRACE(logger,
                    "Skipped block. "
                    "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash, info->number);
+                   hash,
+                   info->number);
           break;
         }
       }
@@ -500,7 +502,7 @@ namespace kagome::parachain {
             auto res = candidate_storage.addCandidate(
                 candidate_hash,
                 c.candidate,
-                crypto::Hashed<runtime::PersistedValidationData,
+                crypto::Hashed<const runtime::PersistedValidationData &,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     c.persisted_validation_data},
@@ -725,7 +727,7 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<runtime::PersistedValidationData,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) {
