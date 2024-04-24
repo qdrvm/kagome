@@ -31,6 +31,7 @@ env:
 jobs:
   MacOS:
     runs-on: macos-14
+    timeout-minutes: 60
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -57,6 +58,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -95,6 +97,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -133,6 +136,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -157,6 +161,7 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -180,6 +185,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -228,6 +234,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -252,6 +259,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -278,6 +286,7 @@ jobs:
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -315,6 +324,7 @@ jobs:
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -375,6 +385,7 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively

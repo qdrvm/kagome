@@ -44,6 +44,7 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
