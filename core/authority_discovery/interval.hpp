@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <boost/assert.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 namespace kagome::authority_discovery {
