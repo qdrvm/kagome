@@ -1193,6 +1193,7 @@ namespace kagome::parachain {
     auto claimed_parent_hash = manifest_summary.claimed_parent_hash;
 
     /// TODO(iceseer): do `disabled validators`
+    /// https://github.com/qdrvm/kagome/issues/2060
 
     BOOST_ASSERT(relay_parent_state->get().prospective_parachains_mode);
     const auto seconding_limit =
@@ -1726,6 +1727,8 @@ namespace kagome::parachain {
     }
 
     /// TODO(iceseer): do `disabled validators`
+    /// https://github.com/qdrvm/kagome/issues/2060
+
     /// TODO(iceseer): do `cluster validators`
 
     std::optional<std::pair<ValidatorIndex, bool>> grid_sender_index;
@@ -1964,6 +1967,7 @@ namespace kagome::parachain {
 
     /// TODO(iceseer): do `disabled validators`
     /// Add disabled validators to the unwanted mask.
+    /// https://github.com/qdrvm/kagome/issues/2060
 
     auto backing_threshold = [&]() -> std::optional<size_t> {
       auto bt = relay_parent_state.groups->get_size_and_backing_threshold(
@@ -2636,6 +2640,7 @@ namespace kagome::parachain {
     init_with_not(and_mask.validated_in_group, request.mask.validated_in_group);
 
     /// TODO(iceseer): do `disabled validators` check
+    /// https://github.com/qdrvm/kagome/issues/2060
     std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
         statements;
     relay_parent_state->get().statement_store->groupStatements(

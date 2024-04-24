@@ -17,7 +17,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::grid, GridTracker::Error, e) {
       return "Insufficient";
     case E::CONFLICTING:
       return "Conflicting";
-    case E::OVERFLOW:
+    case E::SECONDING_OVERFLOW:
       return "Overflow";
   }
   return "Unknown parachain grid tracker error";
@@ -63,11 +63,10 @@ namespace kagome {
 
   std::vector<
       std::pair<parachain::ValidatorIndex, network::vstaging::CompactStatement>>
-  decompose_statement_filter(
-      const parachain::Groups &groups,
-      parachain::GroupIndex group_index,
-      const parachain::CandidateHash &candidate_hash,
-      const network::vstaging::StatementFilter &statement_filter) {
+  decompose_statement_filter(const parachain::Groups &groups,
+                             parachain::GroupIndex group_index,
+                             const parachain::CandidateHash &candidate_hash,
+                             const StatementFilter &statement_filter) {
     auto group = groups.get(group_index);
     if (!group) {
       return {};
@@ -177,11 +176,10 @@ namespace kagome::parachain::grid {
   }
 
   std::vector<std::pair<ValidatorIndex, ManifestKind>>
-  GridTracker::add_backed_candidate(
-      const SessionTopologyView &session_topology,
-      const CandidateHash &candidate_hash,
-      GroupIndex group_index,
-      const network::vstaging::StatementFilter &local_knowledge) {
+  GridTracker::add_backed_candidate(const SessionTopologyView &session_topology,
+                                    const CandidateHash &candidate_hash,
+                                    GroupIndex group_index,
+                                    const StatementFilter &local_knowledge) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
       return {};
@@ -238,11 +236,10 @@ namespace kagome::parachain::grid {
     return result;
   }
 
-  void GridTracker::manifest_sent_to(
-      const Groups &groups,
-      ValidatorIndex validator_index,
-      const CandidateHash &candidate_hash,
-      const network::vstaging::StatementFilter &local_knowledge) {
+  void GridTracker::manifest_sent_to(const Groups &groups,
+                                     ValidatorIndex validator_index,
+                                     const CandidateHash &candidate_hash,
+                                     const StatementFilter &local_knowledge) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
       confirmed->second.manifest_sent_to(validator_index, local_knowledge);
@@ -272,9 +269,8 @@ namespace kagome::parachain::grid {
     return result;
   }
 
-  std::optional<network::vstaging::StatementFilter>
-  GridTracker::pending_statements_for(ValidatorIndex validator_index,
-                                      const CandidateHash &candidate_hash) {
+  std::optional<StatementFilter> GridTracker::pending_statements_for(
+      ValidatorIndex validator_index, const CandidateHash &candidate_hash) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed == confirmed_backed.end()) {
       return {};
@@ -395,9 +391,8 @@ namespace kagome::parachain::grid {
     }
   }
 
-  std::optional<network::vstaging::StatementFilter>
-  GridTracker::advertised_statements(ValidatorIndex validator,
-                                     const CandidateHash &candidate_hash) {
+  std::optional<StatementFilter> GridTracker::advertised_statements(
+      ValidatorIndex validator, const CandidateHash &candidate_hash) {
     auto r = received.find(validator);
     if (r == received.end()) {
       return {};
@@ -405,28 +400,27 @@ namespace kagome::parachain::grid {
     return r->second.candidate_statement_filter(candidate_hash);
   }
 
-  bool KnownBackedCandidate::has_received_manifest_from(size_t validator) {
+  bool KnownBackedCandidate::has_received_manifest_from(
+      ValidatorIndex validator) {
     auto it = mutual_knowledge.find(validator);
     return it != mutual_knowledge.end() && it->second.remote_knowledge;
   }
 
-  bool KnownBackedCandidate::has_sent_manifest_to(size_t validator) {
+  bool KnownBackedCandidate::has_sent_manifest_to(ValidatorIndex validator) {
     auto it = mutual_knowledge.find(validator);
     return it != mutual_knowledge.end() && it->second.local_knowledge;
   }
 
   void KnownBackedCandidate::manifest_sent_to(
-      size_t validator,
-      const network::vstaging::StatementFilter &local_knowledge) {
+      ValidatorIndex validator, const StatementFilter &local_knowledge) {
     MutualKnowledge &k = mutual_knowledge[validator];
-    k.received_knowledge = network::vstaging::StatementFilter(
-        local_knowledge.seconded_in_group.bits.size());
+    k.received_knowledge =
+        StatementFilter(local_knowledge.seconded_in_group.bits.size());
     k.local_knowledge = local_knowledge;
   }
 
   void KnownBackedCandidate::manifest_received_from(
-      ValidatorIndex validator,
-      const network::vstaging::StatementFilter &remote_knowledge) {
+      ValidatorIndex validator, const StatementFilter &remote_knowledge) {
     MutualKnowledge &k = mutual_knowledge[validator];
     k.remote_knowledge = remote_knowledge;
   }
@@ -502,7 +496,7 @@ namespace kagome::parachain::grid {
   }
 
   bool KnownBackedCandidate::is_pending_statement(
-      size_t validator,
+      ValidatorIndex validator,
       size_t statement_index_in_group,
       const network::vstaging::StatementKind &statement_kind) {
     auto it = mutual_knowledge.find(validator);
@@ -514,16 +508,14 @@ namespace kagome::parachain::grid {
     return false;
   }
 
-  std::optional<network::vstaging::StatementFilter>
-  KnownBackedCandidate::pending_statements(size_t validator) {
-    const network::vstaging::StatementFilter &full_local = local_knowledge;
+  std::optional<StatementFilter> KnownBackedCandidate::pending_statements(
+      ValidatorIndex validator) {
+    const StatementFilter &full_local = local_knowledge;
     auto it = mutual_knowledge.find(validator);
     if (it != mutual_knowledge.end() && it->second.local_knowledge
         && it->second.remote_knowledge) {
-      const network::vstaging::StatementFilter &remote =
-          *it->second.remote_knowledge;
-      network::vstaging::StatementFilter result(
-          full_local.seconded_in_group.bits.size());
+      const StatementFilter &remote = *it->second.remote_knowledge;
+      StatementFilter result(full_local.seconded_in_group.bits.size());
       for (size_t i = 0; i < full_local.seconded_in_group.bits.size(); ++i) {
         result.seconded_in_group.bits[i] = full_local.seconded_in_group.bits[i]
                                         && !remote.seconded_in_group.bits[i];
@@ -536,8 +528,7 @@ namespace kagome::parachain::grid {
     return {};
   }
 
-  std::optional<network::vstaging::StatementFilter>
-  ReceivedManifests::candidate_statement_filter(
+  std::optional<StatementFilter> ReceivedManifests::candidate_statement_filter(
       const CandidateHash &candidate_hash) {
     auto it = received.find(candidate_hash);
     if (it != received.end()) {
@@ -588,7 +579,7 @@ namespace kagome::parachain::grid {
           seconding_limit,
           fresh_seconded.bits);
       if (!within_limits) {
-        return GridTracker::Error::OVERFLOW;
+        return GridTracker::Error::SECONDING_OVERFLOW;
       }
       it->second = manifest_summary;
       return outcome::success();
@@ -604,7 +595,7 @@ namespace kagome::parachain::grid {
         received[candidate_hash] = manifest_summary;
         return outcome::success();
       } else {
-        return GridTracker::Error::OVERFLOW;
+        return GridTracker::Error::SECONDING_OVERFLOW;
       }
     }
   }

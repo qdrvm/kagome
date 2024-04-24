@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * Ref: polkadot/node/network/statement-distribution/src/v2/grid.rs
+ */
+
 #pragma once
 
 #include <bitset>
@@ -22,13 +26,11 @@ struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
                            kagome::network::vstaging::CompactStatement>> {
   size_t operator()(const std::pair<kagome::parachain::ValidatorIndex,
                                     kagome::network::vstaging::CompactStatement>
-                        &__p) const noexcept {
-    size_t result = std::hash<kagome::parachain::ValidatorIndex>()(__p.first);
+                        &value) const noexcept {
+    size_t result = std::hash<kagome::parachain::ValidatorIndex>()(value.first);
     auto hash = kagome::visit_in_place(
-        __p.second.inner_value,
-        [](const kagome::network::vstaging::Empty &) {
-          return kagome::parachain::Hash{};
-        },
+        value.second.inner_value,
+        [](const kagome::network::vstaging::Empty &) { UNREACHABLE; },
         [](const auto &v) { return v.hash; });
 
     boost::hash_combine(result, std::hash<kagome::parachain::Hash>()(hash));
@@ -39,6 +41,7 @@ struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
 namespace kagome::parachain::grid {
 
   using SessionTopologyView = Views;
+  using StatementFilter = network::vstaging::StatementFilter;
 
   enum class ManifestKind {
     Full,
@@ -48,7 +51,7 @@ namespace kagome::parachain::grid {
   struct ManifestSummary {
     Hash claimed_parent_hash;
     GroupIndex claimed_group_index;
-    network::vstaging::StatementFilter statement_knowledge;
+    StatementFilter statement_knowledge;
   };
 
   class ReceivedManifests {
@@ -56,8 +59,8 @@ namespace kagome::parachain::grid {
     std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
 
    public:
-    std::optional<network::vstaging::StatementFilter>
-    candidate_statement_filter(const CandidateHash &candidate_hash);
+    std::optional<StatementFilter> candidate_statement_filter(
+        const CandidateHash &candidate_hash);
 
     outcome::result<void> import_received(
         size_t group_size,
@@ -75,32 +78,30 @@ namespace kagome::parachain::grid {
   };
 
   struct MutualKnowledge {
-    std::optional<network::vstaging::StatementFilter> remote_knowledge;
-    std::optional<network::vstaging::StatementFilter> local_knowledge;
-    std::optional<network::vstaging::StatementFilter> received_knowledge;
+    std::optional<StatementFilter> remote_knowledge;
+    std::optional<StatementFilter> local_knowledge;
+    std::optional<StatementFilter> received_knowledge;
   };
 
   struct KnownBackedCandidate {
-    size_t group_index;
-    network::vstaging::StatementFilter local_knowledge;
+    GroupIndex group_index;
+    StatementFilter local_knowledge;
     std::unordered_map<ValidatorIndex, MutualKnowledge> mutual_knowledge;
 
-    bool has_received_manifest_from(size_t validator);
-    bool has_sent_manifest_to(size_t validator);
+    bool has_received_manifest_from(ValidatorIndex validator);
+    bool has_sent_manifest_to(ValidatorIndex validator);
     bool note_fresh_statement(
         size_t statement_index_in_group,
         const network::vstaging::StatementKind &statement_kind);
     bool is_pending_statement(
-        size_t validator,
+        ValidatorIndex validator,
         size_t statement_index_in_group,
         const network::vstaging::StatementKind &statement_kind);
 
-    void manifest_sent_to(
-        size_t validator,
-        const network::vstaging::StatementFilter &local_knowledge);
-    void manifest_received_from(
-        ValidatorIndex validator,
-        const network::vstaging::StatementFilter &remote_knowledge);
+    void manifest_sent_to(ValidatorIndex validator,
+                          const StatementFilter &local_knowledge);
+    void manifest_received_from(ValidatorIndex validator,
+                                const StatementFilter &remote_knowledge);
 
     void sent_or_received_direct_statement(
         ValidatorIndex validator,
@@ -116,19 +117,33 @@ namespace kagome::parachain::grid {
         GroupIndex group_index,
         size_t originator_index_in_group,
         const network::vstaging::StatementKind &statement_kind);
-    std::optional<network::vstaging::StatementFilter> pending_statements(
-        size_t validator);
+    std::optional<StatementFilter> pending_statements(ValidatorIndex validator);
   };
 
+  /// A tracker of knowledge from authorities within the grid for a particular
+  /// relay-parent.
   struct GridTracker {
     enum class Error {
       DISALLOWED = 1,
       MALFORMED,
       INSUFFICIENT,
       CONFLICTING,
-      OVERFLOW
+      SECONDING_OVERFLOW
     };
 
+    /// Attempt to import a manifest advertised by a remote peer.
+    ///
+    /// This checks whether the peer is allowed to send us manifests
+    /// about this group at this relay-parent. This also does sanity
+    /// checks on the format of the manifest and the amount of votes
+    /// it contains. It assumes that the votes from disabled validators
+    /// are already filtered out.
+    /// It has effects on the stored state only when successful.
+    ///
+    /// This returns a `bool` on success, which if true indicates that an
+    /// acknowledgement is to be sent in response to the received manifest. This
+    /// only occurs when the candidate is already known to be confirmed and
+    /// backed.
     outcome::result<bool> import_manifest(
         const SessionTopologyView &session_topology,
         const Groups &groups,
@@ -138,46 +153,74 @@ namespace kagome::parachain::grid {
         ManifestKind kind,
         ValidatorIndex sender);
 
+    /// Add a new backed candidate to the tracker. This yields
+    /// a list of validators which we should either advertise to
+    /// or signal that we know the candidate, along with the corresponding
+    /// type of manifest we should send.
     std::vector<std::pair<ValidatorIndex, ManifestKind>> add_backed_candidate(
         const SessionTopologyView &session_topology,
         const CandidateHash &candidate_hash,
         GroupIndex group_index,
-        const network::vstaging::StatementFilter &local_knowledge);
+        const StatementFilter &local_knowledge);
 
-    void manifest_sent_to(
-        const Groups &groups,
-        ValidatorIndex validator_index,
-        const CandidateHash &candidate_hash,
-        const network::vstaging::StatementFilter &local_knowledge);
+    /// Note that a backed candidate has been advertised to a
+    /// given validator.
+    void manifest_sent_to(const Groups &groups,
+                          ValidatorIndex validator_index,
+                          const CandidateHash &candidate_hash,
+                          const StatementFilter &local_knowledge);
 
+    /// Returns a vector of all candidates pending manifests for the specific
+    /// validator, and the type of manifest we should send.
     std::vector<std::pair<CandidateHash, ManifestKind>> pending_manifests_for(
         ValidatorIndex validator_index);
 
-    std::optional<network::vstaging::StatementFilter> pending_statements_for(
+    /// Returns a statement filter indicating statements that a given peer
+    /// is awaiting concerning the given candidate, constrained by the
+    /// statements we have ourselves.
+    std::optional<StatementFilter> pending_statements_for(
         ValidatorIndex validator_index, const CandidateHash &candidate_hash);
 
+    /// Returns a vector of all pending statements to the validator, sorted with
+    /// `Seconded` statements at the front.
+    ///
+    /// Statements are in the form `(Originator, Statement Kind)`.
     std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
     all_pending_statements_for(ValidatorIndex validator_index);
 
+    /// Whether a validator can request a manifest from us.
     bool can_request(ValidatorIndex validator,
                      const CandidateHash &candidate_hash);
 
+    /// Determine the validators which can send a statement to us by direct
+    /// broadcast.
+    ///
+    /// Returns a list of tuples representing each potential
+    /// sender(ValidatorIndex) and if the sender should already know about the
+    /// statement, because we just sent it to it.
     std::vector<std::pair<ValidatorIndex, bool>> direct_statement_providers(
         const Groups &groups,
         ValidatorIndex originator,
         const network::vstaging::CompactStatement &statement);
 
+    /// Determine the validators which can receive a statement from us by direct
+    /// broadcast.
     std::vector<ValidatorIndex> direct_statement_targets(
         const Groups &groups,
         ValidatorIndex originator,
         const network::vstaging::CompactStatement &statement);
 
+    /// Note that we have learned about a statement. This will update
+    /// `pending_statements_for` for any relevant validators if actually
+    /// fresh.
     void learned_fresh_statement(
         const Groups &groups,
         const SessionTopologyView &session_topology,
         ValidatorIndex originator,
         const network::vstaging::CompactStatement &statement);
 
+    /// Note that a direct statement about a given candidate was sent to or
+    /// received from the given validator.
     void sent_or_received_direct_statement(
         const Groups &groups,
         ValidatorIndex originator,
@@ -185,7 +228,8 @@ namespace kagome::parachain::grid {
         const network::vstaging::CompactStatement &statement,
         bool received);
 
-    std::optional<network::vstaging::StatementFilter> advertised_statements(
+    /// Get the advertised statement filter of a validator for a candidate.
+    std::optional<StatementFilter> advertised_statements(
         ValidatorIndex validator, const CandidateHash &candidate_hash);
 
    private:
