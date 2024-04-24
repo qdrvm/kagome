@@ -46,25 +46,58 @@ namespace kagome::parachain::grid {
   using SessionTopologyView = Views;
   using StatementFilter = network::vstaging::StatementFilter;
 
+  /// The kind of backed candidate manifest we should send to a remote peer.
   enum class ManifestKind {
+    /// Full manifests contain information about the candidate and should be
+    /// sent
+    /// to peers which aren't guaranteed to have the candidate already.
     Full,
+
+    /// Acknowledgement manifests omit information which is implicit in the
+    /// candidate
+    /// itself, and should be sent to peers which are guaranteed to have the
+    /// candidate
+    /// already.
     Acknowledgement,
   };
 
+  /// A summary of a manifest being sent by a counterparty.
   struct ManifestSummary {
+    /// The claimed parent head data hash of the candidate.
     Hash claimed_parent_hash;
+
+    /// The claimed group index assigned to the candidate.
     GroupIndex claimed_group_index;
+
+    /// A statement filter sent alongisde the candidate, communicating
+    /// knowledge.
     StatementFilter statement_knowledge;
   };
 
+  /// The knowledge we are aware of counterparties having of manifests.
   class ReceivedManifests {
     std::unordered_map<CandidateHash, ManifestSummary> received;
+
+    /// group -> seconded counts.
     std::unordered_map<GroupIndex, std::vector<size_t>> seconded_counts;
 
    public:
     std::optional<StatementFilter> candidate_statement_filter(
         const CandidateHash &candidate_hash);
 
+    /// Attempt to import a received manifest from a counterparty.
+    ///
+    /// This will reject manifests which are either duplicate, conflicting,
+    /// or imply an irrational amount of `Seconded` statements.
+    ///
+    /// This assumes that the manifest has already been checked for
+    /// validity - i.e. that the bitvecs match the claimed group in size
+    /// and that the manifest includes at least one `Seconded`
+    /// attestation and includes enough attestations for the candidate
+    /// to be backed.
+    ///
+    /// This also should only be invoked when we are intended to track
+    /// the knowledge of this peer as determined by the [`SessionTopology`].
     outcome::result<void> import_received(
         size_t group_size,
         size_t seconding_limit,
@@ -80,12 +113,31 @@ namespace kagome::parachain::grid {
         const std::vector<bool> &fresh_seconded);
   };
 
+  /// Knowledge that we have about a remote peer concerning a candidate, and
+  /// that they have about us
+  /// concerning the candidate.
   struct MutualKnowledge {
+    /// Knowledge the remote peer has about the candidate, as far as we're
+    /// aware. `Some` only if they have advertised, acknowledged, or requested
+    /// the candidate.
     std::optional<StatementFilter> remote_knowledge;
+
+    /// Knowledge we have indicated to the remote peer about the candidate.
+    /// `Some` only if we have advertised, acknowledged, or requested the
+    /// candidate from them.
     std::optional<StatementFilter> local_knowledge;
+
+    /// Knowledge peer circulated to us, this is different from
+    /// `local_knowledge` and `remote_knowledge`, through the fact that includes
+    /// only statements that we received from peer while the other two, after
+    /// manifest exchange part will include both what we sent to the peer and
+    /// what we received from peer, see `sent_or_received_direct_statement` for
+    /// more details.
     std::optional<StatementFilter> received_knowledge;
   };
 
+  /// A utility struct for keeping track of metadata about candidates
+  /// we have confirmed as having been backed.
   struct KnownBackedCandidate {
     GroupIndex group_index;
     StatementFilter local_knowledge;
