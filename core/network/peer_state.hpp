@@ -15,15 +15,20 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
+#include "consensus/grandpa/common.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "primitives/common.hpp"
+#include "utils/lru.hpp"
 
 namespace kagome::network {
 
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
   constexpr size_t kPeerStateMaxKnownGrandpaMessages = 8192;
+  using RoundNumber = consensus::grandpa::RoundNumber;
+  using VoterSetId = consensus::grandpa::VoterSetId;
+  using BlockInfo = primitives::BlockInfo;
 
   struct CollatingPeerState {
     network::ParachainId para_id;
@@ -49,14 +54,6 @@ namespace kagome::network {
     std::optional<VoterSetId> set_id;
     BlockNumber last_finalized;
   };
-
-  inline std::optional<PeerStateCompact> compactFromRefToOwn(
-      const std::optional<std::reference_wrapper<PeerState>> &opt_ref) {
-    if (opt_ref) {
-      return opt_ref->get().compact();
-    }
-    return std::nullopt;
-  }
 
   struct PeerState {
     clock::SteadyClock::TimePoint time;
@@ -155,5 +152,13 @@ namespace kagome::network {
       };
     }
   };
+
+  inline std::optional<PeerStateCompact> compactFromRefToOwn(
+      const std::optional<std::reference_wrapper<PeerState>> &opt_ref) {
+    if (opt_ref) {
+      return opt_ref->get().compact();
+    }
+    return std::nullopt;
+  }
 
 }  // namespace kagome::network

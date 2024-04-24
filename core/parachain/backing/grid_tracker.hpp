@@ -27,13 +27,16 @@ struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
   size_t operator()(const std::pair<kagome::parachain::ValidatorIndex,
                                     kagome::network::vstaging::CompactStatement>
                         &value) const noexcept {
-    size_t result = std::hash<kagome::parachain::ValidatorIndex>()(value.first);
+    using Hash = kagome::parachain::Hash;
+    using ValidatorIndex = kagome::parachain::ValidatorIndex;
+
+    size_t result = std::hash<ValidatorIndex>()(value.first);
     auto hash = kagome::visit_in_place(
         value.second.inner_value,
-        [](const kagome::network::vstaging::Empty &) { UNREACHABLE; },
-        [](const auto &v) { return v.hash; });
+        [](const kagome::network::vstaging::Empty &) -> Hash { UNREACHABLE; },
+        [](const auto &v) -> Hash { return v.hash; });
 
-    boost::hash_combine(result, std::hash<kagome::parachain::Hash>()(hash));
+    boost::hash_combine(result, std::hash<Hash>()(hash));
     return result;
   }
 };

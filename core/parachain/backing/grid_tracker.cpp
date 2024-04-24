@@ -63,10 +63,11 @@ namespace kagome {
 
   std::vector<
       std::pair<parachain::ValidatorIndex, network::vstaging::CompactStatement>>
-  decompose_statement_filter(const parachain::Groups &groups,
-                             parachain::GroupIndex group_index,
-                             const parachain::CandidateHash &candidate_hash,
-                             const StatementFilter &statement_filter) {
+  decompose_statement_filter(
+      const parachain::Groups &groups,
+      parachain::GroupIndex group_index,
+      const parachain::CandidateHash &candidate_hash,
+      const parachain::grid::StatementFilter &statement_filter) {
     auto group = groups.get(group_index);
     if (!group) {
       return {};
