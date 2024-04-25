@@ -34,7 +34,7 @@ class IOExtensionTest : public ::testing::Test {
   void SetUp() override {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     io_extension_ = std::make_shared<IOExtension>(memory_provider_);
   }
 

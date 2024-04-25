@@ -6,13 +6,11 @@
 
 #pragma once
 
-#include <array>
-
 #include <optional>
 
-#include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 #include "common/literals.hpp"
+#include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/types.hpp"
 
@@ -35,6 +33,30 @@ namespace kagome::runtime {
     return (size + kMemoryPageSize - 1) / kMemoryPageSize;
   }
 
+  class MemoryAllocator;
+
+  class MemoryHandle {
+   public:
+    virtual ~MemoryHandle() = default;
+
+    virtual WasmSize size() const = 0;
+
+    virtual std::optional<WasmSize> pagesMax() const = 0;
+
+    virtual void resize(WasmSize new_size) = 0;
+
+    virtual outcome::result<BytesOut> view(WasmPointer ptr,
+                                           WasmSize size) const = 0;
+
+    outcome::result<BytesOut> view(PtrSize ptr_size) const {
+      return view(ptr_size.ptr, ptr_size.size);
+    }
+
+    outcome::result<BytesOut> view(WasmSpan span) const {
+      return view(PtrSize{span});
+    }
+  };
+
   /** The underlying memory can be accessed through unaligned pointers which
    * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
    * properly. Avoid emitting unaligned load/store by checking for alignment
@@ -43,25 +65,18 @@ namespace kagome::runtime {
    * The allocated memory tries to have the same alignment as the memory being
    * simulated.
    */
-  class Memory {
+  class Memory final {
    public:
-    virtual ~Memory() = default;
+    Memory(std::shared_ptr<MemoryHandle> handle,
+           std::unique_ptr<MemoryAllocator> allocator)
+        : handle_{std::move(handle)}, allocator_{std::move(allocator)} {
+      BOOST_ASSERT(handle_);
+      BOOST_ASSERT(allocator_);
+    }
 
-    /**
-     * @brief Return the size of the memory
-     */
-    virtual WasmSize size() const = 0;
-
-    virtual std::optional<WasmSize> pagesMax() const = 0;
-
-    /**
-     * Resizes memory to the given size
-     * @param new_size
-     */
-    virtual void resize(WasmSize new_size) = 0;
-
-    virtual outcome::result<BytesOut> view(WasmPointer ptr,
-                                           WasmSize size) const = 0;
+    outcome::result<BytesOut> view(WasmPointer ptr, WasmSize size) const {
+      return handle_->view(ptr, size);
+    }
 
     outcome::result<BytesOut> view(PtrSize ptr_size) const {
       return view(ptr_size.ptr, ptr_size.size);
@@ -77,7 +92,9 @@ namespace kagome::runtime {
      * @return address to allocated memory. If there is no available slot for
      * such allocation, then -1 is returned
      */
-    virtual WasmPointer allocate(WasmSize size) = 0;
+    virtual WasmPointer allocate(WasmSize size) {
+      return allocator_->allocate(size);
+    }
 
     /**
      * Deallocates memory in provided region
@@ -85,14 +102,16 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual void deallocate(WasmPointer ptr) = 0;
+    void deallocate(WasmPointer ptr) {
+      return allocator_->deallocate(ptr);
+    }
 
     common::BufferView loadN(WasmPointer ptr, WasmSize size) const {
-      return view(ptr, size).value();
+      return handle_->view(ptr, size).value();
     }
 
     void storeBuffer(WasmPointer ptr, common::BufferView v) {
-      memcpy(view(ptr, v.size()).value().data(), v.data(), v.size());
+      memcpy(handle_->view(ptr, v.size()).value().data(), v.data(), v.size());
     }
 
     WasmSpan storeBuffer(common::BufferView v) {
@@ -100,5 +119,9 @@ namespace kagome::runtime {
       storeBuffer(ptr, v);
       return PtrSize{ptr, static_cast<WasmSize>(v.size())}.combine();
     }
+
+   private:
+    std::shared_ptr<MemoryHandle> handle_;
+    std::unique_ptr<MemoryAllocator> allocator_;
   };
 }  // namespace kagome::runtime

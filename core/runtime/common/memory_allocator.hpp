@@ -13,7 +13,7 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
-  class Memory;
+  class MemoryHandle;
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
@@ -35,22 +35,39 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
-  /**
-   * Implementation of allocator for the runtime memory
-   * Combination of monotonic and free-list allocator
-   */
-  class MemoryAllocator final {
+  class MemoryAllocator {
    public:
-    MemoryAllocator(Memory &memory, const struct MemoryConfig &config);
+    virtual ~MemoryAllocator() = default;
 
-    WasmPointer allocate(WasmSize size);
-    void deallocate(WasmPointer ptr);
+    virtual WasmPointer allocate(WasmSize size) = 0;
+    virtual void deallocate(WasmPointer ptr) = 0;
 
     /*
       Following methods are needed mostly for testing purposes.
     */
-    std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
-    size_t getDeallocatedChunksNum() const;
+    virtual std::optional<WasmSize> getAllocatedChunkSize(
+        WasmPointer ptr) const = 0;
+    virtual size_t getDeallocatedChunksNum() const = 0;
+  };
+
+  /**
+   * Implementation of allocator for the runtime memory
+   * Combination of monotonic and free-list allocator
+   */
+  class MemoryAllocatorImpl final : public MemoryAllocator {
+   public:
+    MemoryAllocatorImpl(std::shared_ptr<MemoryHandle> memory,
+                        const struct MemoryConfig &config);
+
+    virtual WasmPointer allocate(WasmSize size) override;
+    virtual void deallocate(WasmPointer ptr) override;
+
+    /*
+      Following methods are needed mostly for testing purposes.
+    */
+    virtual std::optional<WasmSize> getAllocatedChunkSize(
+        WasmPointer ptr) const override;
+    virtual size_t getDeallocatedChunksNum() const override;
 
    private:
     using Header = uint64_t;
@@ -68,7 +85,7 @@ namespace kagome::runtime {
     std::optional<uint32_t> readFree(WasmPointer ptr) const;
 
    private:
-    Memory &memory_;
+    std::shared_ptr<MemoryHandle> memory_;
 
     std::array<std::optional<uint32_t>, kOrders> free_lists_;
 
