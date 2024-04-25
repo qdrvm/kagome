@@ -59,15 +59,15 @@ namespace kagome::runtime {
     MemoryAllocatorImpl(std::shared_ptr<MemoryHandle> memory,
                         const struct MemoryConfig &config);
 
-    virtual WasmPointer allocate(WasmSize size) override;
-    virtual void deallocate(WasmPointer ptr) override;
+    WasmPointer allocate(WasmSize size) override;
+    void deallocate(WasmPointer ptr) override;
 
     /*
       Following methods are needed mostly for testing purposes.
     */
-    virtual std::optional<WasmSize> getAllocatedChunkSize(
+    std::optional<WasmSize> getAllocatedChunkSize(
         WasmPointer ptr) const override;
-    virtual size_t getDeallocatedChunksNum() const override;
+    size_t getDeallocatedChunksNum() const override;
 
    private:
     using Header = uint64_t;

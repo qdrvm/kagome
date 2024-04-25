@@ -36,7 +36,7 @@ namespace kagome::runtime {
 
   MemoryAllocatorImpl::MemoryAllocatorImpl(std::shared_ptr<MemoryHandle> memory,
                                            const MemoryConfig &config)
-      : memory_{memory},
+      : memory_{std::move(memory)},
         offset_{roundUpAlign(config.heap_base)},
         max_memory_pages_num_{memory_->pagesMax().value_or(kMaxPages)} {
     BOOST_ASSERT(max_memory_pages_num_ > 0);

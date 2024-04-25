@@ -13,7 +13,7 @@ namespace kagome::runtime::wasm_edge {
 
   MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
                          const MemoryConfig &config)
-      : mem_instance_{std::move(mem_instance)} {
+      : mem_instance_{mem_instance} {
     BOOST_ASSERT(mem_instance_ != nullptr);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
