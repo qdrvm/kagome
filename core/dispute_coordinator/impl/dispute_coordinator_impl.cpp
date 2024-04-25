@@ -2372,31 +2372,6 @@ namespace kagome::dispute {
     auto &valid_vote = checked_valid_vote;
     auto &invalid_vote = checked_invalid_vote;
 
-    // // Check if request from disabled validator
-    // const auto &relay_parent = candidate_receipt.descriptor.relay_parent;
-    // OUTCOME_TRY(disabled_validators,
-    // api_->disabled_validators(relay_parent));
-    //
-    // auto is_disabled_validator =
-    // std::binary_search(disabled_validators.begin(),
-    //                                                 disabled_validators.end(),
-    //                                                 valid_vote.ix)
-    //                           or
-    //                           std::binary_search(disabled_validators.begin(),
-    //                                                 disabled_validators.end(),
-    //                                                 invalid_vote.ix);
-
-    // // Don't exist any votes for candidate - check disabled
-    // if (votes.valid.empty() and votes.invalid.empty()) {
-    //   auto is_disabled_validator = std::binary_search(
-    //       disabled_validators.begin(), disabled_validators.end(),
-    //       val_index);
-    //   if (is_disabled_validator) {
-    //     postponed_statements.emplace_back(std::move(vote));
-    //     continue;
-    //   }
-    // }
-
     OUTCOME_TRY(found_batch,
                 batches_->find_batch(candidate_hash, candidate_receipt));
     auto &[batch, just_created] = found_batch;
