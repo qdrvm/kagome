@@ -595,9 +595,18 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash) {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
-          // Check if block is leaf
-          if (block_hash == getLastFinalizedNoLock(p).hash) {
-            return BlockTreeError::BLOCK_IS_FINALIZED;
+          auto finalized = getLastFinalizedNoLock(p);
+          if (block_hash == finalized.hash) {
+            OUTCOME_TRY(header, getBlockHeader(block_hash));
+            OUTCOME_TRY(p.storage_->removeJustification(finalized.hash));
+            auto parent = *header.parentInfo();
+            ReorgAndPrune changes{
+                Reorg{parent, {finalized}, {}},
+                {finalized},
+            };
+            p.tree_ = std::make_unique<CachedTree>(parent);
+            OUTCOME_TRY(reorgAndPrune(p, changes));
+            return outcome::success();
           }
           if (not p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;

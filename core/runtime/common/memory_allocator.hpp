@@ -92,6 +92,7 @@ namespace kagome::runtime {
     // Offset on the tail of the last allocated MemoryImpl chunk
     uint32_t offset_;
     uint32_t max_memory_pages_num_;
+    bool poisoned_ = false;
   };
 
 }  // namespace kagome::runtime
