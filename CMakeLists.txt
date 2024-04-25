@@ -16,7 +16,6 @@ if (CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif (CCACHE_FOUND)
 
-
 if (NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "")
 endif ()
@@ -35,9 +34,14 @@ set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
+if(TEST_SHARED_LIBRARY AND NOT APPLE)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
+
 project(kagome
     VERSION 0.9.3
     LANGUAGES C CXX

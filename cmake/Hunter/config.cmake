@@ -120,3 +120,25 @@ hunter_config(
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
+
+# hunter bug: __pie__=2 in toolchain id breaks CMAKE_POSITION_INDEPENDENT_CODE=ON propagation and cache invalidation
+if(TEST_SHARED_LIBRARY AND NOT APPLE)
+  set(pie_packages
+    GTest
+    Protobuf
+    c-ares
+    erasure_coding_crust
+    fmt
+    libp2p
+    libsecp256k1
+    prometheus-cpp
+    rocksdb
+    scale
+    soralog
+    yaml-cpp
+    wabt
+  )
+  foreach(package pie_packages)
+    list(APPEND "__HUNTER_USER_CMAKE_ARGS_${package}" CMAKE_POSITION_INDEPENDENT_CODE=ON)
+  endforeach()
+endif()

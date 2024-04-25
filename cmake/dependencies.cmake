@@ -74,10 +74,6 @@ find_package(libsecp256k1 CONFIG REQUIRED)
 hunter_add_package(scale)
 find_package(scale CONFIG REQUIRED)
 
-hunter_add_package(zstd)
-find_package(zstd CONFIG REQUIRED)
-
-  
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_add_package(wavm)
   find_package(LLVM CONFIG REQUIRED)
