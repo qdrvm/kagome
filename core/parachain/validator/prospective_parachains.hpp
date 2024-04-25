@@ -377,14 +377,16 @@ namespace kagome::parachain {
                    "Add block. "
                    "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash, info->number);
+                   hash,
+                   info->number);
           block_info.emplace_back(*info);
         } else {
           SL_TRACE(logger,
                    "Skipped block. "
                    "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash, info->number);
+                   hash,
+                   info->number);
           break;
         }
       }
