@@ -259,7 +259,7 @@ TEST_F(TimelineTest, SingleValidator) {
         .WillRepeatedly(Return(ValidatorStatus::SingleValidator));
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot = std::move(cb);
           return SchedulerMock::Handle{};
@@ -285,7 +285,7 @@ TEST_F(TimelineTest, SingleValidator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(
             Invoke([&](auto cb) { return SchedulerMock::Handle{}; })));
 
@@ -324,7 +324,7 @@ TEST_F(TimelineTest, Validator) {
     //  - don't process slot, because node is not synchronized
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - don't wait time to run slot, because node is not synchronized
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(0);
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, _)).Times(0);
 
     timeline->start();
 
@@ -349,7 +349,7 @@ TEST_F(TimelineTest, Validator) {
     //  - process slot won't start, because slot is not changed
     EXPECT_CALL(*production_consensus, processSlot(_, _)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_2 = std::move(cb);
           return SchedulerMock::Handle{};
@@ -380,7 +380,7 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(SlotLeadershipError::NO_SLOT_LEADER));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_3 = std::move(cb);
           return SchedulerMock::Handle{};
@@ -406,7 +406,7 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_3 = std::move(cb);
           return SchedulerMock::Handle{};

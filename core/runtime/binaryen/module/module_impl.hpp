@@ -51,7 +51,8 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<const ModuleFactory> module_factory,
         const common::Hash256 &code_hash);
 
-    outcome::result<std::shared_ptr<ModuleInstance>> instantiate() const override;
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
+        const override;
 
     ModuleImpl(std::unique_ptr<wasm::Module> &&module,
                std::shared_ptr<const ModuleFactory> module_factory,

@@ -308,7 +308,7 @@ namespace kagome::network {
                           + app_config_.outPeers();
     const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
-    align_timer_.cancel();
+    align_timer_.reset();
 
     clearClosedPingingConnections();
 

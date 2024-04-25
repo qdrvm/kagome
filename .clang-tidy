@@ -226,6 +226,8 @@ CheckOptions:
     value:           google
   - key:             performance-unnecessary-value-param.IncludeStyle
     value:           google
+  - key:             performance-unnecessary-value-param.AllowedTypes
+    value:           std::shared_ptr
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           '0'
   - key:             readability-function-size.BranchThreshold

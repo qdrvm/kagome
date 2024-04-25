@@ -23,7 +23,6 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
-#include "utils/argv0.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
@@ -97,7 +96,6 @@ int main(int argc, const char **argv) {
   // Needed for zombienet
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
-  kagome::argv0() = argv[0];
 
   if (argc > 1) {
     std::string_view name{argv[1]};
