@@ -22,6 +22,10 @@ namespace libp2p::basic {
   class Scheduler;
 }  // namespace libp2p::basic
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppConfiguration;
   class AppStateManager;
@@ -59,6 +63,8 @@ namespace kagome::parachain {
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, PvfError)
 
 namespace kagome::parachain {
+  class PvfThreadPool;
+
   class ModulePrecompiler;
 
   struct ValidationParams;
@@ -93,6 +99,7 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
+            PvfThreadPool &pvf_thread_pool,
             std::shared_ptr<application::AppStateManager> app_state_manager,
             std::shared_ptr<application::AppConfiguration> app_configuration);
 
@@ -100,27 +107,28 @@ namespace kagome::parachain {
 
     bool prepare();
 
-    outcome::result<Result> pvfSync(
-        const CandidateReceipt &receipt,
-        const ParachainBlock &pov,
-        const runtime::PersistedValidationData &pvd) const override;
-    outcome::result<Result> pvfValidate(
-        const PersistedValidationData &data,
-        const ParachainBlock &pov,
-        const CandidateReceipt &receipt,
-        const ParachainRuntime &code) const override;
+    void pvf(const CandidateReceipt &receipt,
+             const ParachainBlock &pov,
+             const runtime::PersistedValidationData &pvd,
+             Cb cb) const override;
+    void pvfValidate(const PersistedValidationData &data,
+                     const ParachainBlock &pov,
+                     const CandidateReceipt &receipt,
+                     const ParachainRuntime &code,
+                     Cb cb) const override;
 
    private:
     using CandidateDescriptor = network::CandidateDescriptor;
     using ParachainRuntime = network::ParachainRuntime;
+    using WasmCb = std::function<void(outcome::result<ValidationResult>)>;
 
     outcome::result<ParachainRuntime> getCode(
         const CandidateDescriptor &descriptor) const;
-    outcome::result<ValidationResult> callWasm(
-        const CandidateReceipt &receipt,
-        const common::Hash256 &code_hash,
-        const ParachainRuntime &code_zstd,
-        const ValidationParams &params) const;
+    void callWasm(const CandidateReceipt &receipt,
+                  const common::Hash256 &code_hash,
+                  const ParachainRuntime &code_zstd,
+                  const ValidationParams &params,
+                  WasmCb cb) const;
 
     outcome::result<CandidateCommitments> fromOutputs(
         const CandidateReceipt &receipt, ValidationResult &&result) const;
@@ -138,6 +146,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
+    std::shared_ptr<PoolHandler> pvf_thread_handler_;
     std::shared_ptr<application::AppConfiguration> app_configuration_;
 
     std::unique_ptr<std::thread> precompiler_thread_;

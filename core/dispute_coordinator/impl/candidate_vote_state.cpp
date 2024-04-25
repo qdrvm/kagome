@@ -8,13 +8,16 @@
 #include <set>
 
 namespace kagome::dispute {
-  CandidateVoteState CandidateVoteState::create(CandidateVotes votes,
-                                                CandidateEnvironment &env,
-                                                Timestamp now) {
+  CandidateVoteState CandidateVoteState::create(
+      CandidateVotes votes,
+      CandidateEnvironment &env,
+      std::vector<ValidatorIndex> &disabled_validators,
+      Timestamp now) {
     CandidateVoteState res{.votes = std::move(votes),
                            .own_vote = CannotVote{},
                            .dispute_status = std::nullopt};
 
+    // Collect own votes
     auto controlled_indices = env.controlled_indices;
     if (not controlled_indices.empty()) {
       Voted voted;
@@ -41,10 +44,32 @@ namespace kagome::dispute {
     }
 
     // Check if isn't disputed
-    // (We have a dispute, if we have votes on both sides)
+
+    // (We have a dispute if we have votes on both sides.)
     if (res.votes.invalid.empty() or res.votes.valid.empty()) {
       return res;
     }
+
+    // Check if escalated by active validators
+
+    auto has_vote_of_active = [&](auto &votes) {
+      auto is_not_disabled = [&](auto &vote) {
+        return not std::binary_search(
+            disabled_validators.begin(), disabled_validators.end(), vote.first);
+      };
+      return std::find_if(votes.begin(), votes.end(), is_not_disabled)
+          != votes.end();
+    };
+
+    auto escalated_by_active = has_vote_of_active(res.votes.invalid)
+                           and has_vote_of_active(res.votes.valid);
+
+    if (not escalated_by_active) {
+      res.dispute_status = Postponed{};
+      return res;
+    }
+
+    // Check thresholds
 
     auto n_validators = env.session.validators.size();
 
