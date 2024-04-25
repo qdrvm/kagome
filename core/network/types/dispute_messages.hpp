@@ -45,8 +45,7 @@ namespace kagome::network {
   };
 
   /// A dispute initiating/participating message that have been built from
-  /// signed
-  /// statements.
+  /// signed statements.
   ///
   /// And most likely has been constructed correctly. This is used with
   /// `DisputeDistributionMessage::SendDispute` for sending out votes.
