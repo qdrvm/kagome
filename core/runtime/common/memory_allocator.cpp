@@ -20,6 +20,8 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
+  constexpr auto kPoisoned{"the allocator has been poisoned"};
+
   inline uint64_t read_u64(const Memory &memory, WasmPointer ptr) {
     return boost::endian::load_little_u64(
         memory.view(ptr, sizeof(uint64_t)).value().data());
@@ -38,6 +40,10 @@ namespace kagome::runtime {
   }
 
   WasmPointer MemoryAllocator::allocate(WasmSize size) {
+    if (poisoned_) {
+      throw std::runtime_error{kPoisoned};
+    }
+    poisoned_ = true;
     if (size > kMaxAllocate) {
       throw std::runtime_error{"RequestedAllocationTooLarge"};
     }
@@ -67,10 +73,15 @@ namespace kagome::runtime {
       offset_ = next_offset;
     }
     write_u64(memory_, head_ptr, kOccupied | order);
+    poisoned_ = false;
     return head_ptr + sizeof(Header);
   }
 
   void MemoryAllocator::deallocate(WasmPointer ptr) {
+    if (poisoned_) {
+      throw std::runtime_error{kPoisoned};
+    }
+    poisoned_ = true;
     if (ptr < sizeof(Header)) {
       throw std::runtime_error{"Invalid pointer for deallocation"};
     }
@@ -80,6 +91,7 @@ namespace kagome::runtime {
     auto prev = list.value_or(kNil);
     list = head_ptr;
     write_u64(memory_, head_ptr, prev);
+    poisoned_ = false;
   }
 
   uint32_t MemoryAllocator::readOccupied(WasmPointer head_ptr) const {
