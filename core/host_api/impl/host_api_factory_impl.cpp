@@ -27,14 +27,16 @@ namespace kagome::host_api {
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
-        key_store_(std::move(key_store)),
+        // we do this instead of passing key_store as an optional right away 
+        // because boost.di doesn't like optional<shared_ptr>
+        key_store_(key_store ? std::optional(key_store) : std::nullopt),
         offchain_persistent_storage_(std::move(offchain_persistent_storage)),
         offchain_worker_pool_(std::move(offchain_worker_pool)) {
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(key_store_ != nullptr);
+    BOOST_ASSERT(key_store_ == std::nullopt || *key_store_ != nullptr);
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(

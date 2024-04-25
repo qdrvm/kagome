@@ -101,6 +101,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
     std::cout.write((const char *)len.data(), len.size());
     std::cout.write((const char *)result.data(), result.size());
+    std::cout.flush();
     return outcome::success();
   }
 

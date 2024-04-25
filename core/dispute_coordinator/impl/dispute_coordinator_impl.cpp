@@ -2232,7 +2232,6 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
     if (rate_limit_timer_) {
-      rate_limit_timer_->cancel();
       rate_limit_timer_.reset();
     }
 
