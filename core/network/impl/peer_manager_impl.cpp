@@ -13,6 +13,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 #include <libp2p/protocol/ping.hpp>
 
+#include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -20,6 +21,7 @@
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
@@ -72,6 +74,7 @@ namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -85,8 +88,10 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ReputationRepository> reputation_repository,
       std::shared_ptr<PeerView> peer_view)
-      : app_state_manager_(std::move(app_state_manager)),
+      : log_{log::createLogger("PeerManager", "network")},
         host_(host),
+        main_pool_handler_{poolHandlerReadyMake(
+            this, app_state_manager, main_thread_pool, log_)},
         identify_(std::move(identify)),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
@@ -99,9 +104,7 @@ namespace kagome::network {
         storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
-        peer_view_{std::move(peer_view)},
-        log_(log::createLogger("PeerManager", "network")) {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
+        peer_view_{std::move(peer_view)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
@@ -123,20 +126,16 @@ namespace kagome::network {
     peers_count_metric_ = registry_->registerGaugeMetric(kPeersCountMetricName);
     peers_count_metric_->set(0);
 
-    app_state_manager_->takeControl(*this);
+    app_state_manager->takeControl(*this);
   }
 
-  bool PeerManagerImpl::prepare() {
+  bool PeerManagerImpl::tryStart() {
     if (not app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->critical(
           "Does not have any bootstrap nodes. "
           "Provide them by chain spec or CLI argument `--bootnodes'");
     }
 
-    return true;
-  }
-
-  bool PeerManagerImpl::start() {
     if (app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->warn(
           "Peer manager is started in passive mode, "
@@ -146,8 +145,6 @@ namespace kagome::network {
 
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
-    // It is used only for DEV mode
-    processDiscoveredPeer(host_.getPeerInfo().id);
 
     add_peer_handle_ =
         host_.getBus()
