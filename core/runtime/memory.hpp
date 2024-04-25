@@ -35,6 +35,9 @@ namespace kagome::runtime {
 
   class MemoryAllocator;
 
+  /**
+   * An interface for a particular WASM engine memory implementation
+   */
   class MemoryHandle {
    public:
     virtual ~MemoryHandle() = default;
@@ -57,10 +60,13 @@ namespace kagome::runtime {
     }
   };
 
-  /** The underlying memory can be accessed through unaligned pointers which
-   * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
-   * properly. Avoid emitting unaligned load/store by checking for alignment
-   * explicitly, and performing memcpy if unaligned.
+  /**
+   * A convenience wrapper around a memory handle and a memory allocator.
+   *
+   * Mind that the underlying memory can be accessed through unaligned pointers
+   * which isn't well-behaved in C++. WebAssembly nonetheless expects it to
+   * behave properly. Avoid emitting unaligned load/store by checking for
+   * alignment explicitly, and performing memcpy if unaligned.
    *
    * The allocated memory tries to have the same alignment as the memory being
    * simulated.
