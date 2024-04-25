@@ -375,16 +375,18 @@ namespace kagome::parachain {
         if (session == required_session) {
           SL_TRACE(logger,
                    "Add block. "
-                   "(relay_hash={}, hash={})",
+                   "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash);
+                   hash,
+                   info->number);
           block_info.emplace_back(*info);
         } else {
           SL_TRACE(logger,
                    "Skipped block. "
-                   "(relay_hash={}, hash={})",
+                   "(relay_hash={}, hash={}, number={})",
                    relay_hash,
-                   hash);
+                   hash,
+                   info->number);
           break;
         }
       }

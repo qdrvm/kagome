@@ -34,6 +34,7 @@
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/retain_if.hpp"
 
 namespace {
@@ -66,7 +67,7 @@ namespace kagome::consensus::grandpa {
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
@@ -94,8 +95,9 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
-        grandpa_pool_handler_{grandpa_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        grandpa_pool_handler_{poolHandlerReadyMake(
+            this, app_state_manager, grandpa_thread_pool, logger_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool.io_context()),
@@ -119,19 +121,10 @@ namespace kagome::consensus::grandpa {
 
     // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
-    app_state_manager.takeControl(*this);
+    app_state_manager->takeControl(*this);
   }
 
-  bool GrandpaImpl::start() {
-    if (!grandpa_pool_handler_->isInCurrentThread()) {
-      grandpa_pool_handler_->execute([wptr{weak_from_this()}] {
-        if (auto self = wptr.lock()) {
-          self->start();
-        }
-      });
-      return true;
-    }
-
+  bool GrandpaImpl::tryStart() {
     if (auto r = db_->get(storage::kGrandpaVotesKey)) {
       if (auto r2 = scale::decode<CachedVotes>(r.value())) {
         cached_votes_ = std::move(r2.value());
@@ -182,24 +175,7 @@ namespace kagome::consensus::grandpa {
     }
 
     // Timer to send neighbor message if round does not change long time (1 min)
-    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
-        [wp{weak_from_this()}] {
-          auto self = wp.lock();
-          if (not self) {
-            return;
-          }
-          BOOST_ASSERT_MSG(self->current_round_,
-                           "Current round must be defiled anytime after start");
-          auto round =
-              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
-          if (round) {
-            round->sendNeighborMessage();
-          }
-
-          std::ignore =
-              self->fallback_timer_handle_.reschedule(std::chrono::minutes(1));
-        },
-        std::chrono::minutes(1));
+    setTimerFallback();
 
     tryExecuteNextRound(current_round_);
 
@@ -213,7 +189,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    fallback_timer_handle_.cancel();
+    fallback_timer_handle_.reset();
   }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
@@ -394,7 +370,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(res.value() != nullptr);
     current_round_ = std::move(res.value());
 
-    std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+    setTimerFallback();
 
     // Truncate chain of rounds
     size_t i = 0;
@@ -750,7 +726,7 @@ namespace kagome::consensus::grandpa {
 
     ::libp2p::common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
-        catchup_request_timer_handle_.cancel();
+        catchup_request_timer_handle_.reset();
         pending_catchup_request_.reset();
       }
     });
@@ -1366,8 +1342,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::reload() {
-    if (not start()) {
-      SL_ERROR(logger_, "reload: start failed");
+    REINVOKE(*grandpa_pool_handler_, reload);
+    if (not tryStart()) {
+      SL_CRITICAL(logger_, "reload failed");
     }
   }
 
@@ -1477,5 +1454,24 @@ namespace kagome::consensus::grandpa {
       update.vote(vote);
     }
     update.update();
+  }
+
+  void GrandpaImpl::setTimerFallback() {
+    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
+        [weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (not self) {
+            return;
+          }
+          BOOST_ASSERT_MSG(self->current_round_,
+                           "Current round must be defiled anytime after start");
+          auto round =
+              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
+          if (round) {
+            round->sendNeighborMessage();
+          }
+          self->setTimerFallback();
+        },
+        std::chrono::minutes(1));
   }
 }  // namespace kagome::consensus::grandpa

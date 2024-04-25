@@ -35,7 +35,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -106,7 +107,7 @@ namespace kagome::dispute {
 
     DisputeCoordinatorImpl(
         std::shared_ptr<application::ChainSpec> chain_spec,
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         clock::SystemClock &system_clock,
         clock::SteadyClock &steady_clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -129,7 +130,7 @@ namespace kagome::dispute {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline);
 
-    bool prepare();
+    bool tryStart();
 
     void onDisputeRequest(const libp2p::peer::PeerId &peer_id,
                           const network::DisputeMessage &request,
@@ -272,6 +273,8 @@ namespace kagome::dispute {
 
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
+    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
+
     clock::SystemClock &system_clock_;
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -291,7 +294,7 @@ namespace kagome::dispute {
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
-    std::shared_ptr<PoolHandler> dispute_thread_handler_;
+    std::shared_ptr<PoolHandlerReady> dispute_thread_handler_;
 
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
 
@@ -324,6 +327,13 @@ namespace kagome::dispute {
         primitives::AuthorityDiscoveryId,
         std::deque<std::tuple<network::DisputeMessage, CbOutcome<void>>>>
         queues_;
+
+    /// Collection of DisputeRequests from disabled validators
+    std::unordered_map<CandidateHash,
+                       std::tuple<primitives::AuthorityDiscoveryId,
+                                  network::DisputeMessage,
+                                  CbOutcome<void>>>
+        requests_from_disabled_validators_;
 
     /// Delay timer for establishing the rate limit.
     std::optional<libp2p::basic::Scheduler::Handle> rate_limit_timer_;
@@ -368,8 +378,6 @@ namespace kagome::dispute {
     metrics::Counter *metric_concluded_valid_;
     metrics::Counter *metric_concluded_invalid_;
     metrics::Gauge *metric_disputes_finality_lag_;
-
-    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };
 
 }  // namespace kagome::dispute

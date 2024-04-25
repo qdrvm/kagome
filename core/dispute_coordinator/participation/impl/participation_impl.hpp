@@ -12,7 +12,7 @@
 #include <unordered_set>
 
 namespace kagome {
-  class PoolHandler;
+  class PoolHandlerReady;
 }
 
 namespace kagome::parachain {
@@ -38,7 +38,7 @@ namespace kagome::dispute {
                       std::shared_ptr<runtime::ParachainHost> api,
                       std::shared_ptr<parachain::Recovery> recovery,
                       std::shared_ptr<parachain::Pvf> pvf,
-                      std::shared_ptr<PoolHandler> dispute_thread_handler,
+                      std::shared_ptr<PoolHandlerReady> dispute_thread_handler,
                       std::weak_ptr<DisputeCoordinator> dispute_coordinator);
 
     outcome::result<void> queue_participation(
@@ -85,7 +85,7 @@ namespace kagome::dispute {
     std::shared_ptr<runtime::ParachainHost> api_;
     std::shared_ptr<parachain::Recovery> recovery_;
     std::shared_ptr<parachain::Pvf> pvf_;
-    std::shared_ptr<PoolHandler> dispute_thread_handler_;
+    std::shared_ptr<PoolHandlerReady> dispute_thred_handler_;
     std::weak_ptr<DisputeCoordinator> dispute_coordinator_;
 
     /// Participations currently being processed.

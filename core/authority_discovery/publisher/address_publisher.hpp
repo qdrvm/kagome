@@ -7,9 +7,10 @@
 #pragma once
 
 #include "application/app_state_manager.hpp"
+#include "authority_discovery/interval.hpp"
 #include "blockchain/block_tree.hpp"
-#include "crypto/key_store/session_keys.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/authority_discovery_api.hpp"
@@ -58,7 +59,7 @@ namespace kagome::authority_discovery {
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
 
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    ExpIncInterval interval_;
 
     log::Logger log_;
 

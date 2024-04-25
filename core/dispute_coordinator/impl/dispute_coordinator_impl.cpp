@@ -35,6 +35,7 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
@@ -108,7 +109,7 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::ChainSpec> chain_spec,
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       clock::SystemClock &system_clock,
       clock::SteadyClock &steady_clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -148,8 +149,9 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{std::move(chain_sub_engine)},
         timeline_(std::move(timeline)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
-        dispute_thread_handler_{dispute_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        dispute_thread_handler_{poolHandlerReadyMake(
+            this, app_state_manager, dispute_thread_pool, log_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 dispute_thread_pool.io_context()),
@@ -206,11 +208,9 @@ namespace kagome::dispute {
     metric_concluded_invalid_ = metrics_registry_->registerCounterMetric(
         disputeConcludedMetricName,
         {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
-
-    app_state_manager.takeControl(*this);
   }
 
-  bool DisputeCoordinatorImpl::prepare() {
+  bool DisputeCoordinatorImpl::tryStart() {
     auto leaves = block_tree_->getLeaves();
     active_heads_.insert(leaves.begin(), leaves.end());
 
@@ -288,6 +288,9 @@ namespace kagome::dispute {
             },
             [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
               return (Timestamp)at;
+            },
+            [](const Postponed &) -> std::optional<Timestamp> {
+              return std::nullopt;
             });
 
         auto dispute_is_inactive =
@@ -335,17 +338,33 @@ namespace kagome::dispute {
       }
       auto &candidate_votes = votes_res.value().value();
 
+      auto &relay_parent =
+          candidate_votes.candidate_receipt.descriptor.relay_parent;
+
+      auto disabled_validators_res = api_->disabled_validators(relay_parent);
+      if (disabled_validators_res.has_error()) {
+        SL_WARN(log_,
+                "Cannot import votes, without getting disabled validators: {}",
+                disabled_validators_res.error());
+        continue;
+      }
+      auto &disabled_validators = disabled_validators_res.value();
+
       auto vote_state = CandidateVoteState::create(
-          candidate_votes, env, system_clock_.nowUint64());
+          candidate_votes, env, disabled_validators, system_clock_.nowUint64());
 
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
       auto is_disputed = vote_state.dispute_status.has_value();
+      auto is_postponed =
+          is_disputed ? is_type<Postponed>(vote_state.dispute_status.value())
+                      : false;
       auto is_confirmed =
           is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
                       : false;
-      auto is_potential_spam =
-          is_disputed && !is_included && !is_backed && !is_confirmed;
+      auto is_potential_spam = is_disputed  //
+                           and not is_included and not is_backed
+                           and not is_confirmed and not is_postponed;
 
       if (is_potential_spam) {
         SL_TRACE(log_,
@@ -1013,23 +1032,51 @@ namespace kagome::dispute {
     // blocks, and hence we do not have a `CandidateReceipt` available.
 
     CandidateVoteState old_state;
+    std::vector<ValidatorIndex> disabled_validators;
 
     OUTCOME_TRY(old_state_opt,
                 storage_->load_candidate_votes(session, candidate_hash));
-    if (old_state_opt.has_value()) {
-      old_state = CandidateVoteState::create(old_state_opt.value(), env, now);
-    } else {
+
+    primitives::BlockHash relay_parent{};
+
+    if (not old_state_opt.has_value()) {
       auto provided_opt = if_type<CandidateReceipt>(candidate_receipt);
       if (not provided_opt.has_value()) {
         SL_ERROR(log_,
                  "Cannot import votes, without `CandidateReceipt` available!");
         return outcome::success(false);
       }
+
+      relay_parent = provided_opt.value().get().descriptor.relay_parent;
+
       old_state = {
           .votes = {.candidate_receipt = provided_opt.value().get()},
           .own_vote = CannotVote{},
           .dispute_status = std::nullopt,
       };
+
+    } else {
+      relay_parent = old_state_opt->candidate_receipt.descriptor.relay_parent;
+    }
+
+    auto disabled_validators_res = api_->disabled_validators(relay_parent);
+    if (disabled_validators_res.has_error()) {
+      SL_WARN(log_,
+              "Cannot import votes, without getting disabled validators: {}",
+              disabled_validators_res.error());
+      return outcome::success(false);
+    }
+    disabled_validators = std::move(disabled_validators_res.value());
+
+    auto is_disabled = [&disabled_validators =
+                            disabled_validators_res.value()](auto index) {
+      return std::binary_search(
+          disabled_validators.begin(), disabled_validators.end(), index);
+    };
+
+    if (old_state_opt.has_value()) {
+      old_state = CandidateVoteState::create(
+          old_state_opt.value(), env, disabled_validators, now);
     }
 
     SL_TRACE(log_, "Loaded votes");
@@ -1058,6 +1105,8 @@ namespace kagome::dispute {
 
     auto expected_candidate_hash = votes.candidate_receipt.hash(*hasher_);
 
+    std::vector<Indexed<SignedDisputeStatement>> postponed_statements;
+
     for (auto &vote : statements) {
       auto val_index = vote.ix;
       SignedDisputeStatement &statement = vote.payload;
@@ -1078,6 +1127,16 @@ namespace kagome::dispute {
         continue;
       }
 
+      auto is_disabled_validator = is_disabled(val_index);
+
+      // Postpone votes of disabled validators while any votes for candidate are
+      // not exist
+      if (is_disabled_validator and votes.valid.empty()
+          and votes.invalid.empty()) {
+        postponed_statements.emplace_back(std::move(vote));
+        continue;
+      }
+
       visit_in_place(
           statement.dispute_statement,
           [&](const ValidDisputeStatement &valid) {
@@ -1085,6 +1144,12 @@ namespace kagome::dispute {
                 val_index,
                 std::make_tuple(valid, statement.validator_signature));
             if (fresh) {
+              if (imported_valid_votes == 0) {
+                // Return postponed statements to process
+                std::move_backward(postponed_statements.begin(),
+                                   postponed_statements.end(),
+                                   statements.end());
+              }
               ++imported_valid_votes;
               return true;
             }
@@ -1105,22 +1170,29 @@ namespace kagome::dispute {
                 val_index,
                 std::make_tuple(invalid, statement.validator_signature));
             if (fresh) {
-              ++imported_invalid_votes;
               new_invalid_voters.push_back(val_index);
+              if (imported_invalid_votes == 0) {
+                // Return postponed statements to process
+                std::move_backward(postponed_statements.begin(),
+                                   postponed_statements.end(),
+                                   statements.end());
+              }
+              ++imported_invalid_votes;
               return true;
             }
             return false;
           });
     }
 
-    CandidateVoteState _new_state = CandidateVoteState::create(votes, env, now);
-
-    ImportResult intermediate_result{old_state,
-                                     _new_state,
-                                     imported_invalid_votes,
-                                     imported_valid_votes,
-                                     0,
-                                     new_invalid_voters};
+    ImportResult intermediate_result{
+        std::move(old_state),
+        CandidateVoteState::create(
+            votes, env, disabled_validators, now),  // new_state
+        imported_invalid_votes,
+        imported_valid_votes,
+        0,
+        new_invalid_voters,
+    };
 
     // Handle approval vote import:
     //
@@ -1272,8 +1344,8 @@ namespace kagome::dispute {
           }
         }
 
-        import_result.new_state =
-            CandidateVoteState::create(std::move(_votes), env, now);
+        import_result.new_state = CandidateVoteState::create(
+            std::move(_votes), env, disabled_validators, now);
       }
     } else {
       SL_TRACE(log_, "Not requested approval signatures");
@@ -1290,11 +1362,15 @@ namespace kagome::dispute {
         is_type<CannotVote>(new_state.own_vote)
         or boost::relaxed_get<Voted>(new_state.own_vote).empty();
     auto is_disputed = new_state.dispute_status.has_value();
+    auto is_postponed = is_disputed
+                          ? is_type<Postponed>(new_state.dispute_status.value())
+                          : false;
     auto is_confirmed = is_disputed
                           ? is_type<Confirmed>(new_state.dispute_status.value())
                           : false;
-    auto is_potential_spam =
-        is_disputed && !is_included && !is_backed && !is_confirmed;
+    auto is_potential_spam = is_disputed  //
+                         and not is_included and not is_backed
+                         and not is_confirmed and not is_postponed;
 
     // We participate only in disputes which are not potential spam.
     auto allow_participation = not is_potential_spam;
@@ -1330,12 +1406,15 @@ namespace kagome::dispute {
     // Participate in dispute if we did not cast a vote before and actually
     // have keys to cast a local vote. Disputes should fall in one of the
     // categories below, otherwise we will refrain from participation:
-    // - `is_included` lands in prioritised queue
-    // - `is_confirmed` | `is_backed` lands in best effort queue
+    // - `is_included` lands in prioritized queue
+    // - `is_confirmed` | `is_backed` lands in the best effort queue
+    // We don't participate in disputes escalated by disabled validators only.
     // We don't participate in disputes on finalized candidates.
     // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:907
 
-    if (own_vote_missing && is_disputed && allow_participation) {
+    if (own_vote_missing                      //
+        and is_disputed and not is_postponed  //
+        and allow_participation) {
       auto priority = static_cast<ParticipationPriority>(is_included);
 
       auto &receipt = new_state.votes.candidate_receipt;
@@ -1357,7 +1436,7 @@ namespace kagome::dispute {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L947
     is_freshly_disputed = not import_result.old_state.dispute_status.has_value()
                       and import_result.new_state.dispute_status.has_value();
-    if (is_freshly_disputed) {
+    if (is_freshly_disputed and not is_postponed) {
       if (is_type<Voted>(new_state.own_vote)) {
         auto &own_votes = boost::relaxed_get<Voted>(new_state.own_vote);
 
@@ -1915,6 +1994,9 @@ namespace kagome::dispute {
           },
           [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
             return (Timestamp)at;
+          },
+          [](const Postponed &) -> std::optional<Timestamp> {
+            return std::nullopt;
           });
 
       auto dispute_is_inactive =
@@ -1972,8 +2054,6 @@ namespace kagome::dispute {
              candidate_hash,
              std::move(candidate_receipt),
              valid);
-
-    // TODO ничего не возвращаем, вызывается из апрувала и партисипейшена
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::IssueLocalStatement");
     auto res = issue_local_statement(
@@ -2152,7 +2232,6 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
     if (rate_limit_timer_) {
-      rate_limit_timer_->cancel();
       rate_limit_timer_.reset();
     }
 
@@ -2174,8 +2253,8 @@ namespace kagome::dispute {
       BOOST_ASSERT_MSG(not queue.empty(),
                        "Invariant that queues are never empty is broken.");
 
-      auto &[msg, cb] = queue.front();
-      heads.emplace_back(peer_id, std::move(msg), std::move(cb));
+      auto &[request, cb] = queue.front();
+      heads.emplace_back(peer_id, std::move(request), std::move(cb));
       queue.pop_front();
 
       if (not queue.empty()) {
@@ -2321,6 +2400,7 @@ namespace kagome::dispute {
       auto cb_opt =
           batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
 
+      // Returned value means duplicate
       if (cb_opt.has_value()) {
         // We don't expect honest peers to send redundant votes within a
         // single batch, as the timeout for retry is much higher. Still we
@@ -2342,12 +2422,18 @@ namespace kagome::dispute {
         // limit.
         (*cb_opt)(BatchError::RedundantMessage);
 
-      } else {  // FIXME testing code. must be removed
-        auto prepared_import =
-            batch->tick(steady_clock_.now() + Batch::kBatchCollectingInterval);
-        if (prepared_import.has_value()) {
-          start_import(std::move(prepared_import.value()));
-        }
+        // } else {  // FIXME testing code. must be removed
+        //   auto prepared_import =
+        //       batch->tick(steady_clock_.now() +
+        //       Batch::kBatchCollectingInterval);
+        //   if (prepared_import.has_value()) {
+        //     start_import(std::move(prepared_import.value()));
+        //   }
+      }
+
+      auto ready_prepared_imports = batches_->check_batches();
+      for (auto &prepared_import : ready_prepared_imports) {
+        start_import(std::move(prepared_import));
       }
     }
 

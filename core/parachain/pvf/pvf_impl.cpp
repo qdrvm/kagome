@@ -6,7 +6,7 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
-#include <future>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -14,6 +14,7 @@
 #include "common/visitor.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "parachain/pvf/session_params.hpp"
@@ -28,6 +29,17 @@
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 #include "utils/argv0.hpp"
+
+#define _CB_TRY_VOID(tmp, expr) \
+  auto tmp = (expr);            \
+  if (tmp.has_error()) {        \
+    return cb(tmp.error());     \
+  }
+#define _CB_TRY_OUT(tmp, out, expr) \
+  _CB_TRY_VOID(tmp, expr);          \
+  out = std::move(tmp.value());
+#define CB_TRYV(expr) _CB_TRY_VOID(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
+#define CB_TRY(out, expr) _CB_TRY_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -144,7 +156,8 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-      std::shared_ptr<application::AppStateManager> state_manager,
+      PvfThreadPool &pvf_thread_pool,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<application::AppConfiguration> app_configuration)
       : config_{config},
         io_context_{std::move(io_context)},
@@ -165,8 +178,9 @@ namespace kagome::parachain {
             parachain_api_,
             runtime_cache_,
             hasher_)},
+        pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
         app_configuration_{std::move(app_configuration)} {
-    state_manager->takeControl(*this);
+    app_state_manager->takeControl(*this);
     constexpr std::array<std::string_view, 4> engines{
         "kBinaryen",
         "kWAVM",
@@ -202,64 +216,86 @@ namespace kagome::parachain {
     return true;
   }
 
-  outcome::result<Pvf::Result> PvfImpl::pvfValidate(
-      const PersistedValidationData &data,
-      const ParachainBlock &pov,
-      const CandidateReceipt &receipt,
-      const ParachainRuntime &code_zstd) const {
-    OUTCOME_TRY(pov_encoded, scale::encode(pov));
+  void PvfImpl::pvfValidate(const PersistedValidationData &data,
+                            const ParachainBlock &pov,
+                            const CandidateReceipt &receipt,
+                            const ParachainRuntime &code_zstd,
+                            Cb cb) const {
+    REINVOKE(*pvf_thread_handler_,
+             pvfValidate,
+             data,
+             pov,
+             receipt,
+             code_zstd,
+             std::move(cb));
+    CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
-      return PvfError::POV_SIZE;
+      return cb(PvfError::POV_SIZE);
     }
     auto pov_hash = hasher_->blake2b_256(pov_encoded);
     if (pov_hash != receipt.descriptor.pov_hash) {
-      return PvfError::POV_HASH;
+      return cb(PvfError::POV_HASH);
     }
     auto code_hash = hasher_->blake2b_256(code_zstd);
     if (code_hash != receipt.descriptor.validation_code_hash) {
-      return PvfError::CODE_HASH;
+      return cb(PvfError::CODE_HASH);
     }
-    OUTCOME_TRY(signature_valid,
-                sr25519_provider_->verify(receipt.descriptor.signature,
-                                          receipt.descriptor.signable(),
-                                          receipt.descriptor.collator_id));
+    CB_TRY(auto signature_valid,
+           sr25519_provider_->verify(receipt.descriptor.signature,
+                                     receipt.descriptor.signable(),
+                                     receipt.descriptor.collator_id));
     if (!signature_valid) {
-      return PvfError::SIGNATURE;
+      return cb(PvfError::SIGNATURE);
     }
 
     auto timer = metric_pvf_execution_time.timer();
     ParachainRuntime code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    CB_TRYV(runtime::uncompressCodeIfNeeded(code_zstd, code));
     metric_code_size.observe(code.size());
     ValidationParams params;
     params.parent_head = data.parent_head;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(pov.payload,
-                                                params.block_data.payload));
+    CB_TRYV(runtime::uncompressCodeIfNeeded(pov.payload,
+                                            params.block_data.payload));
     params.relay_parent_number = data.relay_parent_number;
     params.relay_parent_storage_root = data.relay_parent_storage_root;
-    OUTCOME_TRY(result, callWasm(receipt, code_hash, code, params));
-    timer.reset();
-
-    OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
-    return std::make_pair(std::move(commitments), data);
+    callWasm(receipt,
+             code_hash,
+             code,
+             params,
+             libp2p::SharedFn{[weak_self{weak_from_this()},
+                               data,
+                               receipt,
+                               cb{std::move(cb)},
+                               timer{std::move(timer)}](
+                                  outcome::result<ValidationResult> r) {
+               auto self = weak_self.lock();
+               if (not self) {
+                 return;
+               }
+               CB_TRY(auto result, std::move(r));
+               CB_TRY(auto commitments,
+                      self->fromOutputs(receipt, std::move(result)));
+               cb(std::make_pair(std::move(commitments), data));
+             }});
   }
 
-  outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt,
-      const ParachainBlock &pov,
-      const runtime::PersistedValidationData &pvd) const {
+  void PvfImpl::pvf(const CandidateReceipt &receipt,
+                    const ParachainBlock &pov,
+                    const runtime::PersistedValidationData &pvd,
+                    Cb cb) const {
+    REINVOKE(*pvf_thread_handler_, pvf, receipt, pov, pvd, std::move(cb));
     SL_DEBUG(log_,
-             "pvfSync relay_parent={} para_id={}",
+             "pvf relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
 
     auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
     if (receipt.descriptor.persisted_data_hash != data_hash) {
-      return PvfError::PERSISTED_DATA_HASH;
+      return cb(PvfError::PERSISTED_DATA_HASH);
     }
 
-    OUTCOME_TRY(code, getCode(receipt.descriptor));
-    return pvfValidate(pvd, pov, receipt, code);
+    CB_TRY(auto code, getCode(receipt.descriptor));
+    pvfValidate(pvd, pov, receipt, code, std::move(cb));
   }
 
   outcome::result<ParachainRuntime> PvfImpl::getCode(
@@ -288,25 +324,23 @@ namespace kagome::parachain {
     return PvfError::NO_CODE;
   }
 
-  outcome::result<ValidationResult> PvfImpl::callWasm(
-      const CandidateReceipt &receipt,
-      const common::Hash256 &code_hash,
-      const ParachainRuntime &code_zstd,
-      const ValidationParams &params) const {
-    OUTCOME_TRY(
-        executor_params,
-        sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
+  void PvfImpl::callWasm(const CandidateReceipt &receipt,
+                         const common::Hash256 &code_hash,
+                         const ParachainRuntime &code_zstd,
+                         const ValidationParams &params,
+                         WasmCb cb) const {
+    CB_TRY(auto executor_params,
+           sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
 
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
-      OUTCOME_TRY(instance,
-                  runtime_cache_->instantiateFromCode(
-                      code_hash, code_zstd, executor_params));
-      OUTCOME_TRY(
-          ctx,
-          ctx_factory_->ephemeral(
-              instance, storage::trie::kEmptyRootHash, executor_params));
-      return executor_->call<ValidationResult>(ctx, name, params);
+      CB_TRY(auto instance,
+             runtime_cache_->instantiateFromCode(
+                 code_hash, code_zstd, executor_params));
+      CB_TRY(auto ctx,
+             ctx_factory_->ephemeral(
+                 instance, storage::trie::kEmptyRootHash, executor_params));
+      return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
 
     PvfWorkerInput input{
@@ -318,23 +352,17 @@ namespace kagome::parachain {
         app_configuration_->runtimeCacheDirPath(),
         app_configuration_->log(),
     };
-    std::promise<outcome::result<common::Buffer>> promise;
-    auto cb = [&](outcome::result<common::Buffer> r) {
-      promise.set_value(std::move(r));
-    };
-    std::error_code ec;
-    auto path = std::filesystem::read_symlink("/proc/self/exe", ec);
-    if (ec) {
-      return ec;
-    }
     runWorker(*io_context_,
               scheduler_,
               app_configuration_->pvfSubprocessDeadline(),
-              path,
+              exePath(),
               common::Buffer{scale::encode(input).value()},
-              cb);
-    OUTCOME_TRY(result, promise.get_future().get());
-    return scale::decode<ValidationResult>(result);
+              [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+                if (r.has_error()) {
+                  return cb(r.error());
+                }
+                cb(scale::decode<ValidationResult>(r.value()));
+              });
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(
