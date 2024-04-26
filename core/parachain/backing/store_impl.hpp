@@ -72,11 +72,11 @@ namespace kagome::parachain {
       }
     }
 
-    bool is_in_group(
+    bool is_member_of(
         const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
         GroupIndex group,
-        ValidatorIndex authority);
+        ValidatorIndex authority) const;
 
     outcome::result<std::optional<BackingStore::ImportResult>> validity_vote(
         PerRelayParent &state,
