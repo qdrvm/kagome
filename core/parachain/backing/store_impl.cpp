@@ -37,19 +37,14 @@ namespace kagome::parachain {
     std::ignore = per_relay_parent_[relay_parent];
   }
 
-  bool BackingStoreImpl::is_in_group(
+  bool BackingStoreImpl::is_member_of(
       const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
       GroupIndex group,
-      ValidatorIndex authority) {
-    if (auto it = groups.find(group); it != groups.end()) {
-      for (const auto a : it->second) {
-        if (a == authority) {
-          return true;
-        }
-      }
-    }
-    return false;
+      ValidatorIndex authority) const {
+    const auto it = groups.find(group);
+    return it != groups.end() && 
+      std::find(it->second.begin(), it->second.end(), authority) != it->second.end();
   }
 
   outcome::result<std::optional<BackingStore::ImportResult>>
@@ -66,7 +61,7 @@ namespace kagome::parachain {
     }
     BackingStore::StatementInfo &votes = it->second;
 
-    if (!is_in_group(groups, votes.group_id, from)) {
+    if (!is_member_of(groups, votes.group_id, from)) {
       return Error::UNAUTHORIZED_STATEMENT;
     }
 
@@ -95,10 +90,7 @@ namespace kagome::parachain {
       const network::CommittedCandidateReceipt &candidate,
       const ValidatorSignature &signature,
       bool allow_multiple_seconded) {
-    if (auto it = groups.find(group_id);
-        it == groups.end()
-        || std::find(it->second.begin(), it->second.end(), authority)
-               == it->second.end()) {
+    if (!is_member_of(groups, group_id, authority)) {
       return Error::UNAUTHORIZED_STATEMENT;
     }
 
