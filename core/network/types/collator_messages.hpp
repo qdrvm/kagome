@@ -206,6 +206,36 @@ namespace kagome::network {
     CommittedCandidateReceipt candidate;
     std::vector<ValidityAttestation> validity_votes;
     scale::BitVec validator_indices;
+
+    static BackedCandidate from(
+      CommittedCandidateReceipt candidate_,
+      std::vector<ValidityAttestation> validity_votes_,
+      scale::BitVec validator_indices_,
+      std::optional<CoreIndex> core_index_
+    ) {
+      BackedCandidate backed {
+        .candidate = std::move(candidate_),
+        .validity_votes = std::move(validity_votes_),
+        .validator_indices = std::move(validator_indices_),
+      };
+
+      if (core_index_) {
+        backed.inject_core_index(*core_index_);
+      }
+
+      return backed;
+    }
+
+    void inject_core_index(CoreIndex core_index) {
+      scale::BitVec core_index_to_inject;
+      core_index_to_inject.bits.assign(8, false);
+
+      auto val = uint8_t(core_index);
+      for (size_t i = 0; i < 8; ++i) {
+        core_index_to_inject.bits[i] = ((1 << i) & val) >> i;
+      }
+      validator_indices.bits.insert(validator_indices.bits.end(), core_index_to_inject.bits.begin(), core_index_to_inject.bits.end());
+    }
   };
 
   using CandidateState =
