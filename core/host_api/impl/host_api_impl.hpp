@@ -43,7 +43,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<crypto::KeyStore> key_store,
+        std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
@@ -105,7 +105,7 @@ namespace kagome::host_api {
 
     runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
-    
+
     // ------------------------Memory extensions v1-------------------------
     runtime::WasmPointer ext_allocator_malloc_version_1(
         runtime::WasmSize size) override;

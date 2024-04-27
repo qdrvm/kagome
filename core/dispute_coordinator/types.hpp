@@ -104,10 +104,14 @@ namespace kagome::dispute {
   /// successfully ourselves).
   using Confirmed = Tagged<Empty, struct ConfirmedTag>;
 
+  /// Dispute has been postponed 'cause all votes is received from disabled
+  /// validators.
+  using Postponed = Tagged<Empty, struct PostponedTag>;
+
   /// The status of dispute.
   /// NOTE: This status is persisted to the database
-  using DisputeStatus =
-      boost::variant<Active, ConcludedFor, ConcludedAgainst, Confirmed>;
+  using DisputeStatus = boost::
+      variant<Active, ConcludedFor, ConcludedAgainst, Confirmed, Postponed>;
 
   /// The mapping for recent disputes; any which have not
   /// yet been pruned for being ancient.

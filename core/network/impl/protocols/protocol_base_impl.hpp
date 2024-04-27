@@ -69,7 +69,7 @@ namespace kagome::network {
                 SL_TRACE(log,
                          "Handled {} protocol stream from {}",
                          protocol,
-                         peer_id.error());
+                         peer_id.value());
                 BOOST_ASSERT(stream);
                 self->onIncomingStream(std::move(stream));
                 return;

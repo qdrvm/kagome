@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#pragma once
+
 #include <wabt/binary-reader-ir.h>
 #include <wabt/binary-writer.h>
 #include <wabt/error-formatter.h>

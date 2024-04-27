@@ -108,6 +108,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
@@ -129,6 +130,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
+        chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
@@ -211,9 +213,6 @@ namespace kagome::parachain {
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
@@ -223,10 +222,8 @@ namespace kagome::parachain {
           if (auto self = wself.lock()) {
             if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
-                self->bitfield_signer_->start(
-                    self->peer_view_->intoChainEventsEngine());
-                self->pvf_precheck_->start(
-                    self->peer_view_->intoChainEventsEngine());
+                self->bitfield_signer_->start();
+                self->pvf_precheck_->start();
                 was_synchronized = true;
               }
             }
@@ -248,19 +245,14 @@ namespace kagome::parachain {
             }
           }
         });
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::SyncStateEventType::kSyncState);
 
     // Subscribe to the chain events engine
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->onDeactivateBlocks(event);
           }
@@ -273,13 +265,10 @@ namespace kagome::parachain {
     // view.
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->onViewUpdated(event);
           }
@@ -287,13 +276,10 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->onUpdatePeerView(peer_id, view);
@@ -532,20 +518,16 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      for (const auto &lost : value->get()) {
-        SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
+    for (const auto &lost : event) {
+      SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
 
-        backing_store_->onDeactivateLeaf(lost);
-        av_store_->remove(lost);
-        bitfield_store_->remove(lost);
-        our_current_state_.active_leaves.erase(lost);
-      }
+      backing_store_->onDeactivateLeaf(lost);
+      av_store_->remove(lost);
+      bitfield_store_->remove(lost);
+      our_current_state_.active_leaves.erase(lost);
     }
   }
 
@@ -3343,14 +3325,6 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<kagome::parachain::Pvf::Result>
-  ParachainProcessorImpl::validateCandidate(
-      const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov,
-      runtime::PersistedValidationData &&pvd) {
-    return pvf_->pvfSync(candidate, pov, pvd);
-  }
-
   outcome::result<std::vector<network::ErasureChunk>>
   ParachainProcessorImpl::validateErasureCoding(
       const runtime::AvailableData &validating_data, size_t n_validators) {
@@ -3429,7 +3403,7 @@ namespace kagome::parachain {
             peer_id);
 
     // Start the timer for the validation task
-    TicToc _measure{"Parachain validation", logger_};
+    auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     const auto candidate_hash{candidate.hash(*hasher_)};
 
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -3447,78 +3421,100 @@ namespace kagome::parachain {
                candidate_hash);
       return;
     }
-
-    auto pvd_copy{pvd};
-
-    // Validate the candidate, if validation fails, log the error and return
-    auto validation_result = validateCandidate(candidate, pov, std::move(pvd));
-    if (!validation_result) {
-      logger_->warn(
-          "Candidate {} on relay_parent {}, para_id {} validation failed with "
-          "error: {}",
-          candidate_hash,
-          candidate.descriptor.relay_parent,
-          candidate.descriptor.para_id,
-          validation_result.error().message());
-      return;
-    }
-
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// checks if we still need to execute parachain task, if not needed, skip
-    /// the erasure-coding and return
-    need_to_process =
-        our_current_state_.active_leaves.count(relay_parent) != 0ull;
-    if (!need_to_process) {
-      SL_TRACE(logger_,
-               "Candidate validation skipped before erasure-coding because of "
-               "extruded relay parent. "
-               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+    auto cb = [weak_self{weak_from_this()},
+               candidate,
+               pov,
+               pvd,
+               peer_id,
                relay_parent,
-               candidate.descriptor.para_id,
-               candidate_hash);
-      return;
-    }
+               n_validators,
+               _measure,
+               candidate_hash](
+                  outcome::result<Pvf::Result> validation_result) mutable {
+      auto self = weak_self.lock();
+      if (not self) {
+        return;
+      }
+      if (!validation_result) {
+        SL_WARN(
+            self->logger_,
+            "Candidate {} on relay_parent {}, para_id {} validation failed with "
+            "error: {}",
+            candidate_hash,
+            candidate.descriptor.relay_parent,
+            candidate.descriptor.para_id,
+            validation_result.error().message());
+        return;
+      }
 
-    // Get the commitments and data from the validation result
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+      /// checks if we still need to execute parachain task, if not needed, skip
+    /// the erasure-coding and return
+      auto need_to_process =
+          self->our_current_state_.active_leaves.count(relay_parent) != 0ull;
+      if (!need_to_process) {
+        SL_TRACE(
+            self->logger_,
+            "Candidate validation skipped before erasure-coding because of "
+            "extruded relay parent. "
+            "(relay_parent={}, parachain_id={}, candidate_hash={})",
+            relay_parent,
+            candidate.descriptor.para_id,
+            candidate_hash);
+        return;
+      }
+
+      // Get the commitments and data from the validation result
     auto &[comms, data] = validation_result.value();
     runtime::AvailableData available_data{
         .pov = std::move(pov),
         .validation_data = std::move(data),
     };
 
-    // Initialize the chunks
-    std::vector<network::ErasureChunk> chunks;
-    // Validate the erasure coding, if validation fails, log the error and
-    // return
-    if (auto res = validateErasureCoding(available_data, n_validators);
-        res.has_error()) {
-      SL_WARN(logger_,
-              "Erasure coding validation failed. (error={})",
-              res.error().message());
-      return;
-    } else {
-      chunks = std::move(res.value());
-    }
+      auto chunks_res =
+          self->validateErasureCoding(available_data, n_validators);
+      if (chunks_res.has_error()) {
+        SL_WARN(self->logger_,
+                "Erasure coding validation failed. (error={})",
+                chunks_res.error());
+        return;
+      }
+      auto &chunks = chunks_res.value();
 
     // Notify peers about the data availability
-    notifyAvailableData(std::move(chunks),
-                        relay_parent,
-                        candidate_hash,
-                        available_data.pov,
-                        available_data.validation_data);
+      self->notifyAvailableData(std::move(chunks),
+                                relay_parent,
+                                candidate_hash,
+                                available_data.pov,
+                                available_data.validation_data);
 
-    makeAvailable<kMode>(
-        peer_id,
-        candidate_hash,
-        ValidateAndSecondResult{
-            .result = outcome::success(),
-            .relay_parent = relay_parent,
-            .commitments = std::make_shared<network::CandidateCommitments>(
-                std::move(comms)),
-            .candidate = std::move(candidate),
-            .pov = std::move(available_data.pov),
-            .pvd = std::move(pvd_copy),
-        });
+      self->makeAvailable<kMode>(
+          peer_id,
+          candidate_hash,
+          ValidateAndSecondResult{
+              .result = outcome::success(),
+              .relay_parent = relay_parent,
+              .commitments = std::make_shared<network::CandidateCommitments>(
+                  std::move(comms)),
+              .candidate = candidate,
+              .pov = std::move(available_data.pov),
+              .pvd = std::move(pvd),
+          });
+    };
+    pvf_->pvf(candidate,
+              pov,
+              pvd,
+              [weak_self{weak_from_this()},
+               cb{std::move(cb)}](outcome::result<Pvf::Result> r) mutable {
+                auto self = weak_self.lock();
+                if (not self) {
+                  return;
+                }
+                post(*self->main_pool_handler_,
+                     [cb{std::move(cb)}, r{std::move(r)}]() mutable {
+                       cb(std::move(r));
+                     });
+              });
   }
 
   void ParachainProcessorImpl::onAttestComplete(

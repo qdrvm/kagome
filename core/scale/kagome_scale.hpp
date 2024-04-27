@@ -47,9 +47,13 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const network::BlocksResponse &b);
 
-  template <typename F, typename ElementType, size_t MaxSize, typename Allocator>
+  template <typename F,
+            typename ElementType,
+            size_t MaxSize,
+            typename Allocator>
   constexpr void encode(
-      const F &func, const common::SLVector<ElementType, MaxSize, Allocator> &c);
+      const F &func,
+      const common::SLVector<ElementType, MaxSize, Allocator> &c);
 
   template <typename F, typename T, typename Tag, typename Base>
   constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c);
@@ -122,9 +126,13 @@ namespace kagome::scale {
     }
   }
 
-  template <typename F, typename ElementType, size_t MaxSize, typename Allocator>
+  template <typename F,
+            typename ElementType,
+            size_t MaxSize,
+            typename Allocator>
   constexpr void encode(
-      const F &func, const common::SLVector<ElementType, MaxSize, Allocator> &c) {
+      const F &func,
+      const common::SLVector<ElementType, MaxSize, Allocator> &c) {
     encode(func, static_cast<const std::vector<ElementType, Allocator> &>(c));
   }
 

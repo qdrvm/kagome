@@ -143,6 +143,7 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
         const application::AppConfiguration &app_config,
         application::AppStateManager &app_state_manager,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
@@ -407,22 +408,6 @@ namespace kagome::parachain {
     outcome::result<void> advCanBeProcessed(
         const primitives::BlockHash &relay_parent,
         const libp2p::peer::PeerId &peer_id);
-
-    /**
-     * @brief Validates a candidate for a parachain block.
-     *
-     * @param candidate The candidate receipt for the parachain block.
-     * @param pov The parachain block that needs to be validated.
-     * @param pvd The persisted validation data required for validation.
-     *
-     * @return An outcome::result containing the validation result. If the
-     * validation is successful, the result will contain a Pvf::Result. If the
-     * validation fails, the result will contain an error.
-     */
-    outcome::result<Pvf::Result> validateCandidate(
-        const network::CandidateReceipt &candidate,
-        const network::ParachainBlock &pov,
-        runtime::PersistedValidationData &&pvd);
 
     /**
      * @brief Validates the erasure coding of the provided data.
@@ -788,7 +773,8 @@ namespace kagome::parachain {
     void handleNotify(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockHash &relay_parent);
 
-    void onDeactivateBlocks(const primitives::events::ChainEventParams &event);
+    void onDeactivateBlocks(
+        const primitives::events::RemoveAfterFinalizationParams &event);
     void onViewUpdated(const network::ExView &event);
     void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                               const network::SignedBitfield &bitfield);
@@ -959,7 +945,7 @@ namespace kagome::parachain {
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;

@@ -261,31 +261,46 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
+  template <typename EventKey, typename Receiver, typename... Arguments>
+  void subscribe(
+      subscription::Subscriber<EventKey, Receiver, Arguments...> &sub,
+      EventKey type,
+      auto f) {
+    sub.setCallback(
+        [f{std::move(f)}](subscription::SubscriptionSetId,
+                          Receiver &,
+                          EventKey,
+                          const Arguments &...args) { f(args...); });
+    sub.subscribe(sub.generateSubscriptionSetId(), type);
+  }
+
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
             std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
-      sub->subscribe(sub->generateSubscriptionSetId(), type);
-      sub->setCallback(
-          [f{std::move(f)}](subscription::SubscriptionSetId,
-                            ChainSubscriptionEngine::ReceiverType &,
-                            ChainEventType,
-                            const ChainEventParams &args) {
-            auto &block = boost::get<HeadsEventParams>(args).get();
-            if constexpr (std::is_invocable_v<decltype(f)>) {
-              f();
-            } else {
-              f(block);
-            }
-          });
+      subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {
+        auto &block = boost::get<HeadsEventParams>(args).get();
+        if constexpr (std::is_invocable_v<decltype(f)>) {
+          f();
+        } else {
+          f(block);
+        }
+      });
     }
     void onFinalize(auto f) {
       onBlock(ChainEventType::kFinalizedHeads, std::move(f));
     }
     void onHead(auto f) {
       onBlock(ChainEventType::kNewHeads, std::move(f));
+    }
+    void onDeactivate(auto f) {
+      subscribe(*sub,
+                ChainEventType::kDeactivateAfterFinalization,
+                [f{std::move(f)}](const ChainEventParams &args) {
+                  f(boost::get<RemoveAfterFinalizationParams>(args));
+                });
     }
 
     ChainEventSubscriberPtr sub;
