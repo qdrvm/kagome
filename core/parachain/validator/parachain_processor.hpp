@@ -284,6 +284,8 @@ namespace kagome::parachain {
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
       std::unordered_set<CandidateHash> backed_hashes{};
+
+      bool inject_core_index;
     };
 
     struct PerCandidateState {
@@ -461,7 +463,7 @@ namespace kagome::parachain {
         const BackingStore::StatementInfo &data,
         size_t validity_threshold);
     std::optional<BackingStore::BackedCandidate> table_attested_to_backed(
-        AttestedCandidate &&attested, TableContext &table_context);
+        AttestedCandidate &&attested, TableContext &table_context, bool inject_core_index);
     outcome::result<std::optional<ValidatorSigner>> isParachainValidator(
         const primitives::BlockHash &relay_parent) const;
 

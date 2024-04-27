@@ -784,6 +784,13 @@ namespace kagome::parachain {
       return Error::NO_SESSION_INFO;
     }
 
+    bool inject_core_index = false;
+    if (auto r = parachain_host_->node_features(relay_parent, session_index); r.has_value()) {
+      if (r.value() && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP) {
+        inject_core_index = r.value()->bits[runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP];
+      }
+    }
+
     uint32_t minimum_backing_votes = 2;  /// legacy value
     if (auto r =
             parachain_host_->minimum_backing_votes(relay_parent, session_index);
@@ -924,6 +931,7 @@ namespace kagome::parachain {
         .issued_statements = {},
         .peers_advertised = {},
         .fallbacks = {},
+        .inject_core_index = inject_core_index,
     };
   }
 
@@ -3089,7 +3097,7 @@ namespace kagome::parachain {
                 per_relay_state->get().table_context,
                 per_relay_state->get().minimum_backing_votes)) {
           if (auto b = table_attested_to_backed(
-                  std::move(*attested), per_relay_state->get().table_context)) {
+                  std::move(*attested), per_relay_state->get().table_context, per_relay_state->get().inject_core_index)) {
             backed.emplace_back(std::move(*b));
           } else {
             SL_TRACE(logger_,
@@ -3193,10 +3201,13 @@ namespace kagome::parachain {
 
   std::optional<BackingStore::BackedCandidate>
   ParachainProcessorImpl::table_attested_to_backed(
-      AttestedCandidate &&attested, TableContext &table_context) {
-    const auto para_id = attested.group_id;
-    if (auto it = table_context.groups.find(para_id);
-        it != table_context.groups.end()) {
+      AttestedCandidate &&attested, TableContext &table_context, bool inject_core_index) {
+    const auto core_index = attested.group_id;
+    auto it = table_context.groups.find(core_index);
+    if (it == table_context.groups.end()) {
+      return std::nullopt;
+    }
+
       const auto &group = it->second;
       scale::BitVec validator_indices{};
       validator_indices.bits.resize(group.size(), false);
@@ -3239,13 +3250,12 @@ namespace kagome::parachain {
             std::move(attested.validity_votes[pos_in_votes].second));
       }
 
-      return BackingStore::BackedCandidate{
-          .candidate = std::move(attested.candidate),
-          .validity_votes = std::move(validity_votes),
-          .validator_indices = std::move(validator_indices),
-      };
-    }
-    return std::nullopt;
+      return BackingStore::BackedCandidate::from(
+          std::move(attested.candidate),
+          std::move(validity_votes),
+          std::move(validator_indices),
+          inject_core_index ? std::optional<CoreIndex>{core_index} : std::optional<CoreIndex>{}
+        );
   }
 
   outcome::result<std::optional<BackingStore::ImportResult>>
@@ -3565,7 +3575,7 @@ namespace kagome::parachain {
               .insert(candidateHash(*hasher_, attested->candidate))
               .second) {
         if (auto backed = table_attested_to_backed(std::move(*attested),
-                                                   rp_state.table_context)) {
+                                                   rp_state.table_context, rp_state.inject_core_index)) {
           const auto para_id = backed->candidate.descriptor.para_id;
           SL_INFO(
               logger_,
