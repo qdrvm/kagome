@@ -2283,7 +2283,6 @@ namespace kagome::parachain {
       return {};
     }
 
-    // If the relay parent state has a prospective parachains mode
     if (relay_parent_state_opt->get().prospective_parachains_mode) {
       std::vector<network::BackedCandidate> backed;
 
@@ -3449,7 +3448,7 @@ namespace kagome::parachain {
 
       /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
       /// checks if we still need to execute parachain task, if not needed, skip
-    /// the erasure-coding and return
+      /// the erasure-coding and return
       auto need_to_process =
           self->our_current_state_.active_leaves.count(relay_parent) != 0ull;
       if (!need_to_process) {
@@ -3465,11 +3464,11 @@ namespace kagome::parachain {
       }
 
       // Get the commitments and data from the validation result
-    auto &[comms, data] = validation_result.value();
-    runtime::AvailableData available_data{
-        .pov = std::move(pov),
-        .validation_data = std::move(data),
-    };
+      auto &[comms, data] = validation_result.value();
+      runtime::AvailableData available_data{
+          .pov = std::move(pov),
+          .validation_data = std::move(data),
+      };
 
       auto chunks_res =
           self->validateErasureCoding(available_data, n_validators);
@@ -3481,7 +3480,7 @@ namespace kagome::parachain {
       }
       auto &chunks = chunks_res.value();
 
-    // Notify peers about the data availability
+      // Notify peers about the data availability
       self->notifyAvailableData(std::move(chunks),
                                 relay_parent,
                                 candidate_hash,
