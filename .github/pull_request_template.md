@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ### Referenced issues
 
-<!-- Id of the task from Jira. Example: Resolves #42 (Note that to link Pull Request with issue use one of the following keywords: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved). If there is no corresponding issue, then remove this field -->
+<!-- Issues id from Github Issues. Example: Resolves #42 (Note that to link Pull Request with issue use one of the following keywords: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved). If there is no corresponding issue, then remove this field -->
 
 ### Description of the Change
 
