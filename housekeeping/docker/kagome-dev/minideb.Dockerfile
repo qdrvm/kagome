@@ -46,6 +46,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         lcov \
         zlib1g-dev \
         libgmp10 \
+        libnsl-dev \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 
