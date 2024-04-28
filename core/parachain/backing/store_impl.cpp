@@ -43,8 +43,9 @@ namespace kagome::parachain {
       GroupIndex group,
       ValidatorIndex authority) const {
     const auto it = groups.find(group);
-    return it != groups.end() && 
-      std::find(it->second.begin(), it->second.end(), authority) != it->second.end();
+    return it != groups.end()
+        && std::find(it->second.begin(), it->second.end(), authority)
+               != it->second.end();
   }
 
   outcome::result<std::optional<BackingStore::ImportResult>>

@@ -24,22 +24,25 @@ namespace kagome::runtime {
     virtual ~ParachainHost() = default;
 
     using NodeFeatures = scale::BitVec;
-    /// A feature index used to identify a bit into the node_features array stored
-    /// in the HostConfiguration.
+    /// A feature index used to identify a bit into the node_features array
+    /// stored in the HostConfiguration.
     enum NodeFeatureIndex {
-        /// Tells if tranch0 assignments could be sent in a single certificate.
-        /// Reserved for: `<https://github.com/paritytech/polkadot-sdk/issues/628>`
-        EnableAssignmentsV2 = 0,
+      /// Tells if tranch0 assignments could be sent in a single certificate.
+      /// Reserved for:
+      /// `<https://github.com/paritytech/polkadot-sdk/issues/628>`
+      EnableAssignmentsV2 = 0,
 
-        /// This feature enables the extension of `BackedCandidate::validator_indices` by 8 bits.
-        /// The value stored there represents the assumed core index where the candidates
-        /// are backed. This is needed for the elastic scaling MVP.
-        ElasticScalingMVP = 1,
+      /// This feature enables the extension of
+      /// `BackedCandidate::validator_indices` by 8 bits.
+      /// The value stored there represents the assumed core index where the
+      /// candidates
+      /// are backed. This is needed for the elastic scaling MVP.
+      ElasticScalingMVP = 1,
 
-        /// First unassigned feature bit.
-        /// Every time a new feature flag is assigned it should take this value.
-        /// and this should be incremented.
-        FirstUnassigned = 2,
+      /// First unassigned feature bit.
+      /// Every time a new feature flag is assigned it should take this value.
+      /// and this should be incremented.
+      FirstUnassigned = 2,
     };
 
     /**

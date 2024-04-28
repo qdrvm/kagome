@@ -292,8 +292,9 @@ namespace kagome::runtime {
     return res;
   }
 
-  outcome::result<std::optional<ParachainHost::NodeFeatures>> ParachainHostImpl::node_features(
-        const primitives::BlockHash &block, SessionIndex index) {
+  outcome::result<std::optional<ParachainHost::NodeFeatures>>
+  ParachainHostImpl::node_features(const primitives::BlockHash &block,
+                                   SessionIndex index) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     auto res = executor_->call<std::optional<ParachainHost::NodeFeatures>>(
         ctx, "ParachainHost_node_features");
@@ -303,6 +304,5 @@ namespace kagome::runtime {
     }
     return res;
   }
-
 
 }  // namespace kagome::runtime

@@ -208,15 +208,14 @@ namespace kagome::network {
     scale::BitVec validator_indices;
 
     static BackedCandidate from(
-      CommittedCandidateReceipt candidate_,
-      std::vector<ValidityAttestation> validity_votes_,
-      scale::BitVec validator_indices_,
-      std::optional<CoreIndex> core_index_
-    ) {
-      BackedCandidate backed {
-        .candidate = std::move(candidate_),
-        .validity_votes = std::move(validity_votes_),
-        .validator_indices = std::move(validator_indices_),
+        CommittedCandidateReceipt candidate_,
+        std::vector<ValidityAttestation> validity_votes_,
+        scale::BitVec validator_indices_,
+        std::optional<CoreIndex> core_index_) {
+      BackedCandidate backed{
+          .candidate = std::move(candidate_),
+          .validity_votes = std::move(validity_votes_),
+          .validator_indices = std::move(validator_indices_),
       };
 
       if (core_index_) {
@@ -234,7 +233,9 @@ namespace kagome::network {
       for (size_t i = 0; i < 8; ++i) {
         core_index_to_inject.bits[i] = ((1 << i) & val) >> i;
       }
-      validator_indices.bits.insert(validator_indices.bits.end(), core_index_to_inject.bits.begin(), core_index_to_inject.bits.end());
+      validator_indices.bits.insert(validator_indices.bits.end(),
+                                    core_index_to_inject.bits.begin(),
+                                    core_index_to_inject.bits.end());
     }
   };
 
