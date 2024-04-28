@@ -153,12 +153,12 @@ namespace kagome::parachain {
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request);
-    outcome::result<BlockNumber> get_block_number_under_construction(const RelayHash &relay_parent) const;
+    outcome::result<BlockNumber> get_block_number_under_construction(
+        const RelayHash &relay_parent) const;
     bool bitfields_indicate_availability(
-    size_t core_idx,
-    const std::vector<BitfieldStore::SignedBitfield> &bitfields,
-    const scale::BitVec &availability
-  );
+        size_t core_idx,
+        const std::vector<BitfieldStore::SignedBitfield> &bitfields,
+        const scale::BitVec &availability);
 
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
@@ -471,7 +471,9 @@ namespace kagome::parachain {
         const BackingStore::StatementInfo &data,
         size_t validity_threshold);
     std::optional<BackingStore::BackedCandidate> table_attested_to_backed(
-        AttestedCandidate &&attested, TableContext &table_context, bool inject_core_index);
+        AttestedCandidate &&attested,
+        TableContext &table_context,
+        bool inject_core_index);
     outcome::result<std::optional<ValidatorSigner>> isParachainValidator(
         const primitives::BlockHash &relay_parent) const;
 

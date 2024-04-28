@@ -842,9 +842,14 @@ namespace kagome::parachain {
     }
 
     bool inject_core_index = false;
-    if (auto r = parachain_host_->node_features(relay_parent, session_index); r.has_value()) {
-      if (r.value() && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP) {
-        inject_core_index = r.value()->bits[runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP];
+    if (auto r = parachain_host_->node_features(relay_parent, session_index);
+        r.has_value()) {
+      if (r.value()
+          && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::
+                     ElasticScalingMVP) {
+        inject_core_index =
+            r.value()->bits
+                [runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP];
       }
     }
 
@@ -3085,7 +3090,9 @@ namespace kagome::parachain {
         confirmed.para_id(), confirmed.para_head());
   }
 
-  outcome::result<BlockNumber> ParachainProcessorImpl::get_block_number_under_construction(const RelayHash &relay_parent) const {
+  outcome::result<BlockNumber>
+  ParachainProcessorImpl::get_block_number_under_construction(
+      const RelayHash &relay_parent) const {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     auto res_header = block_tree_->getBlockHeader(relay_parent);
@@ -3099,31 +3106,32 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::bitfields_indicate_availability(
-    size_t core_idx,
-    const std::vector<BitfieldStore::SignedBitfield> &bitfields,
-    const scale::BitVec &availability_
-  ) {
+      size_t core_idx,
+      const std::vector<BitfieldStore::SignedBitfield> &bitfields,
+      const scale::BitVec &availability_) {
     scale::BitVec availability{availability_};
     const auto availability_len = availability.bits.size();
 
     for (const auto &bitfield : bitfields) {
       const auto validator_idx{size_t(bitfield.payload.ix)};
       if (validator_idx >= availability.bits.size()) {
-        SL_WARN(logger_, 
-          "attempted to set a transverse bit at idx which is greater than bitfield size. (validator_idx={}, availability_len={})",
-          validator_idx,
-          availability_len
-        );
+        SL_WARN(
+            logger_,
+            "attempted to set a transverse bit at idx which is greater than bitfield size. (validator_idx={}, availability_len={})",
+            validator_idx,
+            availability_len);
 
         return false;
       }
 
-      availability.bits[validator_idx] = availability.bits[validator_idx] || bitfield.payload.payload.bits[core_idx];
+      availability.bits[validator_idx] =
+          availability.bits[validator_idx]
+          || bitfield.payload.payload.bits[core_idx];
     }
 
-    return 3 * approval::count_ones(availability) >= 2 * availability.bits.size();
+    return 3 * approval::count_ones(availability)
+        >= 2 * availability.bits.size();
   }
-
 
   std::vector<network::BackedCandidate>
   ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
@@ -3139,54 +3147,64 @@ namespace kagome::parachain {
       return backing_store_->get(relay_parent);
     }
 
-    BlockNumber block_number; 
-    if (auto r = get_block_number_under_construction(relay_parent); r.has_error()) {
+    BlockNumber block_number;
+    if (auto r = get_block_number_under_construction(relay_parent);
+        r.has_error()) {
       return {};
     } else {
       block_number = r.value();
     }
 
     using Ancestors = std::unordered_set<CandidateHash>;
-    const auto &availability_cores = relay_parent_state_opt->get().availability_cores;
+    const auto &availability_cores =
+        relay_parent_state_opt->get().availability_cores;
 
     std::map<ParachainId, size_t> scheduled_cores_per_para;
     std::unordered_map<ParachainId, Ancestors> ancestors;
     ancestors.reserve(availability_cores.size());
 
-    const auto elastic_scaling_mvp = relay_parent_state_opt->get().inject_core_index;
+    const auto elastic_scaling_mvp =
+        relay_parent_state_opt->get().inject_core_index;
     const auto bitfields = bitfield_store_->getBitfields(relay_parent);
-    const auto cores_len = relay_parent_state_opt->get().availability_cores.size();
+    const auto cores_len =
+        relay_parent_state_opt->get().availability_cores.size();
 
     for (size_t core_idx = 0; core_idx < cores_len; ++core_idx) {
-      const runtime::CoreState &core = relay_parent_state_opt->get().availability_cores[core_idx];
+      const runtime::CoreState &core =
+          relay_parent_state_opt->get().availability_cores[core_idx];
       visit_in_place(
           core,
           [&](const network::ScheduledCore &scheduled_core) {
             scheduled_cores_per_para[scheduled_core.para_id] += 1;
           },
           [&](const runtime::OccupiedCore &occupied_core) {
-            const bool is_available = bitfields_indicate_availability(core_idx, bitfields, occupied_core.availability);
+            const bool is_available = bitfields_indicate_availability(
+                core_idx, bitfields, occupied_core.availability);
             if (is_available) {
-              ancestors[occupied_core.candidate_descriptor.para_id].insert(occupied_core.candidate_hash);
+              ancestors[occupied_core.candidate_descriptor.para_id].insert(
+                  occupied_core.candidate_hash);
               if (occupied_core.next_up_on_available) {
-                scheduled_cores_per_para[occupied_core.next_up_on_available->para_id] += 1;
+                scheduled_cores_per_para[occupied_core.next_up_on_available
+                                             ->para_id] += 1;
               }
             } else if (occupied_core.time_out_at <= block_number) {
               if (occupied_core.next_up_on_time_out) {
-                scheduled_cores_per_para[occupied_core.next_up_on_time_out->para_id] += 1;
+                scheduled_cores_per_para[occupied_core.next_up_on_time_out
+                                             ->para_id] += 1;
               }
             } else {
-              ancestors[occupied_core.candidate_descriptor.para_id].insert(occupied_core.candidate_hash);
+              ancestors[occupied_core.candidate_descriptor.para_id].insert(
+                  occupied_core.candidate_hash);
             }
           },
-          [&](const runtime::FreeCore &) {
-          });
+          [&](const runtime::FreeCore &) {});
     }
 
-    std::unordered_map<ParachainId, std::vector<std::pair<CandidateHash, Hash>>> selected_candidates;
+    std::unordered_map<ParachainId, std::vector<std::pair<CandidateHash, Hash>>>
+        selected_candidates;
     selected_candidates.reserve(scheduled_cores_per_para.size());
 
-    auto ancestor_remove = [&] (ParachainId para_id) -> Ancestors {
+    auto ancestor_remove = [&](ParachainId para_id) -> Ancestors {
       auto it = ancestors.find(para_id);
       if (it == ancestors.end()) {
         return {};
@@ -3204,46 +3222,52 @@ namespace kagome::parachain {
       }
 
       std::vector<CandidateHash> para_ancestors_vec(
-        std::move_iterator(para_ancestors.begin()),
-        std::move_iterator(para_ancestors.end())
-        );
+          std::move_iterator(para_ancestors.begin()),
+          std::move_iterator(para_ancestors.end()));
       auto response = prospective_parachains_->answerGetBackableCandidates(
-        relay_parent, 
-        para_id, 
-        core_count, 
-        para_ancestors_vec);
+          relay_parent, para_id, core_count, para_ancestors_vec);
 
       if (response.empty()) {
-        SL_TRACE(logger_, "No backable candidate returned by prospective parachains. (relay_parent={}, para_id={})", relay_parent, para_id);
+        SL_TRACE(
+            logger_,
+            "No backable candidate returned by prospective parachains. (relay_parent={}, para_id={})",
+            relay_parent,
+            para_id);
         continue;
       }
 
       selected_candidates.emplace(para_id, std::move(response));
     }
-    SL_TRACE(logger_, "Got backable candidates. (count={})", selected_candidates.size());
+    SL_TRACE(logger_,
+             "Got backable candidates. (count={})",
+             selected_candidates.size());
 
-    std::unordered_map<ParachainId, std::vector<BackingStore::BackedCandidate>> backed;
+    std::unordered_map<ParachainId, std::vector<BackingStore::BackedCandidate>>
+        backed;
     backed.reserve(selected_candidates.size());
 
     for (const auto &[para_id, para_candidates] : selected_candidates) {
       for (const auto &[c_hash, r_hash] : para_candidates) {
         auto rp_state = tryGetStateByRelayParent(r_hash);
         if (!rp_state) {
-          SL_TRACE(logger_,
-                   "Requested candidate's relay parent is out of view. (relay_parent={}, r_hash={}, c_hash={})",
-                   relay_parent,
-                   r_hash,
-                   c_hash);
+          SL_TRACE(
+              logger_,
+              "Requested candidate's relay parent is out of view. (relay_parent={}, r_hash={}, c_hash={})",
+              relay_parent,
+              r_hash,
+              c_hash);
           break;
         }
 
-        if (auto attested = attested_candidate(
-                r_hash,
-                c_hash,
-                rp_state->get().table_context,
-                rp_state->get().minimum_backing_votes)) {
-          if (auto b = table_attested_to_backed(
-                  std::move(*attested), rp_state->get().table_context, rp_state->get().inject_core_index)) {
+        if (auto attested =
+                attested_candidate(r_hash,
+                                   c_hash,
+                                   rp_state->get().table_context,
+                                   rp_state->get().minimum_backing_votes)) {
+          if (auto b =
+                  table_attested_to_backed(std::move(*attested),
+                                           rp_state->get().table_context,
+                                           rp_state->get().inject_core_index)) {
             backed[para_id].emplace_back(std::move(*b));
           } else {
             SL_TRACE(logger_,
@@ -3264,7 +3288,10 @@ namespace kagome::parachain {
       }
     }
 
-    SL_TRACE(logger_, "Got backed candidates. (relay_parent={}, backed_len={})", relay_parent, backed.size());
+    SL_TRACE(logger_,
+             "Got backed candidates. (relay_parent={}, backed_len={})",
+             relay_parent,
+             backed.size());
     bool with_validation_code = false;
     std::vector<BackingStore::BackedCandidate> merged_candidates;
     merged_candidates.reserve(availability_cores.size());
@@ -3283,10 +3310,12 @@ namespace kagome::parachain {
       }
     }
 
-    SL_TRACE(logger_, "Selected backed candidates. (n_candidates={}, n_cores={}, relay_parent={})",
-      merged_candidates.size(),
-      availability_cores.size(),
-      relay_parent);
+    SL_TRACE(
+        logger_,
+        "Selected backed candidates. (n_candidates={}, n_cores={}, relay_parent={})",
+        merged_candidates.size(),
+        availability_cores.size(),
+        relay_parent);
 
     return merged_candidates;
   }
@@ -3367,62 +3396,62 @@ namespace kagome::parachain {
   }
 
   std::optional<BackingStore::BackedCandidate>
-  ParachainProcessorImpl::table_attested_to_backed(
-      AttestedCandidate &&attested, TableContext &table_context, bool inject_core_index) {
+  ParachainProcessorImpl::table_attested_to_backed(AttestedCandidate &&attested,
+                                                   TableContext &table_context,
+                                                   bool inject_core_index) {
     const auto core_index = attested.group_id;
     auto it = table_context.groups.find(core_index);
     if (it == table_context.groups.end()) {
       return std::nullopt;
     }
 
-      const auto &group = it->second;
-      scale::BitVec validator_indices{};
-      validator_indices.bits.resize(group.size(), false);
+    const auto &group = it->second;
+    scale::BitVec validator_indices{};
+    validator_indices.bits.resize(group.size(), false);
 
-      std::vector<std::pair<size_t, size_t>> vote_positions;
-      vote_positions.reserve(attested.validity_votes.size());
+    std::vector<std::pair<size_t, size_t>> vote_positions;
+    vote_positions.reserve(attested.validity_votes.size());
 
-      auto position = [](const auto &container,
-                         const auto &val) -> std::optional<size_t> {
-        for (size_t ix = 0; ix < container.size(); ++ix) {
-          if (val == container[ix]) {
-            return ix;
-          }
+    auto position = [](const auto &container,
+                       const auto &val) -> std::optional<size_t> {
+      for (size_t ix = 0; ix < container.size(); ++ix) {
+        if (val == container[ix]) {
+          return ix;
         }
+      }
+      return std::nullopt;
+    };
+
+    for (size_t orig_idx = 0; orig_idx < attested.validity_votes.size();
+         ++orig_idx) {
+      const auto &id = attested.validity_votes[orig_idx].first;
+      if (auto p = position(group, id)) {
+        validator_indices.bits[*p] = true;
+        vote_positions.emplace_back(orig_idx, *p);
+      } else {
+        logger_->critical(
+            "Logic error: Validity vote from table does not correspond to "
+            "group.");
         return std::nullopt;
-      };
-
-      for (size_t orig_idx = 0; orig_idx < attested.validity_votes.size();
-           ++orig_idx) {
-        const auto &id = attested.validity_votes[orig_idx].first;
-        if (auto p = position(group, id)) {
-          validator_indices.bits[*p] = true;
-          vote_positions.emplace_back(orig_idx, *p);
-        } else {
-          logger_->critical(
-              "Logic error: Validity vote from table does not correspond to "
-              "group.");
-          return std::nullopt;
-        }
       }
-      std::sort(
-          vote_positions.begin(),
-          vote_positions.end(),
-          [](const auto &l, const auto &r) { return l.second < r.second; });
+    }
+    std::sort(vote_positions.begin(),
+              vote_positions.end(),
+              [](const auto &l, const auto &r) { return l.second < r.second; });
 
-      std::vector<network::ValidityAttestation> validity_votes;
-      validity_votes.reserve(vote_positions.size());
-      for (const auto &[pos_in_votes, _pos_in_group] : vote_positions) {
-        validity_votes.emplace_back(
-            std::move(attested.validity_votes[pos_in_votes].second));
-      }
+    std::vector<network::ValidityAttestation> validity_votes;
+    validity_votes.reserve(vote_positions.size());
+    for (const auto &[pos_in_votes, _pos_in_group] : vote_positions) {
+      validity_votes.emplace_back(
+          std::move(attested.validity_votes[pos_in_votes].second));
+    }
 
-      return BackingStore::BackedCandidate::from(
-          std::move(attested.candidate),
-          std::move(validity_votes),
-          std::move(validator_indices),
-          inject_core_index ? std::optional<CoreIndex>{core_index} : std::optional<CoreIndex>{}
-        );
+    return BackingStore::BackedCandidate::from(
+        std::move(attested.candidate),
+        std::move(validity_votes),
+        std::move(validator_indices),
+        inject_core_index ? std::optional<CoreIndex>{core_index}
+                          : std::optional<CoreIndex>{});
   }
 
   outcome::result<std::optional<BackingStore::ImportResult>>
@@ -3738,11 +3767,11 @@ namespace kagome::parachain {
                                            rp_state.minimum_backing_votes)) {
       const auto candidate_hash{candidateHash(*hasher_, attested->candidate)};
 
-      if (rp_state.backed_hashes
-              .insert(candidate_hash)
-              .second) {
-        if (auto backed = table_attested_to_backed(std::move(*attested),
-                                                   rp_state.table_context, rp_state.inject_core_index)) {
+      if (rp_state.backed_hashes.insert(candidate_hash).second) {
+        if (auto backed =
+                table_attested_to_backed(std::move(*attested),
+                                         rp_state.table_context,
+                                         rp_state.inject_core_index)) {
           const auto para_id = backed->candidate.descriptor.para_id;
           SL_INFO(
               logger_,
@@ -3760,10 +3789,14 @@ namespace kagome::parachain {
             backing_store_->add(relay_parent, std::move(*backed));
           }
         } else {
-          SL_TRACE(logger_, "Cannot get BackedCandidate. (candidate_hash={})", candidate_hash);
+          SL_TRACE(logger_,
+                   "Cannot get BackedCandidate. (candidate_hash={})",
+                   candidate_hash);
         }
       } else {
-        SL_TRACE(logger_, "Candidate already known. (candidate_hash={})", candidate_hash);
+        SL_TRACE(logger_,
+                 "Candidate already known. (candidate_hash={})",
+                 candidate_hash);
       }
     } else {
       SL_TRACE(logger_, "No attested candidate.");
@@ -4452,7 +4485,8 @@ namespace kagome::parachain {
             "relay parent={}, peer={}, candidate_hash={})",
             candidate.descriptor.para_id,
             relay_parent,
-            peer_id, candidate_hash);
+            peer_id,
+            candidate_hash);
 
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     const auto candidate_hash{candidate.hash(*hasher_)};
