@@ -115,7 +115,8 @@ namespace kagome::parachain {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
-      std::shared_ptr<ProspectiveParachains> prospective_parachains)
+      std::shared_ptr<ProspectiveParachains> prospective_parachains,
+      std::shared_ptr<blockchain::BlockTree> block_tree)
       : pm_(std::move(pm)),
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
@@ -137,7 +138,8 @@ namespace kagome::parachain {
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
         chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
-        prospective_parachains_{std::move(prospective_parachains)} {
+        prospective_parachains_{std::move(prospective_parachains)},
+        block_tree_{std::move(block_tree)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -155,6 +157,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
+    BOOST_ASSERT(block_tree_);
     app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(prospective_parachains_);
@@ -2346,6 +2349,7 @@ namespace kagome::parachain {
     }
   }
 
+  /// TODO(iceseer): do remove
   std::optional<GroupIndex> ParachainProcessorImpl::group_for_para(
       const std::vector<runtime::CoreState> &availability_cores,
       const runtime::GroupDescriptor &group_rotation_info,
@@ -3081,6 +3085,46 @@ namespace kagome::parachain {
         confirmed.para_id(), confirmed.para_head());
   }
 
+  outcome::result<BlockNumber> ParachainProcessorImpl::get_block_number_under_construction(const RelayHash &relay_parent) const {
+    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+
+    auto res_header = block_tree_->getBlockHeader(relay_parent);
+    if (res_header.has_error()) {
+      if (res_header.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+        return 0;
+      }
+      return res_header.error();
+    }
+    return res_header.value().number + 1;
+  }
+
+  bool ParachainProcessorImpl::bitfields_indicate_availability(
+    size_t core_idx,
+    const std::vector<BitfieldStore::SignedBitfield> &bitfields,
+    const scale::BitVec &availability_
+  ) {
+    scale::BitVec availability{availability_};
+    const auto availability_len = availability.bits.size();
+
+    for (const auto &bitfield : bitfields) {
+      const auto validator_idx{size_t(bitfield.payload.ix)};
+      if (validator_idx >= availability.bits.size()) {
+        SL_WARN(logger_, 
+          "attempted to set a transverse bit at idx which is greater than bitfield size. (validator_idx={}, availability_len={})",
+          validator_idx,
+          availability_len
+        );
+
+        return false;
+      }
+
+      availability.bits[validator_idx] = availability.bits[validator_idx] || bitfield.payload.payload.bits[core_idx];
+    }
+
+    return 3 * approval::count_ones(availability) >= 2 * availability.bits.size();
+  }
+
+
   std::vector<network::BackedCandidate>
   ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
@@ -3091,108 +3135,160 @@ namespace kagome::parachain {
       return {};
     }
 
-    if (relay_parent_state_opt->get().prospective_parachains_mode) {
-      std::vector<network::BackedCandidate> backed;
-      for (size_t core_idx = 0;
-           core_idx < relay_parent_state_opt->get().availability_cores.size();
-           ++core_idx) {
-        const runtime::CoreState &core =
-            relay_parent_state_opt->get().availability_cores[core_idx];
-        std::optional<std::pair<CandidateHash, Hash>> response = visit_in_place(
-            core,
-            [&](const network::ScheduledCore &scheduled_core)
-                -> std::optional<std::pair<CandidateHash, Hash>> {
-              if (auto i = prospective_parachains_->answerGetBackableCandidates(
-                      relay_parent, scheduled_core.para_id, 1, {});
-                  !i.empty()) {
-                return i[0];
-              }
-              return std::nullopt;
-            },
-            [&](const runtime::OccupiedCore &occupied_core)
-                -> std::optional<std::pair<CandidateHash, Hash>> {
-              /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-              /// `bitfields_indicate_availability` check
+    if (!relay_parent_state_opt->get().prospective_parachains_mode) {
+      return backing_store_->get(relay_parent);
+    }
+
+    BlockNumber block_number; 
+    if (auto r = get_block_number_under_construction(relay_parent); r.has_error()) {
+      return {};
+    } else {
+      block_number = r.value();
+    }
+
+    using Ancestors = std::unordered_set<CandidateHash>;
+    const auto &availability_cores = relay_parent_state_opt->get().availability_cores;
+
+    std::map<ParachainId, size_t> scheduled_cores_per_para;
+    std::unordered_map<ParachainId, Ancestors> ancestors;
+    ancestors.reserve(availability_cores.size());
+
+    const auto elastic_scaling_mvp = relay_parent_state_opt->get().inject_core_index;
+    const auto bitfields = bitfield_store_->getBitfields(relay_parent);
+    const auto cores_len = relay_parent_state_opt->get().availability_cores.size();
+
+    for (size_t core_idx = 0; core_idx < cores_len; ++core_idx) {
+      const runtime::CoreState &core = relay_parent_state_opt->get().availability_cores[core_idx];
+      visit_in_place(
+          core,
+          [&](const network::ScheduledCore &scheduled_core) {
+            scheduled_cores_per_para[scheduled_core.para_id] += 1;
+          },
+          [&](const runtime::OccupiedCore &occupied_core) {
+            const bool is_available = bitfields_indicate_availability(core_idx, bitfields, occupied_core.availability);
+            if (is_available) {
+              ancestors[occupied_core.candidate_descriptor.para_id].insert(occupied_core.candidate_hash);
               if (occupied_core.next_up_on_available) {
-                if (auto i =
-                        prospective_parachains_->answerGetBackableCandidates(
-                            relay_parent,
-                            occupied_core.next_up_on_available->para_id,
-                            1,
-                            {occupied_core.candidate_hash});
-                    !i.empty()) {
-                  return i[0];
-                }
-                return std::nullopt;
+                scheduled_cores_per_para[occupied_core.next_up_on_available->para_id] += 1;
               }
-              return std::nullopt;
-            },
-            [&](const runtime::FreeCore &)
-                -> std::optional<std::pair<CandidateHash, Hash>> {
-              return std::nullopt;
-            });
+            } else if (occupied_core.time_out_at <= block_number) {
+              if (occupied_core.next_up_on_time_out) {
+                scheduled_cores_per_para[occupied_core.next_up_on_time_out->para_id] += 1;
+              }
+            } else {
+              ancestors[occupied_core.candidate_descriptor.para_id].insert(occupied_core.candidate_hash);
+            }
+          },
+          [&](const runtime::FreeCore &) {
+          });
+    }
 
-        if (!response) {
+    std::unordered_map<ParachainId, std::vector<std::pair<CandidateHash, Hash>>> selected_candidates;
+    selected_candidates.reserve(scheduled_cores_per_para.size());
+
+    auto ancestor_remove = [&] (ParachainId para_id) -> Ancestors {
+      auto it = ancestors.find(para_id);
+      if (it == ancestors.end()) {
+        return {};
+      }
+
+      auto result{std::move(it->second)};
+      ancestors.erase(it);
+      return result;
+    };
+
+    for (const auto &[para_id, core_count] : scheduled_cores_per_para) {
+      auto para_ancestors = ancestor_remove(para_id);
+      if (!elastic_scaling_mvp && core_count > 1) {
+        continue;
+      }
+
+      std::vector<CandidateHash> para_ancestors_vec(
+        std::move_iterator(para_ancestors.begin()),
+        std::move_iterator(para_ancestors.end())
+        );
+      auto response = prospective_parachains_->answerGetBackableCandidates(
+        relay_parent, 
+        para_id, 
+        core_count, 
+        para_ancestors_vec);
+
+      if (response.empty()) {
+        SL_TRACE(logger_, "No backable candidate returned by prospective parachains. (relay_parent={}, para_id={})", relay_parent, para_id);
+        continue;
+      }
+
+      selected_candidates.emplace(para_id, std::move(response));
+    }
+    SL_TRACE(logger_, "Got backable candidates. (count={})", selected_candidates.size());
+
+    std::unordered_map<ParachainId, std::vector<BackingStore::BackedCandidate>> backed;
+    backed.reserve(selected_candidates.size());
+
+    for (const auto &[para_id, para_candidates] : selected_candidates) {
+      for (const auto &[c_hash, r_hash] : para_candidates) {
+        auto rp_state = tryGetStateByRelayParent(r_hash);
+        if (!rp_state) {
           SL_TRACE(logger_,
-                   "No backable candidate returned by prospective parachains. "
-                   "(relay_parent={}, core_idx={})",
-                   relay_parent,
-                   core_idx);
-          continue;
-        } else {
-          SL_TRACE(
-              logger_,
-              "Have backable candidate returned by prospective parachains. "
-              "(relay_parent={}, core_idx={})",
-              relay_parent,
-              core_idx);
-        }
-
-        const CandidateHash &c_hash = response->first;
-        const RelayHash &r_hash = response->second;
-
-        auto per_relay_state = tryGetStateByRelayParent(r_hash);
-        if (!per_relay_state) {
-          SL_TRACE(logger_,
-                   "No relay parent state. "
-                   "(relay_parent={}, r_state={}, core_idx={})",
+                   "Requested candidate's relay parent is out of view. (relay_parent={}, r_hash={}, c_hash={})",
                    relay_parent,
                    r_hash,
-                   core_idx);
-          continue;
+                   c_hash);
+          break;
         }
 
         if (auto attested = attested_candidate(
                 r_hash,
                 c_hash,
-                per_relay_state->get().table_context,
-                per_relay_state->get().minimum_backing_votes)) {
+                rp_state->get().table_context,
+                rp_state->get().minimum_backing_votes)) {
           if (auto b = table_attested_to_backed(
-                  std::move(*attested), per_relay_state->get().table_context, per_relay_state->get().inject_core_index)) {
-            backed.emplace_back(std::move(*b));
+                  std::move(*attested), rp_state->get().table_context, rp_state->get().inject_core_index)) {
+            backed[para_id].emplace_back(std::move(*b));
           } else {
             SL_TRACE(logger_,
                      "Candidate not attested -> backed. "
-                     "(relay_parent={}, r_state={}, c_hash={}, core_idx={})",
+                     "(relay_parent={}, r_state={}, c_hash={})",
                      relay_parent,
                      r_hash,
-                     c_hash,
-                     core_idx);
+                     c_hash);
           }
         } else {
           SL_TRACE(logger_,
                    "Candidate not attested. "
-                   "(relay_parent={}, r_state={}, c_hash={}, core_idx={})",
+                   "(relay_parent={}, r_state={}, c_hash={})",
                    relay_parent,
                    r_hash,
-                   c_hash,
-                   core_idx);
+                   c_hash);
         }
       }
-      return backed;
-    } else {
-      return backing_store_->get(relay_parent);
     }
+
+    SL_TRACE(logger_, "Got backed candidates. (relay_parent={}, backed_len={})", relay_parent, backed.size());
+    bool with_validation_code = false;
+    std::vector<BackingStore::BackedCandidate> merged_candidates;
+    merged_candidates.reserve(availability_cores.size());
+
+    for (const auto &[_, para_candidates] : backed) {
+      for (const auto &candidate : para_candidates) {
+        if (candidate.candidate.commitments.opt_para_runtime) {
+          if (with_validation_code) {
+            break;
+          } else {
+            with_validation_code = true;
+          }
+        }
+
+        merged_candidates.emplace_back(candidate);
+      }
+    }
+
+    SL_TRACE(logger_, "Selected backed candidates. (n_candidates={}, n_cores={}, relay_parent={})",
+      merged_candidates.size(),
+      availability_cores.size(),
+      relay_parent);
+
+    return merged_candidates;
   }
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
@@ -3640,8 +3736,10 @@ namespace kagome::parachain {
                                            summary->candidate,
                                            rp_state.table_context,
                                            rp_state.minimum_backing_votes)) {
+      const auto candidate_hash{candidateHash(*hasher_, attested->candidate)};
+
       if (rp_state.backed_hashes
-              .insert(candidateHash(*hasher_, attested->candidate))
+              .insert(candidate_hash)
               .second) {
         if (auto backed = table_attested_to_backed(std::move(*attested),
                                                    rp_state.table_context, rp_state.inject_core_index)) {
@@ -3661,8 +3759,14 @@ namespace kagome::parachain {
           } else {
             backing_store_->add(relay_parent, std::move(*backed));
           }
+        } else {
+          SL_TRACE(logger_, "Cannot get BackedCandidate. (candidate_hash={})", candidate_hash);
         }
+      } else {
+        SL_TRACE(logger_, "Candidate already known. (candidate_hash={})", candidate_hash);
       }
+    } else {
+      SL_TRACE(logger_, "No attested candidate.");
     }
   }
 
@@ -4342,12 +4446,13 @@ namespace kagome::parachain {
              relay_parent,
              n_validators);
 
+    const auto candidate_hash{candidate.hash(*hasher_)};
     SL_INFO(logger_,
             "Starting validation task.(para id={}, "
-            "relay parent={}, peer={})",
+            "relay parent={}, peer={}, candidate_hash={})",
             candidate.descriptor.para_id,
             relay_parent,
-            peer_id);
+            peer_id, candidate_hash);
 
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     const auto candidate_hash{candidate.hash(*hasher_)};

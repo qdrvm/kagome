@@ -127,7 +127,8 @@ namespace kagome::parachain {
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains);
+        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
     ~ParachainProcessorImpl() = default;
 
     bool prepare();
@@ -152,6 +153,12 @@ namespace kagome::parachain {
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request);
+    outcome::result<BlockNumber> get_block_number_under_construction(const RelayHash &relay_parent) const;
+    bool bitfields_indicate_availability(
+    size_t core_idx,
+    const std::vector<BitfieldStore::SignedBitfield> &bitfields,
+    const scale::BitVec &availability
+  );
 
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
@@ -772,6 +779,7 @@ namespace kagome::parachain {
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     Candidates candidates_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
