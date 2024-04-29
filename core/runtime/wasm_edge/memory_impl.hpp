@@ -16,7 +16,7 @@
 
 namespace kagome::runtime::wasm_edge {
 
-  class MemoryImpl final : public Memory {
+  class MemoryImpl final : public MemoryHandle {
    public:
     MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
                const MemoryConfig &config);
@@ -40,17 +40,8 @@ namespace kagome::runtime::wasm_edge {
     outcome::result<BytesOut> view(WasmPointer ptr,
                                    WasmSize size) const override;
 
-    WasmPointer allocate(WasmSize size) override {
-      return allocator_.allocate(size);
-    }
-
-    void deallocate(WasmPointer ptr) override {
-      return allocator_.deallocate(ptr);
-    }
-
    private:
     WasmEdge_MemoryInstanceContext *mem_instance_;
-    MemoryAllocator allocator_;
     log::Logger logger_ = log::createLogger("Memory", "runtime");
   };
 
@@ -66,7 +57,7 @@ namespace kagome::runtime::wasm_edge {
         const MemoryConfig &config) override;
 
    private:
-    std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
+    std::optional<std::shared_ptr<Memory>> current_memory_;
     WasmEdge_MemoryInstanceContext *wasmedge_memory_;
   };
 
@@ -83,7 +74,7 @@ namespace kagome::runtime::wasm_edge {
     void setMemory(WasmEdge_MemoryInstanceContext *wasmedge_memory);
 
    private:
-    std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
+    std::optional<std::shared_ptr<Memory>> current_memory_;
     WasmEdge_MemoryInstanceContext *wasmedge_memory_{};
   };
 

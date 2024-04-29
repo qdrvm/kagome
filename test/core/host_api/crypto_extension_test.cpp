@@ -90,7 +90,7 @@ class CryptoExtensionTest : public ::testing::Test {
   void SetUp() override {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     hasher_ = std::make_shared<HasherImpl>();
@@ -190,7 +190,8 @@ class CryptoExtensionTest : public ::testing::Test {
   }
 
   void bytesN(WasmPointer ptr, BufferView expected) {
-    EXPECT_EQ(memory_.view(ptr, expected.size()).value(), SpanAdl{expected});
+    EXPECT_EQ(memory_.memory.view(ptr, expected.size()).value(),
+              SpanAdl{expected});
   }
 
  protected:

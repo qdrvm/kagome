@@ -11,6 +11,7 @@ on:
     branches: [ master ]
     tags: [ '*' ]
   pull_request:
+  workflow_dispatch:
 
 env:
   BUILD_DIR: build
@@ -31,6 +32,7 @@ env:
 jobs:
   MacOS:
     runs-on: macos-14
+    timeout-minutes: 60
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -57,7 +59,8 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -94,8 +97,9 @@ jobs:
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
-    runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -124,16 +128,17 @@ jobs:
         options:
           - name: "Self-hosted: Linux: gcc-12 ASAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
-          - name: "Self-hosted: Linux: clang-15 TSAN WAVM"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+          - name: "Self-hosted: Linux: gcc-12 TSAN WAVM"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
           - name: "Self-hosted: Linux: clang-15 UBSAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
           - name: "Self-hosted: Linux: clang-15 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
-    runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -157,7 +162,8 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -177,10 +183,11 @@ jobs:
           ./housekeeping/clang-tidy-diff.sh
 
   coverage-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
+    if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
-    runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -228,7 +235,8 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -251,8 +259,9 @@ jobs:
           - name: "Self-hosted: Minideb: Build Release"
             build-type: "Release"
     name: "${{ matrix.options.name }}"
-    runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:6-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -277,7 +286,8 @@ jobs:
             build-type: "Release"
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
-    runs-on: [ self-hosted ]
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -314,7 +324,8 @@ jobs:
             build-type: "Release"
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
-    runs-on: [ self-hosted ]
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
@@ -342,6 +353,7 @@ jobs:
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-tests:
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -374,7 +386,8 @@ jobs:
             test: "test0010"
           - name: "Block building warp sync"
             test: "test0011"
-    runs-on: [ self-hosted ]
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
     needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively
@@ -387,12 +400,12 @@ jobs:
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
 
-  Trigger_CD:
-    if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [Push-self-hosted]
-    runs-on: ubuntu-latest
-    steps:
-      - name: trigger cd job
-        run: |
-          curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
-          curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"
+#  Trigger_CD:
+#    if: ${{ github.ref == 'refs/heads/master' }}
+#    needs: [Push-self-hosted]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: trigger cd job
+#        run: |
+#          curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
+#          curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"

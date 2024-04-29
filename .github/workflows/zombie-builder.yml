@@ -6,22 +6,18 @@
 
 name : Zombie Builder
 
-# Update zombie builder image each Sunday night
 on:
-#  schedule:
-#    - cron: '0 2 * * 0'
+  schedule:
+    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
 
 jobs:
   build_and_push_zombie_builder:
-    runs-on: [ kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-#    - name: Install dependencies
-#      working-directory: ./zombienet/docker
-#      run: |
-#        pip install -r ./requirements.txt
     - name: build zombie-builder
       working-directory: ./zombienet/docker
       run: make builder_last
