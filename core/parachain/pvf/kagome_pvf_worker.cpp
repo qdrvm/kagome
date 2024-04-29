@@ -5,11 +5,9 @@
  */
 
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <memory>
 #include <ranges>
-#include <soralog/macro.hpp>
 #include <span>
 #include <string>
 #include <system_error>
@@ -23,15 +21,16 @@
 #include <sys/prctl.h>
 #endif
 
-#include <libp2p/common/final_action.hpp>
-#include <libp2p/log/configurator.hpp>
-#include <libp2p/outcome/outcome-register.hpp>
-
+#include <fmt/format.h>
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/asio_buffer.hpp>
+#include <libp2p/common/final_action.hpp>
+#include <libp2p/log/configurator.hpp>
+#include <libp2p/outcome/outcome-register.hpp>
+#include <soralog/macro.hpp>
 
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
@@ -61,16 +60,16 @@
 namespace kagome::parachain {
   static kagome::log::Logger logger;
 
+#ifdef __linux__
+
   bool checkEnvVarsEmpty(const char **env) {
     return env != nullptr;
   }
 
   SecureModeError getLastErr(std::string_view call_name) {
     return SecureModeError{
-        std::format("{} failed: {}", call_name, strerror(errno))};
+        fmt::format("{} failed: {}", call_name, strerror(errno))};
   }
-
-#ifdef __linux__
 
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
@@ -97,11 +96,11 @@ namespace kagome::parachain {
     std::filesystem::current_path("..", err);
     if (err) {
       return SecureModeError{
-          std::format("Failed to chdir to ..: {}", err.message())};
+          fmt::format("Failed to chdir to ..: {}", err.message())};
     }
     if (std::filesystem::current_path() != "/") {
       return SecureModeError{
-          std::format("Successfully escaped from chroot with 'chdir ..'")};
+          fmt::format("Successfully escaped from chroot with 'chdir ..'")};
     }
     return outcome::success();
   }
