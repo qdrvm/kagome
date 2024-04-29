@@ -60,11 +60,11 @@
 namespace kagome::parachain {
   static kagome::log::Logger logger;
 
-#ifdef __linux__
-
   bool checkEnvVarsEmpty(const char **env) {
     return env != nullptr;
   }
+
+#ifdef __linux__
 
   SecureModeError getLastErr(std::string_view call_name) {
     return SecureModeError{
