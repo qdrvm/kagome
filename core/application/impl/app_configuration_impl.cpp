@@ -7,6 +7,7 @@
 #include "application/impl/app_configuration_impl.hpp"
 
 #include <charconv>
+#include <filesystem>
 #include <limits>
 #include <regex>
 #include <string>
@@ -1470,6 +1471,17 @@ namespace kagome::application {
                    runtimeCacheDirPath(),
                    ec);
         }
+      }
+    }
+    {
+      std::error_code ec;
+      kagome::filesystem::create_directories(runtimeCacheDirPath(), ec);
+      if (ec) {
+        SL_ERROR(logger_,
+                 "Failed to create runtime cache dir {}: {}",
+                 runtimeCacheDirPath(),
+                 ec);
+        return false;
       }
     }
 

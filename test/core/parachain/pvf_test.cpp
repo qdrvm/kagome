@@ -22,6 +22,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
 #include "testutil/literals.hpp"

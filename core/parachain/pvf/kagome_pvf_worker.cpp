@@ -48,34 +48,32 @@
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
-bool checkEnvVarsEmpty(const char **env) {
-  return env != nullptr;
-}
-
-std::error_code getLastErr(std::string_view call_name) {
-  return make_error_code(static_cast<std::errc>(errno));
-}
-
 #define EXPECT_NON_NEG(func, ...)                  \
   if (auto res = ::func(__VA_ARGS__); res == -1) { \
-    return getLastErr(#func);                      \
+    return ::kagome::parachain::getLastErr(#func); \
   }
 
-#define EXPECT_NON_NULL(func, args)           \
-  if (auto res = func args; res == nullptr) { \
-    return getLastErr(#func);                 \
+#define EXPECT_NON_NULL(func, args)                \
+  if (auto res = func args; res == nullptr) {      \
+    return ::kagome::parachain::getLastErr(#func); \
   }
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, SecureModeError, e) {
-  return "e";
-}
 
 namespace kagome::parachain {
   static kagome::log::Logger logger;
 
+  bool checkEnvVarsEmpty(const char **env) {
+    return env != nullptr;
+  }
+
+  SecureModeError getLastErr(std::string_view call_name) {
+    return SecureModeError{
+        std::format("{} failed: {}", call_name, strerror(errno))};
+  }
+
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
-  outcome::result<void> changeRoot(const std::filesystem::path &worker_dir) {
+  outcome::result<void, SecureModeError> changeRoot(
+      const std::filesystem::path &worker_dir) {
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
 
@@ -91,20 +89,22 @@ namespace kagome::parachain {
     EXPECT_NON_NEG(syscall, SYS_pivot_root, ".", ".");
     EXPECT_NON_NEG(umount2, ".", MNT_DETACH);
     if (std::filesystem::current_path() != "/") {
-      return std::error_code{SecureModeError::CHROOT_FAILED};
+      return SecureModeError{"Chroot failed: . is not /"};
     }
     std::error_code err{};
     std::filesystem::current_path("..", err);
     if (err) {
-      return err;
+      return SecureModeError{
+          std::format("Failed to chdir to ..: {}", err.message())};
     }
     if (std::filesystem::current_path() != "/") {
-      return std::error_code{SecureModeError::ESCAPED_FROM_CHROOT};
+      return SecureModeError{
+          std::format("Successfully escaped from chroot with 'chdir ..'")};
     }
     return outcome::success();
   }
 
-  outcome::result<void> enableSeccomp() {
+  outcome::result<void, SecureModeError> enableSeccomp() {
     std::array forbidden_calls{
         SCMP_SYS(socketpair),
         SCMP_SYS(socket),
@@ -130,7 +130,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void> enableLandlock(
+  outcome::result<void, SecureModeError> enableLandlock(
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 0>
         allowed_exceptions;
@@ -147,7 +147,7 @@ namespace kagome::parachain {
     abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
-      return SecureModeError::LANDLOCK_FAILED;
+      return getLastErr("landlock_create_ruleset");
     }
 
     struct landlock_ruleset_attr ruleset_attr = {
@@ -169,7 +169,7 @@ namespace kagome::parachain {
     ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
     if (ruleset_fd < 0) {
-      return SecureModeError::LANDLOCK_FAILED;
+      return getLastErr("landlock_create_ruleset");
     }
     libp2p::common::FinalAction cleanup = [ruleset_fd]() { close(ruleset_fd); };
 
@@ -180,7 +180,7 @@ namespace kagome::parachain {
       };
 
       if (path_beneath.parent_fd < 0) {
-        return SecureModeError::LANDLOCK_FAILED;
+        return getLastErr("open");
       }
       auto err = ::syscall(SYS_landlock_add_rule,
                            ruleset_fd,
@@ -189,7 +189,7 @@ namespace kagome::parachain {
                            0);
       ::close(path_beneath.parent_fd);
       if (err == -1) {
-        return SecureModeError::LANDLOCK_FAILED;
+        return getLastErr("landlock_add_rule");
       }
     }
 
@@ -199,7 +199,7 @@ namespace kagome::parachain {
     }
 
     if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0)) {
-      return SecureModeError::LANDLOCK_FAILED;
+      return getLastErr("landlock_restrict_self");
     }
 
     return outcome::success();
@@ -258,12 +258,30 @@ namespace kagome::parachain {
     OUTCOME_TRY(input, decodeInput());
     kagome::log::tuneLoggingSystem(input.log_params);
 
-    // OUTCOME_TRY(changeRoot(input.cache_dir));
-    // input.cache_dir = "/";
-    // OUTCOME_TRY(enableLandlock(input.cache_dir));
-    // OUTCOME_TRY(enableSeccomp());
+    SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
+    SL_VERBOSE(logger, "Cache directory: {}", input.cache_dir);
 
-    SL_INFO(logger, "Successfully enabled secure validator mode");
+    if (auto res = changeRoot(input.cache_dir); !res) {
+      SL_ERROR(logger,
+               "Failed to enable secure validator mode (change root): {}",
+               res.error().message);
+      return std::errc::not_supported;
+    }
+    input.cache_dir = "/";
+
+    if (auto res = enableLandlock(input.cache_dir); !res) {
+      SL_ERROR(logger,
+               "Failed to enable secure validator mode (landlock): {}",
+               res.error().message);
+      return std::errc::not_supported;
+    }
+    if (auto res = enableSeccomp(); !res) {
+      SL_ERROR(logger,
+               "Failed to enable secure validator mode (seccomp): {}",
+               res.error().message);
+      return std::errc::not_supported;
+    }
+    SL_VERBOSE(logger, "Successfully enabled secure validator mode");
 
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
@@ -278,6 +296,9 @@ namespace kagome::parachain {
     std::cout.write((const char *)len.data(), len.size());
     std::cout.write((const char *)result.data(), result.size());
     std::cout.flush();
+
+    SL_DEBUG(logger, "Worker finished successfully");
+
     return outcome::success();
   }
 
