@@ -138,8 +138,7 @@ namespace kagome::parachain {
     // separate FS permissions accordingly
     allowed_exceptions[0] =
         std::pair{worker_dir,
-                  LANDLOCK_ACCESS_FS_READ_FILE |
-                  LANDLOCK_ACCESS_FS_WRITE_FILE
+                  LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE
                       | LANDLOCK_ACCESS_FS_MAKE_REG};
 
     int abi{};
