@@ -62,15 +62,6 @@ namespace kagome::runtime {
       }
 
       void deallocate(WasmPointer ptr) override {}
-
-      std::optional<WasmSize> getAllocatedChunkSize(
-          WasmPointer ptr) const override {
-        return {};
-      }
-
-      size_t getDeallocatedChunksNum() const override {
-        return 0;
-      }
     };
 
     PtrSize allocate2(WasmSize size) {

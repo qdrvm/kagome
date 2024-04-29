@@ -41,13 +41,6 @@ namespace kagome::runtime {
 
     virtual WasmPointer allocate(WasmSize size) = 0;
     virtual void deallocate(WasmPointer ptr) = 0;
-
-    /*
-      Following methods are needed mostly for testing purposes.
-    */
-    virtual std::optional<WasmSize> getAllocatedChunkSize(
-        WasmPointer ptr) const = 0;
-    virtual size_t getDeallocatedChunksNum() const = 0;
   };
 
   /**

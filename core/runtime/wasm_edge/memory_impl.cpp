@@ -4,7 +4,9 @@
  */
 
 #include "runtime/wasm_edge/memory_impl.hpp"
+
 #include <memory>
+
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/common/memory_error.hpp"
 #include "runtime/memory_check.hpp"

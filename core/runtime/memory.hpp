@@ -85,11 +85,11 @@ namespace kagome::runtime {
     }
 
     outcome::result<BytesOut> view(PtrSize ptr_size) const {
-      return view(ptr_size.ptr, ptr_size.size);
+      return handle_->view(ptr_size);
     }
 
     outcome::result<BytesOut> view(WasmSpan span) const {
-      return view(PtrSize{span});
+      return handle_->view(span);
     }
 
     /**
@@ -98,7 +98,7 @@ namespace kagome::runtime {
      * @return address to allocated memory. If there is no available slot for
      * such allocation, then -1 is returned
      */
-    virtual WasmPointer allocate(WasmSize size) {
+    WasmPointer allocate(WasmSize size) {
       return allocator_->allocate(size);
     }
 

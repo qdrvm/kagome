@@ -56,7 +56,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<runtime::Memory> memory_;
-  MemoryAllocator *allocator_;
+  runtime::MemoryAllocatorImpl *allocator_;
 };
 
 /**
