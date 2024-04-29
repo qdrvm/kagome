@@ -23,4 +23,4 @@ CodeStyle
 
 We follow `CppCoreGuidelines <https://github.com/isocpp/CppCoreGuidelines>`_.
 
-Please use provided `.clang-format <https://github.com/soramitsu/kagome/blob/master/.clang-format>`_ file to autoformat the code.
+Please use provided `.clang-format <https://github.com/qdrvm/kagome/blob/master/.clang-format>`_ file to autoformat the code.
