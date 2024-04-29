@@ -122,7 +122,7 @@ namespace kagome::runtime {
       }
 
       void push_frame(StackFrame frame) {
-        SL_DEBUG(logger_,
+        SL_TRACE(logger_,
                  "frame #{}, start height_ {}",
                  frames_.size(),
                  frame.start_height);
