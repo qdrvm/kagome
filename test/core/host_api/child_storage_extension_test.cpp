@@ -68,7 +68,7 @@ class ChildStorageExtensionTest : public ::testing::Test {
             Return(outcome::success(std::ref(*trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     child_storage_extension_ = std::make_shared<ChildStorageExtension>(
         storage_provider_, memory_provider_);
   }
@@ -174,7 +174,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
     ASSERT_EQ(memory_.decode<Result>(call()), result);
     if (param) {
       auto n = std::min<size_t>(value_span.size, param->size());
-      ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+      ASSERT_EQ(memory_.memory.view(value_span.ptr, n).value(),
                 SpanAdl{param->view(offset, n)});
     }
   }

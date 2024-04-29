@@ -11,6 +11,7 @@
 
 using kagome::common::unhex;
 using kagome::runtime::MemoryAllocator;
+using kagome::runtime::MemoryAllocatorImpl;
 using kagome::runtime::MemoryConfig;
 using kagome::runtime::TestMemory;
 
@@ -37,8 +38,8 @@ void test(std::string_view hex) {
   auto replay = scale::decode<Replay>(unhex(hex).value()).value();
 
   TestMemory memory;
-  memory.resize(replay.size);
-  MemoryAllocator allocator{memory, MemoryConfig{replay.heap_base}};
+  memory.handle->resize(replay.size);
+  MemoryAllocatorImpl allocator{memory.handle, MemoryConfig{replay.heap_base}};
   for (auto &op : replay.ops) {
     if (auto op_allocate = boost::get<Replay::OpAllocate>(&op)) {
       EXPECT_EQ(allocator.allocate(op_allocate->size), op_allocate->ptr);
