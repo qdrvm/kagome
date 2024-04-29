@@ -5,6 +5,7 @@
  */
 
 #include <filesystem>
+#include <format>
 #include <iostream>
 #include <memory>
 #include <ranges>
@@ -22,7 +23,6 @@
 #include <sys/prctl.h>
 #endif
 
-#include <fmt/format.h>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/log/configurator.hpp>
 #include <libp2p/outcome/outcome-register.hpp>
