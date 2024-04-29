@@ -70,6 +70,8 @@ namespace kagome::parachain {
         std::format("{} failed: {}", call_name, strerror(errno))};
   }
 
+#ifdef __linux__
+
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
   outcome::result<void, SecureModeError> changeRoot(
@@ -203,6 +205,7 @@ namespace kagome::parachain {
 
     return outcome::success();
   }
+#endif
 
   outcome::result<void> readStdin(std::span<uint8_t> out) {
     std::cin.read(reinterpret_cast<char *>(out.data()), out.size());
@@ -257,8 +260,10 @@ namespace kagome::parachain {
     OUTCOME_TRY(input, decodeInput());
     kagome::log::tuneLoggingSystem(input.log_params);
 
-    SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
     SL_VERBOSE(logger, "Cache directory: {}", input.cache_dir);
+
+#ifdef __linux__
+    SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
     if (auto res = changeRoot(input.cache_dir); !res) {
       SL_ERROR(logger,
@@ -281,7 +286,11 @@ namespace kagome::parachain {
       return std::errc::not_supported;
     }
     SL_VERBOSE(logger, "Successfully enabled secure validator mode");
-
+#else
+    SL_WARN(
+        logger,
+        "Secure validator mode is not implemented for the current platform. Proceed at your own risk.");
+#endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
     OUTCOME_TRY(ctx,
