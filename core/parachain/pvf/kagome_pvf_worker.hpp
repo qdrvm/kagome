@@ -13,7 +13,11 @@
 namespace kagome::parachain {
 
   struct SecureModeError {
-    std::string message;
+    std::string_view message() const {
+      return message_;
+    }
+
+    std::string message_;
   };
 
   outcome::result<void, SecureModeError> changeRoot(
