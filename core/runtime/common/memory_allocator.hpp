@@ -58,9 +58,8 @@ namespace kagome::runtime {
     /*
       Following methods are needed mostly for testing purposes.
     */
-    std::optional<WasmSize> getAllocatedChunkSize(
-        WasmPointer ptr) const override;
-    size_t getDeallocatedChunksNum() const override;
+    std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
+    size_t getDeallocatedChunksNum() const;
 
    private:
     using Header = uint64_t;
