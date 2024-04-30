@@ -49,15 +49,13 @@ namespace kagome::parachain::grid {
   /// The kind of backed candidate manifest we should send to a remote peer.
   enum class ManifestKind {
     /// Full manifests contain information about the candidate and should be
-    /// sent
-    /// to peers which aren't guaranteed to have the candidate already.
+    /// sent to peers which aren't guaranteed to have the candidate already.
     Full,
 
     /// Acknowledgement manifests omit information which is implicit in the
-    /// candidate
-    /// itself, and should be sent to peers which are guaranteed to have the
-    /// candidate
-    /// already.
+    /// candidate itself, and should be sent to peers which are guaranteed to
+    /// have the
+    /// candidate already.
     Acknowledgement,
   };
 
@@ -114,8 +112,7 @@ namespace kagome::parachain::grid {
   };
 
   /// Knowledge that we have about a remote peer concerning a candidate, and
-  /// that they have about us
-  /// concerning the candidate.
+  /// that they have about us concerning the candidate.
   struct MutualKnowledge {
     /// Knowledge the remote peer has about the candidate, as far as we're
     /// aware. `Some` only if they have advertised, acknowledged, or requested

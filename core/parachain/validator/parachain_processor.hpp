@@ -247,7 +247,6 @@ namespace kagome::parachain {
 
     struct LocalValidatorState {
       grid::GridTracker grid_tracker;
-      // std::optional<ActiveValidatorState> active;
     };
 
     struct RelayParentState {

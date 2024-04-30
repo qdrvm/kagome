@@ -122,6 +122,9 @@ namespace kagome::network {
     virtual std::optional<std::reference_wrapper<const PeerState>> getPeerState(
         const PeerId &peer_id) const = 0;
 
+    /**
+     * Apply callback to each PeerState.
+     */
     virtual void enumeratePeerState(const PeersCallback &callback) = 0;
 
     /**
