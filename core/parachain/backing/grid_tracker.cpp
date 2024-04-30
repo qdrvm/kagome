@@ -122,7 +122,7 @@ namespace kagome::parachain::grid {
     const auto receiving_from = group_topology.receiving.contains(sender);
     const auto sending_to = group_topology.sending.contains(sender);
 
-    bool manifest_allowed;
+    bool manifest_allowed = true;
     if (kind == ManifestKind::Full) {
       manifest_allowed = receiving_from;
     } else {
@@ -264,7 +264,7 @@ namespace kagome::parachain::grid {
     auto pending = pending_manifests.find(validator_index);
     if (pending != pending_manifests.end()) {
       for (auto &[c, m] : pending->second) {
-        result.push_back({c, m});
+        result.emplace_back(c, m);
       }
     }
     return result;
@@ -443,7 +443,7 @@ namespace kagome::parachain::grid {
             k.local_knowledge
             && k.local_knowledge->contains(originator_index_in_group,
                                            statement_kind);
-        senders.push_back(std::make_pair(v, local_knowledge_contains));
+        senders.emplace_back(v, local_knowledge_contains);
       }
     }
     return senders;

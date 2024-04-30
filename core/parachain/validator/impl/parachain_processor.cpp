@@ -542,7 +542,7 @@ namespace kagome::parachain {
         std::vector<Hash> fresh =
             peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
         if (!fresh.empty()) {
-          update_peers.emplace_back(std::make_pair(peer, fresh));
+          update_peers.emplace_back(peer, fresh);
         }
         return true;
       });
@@ -1835,18 +1835,18 @@ namespace kagome::parachain {
     if (auto inner =
             if_type<const network::vstaging::BackedCandidateAcknowledgement>(
                 msg)) {
-      return handle_incoming_acknowledgement(peer_id, inner->get());
+      handle_incoming_acknowledgement(peer_id, inner->get());
     } else if (auto manifest =
                    if_type<const network::vstaging::BackedCandidateManifest>(
                        msg)) {
-      return handle_incoming_manifest(peer_id, manifest->get());
+      handle_incoming_manifest(peer_id, manifest->get());
     } else if (auto stm =
                    if_type<const network::vstaging::
                                StatementDistributionMessageStatement>(msg)) {
-      return handle_incoming_statement(peer_id, stm->get());
+      handle_incoming_statement(peer_id, stm->get());
+    } else {
+      SL_ERROR(logger_, "Skipped message.");
     }
-
-    SL_ERROR(logger_, "Skipped message.");
   }
 
   void ParachainProcessorImpl::circulate_statement(

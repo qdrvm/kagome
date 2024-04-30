@@ -65,7 +65,7 @@ namespace kagome::parachain::grid {
     Hash claimed_parent_hash;
 
     /// The claimed group index assigned to the candidate.
-    GroupIndex claimed_group_index;
+    GroupIndex claimed_group_index = 0;
 
     /// A statement filter sent alongisde the candidate, communicating
     /// knowledge.
