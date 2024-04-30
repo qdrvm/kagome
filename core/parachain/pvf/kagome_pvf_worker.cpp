@@ -201,7 +201,8 @@ namespace kagome::parachain {
       }
     }
 
-    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
+    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
+        == -1) {  // NOLINT(cppcoreguidelines-pro-type-vararg)
       ::close(ruleset_fd);
       return getLastErr("prctl PR_SET_NO_NEW_PRIVS");
     }
