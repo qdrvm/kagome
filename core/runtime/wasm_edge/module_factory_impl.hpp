@@ -42,10 +42,8 @@ namespace kagome::runtime::wasm_edge {
       Compiled,
     };
     struct Config {
-      Config(ExecType exec)
-          : exec{exec},
-            // TODO(Harrm): use app config
-            compiled_module_dir{"/tmp/kagome/wasm-edge"} {}
+      Config(ExecType exec, std::filesystem::path compiled_module_dir)
+          : exec{exec}, compiled_module_dir{std::move(compiled_module_dir)} {}
 
       ExecType exec;
       std::filesystem::path compiled_module_dir;

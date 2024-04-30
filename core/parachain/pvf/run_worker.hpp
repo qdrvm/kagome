@@ -56,8 +56,8 @@ namespace kagome::parachain {
                 bp::std_in < pipe_stdin,
             } {}
     };
-    auto logger = log::createLogger("A", "parachain");
-    logger->info("Run pvf worker");
+    auto logger = log::createLogger("RunWorker", "parachain");
+    SL_DEBUG(logger, "Start pvf worker");
 
     auto process = std::make_shared<ProcessAndPipes>(io_context, exe);
 
@@ -67,7 +67,7 @@ namespace kagome::parachain {
       if (*cb_) {
         auto cb = std::move(*cb_);
         cb_->reset();
-        logger->info("Stop pvf worker");
+        SL_DEBUG(logger, "Stop pvf worker");
         process->process.terminate();
         (*cb)(std::move(r));
       }

@@ -173,7 +173,7 @@ TEST_F(PvfTest, InputEncodeDecode) {
       .function = "test",
       .params = {1, 2, 3, 4},
       .runtime_params{.memory_limits = {}},
-      .cache_dir = "/tmp/somedir",
+      .cache_dir = "/tmp/kagome_pvf_test",
       .log_params = {},
   };
   ASSERT_OUTCOME_SUCCESS(buf, scale::encode(input));

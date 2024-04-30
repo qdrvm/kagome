@@ -20,9 +20,13 @@ namespace kagome::parachain {
     std::string message_;
   };
 
+  /// Changes the filessystem root directory for the current process to
+  /// worker_dir
   outcome::result<void, SecureModeError> changeRoot(
       const std::filesystem::path &worker_dir);
+  /// Prohibits network-related system calls
   outcome::result<void, SecureModeError> enableSeccomp();
+  /// Restricts access to the directories besides worker_dir
   outcome::result<void, SecureModeError> enableLandlock(
       const std::filesystem::path &worker_dir);
 

@@ -142,6 +142,7 @@ namespace kagome::parachain {
               runtime::wasm_edge::ModuleFactoryImpl::Config config{
                   engine == RuntimeEngine::kWasmEdgeCompiled ? E::Compiled
                                                              : E::Interpreted,
+                  input.cache_dir,
               };
               return std::make_shared<decltype(config)>(config);
             }),
