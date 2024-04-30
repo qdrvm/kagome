@@ -41,6 +41,7 @@ add_library(kagome_pvf_worker
     pvf/kagome_pvf_worker.cpp
     )
 target_link_libraries(kagome_pvf_worker
+    PUBLIC
     fmt::fmt
     scale::scale
     soralog::fallback_configurator
@@ -65,7 +66,8 @@ target_link_libraries(kagome_pvf_worker
     host_api_factory
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend
-
-    seccomp
     )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
+endif()
