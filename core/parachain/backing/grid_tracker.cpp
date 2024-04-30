@@ -584,21 +584,19 @@ namespace kagome::parachain::grid {
       }
       it->second = manifest_summary;
       return outcome::success();
-    } else {
-      // Entry is vacant
-      bool within_limits = updating_ensure_within_seconding_limit(
-          seconded_counts,
-          manifest_summary.claimed_group_index,
-          group_size,
-          seconding_limit,
-          manifest_summary.statement_knowledge.seconded_in_group.bits);
-      if (within_limits) {
-        received[candidate_hash] = manifest_summary;
-        return outcome::success();
-      } else {
-        return GridTracker::Error::SECONDING_OVERFLOW;
-      }
     }
+    // Entry is vacant
+    bool within_limits = updating_ensure_within_seconding_limit(
+        seconded_counts,
+        manifest_summary.claimed_group_index,
+        group_size,
+        seconding_limit,
+        manifest_summary.statement_knowledge.seconded_in_group.bits);
+    if (within_limits) {
+      received[candidate_hash] = manifest_summary;
+      return outcome::success();
+    }
+    return GridTracker::Error::SECONDING_OVERFLOW;
   }
 
   bool ReceivedManifests::updating_ensure_within_seconding_limit(

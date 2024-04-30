@@ -542,7 +542,7 @@ namespace kagome::parachain {
         std::vector<Hash> fresh =
             peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
         if (!fresh.empty()) {
-          update_peers.push_back(std::make_pair(peer, fresh));
+          update_peers.emplace_back(std::make_pair(peer, fresh));
         }
         return true;
       });
@@ -787,15 +787,10 @@ namespace kagome::parachain {
           cores[idx],
           [&](const runtime::OccupiedCore &occupied)
               -> std::optional<ParachainId> {
-            if (mode) {
-              if (occupied.next_up_on_available) {
-                return occupied.next_up_on_available->para_id;
-              } else {
-                return std::nullopt;
-              }
-            } else {
-              return std::nullopt;
+            if (mode && occupied.next_up_on_available) {
+              return occupied.next_up_on_available->para_id;
             }
+            return std::nullopt;
           },
           [](const runtime::ScheduledCore &scheduled)
               -> std::optional<ParachainId> { return scheduled.para_id; },
@@ -3352,9 +3347,8 @@ namespace kagome::parachain {
               -> std::optional<ParachainId> {
             if (occupied.next_up_on_available) {
               return occupied.next_up_on_available->para_id;
-            } else {
-              return std::nullopt;
             }
+            return std::nullopt;
           },
           [&](const runtime::ScheduledCore &scheduled)
               -> std::optional<ParachainId> { return scheduled.para_id; },
@@ -3384,9 +3378,8 @@ namespace kagome::parachain {
         return std::nullopt;
       }
       return core_index;
-    } else {
-      return core_index;
     }
+    return core_index;
   }
 
   void ParachainProcessorImpl::unblockAdvertisements(

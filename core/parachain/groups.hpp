@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include <optional>
+#include <span>
+#include <vector>
+
+#include "parachain/types.hpp"
+
 namespace kagome::parachain {
 
   struct Groups {
