@@ -11,21 +11,25 @@ requests = { memory = "2G", cpu = "1" }
   [[relaychain.nodes]]
   name = "alice"
   command = "kagome"
+  prometheus_prefix = "kagome"
   args = [ "--alice", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
+  prometheus_prefix = "kagome"
   args = [ "--bob", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "charlie"
   command = "kagome"
+  prometheus_prefix = "kagome"
   args = [ "--charlie", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "dave"
   command = "kagome"
+  prometheus_prefix = "kagome"
   args = [ "--dave", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]

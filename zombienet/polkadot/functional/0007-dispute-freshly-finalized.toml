@@ -23,6 +23,7 @@ requests = { memory = "2G", cpu = "1" }
   [[relaychain.node_groups]]
   name = "kagome-honest"
   command = "kagome"
+  prometheus_prefix = "kagome"
   count = 3
   args = ["-lparachain=debug"]
 

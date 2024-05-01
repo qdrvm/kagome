@@ -13,6 +13,7 @@ args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
 [[relaychain.node_groups]]
 name = "kagome-validator"
 command = "kagome"
+prometheus_prefix = "kagome"
 count = 1
 args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
 
