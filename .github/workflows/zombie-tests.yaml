@@ -7,6 +7,9 @@
 name: Zombie-Tests
 
 on:
+  push:
+    branches:
+      - "test/polkadot-functional-zombietests"
   workflow_dispatch: 
 
 jobs:
