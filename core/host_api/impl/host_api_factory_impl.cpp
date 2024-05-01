@@ -27,7 +27,7 @@ namespace kagome::host_api {
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
-        // we do this instead of passing key_store as an optional right away 
+        // we do this instead of passing key_store as an optional right away
         // because boost.di doesn't like optional<shared_ptr>
         key_store_(key_store ? std::optional(key_store) : std::nullopt),
         offchain_persistent_storage_(std::move(offchain_persistent_storage)),
