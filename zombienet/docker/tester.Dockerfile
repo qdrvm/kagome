@@ -4,7 +4,7 @@ FROM qdrvm/kagome:latest as kagome
 
 FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
-RUN git clone https://github.com/qdrvm/kagome.git
+RUN git clone https://github.com/qdrvm/kagome.git -b test/polkadot-functional-zombietests
 RUN mkdir /home/nonroot/.local && \
    chown nonroot:nonroot /home/nonroot/.local && \
    chown nonroot:nonroot /tmp
