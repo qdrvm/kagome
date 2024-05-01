@@ -353,6 +353,7 @@ jobs:
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-tests:
+    if: true
     strategy:
       fail-fast: false
       matrix:
