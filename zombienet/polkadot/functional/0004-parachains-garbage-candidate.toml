@@ -9,7 +9,6 @@ bootnode = true
   needed_approvals = 2
 
 [relaychain]
-default_image = "{{ZOMBIENET_INTEGRATION_TEST_IMAGE}}"
 chain = "rococo-local"
 default_command = "polkadot"
 
@@ -19,11 +18,16 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.node_groups]]
   name = "honest-validator"
-  count = 3
+  count = 2
   args = ["-lparachain=debug,runtime=debug"]
 
   [[relaychain.node_groups]]
-  image = "{{MALUS_IMAGE}}"
+  name = "kagome-honest-validator"
+  command = "kagome"
+  count = 1
+  args = ["-lparachain=debug", "-lruntime=debug"]
+
+  [[relaychain.node_groups]]
   name = "malus-validator"
   command = "malus suggest-garbage-candidate"
   args = ["-lparachain=debug,MALUS=trace"]
@@ -35,7 +39,6 @@ id = {{id}}
 addToGenesis = true
 genesis_state_generator = "undying-collator export-genesis-state --pov-size={{10000*(id-1999)}} --pvf-complexity={{id - 1999}}"
     [parachains.collator]
-    image = "{{COL_IMAGE}}"
     name = "collator"
     command = "undying-collator"
     args = ["-lparachain=debug", "--pov-size={{10000*(id-1999)}}", "--parachain-id={{id}}", "--pvf-complexity={{id - 1999}}"]

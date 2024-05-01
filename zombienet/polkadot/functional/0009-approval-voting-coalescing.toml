@@ -2,7 +2,6 @@
 timeout = 1000
 
 [relaychain]
-default_image = "{{ZOMBIENET_INTEGRATION_TEST_IMAGE}}"
 chain = "rococo-local"
 
 [relaychain.genesis.runtimeGenesis.patch.configuration.config]
@@ -19,7 +18,12 @@ requests = { memory = "2G", cpu = "1" }
   [[relaychain.node_groups]]
   name = "alice"
   args = [ "-lparachain=trace,runtime=debug" ]
-  count = 13
+  count = 6
+
+  [[relaychain.node_groups]]
+  name = "kagome-alice"
+  args = [ "-lparachain=trace", "-lruntime=debug" ]
+  count = 7
 
 [[parachains]]
 id = 2000
@@ -28,7 +32,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator01"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000", "--pvf-complexity=1", "--parachain-id=2000"]
 
@@ -39,7 +42,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator02"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2001", "--pvf-complexity=10"]
 
@@ -50,7 +52,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator03"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2002", "--pvf-complexity=100"]
 
@@ -61,7 +62,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=2000
 
   [parachains.collator]
   name = "collator04"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=20000", "--parachain-id=2003", "--pvf-complexity=300"]
 
@@ -72,7 +72,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator05"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2004", "--pvf-complexity=300"]
 
@@ -83,7 +82,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=2000
 
   [parachains.collator]
   name = "collator06"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=20000",  "--pvf-complexity=400", "--parachain-id=2005"]
 
@@ -94,7 +92,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator07"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2006"]
 
@@ -105,7 +102,6 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=1000
 
   [parachains.collator]
   name = "collator08"
-  image = "{{COL_IMAGE}}"
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2007"]
 

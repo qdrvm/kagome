@@ -8,7 +8,6 @@ timeout = 1000
   max_validators_per_core = 1
 
 [relaychain]
-default_image = "{{ZOMBIENET_INTEGRATION_TEST_IMAGE}}"
 chain = "rococo-local"
 default_command = "polkadot"
 
@@ -18,11 +17,15 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.node_groups]]
   name = "honest"
-  count = 6
+  count = 3
+  args = ["-lparachain=debug"]
+
+  [[relaychain.node_groups]]
+  name = "kagome-honest"
+  count = 3
   args = ["-lparachain=debug"]
 
   [[relaychain.nodes]]
-  image = "{{MALUS_IMAGE}}"
   name = "malus"
   command = "malus dispute-finalized-candidates"
   args = [ "--alice", "-lparachain=debug,MALUS=trace", "--dispute-offset=14" ]
@@ -31,7 +34,6 @@ requests = { memory = "2G", cpu = "1" }
 id = 2000
 
   [parachains.collator]
-  image = "{{COL_IMAGE}}"
   name = "collator"
   command = "undying-collator"
   args = ["-lparachain=debug"]

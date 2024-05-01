@@ -10,7 +10,6 @@ bootnode = true
   group_rotation_frequency = 2
 
 [relaychain]
-default_image = "{{ZOMBIENET_INTEGRATION_TEST_IMAGE}}"
 chain = "westend-local" # using westend-local to enable slashing
 default_command = "polkadot"
 
@@ -26,11 +25,11 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.node_groups]]
   name = "honest-validator"
+  command = "kagome"
   count = 1
   args = ["-lparachain=debug"]
 
   [[relaychain.node_groups]]
-  image = "{{MALUS_IMAGE}}"
   name = "malus-validator"
   command = "malus suggest-garbage-candidate"
   args = ["-lMALUS=trace"]
@@ -43,5 +42,4 @@ cumulus_based = true
   [parachains.collator]
   name = "alice"
   command = "polkadot-parachain"
-  image = "{{CUMULUS_IMAGE}}"
   args = ["-lparachain=debug"]
