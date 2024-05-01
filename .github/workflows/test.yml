@@ -386,6 +386,8 @@ jobs:
             test: "test0010"
           - name: "Block building warp sync"
             test: "test0011"
+          - name: "PVF preparation & execution time"
+            test: "test-polkadot-functional-0001-parachains-pvf"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [Push-self-hosted]

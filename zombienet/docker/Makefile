@@ -85,3 +85,6 @@ test0010:
 
 test0011:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0011-block-building-warp-sync/0011-block-building-warp-sync.zndsl
+
+test-polkadot-functional-0001-parachains-pvf:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl
