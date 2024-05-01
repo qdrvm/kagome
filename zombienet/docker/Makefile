@@ -36,7 +36,7 @@ tester:
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		DOCKER_BUILDKIT=0 docker build --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
+		--build-arg POLKADOT_SDK_RELEASE=polkadot-v1.10.0 . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
@@ -85,3 +85,6 @@ test0010:
 
 test0011:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0011-block-building-warp-sync/0011-block-building-warp-sync.zndsl
+
+test-polkadot-elastic-scaling-0001:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/elastic-scaling/0001-basic-3cores-6s-blocks.zndsl
