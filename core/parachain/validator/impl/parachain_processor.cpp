@@ -196,7 +196,16 @@ namespace kagome::parachain {
                                                             bitfield}}}}});
   }
 
+  /**
+   * The `prepare` function is responsible for setting up the necessary
+   * components for the `ParachainProcessorImpl` class. It sets up the broadcast
+   * callback for the bitfield signer, subscribes to the BABE status observable,
+   * chain events engine, and my view observable. It also prepares the active
+   * leaves for processing parachains.
+   * @return true if the preparation is successful.
+   */
   bool ParachainProcessorImpl::prepare() {
+    // Set the broadcast callback for the bitfield signer
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield) {
@@ -205,6 +214,7 @@ namespace kagome::parachain {
           }
         });
 
+    // Subscribe to the BABE status observable
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
@@ -244,6 +254,7 @@ namespace kagome::parachain {
         babe_status_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
 
+    // Subscribe to the chain events engine
     chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
             const primitives::events::RemoveAfterFinalizationParams &event) {
@@ -252,6 +263,11 @@ namespace kagome::parachain {
           }
         });
 
+    // Set the callback for the my view observable
+    // This callback is triggered when the kViewUpdate event is fired.
+    // It updates the active leaves, checks if parachains can be processed,
+    // creates a new backing task for the new head, and broadcasts the updated
+    // view.
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     primitives::events::subscribe(
@@ -759,6 +775,17 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
+    /**
+     * It first checks if our node is a parachain validator for the relay
+     * parent. If it is not, it returns an error. If the node is a validator, it
+     * retrieves the validator groups, availability cores, and validators for
+     * the relay parent. It then iterates over the cores and for each scheduled
+     * core, it checks if the node is part of the validator group for that core.
+     * If it is, it assigns the parachain ID and collator ID of the scheduled
+     * core to the node. It also maps the parachain ID to the validators of the
+     * group. Finally, it returns a `RelayParentState` object that contains the
+     * assignment, validator index, required collator, and table context.
+     */
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater(
         [self{this}, &is_parachain_validator] {
@@ -1579,6 +1606,10 @@ namespace kagome::parachain {
     }
   }
 
+  // Handles BackedCandidateManifest message
+  //  It performs various checks and operations, and if everything is
+  //  successful, it sends acknowledgement and statement messages to the
+  //  validators group or sends a request to fetch the attested candidate.
   void ParachainProcessorImpl::handle_incoming_manifest(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
@@ -3017,11 +3048,15 @@ namespace kagome::parachain {
 
     if (relay_parent_state_opt->get().prospective_parachains_mode) {
       std::vector<network::BackedCandidate> backed;
+
+      // Iterate over the availability cores of the relay parent state
       for (size_t core_idx = 0;
            core_idx < relay_parent_state_opt->get().availability_cores.size();
            ++core_idx) {
         const runtime::CoreState &core =
             relay_parent_state_opt->get().availability_cores[core_idx];
+
+        // Get the response based on its type based on the core state
         std::optional<std::pair<CandidateHash, Hash>> response = visit_in_place(
             core,
             [&](const network::ScheduledCore &scheduled_core)
@@ -3073,6 +3108,7 @@ namespace kagome::parachain {
           continue;
         }
 
+        // If the attested candidate is found, add it to the backed vector
         if (auto attested = attested_candidate(
                 r_hash,
                 c_hash,
@@ -4231,6 +4267,7 @@ namespace kagome::parachain {
             relay_parent,
             peer_id);
 
+    // Start the timer for the validation task
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     const auto candidate_hash{candidate.hash(*hasher_)};
 
@@ -4239,6 +4276,7 @@ namespace kagome::parachain {
     auto need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
 
+    // If not needed, skip the validation and return
     if (!need_to_process) {
       SL_TRACE(logger_,
                "Candidate validation skipped because of extruded relay parent. "
@@ -4275,10 +4313,10 @@ namespace kagome::parachain {
       }
 
       /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-      /// checks if we still need to execute parachain task
+      /// checks if we still need to execute parachain task, if not needed, skip
+      /// the erasure-coding and return
       auto need_to_process =
           self->our_current_state_.active_leaves.count(relay_parent) != 0ull;
-
       if (!need_to_process) {
         SL_TRACE(
             self->logger_,
@@ -4291,6 +4329,7 @@ namespace kagome::parachain {
         return;
       }
 
+      // Get the commitments and data from the validation result
       auto &[comms, data] = validation_result.value();
       runtime::AvailableData available_data{
           .pov = std::move(pov),
@@ -4307,6 +4346,7 @@ namespace kagome::parachain {
       }
       auto &chunks = chunks_res.value();
 
+      // Notify peers about the data availability
       self->notifyAvailableData(std::move(chunks),
                                 relay_parent,
                                 candidate_hash,
@@ -4597,12 +4637,15 @@ namespace kagome::parachain {
              std::move(pending_collation),
              std::move(prospective_candidate));
 
+    // Extract relay parent, peer id and parachain id from the pending collation
     const RelayHash &relay_parent =
         pending_collation.pending_collation.relay_parent;
     const libp2p::peer::PeerId &peer_id =
         pending_collation.pending_collation.peer_id;
     const ParachainId &para_id = pending_collation.pending_collation.para_id;
 
+    // Try to get the state of the relay parent in the context of parachain
+    // processing
     auto opt_per_relay_parent = tryGetStateByRelayParent(relay_parent);
     if (!opt_per_relay_parent) {
       SL_TRACE(
@@ -4616,12 +4659,14 @@ namespace kagome::parachain {
     const std::optional<network::ParachainId> &assignment =
         per_relay_parent.assigned_para;
 
+    // Get the state of the remote peer
     auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       SL_TRACE(logger_, "Unknown peer. (peerd_id={})", peer_id);
       return;
     }
 
+    // Get the state of the collator
     const auto collator_state = peer_state->get().collator_state;
     if (!collator_state) {
       SL_TRACE(logger_, "Undeclared collator. (peerd_id={})", peer_id);
@@ -4630,6 +4675,7 @@ namespace kagome::parachain {
 
     const ParachainId collator_para_id = collator_state->para_id;
     if (!assignment || collator_para_id != *assignment) {
+      // If the assignment is invalid, log a trace message and return
       SL_TRACE(logger_,
                "Invalid assignment. (peerd_id={}, collator={})",
                peer_id,
@@ -4637,6 +4683,7 @@ namespace kagome::parachain {
       return;
     }
 
+    // Check for protocol mismatch
     if (relay_parent_mode && !prospective_candidate) {
       SL_WARN(logger_, "Protocol mismatch. (peer_id={})", peer_id);
       return;
@@ -4646,15 +4693,20 @@ namespace kagome::parachain {
         utils::map(prospective_candidate,
                    [](const auto &pair) { return std::cref(pair.first); });
 
+    // Try to insert the advertisement
     auto insert_res = insertAdvertisement(
         peer_state->get(), relay_parent, relay_parent_mode, candidate_hash);
     if (insert_res.has_error()) {
+      // If there is an error inserting the advertisement, log a trace message
+      // and return
       SL_TRACE(logger_,
                "Insert advertisement error. (error={})",
                insert_res.error().message());
       return;
     }
 
+    // Get the collator id and parachain id from the result of the advertisement
+    // insertion
     const auto &[collator_id, parachain_id] = insert_res.value();
     if (!per_relay_parent.collations.hasSecondedSpace(relay_parent_mode)) {
       SL_TRACE(logger_, "Seconded limit reached.");
@@ -4670,6 +4722,7 @@ namespace kagome::parachain {
                                                   ch,
                                                   parent_head_data_hash);
 
+      // If seconding is not allowed by backing, queue the advertisement
       if (!is_seconding_allowed) {
         SL_TRACE(logger_,
                  "Seconding is not allowed by backing, queueing advertisement. "
@@ -4690,6 +4743,7 @@ namespace kagome::parachain {
       }
     }
 
+    // Try to enqueue the collation
     if (auto result = enqueueCollation(per_relay_parent,
                                        relay_parent,
                                        para_id,

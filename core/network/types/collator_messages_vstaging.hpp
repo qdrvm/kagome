@@ -67,9 +67,16 @@ namespace kagome::network::vstaging {
     CandidateHash hash;
   };
 
+  /// Statements that can be made about parachain candidates. These are the
+  /// actual values that are signed.
   struct CompactStatement {
     std::array<char, 4> header = {'B', 'K', 'N', 'G'};
-    boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>
+
+    boost::variant<Empty,
+                   /// Proposal of a parachain candidate.
+                   SecondedCandidateHash,
+                   /// Statement that a parachain candidate is valid.
+                   ValidCandidateHash>
         inner_value{};
 
     CompactStatement(
@@ -114,6 +121,8 @@ namespace kagome::network::vstaging {
     UNREACHABLE;
   }
 
+  /// A notification of a signed statement in compact form, for a given
+  /// relay parent.
   struct StatementDistributionMessageStatement {
     SCALE_TIE(2);
 
@@ -121,6 +130,14 @@ namespace kagome::network::vstaging {
     IndexedAndSigned<CompactStatement> compact;
   };
 
+  /// All messages for V1 for compatibility with the statement distribution
+  /// protocol, for relay-parents that don't support asynchronous backing.
+  ///
+  /// These are illegal to send to V1 peers, and illegal to send concerning
+  /// relay-parents which support asynchronous backing. This backwards
+  /// compatibility should be considered immediately deprecated and can be
+  /// removed once the node software is not required to support logic from
+  /// before asynchronous backing anymore.
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
 
   enum StatementKind {
@@ -211,12 +228,21 @@ namespace kagome::network::vstaging {
     }
   };
 
+  /// A manifest of a known backed candidate, along with a description
+  /// of the statements backing it.
   struct BackedCandidateManifest {
     SCALE_TIE(6);
+    /// The relay-parent of the candidate.
     RelayHash relay_parent;
+    /// The hash of the candidate.
     CandidateHash candidate_hash;
+    /// The group index backing the candidate at the relay-parent.
     GroupIndex group_index;
+    /// The para ID of the candidate. It is illegal for this to
+    /// be a para ID which is not assigned to the group indicated
+    /// in this manifest.
     ParachainId para_id;
+    /// The head-data corresponding to the candidate.
     Hash parent_head_data_hash;
     /// A statement filter which indicates which validators in the
     /// para's group at the relay-parent have validated this candidate
@@ -241,18 +267,38 @@ namespace kagome::network::vstaging {
     std::vector<IndexedAndSigned<CompactStatement>> statements;
   };
 
+  /// An acknowledgement of a backed candidate being known.
   struct BackedCandidateAcknowledgement {
     SCALE_TIE(2);
+    /// The hash of the candidate.
     CandidateHash candidate_hash;
+    /// A statement filter which indicates which validators in the
+    /// para's group at the relay-parent have validated this candidate
+    /// and issued statements about it, to the advertiser's knowledge.
+    ///
+    /// This MUST have exactly the minimum amount of bytes
+    /// necessary to represent the number of validators in the assigned
+    /// backing group as-of the relay-parent.
     StatementFilter statement_knowledge;
   };
 
-  using StatementDistributionMessage =
-      boost::variant<StatementDistributionMessageStatement,  // 0
-                     BackedCandidateManifest,                // 1
-                     BackedCandidateAcknowledgement          // 2
-                     // v1StatementDistributionMessage  // 255
-                     >;
+  /// Network messages used by the statement distribution subsystem.
+  /// Polkadot-sdk analogue:
+  /// https://github.com/paritytech/polkadot-sdk/blob/4220503d28f46a72c2bc71f22e7d9708618f9c68/polkadot/node/network/protocol/src/lib.rs#L769
+  using StatementDistributionMessage = boost::variant<
+      StatementDistributionMessageStatement,  // 0
+                                              /// A notification of a backed
+                                              /// candidate being known by the
+                                              /// sending node, for the purpose
+                                              /// of being requested by the
+                                              /// receiving node if needed.
+      BackedCandidateManifest,  // 1,
+      /// A notification of a backed candidate being known by the sending node,
+      /// for the purpose of informing a receiving node which already has the
+      /// candidate.
+      BackedCandidateAcknowledgement  // 2
+      // v1StatementDistributionMessage  // 255
+      >;
 
   struct CollationFetchingRequest {
     SCALE_TIE(3);
