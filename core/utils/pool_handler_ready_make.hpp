@@ -14,7 +14,9 @@
 namespace kagome {
   /**
    * Make `PoolHandlerReady` for `Component` with `tryStart`.
-   * `tryStart` is called on `ThreadPool`.
+   * Calls `tryStart` on `ThreadPool`.
+   * Calls `setReady` if `tryStart` was successful.
+   * Calls `shutdown` if `tryStart` returned error.
    */
   template <typename Component>
   auto poolHandlerReadyMake(Component *component,
