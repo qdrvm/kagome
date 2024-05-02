@@ -254,6 +254,12 @@ namespace kagome::parachain {
       runtime::SessionInfo session_info;
       Groups groups;
       std::optional<grid::Views> grid_view;
+      std::optional<ValidatorIndex> our_index;
+
+      std::shared_ptr<network::PeerManager> pm;
+      std::shared_ptr<authority_discovery::Query> query_audi;
+
+      ~PerSessionState();
     };
 
     struct RelayParentState {
@@ -648,6 +654,8 @@ namespace kagome::parachain {
     void createBackingTask(const primitives::BlockHash &relay_parent);
     outcome::result<RelayParentState> initNewBackingTask(
         const primitives::BlockHash &relay_parent);
+
+    void spawn_and_update_peer(ValidatorIndex vi);
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,

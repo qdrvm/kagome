@@ -756,6 +756,57 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
+  void ParachainProcessorImpl::spawn_and_update_peer(ValidatorIndex vi) {
+    if (auto peer = query_audi_->get(vi)) {
+      tryOpenOutgoingValidationStream(
+        peer->id,
+        network::CollationVersion::VStaging,
+        [wptr{weak_from_this()}, peer_id{peer->id}](auto &&stream) {
+          if (auto self = wptr.lock()) {
+            auto ps = self->pm_->getPeerState(peer_id);
+            BOOST_ASSERT(ps);
+
+            ps->get().inc_use_count();
+            self->sendMyView(
+              peer_id,
+              stream,
+              self->router_->getValidationProtocolVStaging());
+          }
+        });
+    }
+  }
+
+  ParachainProcessorImpl::PerSessionState::~PerSessionState() {
+    if (our_index) {
+      if (auto our_group = groups.byValidatorIndex(*our_index)) {
+        if (const auto group = groups.get(*our_group)) {
+          auto dec_use_count_for_peer = [&](ValidatorIndex vi) {
+            if (auto peer = query_audi->get(vi)) {
+              auto ps = pm->getPeerState(peer->id);
+              BOOST_ASSERT(ps);
+              ps->get().dec_use_count();
+            }
+          };
+
+          /// update peers of our group
+          for (const auto vi : *group) {
+            dec_use_count_for_peer(vi);
+          }
+
+          /// update peers in grid view
+          BOOST_ASSERT(*our_group < grid_view.size());
+          const auto &view = grid_view[*our_group];
+          for (const auto vi : view.sending) {
+            dec_use_count_for_peer(vi);
+          }
+          for (const auto vi : view.receiving) {
+            dec_use_count_for_peer(vi);
+          }
+        }
+      }
+    }
+  }
+
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
@@ -798,19 +849,39 @@ namespace kagome::parachain {
 
     auto per_session_state = per_session_->get_or_insert(
         session_index,
-        [validator_index{validator->validatorIndex()},
-         minimum_backing_votes,
-         session_info{std::move(*session_info)}]() mutable {
+        [&]() {
+          const auto validator_index{validator->validatorIndex()};
           grid::Views grid_view =
               grid::makeViews(session_info.validator_groups,
                               session_info.active_validator_indices,
                               validator_index);
           Groups g{session_info.validator_groups, minimum_backing_votes};
+          if (auto our_group = g.byValidatorIndex(validator_index)) {
+            /// update peers of our group
+            const auto &group = session_info.validator_groups[*our_group];
+            for (const auto vi : group) {
+              spawn_and_update_peer(vi);
+            }
+
+            /// update peers in grid view
+            BOOST_ASSERT(*our_group < grid_view.size());
+            const auto &view = grid_view[*our_group];
+            for (const auto vi : view.sending) {
+              spawn_and_update_peer(vi);
+            }
+            for (const auto vi : view.receiving) {
+              spawn_and_update_peer(vi);
+            }
+          }
+
           return RefCache<SessionIndex, PerSessionState>::RefObj(
               PerSessionState{
                   .session_info = std::move(session_info),
                   .groups = std::move(g),
                   .grid_view = grid_view,
+                  .our_index = validator_index,
+                  .pm = pm_,
+                  .query_audi = query_audi_,
               });
         });
 
