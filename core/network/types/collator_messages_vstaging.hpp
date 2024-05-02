@@ -75,7 +75,7 @@ namespace kagome::network::vstaging {
     boost::variant<Empty,
                    /// Proposal of a parachain candidate.
                    SecondedCandidateHash,
-                   /// State that a parachain candidate is valid.
+                   /// Statement that a parachain candidate is valid.
                    ValidCandidateHash>
         inner_value{};
 
