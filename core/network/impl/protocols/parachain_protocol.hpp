@@ -38,7 +38,7 @@ namespace kagome::network {
 
   /**
    * @brief The `ParachainProtocol` class is a template class responsible for
-   * handling the parachain protocol. It is a request-response protocol that is
+   * handling the parachain protocol. It is a notification protocol that is
    * used for both collation and validation protocols.
    * @tparam Observer - observer type
    * @tparam Message - message type
