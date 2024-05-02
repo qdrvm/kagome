@@ -78,6 +78,7 @@ namespace kagome::network {
         std::shared_ptr<ReputationRepository> reputation_repository,
         std::shared_ptr<PeerView> peer_view);
 
+    /** @see poolHandlerReadyMake */
     bool tryStart();
 
     /** @see AppStateManager::takeControl */
