@@ -23,24 +23,45 @@
   Ffi ffi { memory_provider_->getCurrentMemory().value().get() }
 
 namespace kagome::host_api {
+  /**
+   * Helps reading arguments from wasm and writing result to wasm.
+   */
   struct Ffi {
     runtime::Memory &memory;
 
+    /**
+     * Read bytes argument.
+     */
     auto bytes(runtime::WasmSpan arg) {
       return memory.view(arg).value();
     }
+    /**
+     * Read clear_prefix limit argument.
+     */
     auto limit(runtime::WasmSpan arg) {
       return scale::decode<ClearPrefixLimit>(bytes(arg)).value();
     }
+    /**
+     * Read child trie argument.
+     */
     auto child(runtime::WasmSpan arg) {
       return Buffer{storage::kChildStorageDefaultPrefix}.put(bytes(arg));
     }
+    /**
+     * Read `StateVersion` argument.
+     */
     auto version(runtime::WasmI32 version) {
       return detail::toStateVersion(version);
     }
+    /**
+     * Write bytes result.
+     */
     runtime::WasmSpan bytes(BufferView r) {
       return memory.storeBuffer(r);
     }
+    /**
+     * Write scale encoded result.
+     */
     runtime::WasmSpan scale(const auto &r) {
       return bytes(scale::encode(r).value());
     }

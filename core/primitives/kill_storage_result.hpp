@@ -9,9 +9,15 @@
 #include "scale/tie.hpp"
 
 namespace kagome {
+  /**
+   * `clear_prefix` host api limit argument.
+   */
   using ClearPrefixLimit = std::optional<uint32_t>;
 
-  // https://github.com/paritytech/polkadot-sdk/blob/e5a93fbcd4a6acec7ab83865708e5c5df3534a7b/substrate/primitives/io/src/lib.rs#L159
+  /**
+   * `clear_prefix` host api result.
+   * https://github.com/paritytech/polkadot-sdk/blob/e5a93fbcd4a6acec7ab83865708e5c5df3534a7b/substrate/primitives/io/src/lib.rs#L159
+   */
   struct KillStorageResult {
     SCALE_TIE(2);
 
