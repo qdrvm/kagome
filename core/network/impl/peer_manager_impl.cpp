@@ -578,6 +578,16 @@ namespace kagome::network {
     return it->second;
   }
 
+  void PeerManagerImpl::enumeratePeerState(const PeersCallback &callback) {
+    if (nullptr != callback) {
+      for (auto &[peer, state] : peer_states_) {
+        if (!callback(peer, state)) {
+          break;
+        }
+      }
+    }
+  }
+
   std::optional<std::reference_wrapper<const PeerState>>
   PeerManagerImpl::getPeerState(const PeerId &peer_id) const {
     auto it = peer_states_.find(peer_id);

@@ -7,7 +7,7 @@
 #pragma once
 
 #include <optional>
-#include <span>
+
 #include "crypto/hasher/blake2b_stream_hasher.hpp"
 #include "scale/kagome_scale.hpp"
 
@@ -24,12 +24,16 @@ namespace kagome::crypto {
   struct Hashed {
     static_assert(N == 8 || N == 16 || N == 32 || N == 64,
                   "Unexpected hash size");
-    using Type = std::decay_t<T>;
+    using Type = T;
     using HashType = common::Blob<N>;
 
    public:
-    template <typename... Args>
-    Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Hashed(Type &&type)
+      requires(std::is_same_v<T, std::decay_t<T>>)
+        : type_{std::move(type)} {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Hashed(const Type &type) : type_{type} {}
 
     Hashed(const Hashed &c) = default;
     Hashed(Hashed &&c) = default;

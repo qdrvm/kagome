@@ -62,7 +62,7 @@ class StorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(Return(trie_batch_));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_,
         memory_provider_,
@@ -252,7 +252,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
                     memory_[key], value_span.combine(), offset)),
             result);
   auto n = std::min<size_t>(value_span.size, value.size());
-  ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+  ASSERT_EQ(memory_.memory.view(value_span.ptr, n).value(),
             SpanAdl{value.view(offset, n)});
 }
 
@@ -348,7 +348,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
   ASSERT_EQ(
-      memory_
+      memory_.memory
           .view(storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
                     memory_.encode(values)),
                 hash_array.size())
@@ -470,7 +470,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
       {"a"_buf, "one"_buf}, {"b"_buf, "two"_buf}, {"c"_buf, "three"_buf}};
   auto hash_array =
       "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_unhex;
-  ASSERT_EQ(memory_
+  ASSERT_EQ(memory_.memory
                 .view(storage_extension_->ext_trie_blake2_256_root_version_1(
                           memory_.encode(dict)),
                       hash_array.size())

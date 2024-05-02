@@ -91,6 +91,10 @@ namespace kagome::network::vstaging {
       s >> c.header >> c.inner_value;
       return s;
     }
+
+    bool operator==(const CompactStatement &r) const {
+      return inner_value == r.inner_value;
+    }
   };
 
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
@@ -119,6 +123,11 @@ namespace kagome::network::vstaging {
 
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
 
+  enum StatementKind {
+    Seconded,
+    Valid,
+  };
+
   struct StatementFilter {
     SCALE_TIE(2);
 
@@ -128,9 +137,77 @@ namespace kagome::network::vstaging {
     scale::BitVec validated_in_group;
 
     StatementFilter() = default;
-    StatementFilter(size_t len) {
-      seconded_in_group.bits.assign(len, false);
-      validated_in_group.bits.assign(len, false);
+    StatementFilter(size_t len, bool val = false) {
+      seconded_in_group.bits.assign(len, val);
+      validated_in_group.bits.assign(len, val);
+    }
+
+    void mask_seconded(const scale::BitVec &mask) {
+      for (size_t i = 0; i < seconded_in_group.bits.size(); ++i) {
+        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
+        seconded_in_group.bits[i] = seconded_in_group.bits[i] && !m;
+      }
+    }
+
+    void mask_valid(const scale::BitVec &mask) {
+      for (size_t i = 0; i < validated_in_group.bits.size(); ++i) {
+        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
+        validated_in_group.bits[i] = validated_in_group.bits[i] && !m;
+      }
+    }
+
+    bool has_len(size_t len) const {
+      return seconded_in_group.bits.size() == len
+          && validated_in_group.bits.size() == len;
+    }
+
+    bool has_seconded() const {
+      for (const auto x : seconded_in_group.bits) {
+        if (x) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    size_t backing_validators() const {
+      BOOST_ASSERT(seconded_in_group.bits.size()
+                   == validated_in_group.bits.size());
+
+      size_t count = 0;
+      for (size_t ix = 0; ix < seconded_in_group.bits.size(); ++ix) {
+        const auto s = seconded_in_group.bits[ix];
+        const auto v = validated_in_group.bits[ix];
+        count += size_t(s || v);
+      }
+      return count;
+    }
+
+    bool contains(size_t index, StatementKind statement_kind) const {
+      switch (statement_kind) {
+        case StatementKind::Seconded:
+          return index < seconded_in_group.bits.size()
+              && seconded_in_group.bits[index];
+        case StatementKind::Valid:
+          return index < validated_in_group.bits.size()
+              && validated_in_group.bits[index];
+      }
+      return false;
+    }
+
+    void set(size_t index, StatementKind statement_kind) {
+      switch (statement_kind) {
+        case StatementKind::Seconded:
+          if (index < seconded_in_group.bits.size()) {
+            seconded_in_group.bits[index] = true;
+          }
+          break;
+        case StatementKind::Valid:
+          if (index < validated_in_group.bits.size()) {
+            validated_in_group.bits[index] = true;
+          }
+          break;
+      }
     }
   };
 
