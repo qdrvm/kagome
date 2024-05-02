@@ -20,31 +20,14 @@
  * The BackingStoreImpl class is used to manage and store statements and
  * backed candidates for active backing tasks. It provides methods to add,
  * remove, and retrieve backed candidates and their associated statements.
- *
- * The class contains the following public methods:
- * - put: This method is used to add a statement to the store. It checks if
- * the statement is valid and if it is, adds it to the store.
- * - get: This method is used to retrieve backed candidates associated with a
- * given relay parent.
- * - add: This method is used to add a backed candidate to the store.
- * - get_candidate: This method is used to retrieve a candidate receipt
- * associated with a given candidate hash.
- * - get_validity_votes: This method is used to retrieve validity votes
- * associated with a given candidate hash.
- * - remove: This method is used to remove all data associated with a given
- * relay parent from the store.
- *
- * The class also contains private methods and data members used for internal
- * operations.
- *
- * @author Quadrivium LLC
- * @copyright Quadrivium LLC
  */
 
 namespace kagome::parachain {
   /**
    * @class BackingStoreImpl
-   * @brief This class is an implementation of the BackingStore interface.
+   * @brief This class is an implementation of the BackingStore interface that
+   * is used to manage and store statements and backed candidates for active
+   * backing tasks.
    */
   class BackingStoreImpl : public BackingStore {
     using ValidatorIndex = network::ValidatorIndex;

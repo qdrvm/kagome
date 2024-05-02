@@ -41,6 +41,7 @@
 #include "utils/safe_object.hpp"
 
 /**
+ * @file parachain_processor_impl.hpp
  * The ParachainProcessorImpl class is responsible for handling the validation
  * and processing of parachains in the network. It manages the lifecycle of
  * parachains, including their creation, validation, and destruction.
