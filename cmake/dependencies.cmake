@@ -31,7 +31,7 @@ find_package(binaryen CONFIG REQUIRED)
 hunter_add_package(benchmark)
 find_package(benchmark CONFIG REQUIRED)
 
-# https://github.com/soramitsu/libp2p
+# https://github.com/libp2p/cpp-libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
@@ -77,6 +77,7 @@ find_package(scale CONFIG REQUIRED)
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 
+  
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_add_package(wavm)
   find_package(LLVM CONFIG REQUIRED)

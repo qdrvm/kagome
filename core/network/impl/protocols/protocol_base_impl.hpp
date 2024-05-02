@@ -55,7 +55,8 @@ namespace kagome::network {
     bool start(std::weak_ptr<T> wp) {
       host_.setProtocolHandler(
           protocols_,
-          [wp = std::move(wp), log = logger()](auto &&stream_and_proto) {
+          [wp = std::move(wp),
+           log = logger()](libp2p::StreamAndProtocol stream_and_proto) {
             if (auto self = wp.lock()) {
               BOOST_ASSERT(stream_and_proto.stream);
 
@@ -68,7 +69,7 @@ namespace kagome::network {
                 SL_TRACE(log,
                          "Handled {} protocol stream from {}",
                          protocol,
-                         peer_id);
+                         peer_id.value());
                 BOOST_ASSERT(stream);
                 self->onIncomingStream(std::move(stream));
                 return;

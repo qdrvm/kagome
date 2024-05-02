@@ -71,9 +71,6 @@ using testing::_;
 using testing::Return;
 
 struct Timer : libp2p::basic::Scheduler {
-  void pulse(std::chrono::milliseconds current_clock) noexcept override {
-    abort();
-  }
   std::chrono::milliseconds now() const noexcept override {
     abort();
   }
@@ -82,14 +79,6 @@ struct Timer : libp2p::basic::Scheduler {
                       bool) noexcept override {
     cb_.emplace(std::move(cb));
     return Handle{};
-  }
-  void cancel(Handle::Ticket ticket) noexcept override {
-    abort();
-  }
-  outcome::result<Handle::Ticket> reschedule(
-      Handle::Ticket ticket,
-      std::chrono::milliseconds delay_from_now) noexcept override {
-    abort();
   }
 
   void call() {
@@ -155,7 +144,7 @@ struct BeefyTest : testing::Test {
                           : std::nullopt;
       });
 
-      StartApp app_state_manager;
+      auto app_state_manager = std::make_shared<StartApp>();
       std::shared_ptr<MainThreadPool> main_thread_pool_ =
           std::make_shared<MainThreadPool>(TestThreadPool{io_});
       std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
@@ -207,7 +196,7 @@ struct BeefyTest : testing::Test {
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           peer.chain_sub_);
-      app_state_manager.start();
+      app_state_manager->start();
     }
   }
 

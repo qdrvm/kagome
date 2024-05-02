@@ -533,47 +533,125 @@ namespace kagome::parachain::fragment {
       return res;
     }
 
+    /**
+     * @brief Select `count` candidates after the given `required_path` which
+     * pass	the predicate and have not already been backed on chain.
+     * Does an exhaustive search into the tree starting after `required_path`.
+     * If there are multiple possibilities of size `count`, this will select the
+     * first one.	If there is no chain of size `count` that matches the
+     * criteria, this will return the largest	chain it could find with the
+     * criteria.	If there are no candidates meeting those criteria,
+     * returns an empty `Vec`.	Cycles are accepted, see module docs for the
+     * `Cycles` section.		The intention of the `required_path` is
+     * to allow queries on the basis of	one or more candidates which were
+     * previously pending availability becoming	available and opening up more
+     * room on the core.
+     */
+
     template <typename Func>
-    std::optional<CandidateHash> selectChild(
-        const std::vector<CandidateHash> &required_path, Func &&pred) const {
+    std::vector<CandidateHash> selectChildren(
+        const std::vector<CandidateHash> &required_path,
+        uint32_t count,
+        Func &&pred) const {
       NodePointer base_node{NodePointerRoot{}};
       for (const CandidateHash &required_step : required_path) {
         if (auto node = nodeCandidateChild(base_node, required_step)) {
           base_node = *node;
         } else {
-          return std::nullopt;
+          return {};
         }
       }
 
-      return visit_in_place(
+      std::vector<CandidateHash> accum;
+      return selectChildrenInner(
+          std::move(base_node), count, count, std::forward<Func>(pred), accum);
+    }
+
+    /**
+     * @brief Try finding a candidate chain starting from `base_node` of length
+     * `expected_count`.	 If not possible, return the longest one we
+     * could find.	 Does a depth-first search, since we're optimistic that
+     * there won't be more than one such	 chains (parachains shouldn't
+     * usually have forks). So in the usual case, this will conclude	 in
+     * `O(expected_count)`.	 Cycles are accepted, but this doesn't allow for
+     * infinite execution time, because the maximum	 depth we'll reach is
+     * `expected_count`.		 Worst case performance is `O(num_forks
+     * ^ expected_count)`.	 Although an exponential function, this is
+     * actually a constant that can only be altered via	 sudo/governance,
+     * because:	 1. `num_forks` at a given level is at most `max_candidate_depth
+     * * max_validators_per_core`	    (because each validator in the
+     * assigned group can second `max_candidate_depth`	    candidates). The
+     * prospective-parachains subsystem assumes that the number of para forks is
+     * limited by collator-protocol and backing subsystems. In practice, this is
+     * a constant which	    can only be altered by sudo or governance.	 2.
+     * `expected_count` is equal to the number of cores a para is scheduled on
+     * (in an elastic	    scaling scenario). For non-elastic-scaling, this is
+     * just 1. In practice, this should be a	    small number (1-3), capped
+     * by the total number of available cores (a constant alterable	    only
+     * via governance/sudo).
+     */
+    template <typename Func>
+    std::vector<CandidateHash> selectChildrenInner(
+        NodePointer base_node,
+        uint32_t expected_count,
+        uint32_t remaining_count,
+        const Func &pred,
+        std::vector<CandidateHash> &accumulator) const {
+      if (remaining_count == 0) {
+        return accumulator;
+      }
+
+      auto children = visit_in_place(
           base_node,
-          [&](const NodePointerRoot &) -> std::optional<CandidateHash> {
-            for (const FragmentNode &n : nodes) {
+          [&](const NodePointerRoot &)
+              -> std::vector<std::pair<NodePointer, CandidateHash>> {
+            std::vector<std::pair<NodePointer, CandidateHash>> tmp;
+            for (size_t ptr = 0; ptr < nodes.size(); ++ptr) {
+              const FragmentNode &n = nodes[ptr];
               if (!is_type<NodePointerRoot>(n.parent)) {
-                return std::nullopt;
+                continue;
               }
               if (scope.getPendingAvailability(n.candidate_hash)) {
-                return std::nullopt;
+                continue;
               }
               if (!pred(n.candidate_hash)) {
-                return std::nullopt;
+                continue;
               }
-              return n.candidate_hash;
+              tmp.emplace_back(NodePointerStorage{ptr}, n.candidate_hash);
             }
-            return std::nullopt;
+            return tmp;
           },
-          [&](const NodePointerStorage &ptr) -> std::optional<CandidateHash> {
-            for (const auto &[_, h] : nodes[ptr].children) {
-              if (scope.getPendingAvailability(h)) {
-                return std::nullopt;
+          [&](const NodePointerStorage &base_node_ptr)
+              -> std::vector<std::pair<NodePointer, CandidateHash>> {
+            std::vector<std::pair<NodePointer, CandidateHash>> tmp;
+            const auto &bn = nodes[base_node_ptr];
+            for (const auto &[ptr, hash] : bn.children) {
+              if (scope.getPendingAvailability(hash)) {
+                continue;
               }
-              if (!pred(h)) {
-                return std::nullopt;
+              if (!pred(hash)) {
+                continue;
               }
-              return h;
+              tmp.emplace_back(ptr, hash);
             }
-            return std::nullopt;
+            return tmp;
           });
+
+      auto best_result = accumulator;
+      for (const auto &[child_ptr, child_hash] : children) {
+        accumulator.emplace_back(child_hash);
+        auto result = selectChildrenInner(
+            child_ptr, expected_count, remaining_count - 1, pred, accumulator);
+        accumulator.pop_back();
+
+        if (result.size() == size_t(expected_count)) {
+          return result;
+        } else if (best_result.size() < result.size()) {
+          best_result = result;
+        }
+      }
+
+      return best_result;
     }
 
     static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher,
@@ -893,7 +971,7 @@ namespace kagome::parachain::fragment {
       depths.bits.resize(max_depth + 1);
 
       auto process_parent_pointer = [&](const NodePointer &parent_pointer) {
-        const auto &[modifications, child_depth, earliest_rp] = visit_in_place(
+        const auto [modifications, child_depth, earliest_rp] = visit_in_place(
             parent_pointer,
             [&](const NodePointerRoot &)
                 -> std::tuple<
@@ -902,7 +980,7 @@ namespace kagome::parachain::fragment {
                     std::reference_wrapper<const RelayChainBlockInfo>> {
               return std::make_tuple(ConstraintModifications{},
                                      size_t{0ull},
-                                     scope.earliestRelayParent());
+                                     std::cref(scope.earliestRelayParent()));
             },
             [&](const NodePointerStorage &ptr)
                 -> std::tuple<
@@ -911,15 +989,15 @@ namespace kagome::parachain::fragment {
                     std::reference_wrapper<const RelayChainBlockInfo>> {
               const auto &node = nodes[ptr];
               if (auto opt_rcbi = scope.ancestorByHash(node.relayParent())) {
-                return std::make_tuple(node.cumulative_modifications,
-                                       size_t(node.depth + 1),
-                                       opt_rcbi->get());
+                return std::make_tuple(
+                    node.cumulative_modifications, node.depth + 1, *opt_rcbi);
               } else {
                 if (auto r =
                         scope.getPendingAvailability(node.candidate_hash)) {
-                  return std::make_tuple(node.cumulative_modifications,
-                                         size_t(node.depth + 1),
-                                         scope.earliestRelayParent());
+                  return std::make_tuple(
+                      node.cumulative_modifications,
+                      node.depth + 1,
+                      std::cref(scope.earliestRelayParent()));
                 }
                 UNREACHABLE;
               }

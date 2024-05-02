@@ -10,6 +10,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
@@ -30,6 +31,7 @@
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
@@ -442,7 +444,8 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      application::AppStateManager &app_state_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
@@ -459,15 +462,16 @@ namespace kagome::parachain {
       ApprovalThreadPool &approval_thread_pool,
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : approval_thread_handler_{approval_thread_pool.handler(
-          app_state_manager)},
-        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
+      : approval_thread_handler_{poolHandlerReadyMake(
+          this, app_state_manager, approval_thread_pool, logger_)},
+        worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
         peer_view_(std::move(peer_view)),
+        chain_sub_{std::move(chain_sub_engine)},
         parachain_processor_(std::move(parachain_processor)),
         crypto_provider_(std::move(crypto_provider)),
         pm_(std::move(pm)),
@@ -476,7 +480,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_coordinator_{std::move(dispute_coordinator)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -497,20 +501,15 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
-
-    app_state_manager.takeControl(*this);
   }
 
-  bool ApprovalDistribution::prepare() {
+  bool ApprovalDistribution::tryStart() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->on_active_leaves_update(event);
           }
@@ -518,30 +517,19 @@ namespace kagome::parachain {
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
         peer_view_->getRemoteViewObservable(), false);
-    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
-                                network::PeerView::EventType::kViewUpdated);
-    remote_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const libp2p::peer::PeerId &peer_id,
+    primitives::events::subscribe(
+        *remote_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
           if (auto self = wptr.lock()) {
             self->store_remote_view(peer_id, view);
           }
         });
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
+    chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+            const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
             self->clearCaches(event);
           }
@@ -578,41 +566,37 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::clearCaches(
-      const primitives::events::ChainEventParams &event) {
+      const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*approval_thread_handler_, clearCaches, event);
 
-    if (const auto value =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event)) {
-      approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-        for (const auto &lost : value->get()) {
-          SL_TRACE(logger_,
-                   "Cleaning up stale pending messages.(block hash={})",
-                   lost);
-          pending_known_.erase(lost);
-          active_tranches_.erase(lost);
-          approving_context_map_.erase(lost);
-          /// TODO(iceseer): `blocks_by_number_` clear on finalization
+    approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+      for (const auto &lost : event) {
+        SL_TRACE(logger_,
+                 "Cleaning up stale pending messages.(block hash={})",
+                 lost);
+        pending_known_.erase(lost);
+        active_tranches_.erase(lost);
+        approving_context_map_.erase(lost);
+        /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
-          if (auto block_entry = storedBlockEntries().get(lost)) {
-            for (const auto &candidate : block_entry->get().candidates) {
-              recovery_->remove(candidate.second);
-              storedCandidateEntries().extract(candidate.second);
-              if (auto it_cached = approvals_cache.find(candidate.second);
-                  it_cached != approvals_cache.end()) {
-                ApprovalCache &approval_cache = it_cached->second;
-                approval_cache.blocks_.erase(lost);
-                if (approval_cache.blocks_.empty()) {
-                  approvals_cache.erase(it_cached);
-                }
+        if (auto block_entry = storedBlockEntries().get(lost)) {
+          for (const auto &candidate : block_entry->get().candidates) {
+            recovery_->remove(candidate.second);
+            storedCandidateEntries().extract(candidate.second);
+            if (auto it_cached = approvals_cache.find(candidate.second);
+                it_cached != approvals_cache.end()) {
+              ApprovalCache &approval_cache = it_cached->second;
+              approval_cache.blocks_.erase(lost);
+              if (approval_cache.blocks_.empty()) {
+                approvals_cache.erase(it_cached);
               }
             }
-            storedBlockEntries().extract(lost);
           }
-          storedDistribBlockEntries().extract(lost);
+          storedBlockEntries().extract(lost);
         }
-      });
-    }
+        storedDistribBlockEntries().extract(lost);
+      }
+    });
   }
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
@@ -1256,115 +1240,114 @@ namespace kagome::parachain {
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
-    auto on_recover_complete =
-        [wself{weak_from_this()},
-         hashed_candidate{hashed_candidate},
-         block_hash,
-         session_index,
-         validator_index,
-         relay_block_hash](
-            std::optional<outcome::result<runtime::AvailableData>>
-                &&opt_result) mutable {
-          auto self = wself.lock();
-          if (!self) {
-            return;
-          }
+    auto on_recover_complete = [wself{weak_from_this()},
+                                hashed_candidate{hashed_candidate},
+                                block_hash,
+                                session_index,
+                                validator_index,
+                                relay_block_hash](
+                                   std::optional<
+                                       outcome::result<runtime::AvailableData>>
+                                       &&opt_result) mutable {
+      auto self = wself.lock();
+      if (!self) {
+        return;
+      }
 
-          const auto &candidate_receipt = hashed_candidate.get();
-          if (!opt_result) {  // Unavailable
-            self->logger_->warn(
-                "No available parachain data.(session index={}, candidate "
-                "hash={}, relay block hash={})",
-                session_index,
-                hashed_candidate.getHash(),
-                relay_block_hash);
-            return;
-          }
+      const auto &candidate_receipt = hashed_candidate.get();
+      if (!opt_result) {  // Unavailable
+        self->logger_->warn(
+            "No available parachain data.(session index={}, candidate "
+            "hash={}, relay block hash={})",
+            session_index,
+            hashed_candidate.getHash(),
+            relay_block_hash);
+        return;
+      }
 
-          if (opt_result->has_error()) {
-            self->logger_->warn(
-                "Parachain data recovery failed.(error={}, session index={}, "
-                "candidate hash={}, relay block hash={})",
-                opt_result->error(),
-                session_index,
-                hashed_candidate.getHash(),
-                relay_block_hash);
-            self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index,
-                hashed_candidate.getHash(),
-                hashed_candidate.get(),
-                false);
-            return;
-          }
-          auto &available_data = opt_result->value();
-          auto result = self->parachain_host_->validation_code_by_hash(
-              block_hash, candidate_receipt.descriptor.validation_code_hash);
-          if (result.has_error() || !result.value()) {
-            self->logger_->warn(
-                "Approval state is failed. Block hash {}, session index {}, "
-                "validator index {}, relay parent {}",
-                block_hash,
-                session_index,
-                validator_index,
-                candidate_receipt.descriptor.relay_parent);
-            return;  /// ApprovalState::failed
-          }
+      if (opt_result->has_error()) {
+        self->logger_->warn(
+            "Parachain data recovery failed.(error={}, session index={}, "
+            "candidate hash={}, relay block hash={})",
+            opt_result->error(),
+            session_index,
+            hashed_candidate.getHash(),
+            relay_block_hash);
+        self->dispute_coordinator_.get()->issueLocalStatement(
+            session_index,
+            hashed_candidate.getHash(),
+            hashed_candidate.get(),
+            false);
+        return;
+      }
+      auto &available_data = opt_result->value();
+      auto result = self->parachain_host_->validation_code_by_hash(
+          block_hash, candidate_receipt.descriptor.validation_code_hash);
+      if (result.has_error() || !result.value()) {
+        self->logger_->warn(
+            "Approval state is failed. Block hash {}, session index {}, "
+            "validator index {}, relay parent {}",
+            block_hash,
+            session_index,
+            validator_index,
+            candidate_receipt.descriptor.relay_parent);
+        return;  /// ApprovalState::failed
+      }
 
-          self->logger_->info(
-              "Make exhaustive validation. Candidate hash {}, validator index "
-              "{}, block hash {}",
+      self->logger_->info(
+          "Make exhaustive validation. Candidate hash {}, validator index "
+          "{}, block hash {}",
+          hashed_candidate.getHash(),
+          validator_index,
+          block_hash);
+
+      runtime::ValidationCode &validation_code = *result.value();
+
+      auto cb = [weak_self{wself},
+                 hashed_candidate,
+                 session_index,
+                 validator_index,
+                 relay_block_hash](outcome::result<Pvf::Result> outcome) {
+        auto self = weak_self.lock();
+        if (not self) {
+          return;
+        }
+        const auto &candidate_receipt = hashed_candidate.get();
+        self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+          if (auto it = approvals_cache.find(hashed_candidate.getHash());
+              it != approvals_cache.end()) {
+            ApprovalCache &ac = it->second;
+            ac.approval_result = outcome.has_error()
+                                   ? ApprovalOutcome::Failed
+                                   : ApprovalOutcome::Approved;
+          }
+        });
+        if (outcome.has_error()) {
+          self->logger_->warn(
+              "Approval validation failed.(parachain id={}, relay parent={})",
+              candidate_receipt.descriptor.para_id,
+              candidate_receipt.descriptor.relay_parent);
+          self->dispute_coordinator_.get()->issueLocalStatement(
+              session_index,
               hashed_candidate.getHash(),
-              validator_index,
-              block_hash);
-
-          runtime::ValidationCode &validation_code = *result.value();
-
-          auto outcome = self->validate_candidate_exhaustive(
-              available_data.validation_data,
-              available_data.pov,
               candidate_receipt,
-              validation_code);
-
-          self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-            if (auto it = approvals_cache.find(hashed_candidate.getHash());
-                it != approvals_cache.end()) {
-              ApprovalCache &ac = it->second;
-              ac.approval_result = outcome;
-            }
-          });
-          if (ApprovalOutcome::Approved == outcome) {
-            self->issue_approval(
-                hashed_candidate.getHash(), validator_index, relay_block_hash);
-          } else if (ApprovalOutcome::Failed == outcome) {
-            self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index,
-                hashed_candidate.getHash(),
-                candidate_receipt,
-                false);
-          }
-        };
+              false);
+        } else {
+          self->issue_approval(
+              hashed_candidate.getHash(), validator_index, relay_block_hash);
+        }
+      };
+      self->pvf_->pvfValidate(available_data.validation_data,
+                              available_data.pov,
+                              candidate_receipt,
+                              validation_code,
+                              std::move(cb));
+    };
 
     recovery_->recover(hashed_candidate,
                        session_index,
                        backing_group,
                        std::move(on_recover_complete));
-  }
-
-  ApprovalDistribution::ApprovalOutcome
-  ApprovalDistribution::validate_candidate_exhaustive(
-      const runtime::PersistedValidationData &data,
-      const network::ParachainBlock &pov,
-      const network::CandidateReceipt &receipt,
-      const ParachainRuntime &code) {
-    if (auto result = pvf_->pvfValidate(data, pov, receipt, code);
-        result.has_error()) {
-      logger_->warn(
-          "Approval validation failed.(parachain id={}, relay parent={})",
-          receipt.descriptor.para_id,
-          receipt.descriptor.relay_parent);
-      return ApprovalOutcome::Failed;
-    }
-    return ApprovalOutcome::Approved;
   }
 
 #define GET_OPT_VALUE_OR_EXIT(name, err, ...)       \
@@ -2888,10 +2871,13 @@ namespace kagome::parachain {
       const primitives::BlockInfo &min,
       const primitives::BlockInfo &max) const {
     if (not approval_thread_handler_->isInCurrentThread()) {
-      std::promise<primitives::BlockInfo> p;
+      std::promise<primitives::BlockInfo> promise;
+      auto future = promise.get_future();
       approval_thread_handler_->execute(
-          [&] { p.set_value(approvedAncestor(min, max)); });
-      return p.get_future().get();
+           libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
+             promise.set_value(approvedAncestor(min, max));
+           }});
+      return future.get();
     }
 
     if (max.number <= min.number) {

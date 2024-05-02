@@ -1,8 +1,14 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #pragma once
 
-#include "crypto/keccak/keccak.h"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "crypto/keccak/keccak.h"
 
 namespace kagome::crypto {
   inline common::Hash256 keccak(common::BufferView buf) {

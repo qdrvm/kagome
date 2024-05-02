@@ -55,11 +55,11 @@ namespace kagome::parachain {
         PvfThreadPool &pvf_thread_pool,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     /// Subscribes to new heads.
-    void start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                   chain_sub_engine);
+    void start();
 
    private:
     using BlockHash = primitives::BlockHash;
@@ -74,7 +74,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::Executor> executor_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;

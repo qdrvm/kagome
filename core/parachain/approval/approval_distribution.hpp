@@ -39,7 +39,8 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::common {
   class MainThreadPool;
@@ -152,7 +153,7 @@ namespace kagome::parachain {
       }
 
       // Note that our assignment is triggered. No-op if already triggered.
-      MaybeCert trigger_our_assignment(network::Tick const tick_now) {
+      MaybeCert trigger_our_assignment(const network::Tick tick_now) {
         if (!our_assignment || our_assignment->triggered) {
           return std::nullopt;
         }
@@ -269,7 +270,8 @@ namespace kagome::parachain {
 
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        application::AppStateManager &app_state_manager,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
@@ -289,7 +291,7 @@ namespace kagome::parachain {
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
-    bool prepare();
+    bool tryStart();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
@@ -531,12 +533,6 @@ namespace kagome::parachain {
     void imported_block_info(const primitives::BlockHash &block_hash,
                              const primitives::BlockHeader &block_header);
 
-    ApprovalOutcome validate_candidate_exhaustive(
-        const runtime::PersistedValidationData &data,
-        const network::ParachainBlock &pov,
-        const network::CandidateReceipt &receipt,
-        const ParachainRuntime &code);
-
     AssignmentCheckResult check_and_import_assignment(
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
@@ -681,7 +677,8 @@ namespace kagome::parachain {
                            const CandidateHash &candidate_hash,
                            Tick tick);
 
-    void clearCaches(const primitives::events::ChainEventParams &event);
+    void clearCaches(
+        const primitives::events::RemoveAfterFinalizationParams &event);
 
     void store_remote_view(const libp2p::peer::PeerId &peer_id,
                            const network::View &view);
@@ -707,8 +704,11 @@ namespace kagome::parachain {
       return as<StorePair<Hash, DistribBlockEntry>>(store_);
     }
 
+    log::Logger logger_ =
+        log::createLogger("ApprovalDistribution", "parachain");
+
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<PoolHandler> approval_thread_handler_;
+    std::shared_ptr<PoolHandlerReady> approval_thread_handler_;
 
     std::shared_ptr<PoolHandler> worker_pool_handler_;
 
@@ -720,7 +720,7 @@ namespace kagome::parachain {
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
     network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
           StorePair<CandidateHash, CandidateEntry>,
@@ -761,9 +761,6 @@ namespace kagome::parachain {
     };
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
-
-    log::Logger logger_ =
-        log::createLogger("ApprovalDistribution", "parachain");
   };
 
 }  // namespace kagome::parachain

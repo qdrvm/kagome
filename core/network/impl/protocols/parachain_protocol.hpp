@@ -119,8 +119,6 @@ namespace kagome::network {
         return true;
       };
 
-      // Call the `handshakeAndReadMessages` function with the `on_handshake`
-      // and `on_message` functions as arguments.
       notifications::handshakeAndReadMessages<WireMessage<MessageType>>(
           this->weak_from_this(),
           std::move(stream),
@@ -190,11 +188,6 @@ namespace kagome::network {
     }
 
    private:
-    /**
-     * @brief Handles the handshake with the peer.
-     *
-     * @param peer The peer to handshake with.
-     */
     void onHandshake(const PeerId &peer) {
       if constexpr (kCollation) {
         observer_->onIncomingCollationStream(peer, kProtoVersion);

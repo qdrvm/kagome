@@ -288,7 +288,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PREVOTE_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PREVOTE;
@@ -356,7 +356,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS
                  || stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
 
     // https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/voter/voting_round.rs#L630-L633
     if (not prevote_ghost_) {
@@ -438,7 +438,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     // Final attempt to finalize round what should be success
@@ -452,8 +452,8 @@ namespace kagome::consensus::grandpa {
     if (stage_ != Stage::COMPLETED) {
       SL_DEBUG(logger_, "Round #{}: End round", round_number_);
       on_complete_handler_ = nullptr;
-      stage_timer_handle_.cancel();
-      pending_timer_handle_.cancel();
+      stage_timer_handle_.reset();
+      pending_timer_handle_.reset();
       stage_ = Stage::COMPLETED;
     }
   }
