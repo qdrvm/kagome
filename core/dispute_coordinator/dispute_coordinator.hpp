@@ -23,7 +23,7 @@ process with predefined limits. It initializez recovery process followed by
 exhaustive validation and the result statement. Which will be imported the same
 way as statements from other nodes. So the disputes workflow is a loop which
 enters on disputes initialization either disputes request or approval result and
-works until enough votes collected to make a dicision about block validity or
+works until enough votes collected to make a decision about block validity or
 another fork will be finalized.
 */
 
