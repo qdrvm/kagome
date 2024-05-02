@@ -655,7 +655,7 @@ namespace kagome::parachain {
     outcome::result<RelayParentState> initNewBackingTask(
         const primitives::BlockHash &relay_parent);
 
-    void spawn_and_update_peer(ValidatorIndex vi);
+    void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,

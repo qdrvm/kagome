@@ -97,7 +97,7 @@ namespace kagome::network {
     }
 
     /**
-     * Set of functions to manipulate in-parachain set of nodes. 
+     * Set of functions to manipulate in-parachain set of nodes.
      */
     bool can_be_disconnected() const {
       return 0 == use_count;
