@@ -1,4 +1,4 @@
-FROM bitnami/minideb@sha256:f643a1ae18ea62acdc1d85d1892b41a0270faeb0e127c15e6afe41209d838b33
+FROM bitnami/minideb@sha256:1cc3df6a4098088cc6d750ad3ce39ea2d169a19a619f82f49dbcf3ad55ab7b4b
 
 WORKDIR /kagome
 ENV PATH $PATH:/kagome

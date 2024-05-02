@@ -1,4 +1,4 @@
-FROM bitnami/minideb@sha256:c84aa349081c182fbaa92434eb6f6a0e14e69fc70aa1a5af2c7a8c0279fe5e93
+FROM bitnami/minideb@sha256:1cc3df6a4098088cc6d750ad3ce39ea2d169a19a619f82f49dbcf3ad55ab7b4b
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
 SHELL ["/bin/bash", "-c"]
@@ -46,6 +46,8 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         lcov \
         zlib1g-dev \
         libgmp10 \
+        libnsl-dev \
+        libseccomp-dev \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 

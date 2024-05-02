@@ -172,6 +172,7 @@ namespace kagome::authority_discovery {
                                          signed_record_pb.size())) {
       return Error::DECODE_ERROR;
     }
+
     libp2p::crypto::ProtobufKey protobuf_key{
         common::Buffer{str2byte(signed_record.peer_signature().public_key())}};
     OUTCOME_TRY(peer_key, key_marshaller_->unmarshalPublicKey(protobuf_key));

@@ -8,6 +8,10 @@ addtest(pvf_test
     pvf_test.cpp
     )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_sources(pvf_test PRIVATE secure_mode.cpp)
+endif()
+
 target_link_libraries(pvf_test
     validator_parachain
     log_configurator

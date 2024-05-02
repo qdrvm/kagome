@@ -52,7 +52,8 @@ namespace kagome::parachain {
      */
     std::optional<ImportResult> put(
         const RelayHash &relay_parent,
-        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+        GroupIndex group_id,
+        const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>>
             &groups,
         Statement statement,
         bool allow_multiple_seconded) override;
@@ -127,7 +128,8 @@ namespace kagome::parachain {
         const ValidityVote &vote);
     outcome::result<std::optional<BackingStore::ImportResult>> import_candidate(
         PerRelayParent &state,
-        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+        GroupIndex group_id,
+        const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>>
             &groups,
         ValidatorIndex authority,
         const network::CommittedCandidateReceipt &candidate,
