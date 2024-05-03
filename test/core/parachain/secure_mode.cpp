@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <system_error>
 #include <type_traits>
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
@@ -60,21 +61,21 @@ TEST(SecureMode, SeccompWorks) {
 }
 
 TEST(SecureMode, ChangeRootWorks) {
-  EXPECT_EXIT(
-      ([=]() {
-        auto dir =
-            std::filesystem::temp_directory_path() / "kagome_secure_mode_test";
-        std::filesystem::create_directories(dir);
-        ASSERT_OUTCOME_SUCCESS_TRY(changeRoot(dir));
-        ASSERT_EQ(std::filesystem::current_path(), "/");
-        ASSERT_EQ(std::distance(std::filesystem::directory_iterator{"/"},
-                                std::filesystem::directory_iterator{}),
-                  0);
-        ASSERT_EQ(std::filesystem::canonical(".."), "/");
-        std::exit(0);
-      }()),
-      testing::ExitedWithCode(0),
-      "");
+  EXPECT_EXIT(([=]() {
+                auto dir = std::filesystem::temp_directory_path()
+                         / "kagome_secure_mode_test/chroot";
+                std::filesystem::create_directories(dir);
+                ASSERT_OUTCOME_SUCCESS_TRY(changeRoot(dir));
+                ASSERT_EQ(std::filesystem::current_path(), "/");
+                ASSERT_EQ(
+                    std::distance(std::filesystem::directory_iterator{"/"},
+                                  std::filesystem::directory_iterator{}),
+                    0);
+                ASSERT_EQ(std::filesystem::canonical(".."), "/");
+                std::exit(0);
+              }()),
+              testing::ExitedWithCode(0),
+              "");
 }
 
 void accessFs(const std::filesystem::path &dir, bool should_succeed) {
