@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <libp2p/common/final_action.hpp>
 #include <system_error>
 #include <type_traits>
 
@@ -61,7 +62,10 @@ TEST(SecureMode, SeccompWorks) {
 }
 
 TEST(SecureMode, ChangeRootWorks) {
+  // since death tests use fork(), landlock restrictions will not leak to other
+  // tests in the suite
   EXPECT_EXIT(([=]() {
+                libp2p::common::FinalAction final = []() { std::exit(0); };
                 auto dir = std::filesystem::temp_directory_path()
                          / "kagome_secure_mode_test/chroot";
                 std::filesystem::create_directories(dir);
@@ -72,7 +76,6 @@ TEST(SecureMode, ChangeRootWorks) {
                                   std::filesystem::directory_iterator{}),
                     0);
                 ASSERT_EQ(std::filesystem::canonical(".."), "/");
-                std::exit(0);
               }()),
               testing::ExitedWithCode(0),
               "");
