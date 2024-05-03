@@ -395,17 +395,18 @@ namespace kagome::network {
     static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
   };
 
-  using CompactStatementSeconded = primitives::BlockHash;
-  using CompactStatementValid = primitives::BlockHash;
+  /// Proposal of a parachain candidate.
+  using CompactStatementSeconded =
+      Tagged<primitives::BlockHash, struct SecondedTag>;
+
+  /// State that a parachain
+  /// candidate is valid.
+  using CompactStatementValid = Tagged<primitives::BlockHash, struct ValidTag>;
 
   /// Statements that can be made about parachain candidates. These are the
   /// actual values that are signed.
-  using CompactStatement = std::variant<
-      Tagged<CompactStatementSeconded,
-             struct SecondedTag>,  /// Proposal of a parachain candidate.
-      Tagged<CompactStatementValid, struct ValidTag>  /// State that a parachain
-                                                      /// candidate is valid.
-      >;
+  using CompactStatement =
+      std::variant<CompactStatementSeconded, CompactStatementValid>;
 
   /// ViewUpdate message. Maybe will be implemented later.
   struct ViewUpdate {

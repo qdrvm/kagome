@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <ranges>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -150,7 +151,24 @@ namespace kagome::parachain {
         // check whether the sender has not sent too many seconded statements
         // for the originator. we know by the duplicate check above that this
         // iterator doesn't include the statement itself.
-        auto other_seconded_for_orig_from_remote = knowledge.find(sender);
+
+        if (auto it = knowledge.find(sender); it != knowledge.end()) {
+          auto &knowledge_set = it->second;
+          auto other_seconded_for_orig_from_remote =
+              knowledge_set | std::views::join()
+              | std::views::filter([](const TaggedKnowledge &knowledge) {
+                  if (knowledge.tag == TaggedKnowledge::IncomingP2P) {
+                    if (auto *specific_knowledge =
+                            std::get_if<SpecificKnowledge>(
+                                &knowledge.knowledge)) {
+                      if (auto *seconeded_stmt =
+                              std::get_if<network::CompactStatementSeconded>(
+                                  &specific_knowledge->statement)) {
+                      }
+                    }
+                  }
+                });
+        }
       }
     }
 
