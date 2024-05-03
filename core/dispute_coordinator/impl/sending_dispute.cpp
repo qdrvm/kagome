@@ -136,19 +136,19 @@ namespace kagome::dispute {
 
     auto size = receivers.size();
 
-    asyncSendRequest(std::move(protocol), std::move(receivers));
+    asyncSendRequests(std::move(protocol), std::move(receivers));
 
     SL_TRACE(logger_, "Requests dispatched. Sent {} requests", size);
 
     return true;
   }
 
-  void SendingDispute::asyncSendRequest(
+  void SendingDispute::asyncSendRequests(
       std::shared_ptr<network::SendDisputeProtocol> &&protocol,
       std::vector<std::tuple<primitives::AuthorityDiscoveryId,
                              libp2p::peer::PeerId>> &&receivers) {
     REINVOKE(*main_pool_handler_,
-             asyncSendRequest,
+             asyncSendRequests,
              std::move(protocol),
              std::move(receivers));
 

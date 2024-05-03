@@ -75,10 +75,12 @@ namespace kagome::dispute {
       Succeeded,
     };
 
+    /// Broadcasts dispute request to provided authorities
     bool send_requests(
         std::vector<primitives::AuthorityDiscoveryId> &&authorities);
 
-    void asyncSendRequest(
+    /// Asynchronous part of broadcasting dispute request
+    void asyncSendRequests(
         std::shared_ptr<network::SendDisputeProtocol> &&protocol,
         std::vector<std::tuple<primitives::AuthorityDiscoveryId,
                                libp2p::peer::PeerId>> &&receivers);
