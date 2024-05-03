@@ -134,46 +134,46 @@ namespace kagome::dispute {
 
     has_failed_sends_ = false;
 
-    for (auto &[authority_id, peer_id] : receivers) {
-      send_request(protocol, authority_id, peer_id);
-    }
+    auto size = receivers.size();
 
-    SL_TRACE(
-        logger_, "Requests dispatched. Sent {} requests", receivers.size());
+    asyncSendRequest(std::move(protocol), std::move(receivers));
+
+    SL_TRACE(logger_, "Requests dispatched. Sent {} requests", size);
 
     return true;
   }
 
-  void SendingDispute::send_request(
-      std::shared_ptr<network::SendDisputeProtocol> protocol,
-      primitives::AuthorityDiscoveryId authority_id,
-      libp2p::peer::PeerId peer_id) {
+  void SendingDispute::asyncSendRequest(
+      std::shared_ptr<network::SendDisputeProtocol> &&protocol,
+      std::vector<std::tuple<primitives::AuthorityDiscoveryId,
+                             libp2p::peer::PeerId>> &&receivers) {
     REINVOKE(*main_pool_handler_,
-             send_request,
+             asyncSendRequest,
              std::move(protocol),
-             std::move(authority_id),
-             std::move(peer_id));
+             std::move(receivers));
 
-    deliveries_.emplace(authority_id, DeliveryStatus::Pending);
-    protocol->doRequest(
-        peer_id,
-        request_,
-        [wp{weak_from_this()}, authority_id(authority_id), peer_id](
-            auto res) mutable {
-          if (auto self = wp.lock()) {
-            if (res.has_value()) {
-              self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
-            } else {
-              SL_TRACE(self->logger_,
-                       "Can't send dispute request to peer {}: {}",
-                       peer_id,
-                       res.error());
-              // LOG
-              self->deliveries_.erase(authority_id);
-              self->has_failed_sends_ = true;
+    for (auto &[authority_id, peer_id] : receivers) {
+      deliveries_.emplace(authority_id, DeliveryStatus::Pending);
+      protocol->doRequest(
+          peer_id,
+          request_,
+          [wp{weak_from_this()}, authority_id(authority_id), peer_id](
+              auto res) mutable {
+            if (auto self = wp.lock()) {
+              if (res.has_value()) {
+                self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
+              } else {
+                SL_TRACE(self->logger_,
+                         "Can't send dispute request to peer {}: {}",
+                         peer_id,
+                         res.error());
+                // LOG
+                self->deliveries_.erase(authority_id);
+                self->has_failed_sends_ = true;
+              }
             }
-          }
-        });
+          });
+    }
   }
 
 }  // namespace kagome::dispute

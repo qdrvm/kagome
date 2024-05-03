@@ -78,9 +78,10 @@ namespace kagome::dispute {
     bool send_requests(
         std::vector<primitives::AuthorityDiscoveryId> &&authorities);
 
-    void send_request(std::shared_ptr<network::SendDisputeProtocol> protocol,
-                      primitives::AuthorityDiscoveryId authority_id,
-                      libp2p::peer::PeerId peer_id);
+    void asyncSendRequest(
+        std::shared_ptr<network::SendDisputeProtocol> &&protocol,
+        std::vector<std::tuple<primitives::AuthorityDiscoveryId,
+                               libp2p::peer::PeerId>> &&receivers);
 
     log::Logger logger_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
