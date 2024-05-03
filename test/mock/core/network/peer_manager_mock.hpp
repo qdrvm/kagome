@@ -66,6 +66,8 @@ namespace kagome::network {
                 (const PeerId &),
                 (const, override));
 
+    MOCK_METHOD(void, enumeratePeerState, (const PeersCallback &), (override));
+
     MOCK_METHOD(size_t, activePeersNumber, (), (const, override));
 
     MOCK_METHOD(void,

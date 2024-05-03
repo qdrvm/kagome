@@ -60,7 +60,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -99,7 +99,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -163,7 +163,7 @@ jobs:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -187,7 +187,7 @@ jobs:
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -236,7 +236,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -261,7 +261,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    container: qdrvm/kagome-dev:6-minideb
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed

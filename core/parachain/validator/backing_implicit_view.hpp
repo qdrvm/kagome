@@ -37,6 +37,14 @@ namespace kagome::parachain {
     outcome::result<std::vector<ParachainId>> activate_leaf(
         const Hash &leaf_hash);
     std::vector<Hash> deactivate_leaf(const Hash &leaf_hash);
+    std::vector<Hash> all_allowed_relay_parents() const {
+      std::vector<Hash> r;
+      r.reserve(block_info_storage.size());
+      for (const auto &[h, _] : block_info_storage) {
+        r.emplace_back(h);
+      }
+      return r;
+    }
 
     ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
 
