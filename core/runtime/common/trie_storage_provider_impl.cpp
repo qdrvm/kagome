@@ -241,13 +241,13 @@ namespace kagome::runtime {
     }
     // https://github.com/paritytech/polkadot-sdk/blob/c973fe86f8c668462186c95655a58fda04508e9a/substrate/primitives/state-machine/src/overlayed_changes/mod.rs#L396-L399
     overlay->clearPrefix(prefix).value();
-    std::unique_ptr<storage::trie::PolkadotTrieCursor> cursor;
+    std::unique_ptr<storage::BufferStorageCursor> cursor;
     if (child) {
-      cursor = child_batches_.at(*child)->trieCursor();
+      cursor = child_batches_.at(*child)->cursor();
     } else {
-      cursor = base_batch_->trieCursor();
+      cursor = base_batch_->cursor();
     }
-    if (not cursor->seekLowerBound(prefix)) {
+    if (not cursor->seek(prefix)) {
       return result;
     }
     while (cursor->isValid()) {
