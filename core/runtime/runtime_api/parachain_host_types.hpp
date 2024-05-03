@@ -325,7 +325,7 @@ namespace kagome::runtime {
   using InboundDownwardMessage = network::InboundDownwardMessage;
   using InboundHrmpMessage = network::InboundHrmpMessage;
 
-  enum class PvfPrepTimeoutKind {
+  enum class PvfPrepTimeoutKind : uint8_t {
     /// For prechecking requests, the time period after which the preparation
     /// worker is considered
     /// unresponsive and will be killed.
@@ -340,7 +340,7 @@ namespace kagome::runtime {
   };
 
   /// Type discriminator for PVF execution timeouts
-  enum class PvfExecTimeoutKind {
+  enum class PvfExecTimeoutKind : uint8_t {
     /// The amount of time to spend on execution during backing.
     Backing,
 

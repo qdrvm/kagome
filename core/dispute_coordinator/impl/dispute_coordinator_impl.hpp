@@ -8,6 +8,7 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
+#include "network/types/dispute_messages.hpp"
 
 #include <list>
 
@@ -69,7 +70,6 @@ namespace kagome::dispute {
 }  // namespace kagome::dispute
 
 namespace kagome::network {
-  struct DisputeMessage;
   class Router;
   class PeerView;
 }  // namespace kagome::network
