@@ -4488,11 +4488,9 @@ namespace kagome::parachain {
             peer_id,
             candidate_hash);
 
-    auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
-    const auto candidate_hash{candidate.hash(*hasher_)};
-
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
+    auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
     auto need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
 
