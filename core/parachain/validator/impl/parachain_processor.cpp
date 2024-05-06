@@ -779,8 +779,22 @@ namespace kagome::parachain {
     }
   }
 
+  ParachainProcessorImpl::PerSessionState::PerSessionState(
+      const runtime::SessionInfo &_session_info,
+      Groups &&_groups,
+      grid::Views &&_grid_view,
+      ValidatorIndex _our_index,
+      const std::shared_ptr<network::PeerManager> &_pm,
+      const std::shared_ptr<authority_discovery::Query> &_query_audi)
+      : session_info{_session_info},
+        groups{std::move(_groups)},
+        grid_view{std::move(_grid_view)},
+        our_index{_our_index},
+        pm{_pm},
+        query_audi{_query_audi} {}
+
   ParachainProcessorImpl::PerSessionState::~PerSessionState() {
-    if (our_index) {
+    if (our_index && grid_view) {
       if (auto our_group = groups.byValidatorIndex(*our_index)) {
         BOOST_ASSERT(*our_group < session_info.validator_groups.size());
         const auto &group = session_info.validator_groups[*our_group];
@@ -890,14 +904,13 @@ namespace kagome::parachain {
         }
       }
 
-      return RefCache<SessionIndex, PerSessionState>::RefObj(PerSessionState{
-          .session_info = *session_info,
-          .groups = std::move(g),
-          .grid_view = grid_view,
-          .our_index = validator_index,
-          .pm = pm_,
-          .query_audi = query_audi_,
-      });
+      return RefCache<SessionIndex, PerSessionState>::RefObj(
+          *session_info,
+          std::move(g),
+          std::move(grid_view),
+          validator_index,
+          pm_,
+          query_audi_);
     });
 
     auto mode =

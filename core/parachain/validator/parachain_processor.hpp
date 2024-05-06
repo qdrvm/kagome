@@ -258,6 +258,12 @@ namespace kagome::parachain {
     };
 
     struct PerSessionState {
+      PerSessionState(const PerSessionState &) = delete;
+      PerSessionState &operator=(const PerSessionState &) = delete;
+
+      PerSessionState(PerSessionState &&) = default;
+      PerSessionState &operator=(PerSessionState &&) = delete;
+
       runtime::SessionInfo session_info;
       Groups groups;
       std::optional<grid::Views> grid_view;
@@ -266,6 +272,13 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerManager> pm;
       std::shared_ptr<authority_discovery::Query> query_audi;
 
+      PerSessionState(
+          const runtime::SessionInfo &_session_info,
+          Groups &&_groups,
+          grid::Views &&_grid_view,
+          ValidatorIndex _our_index,
+          const std::shared_ptr<network::PeerManager> &_pm,
+          const std::shared_ptr<authority_discovery::Query> &_query_audi);
       ~PerSessionState();
     };
 
