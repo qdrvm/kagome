@@ -886,24 +886,6 @@ namespace kagome::parachain {
                           session_info->active_validator_indices,
                           validator_index);
       Groups g{session_info->validator_groups, minimum_backing_votes};
-      if (auto our_group = g.byValidatorIndex(validator_index)) {
-        /// update peers of our group
-        const auto &group = session_info->validator_groups[*our_group];
-        for (const auto vi : group) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
-
-        /// update peers in grid view
-        BOOST_ASSERT(*our_group < grid_view.size());
-        const auto &view = grid_view[*our_group];
-        for (const auto vi : view.sending) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
-        for (const auto vi : view.receiving) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
-      }
-
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           *session_info,
           std::move(g),
@@ -912,6 +894,26 @@ namespace kagome::parachain {
           pm_,
           query_audi_);
     });
+
+    if (auto our_group = per_session_state->value().groups.byValidatorIndex(
+            validator->validatorIndex())) {
+      /// update peers of our group
+      const auto &group = session_info->validator_groups[*our_group];
+      for (const auto vi : group) {
+        spawn_and_update_peer(session_info->discovery_keys[vi]);
+      }
+
+      /// update peers in grid view
+      const auto &grid_view = *per_session_state->value().grid_view;
+      BOOST_ASSERT(*our_group < grid_view.size());
+      const auto &view = grid_view[*our_group];
+      for (const auto vi : view.sending) {
+        spawn_and_update_peer(session_info->discovery_keys[vi]);
+      }
+      for (const auto vi : view.receiving) {
+        spawn_and_update_peer(session_info->discovery_keys[vi]);
+      }
+    }
 
     auto mode =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
