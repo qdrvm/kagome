@@ -23,7 +23,7 @@ namespace kagome::parachain {
   };
 
   struct PvfWorkerInput {
-    SCALE_TIE(7);
+    SCALE_TIE(8);
 
     RuntimeEngine engine;
     common::Buffer runtime_code;
