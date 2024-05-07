@@ -32,6 +32,7 @@ namespace kagome::parachain {
     runtime::RuntimeContextFactory::ContextParams runtime_params;
     std::string cache_dir;
     std::vector<std::string> log_params;
+    bool force_disable_secure_mode;
   };
 
 }  // namespace kagome::parachain

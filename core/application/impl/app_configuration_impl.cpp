@@ -6,6 +6,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <boost/program_options/value_semantic.hpp>
 #include <charconv>
 #include <filesystem>
 #include <limits>
@@ -891,6 +892,7 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
+        ("disable-secure-validator-mode-UNSAFE", po::bool_switch(), "Disable secure validator mode")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1510,6 +1512,10 @@ namespace kagome::application {
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
+    }
+
+    if (find_argument(vm, "disable-secure-validator-mode-UNSAFE")) {
+      disable_secure_mode_ = true;
     }
 
     bool offchain_worker_value_error = false;

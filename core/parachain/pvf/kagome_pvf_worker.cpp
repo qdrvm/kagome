@@ -271,29 +271,33 @@ namespace kagome::parachain {
     SL_VERBOSE(logger, "Cache directory: {}", input.cache_dir);
 
 #ifdef __linux__
-    SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
+    if (!input.force_disable_secure_mode) {
+      SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
-    if (auto res = changeRoot(input.cache_dir); !res) {
-      SL_ERROR(logger,
-               "Failed to enable secure validator mode (change root): {}",
-               res.error().message());
-      return std::errc::not_supported;
-    }
-    input.cache_dir = "/";
+      if (auto res = changeRoot(input.cache_dir); !res) {
+        SL_ERROR(logger,
+                 "Failed to enable secure validator mode (change root): {}",
+                 res.error().message());
+        return std::errc::not_supported;
+      }
+      input.cache_dir = "/";
 
-    if (auto res = enableLandlock(input.cache_dir); !res) {
-      SL_ERROR(logger,
-               "Failed to enable secure validator mode (landlock): {}",
-               res.error().message());
-      return std::errc::not_supported;
+      if (auto res = enableLandlock(input.cache_dir); !res) {
+        SL_ERROR(logger,
+                 "Failed to enable secure validator mode (landlock): {}",
+                 res.error().message());
+        return std::errc::not_supported;
+      }
+      if (auto res = enableSeccomp(); !res) {
+        SL_ERROR(logger,
+                 "Failed to enable secure validator mode (seccomp): {}",
+                 res.error().message());
+        return std::errc::not_supported;
+      }
+      SL_VERBOSE(logger, "Successfully enabled secure validator mode");
+    } else {
+      SL_WARN(logger, "Secure validator mode disabled in node configuration");
     }
-    if (auto res = enableSeccomp(); !res) {
-      SL_ERROR(logger,
-               "Failed to enable secure validator mode (seccomp): {}",
-               res.error().message());
-      return std::errc::not_supported;
-    }
-    SL_VERBOSE(logger, "Successfully enabled secure validator mode");
 #else
     SL_WARN(
         logger,
