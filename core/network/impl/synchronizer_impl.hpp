@@ -30,7 +30,7 @@
 #include "telemetry/service.hpp"
 
 namespace kagome {
-  class PoolHandler;
+  class PoolHandlerReady;
 }  // namespace kagome
 
 namespace kagome::application {
@@ -238,7 +238,6 @@ namespace kagome::network {
 
     log::Logger log_;
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
@@ -253,7 +252,7 @@ namespace kagome::network {
     std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    std::shared_ptr<PoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandlerReady> main_pool_handler_;
 
     application::SyncMethod sync_method_;
 
