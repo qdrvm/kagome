@@ -25,6 +25,9 @@ namespace kagome {
    */
   class KademliaRandomWalk
       : public std::enable_shared_from_this<KademliaRandomWalk> {
+    static constexpr std::chrono::seconds kWalkInitialDelay{1};
+    static constexpr size_t kExtraPeers{15};
+
    public:
     KademliaRandomWalk(
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -33,8 +36,8 @@ namespace kagome {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia)
-        : discovery_only_if_under_num_{app_config.outPeers() + 15},
-          thread_{poolHandlerReadyMake(
+        : discovery_only_if_under_num_{app_config.outPeers() + kExtraPeers},
+          main_pool_handler_{poolHandlerReadyMake(
               this, app_state_manager, main_thread_pool, log_)},
           scheduler_{std::move(scheduler)},
           peer_manager_{std::move(peer_manager)},
@@ -63,12 +66,12 @@ namespace kagome {
     }
 
     log::Logger log_ = log::createLogger("KademliaRandomWalk");
-    uint32_t discovery_only_if_under_num_;
-    std::shared_ptr<PoolHandlerReady> thread_;
+    size_t discovery_only_if_under_num_;
+    std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<libp2p::protocol::kademlia::PeerRouting> kademlia_;
 
-    std::chrono::seconds delay_{1};
+    std::chrono::seconds delay_{kWalkInitialDelay};
   };
 }  // namespace kagome
