@@ -663,6 +663,12 @@ namespace kagome::parachain {
         network::CollationVersion version,
         ValidatorIndex originator,
         const network::vstaging::CompactStatement &compact);
+    void prune_old_advertisements(
+        const parachain::ImplicitView &implicit_view,
+        const std::unordered_map<Hash, ProspectiveParachainsModeOpt>
+            &active_leaves,
+        const std::unordered_map<primitives::BlockHash, RelayParentState>
+            &per_relay_parent);
     void provide_candidate_to_grid(
         const CandidateHash &candidate_hash,
         RelayParentState &relay_parent_state,
@@ -695,7 +701,6 @@ namespace kagome::parachain {
                                F &&callback);
 
     outcome::result<void> enqueueCollation(
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
         const RelayHash &relay_parent,
         ParachainId para_id,
         const libp2p::peer::PeerId &peer_id,
@@ -711,13 +716,12 @@ namespace kagome::parachain {
         ParachainId para_id,
         const Hash &para_head);
     void requestUnblockedCollations(
-        ParachainProcessorImpl::RelayParentState &rp_state,
-        ParachainId para_id,
-        const Hash &para_head,
-        std::vector<BlockedAdvertisement> &&unblocked);
+        std::unordered_map<
+            ParachainId,
+            std::unordered_map<Hash, std::vector<BlockedAdvertisement>>>
+            &&unblocked);
 
-    bool canSecond(ParachainProcessorImpl::RelayParentState &per_relay_parent,
-                   ParachainId candidate_para_id,
+    bool canSecond(ParachainId candidate_para_id,
                    const Hash &candidate_relay_parent,
                    const CandidateHash &candidate_hash,
                    const Hash &parent_head_data_hash);
