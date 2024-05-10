@@ -10,6 +10,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/grandpa/historical_votes.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -32,13 +33,11 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl() : round_number_{}, duration_{} {}
 
    public:
-    using SaveCachedVotes = std::function<void()>;
-
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<Environment> env,
-                    SaveCachedVotes save_cached_votes,
+                    HistoricalVotes historical_votes,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker> prevotes,
                     std::shared_ptr<VoteTracker> precommits,
@@ -50,7 +49,7 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
-        SaveCachedVotes save_cached_votes,
+        HistoricalVotes historical_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
@@ -63,13 +62,15 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
-        SaveCachedVotes save_cached_votes,
+        HistoricalVotes historical_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
         const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
+
+    ~VotingRoundImpl() override;
 
     enum class Stage {
       // Initial stage, round is just created
@@ -253,6 +254,34 @@ namespace kagome::consensus::grandpa {
       return prevote_ghost_;
     }
 
+    /**
+     * Set the number of prevotes and precommits received at the moment
+     * of prevoting. It should be called inmediatly after prevoting.
+     */
+    void set_prevoted_index() {
+      historical_votes_.set_prevoted_index();
+    }
+
+    /**
+     * Set the number of prevotes and precommits received at the moment
+     * of precommiting. It should be called inmediatly after precommiting.
+     */
+    void set_precommitted_index() {
+      historical_votes_.set_precommitted_index();
+    }
+
+    /**
+     * Return all votes for the round (prevotes and precommits), sorted by
+     * imported order and indicating the indices where we voted. At most two
+     * prevotes and two precommits per voter are present, further equivocations
+     * are not stored (as they are redundant).
+     */
+    auto &historical_votes() const {
+      return historical_votes_;
+    }
+
+    void applyHistoricalVotes();
+
    private:
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
@@ -301,6 +330,8 @@ namespace kagome::consensus::grandpa {
     void sendPrecommit(const Precommit &precommit);
     void pending();
 
+    void saveHistoricalVotes();
+
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
     std::shared_ptr<VotingRound> previous_round_;
@@ -314,7 +345,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> env_;
-    SaveCachedVotes save_cached_votes_;
+    HistoricalVotes historical_votes_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

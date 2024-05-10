@@ -27,6 +27,7 @@ using namespace kagome::consensus::grandpa;
 using kagome::consensus::grandpa::Authority;
 using kagome::consensus::grandpa::AuthoritySet;
 using kagome::consensus::grandpa::Equivocation;
+using kagome::consensus::grandpa::HistoricalVotes;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
@@ -124,6 +125,9 @@ class VotingRoundTest : public testing::Test,
                          .id = kAlice};
 
     env_ = std::make_shared<EnvironmentMock>();
+    EXPECT_CALL(*env_, getAncestry("C"_H, "EA"_H))
+        .WillRepeatedly(
+            Return(std::vector<BlockHash>{"EA"_H, "E"_H, "D"_H, "C"_H}));
     EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
         .WillRepeatedly(Return(std::vector<BlockHash>{
             "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
@@ -168,7 +172,7 @@ class VotingRoundTest : public testing::Test,
                                                config,
                                                hasher_,
                                                env_,
-                                               nullptr,
+                                               HistoricalVotes{},
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
@@ -360,6 +364,26 @@ TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   round_->onPrevote({}, bob, Propagation::NEEDLESS);
   round_->update(false, true, false);
   ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
+}
+
+TEST_F(VotingRoundTest, HistoricalVotesWorks) {
+  auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
+  auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "EC"_H});
+  auto bob1 = preparePrevote(kBob, kBobSignature, Prevote{7, "EA"_H});
+  auto bob2 = preparePrecommit(kBob, kBobSignature, Precommit{7, "EA"_H});
+
+  EXPECT_CALL(*env_, reportEquivocation(_, _))
+      .WillOnce(Return(outcome::success()));
+  round_->onPrevote({}, alice1, Propagation::NEEDLESS);
+  round_->set_prevoted_index();
+  round_->onPrevote({}, bob1, Propagation::NEEDLESS);
+  round_->onPrecommit({}, bob2, Propagation::NEEDLESS);
+  round_->onPrevote({}, alice2, Propagation::NEEDLESS);
+  round_->set_precommitted_index();
+  round_->update(false, true, true);
+
+  HistoricalVotes expected{{alice1, bob1, bob2, alice2}, 1, 4};
+  EXPECT_EQ(round_->historical_votes(), expected);
 }
 
 /**

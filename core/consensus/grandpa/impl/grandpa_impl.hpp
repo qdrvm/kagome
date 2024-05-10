@@ -11,6 +11,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/grandpa/historical_votes.hpp"
 #include "consensus/grandpa/impl/votes_cache.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "injector/lazy.hpp"
@@ -253,6 +254,10 @@ namespace kagome::consensus::grandpa {
      */
     void updateNextRound(RoundNumber round_number) override;
 
+    void saveHistoricalVotes(AuthoritySetId set,
+                             RoundNumber round,
+                             const HistoricalVotes &votes) override;
+
    private:
     struct WaitingBlock {
       libp2p::peer::PeerId peer;
@@ -319,8 +324,8 @@ namespace kagome::consensus::grandpa {
     void onHead(const primitives::BlockInfo &block);
     void pruneWaitingBlocks();
 
-    void saveCachedVotes();
-    void applyCachedVotes(VotingRound &round);
+    HistoricalVotes historicalVotes(AuthoritySetId set,
+                                    RoundNumber round) const;
 
     void setTimerFallback();
 
@@ -356,15 +361,6 @@ namespace kagome::consensus::grandpa {
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;
-
-    struct CachedRound {
-      SCALE_TIE(3);
-      AuthoritySetId set;
-      RoundNumber round;
-      VotingRound::Votes votes;
-    };
-    using CachedVotes = std::vector<CachedRound>;
-    CachedVotes cached_votes_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

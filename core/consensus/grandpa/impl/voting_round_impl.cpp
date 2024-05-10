@@ -56,7 +56,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> env,
-      SaveCachedVotes save_cached_votes,
+      HistoricalVotes historical_votes,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
@@ -69,7 +69,7 @@ namespace kagome::consensus::grandpa {
         grandpa_(grandpa),
         hasher_{std::move(hasher)},
         env_{std::move(env)},
-        save_cached_votes_{std::move(save_cached_votes)},
+        historical_votes_{std::move(historical_votes)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
         scheduler_{std::move(scheduler)},
@@ -105,7 +105,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
+      HistoricalVotes historical_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -116,7 +116,7 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
+                        std::move(historical_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -134,7 +134,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
+      HistoricalVotes historical_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -145,7 +145,7 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
+                        std::move(historical_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -186,6 +186,10 @@ namespace kagome::consensus::grandpa {
       finalized_ = last_finalized_block_;
       completable_ = true;
     }
+  }
+
+  VotingRoundImpl::~VotingRoundImpl() {
+    saveHistoricalVotes();
   }
 
   bool VotingRoundImpl::hasKeypair() const {
@@ -555,11 +559,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
+    set_prevoted_index();
     if (onPrevote({}, signed_prevote, Propagation::NEEDLESS)) {
       update(false, true, false);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
+      saveHistoricalVotes();
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
@@ -611,11 +614,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
+    set_precommitted_index();
     if (onPrecommit({}, signed_precommit, Propagation::NEEDLESS)) {
       update(false, false, true);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
+      saveHistoricalVotes();
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
@@ -627,6 +629,8 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(
         logger_, "Round #{}: Finalizing on block {}", round_number_, block);
+
+    saveHistoricalVotes();
 
     GrandpaJustification justification{
         .round_number = round_number_,
@@ -1184,6 +1188,7 @@ namespace kagome::consensus::grandpa {
                  result.error());
           return result.as_failure();
         }
+        historical_votes_.seen.emplace_back(vote);
         return outcome::success();
       }
       case VoteTracker::PushResult::DUPLICATED: {
@@ -1204,6 +1209,7 @@ namespace kagome::consensus::grandpa {
 
         std::ignore = env_->reportEquivocation(*this, equivocation);
 
+        historical_votes_.seen.emplace_back(vote);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
       default:
@@ -1609,5 +1615,20 @@ namespace kagome::consensus::grandpa {
 
   VotingRound::Votes VotingRoundImpl::votes() const {
     return {prevotes_->getMessages(), precommits_->getMessages()};
+  }
+
+  void VotingRoundImpl::applyHistoricalVotes() {
+    VotingRoundUpdate update{*this};
+    for (auto &vote : historical_votes_.seen) {
+      update.vote(vote);
+    }
+    update.update();
+  }
+
+  void VotingRoundImpl::saveHistoricalVotes() {
+    if (auto grandpa = grandpa_.lock()) {
+      grandpa->saveHistoricalVotes(
+          voter_set_->id(), round_number_, historical_votes_);
+    }
   }
 }  // namespace kagome::consensus::grandpa

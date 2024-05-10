@@ -66,6 +66,13 @@ namespace kagome::consensus::grandpa {
   // https://github.com/paritytech/polkadot/pull/6217
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
+  inline auto historicalVotesKey(AuthoritySetId set, RoundNumber round) {
+    auto key = storage::kGrandpaHistoricalVotesPrefix;
+    key.putUint64(set);
+    key.putUint64(round);
+    return key;
+  }
+
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -125,12 +132,6 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::tryStart() {
-    if (auto r = db_->get(storage::kGrandpaVotesKey)) {
-      if (auto r2 = scale::decode<CachedVotes>(r.value())) {
-        cached_votes_ = std::move(r2.value());
-      }
-    }
-
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -211,24 +212,19 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto save_cached_votes = [weak{weak_from_this()}]() {
-      if (auto self = weak.lock()) {
-        self->saveCachedVotes();
-      }
-    };
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
-        std::move(save_cached_votes),
+        historicalVotes(authority_set.id, round_state.round_number),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round_state);
-    applyCachedVotes(*new_round);
+    new_round->applyHistoricalVotes();
 
     new_round->end();  // it is okay, because we do not want to actually execute
                        // this round
@@ -277,24 +273,19 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto save_cached_votes = [weak{weak_from_this()}]() {
-      if (auto self = weak.lock()) {
-        self->saveCachedVotes();
-      }
-    };
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
-        std::move(save_cached_votes),
+        historicalVotes(authority_set->id, new_round_number),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round);
-    applyCachedVotes(*new_round);
+    new_round->applyHistoricalVotes();
     return new_round;
   }
 
@@ -1192,7 +1183,7 @@ namespace kagome::consensus::grandpa {
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
         environment_,
-        nullptr,
+        HistoricalVotes{},
         std::make_shared<VoteCryptoProviderImpl>(
             nullptr, crypto_provider_, justification.round_number, voters),
         std::make_shared<VoteTrackerImpl>(),
@@ -1424,36 +1415,24 @@ namespace kagome::consensus::grandpa {
     retain_if(waiting_blocks_, f);
   }
 
-  void GrandpaImpl::saveCachedVotes() {
-    CachedVotes rounds;
-    for (auto round = current_round_; round;
-         round = round->getPreviousRound()) {
-      rounds.emplace_back(CachedRound{
-          round->voterSetId(),
-          round->roundNumber(),
-          round->votes(),
-      });
-    }
-    std::ignore =
-        db_->put(storage::kGrandpaVotesKey, scale::encode(rounds).value());
-  }
-
-  void GrandpaImpl::applyCachedVotes(VotingRound &round) {
-    auto it = std::find_if(
-        cached_votes_.begin(), cached_votes_.end(), [&](const CachedRound &c) {
-          return c.set == round.voterSetId() and c.round == round.roundNumber();
-        });
-    if (it == cached_votes_.end()) {
+  void GrandpaImpl::saveHistoricalVotes(AuthoritySetId set,
+                                        RoundNumber round,
+                                        const HistoricalVotes &votes) {
+    if (votes.seen.empty()) {
       return;
     }
-    VotingRoundUpdate update{round};
-    for (auto &vote : it->votes.first) {
-      update.vote(vote);
+    std::ignore =
+        db_->put(historicalVotesKey(set, round), scale::encode(votes).value());
+  }
+
+  HistoricalVotes GrandpaImpl::historicalVotes(AuthoritySetId set,
+                                               RoundNumber round) const {
+    if (auto r = db_->get(historicalVotesKey(set, round))) {
+      if (auto r2 = scale::decode<HistoricalVotes>(r.value())) {
+        return std::move(r2.value());
+      }
     }
-    for (auto &vote : it->votes.second) {
-      update.vote(vote);
-    }
-    update.update();
+    return {};
   }
 
   void GrandpaImpl::setTimerFallback() {
