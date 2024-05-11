@@ -1430,6 +1430,11 @@ namespace kagome::consensus::grandpa {
     if (auto r = db_->get(historicalVotesKey(set, round))) {
       if (auto r2 = scale::decode<HistoricalVotes>(r.value())) {
         return std::move(r2.value());
+      } else {
+        SL_ERROR(logger_,
+                 "historicalVotes(set={}, round={}): decode error",
+                 set,
+                 round);
       }
     }
     return {};

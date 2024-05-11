@@ -366,6 +366,7 @@ TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
 }
 
+// https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/round.rs#L844
 TEST_F(VotingRoundTest, HistoricalVotesWorks) {
   auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
   auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "EC"_H});
