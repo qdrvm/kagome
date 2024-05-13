@@ -8,11 +8,10 @@
 
 #include "log/logger.hpp"
 
-#include <sstream>
-
-#include "common/hexutil.hpp"
+#include <boost/outcome/try.hpp>
 
 namespace kagome::log {
+  struct TraceReturnVoid {};
 
   template <typename Ret, typename... Args>
   void trace_function_call(const Logger &logger,
@@ -21,61 +20,44 @@ namespace kagome::log {
                            Ret &&ret,
                            Args &&...args) {
     if (logger->level() >= Level::TRACE) {
-      if (sizeof...(args) > 0) {
-        std::string ss;
-        (fmt::format_to(
-             std::back_inserter(ss), "{}, ", std::forward<Args>(args)),
-         ...);
-        logger->trace("call '{}' from {}, args: {} -> ret: {}",
-                      func_name,
-                      fmt::ptr(caller),
-                      ss,
-                      std::forward<Ret>(ret));
-      } else {
-        logger->trace("call '{}' from {} -> ret: {}",
-                      func_name,
-                      fmt::ptr(caller),
-                      std::forward<Ret>(ret));
+      std::string str;
+      auto to = std::back_inserter(str);
+      fmt::format_to(to, "call '{}' from {}", func_name, caller);
+      if constexpr (sizeof...(args) > 0) {
+        fmt::format_to(to, ", args: ");
+        (fmt::format_to(to, "{}, ", std::forward<Args>(args)), ...);
       }
-    }
-  }
-
-  template <typename... Args>
-  void trace_void_function_call(const Logger &logger,
-                                const void *caller,
-                                std::string_view func_name,
-                                Args &&...args) {
-    if (logger->level() >= Level::TRACE) {
-      if (sizeof...(args) > 0) {
-        std::string ss;
-        (fmt::format_to(
-             std::back_inserter(ss), "{}, ", std::forward<Args>(args)),
-         ...);
-        logger->trace("call '{}', args: {}", func_name, ss);
-      } else {
-        logger->trace("call '{}'", func_name);
+      if constexpr (not std::is_same_v<Ret, TraceReturnVoid>) {
+        fmt::format_to(to, " -> ret: {}", std::forward<Ret>(ret));
       }
+      logger->trace("{}", str);
     }
   }
 
 #ifdef NDEBUG
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...)
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
+#define _SL_TRACE_FUNC_CALL(log_name, logger, ret, ...)
 
 #else
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
-  ::kagome::log::trace_function_call(        \
-      (logger), fmt::ptr(this), __FUNCTION__, (ret), ##__VA_ARGS__)
-
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
-  ::kagome::log::trace_void_function_call(   \
-      (logger),                              \
-      reinterpret_cast<const void *>(this),  \
-      __FUNCTION__,                          \
-      ##__VA_ARGS__)
+#define _SL_TRACE_FUNC_CALL(log_name, logger, ret, ...)      \
+  do {                                                       \
+    auto &&log_name = (logger);                              \
+    if (log_name->level() >= ::soralog::Level::TRACE) {      \
+      ::kagome::log::trace_function_call(                    \
+          log_name, this, __FUNCTION__, ret, ##__VA_ARGS__); \
+    }                                                        \
+  } while (false)
 
 #endif
 
 }  // namespace kagome::log
+
+#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
+  _SL_TRACE_FUNC_CALL(BOOST_OUTCOME_TRY_UNIQUE_NAME, logger, ret, ##__VA_ARGS__)
+
+#define SL_TRACE_VOID_FUNC_CALL(logger, ...)            \
+  _SL_TRACE_FUNC_CALL(BOOST_OUTCOME_TRY_UNIQUE_NAME,    \
+                      logger,                           \
+                      ::kagome::log::TraceReturnVoid{}, \
+                      ##__VA_ARGS__)
