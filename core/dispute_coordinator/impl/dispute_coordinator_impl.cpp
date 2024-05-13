@@ -615,16 +615,18 @@ namespace kagome::dispute {
               validator_signature, payload, validator_public);
 
           if (validation_res.has_error()) {
+            SL_CRITICAL(log_,
+                        "Cannot validate scraped backing votes signature! {}",
+                        validation_res.error());
             return false;
           }
           if (not validation_res.value()) {
+            SL_CRITICAL(log_, "Scraped backing votes had invalid signature!");
             return false;
           }
           return true;
         };
-
-        BOOST_ASSERT_MSG(check_sig(),
-                         "Scraped backing votes had invalid signature!");
+        BOOST_ASSERT(check_sig());
 
         Indexed<SignedDisputeStatement> signed_dispute_statement{
             {
@@ -2592,11 +2594,12 @@ namespace kagome::dispute {
       return true;
     }
 
-    SL_TRACE(log_,
-             "Fetched ParachainHost runtime api version for relay_parent {} is "
-             "{}; it isn't suitable version",
-             relay_parent,
-             parachain_host_api_version);
+    SL_TRACE(
+        log_,
+        "Fetched ParachainHost runtime api version for relay_parent {} is {}; "
+        "it isn't suitable version",
+        relay_parent,
+        parachain_host_api_version);
     return false;
   }
 
