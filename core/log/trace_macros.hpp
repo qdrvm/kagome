@@ -47,7 +47,7 @@ struct fmt::formatter<kagome::log::TraceFuncCall<Ret, Args>> {
                      format_context &ctx) {
     auto out = ctx.out();
     out = fmt::format_to(out, "call '{}' from {}", v.func_name, v.caller);
-    if constexpr (std::tuple_size_v < Args >> 0) {
+    if constexpr ((std::tuple_size_v<Args>) > 0) {
       out = fmt::detail::write(out, ", args: ");
       auto first = true;
       auto f = [&](auto &arg) {
