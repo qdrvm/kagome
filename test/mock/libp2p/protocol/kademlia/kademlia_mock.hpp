@@ -37,6 +37,8 @@ namespace libp2p::protocol::kademlia {
                 (const PeerId &, FoundPeerInfoHandler),
                 (override));
 
+    MOCK_METHOD(outcome::result<void>, findRandomPeer, (), (override));
+
     MOCK_METHOD(outcome::result<void>, bootstrap, (), (override));
 
     MOCK_METHOD(void, start, (), (override));
