@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <optional>
 #include <type_traits>
+#include <optional>
 
 #include <boost/assert.hpp>
 

@@ -610,7 +610,6 @@ namespace {
                     Compile
             ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
             : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
-        config->runtimeCacheDirPath(),
     };
 #endif
 

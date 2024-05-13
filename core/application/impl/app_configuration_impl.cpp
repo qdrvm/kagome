@@ -7,7 +7,6 @@
 #include "application/impl/app_configuration_impl.hpp"
 
 #include <charconv>
-#include <filesystem>
 #include <limits>
 #include <regex>
 #include <string>
@@ -1473,17 +1472,6 @@ namespace kagome::application {
         }
       }
     }
-    {
-      std::error_code ec;
-      kagome::filesystem::create_directories(runtimeCacheDirPath(), ec);
-      if (ec) {
-        SL_ERROR(logger_,
-                 "Failed to create runtime cache dir {}: {}",
-                 runtimeCacheDirPath(),
-                 ec);
-        return false;
-      }
-    }
 
     if (auto arg = find_argument<uint32_t>(
             vm, "parachain-runtime-instance-cache-size");
@@ -1505,7 +1493,6 @@ namespace kagome::application {
     if (find_argument(vm, "parachain-single-process")) {
       use_pvf_subprocess_ = false;
     }
-    logger_->info("Parachain multi process: {}", use_pvf_subprocess_);
 
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {

@@ -2874,9 +2874,9 @@ namespace kagome::parachain {
       std::promise<primitives::BlockInfo> promise;
       auto future = promise.get_future();
       approval_thread_handler_->execute(
-          libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
-            promise.set_value(approvedAncestor(min, max));
-          }});
+           libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
+             promise.set_value(approvedAncestor(min, max));
+           }});
       return future.get();
     }
 

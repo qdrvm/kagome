@@ -24,7 +24,7 @@ if (CMAKE_CXX_COMPILER STREQUAL "CMAKE_CXX_COMPILER-NOTFOUND")
   find_program(CMAKE_CXX_COMPILER clang++ PATHS "${compiler_path}" NO_DEFAULT_PATH REQUIRED)
 
   execute_process(COMMAND "${CMAKE_CXX_COMPILER}" --version OUTPUT_VARIABLE compiler_version_output)
-  string(REGEX MATCH "clang version ([0-9]+)\\.[0-9]+\\.[0-9]+" compiler_version "${compiler_version_output}")
+  string(REGEX MATCH "clang version ([0-9]+)\.[0-9]+\.[0-9]+" compiler_version "${compiler_version_output}")
   if (NOT CMAKE_MATCH_1 STREQUAL "15")
     message(FATAL_ERROR "Found clang++ version ${CMAKE_MATCH_1}, 15 is required")
   endif()

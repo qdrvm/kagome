@@ -88,7 +88,7 @@ namespace {
 
 }  // namespace
 
-int main(int argc, const char **argv, const char **env) {
+int main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -100,7 +100,7 @@ int main(int argc, const char **argv, const char **env) {
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "pvf-worker") {
-      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1, env);
+      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1);
     }
   }
 

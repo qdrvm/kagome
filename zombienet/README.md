@@ -14,16 +14,19 @@ SPDX-License-Identifier: Apache-2.0
 ## Running tests locally
 To run any test locally use the native provider (`zombienet test -p native ...`) you need first build the binaries. They are:
 
-* [polkadot-sdk](https://github.com/paritytech/polkadot-sdk/)
+* [cumulus](https://github.com/paritytech/cumulus)
+* [polkadot](https://github.com/paritytech/polkadot)
 
-* polkadot-sdk/target/testnet/ -> adder-collator, malus, undying-collator 
-* polkadot-sdk/target/release/ -> polkadot, polkadot-execute-worker, polkadot-prepare-worker, polkadot-parachain 
+* adder-collator -> polkadot/target/testnet/adder-collator
+* malus -> polkadot/target/testnet/malus
+* polkadot-parachain -> cumulus/target/release/polkadot-parachain
+* undying-collator -> polkadot/target/testnet/undying-collator
 
 To build them use:
 * adder-collator -> `cargo build --profile testnet -p test-parachain-adder-collator`
 * undying-collator -> `cargo build --profile testnet -p test-parachain-undying-collator`
 * malus -> `cargo build --profile testnet -p polkadot-test-malus`
-* polkadot-parachain -> `cargo build --release -p polkadot-parachain-bin --bin polkadot-parachain`
+* polkadot-parachain -> `cargo build --release --bin polkadot-parachain`
   
 You can run a test locally by executing:
 ```sh

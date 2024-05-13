@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <boost/asio/buffer.hpp>
 #include <chrono>
 
 #include <boost/asio.hpp>
@@ -56,18 +55,13 @@ namespace kagome::parachain {
                 bp::std_in < pipe_stdin,
             } {}
     };
-    auto logger = log::createLogger("RunWorker", "parachain");
-    SL_DEBUG(logger, "Start pvf worker");
-
     auto process = std::make_shared<ProcessAndPipes>(io_context, exe);
 
     auto cb = [cb_ = std::make_shared<std::optional<Cb>>(std::move(cb_)),
-               process,
-               logger](outcome::result<common::Buffer> r) mutable {
+               process](outcome::result<common::Buffer> r) mutable {
       if (*cb_) {
         auto cb = std::move(*cb_);
         cb_->reset();
-        SL_DEBUG(logger, "Stop pvf worker");
         process->process.terminate();
         (*cb)(std::move(r));
       }
