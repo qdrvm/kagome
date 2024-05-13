@@ -13,7 +13,7 @@ namespace kagome::log {
 
   template <typename Ret, typename Args>
   struct TraceFuncCall {
-    const void *caller;
+    const void *caller{};
     std::string_view func_name;
     const Ret &ret;
     Args args;
