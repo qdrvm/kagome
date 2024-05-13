@@ -131,7 +131,8 @@ namespace kagome::dispute {
       std::shared_ptr<network::PeerView> peer_view,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline)
-      : system_clock_(system_clock),
+      : log_(log::createLogger("DisputeCoordinator", "dispute")),
+        system_clock_(system_clock),
         steady_clock_(steady_clock),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
@@ -157,7 +158,7 @@ namespace kagome::dispute {
                 dispute_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
-        batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
+        batches_(std::make_unique<Batches>(log_, steady_clock_, hasher_)) {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
@@ -2200,7 +2201,13 @@ namespace kagome::dispute {
       return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
                                  std::move(cb));
     }
-    queue.emplace_back(request, std::move(cb));
+    queue.emplace_back(request,
+                       [wp{weak_from_this()},
+                        cb{std::move(cb)}](outcome::result<void> res) mutable {
+                         if (auto self = wp.lock()) {
+                           self->sendDisputeResponse(res, std::move(cb));
+                         }
+                       });
 
     // We have at least one element to process - rate limit `timer` needs to
     // exist now:
@@ -2372,18 +2379,19 @@ namespace kagome::dispute {
     auto &valid_vote = checked_valid_vote;
     auto &invalid_vote = checked_invalid_vote;
 
+    // Find or create batch
     OUTCOME_TRY(found_batch,
                 batches_->find_batch(candidate_hash, candidate_receipt));
-    auto &[batch, just_created] = found_batch;
+    auto [batch, just_created] = std::move(found_batch);
 
     if (just_created) {
       // There was no entry yet - start import immediately:
 
-      SL_TRACE(log_,
-               "No batch yet - triggering immediate import (candidate={}, "
-               "peer={})",
-               candidate_hash,
-               peer);
+      SL_TRACE(
+          log_,
+          "No batch yet - triggering immediate import (candidate={}, peer={})",
+          candidate_hash,
+          peer);
 
       PreparedImport prepared_import{
           .candidate_receipt = batch->candidate_receipt,
@@ -2392,52 +2400,64 @@ namespace kagome::dispute {
       };
 
       start_import(std::move(prepared_import));
-    } else {
-      SL_TRACE(log_,
-               "Batch exists - batching request (candidate={})",
-               candidate_hash);
 
-      auto cb_opt =
-          batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
-
-      // Returned value means duplicate
-      if (cb_opt.has_value()) {
-        // We don't expect honest peers to send redundant votes within a
-        // single batch, as the timeout for retry is much higher. Still we
-        // don't want to punish the node as it might not be the node's
-        // fault. Some other (malicious) node could have been faster sending
-        // the same votes in order to harm the reputation of that honest
-        // node. Given that we already have a rate limit, if a validator
-        // chooses to waste available rate with redundant votes - so be it.
-        // The actual dispute resolution is unaffected.
-        SL_DEBUG(log_,
-                 "Peer {} sent completely redundant votes within a single "
-                 "batch - that looks fishy!",
-                 peer);
-
-        // While we have seen duplicate votes, we cannot confirm as we don't
-        // know yet whether the batch is going to be confirmed, so we assume
-        // the worst. We don't want to push the pending response to the
-        // batch either as that would be unbounded, only limited by the rate
-        // limit.
-        (*cb_opt)(BatchError::RedundantMessage);
-
-        // } else {  // FIXME testing code. must be removed
-        //   auto prepared_import =
-        //       batch->tick(steady_clock_.now() +
-        //       Batch::kBatchCollectingInterval);
-        //   if (prepared_import.has_value()) {
-        //     start_import(std::move(prepared_import.value()));
-        //   }
-      }
-
-      auto ready_prepared_imports = batches_->check_batches();
-      for (auto &prepared_import : ready_prepared_imports) {
-        start_import(std::move(prepared_import));
-      }
+      return outcome::success();
     }
 
+    SL_TRACE(
+        log_, "Batch exists - batching request (candidate={})", candidate_hash);
+
+    auto cb_opt =
+        batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
+
+    // Returned value means duplicate
+    if (cb_opt.has_value()) {
+      // We don't expect honest peers to send redundant votes  within a  single
+      // batch, as the timeout for retry is much higher. Still we don't want to
+      // punish the node as it might not be the node's fault. Some other
+      // (malicious) node could have been faster sending the same votes in order
+      // to harm the reputation of that honest node. Given that we already have
+      // a rate limit, if a validator chooses to waste available rate with
+      // redundant votes - so be it. The actual dispute resolution is
+      // unaffected.
+
+      SL_DEBUG(log_,
+               "Peer {} sent completely redundant votes "
+               "within a single batch "
+               "- that looks fishy!",
+               peer);
+
+      // While we have seen duplicate votes, we cannot confirm as we don't know
+      // yet whether the batch is going to be confirmed, so we assume the worst.
+      // We don't want to push the pending response to the batch either as that
+      // would be unbounded, only limited by the rate limit.
+
+      (*cb_opt)(BatchError::RedundantMessage);
+    }
+
+    check_batches();
+
     return outcome::success();
+  }
+
+  void DisputeCoordinatorImpl::check_batches() {
+    if (not batch_collecting_timer_.has_value()) {
+      batch_collecting_timer_ = scheduler_->scheduleWithHandle(
+          [wp{weak_from_this()}]() {
+            if (auto self = wp.lock()) {
+              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
+              self->batch_collecting_timer_.reset();
+              auto ready_prepared_imports = self->batches_->check_batches();
+              for (auto &prepared_import : ready_prepared_imports) {
+                self->start_import(std::move(prepared_import));
+              }
+              if (not self->batches_->empty()) {
+                self->check_batches();
+              }
+            }
+          },
+          Batch::kBatchCollectingInterval);
+    }
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/receiver/mod.rs#L422
