@@ -59,6 +59,7 @@ namespace kagome::application {
 
     kagome::telemetry::setTelemetryService(injector_.injectTelemetryService());
 
+    injector_.kademliaRandomWalk();
     injector_.injectAddressPublisher();
     injector_.injectTimeline();
 
