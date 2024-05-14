@@ -15,6 +15,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/beefy/digest.hpp"
+#include "consensus/beefy/fetch_justification.hpp"
 #include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "consensus/timeline/timeline.hpp"
@@ -28,7 +29,6 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 // TODO(turuslan): #1651, report equivocation
-// TODO(turuslan): #1651, fetch justifications
 
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
@@ -55,6 +55,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       LazySPtr<BeefyProtocol> beefy_protocol,
+      LazySPtr<consensus::beefy::FetchJustification>
+          beefy_justification_protocol,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
@@ -68,6 +70,7 @@ namespace kagome::network {
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
+        beefy_justification_protocol_{std::move(beefy_justification_protocol)},
         min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -394,7 +397,17 @@ namespace kagome::network {
       }
       ++next_digest_;
     }
+    if (sessions_.size() > 1 and sessions_.begin()->first <= beefy_finalized_) {
+      sessions_.erase(sessions_.begin());
+    }
     std::ignore = vote();
+    if (not sessions_.empty()) {
+      auto first = sessions_.begin()->first;
+      if (first > beefy_finalized_
+          and not pending_justifications_.contains(first)) {
+        beefy_justification_protocol_.get()->fetchJustification(first);
+      }
+    }
     return outcome::success();
   }
 

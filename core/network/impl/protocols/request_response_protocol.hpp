@@ -69,7 +69,7 @@ namespace kagome::network {
             auto self = wptr.lock();
             if (!self) {
               self->base_.closeStream(std::move(wptr), std::move(stream));
-              response_handler(ProtocolError::GONE);
+              response_handler(outcome::failure(ProtocolError::GONE));
               return;
             }
 
@@ -210,7 +210,7 @@ namespace kagome::network {
 
             auto self = wptr.lock();
             if (!self) {
-              cb(ProtocolError::GONE);
+              cb(outcome::failure(ProtocolError::GONE));
               return;
             }
 
@@ -260,12 +260,12 @@ namespace kagome::network {
       read_writer->template read<M>(
           [stream{std::move(stream)},
            wptr{this->weak_from_this()},
-           cb{std::move(cb)}](auto &&read_result) mutable {
+           cb{std::move(cb)}](outcome::result<M> read_result) mutable {
             BOOST_ASSERT(stream);
 
             auto self = wptr.lock();
             if (!self) {
-              cb(ProtocolError::GONE, nullptr);
+              cb(outcome::failure(ProtocolError::GONE), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
@@ -286,7 +286,8 @@ namespace kagome::network {
                      "Successful response read from outgoing {} stream with {}",
                      self->protocolName(),
                      stream->remotePeerId().value());
-            cb(std::move(read_result.value()), std::move(stream));
+            cb(outcome::success(std::move(read_result.value())),
+               std::move(stream));
           });
     }
 
@@ -301,7 +302,7 @@ namespace kagome::network {
                              "Invariant is broken: "
                              "stream must not be null with success result");
 
-            cb(result);
+            cb(std::move(result));
             if (result.has_value()) {
               auto self = wptr.lock();
               BOOST_ASSERT_MSG(
