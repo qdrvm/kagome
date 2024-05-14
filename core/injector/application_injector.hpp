@@ -154,6 +154,7 @@ namespace kagome::injector {
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;
+    std::mutex mutex_;
   };
 
 }  // namespace kagome::injector

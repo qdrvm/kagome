@@ -1025,6 +1025,7 @@ namespace kagome::injector {
   }
 
   std::shared_ptr<consensus::Timeline> KagomeNodeInjector::injectTimeline() {
+    std::lock_guard guard{mutex_};
     pimpl_->injector_.template create<sptr<consensus::ConsensusSelector>>();
     pimpl_->injector_.template create<sptr<consensus::SlotsUtil>>();
     return pimpl_->injector_.template create<sptr<consensus::Timeline>>();
