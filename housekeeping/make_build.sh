@@ -32,7 +32,6 @@ cd "$(dirname $0)/.."
 
 cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
-  cmake --build "${BUILD_DIR}" --target pvf_test -- -j${BUILD_THREADS}
+  cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}
 fi
-#cmake --build "${BUILD_DIR}" --target "${BUILD_FINAL_TARGET}"
-cd "${BUILD_DIR}" && ctest -R pvf_test
+cmake --build "${BUILD_DIR}" --target "${BUILD_FINAL_TARGET}"
