@@ -8,74 +8,67 @@
 
 #include "log/logger.hpp"
 
-#include <sstream>
-
-#include "common/hexutil.hpp"
-
 namespace kagome::log {
+  struct TraceReturnVoid {};
 
-  template <typename Ret, typename... Args>
-  void trace_function_call(const Logger &logger,
-                           const void *caller,
-                           std::string_view func_name,
-                           Ret &&ret,
-                           Args &&...args) {
-    if (logger->level() >= Level::TRACE) {
-      if (sizeof...(args) > 0) {
-        std::string ss;
-        (fmt::format_to(
-             std::back_inserter(ss), "{}, ", std::forward<Args>(args)),
-         ...);
-        logger->trace("call '{}' from {}, args: {} -> ret: {}",
-                      func_name,
-                      fmt::ptr(caller),
-                      ss,
-                      std::forward<Ret>(ret));
-      } else {
-        logger->trace("call '{}' from {} -> ret: {}",
-                      func_name,
-                      fmt::ptr(caller),
-                      std::forward<Ret>(ret));
-      }
-    }
-  }
-
-  template <typename... Args>
-  void trace_void_function_call(const Logger &logger,
-                                const void *caller,
-                                std::string_view func_name,
-                                Args &&...args) {
-    if (logger->level() >= Level::TRACE) {
-      if (sizeof...(args) > 0) {
-        std::string ss;
-        (fmt::format_to(
-             std::back_inserter(ss), "{}, ", std::forward<Args>(args)),
-         ...);
-        logger->trace("call '{}', args: {}", func_name, ss);
-      } else {
-        logger->trace("call '{}'", func_name);
-      }
-    }
-  }
+  template <typename Ret, typename Args>
+  struct TraceFuncCall {
+    const void *caller{};
+    std::string_view func_name;
+    const Ret &ret;
+    Args args;
+  };
+  template <typename Ret, typename Args>
+  TraceFuncCall(const void *, std::string_view, const Ret &, Args)
+      -> TraceFuncCall<Ret, Args>;
 
 #ifdef NDEBUG
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...)
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
+#define _SL_TRACE_FUNC_CALL(logger, ret, ...)
 
 #else
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
-  ::kagome::log::trace_function_call(        \
-      (logger), fmt::ptr(this), __FUNCTION__, (ret), ##__VA_ARGS__)
-
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
-  ::kagome::log::trace_void_function_call(   \
-      (logger),                              \
-      reinterpret_cast<const void *>(this),  \
-      __FUNCTION__,                          \
-      ##__VA_ARGS__)
+#define _SL_TRACE_FUNC_CALL(logger, ret, ...) \
+  SL_TRACE(logger,                            \
+           "{}",                              \
+           (::kagome::log::TraceFuncCall{     \
+               this, __FUNCTION__, ret, std::forward_as_tuple(__VA_ARGS__)}))
 
 #endif
 
 }  // namespace kagome::log
+
+template <typename Ret, typename Args>
+struct fmt::formatter<kagome::log::TraceFuncCall<Ret, Args>> {
+  static constexpr auto parse(format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  static auto format(const kagome::log::TraceFuncCall<Ret, Args> &v,
+                     format_context &ctx) {
+    auto out = ctx.out();
+    out = fmt::format_to(out, "call '{}' from {}", v.func_name, v.caller);
+    if constexpr ((std::tuple_size_v<Args>) > 0) {
+      out = fmt::detail::write(out, ", args: ");
+      auto first = true;
+      auto f = [&](auto &arg) {
+        if (first) {
+          first = false;
+        } else {
+          out = fmt::detail::write(out, ", ");
+        }
+        out = fmt::format_to(out, "{}", arg);
+      };
+      std::apply([&](auto &...arg) { (f(arg), ...); }, v.args);
+    }
+    if constexpr (not std::is_same_v<Ret, kagome::log::TraceReturnVoid>) {
+      out = fmt::format_to(out, " -> ret: {}", v.ret);
+    }
+    return out;
+  }
+};
+
+#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
+  _SL_TRACE_FUNC_CALL(logger, ret, ##__VA_ARGS__)
+
+#define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
+  _SL_TRACE_FUNC_CALL(logger, ::kagome::log::TraceReturnVoid{}, ##__VA_ARGS__)
