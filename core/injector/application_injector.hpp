@@ -145,6 +145,7 @@ namespace kagome::injector {
     std::shared_ptr<storage::SpacedStorage> injectStorage();
     std::shared_ptr<authority_discovery::AddressPublisher>
     injectAddressPublisher();
+    void kademliaRandomWalk();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();

@@ -133,6 +133,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
+#include "network/kademlia_random_walk.hpp"
 #include "network/warp/cache.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
@@ -320,7 +321,7 @@ namespace {
     kademlia_config.protocols =
         network::make_protocols("/{}/kad", genesis, chain_spec);
     kademlia_config.maxBucketSize = 1000;
-    kademlia_config.randomWalk = {.interval = random_wak_interval};
+    kademlia_config.randomWalk.enabled = false;
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
         std::move(kademlia_config));
@@ -1106,4 +1107,7 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
   }
 
+  void KagomeNodeInjector::kademliaRandomWalk() {
+    pimpl_->injector_.create<sptr<KademliaRandomWalk>>();
+  }
 }  // namespace kagome::injector
