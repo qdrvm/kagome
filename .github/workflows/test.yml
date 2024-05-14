@@ -102,6 +102,45 @@ jobs:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     container: qdrvm/kagome-dev:7-minideb
+    env:
+      BUILD_SECURE_MODE_TEST: OFF
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: "${{ matrix.options.name }}"
+        run: "${{ matrix.options.run }}"
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+
+  Linux-gh-pvf-test:
+    #    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "GH-hosted: Linux: gcc-12 ASAN"
+            run: ./housekeeping/make_pvf_test_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
+          - name: "GH-hosted: Linux: gcc-12 TSAN WAVM"
+            run: ./housekeeping/make_pvf_test_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+          - name: "GH-hosted: Linux: clang-15 UBSAN"
+            run: ./housekeeping/make_pvf_test_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
+
+    name: "${{ matrix.options.name }}"
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    container: qdrvm/kagome-dev:7-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed

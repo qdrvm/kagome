@@ -8,7 +8,7 @@ addtest(pvf_test
     pvf_test.cpp
     )
 
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+if (CMAKE_SYSTEM_NAME STREQUAL Linux AND BUILD_SECURE_MODE_TEST STREQUAL "ON")
     target_sources(pvf_test PRIVATE secure_mode.cpp)
 endif()
 
