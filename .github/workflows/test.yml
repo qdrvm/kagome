@@ -97,7 +97,7 @@ jobs:
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller ]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     container: qdrvm/kagome-dev:7-minideb
     steps:
