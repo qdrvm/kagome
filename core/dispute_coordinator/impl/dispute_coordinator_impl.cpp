@@ -2457,9 +2457,12 @@ namespace kagome::dispute {
     // auto &candidate_hash = signed_statement.candidate_hash;
 
     auto pending_confirmation =
-        [requesters(std::move(requesters))](outcome::result<void> res) {
-          for (auto &[peer, cb] : requesters) {
-            cb(res);
+        [wp{weak_from_this()},
+         requesters(std::move(requesters))](outcome::result<void> res) mutable {
+          if (auto self = wp.lock()) {
+            for (auto &[peer, cb] : requesters) {
+              self->sendDisputeResponse(res, std::move(cb));
+            }
           }
         };
 
@@ -2489,7 +2492,7 @@ namespace kagome::dispute {
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
         candidate_hash,
         std::make_unique<SendingDispute>(
-            authority_discovery_, protocol, request));
+            log_, main_pool_handler_, authority_discovery_, protocol, request));
 
     std::ignore =
         sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
