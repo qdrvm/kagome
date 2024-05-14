@@ -160,7 +160,8 @@ namespace kagome::dispute {
       protocol->doRequest(
           peer_id,
           request_,
-          [wp{weak_from_this()}, authority_id, peer_id](auto res) mutable {
+          [wp{weak_from_this()}, authority_id(authority_id), peer_id(peer_id)](
+              auto res) mutable {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
