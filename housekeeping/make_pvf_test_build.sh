@@ -19,13 +19,6 @@ if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 
-if [[ "${KAGOME_MAC_CI}" = 1 ]]; then
-  source ~/venv/bin/activate
-  export HUNTER_PYTHON_LOCATION=$VIRTUAL_ENV
-  export CURL_SSL_BACKEND=SecureTransport
-  export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-fi
-
 cd "$(dirname $0)/.."
 
 cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
