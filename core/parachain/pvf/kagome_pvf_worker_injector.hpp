@@ -111,8 +111,16 @@ namespace kagome::parachain {
                                                               input.cache_dir](
                                                              const auto
                                                                  &injector) {
+          kagome::filesystem::path path_cache_dir;
+          if (cache_dir.has_value()) {
+            path_cache_dir = kagome::filesystem::path(cache_dir.value());
+          } else {
+            // Handle the case when the optional string is empty
+            // You can either provide a default value or handle the error
+            path_cache_dir = kagome::filesystem::temp_directory_path();
+          }
           auto module_cache = std::make_shared<runtime::wavm::ModuleCache>(
-              injector.template create<sptr<crypto::Hasher>>(), cache_dir);
+              injector.template create<sptr<crypto::Hasher>>(), path_cache_dir);
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),

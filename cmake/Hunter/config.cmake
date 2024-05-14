@@ -115,8 +115,7 @@ hunter_config(
 
 hunter_config(
     libsecp256k1
-    URL https://github.com/qdrvm/soramitsu-libsecp256k1/archive/ace3e08075d9cc1ecff1afe1be65c31fc9059c4c.zip
-    SHA1 bc1e4413a56ce2cdc17175dd1c9b569345c1e709
+    VERSION 0.4.1-qdrvm1
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
