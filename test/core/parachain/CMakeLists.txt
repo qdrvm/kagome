@@ -9,7 +9,6 @@ addtest(pvf_test
     )
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux AND BUILD_SECURE_MODE_TEST STREQUAL "ON")
-    message("secure mode is building")
     target_sources(pvf_test PRIVATE secure_mode.cpp)
 endif()
 
