@@ -713,7 +713,6 @@ namespace kagome::parachain {
       backing_store_->onDeactivateLeaf(lost);
       av_store_->remove(lost);
       bitfield_store_->remove(lost);
-      our_current_state_.active_leaves.erase(lost);
     }
   }
 
