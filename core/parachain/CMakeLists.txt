@@ -22,6 +22,7 @@ add_library(validator_parachain
     approval/approval_distribution_error.cpp
     approval/approval.cpp
     backing/store_impl.cpp
+    backing/cluster.cpp
     validator/impl/fragment_tree.cpp
     validator/backing_implicit_view.cpp
     )
