@@ -19,11 +19,12 @@ namespace kagome::runtime {
    * @brief type of wasm log levels
    */
   enum class WasmLogLevel {
-    Error = 0,
-    Warn = 1,
-    Info = 2,
-    Debug = 3,
-    Trace = 4,
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
   };
 
   using WasmPointer = uint32_t;

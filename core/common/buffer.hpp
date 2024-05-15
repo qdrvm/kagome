@@ -239,6 +239,10 @@ namespace kagome::common {
 
 }  // namespace kagome::common
 
+namespace kagome {
+  using common::Buffer;
+}  // namespace kagome
+
 template <size_t N>
 struct std::hash<kagome::common::SLBuffer<N>> {
   size_t operator()(const kagome::common::SLBuffer<N> &x) const {
