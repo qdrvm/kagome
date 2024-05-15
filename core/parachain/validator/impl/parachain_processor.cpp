@@ -1031,7 +1031,7 @@ namespace kagome::parachain {
 
     SL_VERBOSE(
         logger_,
-        "Inited new backing task v2.(assigned_para={}, assigned_core={}, our index={}, relay "
+        "Inited new backing task v3.(assigned_para={}, assigned_core={}, our index={}, relay "
         "parent={})",
         assigned_para,
         assigned_core,
@@ -2992,6 +2992,35 @@ namespace kagome::parachain {
     }
     const auto group_size = group->size();
 
+    SL_TRACE(
+        logger_,
+        "======================== GRID VIEW {} {} ========================",
+        group_index, relay_parent);
+
+    for (size_t k = 0; k < grid_view.size(); ++k) {
+      const auto &v = grid_view[k];
+      SL_TRACE(
+        logger_,
+        "\tGroup {}", k
+      );
+      for (const auto vi : v.sending) {
+        SL_TRACE(
+        logger_,
+          "\t\tS: {}", vi
+        );
+      }
+      for (const auto vi : v.receiving) {
+        SL_TRACE(
+        logger_,
+          "\t\tR: {}", vi
+        );
+      }
+    }
+
+    SL_TRACE(
+        logger_,
+        "=================================================================");
+
     auto filter = local_knowledge_filter(group_size,
                                          group_index,
                                          candidate_hash,
@@ -3025,14 +3054,29 @@ namespace kagome::parachain {
         continue;
       }
 
-      /// TODO(iceseer): do check `implicit_view` for peer, saved in PeerState.
-      /// Get protocol from there.
+      auto peer_state = pm_->getPeerState(peer_opt->id);
+      if (!peer_state) {
+        continue;
+      }
+
+      if (!peer_state->get().knows_relay_parent(relay_parent)) {
+        continue;
+      }
+
       switch (action) {
         case grid::ManifestKind::Full: {
+          SL_TRACE(
+            logger_,
+            "Full manifest -> {}", v
+          );
           manifest_peers.emplace_back(peer_opt->id,
                                       network::CollationVersion::VStaging);
         } break;
         case grid::ManifestKind::Acknowledgement: {
+          SL_TRACE(
+            logger_,
+            "Ack manifest -> {}", v
+          );
           ack_peers.emplace_back(peer_opt->id,
                                  network::CollationVersion::VStaging);
         } break;
