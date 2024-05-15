@@ -25,4 +25,4 @@ cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" --target pvf_test -- -j${BUILD_THREADS}
 fi
-"${BUILD_DIR}"/test_bin/pvf_test
+ctest --test-dir ${BUILD_DIR} -R pvf_test
