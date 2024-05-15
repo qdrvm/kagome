@@ -892,7 +892,7 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
-        ("disable-secure-validator-mode-UNSAFE", po::bool_switch(), "Disable secure validator mode")
+        ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1514,7 +1514,7 @@ namespace kagome::application {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
     }
 
-    if (find_argument(vm, "disable-secure-validator-mode-UNSAFE")) {
+    if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {
       disable_secure_mode_ = true;
     }
 
