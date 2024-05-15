@@ -225,8 +225,7 @@ namespace kagome::parachain {
           IncomingP2P{SpecificKnowledge{statement, originator}});
       if (auto *seconded =
               std::get_if<network::CompactStatementSeconded>(&statement)) {
-        knowledge[sender].insert(
-            IncomingP2P{GeneralKnowledge{*seconded}});
+        knowledge[sender].insert(IncomingP2P{GeneralKnowledge{*seconded}});
         // since we accept additional `Seconded` statements beyond the limits
         // 'with prejudice', we must respect the limit here.
         if (seconded_already_or_within_limit(originator, *seconded)) {
