@@ -8,16 +8,23 @@
 #include "authority_discovery/query/query.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
 #include "network/impl/protocols/send_dispute_protocol.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::dispute {
 
   SendingDispute::SendingDispute(
+      log::Logger logger,
+      std::shared_ptr<PoolHandler> main_pool_handler,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
       std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
       const network::DisputeMessage &request)
-      : authority_discovery_(std::move(authority_discovery)),
+      : logger_(std::move(logger)),
+        main_pool_handler_(std::move(main_pool_handler)),
+        authority_discovery_(std::move(authority_discovery)),
         dispute_protocol_(std::move(dispute_protocol)),
-        request_(std::move(request)) {
+        request_(request) {
+    BOOST_ASSERT(logger_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
     BOOST_ASSERT(dispute_protocol_.lock());
   }
@@ -34,15 +41,15 @@ namespace kagome::dispute {
     std::for_each(new_authorities.begin(),
                   new_authorities.end(),
                   [&](const auto &authority) {
-                    if (deliveries_.count(authority) == 0) {
+                    if (not deliveries_.contains(authority)) {
                       add_authorities.emplace_back(authority);
                     }
                   });
 
     // Get rid of dead/irrelevant tasks/statuses:
-    // SL_TRACE "Cleaning up deliveries"
+    SL_TRACE(logger_, "Cleaning up deliveries");
     for (auto it = deliveries_.begin(); it != deliveries_.end();) {
-      if (new_authorities.count(it->first) == 0) {
+      if (not new_authorities.contains(it->first)) {
         it = deliveries_.erase(it);
       } else {
         ++it;
@@ -51,15 +58,15 @@ namespace kagome::dispute {
 
     // Start any new tasks that are needed:
 
-    // SL_TRACE(log_,
-    //          "Starting new send requests for authorities. "
-    //          "(new_and_failed_authorities={},overall_authority_set_size={},"
-    //          "already_running_deliveries={})",
-    //          add_authorities.size(),
-    //          new_authorities.size(),
-    //          deliveries_.size());
+    SL_TRACE(logger_,
+             "Starting new send requests for authorities. "
+             "(new_and_failed_authorities={},overall_authority_set_size={},"
+             "already_running_deliveries={})",
+             add_authorities.size(),
+             new_authorities.size(),
+             deliveries_.size());
 
-    auto sent = send_requests(add_authorities);
+    auto sent = send_requests(std::move(add_authorities));
 
     return sent;
   }
@@ -104,7 +111,7 @@ namespace kagome::dispute {
   }
 
   bool SendingDispute::send_requests(
-      std::vector<primitives::AuthorityDiscoveryId> &authorities) {
+      std::vector<primitives::AuthorityDiscoveryId> &&authorities) {
     std::vector<
         std::tuple<primitives::AuthorityDiscoveryId, libp2p::peer::PeerId>>
         receivers;
@@ -115,7 +122,7 @@ namespace kagome::dispute {
     }
 
     if (receivers.empty()) {
-      // SL_WARN(log_, "No known peers to receive dispute request");
+      SL_WARN(logger_, "No known peers to receive dispute request");
       return false;
     }
 
@@ -127,28 +134,49 @@ namespace kagome::dispute {
 
     has_failed_sends_ = false;
 
+    auto size = receivers.size();
+
     for (auto &[authority_id, peer_id] : receivers) {
       deliveries_.emplace(authority_id, DeliveryStatus::Pending);
+    }
+
+    asyncSendRequests(std::move(protocol), std::move(receivers));
+
+    SL_TRACE(logger_, "Requests dispatched ({} receivers)", size);
+
+    return true;
+  }
+
+  void SendingDispute::asyncSendRequests(
+      std::shared_ptr<network::SendDisputeProtocol> &&protocol,
+      std::vector<std::tuple<primitives::AuthorityDiscoveryId,
+                             libp2p::peer::PeerId>> &&receivers) {
+    REINVOKE(*main_pool_handler_,
+             asyncSendRequests,
+             std::move(protocol),
+             std::move(receivers));
+
+    for (auto &[authority_id, peer_id] : receivers) {
       protocol->doRequest(
           peer_id,
           request_,
-          [wp{weak_from_this()}, authority_id(authority_id)](auto res) mutable {
+          [wp{weak_from_this()}, authority_id(authority_id), peer_id(peer_id)](
+              auto res) mutable {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
               } else {
-                // LOG Can't sent dispute request to peer {}
+                SL_TRACE(self->logger_,
+                         "Can't send dispute request to peer {}: {}",
+                         peer_id,
+                         res.error());
+                // LOG
                 self->deliveries_.erase(authority_id);
                 self->has_failed_sends_ = true;
               }
             }
           });
     }
-
-    // SL_TRACE(log_, "Requests dispatched. Sent {} requests",
-    // receivers.size());
-
-    return true;
   }
 
 }  // namespace kagome::dispute

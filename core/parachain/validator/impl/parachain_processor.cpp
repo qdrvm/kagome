@@ -199,7 +199,16 @@ namespace kagome::parachain {
                                                             bitfield}}}}});
   }
 
+  /**
+   * The `prepare` function is responsible for setting up the necessary
+   * components for the `ParachainProcessorImpl` class. It sets up the broadcast
+   * callback for the bitfield signer, subscribes to the BABE status observable,
+   * chain events engine, and my view observable. It also prepares the active
+   * leaves for processing parachains.
+   * @return true if the preparation is successful.
+   */
   bool ParachainProcessorImpl::prepare() {
+    // Set the broadcast callback for the bitfield signer
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield) {
@@ -208,6 +217,7 @@ namespace kagome::parachain {
           }
         });
 
+    // Subscribe to the BABE status observable
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
@@ -247,6 +257,7 @@ namespace kagome::parachain {
         babe_status_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
 
+    // Subscribe to the chain events engine
     chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
             const primitives::events::RemoveAfterFinalizationParams &event) {
@@ -255,6 +266,11 @@ namespace kagome::parachain {
           }
         });
 
+    // Set the callback for the my view observable
+    // This callback is triggered when the kViewUpdate event is fired.
+    // It updates the active leaves, checks if parachains can be processed,
+    // creates a new backing task for the new head, and broadcasts the updated
+    // view.
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     primitives::events::subscribe(
@@ -875,6 +891,17 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
+    /**
+     * It first checks if our node is a parachain validator for the relay
+     * parent. If it is not, it returns an error. If the node is a validator, it
+     * retrieves the validator groups, availability cores, and validators for
+     * the relay parent. It then iterates over the cores and for each scheduled
+     * core, it checks if the node is part of the validator group for that core.
+     * If it is, it assigns the parachain ID and collator ID of the scheduled
+     * core to the node. It also maps the parachain ID to the validators of the
+     * group. Finally, it returns a `RelayParentState` object that contains the
+     * assignment, validator index, required collator, and table context.
+     */
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater(
         [self{this}, &is_parachain_validator] {
@@ -1730,6 +1757,10 @@ namespace kagome::parachain {
     }
   }
 
+  // Handles BackedCandidateManifest message
+  //  It performs various checks and operations, and if everything is
+  //  successful, it sends acknowledgement and statement messages to the
+  //  validators group or sends a request to fetch the attested candidate.
   void ParachainProcessorImpl::handle_incoming_manifest(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
@@ -5037,6 +5068,7 @@ namespace kagome::parachain {
       return;
     }
 
+    // Check for protocol mismatch
     if (relay_parent_mode && !prospective_candidate) {
       SL_WARN(logger_, "Protocol mismatch. (peer_id={})", peer_id);
       return;
@@ -5046,15 +5078,20 @@ namespace kagome::parachain {
         utils::map(prospective_candidate,
                    [](const auto &pair) { return std::cref(pair.first); });
 
+    // Try to insert the advertisement
     auto insert_res = insertAdvertisement(
         peer_state->get(), relay_parent, relay_parent_mode, candidate_hash);
     if (insert_res.has_error()) {
+      // If there is an error inserting the advertisement, log a trace message
+      // and return
       SL_TRACE(logger_,
                "Insert advertisement error. (error={})",
                insert_res.error().message());
       return;
     }
 
+    // Get the collator id and parachain id from the result of the advertisement
+    // insertion
     const auto &[collator_id, parachain_id] = insert_res.value();
     if (!per_relay_parent.collations.hasSecondedSpace(relay_parent_mode)) {
       SL_TRACE(logger_, "Seconded limit reached.");
