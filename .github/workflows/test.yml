@@ -88,11 +88,11 @@ jobs:
       matrix:
         options:
           - name: "Self-hosted: Linux: gcc-12 ASAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DBUILD_SECURE_MODE_TEST=OFF -DASAN=ON
           - name: "Self-hosted: Linux: gcc-12 TSAN WAVM"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DBUILD_SECURE_MODE_TEST=OFF -DTSAN=ON -DWASM_COMPILER=WAVM
           - name: "Self-hosted: Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DBUILD_SECURE_MODE_TEST=OFF -DUBSAN=ON
           - name: "Self-hosted: Linux: clang-15 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
@@ -100,8 +100,6 @@ jobs:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     container: qdrvm/kagome-dev:7-minideb
-    env:
-      BUILD_SECURE_MODE_TEST: OFF
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
