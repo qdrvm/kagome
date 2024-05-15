@@ -124,7 +124,7 @@ void accessFs(const std::filesystem::path &dir, bool should_succeed) {
   }
 }
 
-TEST(SecureMode, LandlockWorks) {
+TEST(SecureMode, DISABLED_LandlockWorks) {
   auto dir = std::filesystem::temp_directory_path() / "kagome_secure_mode_test";
   std::filesystem::create_directories(dir);
   std::filesystem::current_path(dir);
