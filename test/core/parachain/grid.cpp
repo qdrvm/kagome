@@ -8,6 +8,7 @@
 
 #include "parachain/backing/grid.hpp"
 
+using kagome::parachain::grid::Grid;
 using kagome::parachain::grid::shuffle;
 using kagome::parachain::grid::ValidatorIndex;
 
@@ -33,4 +34,31 @@ TEST(GridTest, Shuffle) {
       52, 36, 67, 75, 98, 66, 64, 63, 24, 18, 31, 10, 32, 15, 30,
   };
   EXPECT_EQ(indices, expected);
+}
+
+/**
+ * matrix_neighbors
+ * https://github.com/paritytech/polkadot-sdk/blob/d5fe478e4fe2d62b0800888ae77b00ff0ba28b28/polkadot/node/network/protocol/src/grid_topology.rs#L155-L182
+ */
+TEST(GridTest, Cross) {
+  std::vector<std::vector<size_t>> crosses{
+      {1, 2, 3, 6, 9},
+      {0, 2, 4, 7, 10},
+      {0, 1, 5, 8},
+      {0, 4, 5, 6, 9},
+      {1, 3, 5, 7, 10},
+      {2, 3, 4, 8},
+      {0, 3, 7, 8, 9},
+      {1, 4, 6, 8, 10},
+      {2, 5, 6, 7},
+      {0, 3, 6, 10},
+      {1, 4, 7, 9},
+  };
+  Grid grid{crosses.size()};
+  for (size_t i = 0; i < crosses.size(); ++i) {
+    std::vector<size_t> cross;
+    grid.cross(i, [&](size_t x) { cross.emplace_back(x); });
+    std::sort(cross.begin(), cross.end());
+    EXPECT_EQ(cross, crosses[i]);
+  }
 }
