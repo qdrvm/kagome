@@ -98,6 +98,7 @@ namespace kagome::parachain::grid {
     void sendTo(bool full, auto &&f) const {
       if (full) {
         for (auto &i : sending) {
+          // https://github.com/paritytech/polkadot-sdk/blob/d5fe478e4fe2d62b0800888ae77b00ff0ba28b28/polkadot/node/network/statement-distribution/src/v2/grid.rs#L420-L435
           if (not receiving.contains(i)) {
             f(i);
           }
