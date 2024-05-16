@@ -264,6 +264,11 @@ namespace kagome::application {
      */
     virtual std::chrono::milliseconds pvfSubprocessDeadline() const = 0;
 
+    /**
+     * Whether secure validator mode should be disabled.
+     */
+    virtual bool disableSecureMode() const = 0;
+
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
      * @return enum constant of the mode of run offchain workers

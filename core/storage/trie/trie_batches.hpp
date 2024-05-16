@@ -40,19 +40,4 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
     createChildBatch(common::BufferView path) = 0;
   };
-
-  class TopperTrieBatch;
-
-  /**
-   * A batch on top of another batch
-   * Used for small amount of atomic changes, like applying an extrinsic
-   */
-  class TopperTrieBatch : public TrieBatch {
-   public:
-    /**
-     * Writes changes to the parent batch
-     */
-    virtual outcome::result<void> writeBack() = 0;
-  };
-
 }  // namespace kagome::storage::trie
