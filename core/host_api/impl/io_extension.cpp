@@ -25,6 +25,8 @@ namespace kagome::host_api {
     using WasmLevel = runtime::WasmLogLevel;
     using SlLevel = soralog::Level;
     switch (wasm_level) {
+      case WasmLevel::Off:
+        return SlLevel::OFF;
       case WasmLevel::Error:
         return SlLevel::ERROR;
       case WasmLevel::Warn:
@@ -63,6 +65,7 @@ namespace kagome::host_api {
 
     switch (logger_->level()) {
       case Level::OFF:
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Off);
       case Level::CRITICAL:
       case Level::ERROR:
         return static_cast<runtime::WasmEnum>(WasmLogLevel::Error);

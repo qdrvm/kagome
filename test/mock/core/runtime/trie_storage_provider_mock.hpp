@@ -45,7 +45,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 commit,
-                (StateVersion),
+                (const std::optional<BufferView> &, StateVersion),
                 (override));
 
     MOCK_METHOD(outcome::result<void>, startTransaction, (), (override));
@@ -53,6 +53,13 @@ namespace kagome::runtime {
     MOCK_METHOD(outcome::result<void>, rollbackTransaction, (), (override));
 
     MOCK_METHOD(outcome::result<void>, commitTransaction, (), (override));
+
+    MOCK_METHOD(KillStorageResult,
+                clearPrefix,
+                (const std::optional<BufferView> &,
+                 BufferView,
+                 const ClearPrefixLimit &),
+                (override));
   };
 
 }  // namespace kagome::runtime

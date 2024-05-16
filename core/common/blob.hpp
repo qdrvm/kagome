@@ -233,6 +233,10 @@ namespace kagome::common {
 
 }  // namespace kagome::common
 
+namespace kagome {
+  using common::Hash256;
+}  // namespace kagome
+
 template <size_t N>
 struct std::hash<kagome::common::Blob<N>> {
   auto operator()(const kagome::common::Blob<N> &blob) const {
