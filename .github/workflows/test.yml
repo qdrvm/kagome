@@ -230,7 +230,7 @@ jobs:
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -268,7 +268,7 @@ jobs:
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
