@@ -51,4 +51,4 @@ jobs:
         run: make tester
       - name: Run test
         working-directory: ./zombienet/docker
-        run: python3 test_runner.py "make ${{ matrix.options.test }}"
+        run: make ${{ matrix.options.test }}
