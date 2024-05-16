@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include <boost/container_hash/detail/hash_tuple_like.hpp>
+#include <boost/outcome/success_failure.hpp>
 #include <ranges>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -66,11 +69,15 @@
 namespace kagome::parachain {
 
   struct GeneralKnowledge {
+    SCALE_TIE(1);
+
     CandidateHash hash;
   };
 
   // Specific knowledge of a given statement (with its originator)
   struct SpecificKnowledge {
+    SCALE_TIE(2);
+
     network::CompactStatement statement;
     ValidatorIndex index;
   };
@@ -79,12 +86,19 @@ namespace kagome::parachain {
   using Knowledge = std::variant<GeneralKnowledge, SpecificKnowledge>;
 
   struct IncomingP2P {
+    SCALE_TIE(1);
+
     Knowledge knowledge;
   };
+
   struct OutgoingP2P {
+    SCALE_TIE(1);
+
     Knowledge knowledge;
   };
   struct Seconded {
+    SCALE_TIE(1);
+
     CandidateHash hash;
   };
 
@@ -123,7 +137,44 @@ namespace kagome::parachain {
     /// Target or originator not in the group.
     NotInGroup,
   };
+}  // namespace kagome::parachain
 
+template <>
+struct std::hash<kagome::parachain::GeneralKnowledge> {
+  auto operator()(const kagome::parachain::GeneralKnowledge &v) {
+    return std::hash<kagome::parachain::CandidateHash>{}(v.hash);
+  }
+};
+
+template <>
+struct std::hash<kagome::parachain::SpecificKnowledge> {
+  auto operator()(const kagome::parachain::SpecificKnowledge &v) {
+    return boost::hash_value(std::forward_as_tuple(v.index, v.statement));
+  }
+};
+
+template <>
+struct std::hash<kagome::parachain::IncomingP2P> {
+  auto operator()(const kagome::parachain::IncomingP2P &v) {
+    return std::hash<kagome::parachain::Knowledge>{}(v.knowledge);
+  }
+};
+
+template <>
+struct std::hash<kagome::parachain::OutgoingP2P> {
+  auto operator()(const kagome::parachain::OutgoingP2P &v) {
+    return std::hash<kagome::parachain::Knowledge>{}(v.knowledge);
+  }
+};
+
+template <>
+struct std::hash<kagome::parachain::Seconded> {
+  auto operator()(const kagome::parachain::Seconded &v) {
+    return std::hash<kagome::parachain::CandidateHash>{}(v.hash);
+  }
+};
+
+namespace kagome::parachain {
   class ClusterTracker {
    public:
     ClusterTracker(std::vector<ValidatorIndex> validators,
@@ -153,22 +204,41 @@ namespace kagome::parachain {
 
         if (auto it = knowledge.find(sender); it != knowledge.end()) {
           auto &knowledge_set = it->second;
-          auto other_seconded_for_orig_from_remote =
-              knowledge_set | std::views::join()
-              | std::views::filter([](const TaggedKnowledge &knowledge) {
-                  if (auto *incoming = std::get_if<IncomingP2P>(&knowledge)) {
-                    if (auto *specific_knowledge =
-                            std::get_if<SpecificKnowledge>(
-                                &incoming->knowledge)) {
-                      if (auto *seconeded_stmt =
-                              std::get_if<network::CompactStatementSeconded>(
-                                  &specific_knowledge->statement)) {
-                      }
-                    }
+
+          size_t other_seconded_for_orig_from_remote{};
+
+          for (auto &tagged_knowledge : knowledge_set) {
+            if (auto *incoming = std::get_if<IncomingP2P>(&tagged_knowledge)) {
+              if (auto *specific_knowledge =
+                      std::get_if<SpecificKnowledge>(&incoming->knowledge)) {
+                if (auto *seconeded_stmt =
+                        std::get_if<network::CompactStatementSeconded>(
+                            &specific_knowledge->statement)) {
+                  if (specific_knowledge->index == originator) {
+                    other_seconded_for_orig_from_remote++;
                   }
-                });
+                }
+              }
+            }
+          }
+          if (other_seconded_for_orig_from_remote == seconding_limit) {
+            return RejectIncoming::ExcessiveSeconded;
+          }
+          if (seconded_already_or_within_limit(originator, *seconded)) {
+            return Accept::Ok;
+          } else {
+            return Accept::WithPrejudice;
+          }
         }
+      } else if (auto valid =
+                     std::get_if<network::CompactStatementValid>(&statement)) {
+        if (!knows_candidate(sender, *valid)) {
+          return RejectIncoming::CandidateUnknown;
+        }
+        return Accept::Ok;
       }
+      static_assert(std::variant_size_v<network::CompactStatement> == 2);
+      UNREACHABLE;
     }
 
     /// Dumps pending statement for this cluster.
@@ -180,11 +250,14 @@ namespace kagome::parachain {
     /// a while to discover the whole network.
 
     void warn_if_too_many_pending_statements(const common::Hash256 &hash) {
-      if (std::ranges::size(std::ranges::ref_view(pending)
-                            | std::views::filter([](auto &pending) {
-                                return !pending.second.empty();
-                              }))
-          >= validators.size()) {
+      size_t pending_count{};
+      for (auto &pending_set : pending) {
+        if (!pending_set.second.empty()) {
+          pending_count++;
+        }
+      }
+
+      if (pending_count >= validators.size()) {
         SL_WARN(
             logger_,
             "Cluster has too many pending statements, something wrong with our connection to our group peers. "
@@ -248,12 +321,12 @@ namespace kagome::parachain {
               std::get_if<network::CompactStatementSeconded>(&statement)) {
         // we send the same `Seconded` statements to all our peers, and only the
         // first `k` from each originator.
-        if (!seconded_already_or_within_limit(originator, seconded->hash)) {
+        if (!seconded_already_or_within_limit(originator, *seconded)) {
           return RejectOutgoing::ExcessiveSeconded;
         }
       } else if (auto *valid =
                      std::get_if<network::CompactStatementValid>(&statement)) {
-        if (!knows_candidate(target, valid->hash)) {
+        if (!knows_candidate(target, *valid)) {
           return RejectOutgoing::CandidateUnknown;
         }
       }
@@ -269,8 +342,8 @@ namespace kagome::parachain {
           OutgoingP2P{SpecificKnowledge{statement, originator}});
       if (auto *seconded =
               std::get_if<network::CompactStatementSeconded>(&statement)) {
-        knowledge[target].insert(OutgoingP2P{GeneralKnowledge{seconded->hash}});
-        knowledge[originator].insert(Seconded{seconded->hash});
+        knowledge[target].insert(OutgoingP2P{GeneralKnowledge{*seconded}});
+        knowledge[originator].insert(Seconded{*seconded});
       }
       if (auto it = pending.find(target); it != pending.end()) {
         it->second.erase({originator, statement});
@@ -403,9 +476,11 @@ namespace kagome::parachain {
         knowledge;
     // Statements known locally which haven't been sent to particular
     // validators. maps target validator to (originator, statement) pairs.
-    std::unordered_map<ValidatorIndex,
-                       std::unordered_set<std::pair<ValidatorIndex,
-                                                    network::CompactStatement>>>
+    std::unordered_map<
+        ValidatorIndex,
+        std::unordered_set<
+            std::pair<ValidatorIndex, network::CompactStatement>,
+            boost::hash<std::pair<ValidatorIndex, network::CompactStatement>>>>
         pending;
   };
 
