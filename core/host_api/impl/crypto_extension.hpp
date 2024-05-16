@@ -41,7 +41,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<crypto::KeyStore> key_store);
+        std::optional<std::shared_ptr<crypto::KeyStore>> key_store);
 
     void reset();
 
@@ -270,7 +270,8 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
-    std::shared_ptr<crypto::KeyStore> key_store_;
+    // not needed in PVF workers
+    std::optional<std::shared_ptr<crypto::KeyStore>> key_store_;
     log::Logger logger_;
     std::optional<runtime::WasmSize> batch_verify_;
   };

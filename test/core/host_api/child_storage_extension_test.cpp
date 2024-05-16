@@ -28,6 +28,8 @@
 #include "testutil/runtime/memory.hpp"
 #include "testutil/scale_test_comparator.hpp"
 
+using kagome::ClearPrefixLimit;
+using kagome::KillStorageResult;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::host_api::ChildStorageExtension;
@@ -47,6 +49,9 @@ using kagome::storage::trie::TrieError;
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
+
+Buffer child_storage_key(8, 'l');
+auto child = std::make_optional(BufferView{child_storage_key});
 
 class ChildStorageExtensionTest : public ::testing::Test {
  public:
@@ -68,7 +73,7 @@ class ChildStorageExtensionTest : public ::testing::Test {
             Return(outcome::success(std::ref(*trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     child_storage_extension_ = std::make_shared<ChildStorageExtension>(
         storage_provider_, memory_provider_);
   }
@@ -103,7 +108,6 @@ class BoolOutcomeParameterizedTest
 TEST_P(ReadOutcomeParameterizedTest, GetTest) {
   // executeOnChildStorage
 
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
 
   // logic
@@ -143,7 +147,6 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
 TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   // executeOnChildStorage
 
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
 
   // logic
@@ -174,7 +177,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
     ASSERT_EQ(memory_.decode<Result>(call()), result);
     if (param) {
       auto n = std::min<size_t>(value_span.size, param->size());
-      ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+      ASSERT_EQ(memory_.memory.view(value_span.ptr, n).value(),
                 SpanAdl{param->view(offset, n)});
     }
   }
@@ -188,14 +191,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
  */
 TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   // executeOnChildStorage
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
-
-  if (GetParam()) {
-    RootHash new_child_root = "123456"_hash256;
-    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-        .WillOnce(Return(new_child_root));
-  }
 
   // logic
   Buffer value(8, 'v');
@@ -204,10 +200,6 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
 
   child_storage_extension_->ext_default_child_storage_set_version_1(
       memory_[child_storage_key], memory_[key], memory_[value]);
-  if (GetParam()) {
-    child_storage_extension_->ext_default_child_storage_root_version_1(
-        memory_[child_storage_key]);
-  }
 }
 
 /**
@@ -218,14 +210,7 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
  */
 TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
   // executeOnChildStorage
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
-
-  if (GetParam()) {
-    RootHash new_child_root = "123456"_hash256;
-    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-        .WillOnce(Return(new_child_root));
-  }
 
   // logic
   EXPECT_CALL(*trie_child_storage_batch_, remove(key.view()))
@@ -233,10 +218,6 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
 
   child_storage_extension_->ext_default_child_storage_clear_version_1(
       memory_[child_storage_key], memory_[key]);
-  if (GetParam()) {
-    child_storage_extension_->ext_default_child_storage_root_version_1(
-        memory_[child_storage_key]);
-  }
 }
 
 /**
@@ -249,22 +230,15 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
  */
 TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
   // executeOnChildStorage
-  Buffer child_storage_key(8, 'l');
   Buffer prefix(8, 'p');
 
-  RootHash new_child_root = "123456"_hash256;
-  EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-      .WillOnce(Return(new_child_root));
-
   // logic
-  std::optional<uint64_t> limit = std::nullopt;
-  EXPECT_CALL(*trie_child_storage_batch_, clearPrefix(prefix.view(), limit))
-      .WillOnce(Return(outcome::success(std::make_tuple(true, 33u))));
+  ClearPrefixLimit limit;
+  EXPECT_CALL(*storage_provider_, clearPrefix(child, prefix.view(), limit))
+      .WillOnce(Return(KillStorageResult{}));
 
   child_storage_extension_->ext_default_child_storage_clear_prefix_version_1(
-      memory_[child_storage_key], memory_[prefix]);
-  child_storage_extension_->ext_default_child_storage_root_version_1(
-      memory_[child_storage_key]);
+      *child, prefix);
 }
 
 /**
@@ -273,7 +247,6 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
  * @then return next key after given one, in lexicographical order
  */
 TEST_F(ChildStorageExtensionTest, NextKeyTest) {
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
   EXPECT_CALL(*trie_child_storage_batch_, trieCursor())
       .WillOnce(Invoke([&key]() {
@@ -296,15 +269,12 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
  * @then returns new child root value
  */
 TEST_F(ChildStorageExtensionTest, RootTest) {
-  Buffer child_storage_key(8, 'l');
-
   RootHash new_child_root = "123456"_hash256;
-  EXPECT_CALL(*trie_child_storage_batch_, commit(_))
+  EXPECT_CALL(*storage_provider_, commit(child, _))
       .WillOnce(Return(new_child_root));
 
-  ASSERT_EQ(memory_[child_storage_extension_
-                        ->ext_default_child_storage_root_version_1(
-                            memory_[child_storage_key])],
+  ASSERT_EQ(child_storage_extension_->ext_default_child_storage_root_version_1(
+                *child),
             new_child_root);
 }
 
@@ -315,7 +285,6 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
  */
 TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
   // executeOnChildStorage
-  Buffer child_storage_key(8, 'l');
   Buffer key(8, 'k');
 
   // logic

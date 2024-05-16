@@ -40,6 +40,10 @@
 #include "scale/libp2p_types.hpp"
 #include "storage/spaced_storage.hpp"
 
+namespace kagome {
+  class PoolHandlerReady;
+}  // namespace kagome
+
 namespace kagome::network {
 
   enum class PeerType { PEER_TYPE_IN = 0, PEER_TYPE_OUT };
@@ -59,6 +63,7 @@ namespace kagome::network {
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -73,11 +78,8 @@ namespace kagome::network {
         std::shared_ptr<ReputationRepository> reputation_repository,
         std::shared_ptr<PeerView> peer_view);
 
-    /** @see AppStateManager::takeControl */
-    bool prepare();
-
-    /** @see AppStateManager::takeControl */
-    bool start();
+    /** @see poolHandlerReadyMake */
+    bool tryStart();
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -142,6 +144,8 @@ namespace kagome::network {
     std::optional<std::reference_wrapper<const PeerState>> getPeerState(
         const PeerId &peer_id) const override;
 
+    void enumeratePeerState(const PeersCallback &callback) override;
+
    private:
     /// Right way to check self peer as it takes into account dev mode
     bool isSelfPeer(const PeerId &peer_id) const;
@@ -181,8 +185,10 @@ namespace kagome::network {
     using IsLight = Tagged<bool, struct IsLightTag>;
     size_t countPeers(PeerType in_out, IsLight in_light = false) const;
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
+    log::Logger log_;
+
     libp2p::Host &host_;
+    std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
@@ -216,8 +222,6 @@ namespace kagome::network {
 
     // parachain
     std::shared_ptr<network::PeerView> peer_view_;
-
-    log::Logger log_;
   };
 
 }  // namespace kagome::network

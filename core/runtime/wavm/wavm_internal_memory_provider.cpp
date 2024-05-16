@@ -28,7 +28,9 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> WavmInternalMemoryProvider::resetMemory(
       const MemoryConfig &config) {
-    current_memory_ = std::make_unique<MemoryImpl>(memory_, config);
+    auto handle = std::make_shared<MemoryImpl>(memory_, config);
+    auto allocator = std::make_unique<MemoryAllocatorImpl>(handle, config);
+    current_memory_ = std::make_unique<Memory>(handle, std::move(allocator));
     return outcome::success();
   }
 

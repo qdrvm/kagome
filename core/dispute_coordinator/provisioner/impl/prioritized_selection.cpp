@@ -245,7 +245,8 @@ namespace kagome::dispute {
             return (Timestamp)concluded
                      + DisputeCoordinatorImpl::kActiveDurationSecs
                  < now;
-          });
+          },
+          [](const Postponed &) { return true; });
 
       // Split recent disputes in ACTIVE and INACTIVE
       auto [unknown, concluded, unconcluded] =

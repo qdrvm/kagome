@@ -246,13 +246,14 @@ namespace kagome::network {
     SignedBitfield data;
   };
 
+  /// Data that makes a statement unique.
   struct StatementMetadata {
     SCALE_TIE(2);
 
-    primitives::BlockHash relay_parent;  /// Hash of the relay chain block
-    primitives::BlockHash
-        candidate_hash;  /// Hash of candidate that was used create the
-                         /// `CommitedCandidateRecept`.
+    /// Relay parent this statement is relevant under.
+    primitives::BlockHash relay_parent;
+    /// Hash of candidate that was used create the `CommitedCandidateRecept`.
+    primitives::BlockHash candidate_hash;
   };
 
   /// A succinct representation of a peer's view. This consists of a bounded
@@ -337,7 +338,14 @@ namespace kagome::network {
                     /// block.
   };
 
-  using ApprovalDistributionMessage = boost::variant<Assignments, Approvals>;
+  /// Network messages used by the approval distribution subsystem.
+  using ApprovalDistributionMessage = boost::variant<
+      /// Assignments for candidates in recent, unfinalized blocks.
+      ///
+      /// Actually checking the assignment may yield a different result.
+      Assignments,
+      /// Approvals for candidates in some recent, unfinalized block.
+      Approvals>;
 
   /// Attestation is either an implicit or explicit attestation of the validity
   /// of a parachain candidate, where 1 implies an implicit vote (in

@@ -11,7 +11,7 @@ default_command = "polkadot"
 
   [[relaychain.nodes]]
   name = "bob"
-  args = [ "-lruntime=debug,parachain=trace" ]
+  args = [ "-lruntime=debug", "-lparachain=trace" ]
   command = "kagome"
   prometheus_prefix = "kagome"
 

@@ -69,28 +69,7 @@ namespace kagome::storage::trie {
 
   outcome::result<bool> PolkadotTrieCursorImpl::seek(
       const common::BufferView &key) {
-    if (trie_->getRoot() == nullptr) {
-      state_ = UninitializedState{};
-      return false;
-    }
-
-    auto res = makeSearchStateAt(key);
-    if (res.has_error()) {
-      // if the given key is just not present in the trie, return false
-      state_ = InvalidState{res.error()};
-      if (res.error() == Error::KEY_NOT_FOUND) {
-        return false;
-      }
-      // on other errors - propagate them
-      return res.error();
-    }
-    state_ = std::move(res.value());
-    auto &current = std::get<SearchState>(state_).getCurrent();
-    // while there is a node in a trie with the given key, it contains no value,
-    // thus cannot be pointed at by the cursor
-    if (not current.getValue()) {
-      OUTCOME_TRY(next());
-    }
+    OUTCOME_TRY(seekLowerBound(key));
     return isValid();
   }
 

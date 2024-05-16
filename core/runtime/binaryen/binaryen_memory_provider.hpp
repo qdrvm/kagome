@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
    private:
     std::weak_ptr<RuntimeExternalInterface> external_interface_;
     std::shared_ptr<const BinaryenMemoryFactory> memory_factory_;
-    std::shared_ptr<MemoryImpl> memory_;
+    std::shared_ptr<Memory> memory_;
   };
 
 }  // namespace kagome::runtime::binaryen
