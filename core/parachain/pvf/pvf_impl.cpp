@@ -351,6 +351,7 @@ namespace kagome::parachain {
         executor_params,
         app_configuration_->runtimeCacheDirPath(),
         app_configuration_->log(),
+        app_configuration_->disableSecureMode(),
     };
     runWorker(*io_context_,
               scheduler_,
