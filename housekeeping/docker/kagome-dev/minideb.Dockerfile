@@ -1,4 +1,4 @@
-FROM bitnami/minideb@sha256:1cc3df6a4098088cc6d750ad3ce39ea2d169a19a619f82f49dbcf3ad55ab7b4b
+FROM bitnami/minideb@sha256:a0dd12fa3f8b98f82f6d9e71cf1b81d8fd50a03e44f152f0b2b876e544639ca5
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
 SHELL ["/bin/bash", "-c"]
@@ -36,10 +36,10 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-12 \
         g++-12 \
-        llvm-15-dev \
-        clang-tidy-15 \
-        clang-format-15 \
-        libclang-rt-15-dev \
+        llvm-16-dev \
+        clang-tidy-16 \
+        clang-format-16 \
+        libclang-rt-16-dev \
         make \
         git \
         ccache \
@@ -52,7 +52,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=1.75.0
+ENV RUST_VERSION=1.77.0
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
@@ -73,8 +73,8 @@ RUN /venv/bin/pip install --no-cache-dir cmake==3.25 scikit-build requests gitpy
 ENV HUNTER_PYTHON_LOCATION=/venv/bin/python3
 
 # set env
-ENV LLVM_ROOT=/usr/lib/llvm-15
-ENV LLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm/
+ENV LLVM_ROOT=/usr/lib/llvm-16
+ENV LLVM_DIR=/usr/lib/llvm-16/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-12
 ENV CXX=g++-12
@@ -84,10 +84,10 @@ ENV CXX=g++-12
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
     \
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-15         50 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15       50 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-16         50 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-16       50 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-16/bin/clang-16  50 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-16            50 && \
     \
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
