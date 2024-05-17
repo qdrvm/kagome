@@ -18,6 +18,8 @@
 #include "authority_discovery/query/query.hpp"
 #include "common/ref_cache.hpp"
 #include "common/visitor.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_manager.hpp"
@@ -153,7 +155,10 @@ namespace kagome::parachain {
             babe_status_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
         std::shared_ptr<ProspectiveParachains> prospective_parachains,
-        std::shared_ptr<blockchain::BlockTree> block_tree);
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<consensus::SlotsUtil> slots_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repo);
     ~ParachainProcessorImpl() = default;
 
     /**
@@ -599,6 +604,8 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         const CandidateHash &candidate_hash,
         GroupIndex group_index);
+    outcome::result<consensus::Randomness> getBabeRandomness(
+        const primitives::BlockHeader &block_header);
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     RelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
@@ -931,7 +938,8 @@ namespace kagome::parachain {
      * @param relay_parent The hash of the relay parent block for which the
      * backing task is to be created.
      */
-    void createBackingTask(const primitives::BlockHash &relay_parent);
+    void createBackingTask(const primitives::BlockHash &relay_parent,
+                           const network::HashedBlockHeader &block_header);
 
     /**
      * @brief The `initNewBackingTask` function is responsible for initializing
@@ -942,7 +950,8 @@ namespace kagome::parachain {
      * validator index, required collator, and table context.
      */
     outcome::result<RelayParentState> initNewBackingTask(
-        const primitives::BlockHash &relay_parent);
+        const primitives::BlockHash &relay_parent,
+        const network::HashedBlockHeader &block_header);
 
     void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
 
@@ -1050,6 +1059,8 @@ namespace kagome::parachain {
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
