@@ -43,7 +43,10 @@ namespace kagome::application {
     logger_->info("Start in recovery mode with PID {}", getpid());
 
     auto mode = injector_.injectRecoveryMode();
-    return mode->run();
+    auto watchdog = injector_.injectWatchdog();
+    auto r = mode->run();
+    watchdog->stop();
+    return r;
   }
 
   void KagomeApplicationImpl::run() {
@@ -56,6 +59,7 @@ namespace kagome::application {
 
     kagome::telemetry::setTelemetryService(injector_.injectTelemetryService());
 
+    injector_.kademliaRandomWalk();
     injector_.injectAddressPublisher();
     injector_.injectTimeline();
 

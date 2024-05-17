@@ -3,8 +3,6 @@ name: Telegram Notification
 on:
   pull_request:
     types: [created, closed, opened, reopened]
-  pull_request_target:
-    types: [ created, closed, opened, reopened]
   issues:
     types: [created, closed, opended, reopened]
 
@@ -12,7 +10,6 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      #- uses: actions/checkout@v2
       - name: Notify the commit on Telegram
         uses: EverythingSuckz/github-telegram-notify@main
         with:

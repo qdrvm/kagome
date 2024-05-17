@@ -48,7 +48,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   TestMemory memory;
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(std::ref(memory)));
+      .WillRepeatedly(Return(std::ref(memory.memory)));
   auto core_factory = std::make_shared<CoreApiFactoryMock>();
 
   EXPECT_CALL(*core_factory, make(_, _))

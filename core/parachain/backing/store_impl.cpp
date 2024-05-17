@@ -89,14 +89,13 @@ namespace kagome::parachain {
   outcome::result<std::optional<BackingStore::ImportResult>>
   BackingStoreImpl::import_candidate(
       PerRelayParent &state,
-      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
-          &groups,
+      GroupIndex group_id,
+      const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> &groups,
       ValidatorIndex authority,
       const network::CommittedCandidateReceipt &candidate,
       const ValidatorSignature &signature,
       bool allow_multiple_seconded) {
-    const auto group = candidate.descriptor.para_id;
-    if (auto it = groups.find(group);
+    if (auto it = groups.find(group_id);
         it == groups.end()
         || std::find(it->second.begin(), it->second.end(), authority)
                == it->second.end()) {
@@ -136,7 +135,7 @@ namespace kagome::parachain {
     if (new_proposal) {
       auto &cv = state.candidate_votes_[digest];
       cv.candidate = candidate;
-      cv.group_id = group;
+      cv.group_id = group_id;
     }
 
     return validity_vote(
@@ -145,8 +144,8 @@ namespace kagome::parachain {
 
   std::optional<BackingStore::ImportResult> BackingStoreImpl::put(
       const RelayHash &relay_parent,
-      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
-          &groups,
+      GroupIndex group_id,
+      const std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> &groups,
       Statement stm,
       bool allow_multiple_seconded) {
     std::optional<std::reference_wrapper<PerRelayParent>> per_rp_state;
@@ -165,6 +164,7 @@ namespace kagome::parachain {
         statement.candidate_state,
         [&](const network::CommittedCandidateReceipt &candidate) {
           return import_candidate(per_rp_state->get(),
+                                  group_id,
                                   groups,
                                   signer,
                                   candidate,

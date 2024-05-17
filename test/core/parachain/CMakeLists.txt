@@ -9,6 +9,7 @@ addtest(parachain_test
     assignments.cpp
     prospective_parachains.cpp
     cluster_test.cpp
+    grid.cpp
     )
 
 target_link_libraries(parachain_test
@@ -17,3 +18,7 @@ target_link_libraries(parachain_test
     base_fs_test
     key_store
     )
+
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_sources(parachain_test PRIVATE secure_mode.cpp)
+endif()

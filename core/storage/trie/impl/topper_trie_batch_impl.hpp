@@ -14,7 +14,7 @@
 
 namespace kagome::storage::trie {
   class TopperTrieBatchImpl final
-      : public TopperTrieBatch,
+      : public TrieBatch,
         public std::enable_shared_from_this<TopperTrieBatchImpl> {
    public:
     enum class Error {
@@ -42,18 +42,17 @@ namespace kagome::storage::trie {
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix, std::optional<uint64_t> limit) override;
 
-    outcome::result<void> writeBack() override;
+    outcome::result<void> writeBack();
 
     virtual outcome::result<RootHash> commit(StateVersion version) override;
 
     virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
     createChildBatch(common::BufferView path) override;
 
-   private:
-    bool wasClearedByPrefix(const BufferView &key) const;
+    outcome::result<void> apply(storage::BufferStorage &map);
 
+   private:
     std::map<Buffer, std::optional<Buffer>> cache_;
-    std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
 
     friend class TopperTrieCursor;

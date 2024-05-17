@@ -6,7 +6,9 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <boost/program_options/value_semantic.hpp>
 #include <charconv>
+#include <filesystem>
 #include <limits>
 #include <regex>
 #include <string>
@@ -890,6 +892,7 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
+        ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1472,6 +1475,17 @@ namespace kagome::application {
         }
       }
     }
+    {
+      std::error_code ec;
+      kagome::filesystem::create_directories(runtimeCacheDirPath(), ec);
+      if (ec) {
+        SL_ERROR(logger_,
+                 "Failed to create runtime cache dir {}: {}",
+                 runtimeCacheDirPath(),
+                 ec);
+        return false;
+      }
+    }
 
     if (auto arg = find_argument<uint32_t>(
             vm, "parachain-runtime-instance-cache-size");
@@ -1493,10 +1507,15 @@ namespace kagome::application {
     if (find_argument(vm, "parachain-single-process")) {
       use_pvf_subprocess_ = false;
     }
+    logger_->info("Parachain multi process: {}", use_pvf_subprocess_);
 
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
+    }
+
+    if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {
+      disable_secure_mode_ = true;
     }
 
     bool offchain_worker_value_error = false;

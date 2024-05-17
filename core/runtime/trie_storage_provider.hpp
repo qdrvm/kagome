@@ -11,6 +11,7 @@
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
+#include "primitives/kill_storage_result.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/types.hpp"
@@ -79,7 +80,7 @@ namespace kagome::runtime {
      * on the current batch type (persistent or ephemeral)
      */
     virtual outcome::result<storage::trie::RootHash> commit(
-        StateVersion version) = 0;
+        const std::optional<BufferView> &child, StateVersion version) = 0;
 
     // ------ Transaction methods ------
 
@@ -91,6 +92,12 @@ namespace kagome::runtime {
 
     /// Commit and finish last started transaction
     virtual outcome::result<void> commitTransaction() = 0;
+
+    // https://github.com/paritytech/polkadot-sdk/blob/c973fe86f8c668462186c95655a58fda04508e9a/substrate/primitives/state-machine/src/ext.rs#L438
+    virtual KillStorageResult clearPrefix(
+        const std::optional<BufferView> &child,
+        BufferView prefix,
+        const ClearPrefixLimit &limit) = 0;
   };
 
 }  // namespace kagome::runtime

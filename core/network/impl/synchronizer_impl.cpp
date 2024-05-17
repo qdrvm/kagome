@@ -29,7 +29,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
-#include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -118,7 +118,8 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
+        main_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, main_thread_pool)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);

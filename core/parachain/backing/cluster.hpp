@@ -202,10 +202,9 @@ namespace kagome::parachain {
         // for the originator. we know by the duplicate check above that this
         // iterator doesn't include the statement itself.
 
+        size_t other_seconded_for_orig_from_remote{};
         if (auto it = knowledge.find(sender); it != knowledge.end()) {
           auto &knowledge_set = it->second;
-
-          size_t other_seconded_for_orig_from_remote{};
 
           for (auto &tagged_knowledge : knowledge_set) {
             if (auto *incoming = std::get_if<IncomingP2P>(&tagged_knowledge)) {
@@ -221,14 +220,15 @@ namespace kagome::parachain {
               }
             }
           }
-          if (other_seconded_for_orig_from_remote == seconding_limit) {
-            return RejectIncoming::ExcessiveSeconded;
-          }
-          if (seconded_already_or_within_limit(originator, *seconded)) {
-            return Accept::Ok;
-          }
-          return Accept::WithPrejudice;
         }
+        if (other_seconded_for_orig_from_remote == seconding_limit) {
+          return RejectIncoming::ExcessiveSeconded;
+        }
+        if (seconded_already_or_within_limit(originator, *seconded)) {
+          return Accept::Ok;
+        }
+        return Accept::WithPrejudice;
+
       } else if (auto valid =
                      std::get_if<network::CompactStatementValid>(&statement)) {
         if (!knows_candidate(sender, *valid)) {
@@ -361,22 +361,6 @@ namespace kagome::parachain {
       return {};
     }
 
-   private:
-    bool knows_candidate(ValidatorIndex validator,
-                         CandidateHash candidate_hash) const {
-      // we sent, they sent, or they signed and we received from someone else.
-      return we_sent_seconded(validator, candidate_hash)
-          || they_sent_seconded(validator, candidate_hash)
-          || validator_seconded(validator, candidate_hash);
-    }
-
-    bool can_request(ValidatorIndex target,
-                     CandidateHash candidate_hash) const {
-      return std::ranges::find(validators, target) != std::end(validators)
-          && we_sent_seconded(target, candidate_hash)
-          && !they_sent_seconded(target, candidate_hash);
-    }
-
     /// Returns a Vec of pending statements to be sent to a particular validator
     /// index. `Seconded` statements are sorted to the front of the vector.
     ///
@@ -395,6 +379,22 @@ namespace kagome::parachain {
         return idx_stmt_1.second.index() < idx_stmt_2.second.index();
       });
       return result;
+    }
+
+   private:
+    bool knows_candidate(ValidatorIndex validator,
+                         CandidateHash candidate_hash) const {
+      // we sent, they sent, or they signed and we received from someone else.
+      return we_sent_seconded(validator, candidate_hash)
+          || they_sent_seconded(validator, candidate_hash)
+          || validator_seconded(validator, candidate_hash);
+    }
+
+    bool can_request(ValidatorIndex target,
+                     CandidateHash candidate_hash) const {
+      return std::ranges::find(validators, target) != std::end(validators)
+          && we_sent_seconded(target, candidate_hash)
+          && !they_sent_seconded(target, candidate_hash);
     }
 
     // returns true if it's legal to accept a new `Seconded` message from this
@@ -419,7 +419,7 @@ namespace kagome::parachain {
 
       // This fulfills both properties by under-counting when the validator is
       // at the limit but _has_ seconded the candidate already.
-      return seconded_other_candidates <= seconding_limit;
+      return seconded_other_candidates < seconding_limit;
     }
 
     bool they_know_statement(ValidatorIndex validator,

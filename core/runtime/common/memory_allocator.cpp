@@ -20,24 +20,33 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
-  inline uint64_t read_u64(const Memory &memory, WasmPointer ptr) {
+  constexpr auto kPoisoned{"the allocator has been poisoned"};
+
+  static uint64_t read_u64(const MemoryHandle &memory, WasmPointer ptr) {
     return boost::endian::load_little_u64(
         memory.view(ptr, sizeof(uint64_t)).value().data());
   }
 
-  inline void write_u64(const Memory &memory, WasmPointer ptr, uint64_t v) {
+  static void write_u64(const MemoryHandle &memory,
+                        WasmPointer ptr,
+                        uint64_t v) {
     boost::endian::store_little_u64(
         memory.view(ptr, sizeof(uint64_t)).value().data(), v);
   }
 
-  MemoryAllocator::MemoryAllocator(Memory &memory, const MemoryConfig &config)
-      : memory_{memory},
+  MemoryAllocatorImpl::MemoryAllocatorImpl(std::shared_ptr<MemoryHandle> memory,
+                                           const MemoryConfig &config)
+      : memory_{std::move(memory)},
         offset_{roundUpAlign(config.heap_base)},
-        max_memory_pages_num_{memory_.pagesMax().value_or(kMaxPages)} {
+        max_memory_pages_num_{memory_->pagesMax().value_or(kMaxPages)} {
     BOOST_ASSERT(max_memory_pages_num_ > 0);
   }
 
-  WasmPointer MemoryAllocator::allocate(WasmSize size) {
+  WasmPointer MemoryAllocatorImpl::allocate(WasmSize size) {
+    if (poisoned_) {
+      throw std::runtime_error{kPoisoned};
+    }
+    poisoned_ = true;
     if (size > kMaxAllocate) {
       throw std::runtime_error{"RequestedAllocationTooLarge"};
     }
@@ -47,30 +56,35 @@ namespace kagome::runtime {
     uint32_t head_ptr;
     if (auto &list = free_lists_.at(order)) {
       head_ptr = *list;
-      if (*list + sizeof(Header) + size > memory_.size()) {
+      if (*list + sizeof(Header) + size > memory_->size()) {
         throw std::runtime_error{"Header pointer out of memory bounds"};
       }
       list = readFree(*list);
     } else {
       head_ptr = offset_;
       auto next_offset = uint64_t{offset_} + sizeof(Header) + size;
-      if (next_offset > memory_.size()) {
+      if (next_offset > memory_->size()) {
         auto pages = sizeToPages(next_offset);
         if (pages > max_memory_pages_num_) {
           throw std::runtime_error{
               "Memory resize failed, because maximum number of pages is reached."};
         }
-        pages = std::max(pages, 2 * sizeToPages(memory_.size()));
+        pages = std::max(pages, 2 * sizeToPages(memory_->size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);
-        memory_.resize(pages * kMemoryPageSize);
+        memory_->resize(pages * kMemoryPageSize);
       }
       offset_ = next_offset;
     }
-    write_u64(memory_, head_ptr, kOccupied | order);
+    write_u64(*memory_, head_ptr, kOccupied | order);
+    poisoned_ = false;
     return head_ptr + sizeof(Header);
   }
 
-  void MemoryAllocator::deallocate(WasmPointer ptr) {
+  void MemoryAllocatorImpl::deallocate(WasmPointer ptr) {
+    if (poisoned_) {
+      throw std::runtime_error{kPoisoned};
+    }
+    poisoned_ = true;
     if (ptr < sizeof(Header)) {
       throw std::runtime_error{"Invalid pointer for deallocation"};
     }
@@ -79,11 +93,12 @@ namespace kagome::runtime {
     auto &list = free_lists_.at(order);
     auto prev = list.value_or(kNil);
     list = head_ptr;
-    write_u64(memory_, head_ptr, prev);
+    write_u64(*memory_, head_ptr, prev);
+    poisoned_ = false;
   }
 
-  uint32_t MemoryAllocator::readOccupied(WasmPointer head_ptr) const {
-    auto head = read_u64(memory_, head_ptr);
+  uint32_t MemoryAllocatorImpl::readOccupied(WasmPointer head_ptr) const {
+    auto head = read_u64(*memory_, head_ptr);
     uint32_t order = head;
     if (order >= kOrders) {
       throw std::runtime_error{"order exceed the total number of orders"};
@@ -94,9 +109,9 @@ namespace kagome::runtime {
     return order;
   }
 
-  std::optional<uint32_t> MemoryAllocator::readFree(
+  std::optional<uint32_t> MemoryAllocatorImpl::readFree(
       WasmPointer head_ptr) const {
-    auto head = read_u64(memory_, head_ptr);
+    auto head = read_u64(*memory_, head_ptr);
     if ((head & kOccupied) != 0) {
       throw std::runtime_error{"free list points to a occupied header"};
     }
@@ -107,12 +122,12 @@ namespace kagome::runtime {
     return prev;
   }
 
-  std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
+  std::optional<WasmSize> MemoryAllocatorImpl::getAllocatedChunkSize(
       WasmPointer ptr) const {
     return kMinAllocate << readOccupied(ptr - sizeof(Header));
   }
 
-  size_t MemoryAllocator::getDeallocatedChunksNum() const {
+  size_t MemoryAllocatorImpl::getDeallocatedChunksNum() const {
     size_t size = 0ull;
     for (auto list : free_lists_) {
       while (list) {

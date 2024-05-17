@@ -4,6 +4,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(grid_tracker
+    backing/grid_tracker.cpp
+    )
+
+target_link_libraries(grid_tracker
+    fmt::fmt
+    scale::scale
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
+    )
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -28,6 +41,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
+    grid_tracker
     key_store
     dispute_coordinator
     module_repository
@@ -42,6 +56,7 @@ add_library(kagome_pvf_worker
     pvf/kagome_pvf_worker.cpp
     )
 target_link_libraries(kagome_pvf_worker
+    PUBLIC
     fmt::fmt
     scale::scale
     soralog::fallback_configurator
@@ -68,3 +83,6 @@ target_link_libraries(kagome_pvf_worker
     p2p::p2p_asio_scheduler_backend
     )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
+endif()
