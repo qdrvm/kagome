@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <boost/range/adaptor/indexed.hpp>
 
 #include "parachain/backing/grid.hpp"
 
@@ -55,10 +56,10 @@ TEST(GridTest, Cross) {
       {1, 4, 7, 9},
   };
   Grid grid{crosses.size()};
-  for (size_t i = 0; i < crosses.size(); ++i) {
+  for (auto [i, expected] : boost::adaptors::index(crosses)) {
     std::vector<size_t> cross;
     grid.cross(i, [&](size_t x) { cross.emplace_back(x); });
     std::sort(cross.begin(), cross.end());
-    EXPECT_EQ(cross, crosses[i]);
+    EXPECT_EQ(cross, expected);
   }
 }
