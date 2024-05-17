@@ -95,6 +95,10 @@ namespace kagome::common {
   }
 }  // namespace kagome::common
 
+namespace kagome {
+  using common::BufferView;
+}  // namespace kagome
+
 template <>
 struct fmt::formatter<kagome::common::BufferView> {
   // Presentation format: 's' - short, 'l' - long.

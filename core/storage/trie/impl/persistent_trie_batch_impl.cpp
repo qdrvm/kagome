@@ -87,6 +87,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
+  // TODO(turuslan): #1470, don't pass TrieChangesTracker to child
   outcome::result<std::unique_ptr<TrieBatchBase>>
   PersistentTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));

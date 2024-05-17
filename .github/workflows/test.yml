@@ -32,7 +32,7 @@ env:
 jobs:
   MacOS:
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -54,13 +54,13 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: clang-15 External Project"
-            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
+          - name: "Linux: clang-16 External Project"
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -82,46 +82,6 @@ jobs:
           du -hd1 /__w /github || true
 
   Linux-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Self-hosted: Linux: gcc-12 ASAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
-          - name: "Self-hosted: Linux: clang-15 TSAN WAVM"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
-          - name: "Self-hosted: Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
-          - name: "Self-hosted: Linux: clang-15 External Project"
-            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
-
-    name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: df du
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
-      - name: "${{ matrix.options.name }}"
-        run: "${{ matrix.options.run }}"
-      - name: df du
-        if: ${{ always() }}
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
-
-  Linux-self-hosted-PR:
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
     strategy:
       fail-fast: false
       matrix:
@@ -130,40 +90,31 @@ jobs:
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
           - name: "Self-hosted: Linux: gcc-12 TSAN WAVM"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
-          - name: "Self-hosted: Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
-          - name: "Self-hosted: Linux: clang-15 External Project"
-            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
+          - name: "Self-hosted: Linux: clang-16 UBSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON
+          - name: "Self-hosted: Linux: clang-16 External Project"
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: df du
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
-      - name: df du
-        if: ${{ always() }}
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
 
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -186,29 +137,20 @@ jobs:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: df du
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
         run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
-      - name: df du
-        if: ${{ always() }}
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
       - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:
@@ -235,8 +177,8 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -260,8 +202,8 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev:7-minideb
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -287,8 +229,8 @@ jobs:
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -325,8 +267,8 @@ jobs:
           - name: "Self-hosted: Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:8-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -387,7 +329,7 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
+    timeout-minutes: 120
     needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively
