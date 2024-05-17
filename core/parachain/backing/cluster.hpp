@@ -226,9 +226,8 @@ namespace kagome::parachain {
           }
           if (seconded_already_or_within_limit(originator, *seconded)) {
             return Accept::Ok;
-          } else {
-            return Accept::WithPrejudice;
           }
+          return Accept::WithPrejudice;
         }
       } else if (auto valid =
                      std::get_if<network::CompactStatementValid>(&statement)) {
