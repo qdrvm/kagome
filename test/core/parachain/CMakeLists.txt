@@ -9,6 +9,7 @@ addtest(parachain_test
     assignments.cpp
     prospective_parachains.cpp
     cluster_test.cpp
+    grid.cpp
     )
 
 target_link_libraries(parachain_test
