@@ -152,6 +152,7 @@
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
@@ -600,8 +601,6 @@ namespace {
         config->isOffchainIndexingEnabled()};
     parachain::PvfImpl::Config pvf_config{
         .precompile_modules = config->shouldPrecompileParachainModules(),
-        .runtime_instance_cache_size =
-            config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
