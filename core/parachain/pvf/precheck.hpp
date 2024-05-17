@@ -34,10 +34,11 @@ namespace kagome::parachain {
 
 namespace kagome::runtime {
   class Executor;
-  class ModuleFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
+  class PvfPool;
+
   /// Signs pvf check statement for every new head.
   class PvfPrecheck : public std::enable_shared_from_this<PvfPrecheck> {
    public:
@@ -50,7 +51,7 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ValidatorSignerFactory> signer_factory,
         std::shared_ptr<runtime::ParachainHost> parachain_api,
-        std::shared_ptr<runtime::ModuleFactory> module_factory,
+        std::shared_ptr<PvfPool> pvf_pool,
         std::shared_ptr<runtime::Executor> executor,
         PvfThreadPool &pvf_thread_pool,
         std::shared_ptr<offchain::OffchainWorkerFactory>
@@ -70,7 +71,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ValidatorSignerFactory> signer_factory_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
-    std::shared_ptr<runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<PvfPool> pvf_pool_;
     std::shared_ptr<runtime::Executor> executor_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;

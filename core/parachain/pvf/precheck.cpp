@@ -9,43 +9,23 @@
 #include <libp2p/common/final_action.hpp>
 
 #include "blockchain/block_tree.hpp"
-#include "metrics/histogram_timer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
+#include "parachain/pvf/session_params.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/module.hpp"
-#include "runtime/module_factory.hpp"
 
 namespace kagome::parachain {
   constexpr size_t kSessions = 3;
-
-  metrics::HistogramTimer metric_pvf_preparation_time{
-      "kagome_pvf_preparation_time",
-      "Time spent in preparing PVF artifacts in seconds",
-      {
-          0.1,
-          0.5,
-          1.0,
-          2.0,
-          3.0,
-          10.0,
-          20.0,
-          30.0,
-          60.0,
-          120.0,
-          240.0,
-          360.0,
-          480.0,
-      },
-  };
 
   PvfPrecheck::PvfPrecheck(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<runtime::Executor> executor,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
@@ -55,7 +35,7 @@ namespace kagome::parachain {
         block_tree_{std::move(block_tree)},
         signer_factory_{std::move(signer_factory)},
         parachain_api_{std::move(parachain_api)},
-        module_factory_{std::move(module_factory)},
+        pvf_pool_{std::move(pvf_pool)},
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
@@ -65,7 +45,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(signer_factory_ != nullptr);
     BOOST_ASSERT(parachain_api_ != nullptr);
-    BOOST_ASSERT(module_factory_ != nullptr);
     BOOST_ASSERT(executor_ != nullptr);
     BOOST_ASSERT(offchain_worker_factory_ != nullptr);
     BOOST_ASSERT(offchain_worker_pool_ != nullptr);
@@ -119,14 +98,12 @@ namespace kagome::parachain {
           continue;
         }
         auto &code_zstd = *code_zstd_res.value();
-        ParachainRuntime code;
-        auto timer = metric_pvf_preparation_time.timer();
         auto res = [&]() -> outcome::result<void> {
-          OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-          OUTCOME_TRY(module_factory_->make(code));
+          OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
+          OUTCOME_TRY(
+              pvf_pool_->pool()->precompile(code_hash, code_zstd, config));
           return outcome::success();
         }();
-        timer.reset();
         if (res) {
           SL_VERBOSE(logger_, "approve {}", code_hash);
         } else {

@@ -9,13 +9,22 @@ endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 
+set(TSAN_IGNORELIST "${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore")
+
+set(ENV{TSAN_OPTIONS} "suppressions=${TSAN_IGNORELIST}")
+
 set(FLAGS
     -fsanitize=thread
-    -fsanitize-blacklist="${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore"
-    -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore"
     -g
     -O1
 )
+if (CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+  set(FLAGS
+      ${FLAGS}
+      -fsanitize-blacklist="${TSAN_IGNORELIST}"
+      -fsanitize-ignorelist="${TSAN_IGNORELIST}"
+  )
+endif()
 
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
