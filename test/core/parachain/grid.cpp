@@ -5,7 +5,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <boost/range/adaptor/indexed.hpp>
 
 #include "parachain/backing/grid.hpp"
 

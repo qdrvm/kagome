@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <boost/range/adaptor/indexed.hpp>
 #include <cmath>
 #include <cstdint>
 #include <numeric>
@@ -122,8 +123,8 @@ namespace kagome::parachain::grid {
     views.reserve(groups.size());
     std::vector<size_t> index;
     index.resize(validators.size());
-    for (size_t i = 0; auto &v : validators) {
-      index[v] = i++;
+    for (auto [i, v] : boost::adaptors::index(validators)) {
+      index[v] = i;
     }
     auto as_value = [&](auto &&f) {
       return [&, f{std::forward<decltype(f)>(f)}](size_t i) mutable {
