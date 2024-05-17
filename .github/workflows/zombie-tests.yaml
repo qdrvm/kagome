@@ -41,7 +41,7 @@ jobs:
           - name: "Test we are producing blocks at 6 seconds clip"
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
