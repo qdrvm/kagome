@@ -12,7 +12,7 @@ bob: parachain 2001 is registered within 60 seconds
 
 # Ensure parachains made progress.
 alice: reports substrate_block_height{status="finalized"} is at least 10 within 100 seconds
-bob: reports substrate_block_height{status="finalized"} is at least 10 within 100 seconds
+bob: reports kagome_block_height{status="finalized"} is at least 10 within 100 seconds
 
 # This parachains should produce blocks at 6s clip, let's assume an 8s rate, allowing for
 # some slots to be missed on slower machines
