@@ -12,6 +12,7 @@ RUN wget --no-check-certificate 'https://drive.usercontent.google.com/uc?id=1HlZ
 RUN apt update && apt install -y unzip
 RUN unzip /tmp/runtime_cache.zip -d /tmp/kagome/
 RUN rm /tmp/runtime_cache.zip
+RUN chown -R nonroot:nonroot /tmp/kagome/
 
 RUN mkdir /home/nonroot/.local && \
    chown nonroot:nonroot /home/nonroot/.local && \
