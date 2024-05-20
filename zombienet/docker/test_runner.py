@@ -1,20 +1,8 @@
 import subprocess
 import sys
 
-def run_test(container_name, test_command, first_attempt=False):
+def run_test(container_name, test_command):
     command = f"docker exec {container_name} sh -c 'zombienet-linux-x64 test -p native {test_command}'"
-    if (first_attempt):
-        # Split the test_command into a list of words
-        words = command.split()
-
-        # Replace 'test' with 'spawn' in the list
-        words = ['spawn' if word == 'test' else word for word in words]
-
-        # Replace '.zndsl' with '.toml' in the last word
-        words[-1] = words[-1].replace('.zndsl', '.toml')
-
-        # Join the list back into a string
-        command = ' '.join(words)
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     while True:
