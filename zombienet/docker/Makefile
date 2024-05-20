@@ -35,14 +35,16 @@ tester:
 	python3 version.py https://github.com/paritytech/polkadot-sdk && \
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		DOCKER_BUILDKIT=0 docker build --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
+		HASH_COMMIT="$(git rev-parse --short HEAD)" \
+		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
+		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
+		--build-arg HASH_COMMIT=$$HASH_COMMIT . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
 
 tests:
-	docker run -it qdrvm/zombie-tester:latest
+	docker run --platform linux/amd64 -it qdrvm/zombie-tester:latest bash
 
 test0001:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0001-parachains-smoke-test/0001-parachains-smoke-test.zndsl
@@ -87,7 +89,7 @@ test0011:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0011-block-building-warp-sync/0011-block-building-warp-sync.zndsl
 
 test-polkadot-functional-0001-parachains-pvf:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl
+	docker run --platform linux/amd64 qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl
 
 test-polkadot-functional-0002-parachains-disputes:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0002-parachains-disputes.zndsl
