@@ -532,7 +532,7 @@ namespace kagome::parachain {
           logger_,
           "Prospective parachains leaf update failed. (relay_parent={}, error={})",
           relay_parent,
-          r.error().message());
+          r.error());
     }
 
     backing_store_->onActivateLeaf(relay_parent);
@@ -960,7 +960,7 @@ namespace kagome::parachain {
           logger_,
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,
-          rps_result.error().message());
+          rps_result.error());
     }
   }
 
@@ -1106,7 +1106,7 @@ namespace kagome::parachain {
       SL_VERBOSE(logger_,
                  "PersistedValidationData not found. (error={}, "
                  "relay_parent={} para_id={})",
-                 res_data.error().message(),
+                 res_data.error(),
                  relay_parent,
                  para_id);
       return std::nullopt;
@@ -2597,7 +2597,7 @@ namespace kagome::parachain {
               if (!pov_response_result) {
                 self->logger_->warn("Request PoV on relay_parent {} failed {}",
                                     relay_parent,
-                                    pov_response_result.error().message());
+                                    pov_response_result.error());
                 return;
               }
 
@@ -3635,7 +3635,7 @@ namespace kagome::parachain {
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-          sign_result.error().message());
+          sign_result.error());
       return std::nullopt;
     }
 
@@ -4308,7 +4308,7 @@ namespace kagome::parachain {
             candidate_hash,
             candidate.descriptor.relay_parent,
             candidate.descriptor.para_id,
-            validation_result.error().message());
+            validation_result.error());
         return;
       }
 
@@ -4701,7 +4701,7 @@ namespace kagome::parachain {
       // and return
       SL_TRACE(logger_,
                "Insert advertisement error. (error={})",
-               insert_res.error().message());
+               insert_res.error());
       return;
     }
 
@@ -4757,7 +4757,7 @@ namespace kagome::parachain {
                relay_parent,
                para_id,
                peer_id,
-               result.error().message());
+               result.error());
     }
   }
 

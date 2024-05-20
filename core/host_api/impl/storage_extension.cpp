@@ -276,7 +276,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction start has failed: {}", res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     ++transactions_;
   }
@@ -287,7 +287,7 @@ namespace kagome::host_api {
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     --transactions_;
   }
@@ -298,7 +298,7 @@ namespace kagome::host_api {
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     --transactions_;
   }
@@ -324,7 +324,6 @@ namespace kagome::host_api {
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
       logger_->error("failed to decode pairs: {}", pairs.error());
-      throw std::runtime_error(pairs.error().message());
     }
 
     auto &&pv = pairs.value();
@@ -352,7 +351,6 @@ namespace kagome::host_api {
         codec.encodeNode(*trie->getRoot(), storage::trie::StateVersion::V0, {});
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error());
-      throw std::runtime_error(enc.error().message());
     }
     const auto &hash = codec.hash256(enc.value());
 
