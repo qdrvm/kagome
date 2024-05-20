@@ -54,7 +54,7 @@ def main():
     print_with_flush(f"Container started with name: {container_name}")
 
     print_with_flush(f"Running test: {test_command} (warm-up)")
-    first_attempt = run_test(container_name, test_command)
+    first_attempt = run_test(container_name, test_command, first_attempt=True)
 
     if first_attempt == 0:
         print_with_flush("Test passed on the first attempt (warm-up).")
