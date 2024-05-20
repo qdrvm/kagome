@@ -41,8 +41,20 @@ def main():
     subprocess.run(f"docker run -d --name {container_name} {image_name} tail -f /dev/null", shell=True, check=True)
     print_with_flush(f"Container started with name: {container_name}")
 
-    print_with_flush(f"Running test: {test_command} (warm-up)")
-    first_attempt = run_test(container_name, test_command)
+    # Split the test_command into a list of words
+    words = test_command.split()
+
+    # Replace 'test' with 'spawn' in the list
+    words = ['spawn' if word == 'test' else word for word in words]
+
+    # Replace '.zndsl' with '.toml' in the last word
+    words[-1] = words[-1].replace('.zndsl', '.toml')
+
+    # Join the list back into a string
+    first_test_command = ' '.join(words)
+
+    print_with_flush(f"Running test: {first_test_command} (warm-up)")
+    first_attempt = run_test(container_name, first_test_command)
 
     if first_attempt == 0:
         print_with_flush("Test passed on the first attempt (warm-up).")
