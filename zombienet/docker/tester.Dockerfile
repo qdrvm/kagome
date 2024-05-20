@@ -7,7 +7,8 @@ FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
 RUN git clone https://github.com/qdrvm/kagome.git && \
     cd kagome && \
-    git checkout $HASH_COMMIT
+    git checkout $HASH_COMMIT \
+    cd ..
 
 # TODO(kamilsa): #2099 Remove this once we have a proper way to precompile
 RUN mkdir /tmp/kagome/
