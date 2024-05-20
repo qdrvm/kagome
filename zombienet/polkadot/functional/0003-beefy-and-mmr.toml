@@ -15,7 +15,7 @@ name = "kagome-validator"
 command = "kagome"
 prometheus_prefix = "kagome"
 count = 1
-args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
+args = ["--log=beefy=debug", "--enable-offchain-indexing=true", "--wasm-execution=Compiled"]
 
 [[relaychain.nodes]]
 name = "validator-unstable"
