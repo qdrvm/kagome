@@ -25,6 +25,7 @@ add_library(validator_parachain
     availability/recovery/recovery_impl.cpp
     availability/store/store_impl.cpp
     backing/store_impl.cpp
+    pvf/pool.cpp
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
     pvf/module_precompiler.cpp

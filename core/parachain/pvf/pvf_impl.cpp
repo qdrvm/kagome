@@ -14,6 +14,7 @@
 #include "common/visitor.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
@@ -23,7 +24,6 @@
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
-#include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_instances_pool.hpp"
@@ -149,8 +149,7 @@ namespace kagome::parachain {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
-      std::shared_ptr<runtime::InstrumentWasm> instrument,
+      std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -169,14 +168,11 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
-        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-            std::move(module_factory),
-            std::move(instrument),
-            config_.runtime_instance_cache_size)},
+        pvf_pool_{std::move(pvf_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
-            runtime_cache_,
+            pvf_pool_,
             hasher_)},
         pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
         app_configuration_{std::move(app_configuration)} {
@@ -335,13 +331,15 @@ namespace kagome::parachain {
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
       CB_TRY(auto instance,
-             runtime_cache_->instantiateFromCode(
+             pvf_pool_->pool()->instantiateFromCode(
                  code_hash, code_zstd, executor_params));
       CB_TRY(auto ctx,
              ctx_factory_->ephemeral(
                  instance, storage::trie::kEmptyRootHash, executor_params));
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
+    CB_TRYV(
+        pvf_pool_->pool()->precompile(code_hash, code_zstd, executor_params));
 
     PvfWorkerInput input{
         pvf_runtime_engine(*app_configuration_),

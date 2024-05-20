@@ -36,9 +36,6 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::runtime {
-  class ModuleInstance;
-  class ModuleFactory;
-  class InstrumentWasm;
   class Executor;
   class RuntimeContextFactory;
   class RuntimeInstancesPool;
@@ -63,6 +60,7 @@ namespace kagome::parachain {
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, PvfError)
 
 namespace kagome::parachain {
+  class PvfPool;
   class PvfThreadPool;
 
   class ModulePrecompiler;
@@ -84,7 +82,6 @@ namespace kagome::parachain {
    public:
     struct Config {
       bool precompile_modules;
-      size_t runtime_instance_cache_size{16};
       unsigned precompile_threads_num{1};
     };
 
@@ -92,8 +89,7 @@ namespace kagome::parachain {
             std::shared_ptr<boost::asio::io_context> io_context,
             std::shared_ptr<libp2p::basic::Scheduler> scheduler,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::shared_ptr<runtime::ModuleFactory> module_factory,
-            std::shared_ptr<runtime::InstrumentWasm> instrument,
+            std::shared_ptr<PvfPool> pvf_pool,
             std::shared_ptr<blockchain::BlockTree> block_tree,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -144,7 +140,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
     log::Logger log_;
 
-    std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
+    std::shared_ptr<PvfPool> pvf_pool_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;
     std::shared_ptr<application::AppConfiguration> app_configuration_;
