@@ -2507,6 +2507,12 @@ namespace kagome::dispute {
       }
     }
 
+    SL_TRACE(  // FIXME It's temporary code. Remove after tests
+        log_,
+        "Dispute (candidate={}) did not send. Disabled",
+        candidate_hash);
+    return;
+
     auto protocol = router_->getSendDisputeProtocol();
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide `send dispute` protocol");
