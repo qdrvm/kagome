@@ -92,3 +92,9 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
     update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
+
+# Install Docker
+RUN apt-get install --no-install-recommends -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io
