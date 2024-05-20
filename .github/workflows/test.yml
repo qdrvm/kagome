@@ -329,9 +329,9 @@ jobs:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-#      - name: build zombie-tester
-#        working-directory: ./zombienet/docker
-#        run: make tester
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
