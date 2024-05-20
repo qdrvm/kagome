@@ -10,43 +10,43 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.nodes]]
   name = "alice"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--alice", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
+  args = [ "--alice", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "bob"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--bob", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
+  args = [ "--bob", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "charlie"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--charlie", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
+  args = [ "--charlie", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "dave"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--dave", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
+  args = [ "--dave", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "ferdie"
-  args = [ "--ferdie", "-lparachain=debug,runtime=debug" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--ferdie","--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "eve"
-  args = [ "--eve", "-lparachain=debug,runtime=debug"]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--eve", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "one"
-  args = [ "--one", "-lparachain=debug,runtime=debug" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--one", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "two"
-  args = [ "--two", "-lparachain=debug,runtime=debug"]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
 
 [[parachains]]
 id = 2000
