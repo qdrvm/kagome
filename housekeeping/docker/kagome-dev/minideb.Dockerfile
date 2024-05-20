@@ -97,4 +97,4 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
 RUN apt-get install --no-install-recommends -y \
             docker-ce \
             docker-ce-cli \
-            containerd.io
+            containerd.io \
