@@ -4,9 +4,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(grid_test
+    grid.cpp
+    )
+target_link_libraries(grid_test
+    hasher
+    )
+
 addtest(pvf_test
     pvf_test.cpp
     )
+
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_sources(pvf_test PRIVATE secure_mode.cpp)
+endif()
 
 target_link_libraries(pvf_test
     validator_parachain

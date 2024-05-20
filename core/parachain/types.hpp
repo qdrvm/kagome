@@ -66,6 +66,9 @@ namespace kagome::parachain {
     ValidatorIndex ix;
   };
 
+  /**
+   * Appends an index and signature to the given type.
+   */
   template <typename T>
   using IndexedAndSigned = kagome::crypto::Sr25519Signed<Indexed<T>>;
 

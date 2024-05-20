@@ -9,7 +9,7 @@ set -a; source $current_dir/.env; set +a #include .env vars
 apt update
 apt install --no-install-recommends -y \
       build-essential git gcc ca-certificates python-is-python3 python3-pip \
-      python3-venv curl libgmp-dev libncurses6
+      python3-venv curl libgmp-dev libncurses6 libnsl-dev libseccomp-dev
 
 python3 -m venv "$parent_dir/venv"
 

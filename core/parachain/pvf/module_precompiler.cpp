@@ -6,9 +6,8 @@
 #include "parachain/pvf/module_precompiler.hpp"
 
 #include <atomic>
-#include <future>
-#include <ranges>
 
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/session_params.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
@@ -24,11 +23,11 @@ namespace kagome::parachain {
   ModulePrecompiler::ModulePrecompiler(
       const kagome::parachain::ModulePrecompiler::Config &config,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
-      std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache,
+      std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_{config},
         parachain_api_{parachain_api},
-        runtime_cache_{runtime_cache},
+        pvf_pool_{std::move(pvf_pool)},
         hasher_{hasher} {
     if (getThreadsNum() > std::thread::hardware_concurrency() - 1) {
       SL_WARN(
@@ -181,8 +180,7 @@ namespace kagome::parachain {
              hash);
     stats.total_code_size += code.size();
 
-    OUTCOME_TRY(
-        runtime_cache_->instantiateFromCode(hash, code, executor_params));
+    OUTCOME_TRY(pvf_pool_->pool()->precompile(hash, code, executor_params));
     SL_DEBUG(log_,
              "Instantiated runtime instance with code hash {} for parachain "
              "{}, {} left",

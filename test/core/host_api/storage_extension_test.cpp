@@ -28,6 +28,8 @@
 #include "testutil/runtime/memory.hpp"
 #include "testutil/scale_test_comparator.hpp"
 
+using kagome::ClearPrefixLimit;
+using kagome::KillStorageResult;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
@@ -49,6 +51,8 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
+constexpr std::optional<BufferView> no_child;
+
 class StorageExtensionTest : public ::testing::Test {
  public:
   static void SetUpTestCase() {
@@ -62,7 +66,7 @@ class StorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(Return(trie_batch_));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_,
         memory_provider_,
@@ -95,21 +99,6 @@ struct EnumeratedTrieRootTestCase {
 class BuffersParametrizedTest
     : public StorageExtensionTest,
       public testing::WithParamInterface<EnumeratedTrieRootTestCase> {};
-
-/**
- * @given prefix_pointer with prefix_length
- * @when ext_clear_prefix is invoked on StorageExtension with given prefix
- * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
- */
-TEST_F(StorageExtensionTest, ClearPrefixTest) {
-  Buffer prefix(8, 'p');
-
-  EXPECT_CALL(*trie_batch_, clearPrefix(BufferView{prefix}, _))
-      .Times(1)
-      .WillOnce(Return(outcome::success()));
-
-  storage_extension_->ext_storage_clear_prefix_version_1(memory_[prefix]);
-}
 
 /**
  * @given key_pointer and key_size
@@ -252,7 +241,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
                     memory_[key], value_span.combine(), offset)),
             result);
   auto n = std::min<size_t>(value_span.size, value.size());
-  ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+  ASSERT_EQ(memory_.memory.view(value_span.ptr, n).value(),
             SpanAdl{value.view(offset, n)});
 }
 
@@ -348,7 +337,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
   ASSERT_EQ(
-      memory_
+      memory_.memory
           .view(storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
                     memory_.encode(values)),
                 hash_array.size())
@@ -414,11 +403,12 @@ TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
 TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
   Buffer prefix(8, 'p');
 
-  EXPECT_CALL(*trie_batch_, clearPrefix(prefix.view(), _))
-      .Times(1)
-      .WillOnce(Return(outcome::success()));
+  ClearPrefixLimit limit;
+  EXPECT_CALL(*storage_provider_,
+              clearPrefix(no_child, BufferView{prefix}, limit))
+      .WillOnce(Return(KillStorageResult{}));
 
-  storage_extension_->ext_storage_clear_prefix_version_1(memory_[prefix]);
+  storage_extension_->ext_storage_clear_prefix_version_1(prefix);
 }
 
 /**
@@ -429,17 +419,15 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
  */
 TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
   Buffer prefix(8, 'p');
-  uint32_t limit{22};
+  ClearPrefixLimit limit{22};
 
-  std::tuple<bool, uint32_t> result(true, 22);
-  EXPECT_CALL(*trie_batch_,
-              clearPrefix(prefix.view(), std::make_optional<uint64_t>(limit)))
-      .WillOnce(Return(outcome::success(result)));
+  KillStorageResult result{true, 22};
+  EXPECT_CALL(*storage_provider_,
+              clearPrefix(no_child, BufferView{prefix}, limit))
+      .WillOnce(Return(result));
 
   ASSERT_EQ(
-      memory_.decode<decltype(result)>(
-          storage_extension_->ext_storage_clear_prefix_version_2(
-              memory_[prefix], memory_.encode(std::make_optional(limit)))),
+      storage_extension_->ext_storage_clear_prefix_version_2(prefix, limit),
       result);
 }
 
@@ -451,11 +439,10 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
 TEST_F(StorageExtensionTest, RootTest) {
   // rest of ext_storage_root_version_1
   RootHash root_val = "123456"_hash256;
-  EXPECT_CALL(*storage_provider_, commit(_))
+  EXPECT_CALL(*storage_provider_, commit(no_child, _))
       .WillOnce(Return(outcome::success(root_val)));
 
-  ASSERT_EQ(memory_[storage_extension_->ext_storage_root_version_1()],
-            root_val);
+  ASSERT_EQ(storage_extension_->ext_storage_root_version_1(), root_val);
 }
 
 /**
@@ -470,7 +457,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
       {"a"_buf, "one"_buf}, {"b"_buf, "two"_buf}, {"c"_buf, "three"_buf}};
   auto hash_array =
       "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_unhex;
-  ASSERT_EQ(memory_
+  ASSERT_EQ(memory_.memory
                 .view(storage_extension_->ext_trie_blake2_256_root_version_1(
                           memory_.encode(dict)),
                       hash_array.size())

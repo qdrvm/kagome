@@ -48,6 +48,11 @@ namespace kagome::runtime {
                  const RuntimeContext::ContextParams &config,
                  std::shared_ptr<ModuleInstance> &&instance);
 
+    outcome::result<void> precompile(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const RuntimeContext::ContextParams &config);
+
    private:
     using Key = std::tuple<common::Hash256, RuntimeContext::ContextParams>;
     struct InstancePool {
@@ -57,6 +62,12 @@ namespace kagome::runtime {
       outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
           std::unique_lock<std::mutex> &lock);
     };
+
+    outcome::result<std::reference_wrapper<InstancePool>> getModule(
+        std::unique_lock<std::mutex> &lock,
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const RuntimeContext::ContextParams &config);
 
     using CompilationResult =
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
