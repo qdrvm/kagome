@@ -199,7 +199,7 @@ TEST_F(BabeBlockValidatorTest, Success) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   auto validate_res = block_validator->validateHeader(valid_block_.header);
-  ASSERT_TRUE(validate_res) << validate_res.error().message();
+  EXPECT_OUTCOME_TRUE_1(validate_res);
 }
 
 /**
