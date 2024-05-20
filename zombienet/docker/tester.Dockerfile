@@ -1,11 +1,11 @@
 ARG POLKADOT_SDK_RELEASE
-ARG HASH_COMMIT
+ARG BRANCH_NAME
 
 FROM qdrvm/kagome:latest as kagome
 
 FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
-RUN git clone https://github.com/qdrvm/kagome.git -b test/polkadot-functional-zombietests
+RUN git clone https://github.com/qdrvm/kagome.git -b $BRANCH_NAME
 
 # TODO(kamilsa): #2099 Remove this once we have a proper way to precompile
 RUN mkdir /tmp/kagome/
