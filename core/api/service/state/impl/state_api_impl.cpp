@@ -154,8 +154,8 @@ namespace kagome::api {
     std::vector<StorageChangeSet> changes;
     std::map<common::BufferView, std::optional<common::Buffer>> last_values;
 
-    // TODO(Harrm): optimize it to use a lazy generator instead of returning the
-    // whole vector with block ids
+    // TODO(Harrm): #2105 optimize it to use a lazy generator instead of
+    // returning the whole vector with block ids
     OUTCOME_TRY(range, block_tree_->getChainByBlocks(from, to));
     for (auto &block : range) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block));

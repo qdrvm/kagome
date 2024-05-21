@@ -530,7 +530,6 @@ TEST_F(TrieTest, EmptyTrie) {
  * @then the path is returned
  */
 TEST_F(TrieTest, GetPath) {
-  // TODO(Harrm) PRE-461 Make parametrized
   const std::vector<std::pair<Buffer, Buffer>> data = {
       {"123456"_hex2buf, "42"_hex2buf},
       {"1234"_hex2buf, "1234"_hex2buf},
