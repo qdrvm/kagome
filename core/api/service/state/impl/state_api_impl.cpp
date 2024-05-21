@@ -134,8 +134,6 @@ namespace kagome::api {
       std::span<const common::Buffer> keys,
       const primitives::BlockHash &from,
       std::optional<primitives::BlockHash> opt_to) const {
-    // TODO(Harrm): Optimize once changes trie is enabled (and a warning/assert
-    // for now that will fire once it is, just not to forget)
     auto to =
         opt_to.has_value() ? opt_to.value() : block_tree_->bestBlock().hash;
     if (keys.size() > static_cast<ssize_t>(kMaxKeySetSize)) {

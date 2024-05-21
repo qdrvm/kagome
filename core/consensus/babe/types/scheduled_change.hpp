@@ -18,7 +18,7 @@ namespace kagome::consensus::babe {
     std::pair<uint64_t, uint64_t> ratio;
     AllowedSlots second_slot;
   };
-  using NextConfigData = boost::variant<Unused<0>, NextConfigDataV1>;
+  using NextConfigData = std::variant<Unused<0>, NextConfigDataV1>;
 
   struct OnDisabled {
     SCALE_TIE(1);

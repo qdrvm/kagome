@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/buffer.hpp"
 #include "primitives/common.hpp"
 #include "scale/tie.hpp"
 

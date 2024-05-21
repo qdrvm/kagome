@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+#include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
 namespace {

@@ -44,7 +44,6 @@ class StorageCodeProviderTest : public ::testing::Test {
  * @then obtained state code and "state_code" are equal
  */
 TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
-  // TODO(Harrm): fix it for the new upgrade logic
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
   auto tracker = std::make_shared<runtime::RuntimeUpgradeTrackerMock>();
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
@@ -83,8 +82,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
  * put into the storage @and state code is obtained by wasm provider
  * @then obtained state code and "new_state_code" are equal
  */
-TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
-  // TODO(Harrm): fix it for the new upgrade logic
+TEST_F(StorageCodeProviderTest, GetCodeWhenStorageUpdates) {
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
   auto tracker = std::make_shared<runtime::RuntimeUpgradeTrackerMock>();
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};

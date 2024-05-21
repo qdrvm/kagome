@@ -54,7 +54,7 @@ class MetadataTest : public BinaryenRuntimeTest {
  * @then successful result is returned
  */
 // TODO(kamilsa): Fix lru cache#1775. Enable this test back when it is fixed
-TEST_F(MetadataTest, DISABLED_metadata) {
+TEST_F(MetadataTest, metadata) {
   BlockInfo info{42, "block_hash"_hash256};
   EXPECT_CALL(*header_repo_, getBlockHeader(info.hash))
       .WillRepeatedly(Return(BlockHeader{info.number, {}, {}, {}, {}}));

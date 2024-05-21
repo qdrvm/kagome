@@ -77,8 +77,8 @@ namespace test {
   void WsClient::disconnect() {
     boost::system::error_code ec{};
     stream_.close("done", ec);
-    stream_.next_layer().socket().shutdown(Socket::shutdown_both, ec);
-    // TODO (yuraz): log message, ignore error
+    std::ignore =
+        stream_.next_layer().socket().shutdown(Socket::shutdown_both, ec);
     boost::ignore_unused(ec);
   }
 

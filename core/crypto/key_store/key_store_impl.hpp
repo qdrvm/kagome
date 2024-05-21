@@ -22,11 +22,6 @@
 
 namespace kagome::crypto {
 
-  /// TODO(Harrm) Add policies to emit a warning when found a keypair
-  /// with incompatible type and algorithm (e. g. ed25519 BABE keypair,
-  /// whereas BABE has to be sr25519 only) or when trying to generate more
-  /// keypair than there should be (e. g. more than one libp2p keypair is a
-  /// suspicious behaviour)
   template <Suite T>
   class KeySuiteStoreImpl final : public KeySuiteStore<T> {
    public:
