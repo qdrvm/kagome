@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
-        run: make tester
+        run: make tester BRANCH_NAME=${{ github.head_ref }}
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
