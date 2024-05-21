@@ -585,6 +585,9 @@ namespace kagome::parachain {
 
     for (const auto &lost : event.lost) {
       SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
+      if (auto relay_parent_state = tryGetStateByRelayParent(lost)) {
+        _keeper_.emplace_back(relay_parent_state->get().per_session_state);
+      }
 
       auto relay_parent_state = tryGetStateByRelayParent(lost);
       if (relay_parent_state) {
@@ -1156,7 +1159,7 @@ namespace kagome::parachain {
           logger_,
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,
-          rps_result.error().message());
+          rps_result.error());
     }
   }
 
@@ -1302,7 +1305,7 @@ namespace kagome::parachain {
       SL_VERBOSE(logger_,
                  "PersistedValidationData not found. (error={}, "
                  "relay_parent={} para_id={})",
-                 res_data.error().message(),
+                 res_data.error(),
                  relay_parent,
                  para_id);
       return std::nullopt;
@@ -2791,7 +2794,7 @@ namespace kagome::parachain {
               if (!pov_response_result) {
                 self->logger_->warn("Request PoV on relay_parent {} failed {}",
                                     relay_parent,
-                                    pov_response_result.error().message());
+                                    pov_response_result.error());
                 return;
               }
 
@@ -4035,7 +4038,7 @@ namespace kagome::parachain {
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-          sign_result.error().message());
+          sign_result.error());
       return std::nullopt;
     }
 
@@ -5129,7 +5132,7 @@ namespace kagome::parachain {
       // and return
       SL_TRACE(logger_,
                "Insert advertisement error. (error={})",
-               insert_res.error().message());
+               insert_res.error());
       return;
     }
 
@@ -5180,7 +5183,7 @@ namespace kagome::parachain {
                relay_parent,
                para_id,
                peer_id,
-               result.error().message());
+               result.error());
     }
   }
 

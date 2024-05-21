@@ -232,6 +232,9 @@ namespace kagome::application {
     std::chrono::milliseconds pvfSubprocessDeadline() const override {
       return pvf_subprocess_deadline_;
     }
+    bool disableSecureMode() const override {
+      return disable_secure_mode_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -383,6 +386,7 @@ namespace kagome::application {
     bool should_precompile_parachain_modules_{true};
     bool use_pvf_subprocess_{true};
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
+    bool disable_secure_mode_{false};
   };
 
 }  // namespace kagome::application

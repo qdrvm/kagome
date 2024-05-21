@@ -111,12 +111,9 @@ namespace kagome::parachain {
                                                               input.cache_dir](
                                                              const auto
                                                                  &injector) {
-          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-              module_cache_opt;
-          if (cache_dir) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(), *cache_dir);
-          }
+          kagome::filesystem::path path_cache_dir(cache_dir);
+          auto module_cache = std::make_shared<runtime::wavm::ModuleCache>(
+              injector.template create<sptr<crypto::Hasher>>(), path_cache_dir);
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
@@ -125,7 +122,7 @@ namespace kagome::parachain {
               injector.template create<sptr<storage::trie::TrieStorage>>(),
               injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              module_cache_opt,
+              module_cache,
               injector.template create<sptr<crypto::Hasher>>());
         }),
         bind_by_lambda<runtime::ModuleFactory>([](const auto &injector) {

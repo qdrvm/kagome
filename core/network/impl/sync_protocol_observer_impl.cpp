@@ -157,11 +157,10 @@ namespace kagome::network {
       const BlocksRequest &request,
       BlocksResponse &response,
       const std::vector<primitives::BlockHash> &hash_chain) const {
-    auto header_needed =
-        request.attributeIsSet(network::BlockAttribute::HEADER);
-    auto body_needed = request.attributeIsSet(network::BlockAttribute::BODY);
+    auto header_needed = has(request.fields, network::BlockAttribute::HEADER);
+    auto body_needed = has(request.fields, network::BlockAttribute::BODY);
     auto justification_needed =
-        request.attributeIsSet(network::BlockAttribute::JUSTIFICATION);
+        has(request.fields, network::BlockAttribute::JUSTIFICATION);
 
     for (const auto &hash : hash_chain) {
       auto &new_block =

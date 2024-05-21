@@ -146,6 +146,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(bool, disableSecureMode, (), (const, override));
+
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
     MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));
