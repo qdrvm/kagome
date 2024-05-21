@@ -42,15 +42,20 @@ jobs:
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    env:
-      BRANCH_NAME: ${{ github.head_ref }}
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+          echo "Branch name: ${branch}"
+        id: extract_branch
       - name: build zombie-tester
         working-directory: ./zombienet/docker
-        run: make tester BRANCH_NAME=${{ env.BRANCH_NAME }}
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
