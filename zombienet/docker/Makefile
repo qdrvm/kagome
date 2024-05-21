@@ -37,7 +37,7 @@ tester:
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
-		--build-arg BRANCH_NAME=$(BRANCH_NAME) . ; \
+		--build-arg BRANCH_NAME=$$BRANCH_NAME . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
