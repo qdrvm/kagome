@@ -4,7 +4,8 @@ ARG BRANCH_NAME
 FROM qdrvm/kagome:latest as kagome
 
 FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
-ENV BRANCH_NAME $BRANCH_NAME
+ARG BRANCH_NAME
+ENV BRANCH_NAME=${BRANCH_NAME}
 
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
 

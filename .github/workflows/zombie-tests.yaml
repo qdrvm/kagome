@@ -47,14 +47,12 @@ jobs:
         shell: bash
         run: |
           branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "branch=${branch}" >> $GITHUB_ENV
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
           echo "Branch name: ${branch}"
         id: extract_branch
       - name: build zombie-tester
         working-directory: ./zombienet/docker
-        env:
-          BRANCH_NAME: ${{ env.branch }}
-        run: make tester
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
