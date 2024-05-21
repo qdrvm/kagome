@@ -60,6 +60,10 @@ namespace {
       }
     }
 
+    if (configuration->precompileWasm()) {
+      return app->precompileWasm();
+    }
+
     // Recovery mode
     if (configuration->recoverState().has_value()) {
       return app->recovery();

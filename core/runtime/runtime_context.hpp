@@ -72,7 +72,7 @@ namespace kagome::runtime {
     static outcome::result<RuntimeContext> fromCode(
         const runtime::ModuleFactory &module_factory,
         common::BufferView code_zstd,
-        ContextParams params = {});
+        ContextParams params);
 
     virtual outcome::result<RuntimeContext> fromBatch(
         std::shared_ptr<ModuleInstance> module_instance,

@@ -893,6 +893,8 @@ namespace kagome::application {
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
+        ("precompile-relay", po::bool_switch(), "precompile relay")
+        ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1608,6 +1610,20 @@ namespace kagome::application {
     }
 
     blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
+
+    if (find_argument(vm, "precompile-relay")) {
+      precompile_wasm_.emplace();
+    }
+    if (auto paths = find_argument<decltype(PrecompileWasmConfig::parachains)>(
+            vm, "precompile-para")) {
+      if (not precompile_wasm_) {
+        precompile_wasm_.emplace();
+      }
+      precompile_wasm_->parachains = *paths;
+    }
+    if (precompile_wasm_) {
+      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {
