@@ -382,7 +382,7 @@ namespace kagome::runtime::wasm_edge {
                                                  ec)
             && ec) {
           return CompilationError{fmt::format(
-              "Failed to create a dir for compiled modules: {}", ec.message())};
+              "Failed to create a dir for compiled modules: {}", ec)};
         }
         if (!std::filesystem::exists(filename)) {
           SL_INFO(log_, "Start compiling wasm module {}…", code_hash);

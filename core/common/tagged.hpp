@@ -30,11 +30,9 @@ namespace kagome {
    public:
     using tag = Tag;
 
-    template <typename... Args>
-    explicit Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
+    Tagged() : Base() {}
 
-    Tagged(T &&value) noexcept(not std::is_lvalue_reference_v<decltype(value)>)
-        : Base(std::forward<T>(value)) {}
+    Tagged(T value) : Base(std::move(value)) {}
 
     Tagged &operator=(T &&value) noexcept(
         not std::is_lvalue_reference_v<decltype(value)>) {
