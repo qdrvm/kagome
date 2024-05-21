@@ -491,7 +491,7 @@ TEST_F(BabeTest, EquivocationReport) {
       "block_#1_second"_hash256            // hash
   };
 
-  OpaqueKeyOwnershipProof ownership_proof{"ownership_proof"_bytes};
+  OpaqueKeyOwnershipProof ownership_proof{Buffer{"ownership_proof"_bytes}};
 
   EquivocationProof equivocation_proof{
       .offender = authority_id,

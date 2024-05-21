@@ -91,6 +91,29 @@ namespace kagome::runtime {
       common::BufferView code_zstd,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
+    OUTCOME_TRY(module, getModule(lock, code_hash, code_zstd, config));
+    OUTCOME_TRY(instance, module.get().instantiate(lock));
+    BOOST_ASSERT(shared_from_this());
+    return std::make_shared<BorrowedInstance>(
+        weak_from_this(), code_hash, config, std::move(instance));
+  }
+
+  outcome::result<void> RuntimeInstancesPoolImpl::precompile(
+      const CodeHash &code_hash,
+      common::BufferView code_zstd,
+      const RuntimeContext::ContextParams &config) {
+    std::unique_lock lock{pools_mtx_};
+    OUTCOME_TRY(getModule(lock, code_hash, code_zstd, config));
+    return outcome::success();
+  }
+
+  outcome::result<
+      std::reference_wrapper<RuntimeInstancesPoolImpl::InstancePool>>
+  RuntimeInstancesPoolImpl::getModule(
+      std::unique_lock<std::mutex> &lock,
+      const CodeHash &code_hash,
+      common::BufferView code_zstd,
+      const RuntimeContext::ContextParams &config) {
     Key key{code_hash, config};
     auto pool_opt = pools_.get(key);
 
@@ -104,10 +127,7 @@ namespace kagome::runtime {
       }
     }
     BOOST_ASSERT(pool_opt);
-    OUTCOME_TRY(instance, pool_opt->get().instantiate(lock));
-    BOOST_ASSERT(shared_from_this());
-    return std::make_shared<BorrowedInstance>(
-        weak_from_this(), code_hash, config, std::move(instance));
+    return pool_opt.value();
   }
 
   RuntimeInstancesPoolImpl::CompilationResult

@@ -13,10 +13,6 @@ namespace test {
     options.create_if_missing = true;
 
     auto r = RocksDB::create(getPathString(), options);
-    if (!r) {
-      throw std::invalid_argument(r.error().message());
-    }
-
     rocks_ = std::move(r.value());
     db_ = rocks_->getSpace(kagome::storage::Space::kDefault);
     ASSERT_TRUE(rocks_) << "BaseRocksDB_Test: db is nullptr";

@@ -472,7 +472,7 @@ namespace kagome::storage::trie_pruner {
                    "Failed to restore trie pruner state starting from last "
                    "finalized "
                    "block: {}",
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {
@@ -493,7 +493,7 @@ namespace kagome::storage::trie_pruner {
                 "Failed to restore trie pruner state starting from base "
                 "block {}: {}",
                 last_pruned_block.value(),
-                res.error().message());
+                res.error());
       }
     }
     return outcome::success();

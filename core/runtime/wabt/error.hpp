@@ -16,6 +16,10 @@ namespace kagome::runtime {
     std::string msg;
   };
 
+  inline auto format_as(const WabtError &e) {
+    return e.msg;
+  }
+
   inline std::error_code make_error_code(const WabtError &) {
     return Error::INSTRUMENTATION_FAILED;
   }
