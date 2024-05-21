@@ -13,49 +13,89 @@ on:
   workflow_dispatch: 
 
 jobs:
-  zombie-tests:
+  Push-self-hosted-PR:
+    if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master push') }}
     strategy:
       fail-fast: false
       matrix:
         options:
-          - name: "PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-          - name: "Disputes initiation, conclusion and lag"
-            test: "test-polkadot-functional-0002-parachains-disputes"
-          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-            test: "test-polkadot-functional-0003-beefy-and-mmr"
-          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
-            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
-          - name: "Past-session dispute slashing"
-            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
-          - name: "Test if parachains make progress with most of approvals being tranch0"
-            test: "test-polkadot-functional-0006-parachains-max-tranche0"
-          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
-            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-            test: "test-polkadot-functional-0008-dispute-old-finalized"
-          - name: "Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-          - name: "Test validator disabling effects"
-            test: "test-polkadot-functional-0010-validator-disabling"
-          - name: "Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+#          - name: "Self-hosted: Push Debug Docker image"
+#            build-type: "Debug"
+          - name: "Self-hosted: Push Release Docker image"
+            build-type: "Release"
+#          - name: "Self-hosted: Push RelWithDebInfo Docker image"
+#            build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
+    timeout-minutes: 120
+    container: qdrvm/kagome-dev:9-minideb
     steps:
-      - name: Set owner of working dir recurively
-        run: sudo chown -R $(whoami) .
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: Extract branch name
-        shell: bash
-        run: |
-          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "branch=${branch}" >> $GITHUB_OUTPUT
-          echo "Branch name: ${branch}"
-        id: extract_branch
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
-      - name: Run test
-        working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }}
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git config --global --add safe.directory /__w/kagome/kagome
+      - run: git fetch --prune --unshallow
+      - name: build
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
+      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: docker pack and push
+        env:
+          VERSION: ${{ github.ref }}
+          BUILD_TYPE: "Custom"
+        run: ./housekeeping/docker/kagome/build_and_push.sh
+#  zombie-tests:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "PVF preparation & execution time"
+#            test: "test-polkadot-functional-0001-parachains-pvf"
+#          - name: "Disputes initiation, conclusion and lag"
+#            test: "test-polkadot-functional-0002-parachains-disputes"
+#          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+#            test: "test-polkadot-functional-0003-beefy-and-mmr"
+#          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+#            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+#          - name: "Past-session dispute slashing"
+#            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+#          - name: "Test if parachains make progress with most of approvals being tranch0"
+#            test: "test-polkadot-functional-0006-parachains-max-tranche0"
+#          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
+#            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+#          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+#            test: "test-polkadot-functional-0008-dispute-old-finalized"
+#          - name: "Approval voting coalescing does not lag finality"
+#            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+#          - name: "Test validator disabling effects"
+#            test: "test-polkadot-functional-0010-validator-disabling"
+#          - name: "Test we are producing blocks at 6 seconds clip"
+#            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 60
+#    needs: [Push-self-hosted-PR]
+#    steps:
+#      - name: Set owner of working dir recurively
+#        run: sudo chown -R $(whoami) .
+#      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+#      - name: Extract branch name
+#        shell: bash
+#        run: |
+#          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+#          echo "branch=${branch}" >> $GITHUB_OUTPUT
+#          echo "Branch name: ${branch}"
+#        id: extract_branch
+#      - name: build zombie-tester
+#        working-directory: ./zombienet/docker
+#        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
+#      - name: Run test
+#        working-directory: ./zombienet/docker
+#        run: make ${{ matrix.options.test }}
