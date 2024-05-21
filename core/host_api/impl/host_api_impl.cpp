@@ -19,8 +19,10 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/predefined_keys.hpp"
 
-#define FFI \
-  Ffi ffi { memory_provider_->getCurrentMemory().value().get() }
+#define FFI                                            \
+  Ffi ffi {                                            \
+    memory_provider_->getCurrentMemory().value().get() \
+  }
 
 namespace kagome::host_api {
   /**

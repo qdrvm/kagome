@@ -629,9 +629,6 @@ namespace kagome::dispute {
           }
           return true;
         };
-        if (not check_sig()) {
-          check_sig();
-        }
         BOOST_ASSERT(check_sig());
 
         Indexed<SignedDisputeStatement> signed_dispute_statement{
@@ -2455,7 +2452,8 @@ namespace kagome::dispute {
       // unaffected.
 
       SL_DEBUG(log_,
-               "Peer {} sent completely redundant votes within a single batch "
+               "Peer {} sent completely redundant votes "
+               "within a single batch "
                "- that looks fishy!",
                peer);
 
