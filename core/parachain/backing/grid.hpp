@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <boost/range/adaptor/indexed.hpp>
 #include <cmath>
 #include <cstdint>
 #include <numeric>
@@ -98,6 +99,7 @@ namespace kagome::parachain::grid {
     void sendTo(bool full, auto &&f) const {
       if (full) {
         for (auto &i : sending) {
+          // https://github.com/paritytech/polkadot-sdk/blob/d5fe478e4fe2d62b0800888ae77b00ff0ba28b28/polkadot/node/network/statement-distribution/src/v2/grid.rs#L420-L435
           if (not receiving.contains(i)) {
             f(i);
           }
@@ -121,8 +123,8 @@ namespace kagome::parachain::grid {
     views.reserve(groups.size());
     std::vector<size_t> index;
     index.resize(validators.size());
-    for (size_t i = 0; auto &v : validators) {
-      index[v] = i++;
+    for (auto [i, v] : boost::adaptors::index(validators)) {
+      index[v] = i;
     }
     auto as_value = [&](auto &&f) {
       return [&, f{std::forward<decltype(f)>(f)}](size_t i) mutable {

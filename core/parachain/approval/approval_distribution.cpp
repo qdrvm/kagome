@@ -683,7 +683,7 @@ namespace kagome::parachain {
     } else {
       SL_ERROR(logger_,
                "Error while retrieve neccessary data.(error={})",
-               res.error().message());
+               res.error());
     }
   }
 
@@ -748,7 +748,7 @@ namespace kagome::parachain {
     if (auto res = unsafe_vrf.compute_randomness(
             relay_vrf, *ac.authorities, *ac.randomness, *ac.babe_epoch);
         res.has_error()) {
-      logger_->warn("Relay VRF return error.(error={})", res.error().message());
+      logger_->warn("Relay VRF return error.(error={})", res.error());
       return;
     }
 
@@ -784,7 +784,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return std::nullopt;
     }
 
@@ -1184,7 +1184,7 @@ namespace kagome::parachain {
                   if (block_info.has_error()) {
                     SL_WARN(self->logger_,
                             "ImportedBlockInfo request failed: {}",
-                            block_info.error().message());
+                            block_info.error());
                     return;
                   }
 
@@ -1223,7 +1223,7 @@ namespace kagome::parachain {
               SL_ERROR(self->logger_,
                        "Internal error while retrieve block imported "
                        "candidates: {}",
-                       possible_candidate.error().message());
+                       possible_candidate.error());
               return;
             }
 
@@ -1380,7 +1380,7 @@ namespace kagome::parachain {
           "session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return AssignmentCheckResult::Bad;
     }
 
@@ -1431,7 +1431,7 @@ namespace kagome::parachain {
     } else {
       logger_->warn(
           "Check assignment certificate failed.(error={}, candidate index={})",
-          res.error().message(),
+          res.error(),
           candidate_index);
       return AssignmentCheckResult::Bad;
     }
@@ -1483,7 +1483,7 @@ namespace kagome::parachain {
           "session_index={}, error={})",
           approval.payload.payload.block_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return ApprovalCheckResult::Bad;
     }
 
@@ -2249,7 +2249,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return;
     }
 
@@ -2483,7 +2483,7 @@ namespace kagome::parachain {
           "Adjust weight for block with parachain data failed.(block hash={}, "
           "error={})",
           block_hash,
-          result.error().message());
+          result.error());
     }
   }
 
@@ -2673,7 +2673,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return;
     }
 

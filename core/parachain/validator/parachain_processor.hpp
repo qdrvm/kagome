@@ -16,6 +16,7 @@
 
 #include "application/app_configuration.hpp"
 #include "authority_discovery/query/query.hpp"
+#include "common/ref_cache.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
@@ -350,6 +351,12 @@ namespace kagome::parachain {
       grid::GridTracker grid_tracker;
     };
 
+    struct PerSessionState {
+      runtime::SessionInfo session_info;
+      Groups groups;
+      std::optional<grid::Views> grid_view;
+    };
+
     /**
      * @struct RelayParentState
      * @brief This structure encapsulates the state of a relay parent in the
@@ -360,6 +367,8 @@ namespace kagome::parachain {
       std::optional<CoreIndex> assigned_core;
       std::optional<ParachainId> assigned_para;
       std::vector<std::optional<GroupIndex>> validator_to_group;
+      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
+          per_session_state;
 
       std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
@@ -374,8 +383,6 @@ namespace kagome::parachain {
       std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
           authority_lookup;
       std::optional<LocalValidatorState> local_validator;
-      std::optional<Groups> groups;
-      std::optional<grid::Views> grid_view;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -703,8 +710,6 @@ namespace kagome::parachain {
         AttestingData &attesting_data,
         const runtime::PersistedValidationData &persisted_validation_data,
         RelayParentState &parachain_state);
-    std::optional<runtime::SessionInfo> retrieveSessionInfo(
-        const RelayHash &relay_parent);
     void handleFetchedCollation(PendingCollation &&pending_collation,
                                 network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
@@ -1012,6 +1017,7 @@ namespace kagome::parachain {
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
+    std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
 
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;

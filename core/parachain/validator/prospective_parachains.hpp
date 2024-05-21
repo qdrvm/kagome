@@ -246,7 +246,7 @@ namespace kagome::parachain {
                  "Prospective parachains are disabled, is not supported by the "
                  "current Runtime API. (relay parent={}, error={})",
                  relay_parent,
-                 result.error().message());
+                 result.error());
         return std::nullopt;
       }
 
@@ -269,7 +269,7 @@ namespace kagome::parachain {
                  "para_id={}, error={})",
                  relay_parent,
                  para_id,
-                 result.error().message());
+                 result.error());
         return result.as_failure();
       }
 
@@ -520,7 +520,7 @@ namespace kagome::parachain {
                       "(candidate_hash={}, para={}, error={})",
                       candidate_hash,
                       para,
-                      res.error().message());
+                      res.error());
             }
           }
 

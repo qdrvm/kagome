@@ -4,6 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(grid_test
+    grid.cpp
+    )
+target_link_libraries(grid_test
+    hasher
+    )
+
 addtest(pvf_test
     pvf_test.cpp
     )

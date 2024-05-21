@@ -44,7 +44,7 @@ namespace kagome::network {
         base().logger()->warn(
             "Our PoV response has error.(candidate hash={}, error={})",
             request,
-            response.error().message());
+            response.error());
       } else {
         base().logger()->info("Our PoV response {} data.(candidate hash={})",
                               boost::get<ParachainBlock>(&response.value())

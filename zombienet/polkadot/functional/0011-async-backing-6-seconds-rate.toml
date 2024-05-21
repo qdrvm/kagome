@@ -24,14 +24,14 @@ requests = { memory = "2G", cpu = "1" }
   [[relaychain.node_groups]]
   name = "alice"
   args = [ "-lparachain=debug" ]
-  count = 6
+  count = 9
 
   [[relaychain.node_groups]]
-  name = "kagome-alice"
+  name = "bob"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "-lparachain=debug" ]
-  count = 6
+  args = [ "-lparachain=debug", "--wasm-execution Compiled" ]
+  count = 3
 
 [[parachains]]
 id = 2000
