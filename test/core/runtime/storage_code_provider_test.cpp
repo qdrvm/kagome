@@ -12,6 +12,7 @@
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -85,18 +86,14 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
 TEST_F(StorageCodeProviderTest, GetCodeWhenStorageUpdates) {
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
   auto tracker = std::make_shared<runtime::RuntimeUpgradeTrackerMock>();
-  storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
+
+  primitives::BlockInfo second_block_info{2, "block_2"_hash256};
   storage::trie::RootHash second_state_root{{2, 2, 2, 2}};
 
   // given
-  EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
-      .WillOnce(Invoke([this]() {
-        auto batch = std::make_unique<storage::trie::TrieBatchMock>();
-        EXPECT_CALL(*batch,
-                    getMock(common::BufferView{storage::kRuntimeCodeKey}))
-            .WillOnce(Return(state_code_));
-        return batch;
-      }));
+  EXPECT_CALL(*tracker, getLastCodeUpdateBlockInfo(second_state_root))
+      .WillOnce(Return(second_block_info));
+
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
@@ -118,5 +115,5 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenStorageUpdates) {
                       wasm_provider->getCodeAt(second_state_root));
 
   // then
-  ASSERT_EQ(*obtained_state_code, state_code_);
+  ASSERT_EQ(*obtained_state_code, new_state_code);
 }
