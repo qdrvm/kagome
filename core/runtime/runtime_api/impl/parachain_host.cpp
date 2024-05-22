@@ -265,6 +265,19 @@ namespace kagome::runtime {
         ctx, "ParachainHost_para_backing_state", id);
   }
 
+  outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>
+  ParachainHostImpl::claim_queue(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::map<CoreIndex, std::vector<ParachainId>>>(
+        ctx, "ParachainHost_claim_queue");
+  }
+
+  outcome::result<uint32_t> ParachainHostImpl::runtime_api_version(
+      const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<uint32_t>(ctx, "ParachainHost_runtime_api_version");
+  }
+
   outcome::result<parachain::fragment::AsyncBackingParams>
   ParachainHostImpl::staging_async_backing_params(
       const primitives::BlockHash &block) {

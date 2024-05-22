@@ -104,6 +104,8 @@ namespace kagome::network::vstaging {
     }
   };
 
+  using SignedCompactStatement = IndexedAndSigned<CompactStatement>;
+
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
     auto p = visit_in_place(
         val.inner_value,
@@ -121,13 +123,40 @@ namespace kagome::network::vstaging {
     UNREACHABLE;
   }
 
+  inline CompactStatement from(const network::CompactStatement &stm) {
+    return visit_in_place(
+        stm,
+        [&](const network::CompactStatementSeconded &v) -> CompactStatement {
+          return CompactStatement(SecondedCandidateHash{
+              .hash = v,
+          });
+        },
+        [&](const network::CompactStatementValid &v) -> CompactStatement {
+          return CompactStatement(ValidCandidateHash{
+              .hash = v,
+          });
+        });
+  }
+
+  inline network::CompactStatement from(const CompactStatement &stm) {
+    return visit_in_place(
+        stm.inner_value,
+        [&](const SecondedCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementSeconded{v.hash};
+        },
+        [&](const ValidCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementValid{v.hash};
+        },
+        [&](const auto &) -> network::CompactStatement { UNREACHABLE; });
+  }
+
   /// A notification of a signed statement in compact form, for a given
   /// relay parent.
   struct StatementDistributionMessageStatement {
     SCALE_TIE(2);
 
     RelayHash relay_parent;
-    IndexedAndSigned<CompactStatement> compact;
+    SignedCompactStatement compact;
   };
 
   /// All messages for V1 for compatibility with the statement distribution

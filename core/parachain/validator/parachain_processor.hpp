@@ -29,6 +29,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/store/store.hpp"
+#include "parachain/backing/cluster.hpp"
 #include "parachain/backing/grid_tracker.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/pvf/precheck.hpp"
@@ -119,7 +120,9 @@ namespace kagome::parachain {
       OUT_OF_BOUND,
       REJECTED_BY_PROSPECTIVE_PARACHAINS,
       INCORRECT_BITFIELD_SIZE,
-      CORE_INDEX_UNAVAILABLE
+      CORE_INDEX_UNAVAILABLE,
+      INCORRECT_SIGNATURE,
+      CLUSTER_TRACKER_ERROR
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -235,7 +238,8 @@ namespace kagome::parachain {
 
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
-        const network::vstaging::AttestedCandidateRequest &request);
+        const network::vstaging::AttestedCandidateRequest &request,
+        const libp2p::peer::PeerId &peer_id);
     outcome::result<BlockNumber> get_block_number_under_construction(
         const RelayHash &relay_parent) const;
     bool bitfields_indicate_availability(
@@ -359,8 +363,20 @@ namespace kagome::parachain {
       };
     }
 
+    struct ActiveValidatorState {
+      // The index of the validator.
+      ValidatorIndex index;
+      // our validator group
+      GroupIndex group;
+      // the assignment of our validator group, if any.
+      std::optional<ParachainId> assignment;
+      // the 'direct-in-group' communication at this relay-parent.
+      ClusterTracker cluster_tracker;
+    };
+
     struct LocalValidatorState {
       grid::GridTracker grid_tracker;
+      std::optional<ActiveValidatorState> active;
     };
 
     struct PerSessionState {
@@ -370,6 +386,7 @@ namespace kagome::parachain {
       PerSessionState(PerSessionState &&) = default;
       PerSessionState &operator=(PerSessionState &&) = delete;
 
+      SessionIndex session;
       runtime::SessionInfo session_info;
       Groups groups;
       std::optional<grid::Views> grid_view;
@@ -379,6 +396,7 @@ namespace kagome::parachain {
       std::shared_ptr<authority_discovery::Query> query_audi;
 
       PerSessionState(
+          SessionIndex _session,
           const runtime::SessionInfo &_session_info,
           Groups &&_groups,
           grid::Views &&_grid_view,
@@ -565,6 +583,30 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
+
+    /// Checks whether a statement is allowed, whether the signature is
+    /// accurate,
+    /// and importing into the cluster tracker if successful.
+    ///
+    /// if successful, this returns a checked signed statement if it should be
+    /// imported or otherwise an error indicating a reputational fault.
+    outcome::result<std::optional<network::vstaging::SignedCompactStatement>>
+    handle_cluster_statement(
+        const RelayHash &relay_parent,
+        ClusterTracker &cluster_tracker,
+        SessionIndex session,
+        const runtime::SessionInfo &session_info,
+        const network::vstaging::SignedCompactStatement &statement,
+        ValidatorIndex cluster_sender_index);
+
+    /// Check a statement signature under this parent hash.
+    outcome::result<
+        std::reference_wrapper<const network::vstaging::SignedCompactStatement>>
+    check_statement_signature(
+        SessionIndex session_index,
+        const std::vector<ValidatorId> &validators,
+        const RelayHash &relay_parent,
+        const network::vstaging::SignedCompactStatement &statement);
     void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::BackedCandidateManifest &msg);
@@ -606,6 +648,8 @@ namespace kagome::parachain {
         GroupIndex group_index);
     outcome::result<consensus::Randomness> getBabeRandomness(
         const primitives::BlockHeader &block_header);
+    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+    fetch_claim_queue(const RelayHash &relay_parent);
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     RelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
@@ -917,6 +961,12 @@ namespace kagome::parachain {
         RelayParentState &relay_parent_state,
         const ConfirmedCandidate &confirmed_candidate,
         const runtime::SessionInfo &session_info);
+    void send_pending_cluster_statements(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state);
     void send_pending_grid_messages(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
@@ -954,6 +1004,16 @@ namespace kagome::parachain {
         const network::HashedBlockHeader &block_header);
 
     void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
+
+    std::optional<ParachainProcessorImpl::LocalValidatorState>
+    find_active_validator_state(
+        ValidatorIndex validator_index,
+        const Groups &groups,
+        const std::vector<runtime::CoreState> &availability_cores,
+        const runtime::GroupDescriptor &group_rotation_info,
+        const std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+        size_t seconding_limit,
+        size_t max_candidate_depth);
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,

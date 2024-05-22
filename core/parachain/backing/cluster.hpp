@@ -228,12 +228,11 @@ namespace kagome::parachain {
     std::vector<std::pair<ValidatorIndex, network::CompactStatement>>
     pending_statements_for(ValidatorIndex target) const;
 
-   private:
     bool knows_candidate(ValidatorIndex validator,
                          CandidateHash candidate_hash) const;
-
     bool can_request(ValidatorIndex target, CandidateHash candidate_hash) const;
 
+   private:
     // returns true if it's legal to accept a new `Seconded` message from this
     // validator. This is either
     //   1. because we've already accepted it.

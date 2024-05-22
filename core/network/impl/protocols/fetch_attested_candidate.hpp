@@ -56,11 +56,12 @@ namespace kagome::network {
 
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
-        RequestType request, std::shared_ptr<Stream> /*stream*/) override {
+        RequestType request, std::shared_ptr<Stream> stream) override {
       base().logger()->info(
           "Fetching attested candidate request.(candidate={})",
           request.candidate_hash);
-      auto res = pp_->OnFetchAttestedCandidateRequest(std::move(request));
+      auto res = pp_->OnFetchAttestedCandidateRequest(
+          std::move(request), stream->remotePeerId().value());
       if (res.has_error()) {
         base().logger()->error(
             "Fetching attested candidate response failed.(error={})",

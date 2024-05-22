@@ -463,6 +463,14 @@ namespace kagome::network {
     std::optional<CollatorId> collator;
   };
 
+  inline const CandidateHash &candidateHash(const CompactStatement &val) {
+    auto p = visit_in_place(
+        val, [&](const auto &v) -> std::reference_wrapper<const CandidateHash> {
+          return v;
+        });
+    return p.get();
+  }
+
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {
     auto commitments_hash =

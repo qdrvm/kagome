@@ -6,7 +6,9 @@
 
 #pragma once
 
+#include <map>
 #include <scale/bitvec.hpp>
+#include <vector>
 
 #include "common/blob.hpp"
 #include "common/unused.hpp"
@@ -37,6 +39,21 @@ namespace kagome::runtime {
   using CoreIndex = network::CoreIndex;
   using ScheduledCore = network::ScheduledCore;
   using CandidateDescriptor = network::CandidateDescriptor;
+
+  struct ClaimQueueSnapshot {
+    SCALE_TIE(1);
+    std::map<CoreIndex, std::vector<ParachainId>> claimes;
+
+    std::optional<ParachainId> get_claim_for(CoreIndex core_index,
+                                             size_t depth) const {
+      if (auto it = claimes.find(core_index); it != claimes.end()) {
+        if (depth < it->second.size()) {
+          return it->second[depth];
+        }
+      }
+      return std::nullopt;
+    }
+  };
 
   /// Information about a core which is currently occupied.
   struct OccupiedCore {
