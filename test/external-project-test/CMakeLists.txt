@@ -29,7 +29,7 @@ set(
 )
 
 include("cmake/HunterGate.cmake")
-# todo: automatically update along with the kagome settings
+
 include(../../cmake/Hunter/hunter-gate-url.cmake)
 
 project(KagomeFromExternalProject)

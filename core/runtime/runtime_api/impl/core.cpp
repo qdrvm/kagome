@@ -17,9 +17,11 @@ namespace kagome::runtime {
   outcome::result<primitives::Version> callCoreVersion(
       const ModuleFactory &module_factory,
       common::BufferView code,
+      const MemoryLimits &config,
       const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache) {
     OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(module_factory, code));
+                runtime::RuntimeContextFactory::fromCode(
+                    module_factory, code, {config}));
     return runtime_properties_cache->getVersion(
         ctx.module_instance->getCodeHash(),
         [&ctx]() -> outcome::result<primitives::Version> {

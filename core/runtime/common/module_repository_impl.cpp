@@ -50,10 +50,6 @@ namespace kagome::runtime {
     KAGOME_PROFILE_END(code_retrieval)
 
     KAGOME_PROFILE_START(module_retrieval)
-    constexpr uint32_t kDefaultHeapAllocPages = 2048;
-    MemoryLimits config;
-    config.heap_alloc_strategy =
-        HeapAllocStrategyStatic{kDefaultHeapAllocPages};
     Item item;
     OUTCOME_TRY(SAFE_UNIQUE(cache_)->outcome::result<void> {
       if (auto r = cache_.get(state)) {
@@ -66,17 +62,15 @@ namespace kagome::runtime {
         BOOST_OUTCOME_TRY(item.code, std::move(code));
         item.hash = hasher_->blake2b_256(*item.code);
         OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(storage_state));
-        OUTCOME_TRY(heappages, heapAllocStrategyHeappages(*batch));
-        if (heappages) {
-          item.config.heap_alloc_strategy = *heappages;
-        }
+        BOOST_OUTCOME_TRY(item.config.heap_alloc_strategy,
+                          heapAllocStrategyHeappagesDefault(*batch));
         cache_.put(state, item);
       }
       return outcome::success();
     });
     OUTCOME_TRY(runtime_instance,
                 runtime_instances_pool_->instantiateFromCode(
-                    item.hash, *item.code, {config}));
+                    item.hash, *item.code, {item.config}));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;

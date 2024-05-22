@@ -67,6 +67,7 @@ target_link_libraries(app_state_manager
 kagome_install(app_state_manager)
 
 add_library(application_modes
+    modes/precompile_wasm.cpp
     modes/print_chain_info_mode.cpp
     )
 target_link_libraries(application_modes
