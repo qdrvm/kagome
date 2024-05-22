@@ -48,10 +48,21 @@ namespace kagome::dispute {
   using BackingValid = Tagged<CandidateHash, struct BackingValidTag>;
   /// An approval vote from the approval checking phase.
   using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
+  /// An approval vote from the new version.
+  /// We can't create this version until all nodes have been updated to support
+  /// it and max_approval_coalesce_count is set to more than 1.
+  using ApprovalCheckingMultipleCandidates =
+      Tagged<std::vector<CandidateHash>,
+             struct ApprovalCheckingMultipleCandidatesTag>;
 
   /// A valid statement, of the given kind
   using ValidDisputeStatement =
-      boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
+      boost::variant<Explicit,                           // 0
+                     BackingSeconded,                    // 1
+                     BackingValid,                       // 2
+                     ApprovalChecking,                   // 3
+                     ApprovalCheckingMultipleCandidates  // 4
+                     >;
 
   /// An invalid statement, of the given kind.
   using InvalidDisputeStatement = boost::variant<Explicit>;

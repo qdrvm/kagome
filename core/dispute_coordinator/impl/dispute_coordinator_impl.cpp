@@ -90,6 +90,15 @@ namespace kagome::dispute {
                   std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
                   return scale::encode(
                       std::tie(magic, candidate_hash, session));
+                },
+                [&](const ApprovalCheckingMultipleCandidates &candidates) {
+                  std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                  if (candidates.size() == 1) {
+                    return scale::encode(
+                        std::tie(magic, candidates.front(), session));
+                  } else {
+                    return scale::encode(std::tie(magic, candidates, session));
+                  }
                 });
           },
           [&](const InvalidDisputeStatement &kind) {
