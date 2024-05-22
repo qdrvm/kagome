@@ -40,7 +40,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.22
+    URL  https://github.com/libp2p/cpp-libp2p/archive/f714666d7b1b0846b4389a83039ead6d8d1fac4c.zip
+    SHA1 5a31230988286f84e0dacc18f743f2607581a652
     KEEP_PACKAGE_SOURCES
 )
 
@@ -88,7 +89,8 @@ endif ()
 
 hunter_config(
     scale
-    VERSION 1.1.2
+    URL  https://github.com/qdrvm/scale-codec-cpp/archive/914e441837d79303373bbc20fe04432a1bf08394.zip
+    SHA1 b2c3cfe57afb0481728b73c7f31598d9dd791f99
     KEEP_PACKAGE_SOURCES
 )
 
@@ -118,4 +120,10 @@ hunter_config(
     VERSION 0.4.1-qdrvm1
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
+)
+
+hunter_config(
+    qtils
+    URL  https://github.com/qdrvm/qtils/archive/bb5f440b4aa2b0bf66eacbb27ac97ddf64cd4e5e.zip
+    SHA1 574be4af9cfd79dc530583dc1fe78571b7afa662
 )

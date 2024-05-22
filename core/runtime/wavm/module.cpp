@@ -21,8 +21,7 @@
 
 namespace kagome::runtime::wavm {
 
-  outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
-  ModuleImpl::compileFrom(
+  CompilationOutcome<std::shared_ptr<ModuleImpl>> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,

@@ -70,6 +70,7 @@ addtest(block_attributes_test
     block_attributes_test.cpp
     )
 target_link_libraries(block_attributes_test
+    fmt::fmt
     scale::scale
     )
 
@@ -77,6 +78,7 @@ addtest(block_direction_test
     block_direction_test.cpp
     )
 target_link_libraries(block_direction_test
+    fmt::fmt
     scale::scale
     )
 

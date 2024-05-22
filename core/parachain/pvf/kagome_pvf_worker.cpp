@@ -29,7 +29,6 @@
 #include <libp2p/common/asio_buffer.hpp>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/log/configurator.hpp>
-#include <libp2p/outcome/outcome-register.hpp>
 #include <soralog/macro.hpp>
 
 #include "common/bytestr.hpp"
@@ -298,9 +297,9 @@ namespace kagome::parachain {
       SL_WARN(logger, "Secure validator mode disabled in node configuration");
     }
 #else
-    SL_WARN(
-        logger,
-        "Secure validator mode is not implemented for the current platform. Proceed at your own risk.");
+    SL_WARN(logger,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
