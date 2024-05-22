@@ -20,7 +20,6 @@
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
 #include "dispute_coordinator/impl/dispute_thread_pool.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
@@ -1126,19 +1125,7 @@ namespace kagome::dispute {
                                    statements.end());
               }
               ++imported_valid_votes;
-              return true;
             }
-            auto &existing = std::get<0>(it->second);
-            return visit_in_place(
-                valid,
-                [&](const Explicit &) {
-                  return not is_type<Explicit>(existing);
-                },
-                [&](const BackingSeconded &) { return false; },
-                [&](const BackingValid &) { return false; },
-                [&](const ApprovalChecking &) {
-                  return not is_type<ApprovalChecking>(existing);
-                });
           },
           [&](const InvalidDisputeStatement &invalid) {
             auto [it, fresh] = votes.invalid.emplace(
@@ -1153,9 +1140,7 @@ namespace kagome::dispute {
                                    statements.end());
               }
               ++imported_invalid_votes;
-              return true;
             }
-            return false;
           });
     }
 
