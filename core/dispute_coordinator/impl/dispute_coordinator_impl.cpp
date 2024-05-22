@@ -1424,7 +1424,11 @@ namespace kagome::dispute {
                 sig,
                 session};
 
-            SL_TRACE(log_, "Sending out own approval vote");
+            SL_TRACE(
+                log_,
+                "Sending out own approval vote. session={}, candidate_hash={}",
+                session,
+                candidate_hash);
 
             auto dispute_message_res = make_dispute_message(
                 env.session, new_state.votes, statement, validator_index);
@@ -1748,7 +1752,12 @@ namespace kagome::dispute {
       bool valid) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1102
 
-    SL_TRACE(log_, "Issuing local statement for candidate!");
+    SL_TRACE(log_,
+             "Issuing local statement for candidate! "
+             "session={}, candidate_hash={}, relay_parent={}",
+             session,
+             candidate_hash,
+             candidate_receipt.descriptor.relay_parent);
 
     // Load environment:
 
@@ -2017,7 +2026,12 @@ namespace kagome::dispute {
              std::move(candidate_receipt),
              valid);
 
-    SL_TRACE(log_, "DisputeCoordinatorMessage::IssueLocalStatement");
+    SL_TRACE(log_,
+             "DisputeCoordinatorMessage::IssueLocalStatement. "
+             "session={}, candidate_hash={}, relay_parent={}",
+             session,
+             candidate_hash,
+             candidate_receipt.descriptor.relay_parent);
     auto res = issue_local_statement(
         candidate_hash, candidate_receipt, session, valid);
 
@@ -2383,8 +2397,7 @@ namespace kagome::dispute {
       // unaffected.
 
       SL_DEBUG(log_,
-               "Peer {} sent completely redundant votes "
-               "within a single batch "
+               "Peer {} sent completely redundant votes within a single batch "
                "- that looks fishy!",
                peer);
 
