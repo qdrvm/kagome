@@ -533,6 +533,10 @@ namespace kagome::dispute {
     auto res = process_active_leaves_update(update);
     if (res.has_error()) {
       SL_ERROR(log_, "Can't handle active list update: {}", res.error());
+
+      // TODO It's code for breakpoint and tracing. Remove after research
+      std::ignore = process_active_leaves_update(update);
+
       return;
     }
   }
@@ -617,6 +621,10 @@ namespace kagome::dispute {
           }
           return true;
         };
+        // TODO It's code for breakpoint and tracing. Remove after research
+        if (not check_sig()) {
+          check_sig();
+        }
         BOOST_ASSERT(check_sig());
 
         Indexed<SignedDisputeStatement> signed_dispute_statement{
