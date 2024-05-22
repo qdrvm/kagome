@@ -381,11 +381,10 @@ namespace kagome::consensus::babe {
       return encode_res.error();
     }
 
-    // TODO optimize by avoiding of copying
     common::Buffer pre_runtime_data{std::move(encode_res.value())};
 
     return primitives::PreRuntime{
-        {primitives::kBabeEngineId, pre_runtime_data}};
+        {primitives::kBabeEngineId, std::move(pre_runtime_data)}};
   }
 
   outcome::result<primitives::Seal> Babe::makeSeal(

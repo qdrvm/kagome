@@ -6,17 +6,18 @@
 
 #pragma once
 
+#include <span>
 #include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
-#include <span>
 
+#include "common/blob.hpp"
 #include "common/buffer_view.hpp"
+#include "common/hexutil.hpp"
 #include "common/size_limited_containers.hpp"
-#include "hexutil.hpp"
 #include "macro/endianness_utils.hpp"
 #include "outcome/outcome.hpp"
 
@@ -230,10 +231,8 @@ namespace kagome::common {
       return Buffer(std::move(chars));
     }
 
-    // TODO(GaroRobe): After migrating to C++20 would be good to use
-    //  literal operator template
-    inline Buffer operator""_hex2buf(const char *c, size_t s) {
-      return Buffer::fromHex({c, s}).value();
+    inline Buffer operator""_hex2buf(const char *hex, unsigned long size) {
+      return Buffer::fromHex(std::string_view{hex, size}).value();
     }
   }  // namespace literals
 
