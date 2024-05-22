@@ -6,6 +6,7 @@
 #
 
 cd "$(dirname "$0")"
+echo "Building in $(pwd)"
 
 VERSION=${VERSION:-5}
 TAG=qdrvm/kagome-dev:$VERSION
