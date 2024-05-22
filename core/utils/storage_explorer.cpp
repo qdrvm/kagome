@@ -463,7 +463,7 @@ class SearchChainCommand : public Command {
                                 const BlockHeader &header) const {
     for (auto &digest_item : header.digest) {
       auto *consensus_digest =
-          boost::get<kagome::primitives::Consensus>(&digest_item);
+          std::get_if<kagome::primitives::Consensus>(&digest_item);
       if (consensus_digest) {
         auto decoded = unwrapResult("Decoding consensus digest",
                                     consensus_digest->decode());
@@ -479,7 +479,7 @@ class SearchChainCommand : public Command {
                              BlockNumber digest_origin,
                              const GrandpaDigest &digest) const {
     using namespace kagome::primitives;
-    if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
+    if (auto *scheduled_change = std::get_if<ScheduledChange>(&digest);
         scheduled_change) {
       out << "ScheduledChange at #" << digest_origin << " for ";
       if (scheduled_change->subchain_length > 0) {
@@ -489,7 +489,7 @@ class SearchChainCommand : public Command {
       }
       out << "\n";
 
-    } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
+    } else if (auto *forced_change = std::get_if<ForcedChange>(&digest);
                forced_change) {
       out << "ForcedChange at " << digest_origin << ", delay starts at #"
           << forced_change->delay_start << " for "
@@ -497,15 +497,15 @@ class SearchChainCommand : public Command {
           << forced_change->delay_start + forced_change->subchain_length << ")";
       out << "\n";
 
-    } else if (auto *pause = boost::get<Pause>(&digest); pause) {
+    } else if (auto *pause = std::get_if<Pause>(&digest); pause) {
       out << "Pause at " << digest_origin << " for "
           << digest_origin + pause->subchain_length << "\n";
 
-    } else if (auto *resume = boost::get<Resume>(&digest); resume) {
+    } else if (auto *resume = std::get_if<Resume>(&digest); resume) {
       out << "Resume at " << digest_origin << " for "
           << digest_origin + resume->subchain_length << "\n";
 
-    } else if (auto *disabled = boost::get<OnDisabled>(&digest); disabled) {
+    } else if (auto *disabled = std::get_if<OnDisabled>(&digest); disabled) {
       out << "Disabled at " << digest_origin << " for authority "
           << disabled->authority_index << "\n";
     }

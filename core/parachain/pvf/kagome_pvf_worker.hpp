@@ -20,6 +20,10 @@ namespace kagome::parachain {
     std::string message_;
   };
 
+  inline auto format_as(const SecureModeError &e) {
+    return e.message();
+  }
+
   /// Changes the filessystem root directory for the current process to
   /// worker_dir
   outcome::result<void, SecureModeError> changeRoot(

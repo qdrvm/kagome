@@ -32,7 +32,10 @@ namespace {
             -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
           return expected_val;
         },
-        [](const auto &) { return std::nullopt; });
+        [](const auto &)
+            -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
+          return std::nullopt;
+        });
   }
 }  // namespace
 

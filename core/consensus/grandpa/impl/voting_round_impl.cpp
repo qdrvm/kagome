@@ -1169,8 +1169,6 @@ namespace kagome::consensus::grandpa {
         if (result.has_error()) {
           tracker.unpush(vote, weight);
           auto log_lvl = log::Level::WARN;
-          // TODO(Harrm): this looks like a kind of a crutch,
-          //  think of a better way to pass this information
           if (result
               == outcome::failure(
                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {

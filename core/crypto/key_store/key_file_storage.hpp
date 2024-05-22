@@ -41,7 +41,7 @@ namespace kagome::crypto {
      * Initializes key storage at the given \param keystore_path. Creates its
      * dir if it doesn't exist, but won't create missing parent dirs
      *
-     * TODO(Harrm): add enforcement of key file permissions (like in SSH)
+     * TODO(Harrm): #603 add enforcement of key file permissions (like in SSH)
      */
     static outcome::result<std::unique_ptr<KeyFileStorage>> createAt(
         Path keystore_path);

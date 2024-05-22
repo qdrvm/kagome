@@ -210,10 +210,5 @@ int main() {
                                                                    header_repo);
   [[maybe_unused]] auto executor =
       kagome::runtime::Executor(ctx_factory, cache);
-
-  // TODO(Harrm): Currently, the test only checks if kagome builds as
-  // a dependency in some project. However, we can use the test to run
-  // some integration tests, like it's done in polkadot tests
-
   return 0;
 }

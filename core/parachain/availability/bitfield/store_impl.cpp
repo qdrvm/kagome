@@ -38,7 +38,7 @@ namespace kagome::parachain {
       logger_->warn(
           "Availability cores not present.(relay parent={}, error={})",
           relay_parent,
-          c.error().message());
+          c.error());
       return {};
     }
     auto &cores = c.value();

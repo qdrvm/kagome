@@ -91,10 +91,8 @@ TEST_P(TrieTest, RunCommand) {
           ASSERT_OUTCOME_SUCCESS(val, trie->get(command.key));
           ASSERT_EQ(val, command.value.value());
         } else {
-          EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
-          ASSERT_EQ(
-              err.value(),
-              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
+          EXPECT_EC(trie->get(command.key),
+                    kagome::storage::trie::TrieError::NO_VALUE);
         }
         break;
       }
@@ -530,7 +528,6 @@ TEST_F(TrieTest, EmptyTrie) {
  * @then the path is returned
  */
 TEST_F(TrieTest, GetPath) {
-  // TODO(Harrm) PRE-461 Make parametrized
   const std::vector<std::pair<Buffer, Buffer>> data = {
       {"123456"_hex2buf, "42"_hex2buf},
       {"1234"_hex2buf, "1234"_hex2buf},
@@ -576,8 +573,7 @@ TEST_F(TrieTest, GetPathToInvalid) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         trie->put(entry.first, BufferView{entry.second}));
   }
-  EXPECT_OUTCOME_SOME_ERROR(
-      _,
+  EXPECT_OUTCOME_FALSE_1(
       trie->forNodeInPath(trie->getRoot(),
                           KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
                           [](auto &node, auto idx, auto &child) mutable {

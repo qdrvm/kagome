@@ -95,8 +95,7 @@ namespace kagome::parachain {
     std::error_code err{};
     std::filesystem::current_path("..", err);
     if (err) {
-      return SecureModeError{
-          fmt::format("Failed to chdir to ..: {}", err.message())};
+      return SecureModeError{fmt::format("Failed to chdir to ..: {}", err)};
     }
     if (std::filesystem::current_path() != "/") {
       return SecureModeError{
@@ -135,8 +134,8 @@ namespace kagome::parachain {
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 1>
         allowed_exceptions;
-    // TODO(Harrm): Separate PVF workers on prepare and execute workers, and
-    // separate FS permissions accordingly
+    // TODO(Harrm): #2103 Separate PVF workers on prepare and execute workers,
+    // and separate FS permissions accordingly
     allowed_exceptions[0] =
         std::pair{worker_dir,
                   LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE
@@ -277,7 +276,7 @@ namespace kagome::parachain {
       if (auto res = changeRoot(input.cache_dir); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       input.cache_dir = "/";
@@ -285,13 +284,13 @@ namespace kagome::parachain {
       if (auto res = enableLandlock(input.cache_dir); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       if (auto res = enableSeccomp(); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (seccomp): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       SL_VERBOSE(logger, "Successfully enabled secure validator mode");

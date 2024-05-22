@@ -47,7 +47,7 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE_2(db, RocksDb::create(getPathString(), options));
+  EXPECT_OUTCOME_TRUE(db, RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
   kagome::filesystem::path p(getPathString());

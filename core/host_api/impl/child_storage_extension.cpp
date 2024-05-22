@@ -276,7 +276,7 @@ namespace kagome::host_api {
     } else {
       SL_ERROR(
           logger_, "Error in ext_storage_read_version_1: {}", value.error());
-      throw std::runtime_error{value.error().message()};
+      value.value();
     }
 
     return memory.storeBuffer(scale::encode(res).value());

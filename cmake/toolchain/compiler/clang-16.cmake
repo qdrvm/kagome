@@ -13,7 +13,7 @@ if(XCODE_VERSION)
   fatal_error(${_err})
 endif()
 
-find_program(CMAKE_C_COMPILER clang-16 REQUIRED)
+find_program(CMAKE_C_COMPILER clang-16)
 find_program(CMAKE_CXX_COMPILER clang++-16)
 
 if (CMAKE_CXX_COMPILER STREQUAL "CMAKE_CXX_COMPILER-NOTFOUND")
