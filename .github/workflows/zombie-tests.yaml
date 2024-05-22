@@ -7,7 +7,16 @@
 name: Zombie-Tests
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+  
+env:
+  CACHE_VERSION: v07
+  CACHE_PATHS: |
+    ~/Library/Caches/pip
+    ~/.cargo
+    ~/.ccache
+    ~/.hunter
+    ~/.rustup
 
 jobs:
   Push-self-hosted-PR:
@@ -26,8 +35,6 @@ jobs:
     container: qdrvm/kagome-dev:9-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -38,16 +45,32 @@ jobs:
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
         with:
-          login-server: https://index.docker.io/v1/
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - name: docker pack and push
-        env:
-          VERSION: ${{ github.ref }}
-          BUILD_TYPE: "Custom"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
+          context: .
+          pushImage: false
+          tags: kagome-dev:${{ github.run_number }}
+          dockerfile: minideb.Dockerfile
+          cache-from: |
+            type=registry,ref=kagome-dev:cache
+          cache-to: |
+            type=registry,ref=kagome-dev:cache,mode=max
+          outputs: type=docker,dest=./kagome_dev.tar
+        
+        
+#      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+#        with:
+#          login-server: https://index.docker.io/v1/
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_TOKEN }}
+#      - name: docker pack and push
+#        env:
+#          VERSION: ${{ github.ref }}
+#          BUILD_TYPE: "Custom"
+#        run: ./housekeeping/docker/kagome/build_and_push.sh
 #  zombie-tests:
 #    strategy:
 #      fail-fast: false
