@@ -152,7 +152,7 @@ namespace kagome::dispute {
     /// The session the candidate appeared in.
     SessionIndex session_index;
     /// Session for above index.
-    SessionInfo &session;
+    SessionInfo session;
     /// Validator indices controlled by this node.
     std::unordered_set<ValidatorIndex> controlled_indices{};
   };
