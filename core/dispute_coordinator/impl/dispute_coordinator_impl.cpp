@@ -1009,6 +1009,7 @@ namespace kagome::dispute {
       MaybeCandidateReceipt candidate_receipt,
       const SessionIndex session,
       std::vector<Indexed<SignedDisputeStatement>> statements) {
+    return true;
     BOOST_ASSERT(initialized_);
 
     auto now = system_clock_.nowUint64();
