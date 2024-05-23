@@ -122,7 +122,8 @@ namespace kagome::parachain {
       INCORRECT_BITFIELD_SIZE,
       CORE_INDEX_UNAVAILABLE,
       INCORRECT_SIGNATURE,
-      CLUSTER_TRACKER_ERROR
+      CLUSTER_TRACKER_ERROR,
+      PERSISTED_VALIDATION_DATA_NOT_FOUND
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -764,11 +765,13 @@ namespace kagome::parachain {
     /*
      * Logic.
      */
-    std::optional<runtime::PersistedValidationData>
-    requestProspectiveValidationData(const RelayHash &relay_parent,
-                                     const Hash &parent_head_data_hash,
-                                     ParachainId para_id);
-    std::optional<runtime::PersistedValidationData>
+    outcome::result<std::optional<runtime::PersistedValidationData>>
+    requestProspectiveValidationData(
+        const RelayHash &relay_parent,
+        const Hash &parent_head_data_hash,
+        ParachainId para_id,
+        const std::optional<HeadData> &maybe_parent_head_data);
+    outcome::result<std::optional<runtime::PersistedValidationData>>
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
 
@@ -921,6 +924,9 @@ namespace kagome::parachain {
         network::CollationVersion version);
     std::optional<std::reference_wrapper<RelayParentState>>
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
+    outcome::result<
+        std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
+    getStateByRelayParent(const primitives::BlockHash &relay_parent);
 
     /**
      * @brief Store the state of the relay parent.
@@ -1057,6 +1063,9 @@ namespace kagome::parachain {
         const HypotheticalCandidate &hypothetical_candidate,
         bool backed_in_path_only);
 
+    outcome::result<void> kick_off_seconding(
+        PendingCollationFetch &&pending_collation_fetch);
+
     std::optional<BackingStore::ImportResult> importStatementToTable(
         const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &relayParentState,
@@ -1092,6 +1101,10 @@ namespace kagome::parachain {
                          PendingCollationHash,
                          PendingCollationEq>
           collation_requests_cancel_handles;
+
+      struct {
+        std::unordered_map<FetchedCollation, CollationEvent> fetched_candidates;
+      } validator_side;
 
       struct {
         std::unordered_set<Hash> implicit_view;

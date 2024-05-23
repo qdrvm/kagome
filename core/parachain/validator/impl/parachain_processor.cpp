@@ -86,6 +86,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Incorrect signature";
     case E::CLUSTER_TRACKER_ERROR:
       return "Cluster tracker error";
+    case E::PERSISTED_VALIDATION_DATA_NOT_FOUND:
+      return "Persisted validation data not found";
   }
   return "Unknown parachain processor error";
 }
@@ -1426,13 +1428,24 @@ namespace kagome::parachain {
         parachain_state.table_context.validators.size());
   }
 
-  std::optional<runtime::PersistedValidationData>
+  outcome::result<std::optional<runtime::PersistedValidationData>>
   ParachainProcessorImpl::requestProspectiveValidationData(
-      const RelayHash &relay_parent,
+      const RelayHash &candidate_relay_parent,
       const Hash &parent_head_data_hash,
-      ParachainId para_id) {
-    return prospective_parachains_->answerProspectiveValidationDataRequest(
-        relay_parent, parent_head_data_hash, para_id);
+      ParachainId para_id,
+      const std::optional<HeadData> &maybe_parent_head_data) {
+    auto parent_head_data = [&]() -> ParentHeadData {
+      if (maybe_parent_head_data) {
+        return ParentHeadData_WithData{*maybe_parent_head_data,
+                                       parent_head_data_hash};
+      }
+      return parent_head_data_hash;
+    }();
+
+    OUTCOME_TRY(opt_pvd,
+                prospective_parachains_->answerProspectiveValidationDataRequest(
+                    candidate_relay_parent, parent_head_data, para_id));
+    return opt_pvd;
   }
 
   std::optional<runtime::PersistedValidationData>
@@ -1441,21 +1454,14 @@ namespace kagome::parachain {
     return requestPersistedValidationData(relay_parent, para_id);
   }
 
-  std::optional<runtime::PersistedValidationData>
+  outcome::result<std::optional<runtime::PersistedValidationData>>
   ParachainProcessorImpl::requestPersistedValidationData(
       const RelayHash &relay_parent, ParachainId para_id) {
-    auto res_data = parachain_host_->persisted_validation_data(
-        relay_parent, para_id, runtime::OccupiedCoreAssumption::Free);
-    if (res_data.has_error()) {
-      SL_VERBOSE(logger_,
-                 "PersistedValidationData not found. (error={}, "
-                 "relay_parent={} para_id={})",
-                 res_data.error(),
-                 relay_parent,
-                 para_id);
-      return std::nullopt;
-    }
-    return std::move(res_data.value());
+    OUTCOME_TRY(
+        pvd,
+        parachain_host_->persisted_validation_data(
+            relay_parent, para_id, runtime::OccupiedCoreAssumption::Free));
+    return pvd;
   }
 
   void ParachainProcessorImpl::process_bitfield_distribution(
@@ -3303,6 +3309,16 @@ namespace kagome::parachain {
       return it->second;
     }
     return std::nullopt;
+  }
+
+  outcome::result<
+      std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
+  ParachainProcessorImpl::getStateByRelayParent(
+      const primitives::BlockHash &relay_parent) {
+    if (auto per_relay_parent = tryGetStateByRelayParent(relay_parent)) {
+      return *per_relay_parent;
+    }
+    return Error::OUT_OF_VIEW;
   }
 
   ParachainProcessorImpl::RelayParentState &
@@ -5353,9 +5369,89 @@ namespace kagome::parachain {
                           peer_data.collator_state->para_id);
   }
 
-  outcome::result<void> kick_off_seconding(
-      PendingCollationFetch { mut collation_event, candidate_receipt, pov, maybe_parent_head_data }: PendingCollationFetch,
-      ) {
+  outcome::result<void> ParachainProcessorImpl::kick_off_seconding(
+      PendingCollationFetch &&pending_collation_fetch) {
+    REINVOKE(*main_pool_handler_,
+             kick_off_seconding,
+             std::move(pending_collation_fetch));
+
+    auto &collation_event = pending_collation_fetch.collation_event;
+    auto pending_collation = collation_event.pending_collation;
+    auto relay_parent = pending_collation.relay_parent;
+
+    OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
+    auto &collations = per_relay_parent->get().collations;
+    auto fetched_collation = FetchedCollation::from(
+        pending_collation_fetch.candidate_receipt, *hasher_);
+
+    if (our_current_state_.validator_side.fetched_candidates.contains(
+            fetched_collation)) {
+      return Error::DUPLICATE;
+    }
+
+    auto &entry =
+        our_current_state_.validator_side.fetched_candidates[fetched_collation];
+    collation_event.pending_collation.commitments_hash =
+        pending_collation_fetch.candidate_receipt.commitments_hash;
+
+    const bool is_collator_v2 = (collation_event.collator_protocol_version
+                                 == CollationVersion::VStaging);
+    const bool have_prospective_candidate =
+        collation_event.pending_collation.prospective_candidate;
+    const bool async_backing_en =
+        per_relay_parent->get().prospective_parachains_mode;
+
+    std::optional<runtime::PersistedValidationData> maybe_pvd;
+    std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash;
+    if (is_collator_v2 && have_prospective_candidate && async_backing_en) {
+      OUTCOME_TRY(pvd,
+                  requestProspectiveValidationData(
+                      relay_parent,
+                      collation_event.pending_collation.prospective_candidate
+                          ->parent_head_data_hash,
+                      pending_collation.para_id,
+                      pending_collation_fetch.maybe_parent_head_data));
+      maybe_pvd = pvd;
+
+      if (pending_collation_fetch.maybe_parent_head_data) {
+        maybe_parent_head_and_hash.emplace(
+            *pending_collation_fetch.maybe_parent_head_data,
+            collation_event.pending_collation.prospective_candidate
+                ->parent_head_data_hash);
+      }
+    } else if ((is_collator_v2 && have_prospective_candidate)
+               || !is_collator_v2) {
+      OUTCOME_TRY(
+          pvd,
+          requestPersistedValidationData(
+              pending_collation_fetch.candidate_receipt.descriptor.relay_parent,
+              pending_collation_fetch.candidate_receipt.descriptor.para_id));
+      maybe_pvd = pvd;
+      maybe_parent_head_and_hash = std::nullopt;
+    } else {
+      return outcome::success();
+    }
+
+    if (!maybe_pvd) {
+      return Error::PERSISTED_VALIDATION_DATA_NOT_FOUND;
+    }
+
+    auto pvd{std::move(*maybe_pvd)};
+    OUTCOME_TRY(fetched_collation_sanity_check(
+        collation_event.pending_collation,
+        pending_collation_fetch.candidate_receipt,
+        pvd,
+        maybe_parent_head_and_hash, ));
+
+    collations.status = CollationStatus::WaitingOnValidation;
+    validateAsync<ValidationTaskType::kSecond>(
+        std::move(pending_collation_fetch.candidate_receipt),
+        std::move(pending_collation_fetch.pov),
+        std::move(pvd),
+        relay_parent);
+
+    entry = collation_event;
+    return outcome::success();
   }
 
   ParachainProcessorImpl::SecondingAllowed

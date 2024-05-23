@@ -25,6 +25,11 @@
 
 namespace kagome::parachain {
 
+  using ParentHeadData_OnlyHash = primitives::Hash;
+  using ParentHeadData_WithData = std::pair<HeadData, Hash>;
+  using ParentHeadData =
+      boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
+
   class ProspectiveParachains {
 #ifdef CFG_TESTING
    public:
@@ -150,20 +155,20 @@ namespace kagome::parachain {
                 storage.relayParentByCandidateHash(child_hash)) {
           backable_candidates.emplace_back(child_hash, *parent_hash_opt);
         } else {
-          SL_ERROR(
-              logger,
-              "Candidate is present in fragment tree but not in candidate's storage! (child_hash={}, para_id={})",
-              child_hash,
-              para);
+          SL_ERROR(logger,
+                   "Candidate is present in fragment tree but not in "
+                   "candidate's storage! (child_hash={}, para_id={})",
+                   child_hash,
+                   para);
         }
       }
 
       if (backable_candidates.empty()) {
-        SL_TRACE(
-            logger,
-            "Could not find any backable candidate. (relay_parent={}, para_id={})",
-            relay_parent,
-            para);
+        SL_TRACE(logger,
+                 "Could not find any backable candidate. (relay_parent={}, "
+                 "para_id={})",
+                 relay_parent,
+                 para);
       } else {
         SL_TRACE(logger,
                  "Found backable candidates. (relay_parent={}, count={})",
@@ -184,57 +189,73 @@ namespace kagome::parachain {
       return fragmentTreeMembership(view.active_leaves, para, candidate);
     }
 
-    std::optional<runtime::PersistedValidationData>
+    outcome::result<std::optional<runtime::PersistedValidationData>>
     answerProspectiveValidationDataRequest(
         const RelayHash &candidate_relay_parent,
-        const Hash &parent_head_data_hash,
+        const ParentHeadData &parent_head_data,
         ParachainId para_id) {
-      if (auto it = view.candidate_storage.find(para_id);
-          it != view.candidate_storage.end()) {
-        fragment::CandidateStorage &storage = it->second;
-        std::optional<HeadData> head_data =
-            utils::fromRefToOwn(storage.headDataByHash(parent_head_data_hash));
-        std::optional<fragment::RelayChainBlockInfo> relay_parent_info{};
-        std::optional<size_t> max_pov_size{};
+      auto it = view.candidate_storage.find(para_id);
+      if (it == view.candidate_storage.end()) {
+        return std::nullopt;
+      }
 
-        for (const auto &[_, x] : view.active_leaves) {
-          auto it = x.fragment_trees.find(para_id);
-          if (it == x.fragment_trees.end()) {
-            continue;
-          }
-          const fragment::FragmentTree &fragment_tree = it->second;
+      const auto &storage = it->second;
+      auto [head_data, parent_head_data_hash] = visit_in_place(
+          parent_head_data,
+          [&](const ParentHeadData_OnlyHash &parent_head_data_hash)
+              -> std::pair<std::optional<HeadData>,
+                           std::reference_wrapper<const Hash>> {
+            return {utils::fromRefToOwn(
+                        storage.headDataByHash(parent_head_data_hash)),
+                    parent_head_data_hash};
+          },
+          [&](const ParentHeadData_WithData &v)
+              -> std::pair<std::optional<HeadData>,
+                           std::reference_wrapper<const Hash>> {
+            const auto &[head_data, hash] = v;
+            return {head_data, hash};
+          });
 
-          if (head_data && relay_parent_info && max_pov_size) {
-            break;
-          }
-          if (!relay_parent_info) {
-            relay_parent_info = utils::fromRefToOwn(
-                fragment_tree.scope.ancestorByHash(candidate_relay_parent));
-          }
-          if (!head_data) {
-            const auto &required_parent =
-                fragment_tree.scope.base_constraints.required_parent;
-            if (hasher_->blake2b_256(required_parent)
-                == parent_head_data_hash) {
-              head_data = required_parent;
-            }
-          }
-          if (!max_pov_size) {
-            if (fragment_tree.scope.ancestorByHash(candidate_relay_parent)) {
-              max_pov_size = fragment_tree.scope.base_constraints.max_pov_size;
-            }
-          }
+      std::optional<fragment::RelayChainBlockInfo> relay_parent_info{};
+      std::optional<size_t> max_pov_size{};
+
+      for (const auto &[_, x] : view.active_leaves) {
+        auto it = x.fragment_trees.find(para_id);
+        if (it == x.fragment_trees.end()) {
+          continue;
         }
+        const fragment::FragmentTree &fragment_tree = it->second;
 
         if (head_data && relay_parent_info && max_pov_size) {
-          return runtime::PersistedValidationData{
-              .parent_head = *head_data,
-              .relay_parent_number = relay_parent_info->number,
-              .relay_parent_storage_root = relay_parent_info->storage_root,
-              .max_pov_size = (uint32_t)*max_pov_size,
-          };
+          break;
+        }
+        if (!relay_parent_info) {
+          relay_parent_info = utils::fromRefToOwn(
+              fragment_tree.scope.ancestorByHash(candidate_relay_parent));
+        }
+        if (!head_data) {
+          const auto &required_parent =
+              fragment_tree.scope.base_constraints.required_parent;
+          if (hasher_->blake2b_256(required_parent) == parent_head_data_hash) {
+            head_data = required_parent;
+          }
+        }
+        if (!max_pov_size) {
+          if (fragment_tree.scope.ancestorByHash(candidate_relay_parent)) {
+            max_pov_size = fragment_tree.scope.base_constraints.max_pov_size;
+          }
         }
       }
+
+      if (head_data && relay_parent_info && max_pov_size) {
+        return runtime::PersistedValidationData{
+            .parent_head = *head_data,
+            .relay_parent_number = relay_parent_info->number,
+            .relay_parent_storage_root = relay_parent_info->storage_root,
+            .max_pov_size = (uint32_t)*max_pov_size,
+        };
+      }
+
       return std::nullopt;
     }
 

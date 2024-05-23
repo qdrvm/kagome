@@ -37,14 +37,68 @@ namespace kagome::network {
     std::chrono::system_clock::time_point last_active;
   };
 
+  struct ProspectiveCandidate {
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Parent head-data hash as supplied in advertisement.
+    Hash parent_head_data_hash;
+  };
+
+  struct PendingCollation {
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Peer that advertised this collation.
+    libp2p::peer::PeerId peer_id;
+    /// Optional candidate hash and parent head-data hash if were
+    /// supplied in advertisement.
+    std::optional<ProspectiveCandidate> prospective_candidate;
+    /// Hash of the candidate's commitments.
+    std::optional<Hash> commitments_hash;
+  };
+
   struct CollationEvent {
+    /// Collator id.
     CollatorId collator_id;
-    struct {
-      RelayHash relay_parent;
-      network::ParachainId para_id;
-      libp2p::peer::PeerId peer_id;
-      std::optional<Hash> commitments_hash;
-    } pending_collation;
+    /// The network protocol version the collator is using.
+    CollationVersion collator_protocol_version;
+    /// The requested collation data.
+    PendingCollation pending_collation;
+  };
+
+  struct PendingCollationFetch {
+    /// Collation identifier.
+    CollationEvent collation_event;
+    /// Candidate receipt.
+    CandidateReceipt candidate_receipt;
+    /// Proof of validity.
+    PoV pov;
+    /// Optional parachain parent head data.
+    /// Only needed for elastic scaling.
+    std::optional<HeadData> maybe_parent_head_data;
+  };
+
+  struct FetchedCollation {
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Id of the collator the collation was fetched from.
+    CollatorId collator_id;
+
+    static FetchedCollation from(const network::CandidateReceipt &receipt,
+                                 const crypto::Hasher &hasher) {
+      const auto &descriptor = receipt.descriptor;
+      return FetchedCollation{
+          .relay_parent = descriptor.relay_parent,
+          .para_id = descriptor.para_id,
+          .candidate_hash = receipt.hash(hasher),
+          .collator_id = descriptor.collator_id,
+      };
+    }
   };
 
   using OurView = network::View;
@@ -177,3 +231,22 @@ namespace kagome::network {
   }
 
 }  // namespace kagome::network
+
+template <>
+struct std::hash<kagome::network::FetchedCollation> {
+  size_t operator()(
+      const kagome::network::FetchedCollation &value) const noexcept {
+    using CollatorId = kagome::parachain::CollatorId;
+    using CandidateHash = kagome::parachain::CandidateHash;
+    using RelayHash = kagome::parachain::RelayHash;
+    using ParachainId = kagome::parachain::ParachainId;
+
+    size_t result = std::hash<RelayHash>()(value.relay_parent);
+    boost::hash_combine(result, std::hash<ParachainId>()(value.para_id));
+    boost::hash_combine(result,
+                        std::hash<CandidateHash>()(value.candidate_hash));
+    boost::hash_combine(result, std::hash<CollatorId>()(value.collator_id));
+
+    return result;
+  }
+};

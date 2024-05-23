@@ -83,6 +83,7 @@ namespace kagome::network {
     common::Buffer payload;
   };
 
+  using PoV = ParachainBlock;
   using RequestPov = CandidateHash;
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
 
