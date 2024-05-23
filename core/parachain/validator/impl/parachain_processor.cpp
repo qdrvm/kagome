@@ -5106,18 +5106,6 @@ namespace kagome::parachain {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
-    auto need_to_process =
-        our_current_state_.active_leaves.count(relay_parent) != 0ull;
-
-    if (!need_to_process) {
-      SL_TRACE(logger_,
-               "Candidate validation skipped because of extruded relay parent. "
-               "(relay_parent={}, parachain_id={}, candidate_hash={})",
-               relay_parent,
-               candidate.descriptor.para_id,
-               candidate_hash);
-      return;
-    }
     auto cb = [weak_self{weak_from_this()},
                candidate,
                pov,
@@ -5141,23 +5129,6 @@ namespace kagome::parachain {
                 candidate.descriptor.relay_parent,
                 candidate.descriptor.para_id,
                 validation_result.error().message());
-        return;
-      }
-
-      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-      /// checks if we still need to execute parachain task
-      auto need_to_process =
-          self->our_current_state_.active_leaves.count(relay_parent) != 0ull;
-
-      if (!need_to_process) {
-        SL_TRACE(
-            self->logger_,
-            "Candidate validation skipped before erasure-coding because of "
-            "extruded relay parent. "
-            "(relay_parent={}, parachain_id={}, candidate_hash={})",
-            relay_parent,
-            candidate.descriptor.para_id,
-            candidate_hash);
         return;
       }
 
