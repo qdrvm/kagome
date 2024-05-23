@@ -649,23 +649,16 @@ namespace kagome::parachain {
 
     for (const auto &lost : event.lost) {
       SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
-      if (auto relay_parent_state = tryGetStateByRelayParent(lost)) {
-        _keeper_.emplace_back(relay_parent_state->get().per_session_state);
-      }
-
       auto relay_parent_state = tryGetStateByRelayParent(lost);
       if (relay_parent_state) {
         _keeper_.emplace_back(relay_parent_state->get().per_session_state);
       }
 
       our_current_state_.active_leaves.erase(lost);
-      std::vector<Hash> pruned = [&]() -> std::vector<Hash> {
-        if (relay_parent_state->get().prospective_parachains_mode) {
-          return our_current_state_.implicit_view->deactivate_leaf(lost);
-        }
-        return {lost};
-      }();
 
+      std::vector<Hash> pruned =
+          our_current_state_.implicit_view->deactivate_leaf(lost);
+      ;
       for (const auto removed : pruned) {
         our_current_state_.state_by_relay_parent.erase(removed);
         /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -3547,15 +3540,32 @@ namespace kagome::parachain {
     for (const auto &[v, action] : actions) {
       auto peer_opt = query_audi_->get(session_info.discovery_keys[v]);
       if (!peer_opt) {
+        SL_TRACE(logger_,
+                 "No peer info. (relay_parent={}, validator_index={}, "
+                 "candidate_hash={})",
+                 relay_parent,
+                 v,
+                 candidate_hash);
         continue;
       }
 
       auto peer_state = pm_->getPeerState(peer_opt->id);
       if (!peer_state) {
+        SL_TRACE(logger_,
+                 "No peer state. (relay_parent={}, peer={}, candidate_hash={})",
+                 relay_parent,
+                 peer_opt->id,
+                 candidate_hash);
         continue;
       }
 
       if (!peer_state->get().knows_relay_parent(relay_parent)) {
+        SL_TRACE(logger_,
+                 "Peer doesn't know relay parent. (relay_parent={}, peer={}, "
+                 "candidate_hash={})",
+                 relay_parent,
+                 peer_opt->id,
+                 candidate_hash);
         continue;
       }
 
