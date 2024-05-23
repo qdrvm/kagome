@@ -38,21 +38,26 @@ jobs:
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
       - run: git config --global --add safe.directory /__w/kagome/kagome
       - run: git fetch --prune --unshallow
       - name: Build Kagome
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
+          KAGOME_ROOT: /__w/kagome/kagome
+        run: bash -c "cd $KAGOME_ROOT && source /venv/bin/activate && ./housekeeping/docker/kagome-dev/make.sh"
+      - name: Copy Kagome
+        env:
+          KAGOME_BUILD_DIR: /__w/kagome/kagome/build
+        run: bash -c "mkdir -p ${KAGOME_BUILD_DIR}/docker_context && cp -a ${KAGOME_BUILD_DIR}/node/kagome ${KAGOME_BUILD_DIR}/docker_context"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           tags: kagome-dev:${{ github.run_number }}
-          file: ./housekeeping/docker/kagome-dev/minideb.Dockerfile
-          context: .
+          file: ./housekeeping/docker/kagome/minideb-release.Dockerfile
+          context: /__w/kagome/kagome/build/docker_context
           outputs: type=docker,dest=/tmp/kagome_dev.tar
       - name: upload artifact
         uses: actions/upload-artifact@v4
