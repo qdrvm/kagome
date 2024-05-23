@@ -1,7 +1,9 @@
 ARG POLKADOT_SDK_RELEASE
 ARG BRANCH_NAME
+ARG KAGOME_IMAGE  
+#qdrvm/kagome:latest
 
-FROM qdrvm/kagome:latest as kagome
+FROM $KAGOME_IMAGE as kagome
 
 FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
 ARG BRANCH_NAME

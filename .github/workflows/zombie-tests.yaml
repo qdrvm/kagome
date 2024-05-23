@@ -70,13 +70,14 @@ jobs:
 #          VERSION: ${{ github.ref }}
 #          BUILD_TYPE: "Custom"
 #        run: ./housekeeping/docker/kagome/build_and_push.sh
-#  zombie-tests:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        options:
-#          - name: "PVF preparation & execution time"
-#            test: "test-polkadot-functional-0001-parachains-pvf"
+
+  zombie-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "PVF preparation & execution time"
+            test: "test-polkadot-functional-0001-parachains-pvf"
 #          - name: "Disputes initiation, conclusion and lag"
 #            test: "test-polkadot-functional-0002-parachains-disputes"
 #          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
@@ -97,23 +98,33 @@ jobs:
 #            test: "test-polkadot-functional-0010-validator-disabling"
 #          - name: "Test we are producing blocks at 6 seconds clip"
 #            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-#    runs-on: [ actions-runner-controller ]
-#    timeout-minutes: 60
-#    needs: [Push-self-hosted-PR]
-#    steps:
-#      - name: Set owner of working dir recurively
-#        run: sudo chown -R $(whoami) .
-#      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-#      - name: Extract branch name
-#        shell: bash
-#        run: |
-#          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-#          echo "branch=${branch}" >> $GITHUB_OUTPUT
-#          echo "Branch name: ${branch}"
-#        id: extract_branch
-#      - name: build zombie-tester
-#        working-directory: ./zombienet/docker
-#        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
-#      - name: Run test
-#        working-directory: ./zombienet/docker
-#        run: make ${{ matrix.options.test }}
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    needs: [Prepare-Kagome-Docker]
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kagome-dev
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/kagome_dev.tar
+          docker image ls -a          
+      - name: Set owner of working dir recurively
+        run: sudo chown -R $(whoami) .
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+          echo "Branch name: ${branch}"
+        id: extract_branch
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
+      - name: Run test
+        working-directory: ./zombienet/docker
+        run: make ${{ matrix.options.test }}
