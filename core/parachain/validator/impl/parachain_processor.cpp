@@ -667,7 +667,6 @@ namespace kagome::parachain {
 
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.state_by_relay_parent.erase(lost);
-      pending_candidates.erase(lost);
     }
     our_current_state_.active_leaves[relay_parent] =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
@@ -1390,15 +1389,6 @@ namespace kagome::parachain {
       return;
     }
 
-    if (auto it = pending_candidates.find(pending_collation.relay_parent);
-        it != pending_candidates.end()) {
-      SL_WARN(logger_,
-              "Trying to insert a pending candidate on {} failed, because "
-              "there is already one.",
-              pending_collation.relay_parent);
-      return;
-    }
-
     pending_collation.commitments_hash = receipt.commitments_hash;
 
     std::optional<runtime::PersistedValidationData> pvd;
@@ -1425,9 +1415,6 @@ namespace kagome::parachain {
 
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// fetched_collation_sanity_check
-
-    pending_candidates.insert(
-        std::make_pair(pending_collation.relay_parent, pending_collation));
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
@@ -4708,7 +4695,6 @@ namespace kagome::parachain {
             };
           });
 
-      pending_candidates.erase(rp);
       stream_engine->send(
           peer_id,
           collation_protocol,
@@ -5367,6 +5353,11 @@ namespace kagome::parachain {
                           peer_data.collator_state->para_id);
   }
 
+  outcome::result<void> kick_off_seconding(
+      PendingCollationFetch { mut collation_event, candidate_receipt, pov, maybe_parent_head_data }: PendingCollationFetch,
+      ) {
+  }
+
   ParachainProcessorImpl::SecondingAllowed
   ParachainProcessorImpl::secondingSanityCheck(
       const HypotheticalCandidate &hypothetical_candidate,
@@ -5447,26 +5438,25 @@ namespace kagome::parachain {
                                          const Hash &relay_parent,
                                          const CandidateHash &candidate_hash,
                                          const Hash &parent_head_data_hash) {
-    return true;
-//    auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
-//    if (per_relay_parent) {
-//      if (per_relay_parent->get().prospective_parachains_mode) {
-//        if (auto seconding_allowed = secondingSanityCheck(
-//                HypotheticalCandidateIncomplete{
-//                    .candidate_hash = candidate_hash,
-//                    .candidate_para = candidate_para_id,
-//                    .parent_head_data_hash = parent_head_data_hash,
-//                    .candidate_relay_parent = relay_parent},
-//                true)) {
-//          for (const auto &[_, m] : *seconding_allowed) {
-//            if (!m.empty()) {
-//              return true;
-//            }
-//          }
-//        }
-//      }
-//    }
-//    return false;
+    auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
+    if (per_relay_parent) {
+      if (per_relay_parent->get().prospective_parachains_mode) {
+        if (auto seconding_allowed = secondingSanityCheck(
+                HypotheticalCandidateIncomplete{
+                    .candidate_hash = candidate_hash,
+                    .candidate_para = candidate_para_id,
+                    .parent_head_data_hash = parent_head_data_hash,
+                    .candidate_relay_parent = relay_parent},
+                true)) {
+          for (const auto &[_, m] : *seconding_allowed) {
+            if (!m.empty()) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   void ParachainProcessorImpl::handleAdvertisement(
@@ -5637,43 +5627,40 @@ namespace kagome::parachain {
         .prospective_candidate = std::move(prospective_candidate),
     };
 
-    fetchCollation(
-        per_relay_parent->get(), std::move(pending_collation), collator_id);
+    switch (collations.status) {
+      case CollationStatus::Fetching:
+      case CollationStatus::WaitingOnValidation: {
+        SL_TRACE(logger_,
+                 "Added collation to the pending list. (peer_id={}, para "
+                 "id={}, relay parent={})",
+                 peer_id,
+                 para_id,
+                 relay_parent);
 
-//    switch (collations.status) {
-//      case CollationStatus::Fetching:
-//      case CollationStatus::WaitingOnValidation: {
-//        SL_TRACE(logger_,
-//                 "Added collation to the pending list. (peer_id={}, para "
-//                 "id={}, relay parent={})",
-//                 peer_id,
-//                 para_id,
-//                 relay_parent);
-//
-//        collations.waiting_queue.emplace_back(std::move(pending_collation),
-//                                              collator_id);
-//      } break;
-//      case CollationStatus::Waiting: {
-//        fetchCollation(
-//            per_relay_parent->get(), std::move(pending_collation), collator_id);
-//      } break;
-//      case CollationStatus::Seconded: {
-//        if (relay_parent_mode) {
-//          // Limit is not reached, it's allowed to second another
-//          // collation.
-//          fetchCollation(per_relay_parent->get(),
-//                         std::move(pending_collation),
-//                         collator_id);
-//        } else {
-//          SL_TRACE(logger_,
-//                   "A collation has already been seconded. (peer_id={}, para "
-//                   "id={}, relay parent={})",
-//                   peer_id,
-//                   para_id,
-//                   relay_parent);
-//        }
-//      } break;
-//    }
+        collations.waiting_queue.emplace_back(std::move(pending_collation),
+                                              collator_id);
+      } break;
+      case CollationStatus::Waiting: {
+        fetchCollation(
+            per_relay_parent->get(), std::move(pending_collation), collator_id);
+      } break;
+      case CollationStatus::Seconded: {
+        if (relay_parent_mode) {
+          // Limit is not reached, it's allowed to second another
+          // collation.
+          fetchCollation(per_relay_parent->get(),
+                         std::move(pending_collation),
+                         collator_id);
+        } else {
+          SL_TRACE(logger_,
+                   "A collation has already been seconded. (peer_id={}, para "
+                   "id={}, relay parent={})",
+                   peer_id,
+                   para_id,
+                   relay_parent);
+        }
+      } break;
+    }
 
     return outcome::success();
   }

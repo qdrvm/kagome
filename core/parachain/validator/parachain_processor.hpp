@@ -1099,7 +1099,6 @@ namespace kagome::parachain {
       } statementDistributionV2;
     } our_current_state_;
 
-    std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
