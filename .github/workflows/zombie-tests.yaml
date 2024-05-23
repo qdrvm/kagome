@@ -55,7 +55,7 @@ jobs:
           context: .
           outputs: type=docker,dest=/tmp/kagome_dev.tar
       - name: upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: kagome-dev
           path: /tmp/kagome_dev.tar
