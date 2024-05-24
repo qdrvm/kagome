@@ -130,6 +130,8 @@ jobs:
       - name: build zombie-tester
         working-directory: ./zombienet/docker
         run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
+      - name: Show Kagome Version
+        run: docker run --rm kagome-dev:${{ github.run_number }} kagome --version
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
