@@ -93,7 +93,6 @@ namespace kagome::api {
     return ret;
   }
 
-  // TODO(Harrm): refactor to work specifically with Balance type
   inline jsonrpc::Value makeValue(const primitives::Balance &val) {
     jsonrpc::Value ret((*val).str());
     return ret;

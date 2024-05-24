@@ -28,7 +28,7 @@ namespace kagome {
                 std::conditional_t<std::is_scalar_v<T>, Wrapper<T>, T>>
   class Tagged : public Base {
    public:
-    typedef Tag tag;
+    using tag = Tag;
 
     Tagged() : Base() {}
 

@@ -189,7 +189,6 @@ include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
 
 add_subdirectory(core)
 
-# TODO(Harrm): refactor to avoid manually adding each new directory
 kagome_install_setup(
     HEADER_DIRS
     # cmake-format: sortable

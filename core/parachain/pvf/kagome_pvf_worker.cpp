@@ -134,8 +134,8 @@ namespace kagome::parachain {
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 1>
         allowed_exceptions;
-    // TODO(Harrm): Separate PVF workers on prepare and execute workers, and
-    // separate FS permissions accordingly
+    // TODO(Harrm): #2103 Separate PVF workers on prepare and execute workers,
+    // and separate FS permissions accordingly
     allowed_exceptions[0] =
         std::pair{worker_dir,
                   LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE

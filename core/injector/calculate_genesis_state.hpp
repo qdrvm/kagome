@@ -7,6 +7,7 @@
 #pragma once
 
 #include "application/chain_spec.hpp"
+#include "runtime/heap_alloc_strategy_heappages.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -30,8 +31,12 @@ namespace kagome::injector {
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
 
-    OUTCOME_TRY(runtime_version,
-                runtime::callCoreVersion(module_factory, code, runtime_cache));
+    runtime::MemoryLimits config;
+    BOOST_OUTCOME_TRY(config.heap_alloc_strategy,
+                      heapAllocStrategyHeappagesDefault(*top_trie));
+    OUTCOME_TRY(
+        runtime_version,
+        runtime::callCoreVersion(module_factory, code, config, runtime_cache));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {

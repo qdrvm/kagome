@@ -29,7 +29,6 @@ namespace test {
     endpoint_ = std::move(endpoint);
     boost::system::error_code ec;
     stream_.connect(endpoint_, ec);
-    // TODO (yuraz): ignore error code, log message
     boost::ignore_unused(ec);
     if (ec) {
       return HttpClientError::CONNECTION_FAILED;
@@ -79,8 +78,7 @@ namespace test {
 
   void HttpClient::disconnect() {
     boost::system::error_code ec{};
-    stream_.socket().shutdown(Socket::shutdown_both, ec);
-    // TODO (yuraz): log message, ignore error
+    std::ignore = stream_.socket().shutdown(Socket::shutdown_both, ec);
     boost::ignore_unused(ec);
   }
 
