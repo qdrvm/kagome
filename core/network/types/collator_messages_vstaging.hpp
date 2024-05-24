@@ -292,7 +292,7 @@ namespace kagome::network::vstaging {
                                               /// sending node, for the purpose
                                               /// of being requested by the
                                               /// receiving node if needed.
-      BackedCandidateManifest,  // 1,
+      BackedCandidateManifest,                // 1,
       /// A notification of a backed candidate being known by the sending node,
       /// for the purpose of informing a receiving node which already has the
       /// candidate.

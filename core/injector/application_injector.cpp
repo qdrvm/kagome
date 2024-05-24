@@ -9,7 +9,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  32  // TODO(Harrm): #2104 check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -48,6 +48,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
@@ -1061,6 +1062,12 @@ namespace kagome::injector {
   KagomeNodeInjector::injectPrintChainInfoMode() {
     return pimpl_->injector_
         .create<sptr<application::mode::PrintChainInfoMode>>();
+  }
+
+  sptr<application::mode::PrecompileWasmMode>
+  KagomeNodeInjector::injectPrecompileWasmMode() {
+    return pimpl_->injector_
+        .create<sptr<application::mode::PrecompileWasmMode>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>
