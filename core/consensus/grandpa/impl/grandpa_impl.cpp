@@ -791,7 +791,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*current_round_, grandpa_context};
+    VotingRoundUpdate update{*round, grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
