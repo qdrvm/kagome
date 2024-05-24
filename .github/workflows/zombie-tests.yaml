@@ -7,10 +7,19 @@
 name: Zombie-Tests
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+  
+env:
+  CACHE_VERSION: v07
+  CACHE_PATHS: |
+    ~/Library/Caches/pip
+    ~/.cargo
+    ~/.ccache
+    ~/.hunter
+    ~/.rustup
 
 jobs:
-  Push-self-hosted-PR:
+  Prepare-Kagome-Docker:
     strategy:
       fail-fast: false
       matrix:
@@ -26,35 +35,54 @@ jobs:
     container: qdrvm/kagome-dev:9-minideb
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
       - run: git config --global --add safe.directory /__w/kagome/kagome
       - run: git fetch --prune --unshallow
-      - name: build
+      - name: Build Kagome
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
-        with:
-          login-server: https://index.docker.io/v1/
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - name: docker pack and push
+          KAGOME_ROOT: /__w/kagome/kagome
+        run: bash -c "cd $KAGOME_ROOT && source /venv/bin/activate && ./housekeeping/docker/kagome-dev/make.sh"
+      - name: Copy Kagome
         env:
-          VERSION: ${{ github.ref }}
-          BUILD_TYPE: "Custom"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
-#  zombie-tests:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        options:
-#          - name: "PVF preparation & execution time"
-#            test: "test-polkadot-functional-0001-parachains-pvf"
+          KAGOME_BUILD_DIR: /__w/kagome/kagome/build
+        run: bash -c "mkdir -p ${KAGOME_BUILD_DIR}/docker_context && cp -a ${KAGOME_BUILD_DIR}/node/kagome ${KAGOME_BUILD_DIR}/docker_context"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          tags: kagome-dev:${{ github.run_number }}
+          file: ./housekeeping/docker/kagome/minideb-release.Dockerfile
+          context: /__w/kagome/kagome/build/docker_context
+          outputs: type=docker,dest=/tmp/kagome_dev.tar
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kagome-dev
+          path: /tmp/kagome_dev.tar
+        
+#      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+#        with:
+#          login-server: https://index.docker.io/v1/
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_TOKEN }}
+#      - name: docker pack and push
+#        env:
+#          VERSION: ${{ github.ref }}
+#          BUILD_TYPE: "Custom"
+#        run: ./housekeeping/docker/kagome/build_and_push.sh
+
+  zombie-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "PVF preparation & execution time"
+            test: "test-polkadot-functional-0001-parachains-pvf"
 #          - name: "Disputes initiation, conclusion and lag"
 #            test: "test-polkadot-functional-0002-parachains-disputes"
 #          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
@@ -75,23 +103,33 @@ jobs:
 #            test: "test-polkadot-functional-0010-validator-disabling"
 #          - name: "Test we are producing blocks at 6 seconds clip"
 #            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-#    runs-on: [ actions-runner-controller ]
-#    timeout-minutes: 60
-#    needs: [Push-self-hosted-PR]
-#    steps:
-#      - name: Set owner of working dir recurively
-#        run: sudo chown -R $(whoami) .
-#      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-#      - name: Extract branch name
-#        shell: bash
-#        run: |
-#          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-#          echo "branch=${branch}" >> $GITHUB_OUTPUT
-#          echo "Branch name: ${branch}"
-#        id: extract_branch
-#      - name: build zombie-tester
-#        working-directory: ./zombienet/docker
-#        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
-#      - name: Run test
-#        working-directory: ./zombienet/docker
-#        run: make ${{ matrix.options.test }}
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    needs: [Prepare-Kagome-Docker]
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kagome-dev
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/kagome_dev.tar
+          docker image ls -a          
+      - name: Set owner of working dir recurively
+        run: sudo chown -R $(whoami) .
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+          echo "Branch name: ${branch}"
+        id: extract_branch
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
+      - name: Run test
+        working-directory: ./zombienet/docker
+        run: make ${{ matrix.options.test }}
