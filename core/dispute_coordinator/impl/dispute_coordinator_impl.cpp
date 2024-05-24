@@ -533,10 +533,6 @@ namespace kagome::dispute {
     auto res = process_active_leaves_update(update);
     if (res.has_error()) {
       SL_ERROR(log_, "Can't handle active list update: {}", res.error());
-
-      // TODO It's code for breakpoint and tracing. Remove after research
-      std::ignore = process_active_leaves_update(update);
-
       return;
     }
   }
@@ -621,10 +617,6 @@ namespace kagome::dispute {
           }
           return true;
         };
-        // TODO It's code for breakpoint and tracing. Remove after research
-        if (not check_sig()) {
-          check_sig();
-        }
         BOOST_ASSERT(check_sig());
 
         Indexed<SignedDisputeStatement> signed_dispute_statement{
@@ -961,7 +953,9 @@ namespace kagome::dispute {
       primitives::BlockHash relay_parent) {
     auto session_info_opt_res = api_->session_info(relay_parent, session);
     if (session_info_opt_res.has_error()) {
-      // TODO log
+      SL_WARN(log_,
+              "Getting of session info was failed: {}",
+              session_info_opt_res.error());
       return std::nullopt;
     }
     auto session_info_opt = session_info_opt_res.value();
@@ -1178,12 +1172,12 @@ namespace kagome::dispute {
     auto is_old_concluded_for =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_for =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_for =
         not is_old_concluded_for and is_new_concluded_for;
@@ -1191,12 +1185,12 @@ namespace kagome::dispute {
     auto is_old_concluded_against =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_against =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_against =
         not is_old_concluded_against and is_new_concluded_against;
@@ -1207,12 +1201,12 @@ namespace kagome::dispute {
     auto is_old_confirmed_concluded =
         intermediate_result.old_state.dispute_status.has_value()
             ? not is_type<Active>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_confirmed_concluded =
         intermediate_result.new_state.dispute_status.has_value()
             ? not is_type<Active>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_confirmed =
         not is_old_confirmed_concluded and is_new_confirmed_concluded;
