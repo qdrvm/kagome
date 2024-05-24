@@ -187,13 +187,21 @@ class BabeTest : public testing::Test {
 
     // add initialization logic
     timings = {60ms, 2};
-    our_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
-    other_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
+
+    our_authority_index = 0;
+    other_authority_index = 1;
+    our_keypair = std::make_shared<Sr25519Keypair>(
+        generateSr25519Keypair(our_authority_index));
+    other_keypair = std::make_shared<Sr25519Keypair>(
+        generateSr25519Keypair(other_authority_index));
     babe_config = std::make_shared<BabeConfiguration>();
     babe_config->slot_duration = timings.slot_duration;
     babe_config->randomness.fill(0);
-    babe_config->authorities = {Authority{{our_keypair->public_key}, 1},
-                                Authority{{other_keypair->public_key}, 1}};
+    babe_config->authorities.resize(2);
+    babe_config->authorities[our_authority_index] =
+        Authority{{our_keypair->public_key}, 1};
+    babe_config->authorities[other_authority_index] =
+        Authority{{other_keypair->public_key}, 1};
     babe_config->leadership_rate = {1, 4};
     babe_config->epoch_length = timings.epoch_length;
 
@@ -202,7 +210,8 @@ class BabeTest : public testing::Test {
 
     session_keys = std::make_shared<SessionKeysMock>();
     ON_CALL(*session_keys, getBabeKeyPair(babe_config->authorities))
-        .WillByDefault(Return(std::make_pair(our_keypair, 1)));
+        .WillByDefault(
+            Return(std::make_pair(our_keypair, our_authority_index)));
 
     lottery = std::make_shared<BabeLotteryMock>();
 
@@ -315,7 +324,10 @@ class BabeTest : public testing::Test {
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
+  AuthorityIndex our_authority_index = 0;
   std::shared_ptr<Sr25519Keypair> our_keypair;
+
+  AuthorityIndex other_authority_index = 1;
   std::shared_ptr<Sr25519Keypair> other_keypair;
 
   static constexpr EpochNumber uninitialized_epoch =
@@ -374,6 +386,9 @@ class BabeTest : public testing::Test {
 };
 
 TEST_F(BabeTest, Setup) {
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillOnce(Return(std::vector<AuthorityIndex>{}));
+
   ASSERT_OUTCOME_ERROR(babe->getSlot(genesis_block_header),
                        DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
 
@@ -407,6 +422,30 @@ TEST_F(BabeTest, NonValidator) {
                        SlotLeadershipError::NON_VALIDATOR);
 }
 
+TEST_F(BabeTest, DisabledValidator) {
+  SlotNumber slot = new_block_slot;
+  EpochNumber epoch = 0;
+
+  EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
+  EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
+      .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{our_authority_index}));
+
+  EXPECT_CALL(*lottery, getEpoch())
+      .WillOnce(Return(uninitialized_epoch))
+      .WillRepeatedly(Return(epoch));
+  EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
+      .WillOnce(Return(true));
+
+  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
+            ValidatorStatus::DisabledValidator);
+
+  ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
+                       SlotLeadershipError::DISABLED_VALIDATOR);
+}
+
 TEST_F(BabeTest, NoSlotLeader) {
   SlotNumber slot = new_block_slot;
   EpochNumber epoch = 0;
@@ -414,6 +453,9 @@ TEST_F(BabeTest, NoSlotLeader) {
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{}));
 
   EXPECT_CALL(*lottery, getEpoch())
       .WillOnce(Return(uninitialized_epoch))
@@ -437,6 +479,9 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{}));
 
   EXPECT_CALL(*lottery, getEpoch())
       .WillOnce(Return(uninitialized_epoch))

@@ -55,6 +55,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::BabeApiMock;
 using Seal = kagome::consensus::babe::Seal;
 using ValidatingError =
@@ -94,6 +95,7 @@ class BabeBlockValidatorTest : public testing::Test {
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
     vrf_provider = std::make_shared<VRFProviderMock>();
     babe_api = std::make_shared<BabeApiMock>();
+    state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
 
     block_validator = std::make_shared<BabeBlockValidatorImpl>(
         app_state_manager,
@@ -103,7 +105,7 @@ class BabeBlockValidatorTest : public testing::Test {
         sr25519_provider,
         vrf_provider,
         babe_api,
-        kagome::primitives::events::SyncStateSubscriptionEnginePtr{});
+        state_sub_engine);
   }
 
   std::shared_ptr<AppStateManagerMock> app_state_manager;
@@ -116,6 +118,7 @@ class BabeBlockValidatorTest : public testing::Test {
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider;
   std::shared_ptr<VRFProviderMock> vrf_provider;
   std::shared_ptr<BabeApiMock> babe_api;
+  std::shared_ptr<SyncStateSubscriptionEngine> state_sub_engine;
   std::shared_ptr<BabeBlockValidatorImpl> block_validator;
 
   // fields for block

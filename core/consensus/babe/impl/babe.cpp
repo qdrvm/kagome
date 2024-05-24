@@ -172,21 +172,22 @@ namespace kagome::consensus::babe {
     const auto &kp_opt = session_keys_->getBabeKeyPair(authorities);
     if (kp_opt.has_value()) {
       const auto &authority_index = kp_opt->second;
-      std::vector<AuthorityIndex> disabled_validators;
-      if (auto res = babe_api_->disabled_validators(block.hash);
-          res.has_value()) {
+
+      auto disabled_validators_res = babe_api_->disabled_validators(block.hash);
+      if (disabled_validators_res.has_error()) {
         SL_CRITICAL(
             log_, "Can't obtain disabled validators list for block {}", block);
       }
-
-      if (authorities.size() > 1) {
-        return ValidatorStatus::Validator;
-      }
+      const auto &disabled_validators = disabled_validators_res.value();
 
       if (std::binary_search(disabled_validators.begin(),
                              disabled_validators.end(),
                              authority_index)) {
         return ValidatorStatus::DisabledValidator;
+      }
+
+      if (authorities.size() > 1) {
+        return ValidatorStatus::Validator;
       }
 
       return ValidatorStatus::SingleValidator;
@@ -225,7 +226,7 @@ namespace kagome::consensus::babe {
                    "Authority not known, skipping slot processing. "
                    "Probably authority list has changed.");
       } else {
-        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
+        SL_VERBOSE(log_, "Node is validator in epoch {}", epoch);
       }
     }
 
