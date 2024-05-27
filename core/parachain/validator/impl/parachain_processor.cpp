@@ -88,6 +88,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Cluster tracker error";
     case E::PERSISTED_VALIDATION_DATA_NOT_FOUND:
       return "Persisted validation data not found";
+    case E::PERSISTED_VALIDATION_DATA_MISMATCH:
+      return "Persisted validation data mismatch";
+    case E::CANDIDATE_HASH_MISMATCH:
+      return "Candidate hash mismatch";
+    case E::PARENT_HEAD_DATA_MISMATCH:
+      return "Parent head data mismatch";
   }
   return "Unknown parachain processor error";
 }
@@ -1426,6 +1432,55 @@ namespace kagome::parachain {
         pending_collation.peer_id,
         pending_collation.relay_parent,
         parachain_state.table_context.validators.size());
+  }
+
+  outcome::result<void> ParachainProcessorImpl::fetched_collation_sanity_check(
+    const PendingCollation &advertised,
+    const CandidateReceipt &fetched,
+    const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>> &persisted_validation_data,
+    std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash
+  ) {
+    if (persisted_validation_data.getHash() != fetched.descriptor.persisted_data_hash) {
+      return Error::PERSISTED_VALIDATION_DATA_MISMATCH;
+    } 
+    
+    if (advertised.prospective_candidate && advertised.prospective_candidate->candidate_hash != fetched.hash(*hasher_)) {
+      return Error::CANDIDATE_HASH_MISMATCH;
+    } 
+    
+    if (maybe_parent_head_and_hash && hasher_->blake2b_256(maybe_parent_head_and_hash->first) != maybe_parent_head_and_hash->second) {
+      return Error::PARENT_HEAD_DATA_MISMATCH;
+    }
+
+    return outcome::success();
+  }
+
+  void ParachainProcessorImpl::dequeue_next_collation_and_fetch(
+    const RelayHash &relay_parent,
+    std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch
+  ) {
+    auto per_relay_state = tryGetStateByRelayParent(relay_parent);
+    if (!per_relay_state) {
+      return;
+    }
+
+    while (auto collation = per_relay_state->get().collations.get_next_collation_to_fetch(previous_fetch, per_relay_state->get().prospective_parachains_mode)) {
+      const auto &[next, id] = *collation;
+      SL_TRACE(logger_,"Successfully dequeued next advertisement - fetching ... (relay_parent={}, id={})", relay_parent, id);
+      if (auto res = fetch_collation(next, id); res.has_error()) {
+        SL_TRACE(logger_,
+          "Failed to request a collation, dequeueing next one (relay_parent={}, para_id={}, peer_id={}, error={})",
+          next.relay_parent,
+          next.para_id,
+          next.peer_id,
+          res.error()
+        );
+      } else {
+        break;
+      }
+    }
   }
 
   outcome::result<std::optional<runtime::PersistedValidationData>>

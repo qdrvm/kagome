@@ -123,7 +123,10 @@ namespace kagome::parachain {
       CORE_INDEX_UNAVAILABLE,
       INCORRECT_SIGNATURE,
       CLUSTER_TRACKER_ERROR,
-      PERSISTED_VALIDATION_DATA_NOT_FOUND
+      PERSISTED_VALIDATION_DATA_NOT_FOUND,
+      PERSISTED_VALIDATION_DATA_MISMATCH,
+      CANDIDATE_HASH_MISMATCH,
+      PARENT_HEAD_DATA_MISMATCH
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -765,6 +768,12 @@ namespace kagome::parachain {
     /*
      * Logic.
      */
+    /// Dequeue another collation and fetch.
+  void dequeue_next_collation_and_fetch(
+    const RelayHash &relay_parent,
+    std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch
+  );
+
     outcome::result<std::optional<runtime::PersistedValidationData>>
     requestProspectiveValidationData(
         const RelayHash &relay_parent,
@@ -774,6 +783,18 @@ namespace kagome::parachain {
     outcome::result<std::optional<runtime::PersistedValidationData>>
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
+
+    /// Performs a sanity check between advertised and fetched collations. 
+    /// Since the persisted validation data is constructed using the advertised
+    /// parent head data hash, the latter doesn't require an additional check.
+    outcome::result<void> fetched_collation_sanity_check(
+        const PendingCollation &advertised,
+        const CandidateReceipt &fetched,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>> &persisted_validation_data,
+        std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash
+    );
 
     std::optional<runtime::PersistedValidationData>
     fetchPersistedValidationData(const RelayHash &relay_parent,

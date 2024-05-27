@@ -55,15 +55,8 @@ namespace kagome::parachain {
     Seconded,
   };
 
-  using ProspectiveCandidate = std::pair<CandidateHash, Hash>;
-
-  struct PendingCollation {
-    RelayHash relay_parent;
-    network::ParachainId para_id;
-    libp2p::peer::PeerId peer_id;
-    std::optional<Hash> commitments_hash;
-    std::optional<ProspectiveCandidate> prospective_candidate;
-  };
+  using ProspectiveCandidate = network::ProspectiveCandidate;
+  using PendingCollation = network::PendingCollation;
 
   struct PendingCollationHash {
     size_t operator()(const PendingCollation &val) const noexcept {
@@ -107,6 +100,62 @@ namespace kagome::parachain {
           relay_parent_mode ? relay_parent_mode->max_candidate_depth + 1 : 1;
       return seconded_count < seconded_limit;
     }
+
+	void back_to_waiting(const ProspectiveParachainsModeOpt &relay_parent_mode) {
+    if (status != CollationStatus::Seconded || relay_parent_mode) {
+        status = CollationStatus::Waiting;  
+    }
+	}
+
+	/// Returns the next collation to fetch from the `waiting_queue`.
+	///
+	/// This will reset the status back to `Waiting` using [`CollationStatus::back_to_waiting`].
+	///
+	/// Returns `Some(_)` if there is any collation to fetch, the `status` is not `Seconded` and
+	/// the passed in `finished_one` is the currently `waiting_collation`.
+	std::optional<std::pair<PendingCollation, CollatorId>> get_next_collation_to_fetch(
+    const std::pair<CollatorId, std::optional<CandidateHash>> &finished_one,
+		const ProspectiveParachainsModeOpt &relay_parent_mode
+	) {
+    if (fetching_from) {
+      const auto &[collator_id, maybe_candidate_hash] = *fetching_from;
+			if (collator_id != finished_one.first && (!maybe_candidate_hash || *maybe_candidate_hash != finished_one.second)) {
+				SL_TRACE(logger_, "Not proceeding to the next collation - has already been done.");
+				return std::nullopt;
+			}
+    }
+
+		back_to_waiting(relay_parent_mode);
+    switch (status) {
+      case CollationStatus::Seconded: 
+        return std::nullopt;
+			case CollationStatus::Waiting: {
+				if (!is_seconded_limit_reached(relay_parent_mode)) {
+					return std::nullopt;
+				} else {
+          if (waiting_queue.empty()) {
+            return std::nullopt;
+          }
+          std::pair<PendingCollation, CollatorId> v{std::move(waiting_queue.front())};
+					waiting_queue.pop_front();
+          return v;
+				},
+      } break;
+			case CollationStatus::WaitingOnValidation:
+      case CollationStatus::Fetching: {
+        UNREACHABLE;
+      } break;
+    }
+	}
+
+	bool is_seconded_limit_reached(const ProspectiveParachainsModeOpt &relay_parent_mode) const {
+    if (relay_parent_mode) {
+      return seconded_count < (relay_parent_mode->max_candidate_depth + 1);
+    }
+    return seconded_count < 1;
+	}
+
+
   };
 
   struct HypotheticalCandidateComplete {
