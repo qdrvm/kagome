@@ -37,6 +37,8 @@ namespace kagome::parachain {
                  const std::string &exe,
                  common::Buffer input_,
                  Cb cb_) {
+    fmt::println("runWorker input=[{}]", common::hex_lower(input_));
+
     namespace bp = boost::process;
     using EC = boost::system::error_code;
 
@@ -69,6 +71,11 @@ namespace kagome::parachain {
         cb_->reset();
         SL_DEBUG(logger, "Stop pvf worker");
         process->process.terminate();
+        if (r) {
+          fmt::println("runWorker output=[{}]", common::hex_lower(r.value()));
+        } else {
+          fmt::println("runWorker error=[{}]", r.error());
+        }
         (*cb)(std::move(r));
       }
     };

@@ -45,6 +45,15 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 
+#include "parachain/pvf/run_worker.hpp"
+#include "utils/argv0.hpp"
+#include "utils/read_file.hpp"
+
+#include <boost/asio/io_context.hpp>
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <thread>
+
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
 #define EXPECT_NON_NEG(func, ...)                  \
@@ -298,9 +307,9 @@ namespace kagome::parachain {
       SL_WARN(logger, "Secure validator mode disabled in node configuration");
     }
 #else
-    SL_WARN(
-        logger,
-        "Secure validator mode is not implemented for the current platform. Proceed at your own risk.");
+    SL_WARN(logger,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
@@ -321,10 +330,51 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
+  inline void test(std::string path) {
+    std::string _hex;
+    fmt::println(stderr, "parent: read {}", path);
+    if (not readFile(_hex, path)) {
+      abort();
+    }
+    std::string_view hex{_hex};
+    while (not hex.empty() and isspace(hex.front())) {
+      hex.remove_prefix(1);
+    }
+    while (not hex.empty() and isspace(hex.back())) {
+      hex.remove_suffix(1);
+    }
+    fmt::println(stderr, "parent: unhex");
+    auto raw = common::unhex(hex).value();
+    fmt::println(stderr, "parent: decode");
+    auto input = scale::decode<PvfWorkerInput>(raw).value();
+    Buffer raw2{scale::encode(input).value()};
+    if (raw != raw2) {
+      fmt::println(stderr, "parent: too much hex");
+      abort();
+    }
+
+    auto io = std::make_shared<boost::asio::io_context>();
+    auto timer = std::make_shared<libp2p::basic::SchedulerImpl>(
+        std::make_shared<libp2p::basic::AsioSchedulerBackend>(io),
+        libp2p::basic::Scheduler::Config{});
+
+    auto cb = [&](outcome::result<Buffer> r) { io->stop(); };
+    fmt::println(stderr, "parent: run");
+    runWorker(*io, timer, std::chrono::seconds{2}, exePath(), raw2, cb);
+    std::thread t{[&] {
+      fmt::println(stderr, "parent: thread");
+      io->run();
+    }};
+    t.join();
+    fmt::println(stderr, "parent: exit");
+  }
+
   int pvf_worker_main(int argc, const char **argv, const char **env) {
+    fmt::println(stderr, "pvf_worker_main: log 1");
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));
+    fmt::println(stderr, "pvf_worker_main: log 2");
     auto r = logging_system->configure();
     if (not r.message.empty()) {
       std::cerr << r.message << '\n';
@@ -332,15 +382,23 @@ namespace kagome::parachain {
     if (r.has_error) {
       return EXIT_FAILURE;
     }
+    fmt::println(stderr, "pvf_worker_main: log 3");
     kagome::log::setLoggingSystem(logging_system);
+    if (argc > 1) {
+      test(argv[1]);
+      return EXIT_SUCCESS;
+    }
+    fmt::println(stderr, "child: log 4");
     logger = kagome::log::createLogger("PVF Worker", "parachain");
 
     if (!checkEnvVarsEmpty(env)) {
+      fmt::println(stderr, "child: env vars");
       logger->error(
           "PVF worker processes must not have any environment variables.");
       return EXIT_FAILURE;
     }
 
+    fmt::println(stderr, "child: pvf_worker_main_outcome");
     if (auto r = pvf_worker_main_outcome(); not r) {
       SL_ERROR(logger, "{}", r.error());
       return EXIT_FAILURE;
