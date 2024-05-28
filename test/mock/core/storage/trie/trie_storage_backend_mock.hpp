@@ -36,8 +36,6 @@ namespace kagome::storage::trie {
                 (const BufferView &key),
                 (const, override));
 
-    MOCK_METHOD(bool, empty, (), (const, override));
-
     MOCK_METHOD(outcome::result<void>,
                 put,
                 (const BufferView &key, BufferOrView &&value),
