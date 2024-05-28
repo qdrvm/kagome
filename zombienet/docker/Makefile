@@ -40,7 +40,7 @@ tester:
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		BRANCH_NAME="$(BRANCH_NAME)" \
 		KAGOME_IMAGE="$(KAGOME_IMAGE)" \
-		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
+		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -t zombie-tester:latest -f tester.Dockerfile \
 		--build-arg BRANCH_NAME=$$BRANCH_NAME \
 		--build-arg KAGOME_IMAGE=$$KAGOME_IMAGE \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
