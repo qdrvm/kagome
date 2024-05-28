@@ -4766,6 +4766,37 @@ namespace kagome::parachain {
                         .statement = std::move(stm)}))));
   }
 
+  void ParachainProcessorImpl::notifyInvalid(
+      const primitives::BlockHash &parent,
+      const CandidateReceipt &candidate_receipt) {
+    auto fetched_collation =
+        FetchedCollation::from(candidate_receipt, *hasher_);
+    const auto &candidate_hash = fetched_collation.candidate_hash;
+
+    auto it = our_current_state_.validator_side.fetched_candidates.find(
+        fetched_collation);
+    if (it == our_current_state_.validator_side.fetched_candidates.end()) {
+      return;
+    }
+
+    if (!it->second.pending_collation.commitments_hash
+        || *it->second.pending_collation.commitments_hash
+               != candidate_receipt.commitments_hash) {
+      SL_ERROR(logger_,
+               "Reported invalid candidate for unknown `pending_candidate`! "
+               "(relay_parent={}, candidate_hash={})",
+               parent,
+               candidate_hash);
+      return;
+    }
+
+    auto id = it->second.collator_id;
+    our_current_state_.validator_side.fetched_candidates.erase(it);
+
+    /// TODO(iceseer): reduce collator's reputation
+    dequeue_next_collation_and_fetch(parent, {id, candidate_hash});
+  }
+
   void ParachainProcessorImpl::notifySeconded(
       const primitives::BlockHash &parent,
       const SignedFullStatementWithPVD &statement) {
@@ -4863,8 +4894,8 @@ namespace kagome::parachain {
               "Candidate {} validation failed with: {}",
               candidate_hash,
               validation_result.result.error());
-      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-      /// send invalid
+      notifyInvalid(validation_result.candidate.descriptor.relay_parent,
+                    validation_result.candidate);
       return;
     }
 
@@ -4913,8 +4944,8 @@ namespace kagome::parachain {
                 candidate_hash,
                 validation_result.relay_parent,
                 res.error());
-        /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-        /// send invalid
+        notifyInvalid(validation_result.candidate.descriptor.relay_parent,
+                      validation_result.candidate);
         return;
       }
 

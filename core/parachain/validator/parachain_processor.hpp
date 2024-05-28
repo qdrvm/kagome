@@ -913,6 +913,9 @@ namespace kagome::parachain {
     void notifySeconded(const primitives::BlockHash &relay_parent,
                         const SignedFullStatementWithPVD &statement);
 
+    void notifyInvalid(const primitives::BlockHash &parent,
+                       const CandidateReceipt &candidate_receipt);
+
     /// Notify a collator that its collation got seconded.
     void notify_collation_seconded(const libp2p::peer::PeerId &peer_id,
                                    CollationVersion version,
