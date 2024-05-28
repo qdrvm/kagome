@@ -910,9 +910,11 @@ namespace kagome::parachain {
     void share_local_statement_v1(RelayParentState &per_relay_parent,
                                   const primitives::BlockHash &relay_parent,
                                   const SignedFullStatementWithPVD &statement);
+    template <bool kReinvoke = true>
     void notifySeconded(const primitives::BlockHash &relay_parent,
                         const SignedFullStatementWithPVD &statement);
 
+    template <bool kReinvoke = true>
     void notifyInvalid(const primitives::BlockHash &parent,
                        const CandidateReceipt &candidate_receipt);
 

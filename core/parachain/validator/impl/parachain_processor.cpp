@@ -4766,9 +4766,13 @@ namespace kagome::parachain {
                         .statement = std::move(stm)}))));
   }
 
+  template <bool kReinvoke>
   void ParachainProcessorImpl::notifyInvalid(
       const primitives::BlockHash &parent,
       const CandidateReceipt &candidate_receipt) {
+    REINVOKE_ONCE(
+        *main_pool_handler_, notifyInvalid, parent, candidate_receipt);
+
     auto fetched_collation =
         FetchedCollation::from(candidate_receipt, *hasher_);
     const auto &candidate_hash = fetched_collation.candidate_hash;
@@ -4797,9 +4801,12 @@ namespace kagome::parachain {
     dequeue_next_collation_and_fetch(parent, {id, candidate_hash});
   }
 
+  template <bool kReinvoke>
   void ParachainProcessorImpl::notifySeconded(
       const primitives::BlockHash &parent,
       const SignedFullStatementWithPVD &statement) {
+    REINVOKE_ONCE(*main_pool_handler_, notifySeconded, parent, statement);
+
     auto receipt =
         if_type<const StatementWithPVDSeconded>(getPayload(statement));
     if (!receipt) {
