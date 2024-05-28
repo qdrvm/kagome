@@ -125,11 +125,28 @@ namespace kagome::network {
   struct CollationResponse {
     SCALE_TIE(2);
 
-    CandidateReceipt receipt;  /// Candidate receipt
-    ParachainBlock pov;        /// PoV block
+    /// Candidate receipt
+    CandidateReceipt receipt;
+
+    /// PoV block
+    ParachainBlock pov;
   };
 
-  using ReqCollationResponseData = boost::variant<CollationResponse>;
+  struct CollationWithParentHeadData {
+    SCALE_TIE(3);
+    /// The receipt of the candidate.
+    CandidateReceipt receipt;
+
+    /// Candidate's proof of validity.
+    ParachainBlock pov;
+
+    /// The head data of the candidate's parent.
+    /// This is needed for elastic scaling to work.
+    HeadData parent_head_data;
+  };
+
+  using ReqCollationResponseData =
+      boost::variant<CollationResponse, CollationWithParentHeadData>;
 
   /**
    * Sent by clients who want to retrieve the advertised collation at the

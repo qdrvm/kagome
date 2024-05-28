@@ -666,11 +666,31 @@ namespace kagome::parachain {
 
       std::vector<Hash> pruned =
           our_current_state_.implicit_view->deactivate_leaf(lost);
-      ;
       for (const auto removed : pruned) {
         our_current_state_.state_by_relay_parent.erase(removed);
         /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
         /// fetched_candidates ???
+      }
+
+      {  /// remove cancelations
+        auto &container = our_current_state_.collation_requests_cancel_handles;
+        for (auto pc = container.begin(); pc != container.end();) {
+          if (pc.relay_parent != lost) {
+            ++pc;
+          } else {
+            pc = container.erase(pc);
+          }
+        }
+      }
+      {  /// remove fetched candidates
+        auto &container = our_current_state_.validator_side.fetched_candidates;
+        for (auto pc = container.begin(); pc != container.end();) {
+          if (pc.relay_parent != lost) {
+            ++pc;
+          } else {
+            pc = container.erase(pc);
+          }
+        }
       }
 
       our_current_state_.per_leaf.erase(lost);
@@ -1328,110 +1348,65 @@ namespace kagome::parachain {
     }
   }
 
-  void ParachainProcessorImpl::handleFetchedCollation(
-      PendingCollation &&pending_collation,
+  void ParachainProcessorImpl::handle_collation_fetch_response(
+      CollationEvent &&collation_event,
       network::CollationFetchingResponse &&response) {
     REINVOKE(*main_pool_handler_,
-             handleFetchedCollation,
-             std::move(pending_collation),
+             handle_collation_fetch_response,
+             std::move(collation_event),
              std::move(response));
 
     SL_TRACE(logger_,
              "Processing collation from {}, relay parent: {}, para id: {}",
-             pending_collation.peer_id,
-             pending_collation.relay_parent,
-             pending_collation.para_id);
+             collation_event.pending_collation.peer_id,
+             collation_event.pending_collation.relay_parent,
+             collation_event.pending_collation.para_id);
 
     our_current_state_.collation_requests_cancel_handles.erase(
-        pending_collation);
+        collation_event.pending_collation);
 
     auto collation_response =
-        if_type<network::CollationResponse>(response.response_data);
+        if_type<network::CollationWithParentHeadData>(response.response_data);
     if (!collation_response) {
       SL_WARN(logger_,
               "Not a CollationResponse message from {}.",
-              pending_collation.peer_id);
+              collation_event.pending_collation.peer_id);
       return;
     }
 
-    auto opt_parachain_state =
-        tryGetStateByRelayParent(pending_collation.relay_parent);
-    if (!opt_parachain_state) {
-      SL_TRACE(logger_,
-               "Fetched collation from {}:{} out of view",
-               pending_collation.peer_id,
-               pending_collation.relay_parent);
-      return;
-    }
+    SL_WARN(logger_,
+            "Received collation (v3) (para_id={}, relay_parent={}, "
+            "candidate_hash={})",
+            collation_event.pending_collation.para_id,
+            collation_event.pending_collation.relay_parent,
+            collation_response->get().receipt.hash(*hasher_));
 
-    auto &per_relay_parent = opt_parachain_state->get();
-    auto &collations = per_relay_parent.collations;
-    const auto &relay_parent_mode =
-        per_relay_parent.prospective_parachains_mode;
+    PendingCollationFetch p{
+        .collation_event = std::move(collation_event),
+        .candidate_receipt = std::move(collation_response->get().receipt),
+        .pov = std::move(collation_response->get().pov),
+        .maybe_parent_head_data =
+            std::move(collation_response->get().parent_head_data),
+    };
 
-    network::CandidateReceipt receipt(
-        std::move(collation_response->get().receipt));
-    network::ParachainBlock pov(std::move(collation_response->get().pov));
-    const network::CandidateDescriptor &descriptor = receipt.descriptor;
+    auto collator_id = p.collation_event.collator_id;
+    auto pending_collation = p.collation_event.pending_collation;
 
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// fetched_candidates ???
-
-    auto &parachain_state = opt_parachain_state->get();
-    const auto &assignment = parachain_state.assigned_para;
-    // auto &seconded = parachain_state.seconded;
-    auto &issued_statements = parachain_state.issued_statements;
-
-    const auto candidate_para_id = descriptor.para_id;
-    if (!assignment || candidate_para_id != *assignment) {
+    if (auto res = kick_off_seconding(std::move(p)); res.has_error()) {
       SL_WARN(logger_,
-              "Try to second for para_id {} out of our assignment {}.",
-              candidate_para_id,
-              assignment ? std::to_string(*assignment) : "{no assignment}");
-      return;
+              "Seconding aborted due to an error. (relay_parent={}, "
+              "para_id={}, peer_id={}, error={})",
+              pending_collation.relay_parent,
+              pending_collation.para_id,
+              pending_collation.peer_id,
+              res.error());
+
+      const auto maybe_candidate_hash =
+          utils::map(pending_collation.prospective_candidate,
+                     [](const auto &v) { return v.candidate_hash; });
+      dequeue_next_collation_and_fetch(pending_collation.relay_parent,
+                                       {collator_id, maybe_candidate_hash});
     }
-
-    if (issued_statements.count(receipt.hash(*hasher_)) != 0) {
-      SL_DEBUG(
-          logger_, "Statement of {} already issued.", receipt.hash(*hasher_));
-      return;
-    }
-
-    pending_collation.commitments_hash = receipt.commitments_hash;
-
-    std::optional<runtime::PersistedValidationData> pvd;
-    if (relay_parent_mode && pending_collation.prospective_candidate) {
-      pvd = requestProspectiveValidationData(
-          pending_collation.relay_parent,
-          pending_collation.prospective_candidate->second,
-          pending_collation.para_id);
-    } else if (!relay_parent_mode) {
-      pvd = requestPersistedValidationData(receipt.descriptor.relay_parent,
-                                           receipt.descriptor.para_id);
-    } else {
-      return;
-    }
-
-    if (!pvd) {
-      SL_ERROR(
-          logger_,
-          "Persisted validation data not found. (relay parent={}, para={})",
-          pending_collation.relay_parent,
-          pending_collation.para_id);
-      return;
-    }
-
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// fetched_collation_sanity_check
-
-    collations.status = CollationStatus::WaitingOnValidation;
-    validateAsync<ValidationTaskType::kSecond>(
-        std::move(receipt),
-        std::move(pov),
-        std::move(*pvd),
-        pending_collation.peer_id,
-        pending_collation.relay_parent,
-        parachain_state.table_context.validators.size());
   }
 
   outcome::result<void> ParachainProcessorImpl::fetched_collation_sanity_check(
@@ -3147,7 +3122,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
+    if (parachain_state.issued_statements.contains(candidate_hash)) {
       return;
     }
 
@@ -4829,8 +4804,11 @@ namespace kagome::parachain {
       return;
     }
 
-    auto &collator_id = it->second.collator_id;
-    auto &pending_collation = it->second.pending_collation;
+    auto collation_event{std::move(it->second)};
+    our_current_state_.validator_side.fetched_candidates.erase(it);
+
+    auto &collator_id = collation_event.collator_id;
+    auto &pending_collation = collation_event.pending_collation;
 
     auto &relay_parent = pending_collation.relay_parent;
     auto &peer_id = pending_collation.peer_id;
@@ -4894,8 +4872,8 @@ namespace kagome::parachain {
     }
 
     auto &parachain_state = opt_parachain_state->get();
-    auto &seconded = parachain_state.seconded;
     const auto candidate_hash = validation_result.candidate.hash(*hasher_);
+
     if (!validation_result.result) {
       SL_WARN(logger_,
               "Candidate {} validation failed with: {}",
@@ -4906,93 +4884,94 @@ namespace kagome::parachain {
       return;
     }
 
-    if (!seconded
-        && parachain_state.issued_statements.count(candidate_hash) == 0) {
-      logger_->trace(
-          "Second candidate complete. (candidate={}, peer={}, relay parent={})",
-          candidate_hash,
-          peer_id,
-          validation_result.relay_parent);
-
-      const auto parent_head_data_hash =
-          hasher_->blake2b_256(validation_result.pvd.parent_head);
-      const auto ph =
-          hasher_->blake2b_256(validation_result.commitments->para_head);
-      if (parent_head_data_hash == ph) {
-        return;
-      }
-
-      HypotheticalCandidateComplete hypothetical_candidate{
-          .candidate_hash = candidate_hash,
-          .receipt =
-              network::CommittedCandidateReceipt{
-                  .descriptor = validation_result.candidate.descriptor,
-                  .commitments = *validation_result.commitments,
-              },
-          .persisted_validation_data = validation_result.pvd,
-      };
-
-      fragment::FragmentTreeMembership fragment_tree_membership;
-      if (auto seconding_allowed =
-              secondingSanityCheck(hypothetical_candidate, false)) {
-        fragment_tree_membership = std::move(*seconding_allowed);
-      } else {
-        return;
-      }
-
-      seconded = candidate_hash;
-
-      auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(
-          parachain_state, validation_result);
-      if (res.has_error()) {
-        SL_WARN(logger_,
-                "Attempted to second candidate but was rejected by prospective "
-                "parachains. (candidate_hash={}, relay_parent={}, error={})",
-                candidate_hash,
-                validation_result.relay_parent,
-                res.error());
-        notifyInvalid(validation_result.candidate.descriptor.relay_parent,
-                      validation_result.candidate);
-        return;
-      }
-
-      if (!res.value()) {
-        return;
-      }
-
-      auto &stmt = *res.value();
-      if (auto it = our_current_state_.per_candidate.find(candidate_hash);
-          it != our_current_state_.per_candidate.end()) {
-        it->second.seconded_locally = true;
-      } else {
-        SL_WARN(logger_,
-                "Missing `per_candidate` for seconded candidate. (candidate "
-                "hash={})",
-                candidate_hash);
-      }
-
-      for (const auto &[leaf, depths] : fragment_tree_membership) {
-        auto it = our_current_state_.per_leaf.find(leaf);
-        if (it == our_current_state_.per_leaf.end()) {
-          SL_WARN(logger_,
-                  "Missing `per_leaf` for known active leaf. (leaf={})",
-                  leaf);
-          continue;
-        }
-
-        ActiveLeafState &leaf_data = it->second;
-        auto &seconded_at_depth =
-            leaf_data.seconded_at_depth[validation_result.candidate.descriptor
-                                            .para_id];
-
-        for (const auto &depth : depths) {
-          seconded_at_depth.emplace(depth, candidate_hash);
-        }
-      }
-
-      parachain_state.issued_statements.insert(candidate_hash);
-      notifySeconded(validation_result.relay_parent, stmt);
+    if (parachain_state.issued_statements.contains(candidate_hash)) {
+      return;
     }
+
+    logger_->trace(
+        "Second candidate complete. (candidate={}, peer={}, relay parent={})",
+        candidate_hash,
+        peer_id,
+        validation_result.relay_parent);
+
+    const auto parent_head_data_hash =
+        hasher_->blake2b_256(validation_result.pvd.parent_head);
+    const auto ph =
+        hasher_->blake2b_256(validation_result.commitments->para_head);
+    if (parent_head_data_hash == ph) {
+      return;
+    }
+
+    HypotheticalCandidateComplete hypothetical_candidate{
+        .candidate_hash = candidate_hash,
+        .receipt =
+            network::CommittedCandidateReceipt{
+                .descriptor = validation_result.candidate.descriptor,
+                .commitments = *validation_result.commitments,
+            },
+        .persisted_validation_data = validation_result.pvd,
+    };
+
+    fragment::FragmentTreeMembership fragment_tree_membership;
+    if (auto seconding_allowed =
+            secondingSanityCheck(hypothetical_candidate, false)) {
+      fragment_tree_membership = std::move(*seconding_allowed);
+    } else {
+      return;
+    }
+
+    seconded = candidate_hash;
+
+    auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(
+        parachain_state, validation_result);
+    if (res.has_error()) {
+      SL_WARN(logger_,
+              "Attempted to second candidate but was rejected by prospective "
+              "parachains. (candidate_hash={}, relay_parent={}, error={})",
+              candidate_hash,
+              validation_result.relay_parent,
+              res.error());
+      notifyInvalid(validation_result.candidate.descriptor.relay_parent,
+                    validation_result.candidate);
+      return;
+    }
+
+    if (!res.value()) {
+      return;
+    }
+
+    auto &stmt = *res.value();
+    if (auto it = our_current_state_.per_candidate.find(candidate_hash);
+        it != our_current_state_.per_candidate.end()) {
+      it->second.seconded_locally = true;
+    } else {
+      SL_WARN(logger_,
+              "Missing `per_candidate` for seconded candidate. (candidate "
+              "hash={})",
+              candidate_hash);
+    }
+
+    for (const auto &[leaf, depths] : fragment_tree_membership) {
+      auto it = our_current_state_.per_leaf.find(leaf);
+      if (it == our_current_state_.per_leaf.end()) {
+        SL_WARN(logger_,
+                "Missing `per_leaf` for known active leaf. (leaf={})",
+                leaf);
+        continue;
+      }
+
+      ActiveLeafState &leaf_data = it->second;
+      auto &seconded_at_depth =
+          leaf_data.seconded_at_depth[validation_result.candidate.descriptor
+                                          .para_id];
+
+      for (const auto &depth : depths) {
+        seconded_at_depth.emplace(depth, candidate_hash);
+      }
+    }
+
+    parachain_state.issued_statements.insert(candidate_hash);
+    notifySeconded(validation_result.relay_parent, stmt);
   }
 
   void ParachainProcessorImpl::share_local_statement_v1(
@@ -5217,6 +5196,18 @@ namespace kagome::parachain {
              n_validators);
 
     const auto candidate_hash{candidate.hash(*hasher_)};
+    if (!parachain_state->get()
+             .awaiting_validation.insert(candidate_hash)
+             .second) {
+      return;
+    }
+
+    if constexpr (kMode == ValidationTaskType::kSecond) {
+      if (rp_state.issued_statements.contains(candidate_hash)) {
+        return;
+      }
+    }
+
     SL_INFO(logger_,
             "Starting validation task.(para id={}, "
             "relay parent={}, peer={}, candidate_hash={})",
@@ -5491,9 +5482,7 @@ namespace kagome::parachain {
 
   outcome::result<void> ParachainProcessorImpl::kick_off_seconding(
       PendingCollationFetch &&pending_collation_fetch) {
-    REINVOKE(*main_pool_handler_,
-             kick_off_seconding,
-             std::move(pending_collation_fetch));
+    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     auto &collation_event = pending_collation_fetch.collation_event;
     auto pending_collation = collation_event.pending_collation;
@@ -5945,13 +5934,11 @@ namespace kagome::parachain {
                     peer_id,
                     relay_parent,
                     result.error());
-            /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-            /// dequeue_next_collation_and_fetch
             return;
           }
 
-          self->handleFetchedCollation(std::move(pending_collation),
-                                       std::move(result).value());
+          self->handle_collation_fetch_response(std::move(pending_collation),
+                                                std::move(result).value());
         };
 
     SL_TRACE(logger_,

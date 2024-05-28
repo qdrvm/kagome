@@ -418,7 +418,6 @@ namespace kagome::parachain {
       std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
           per_session_state;
 
-      std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
       std::optional<network::GroupIndex> our_group;
 
@@ -810,8 +809,9 @@ namespace kagome::parachain {
         AttestingData &attesting_data,
         const runtime::PersistedValidationData &persisted_validation_data,
         RelayParentState &parachain_state);
-    void handleFetchedCollation(PendingCollation &&pending_collation,
-                                network::CollationFetchingResponse &&response);
+    void handle_collation_fetch_response(
+        CollationEvent &&collation_event,
+        network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
     std::optional<network::SignedStatement> createAndSignStatement(
         const ValidateAndSecondResult &validation_result);
