@@ -1435,22 +1435,27 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> ParachainProcessorImpl::fetched_collation_sanity_check(
-    const PendingCollation &advertised,
-    const CandidateReceipt &fetched,
-    const crypto::Hashed<const runtime::PersistedValidationData &,
-                             32,
-                             crypto::Blake2b_StreamHasher<32>> &persisted_validation_data,
-    std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash
-  ) {
-    if (persisted_validation_data.getHash() != fetched.descriptor.persisted_data_hash) {
+      const PendingCollation &advertised,
+      const CandidateReceipt &fetched,
+      const crypto::Hashed<const runtime::PersistedValidationData &,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>
+          &persisted_validation_data,
+      std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash) {
+    if (persisted_validation_data.getHash()
+        != fetched.descriptor.persisted_data_hash) {
       return Error::PERSISTED_VALIDATION_DATA_MISMATCH;
-    } 
-    
-    if (advertised.prospective_candidate && advertised.prospective_candidate->candidate_hash != fetched.hash(*hasher_)) {
+    }
+
+    if (advertised.prospective_candidate
+        && advertised.prospective_candidate->candidate_hash
+               != fetched.hash(*hasher_)) {
       return Error::CANDIDATE_HASH_MISMATCH;
-    } 
-    
-    if (maybe_parent_head_and_hash && hasher_->blake2b_256(maybe_parent_head_and_hash->first) != maybe_parent_head_and_hash->second) {
+    }
+
+    if (maybe_parent_head_and_hash
+        && hasher_->blake2b_256(maybe_parent_head_and_hash->first)
+               != maybe_parent_head_and_hash->second) {
       return Error::PARENT_HEAD_DATA_MISMATCH;
     }
 
@@ -1458,25 +1463,31 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::dequeue_next_collation_and_fetch(
-    const RelayHash &relay_parent,
-    std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch
-  ) {
+      const RelayHash &relay_parent,
+      std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch) {
     auto per_relay_state = tryGetStateByRelayParent(relay_parent);
     if (!per_relay_state) {
       return;
     }
 
-    while (auto collation = per_relay_state->get().collations.get_next_collation_to_fetch(previous_fetch, per_relay_state->get().prospective_parachains_mode)) {
+    while (auto collation =
+               per_relay_state->get().collations.get_next_collation_to_fetch(
+                   previous_fetch,
+                   per_relay_state->get().prospective_parachains_mode)) {
       const auto &[next, id] = *collation;
-      SL_TRACE(logger_,"Successfully dequeued next advertisement - fetching ... (relay_parent={}, id={})", relay_parent, id);
+      SL_TRACE(logger_,
+               "Successfully dequeued next advertisement - fetching ... "
+               "(relay_parent={}, id={})",
+               relay_parent,
+               id);
       if (auto res = fetch_collation(next, id); res.has_error()) {
         SL_TRACE(logger_,
-          "Failed to request a collation, dequeueing next one (relay_parent={}, para_id={}, peer_id={}, error={})",
-          next.relay_parent,
-          next.para_id,
-          next.peer_id,
-          res.error()
-        );
+                 "Failed to request a collation, dequeueing next one "
+                 "(relay_parent={}, para_id={}, peer_id={}, error={})",
+                 next.relay_parent,
+                 next.para_id,
+                 next.peer_id,
+                 res.error());
       } else {
         break;
       }
@@ -3442,8 +3453,8 @@ namespace kagome::parachain {
                 }
 
                 AttestingData attesting{
-                    .candidate = candidateFromCommittedCandidateReceipt(
-                        opt_candidate->get().candidate),
+                    .candidate =
+                        opt_candidate->get().candidate.to_plain(*hasher_),
                     .pov_hash = val.committed_receipt.descriptor.pov_hash,
                     .from_validator = statement.payload.ix,
                     .backing = {}};
@@ -4711,82 +4722,98 @@ namespace kagome::parachain {
     pm_->setCollating(peer_id, pubkey, para_id);
   }
 
-  void ParachainProcessorImpl::handleNotify(
+  void ParachainProcessorImpl::notify_collation_seconded(
       const libp2p::peer::PeerId &peer_id,
-      const primitives::BlockHash &relay_parent) {
-    if (tryOpenOutgoingCollatingStream(
-            peer_id,
-            [peer_id, relay_parent, wptr{weak_from_this()}](
-                auto && /*stream*/) {
-              auto self = wptr.lock();
-              if (not self) {
-                return;
-              }
-              self->handleNotify(peer_id, relay_parent);
-            })) {
-      return;
-    }
-
+      CollationVersion version,
+      const RelayHash &relay_parent,
+      const SignedFullStatementWithPVD &statement) {
     logger_->info("Send Seconded to collator.(peer={}, relay parent={})",
                   peer_id,
                   relay_parent);
 
-    auto stream_engine = pm_->getStreamEngine();
-    BOOST_ASSERT(stream_engine);
+    network::SignedStatement stm = visit_in_place(
+        getPayload(statement),
+        [&](const StatementWithPVDSeconded &s) -> network::SignedStatement {
+          return {
+              .payload =
+                  {
+                      .payload = network::CandidateState{s.committed_receipt},
+                      .ix = p.second.payload.ix,
+                  },
+              .signature = p.second.signature,
+          };
+        },
+        [&](const StatementWithPVDValid &s) -> network::SignedStatement {
+          return {
+              .payload =
+                  {
+                      .payload = network::CandidateState{s.candidate_hash},
+                      .ix = p.second.payload.ix,
+                  },
+              .signature = p.second.signature,
+          };
+        });
 
-    auto collation_protocol = router_->getCollationProtocolVStaging();
-    BOOST_ASSERT(collation_protocol);
-
-    auto &statements_queue = our_current_state_.seconded_statements[peer_id];
-    while (!statements_queue.empty()) {
-      auto p{std::move(statements_queue.front())};
-      statements_queue.pop_front();
-      RelayHash &rp = p.first;
-
-      network::SignedStatement statement = visit_in_place(
-          getPayload(p.second),
-          [&](const StatementWithPVDSeconded &s) -> network::SignedStatement {
-            return {
-                .payload =
-                    {
-                        .payload = network::CandidateState{s.committed_receipt},
-                        .ix = p.second.payload.ix,
-                    },
-                .signature = p.second.signature,
-            };
-          },
-          [&](const StatementWithPVDValid &s) -> network::SignedStatement {
-            return {
-                .payload =
-                    {
-                        .payload = network::CandidateState{s.candidate_hash},
-                        .ix = p.second.payload.ix,
-                    },
-                .signature = p.second.signature,
-            };
-          });
-
-      stream_engine->send(
-          peer_id,
-          collation_protocol,
-          std::make_shared<
-              network::WireMessage<network::vstaging::CollatorProtocolMessage>>(
-              network::vstaging::CollatorProtocolMessage(
-                  network::vstaging::CollationMessage(
-                      network::vstaging::
-                          CollatorProtocolMessageCollationSeconded{
-                              .relay_parent = rp,
-                              .statement = std::move(statement)}))));
-    }
+    pm_->getStreamEngine()->send(
+        peer_id,
+        router_->getCollationProtocolVStaging(),
+        std::make_shared<
+            network::WireMessage<network::vstaging::CollatorProtocolMessage>>(
+            network::vstaging::CollatorProtocolMessage(
+                network::vstaging::CollationMessage(
+                    network::vstaging::CollatorProtocolMessageCollationSeconded{
+                        .relay_parent = relay_parent,
+                        .statement = std::move(stm)}))));
   }
 
-  void ParachainProcessorImpl::notify(
-      const libp2p::peer::PeerId &peer_id,
-      const primitives::BlockHash &relay_parent,
+  void ParachainProcessorImpl::notifySeconded(
+      const primitives::BlockHash &parent,
       const SignedFullStatementWithPVD &statement) {
-    our_current_state_.seconded_statements[peer_id].emplace_back(
-        std::make_pair(relay_parent, statement));
-    handleNotify(peer_id, relay_parent);
+    auto receipt =
+        if_type<const StatementWithPVDSeconded>(getPayload(statement));
+    if (!receipt) {
+      SL_TRACE(logger_,
+               "Seconded message received with a `Valid` statement. "
+               "(relay_parent={})",
+               parent);
+      return;
+    }
+
+    auto fetched_collation =
+        FetchedCollation::from(receipt->to_plain(*hasher_), *hasher_);
+    auto it = our_current_state_.validator_side.fetched_candidates.find(
+        fetched_collation);
+    if (it == our_current_state_.validator_side.fetched_candidates.end()) {
+      SL_TRACE(logger_,
+               "Collation has been seconded, but the relay parent is "
+               "deactivated. (relay_parent={})",
+               parent);
+      return;
+    }
+
+    auto &collator_id = it->second.collator_id;
+    auto &pending_collation = it->second.pending_collation;
+
+    auto &relay_parent = pending_collation.relay_parent;
+    auto &peer_id = pending_collation.peer_id;
+    auto &prospective_candidate = pending_collation.prospective_candidate;
+
+    if (auto peer_state = pm_->getPeerState(peer_id)) {
+      notify_collation_seconded(peer_id, peer_data.version, relay_parent, stmt);
+    }
+
+    if (auto rp_state = tryGetStateByRelayParent(parent)) {
+      rp_state->get().collations.status = CollationStatus::Seconded;
+      rp_state->get().collations.note_seconded();
+    }
+
+    const auto maybe_candidate_hash = utils::map(
+        prospective_candidate, [](const auto &v) { return v.candidate_hash; });
+
+    dequeue_next_collation_and_fetch(parent,
+                                     {collator_id, maybe_candidate_hash});
+
+    /// TODO(iceseer): Bump collator reputation
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
@@ -4926,7 +4953,7 @@ namespace kagome::parachain {
       }
 
       parachain_state.issued_statements.insert(candidate_hash);
-      notify(peer_id, validation_result.relay_parent, stmt);
+      notifySeconded(validation_result.relay_parent, stmt);
     }
   }
 

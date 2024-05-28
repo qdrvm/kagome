@@ -769,10 +769,9 @@ namespace kagome::parachain {
      * Logic.
      */
     /// Dequeue another collation and fetch.
-  void dequeue_next_collation_and_fetch(
-    const RelayHash &relay_parent,
-    std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch
-  );
+    void dequeue_next_collation_and_fetch(
+        const RelayHash &relay_parent,
+        std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch);
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     requestProspectiveValidationData(
@@ -784,7 +783,7 @@ namespace kagome::parachain {
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
 
-    /// Performs a sanity check between advertised and fetched collations. 
+    /// Performs a sanity check between advertised and fetched collations.
     /// Since the persisted validation data is constructed using the advertised
     /// parent head data hash, the latter doesn't require an additional check.
     outcome::result<void> fetched_collation_sanity_check(
@@ -792,9 +791,9 @@ namespace kagome::parachain {
         const CandidateReceipt &fetched,
         const crypto::Hashed<const runtime::PersistedValidationData &,
                              32,
-                             crypto::Blake2b_StreamHasher<32>> &persisted_validation_data,
-        std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash
-    );
+                             crypto::Blake2b_StreamHasher<32>>
+            &persisted_validation_data,
+        std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash);
 
     std::optional<runtime::PersistedValidationData>
     fetchPersistedValidationData(const RelayHash &relay_parent,
@@ -872,23 +871,13 @@ namespace kagome::parachain {
       return descriptor.collator_id;
     }
 
-    network::CandidateReceipt candidateFromCommittedCandidateReceipt(
-        const network::CommittedCandidateReceipt &data) const {
-      network::CandidateReceipt receipt;
-      receipt.descriptor = data.descriptor,
-      receipt.commitments_hash =
-          hasher_->blake2b_256(scale::encode(data.commitments).value());
-      return receipt;
-    }
-
     primitives::BlockHash candidateHashFrom(
         const StatementWithPVD &statement) const {
       return visit_in_place(
           statement,
           [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
-                ::scale::encode(candidateFromCommittedCandidateReceipt(
-                                    val.committed_receipt))
+                ::scale::encode(val.committed_receipt.to_plain(*hasher_))
                     .value());
           },
           [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
@@ -921,11 +910,14 @@ namespace kagome::parachain {
     void share_local_statement_v1(RelayParentState &per_relay_parent,
                                   const primitives::BlockHash &relay_parent,
                                   const SignedFullStatementWithPVD &statement);
-    void notify(const libp2p::peer::PeerId &peer_id,
-                const primitives::BlockHash &relay_parent,
-                const SignedFullStatementWithPVD &statement);
-    void handleNotify(const libp2p::peer::PeerId &peer_id,
-                      const primitives::BlockHash &relay_parent);
+    void notifySeconded(const primitives::BlockHash &relay_parent,
+                        const SignedFullStatementWithPVD &statement);
+
+    /// Notify a collator that its collation got seconded.
+    void notify_collation_seconded(const libp2p::peer::PeerId &peer_id,
+                                   CollationVersion version,
+                                   const RelayHash &relay_parent,
+                                   const SignedFullStatementWithPVD &statement);
 
     void onDeactivateBlocks(
         const primitives::events::RemoveAfterFinalizationParams &event);
@@ -1104,10 +1096,6 @@ namespace kagome::parachain {
     struct {
       std::unordered_map<primitives::BlockHash, RelayParentState>
           state_by_relay_parent;
-      std::unordered_map<
-          libp2p::peer::PeerId,
-          std::deque<std::pair<RelayHash, SignedFullStatementWithPVD>>>
-          seconded_statements;
       std::optional<ImplicitView> implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;
       std::unordered_map<CandidateHash, PerCandidateState> per_candidate;

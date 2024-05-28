@@ -182,6 +182,14 @@ namespace kagome::network {
     CandidateCommitments commitments;  /// commitments retrieved from validation
     /// result and produced by the execution
     /// and validation parachain candidate
+
+    CandidateReceipt to_plain(const crypto::Hasher &hasher) const {
+      CandidateReceipt receipt;
+      receipt.descriptor = descriptor,
+      receipt.commitments_hash =
+          hasher.blake2b_256(scale::encode(commitments).value());
+      return receipt;
+    }
   };
 
   struct FetchStatementRequest {
