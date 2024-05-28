@@ -233,17 +233,6 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  bool RocksDbSpace::empty() const {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return true;
-    }
-    auto it = std::unique_ptr<rocksdb::Iterator>(
-        rocks->db_->NewIterator(rocks->ro_, column_));
-    it->SeekToFirst();
-    return it->Valid();
-  }
-
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
     OUTCOME_TRY(rocks, use());
     std::string value;
