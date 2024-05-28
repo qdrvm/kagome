@@ -87,8 +87,6 @@ namespace kagome::storage::trie {
     outcome::result<bool> contains(
         const common::BufferView &key) const override;
 
-    bool empty() const override;
-
     outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,
                                                 uint8_t idx) const override;
     outcome::result<NodePtr> retrieveChild(const BranchNode &parent,

@@ -101,8 +101,6 @@ namespace kagome::storage {
 
     outcome::result<bool> contains(const BufferView &key) const override;
 
-    bool empty() const override;
-
     outcome::result<BufferOrView> get(const BufferView &key) const override;
 
     outcome::result<std::optional<BufferOrView>> tryGet(
