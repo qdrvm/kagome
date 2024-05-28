@@ -1605,5 +1605,4 @@ namespace kagome::consensus::grandpa {
   VotingRound::Votes VotingRoundImpl::votes() const {
     return {prevotes_->getMessages(), precommits_->getMessages()};
   }
-
 }  // namespace kagome::consensus::grandpa

@@ -34,7 +34,6 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     outcome::result<bool> contains(const BufferView &key) const override;
-    bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override;
