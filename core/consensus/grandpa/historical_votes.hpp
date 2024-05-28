@@ -38,8 +38,9 @@ namespace kagome::consensus::grandpa {
    public:
     virtual ~SaveHistoricalVotes() = default;
 
-    virtual void saveHistoricalVotes(AuthoritySetId set,
-                                     RoundNumber round,
-                                     const HistoricalVotes &votes) = 0;
+    virtual void saveHistoricalVote(AuthoritySetId set,
+                                    RoundNumber round,
+                                    const SignedMessage &vote,
+                                    bool set_index) = 0;
   };
 }  // namespace kagome::consensus::grandpa

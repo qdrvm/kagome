@@ -217,14 +217,13 @@ namespace kagome::consensus::grandpa {
         std::move(config),
         hasher_,
         environment_,
-        historicalVotes(authority_set.id, round_state.round_number),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round_state);
-    new_round->applyHistoricalVotes();
+    applyHistoricalVotes(*new_round);
 
     new_round->end();  // it is okay, because we do not want to actually execute
                        // this round
@@ -278,14 +277,13 @@ namespace kagome::consensus::grandpa {
         std::move(config),
         hasher_,
         environment_,
-        historicalVotes(authority_set->id, new_round_number),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round);
-    new_round->applyHistoricalVotes();
+    applyHistoricalVotes(*new_round);
     return new_round;
   }
 
@@ -1183,7 +1181,6 @@ namespace kagome::consensus::grandpa {
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
         environment_,
-        HistoricalVotes{},
         std::make_shared<VoteCryptoProviderImpl>(
             nullptr, crypto_provider_, justification.round_number, voters),
         std::make_shared<VoteTrackerImpl>(),
@@ -1415,29 +1412,85 @@ namespace kagome::consensus::grandpa {
     retain_if(waiting_blocks_, f);
   }
 
-  void GrandpaImpl::saveHistoricalVotes(AuthoritySetId set,
-                                        RoundNumber round,
-                                        const HistoricalVotes &votes) {
-    if (votes.seen.empty()) {
+  void GrandpaImpl::saveHistoricalVote(AuthoritySetId set,
+                                       RoundNumber round,
+                                       const SignedMessage &vote,
+                                       bool set_index) {
+    REINVOKE(*grandpa_pool_handler_,
+             saveHistoricalVote,
+             set,
+             round,
+             vote,
+             set_index);
+    auto &[votes, dirty] = historicalVotes(set, round);
+    if (std::find(votes.seen.begin(), votes.seen.end(), vote)
+        != votes.seen.end()) {
       return;
     }
-    std::ignore =
-        db_->put(historicalVotesKey(set, round), scale::encode(votes).value());
-  }
-
-  HistoricalVotes GrandpaImpl::historicalVotes(AuthoritySetId set,
-                                               RoundNumber round) const {
-    if (auto r = db_->get(historicalVotesKey(set, round))) {
-      if (auto r2 = scale::decode<HistoricalVotes>(r.value())) {
-        return std::move(r2.value());
-      } else {
-        SL_ERROR(logger_,
-                 "historicalVotes(set={}, round={}): decode error",
-                 set,
-                 round);
+    if (set_index) {
+      auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
+                  : vote.is<Precommit>() ? &votes.precommit_idx
+                                         : nullptr;
+      if (index and not *index) {
+        *index = votes.seen.size();
       }
     }
-    return {};
+    votes.seen.emplace_back(vote);
+    dirty = true;
+    if (writing_historical_votes_) {
+      return;
+    }
+    writing_historical_votes_ = true;
+    grandpa_pool_handler_->execute([weak_self{weak_from_this()}] {
+      auto self = weak_self.lock();
+      if (not self) {
+        return;
+      }
+      self->writeHistoricalVotes();
+    });
+  }
+
+  void GrandpaImpl::writeHistoricalVotes() {
+    writing_historical_votes_ = false;
+    historical_votes_.forEach(
+        [&](const HistoricalVotesKey &key, HistoricalVotesDirty &cache) {
+          if (not cache.second) {
+            return;
+          }
+          cache.second = false;
+          std::ignore = db_->put(historicalVotesKey(key.first, key.second),
+                                 scale::encode(cache.first).value());
+        });
+  }
+
+  GrandpaImpl::HistoricalVotesDirty &GrandpaImpl::historicalVotes(
+      AuthoritySetId set, RoundNumber round) {
+    auto key = std::make_pair(set, round);
+    auto cache = historical_votes_.get(key);
+    if (not cache) {
+      cache = historical_votes_.put(key, {{}, false});
+      if (auto r = db_->get(historicalVotesKey(set, round))) {
+        if (auto r2 = scale::decode<HistoricalVotes>(r.value())) {
+          cache->get().first = std::move(r2.value());
+        } else {
+          SL_ERROR(logger_,
+                   "historicalVotes(set={}, round={}): decode error",
+                   set,
+                   round);
+        }
+      }
+    }
+    return cache->get();
+  }
+
+  void GrandpaImpl::applyHistoricalVotes(VotingRound &round) {
+    auto &votes =
+        historicalVotes(round.voterSetId(), round.roundNumber()).first;
+    VotingRoundUpdate update{round};
+    for (auto &vote : votes.seen) {
+      update.vote(vote);
+    }
+    update.update();
   }
 
   void GrandpaImpl::setTimerFallback() {

@@ -172,7 +172,6 @@ class VotingRoundTest : public testing::Test,
                                                config,
                                                hasher_,
                                                env_,
-                                               HistoricalVotes{},
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
@@ -375,16 +374,23 @@ TEST_F(VotingRoundTest, HistoricalVotesWorks) {
 
   EXPECT_CALL(*env_, reportEquivocation(_, _))
       .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*grandpa_,
+              saveHistoricalVote(
+                  round_->voterSetId(), round_->roundNumber(), alice1, true));
   round_->onPrevote({}, alice1, Propagation::NEEDLESS);
-  round_->set_prevoted_index();
+  EXPECT_CALL(*grandpa_,
+              saveHistoricalVote(
+                  round_->voterSetId(), round_->roundNumber(), bob1, false));
   round_->onPrevote({}, bob1, Propagation::NEEDLESS);
+  EXPECT_CALL(*grandpa_,
+              saveHistoricalVote(
+                  round_->voterSetId(), round_->roundNumber(), bob2, false));
   round_->onPrecommit({}, bob2, Propagation::NEEDLESS);
+  EXPECT_CALL(*grandpa_,
+              saveHistoricalVote(
+                  round_->voterSetId(), round_->roundNumber(), alice2, true));
   round_->onPrevote({}, alice2, Propagation::NEEDLESS);
-  round_->set_precommitted_index();
   round_->update(false, true, true);
-
-  HistoricalVotes expected{{alice1, bob1, bob2, alice2}, 1, 4};
-  EXPECT_EQ(round_->historical_votes(), expected);
 }
 
 /**

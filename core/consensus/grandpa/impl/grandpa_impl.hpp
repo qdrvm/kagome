@@ -19,7 +19,7 @@
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
-#include "utils/safe_object.hpp"
+#include "utils/lru.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -254,9 +254,10 @@ namespace kagome::consensus::grandpa {
      */
     void updateNextRound(RoundNumber round_number) override;
 
-    void saveHistoricalVotes(AuthoritySetId set,
-                             RoundNumber round,
-                             const HistoricalVotes &votes) override;
+    void saveHistoricalVote(AuthoritySetId set,
+                            RoundNumber round,
+                            const SignedMessage &vote,
+                            bool set_index) override;
 
    private:
     struct WaitingBlock {
@@ -324,8 +325,11 @@ namespace kagome::consensus::grandpa {
     void onHead(const primitives::BlockInfo &block);
     void pruneWaitingBlocks();
 
-    HistoricalVotes historicalVotes(AuthoritySetId set,
-                                    RoundNumber round) const;
+    void writeHistoricalVotes();
+    using HistoricalVotesDirty = std::pair<HistoricalVotes, bool>;
+    HistoricalVotesDirty &historicalVotes(AuthoritySetId set,
+                                          RoundNumber round);
+    void applyHistoricalVotes(VotingRound &round);
 
     void setTimerFallback();
 
@@ -361,6 +365,13 @@ namespace kagome::consensus::grandpa {
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;
+
+    using HistoricalVotesKey = std::pair<AuthoritySetId, RoundNumber>;
+    Lru<HistoricalVotesKey,
+        HistoricalVotesDirty,
+        boost::hash<HistoricalVotesKey>>
+        historical_votes_{5};
+    bool writing_historical_votes_ = false;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

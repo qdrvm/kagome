@@ -71,8 +71,8 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(void, updateNextRound, (RoundNumber round_number), (override));
 
     MOCK_METHOD(void,
-                saveHistoricalVotes,
-                (AuthoritySetId, RoundNumber, const HistoricalVotes &),
+                saveHistoricalVote,
+                (AuthoritySetId, RoundNumber, const SignedMessage &, bool),
                 (override));
   };
 
