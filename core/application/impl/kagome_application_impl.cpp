@@ -10,6 +10,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "application/impl/util.hpp"
+#include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "injector/application_injector.hpp"
@@ -35,18 +36,16 @@ namespace kagome::application {
   }
 
   int KagomeApplicationImpl::chainInfo() {
-    auto mode = injector_.injectPrintChainInfoMode();
-    return mode->run();
+    return runMode(*injector_.injectPrintChainInfoMode());
+  }
+
+  int KagomeApplicationImpl::precompileWasm() {
+    return runMode(*injector_.injectPrecompileWasmMode());
   }
 
   int KagomeApplicationImpl::recovery() {
     logger_->info("Start in recovery mode with PID {}", getpid());
-
-    auto mode = injector_.injectRecoveryMode();
-    auto watchdog = injector_.injectWatchdog();
-    auto r = mode->run();
-    watchdog->stop();
-    return r;
+    return runMode(*injector_.injectRecoveryMode());
   }
 
   void KagomeApplicationImpl::run() {
@@ -127,4 +126,10 @@ namespace kagome::application {
     watchdog_thread.join();
   }
 
+  int KagomeApplicationImpl::runMode(Mode &mode) {
+    auto watchdog = injector_.injectWatchdog();
+    auto r = mode.run();
+    watchdog->stop();
+    return r;
+  }
 }  // namespace kagome::application

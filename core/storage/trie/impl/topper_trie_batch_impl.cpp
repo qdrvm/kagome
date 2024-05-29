@@ -89,7 +89,7 @@ namespace kagome::storage::trie {
             })) {
       return false;
     }
-    // TODO(Harrm) PRE-462 consider clearPrefix here. Not an easy thing and is
+    // TODO(Harrm): #2106 consider clearPrefix here. Not an easy thing and is
     // barely possible to happen, so leave it for the future
     if (auto p = parent_.lock(); p != nullptr) {
       return p->empty();

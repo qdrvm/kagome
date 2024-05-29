@@ -21,8 +21,7 @@ namespace kagome::storage::trie {
 
   std::unique_ptr<TrieStorageBackendImpl::Cursor>
   TrieStorageBackendImpl::cursor() {
-    return storage_
-        ->cursor();  // TODO(Harrm): perhaps should iterate over trie nodes only
+    return storage_->cursor();
   }
 
   std::unique_ptr<BufferBatch> TrieStorageBackendImpl::batch() {

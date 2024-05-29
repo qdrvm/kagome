@@ -18,7 +18,7 @@ namespace kagome::consensus::babe {
 
     HasBabeConsensusDigest(const primitives::BlockHeader &block) {
       for (auto &digest : block.digest) {
-        auto consensus = boost::get<primitives::Consensus>(&digest);
+        auto consensus = std::get_if<primitives::Consensus>(&digest);
         if (not consensus) {
           continue;
         }
@@ -33,16 +33,16 @@ namespace kagome::consensus::babe {
           continue;
         }
         auto &decoded = decoded_res.value();
-        auto babe = boost::get<primitives::BabeDigest>(&decoded.digest);
+        auto babe = std::get_if<primitives::BabeDigest>(&decoded.digest);
         if (not babe) {
           continue;
         }
-        if (auto item = boost::get<EpochData>(babe)) {
+        if (auto item = std::get_if<EpochData>(babe)) {
           epoch = std::move(*item);
           continue;
         }
-        if (auto item = boost::get<NextConfigData>(babe)) {
-          config = boost::get<NextConfigDataV1>(*item);
+        if (auto item = std::get_if<NextConfigData>(babe)) {
+          config = std::get<NextConfigDataV1>(*item);
           continue;
         }
       }

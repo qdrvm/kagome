@@ -259,6 +259,8 @@ namespace kagome::dispute {
         const network::DisputeMessage &request,
         CbOutcome<void> &&cb);
 
+    void check_batches();
+
     void start_import(PreparedImport &&prepared_import);
 
     void sendDisputeResponse(outcome::result<void> res, CbOutcome<void> &&cb);
@@ -273,8 +275,7 @@ namespace kagome::dispute {
 
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
-    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
-
+    log::Logger log_;
     clock::SystemClock &system_clock_;
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -344,6 +345,7 @@ namespace kagome::dispute {
 
     /// Currently active batches of imports per candidate.
     std::unique_ptr<Batches> batches_;
+    std::optional<libp2p::basic::Scheduler::Handle> batch_collecting_timer_;
 
     /// All heads we currently consider active.
     std::unordered_set<primitives::BlockHash> active_heads_;

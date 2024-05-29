@@ -1,5 +1,6 @@
 BRANCH_NAME ?= master
 KAGOME_IMAGE ?= qdrvm/kagome:latest
+ZOMBIE_TESTER_IMAGE ?= qdrvm/zombie-tester:latest
 
 builder_last:
 	python version.py https://github.com/paritytech/polkadot-sdk && \
@@ -40,7 +41,7 @@ tester:
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		BRANCH_NAME="$(BRANCH_NAME)" \
 		KAGOME_IMAGE="$(KAGOME_IMAGE)" \
-		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
+		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -t zombie-tester:latest -f tester.Dockerfile \
 		--build-arg BRANCH_NAME=$$BRANCH_NAME \
 		--build-arg KAGOME_IMAGE=$$KAGOME_IMAGE \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
@@ -94,34 +95,45 @@ test0011:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0011-block-building-warp-sync/0011-block-building-warp-sync.zndsl
 
 test-polkadot-functional-0001-parachains-pvf:
-	docker run --platform linux/amd64 qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run --platform linux/amd64 $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl
 
 test-polkadot-functional-0002-parachains-disputes:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0002-parachains-disputes.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0002-parachains-disputes.zndsl
 
 test-polkadot-functional-0003-beefy-and-mmr:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0003-beefy-and-mmr.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0003-beefy-and-mmr.zndsl
 
 test-polkadot-functional-0004-parachains-garbage-candidate:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0004-parachains-garbage-candidate.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0004-parachains-garbage-candidate.zndsl
 
 test-polkadot-functional-0005-parachains-disputes-past-session:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0005-parachains-disputes-past-session.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0005-parachains-disputes-past-session.zndsl
 
 test-polkadot-functional-0006-parachains-max-tranche0:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0006-parachains-max-tranche0.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0006-parachains-max-tranche0.zndsl
 
 test-polkadot-functional-0007-dispute-freshly-finalized:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0007-dispute-freshly-finalized.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0007-dispute-freshly-finalized.zndsl
 
 test-polkadot-functional-0008-dispute-old-finalized:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0008-dispute-old-finalized.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0008-dispute-old-finalized.zndsl
 
 test-polkadot-functional-0009-approval-voting-coalescing:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0009-approval-voting-coalescing.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0009-approval-voting-coalescing.zndsl
 
 test-polkadot-functional-0010-validator-disabling:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0010-validator-disabling.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0010-validator-disabling.zndsl
 
 test-polkadot-functional-0011-async-backing-6-seconds-rate:
-	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0011-async-backing-6-seconds-rate.zndsl
+	ZOMBIE_TESTER_IMAGE=$(ZOMBIE_TESTER_IMAGE)
+	docker run $$ZOMBIE_TESTER_IMAGE zombienet-linux-x64 test -p native kagome/zombienet/polkadot/functional/0011-async-backing-6-seconds-rate.zndsl

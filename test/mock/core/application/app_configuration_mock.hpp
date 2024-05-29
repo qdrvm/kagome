@@ -195,6 +195,11 @@ namespace kagome::application {
                 getBenchmarkConfig,
                 (),
                 (const, override));
+
+    MOCK_METHOD(std::optional<PrecompileWasmConfig>,
+                precompileWasm,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

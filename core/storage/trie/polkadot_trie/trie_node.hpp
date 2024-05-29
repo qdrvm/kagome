@@ -28,7 +28,6 @@ namespace kagome::storage::trie {
     /**
      * Def. 14 KeyEncode
      * Splits a key to an array of nibbles (a nibble is a half of a byte)
-     * TODO(Harrm): Good candidate to rewrite with SIMD
      */
     static KeyNibbles fromByteBuffer(const common::BufferView &key) {
       if (key.empty()) {
@@ -50,7 +49,6 @@ namespace kagome::storage::trie {
 
     /**
      * Collects an array of nibbles to a key
-     * TODO(Harrm): Good candidate to rewrite with SIMD
      */
     auto toByteBuffer() const {
       Buffer res;
