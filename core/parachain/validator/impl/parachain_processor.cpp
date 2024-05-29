@@ -94,6 +94,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Candidate hash mismatch";
     case E::PARENT_HEAD_DATA_MISMATCH:
       return "Parent head data mismatch";
+    case E::NO_PEER:
+      return "No peer";
+    case E::ALREADY_REQUESTED:
+      return "Already requested";
+    case E::NOT_ADVERTISED:
+      return "Not advertised";
   }
   return "Unknown parachain processor error";
 }
@@ -675,7 +681,7 @@ namespace kagome::parachain {
       {  /// remove cancelations
         auto &container = our_current_state_.collation_requests_cancel_handles;
         for (auto pc = container.begin(); pc != container.end();) {
-          if (pc.relay_parent != lost) {
+          if (pc->relay_parent != lost) {
             ++pc;
           } else {
             pc = container.erase(pc);
@@ -685,7 +691,7 @@ namespace kagome::parachain {
       {  /// remove fetched candidates
         auto &container = our_current_state_.validator_side.fetched_candidates;
         for (auto pc = container.begin(); pc != container.end();) {
-          if (pc.relay_parent != lost) {
+          if (pc->first.relay_parent != lost) {
             ++pc;
           } else {
             pc = container.erase(pc);
@@ -1248,7 +1254,6 @@ namespace kagome::parachain {
         .assigned_para = assigned_para,
         .validator_to_group = std::move(validator_to_group),
         .per_session_state = per_session_state,
-        .seconded = {},
         .our_index = validator->validatorIndex(),
         .our_group = per_session_state->value().groups.byValidatorIndex(
             validator->validatorIndex()),
@@ -1349,7 +1354,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::handle_collation_fetch_response(
-      CollationEvent &&collation_event,
+      network::CollationEvent &&collation_event,
       network::CollationFetchingResponse &&response) {
     REINVOKE(*main_pool_handler_,
              handle_collation_fetch_response,
@@ -1381,7 +1386,7 @@ namespace kagome::parachain {
             collation_event.pending_collation.relay_parent,
             collation_response->get().receipt.hash(*hasher_));
 
-    PendingCollationFetch p{
+    network::PendingCollationFetch p{
         .collation_event = std::move(collation_event),
         .candidate_receipt = std::move(collation_response->get().receipt),
         .pov = std::move(collation_response->get().pov),
@@ -1411,7 +1416,7 @@ namespace kagome::parachain {
 
   outcome::result<void> ParachainProcessorImpl::fetched_collation_sanity_check(
       const PendingCollation &advertised,
-      const CandidateReceipt &fetched,
+      const network::CandidateReceipt &fetched,
       const crypto::Hashed<const runtime::PersistedValidationData &,
                            32,
                            crypto::Blake2b_StreamHasher<32>>
@@ -1448,14 +1453,15 @@ namespace kagome::parachain {
     while (auto collation =
                per_relay_state->get().collations.get_next_collation_to_fetch(
                    previous_fetch,
-                   per_relay_state->get().prospective_parachains_mode)) {
-      const auto &[next, id] = *collation;
+                   per_relay_state->get().prospective_parachains_mode,
+                   logger_)) {
+      const auto &[next, id] = std::move(*collation);
       SL_TRACE(logger_,
                "Successfully dequeued next advertisement - fetching ... "
                "(relay_parent={}, id={})",
                relay_parent,
                id);
-      if (auto res = fetch_collation(next, id); res.has_error()) {
+      if (auto res = fetchCollation(next, id); res.has_error()) {
         SL_TRACE(logger_,
                  "Failed to request a collation, dequeueing next one "
                  "(relay_parent={}, para_id={}, peer_id={}, error={})",
@@ -1489,7 +1495,7 @@ namespace kagome::parachain {
     return opt_pvd;
   }
 
-  std::optional<runtime::PersistedValidationData>
+  outcome::result<std::optional<runtime::PersistedValidationData>>
   ParachainProcessorImpl::fetchPersistedValidationData(
       const RelayHash &relay_parent, ParachainId para_id) {
     return requestPersistedValidationData(relay_parent, para_id);
@@ -3022,9 +3028,14 @@ namespace kagome::parachain {
       std::optional<StatementWithPVD> stm;
       if (auto ccr = if_type<const network::CommittedCandidateReceipt>(
               getPayload(statement_msg->statement).candidate_state)) {
+        auto res_pvd = fetchPersistedValidationData(
+            statement_msg->relay_parent, ccr->get().descriptor.para_id);
+        if (res_pvd.has_error()) {
+          SL_TRACE(logger_, "No pvd fetched. (error={})", res_pvd.error());
+          return;
+        }
         std::optional<runtime::PersistedValidationData> pvd =
-            fetchPersistedValidationData(statement_msg->relay_parent,
-                                         ccr->get().descriptor.para_id);
+            std::move(*res_pvd.value());
         if (!pvd) {
           SL_TRACE(logger_, "No pvd fetched.");
           return;
@@ -3184,9 +3195,7 @@ namespace kagome::parachain {
                   std::move(candidate),
                   std::move(*p),
                   std::move(pvd),
-                  peer_id,
-                  relay_parent,
-                  parachain_state->get().table_context.validators.size());
+                  relay_parent);
             }
           });
     }
@@ -4699,7 +4708,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::notify_collation_seconded(
       const libp2p::peer::PeerId &peer_id,
-      CollationVersion version,
+      network::CollationVersion version,
       const RelayHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
     logger_->info("Send Seconded to collator.(peer={}, relay parent={})",
@@ -4713,9 +4722,9 @@ namespace kagome::parachain {
               .payload =
                   {
                       .payload = network::CandidateState{s.committed_receipt},
-                      .ix = p.second.payload.ix,
+                      .ix = statement.payload.ix,
                   },
-              .signature = p.second.signature,
+              .signature = statement.signature,
           };
         },
         [&](const StatementWithPVDValid &s) -> network::SignedStatement {
@@ -4723,9 +4732,9 @@ namespace kagome::parachain {
               .payload =
                   {
                       .payload = network::CandidateState{s.candidate_hash},
-                      .ix = p.second.payload.ix,
+                      .ix = statement.payload.ix,
                   },
-              .signature = p.second.signature,
+              .signature = statement.signature,
           };
         });
 
@@ -4744,12 +4753,12 @@ namespace kagome::parachain {
   template <bool kReinvoke>
   void ParachainProcessorImpl::notifyInvalid(
       const primitives::BlockHash &parent,
-      const CandidateReceipt &candidate_receipt) {
+      const network::CandidateReceipt &candidate_receipt) {
     REINVOKE_ONCE(
         *main_pool_handler_, notifyInvalid, parent, candidate_receipt);
 
     auto fetched_collation =
-        FetchedCollation::from(candidate_receipt, *hasher_);
+        network::FetchedCollation::from(candidate_receipt, *hasher_);
     const auto &candidate_hash = fetched_collation.candidate_hash;
 
     auto it = our_current_state_.validator_side.fetched_candidates.find(
@@ -4782,9 +4791,9 @@ namespace kagome::parachain {
       const SignedFullStatementWithPVD &statement) {
     REINVOKE_ONCE(*main_pool_handler_, notifySeconded, parent, statement);
 
-    auto receipt =
+    auto seconded =
         if_type<const StatementWithPVDSeconded>(getPayload(statement));
-    if (!receipt) {
+    if (!seconded) {
       SL_TRACE(logger_,
                "Seconded message received with a `Valid` statement. "
                "(relay_parent={})",
@@ -4792,8 +4801,8 @@ namespace kagome::parachain {
       return;
     }
 
-    auto fetched_collation =
-        FetchedCollation::from(receipt->to_plain(*hasher_), *hasher_);
+    auto fetched_collation = network::FetchedCollation::from(
+        seconded->get().committed_receipt.to_plain(*hasher_), *hasher_);
     auto it = our_current_state_.validator_side.fetched_candidates.find(
         fetched_collation);
     if (it == our_current_state_.validator_side.fetched_candidates.end()) {
@@ -4814,8 +4823,12 @@ namespace kagome::parachain {
     auto &peer_id = pending_collation.peer_id;
     auto &prospective_candidate = pending_collation.prospective_candidate;
 
-    if (auto peer_state = pm_->getPeerState(peer_id)) {
-      notify_collation_seconded(peer_id, peer_data.version, relay_parent, stmt);
+    if (auto peer_data = pm_->getPeerState(peer_id)) {
+      network::CollationVersion version = network::CollationVersion::VStaging;
+      if (peer_data->get().version) {
+        version = *peer_data->get().version;
+      }
+      notify_collation_seconded(peer_id, version, relay_parent, statement);
     }
 
     if (auto rp_state = tryGetStateByRelayParent(parent)) {
@@ -4856,17 +4869,14 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onValidationComplete(
-      const libp2p::peer::PeerId &peer_id,
       const ValidateAndSecondResult &validation_result) {
-    logger_->trace("On validation complete. (peer={}, relay parent={})",
-                   peer_id,
+    logger_->trace("On validation complete. (relay parent={})",
                    validation_result.relay_parent);
 
     auto opt_parachain_state =
         tryGetStateByRelayParent(validation_result.relay_parent);
     if (!opt_parachain_state) {
-      logger_->trace("Validated candidate from {}:{} out of view",
-                     peer_id,
+      logger_->trace("Validated candidate from {} out of view",
                      validation_result.relay_parent);
       return;
     }
@@ -4888,11 +4898,9 @@ namespace kagome::parachain {
       return;
     }
 
-    logger_->trace(
-        "Second candidate complete. (candidate={}, peer={}, relay parent={})",
-        candidate_hash,
-        peer_id,
-        validation_result.relay_parent);
+    logger_->trace("Second candidate complete. (candidate={}, relay parent={})",
+                   candidate_hash,
+                   validation_result.relay_parent);
 
     const auto parent_head_data_hash =
         hasher_->blake2b_256(validation_result.pvd.parent_head);
@@ -4919,8 +4927,6 @@ namespace kagome::parachain {
     } else {
       return;
     }
-
-    seconded = candidate_hash;
 
     auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(
         parachain_state, validation_result);
@@ -5146,12 +5152,10 @@ namespace kagome::parachain {
 
   template <ParachainProcessorImpl::ValidationTaskType kMode>
   void ParachainProcessorImpl::makeAvailable(
-      const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &candidate_hash,
       ValidateAndSecondResult &&validate_and_second_result) {
     REINVOKE(*main_pool_handler_,
              makeAvailable<kMode>,
-             peer_id,
              candidate_hash,
              std::move(validate_and_second_result));
 
@@ -5172,9 +5176,9 @@ namespace kagome::parachain {
     parachain_state->get().awaiting_validation.erase(candidate_hash);
     auto q{std::move(validate_and_second_result)};
     if constexpr (kMode == ValidationTaskType::kSecond) {
-      onValidationComplete(peer_id, std::move(q));
+      onValidationComplete(std::move(q));
     } else {
-      onAttestComplete(peer_id, std::move(q));
+      onAttestComplete(std::move(q));
     }
   }
 
@@ -5183,37 +5187,38 @@ namespace kagome::parachain {
       network::CandidateReceipt &&candidate,
       network::ParachainBlock &&pov,
       runtime::PersistedValidationData &&pvd,
-      const libp2p::peer::PeerId &peer_id,
-      const primitives::BlockHash &relay_parent,
-      size_t n_validators) {
+      const primitives::BlockHash &relay_parent) {
     REINVOKE(*main_pool_handler_,
              validateAsync<kMode>,
              std::move(candidate),
              std::move(pov),
              std::move(pvd),
-             peer_id,
-             relay_parent,
-             n_validators);
+             relay_parent);
+
+    auto parachain_state =
+        tryGetStateByRelayParent(candidate.descriptor.relay_parent);
+    if (!parachain_state) {
+      return;
+    }
 
     const auto candidate_hash{candidate.hash(*hasher_)};
+    if constexpr (kMode == ValidationTaskType::kAttest) {
+      if (parachain_state->get().issued_statements.contains(candidate_hash)) {
+        return;
+      }
+    }
+
     if (!parachain_state->get()
              .awaiting_validation.insert(candidate_hash)
              .second) {
       return;
     }
 
-    if constexpr (kMode == ValidationTaskType::kSecond) {
-      if (rp_state.issued_statements.contains(candidate_hash)) {
-        return;
-      }
-    }
-
     SL_INFO(logger_,
             "Starting validation task.(para id={}, "
-            "relay parent={}, peer={}, candidate_hash={})",
+            "relay parent={}, candidate_hash={})",
             candidate.descriptor.para_id,
             relay_parent,
-            peer_id,
             candidate_hash);
 
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
@@ -5223,9 +5228,9 @@ namespace kagome::parachain {
                candidate,
                pov,
                pvd,
-               peer_id,
                relay_parent,
-               n_validators,
+               n_validators{
+                   parachain_state->get().table_context.validators.size()},
                _measure,
                candidate_hash](
                   outcome::result<Pvf::Result> validation_result) mutable {
@@ -5268,7 +5273,6 @@ namespace kagome::parachain {
                                 available_data.validation_data);
 
       self->makeAvailable<kMode>(
-          peer_id,
           candidate_hash,
           ValidateAndSecondResult{
               .result = outcome::success(),
@@ -5297,7 +5301,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestComplete(
-      const libp2p::peer::PeerId &, const ValidateAndSecondResult &result) {
+      const ValidateAndSecondResult &result) {
     auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
     if (!parachain_state) {
       logger_->warn(
@@ -5481,7 +5485,7 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> ParachainProcessorImpl::kick_off_seconding(
-      PendingCollationFetch &&pending_collation_fetch) {
+      network::PendingCollationFetch &&pending_collation_fetch) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     auto &collation_event = pending_collation_fetch.collation_event;
@@ -5489,8 +5493,8 @@ namespace kagome::parachain {
     auto relay_parent = pending_collation.relay_parent;
 
     OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
-    auto &collations = per_relay_parent->get().collations;
-    auto fetched_collation = FetchedCollation::from(
+    auto &collations = per_relay_parent.get().collations;
+    auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);
 
     if (our_current_state_.validator_side.fetched_candidates.contains(
@@ -5498,17 +5502,15 @@ namespace kagome::parachain {
       return Error::DUPLICATE;
     }
 
-    auto &entry =
-        our_current_state_.validator_side.fetched_candidates[fetched_collation];
     collation_event.pending_collation.commitments_hash =
         pending_collation_fetch.candidate_receipt.commitments_hash;
 
     const bool is_collator_v2 = (collation_event.collator_protocol_version
-                                 == CollationVersion::VStaging);
+                                 == network::CollationVersion::VStaging);
     const bool have_prospective_candidate =
-        collation_event.pending_collation.prospective_candidate;
+        collation_event.pending_collation.prospective_candidate.has_value();
     const bool async_backing_en =
-        per_relay_parent->get().prospective_parachains_mode;
+        per_relay_parent.get().prospective_parachains_mode.has_value();
 
     std::optional<runtime::PersistedValidationData> maybe_pvd;
     std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash;
@@ -5550,7 +5552,7 @@ namespace kagome::parachain {
         collation_event.pending_collation,
         pending_collation_fetch.candidate_receipt,
         pvd,
-        maybe_parent_head_and_hash, ));
+        maybe_parent_head_and_hash));
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
@@ -5559,7 +5561,8 @@ namespace kagome::parachain {
         std::move(pvd),
         relay_parent);
 
-    entry = collation_event;
+    our_current_state_.validator_side.fetched_candidates.emplace(
+        fetched_collation, collation_event);
     return outcome::success();
   }
 
@@ -5573,7 +5576,8 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership membership;
     const auto candidate_para = candidatePara(hypothetical_candidate);
     const auto candidate_relay_parent = relayParent(hypothetical_candidate);
-    const auto candidate_hash = candidateHash(hypothetical_candidate);
+    [[maybe_unused]] const auto candidate_hash =
+        candidateHash(hypothetical_candidate);
 
     auto proc_response = [&](std::vector<size_t> &&depths,
                              const Hash &head,
@@ -5824,12 +5828,19 @@ namespace kagome::parachain {
       return outcome::success();
     }
 
+    const auto pc = utils::map(prospective_candidate, [](const auto &p) {
+      return network::ProspectiveCandidate{
+          .candidate_hash = p.first,
+          .parent_head_data_hash = p.second,
+      };
+    });
+
     PendingCollation pending_collation{
         .relay_parent = relay_parent,
         .para_id = para_id,
         .peer_id = peer_id,
+        .prospective_candidate = std::move(pc),
         .commitments_hash = {},
-        .prospective_candidate = std::move(prospective_candidate),
     };
 
     switch (collations.status) {
@@ -5846,16 +5857,14 @@ namespace kagome::parachain {
                                               collator_id);
       } break;
       case CollationStatus::Waiting: {
-        fetchCollation(
-            per_relay_parent->get(), std::move(pending_collation), collator_id);
+        std::ignore = fetchCollation(std::move(pending_collation), collator_id);
       } break;
       case CollationStatus::Seconded: {
         if (relay_parent_mode) {
           // Limit is not reached, it's allowed to second another
           // collation.
-          fetchCollation(per_relay_parent->get(),
-                         std::move(pending_collation),
-                         collator_id);
+          std::ignore =
+              fetchCollation(std::move(pending_collation), collator_id);
         } else {
           SL_TRACE(logger_,
                    "A collation has already been seconded. (peer_id={}, para "
@@ -5870,20 +5879,18 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  void ParachainProcessorImpl::fetchCollation(
-      ParachainProcessorImpl::RelayParentState &per_relay_parent,
-      PendingCollation &&pc,
-      const CollatorId &id) {
+  outcome::result<void> ParachainProcessorImpl::fetchCollation(
+      const PendingCollation &pc, const CollatorId &id) {
     auto peer_state = pm_->getPeerState(pc.peer_id);
     if (!peer_state) {
       SL_TRACE(
           logger_, "No peer state. Unknown peer. (peer id={})", pc.peer_id);
-      return;
+      return Error::NO_PEER;
     }
 
     const auto candidate_hash =
         utils::map(pc.prospective_candidate,
-                   [](const auto &pair) { return std::cref(pair.first); });
+                   [](const auto &v) { return std::cref(v.candidate_hash); });
 
     network::CollationVersion version = network::CollationVersion::VStaging;
     if (peer_state->get().version) {
@@ -5891,15 +5898,14 @@ namespace kagome::parachain {
     }
 
     if (peer_state->get().hasAdvertised(pc.relay_parent, candidate_hash)) {
-      fetchCollation(per_relay_parent, std::move(pc), id, version);
-      return;
+      return fetchCollation(pc, id, version);
     }
     SL_WARN(logger_, "Not advertised. (peer id={})", pc.peer_id);
+    return Error::NOT_ADVERTISED;
   }
 
-  void ParachainProcessorImpl::fetchCollation(
-      ParachainProcessorImpl::RelayParentState &per_relay_parent,
-      PendingCollation &&pc,
+  outcome::result<void> ParachainProcessorImpl::fetchCollation(
+      const PendingCollation &pc,
       const CollatorId &id,
       network::CollationVersion version) {
     if (our_current_state_.collation_requests_cancel_handles.count(pc)
@@ -5908,12 +5914,23 @@ namespace kagome::parachain {
               "Already requested. (relay parent={}, para id={})",
               pc.relay_parent,
               pc.para_id);
-      return;
+      return Error::ALREADY_REQUESTED;
     }
+
+    auto per_relay_parent = tryGetStateByRelayParent(pc.relay_parent);
+    if (!per_relay_parent) {
+      return Error::OUT_OF_VIEW;
+    }
+
+    network::CollationEvent collation_event{
+        .collator_id = id,
+        .collator_protocol_version = version,
+        .pending_collation = pc,
+    };
 
     const auto peer_id = pc.peer_id;
     auto response_callback =
-        [pending_collation{pc}, wptr{weak_from_this()}](
+        [collation_event{std::move(collation_event)}, wptr{weak_from_this()}](
             outcome::result<network::CollationFetchingResponse>
                 &&result) mutable {
           auto self = wptr.lock();
@@ -5921,8 +5938,10 @@ namespace kagome::parachain {
             return;
           }
 
-          const RelayHash &relay_parent = pending_collation.relay_parent;
-          const libp2p::peer::PeerId &peer_id = pending_collation.peer_id;
+          const RelayHash &relay_parent =
+              collation_event.pending_collation.relay_parent;
+          const libp2p::peer::PeerId &peer_id =
+              collation_event.pending_collation.peer_id;
 
           SL_TRACE(self->logger_,
                    "Fetching collation from(peer={}, relay parent={})",
@@ -5937,7 +5956,7 @@ namespace kagome::parachain {
             return;
           }
 
-          self->handle_collation_fetch_response(std::move(pending_collation),
+          self->handle_collation_fetch_response(std::move(collation_event),
                                                 std::move(result).value());
         };
 
@@ -5950,9 +5969,10 @@ namespace kagome::parachain {
     our_current_state_.collation_requests_cancel_handles.insert(std::move(pc));
     const auto maybe_candidate_hash =
         utils::map(pc.prospective_candidate,
-                   [](const auto &pair) { return std::cref(pair.first); });
-    per_relay_parent.collations.status = CollationStatus::Fetching;
-    per_relay_parent.collations.fetching_from.emplace(id, maybe_candidate_hash);
+                   [](const auto &v) { return std::cref(v.candidate_hash); });
+    per_relay_parent->get().collations.status = CollationStatus::Fetching;
+    per_relay_parent->get().collations.fetching_from.emplace(
+        id, maybe_candidate_hash);
 
     if (network::CollationVersion::V1 == version) {
       network::CollationFetchingRequest fetch_collation_request{
@@ -5977,6 +5997,7 @@ namespace kagome::parachain {
     } else {
       UNREACHABLE;
     }
+    return outcome::success();
   }
 
 }  // namespace kagome::parachain

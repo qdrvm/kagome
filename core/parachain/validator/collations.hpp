@@ -55,8 +55,8 @@ namespace kagome::parachain {
     Seconded,
   };
 
-  using ProspectiveCandidate = network::ProspectiveCandidate;
-  using PendingCollation = network::PendingCollation;
+  using ProspectiveCandidate = kagome::network::ProspectiveCandidate;
+  using PendingCollation = kagome::network::PendingCollation;
 
   struct PendingCollationHash {
     size_t operator()(const PendingCollation &val) const noexcept {
@@ -64,8 +64,9 @@ namespace kagome::parachain {
       boost::hash_combine(r, std::hash<RelayHash>()(val.relay_parent));
       boost::hash_combine(r, std::hash<network::ParachainId>()(val.para_id));
       if (val.prospective_candidate) {
-        boost::hash_combine(
-            r, std::hash<CandidateHash>()(val.prospective_candidate->first));
+        boost::hash_combine(r,
+                            std::hash<CandidateHash>()(
+                                val.prospective_candidate->candidate_hash));
       }
       return r;
     }
@@ -103,7 +104,7 @@ namespace kagome::parachain {
 
     /// Note a seconded collation for a given para.
     void note_seconded() {
-      seconded_count += 1
+      seconded_count += 1;
     }
 
     void back_to_waiting(
@@ -124,14 +125,15 @@ namespace kagome::parachain {
     std::optional<std::pair<PendingCollation, CollatorId>>
     get_next_collation_to_fetch(
         const std::pair<CollatorId, std::optional<CandidateHash>> &finished_one,
-        const ProspectiveParachainsModeOpt &relay_parent_mode) {
+        const ProspectiveParachainsModeOpt &relay_parent_mode,
+        log::Logger logger) {
       if (fetching_from) {
         const auto &[collator_id, maybe_candidate_hash] = *fetching_from;
         if (collator_id != finished_one.first
             && (!maybe_candidate_hash
                 || *maybe_candidate_hash != finished_one.second)) {
           SL_TRACE(
-              logger_,
+              logger,
               "Not proceeding to the next collation - has already been done.");
           return std::nullopt;
         }
@@ -144,22 +146,21 @@ namespace kagome::parachain {
         case CollationStatus::Waiting: {
           if (!is_seconded_limit_reached(relay_parent_mode)) {
             return std::nullopt;
-          } else {
-            if (waiting_queue.empty()) {
-              return std::nullopt;
-            }
-            std::pair<PendingCollation, CollatorId> v{
-                std::move(waiting_queue.front())};
-            waiting_queue.pop_front();
-            return v;
           }
-          ,
+          if (waiting_queue.empty()) {
+            return std::nullopt;
+          }
+          std::pair<PendingCollation, CollatorId> v{
+              std::move(waiting_queue.front())};
+          waiting_queue.pop_front();
+          return v;
         } break;
         case CollationStatus::WaitingOnValidation:
         case CollationStatus::Fetching: {
           UNREACHABLE;
         } break;
       }
+      return std::nullopt;
     }
 
     bool is_seconded_limit_reached(

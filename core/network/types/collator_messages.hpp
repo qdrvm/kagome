@@ -7,6 +7,7 @@
 #pragma once
 
 #include <boost/variant.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>

@@ -25,7 +25,7 @@
 
 namespace kagome::parachain {
 
-  using ParentHeadData_OnlyHash = primitives::Hash;
+  using ParentHeadData_OnlyHash = Hash;
   using ParentHeadData_WithData = std::pair<HeadData, Hash>;
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
@@ -236,7 +236,8 @@ namespace kagome::parachain {
         if (!head_data) {
           const auto &required_parent =
               fragment_tree.scope.base_constraints.required_parent;
-          if (hasher_->blake2b_256(required_parent) == parent_head_data_hash) {
+          if (hasher_->blake2b_256(required_parent)
+              == parent_head_data_hash.get()) {
             head_data = required_parent;
           }
         }
