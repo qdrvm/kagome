@@ -34,7 +34,6 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
@@ -72,8 +71,7 @@ namespace kagome::parachain {
 
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
-  outcome::result<void, SecureModeError> changeRoot(
-      const std::filesystem::path &worker_dir) {
+  SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
 
@@ -103,7 +101,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableSeccomp() {
+  SecureModeOutcome<void> enableSeccomp() {
     std::array forbidden_calls{
         SCMP_SYS(socketpair),
         SCMP_SYS(socket),
@@ -129,7 +127,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableLandlock(
+  SecureModeOutcome<void> enableLandlock(
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 1>
         allowed_exceptions;
