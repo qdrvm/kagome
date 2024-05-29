@@ -38,8 +38,8 @@
 #define _CB_TRY_OUT(tmp, out, expr) \
   _CB_TRY_VOID(tmp, expr);          \
   out = std::move(tmp.value());
-#define CB_TRYV(expr) _CB_TRY_VOID(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
-#define CB_TRY(out, expr) _CB_TRY_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
+#define CB_TRYV(expr) _CB_TRY_VOID(OUTCOME_UNIQUE, expr)
+#define CB_TRY(out, expr) _CB_TRY_OUT(OUTCOME_UNIQUE, out, expr)
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;

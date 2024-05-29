@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include <span>
-
-#include "outcome/outcome.hpp"
+#include "outcome/custom.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/types.hpp"
 #include "storage/trie/types.hpp"
@@ -29,6 +27,8 @@ namespace kagome::runtime {
   inline std::error_code make_error_code(CompilationError) {
     return Error::COMPILATION_FAILED;
   }
+  template <typename R>
+  using CompilationOutcome = CustomOutcome<R, CompilationError>;
 
   inline void outcome_throw_as_system_error_with_payload(CompilationError e) {
     throw e;
@@ -38,7 +38,7 @@ namespace kagome::runtime {
    public:
     virtual ~ModuleFactory() = default;
 
-    virtual outcome::result<std::shared_ptr<Module>, CompilationError> make(
+    virtual CompilationOutcome<std::shared_ptr<Module>> make(
         common::BufferView code) const = 0;
   };
 

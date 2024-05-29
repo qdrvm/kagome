@@ -15,7 +15,7 @@ namespace kagome::parachain {
         knowledge{},
         pending{} {}
 
-  outcome::result<Accept, RejectIncoming> ClusterTracker::can_receive(
+  CustomOutcome<Accept, RejectIncoming> ClusterTracker::can_receive(
       ValidatorIndex sender,
       ValidatorIndex originator,
       network::CompactStatement statement) {
@@ -80,10 +80,11 @@ namespace kagome::parachain {
     }
 
     if (pending_count >= validators.size()) {
-      SL_WARN(
-          logger_,
-          "Cluster has too many pending statements, something wrong with our connection to our group peers. "
-          "Restart might be needed if validator gets 0 backing rewards for more than 3-4 consecutive sessions");
+      SL_WARN(logger_,
+              "Cluster has too many pending statements, something wrong with "
+              "our connection to our group peers. "
+              "Restart might be needed if validator gets 0 backing rewards for "
+              "more than 3-4 consecutive sessions");
     }
   }
 
@@ -123,7 +124,7 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<void, RejectOutgoing> ClusterTracker::can_send(
+  CustomOutcome<void, RejectOutgoing> ClusterTracker::can_send(
       ValidatorIndex target,
       ValidatorIndex originator,
       network::CompactStatement statement) {
