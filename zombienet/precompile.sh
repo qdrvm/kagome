@@ -23,5 +23,5 @@ kagome --tmp --chain $DIR/rococo-local.json \
 kagome --tmp --chain $DIR/westend-local.json \
   --precompile-para $DIR/polkadot-parachain.json
 
-kagome --tmp --chain kagome/zombienet/0009-basic-warp-sync/gen-db-raw.json \
+kagome --tmp --chain ./old/0009-basic-warp-sync/gen-db-raw.json \
   --precompile-relay
