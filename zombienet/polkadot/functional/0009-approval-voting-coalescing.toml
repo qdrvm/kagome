@@ -24,7 +24,7 @@ requests = { memory = "2G", cpu = "1" }
   name = "kagome-alice"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "-lparachain=trace", "-lruntime=debug" ]
+  args = [ "-lparachain=trace", "-lruntime=debug", "--wasm-execution=Compiled" ]
   count = 7
 
 [[parachains]]

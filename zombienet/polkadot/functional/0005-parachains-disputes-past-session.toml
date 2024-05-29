@@ -28,7 +28,7 @@ requests = { memory = "2G", cpu = "1" }
   command = "kagome"
   prometheus_prefix = "kagome"
   count = 1
-  args = ["-lparachain=debug"]
+  args = ["-lparachain=debug", "--wasm-execution=Compiled"]
 
   [[relaychain.node_groups]]
   name = "malus-validator"

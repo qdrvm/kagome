@@ -25,7 +25,7 @@ requests = { memory = "2G", cpu = "1" }
   command = "kagome"
   prometheus_prefix = "kagome"
   count = 3
-  args = ["-lparachain=debug"]
+  args = ["-lparachain=debug", "--wasm-execution=Compiled"]
 
   [[relaychain.nodes]]
   name = "malus"

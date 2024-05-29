@@ -33,13 +33,13 @@ requests = { memory = "2G", cpu = "1" }
   name = "charlie"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--charlie", "-lparachain=debug" ]
+  args = [ "--charlie", "-lparachain=debug", "--wasm-execution Compiled"]
 
   [[relaychain.nodes]]
   name = "dave"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--dave", "-lparachain=debug"]
+  args = [ "--dave", "-lparachain=debug", "--wasm-execution Compiled"]
 
   [[relaychain.nodes]]
   name = "ferdie"
