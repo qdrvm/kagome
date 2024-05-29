@@ -33,19 +33,6 @@ hunter_config(
 )
 
 hunter_config(
-    soralog
-    VERSION 0.2.3
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/f714666d7b1b0846b4389a83039ead6d8d1fac4c.zip
-    SHA1 5a31230988286f84e0dacc18f743f2607581a652
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     rocksdb
     VERSION 9.0.0
     CMAKE_ARGS WITH_GFLAGS=OFF
@@ -87,13 +74,6 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   )
 endif ()
 
-hunter_config(
-    scale
-    URL  https://github.com/qdrvm/scale-codec-cpp/archive/43666762dedfa216b47444d02b3544781108ed75.zip
-    SHA1 9e17a3be6aad5f01dd2744186692315ca6fd5ed6
-    KEEP_PACKAGE_SOURCES
-)
-
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(
@@ -120,10 +100,4 @@ hunter_config(
     VERSION 0.4.1-qdrvm1
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
-)
-
-hunter_config(
-    qtils
-    URL  https://github.com/qdrvm/qtils/archive/bb5f440b4aa2b0bf66eacbb27ac97ddf64cd4e5e.zip
-    SHA1 574be4af9cfd79dc530583dc1fe78571b7afa662
 )
