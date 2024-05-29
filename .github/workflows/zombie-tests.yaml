@@ -24,11 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         options:
-#          - name: "Self-hosted: Push Debug Docker image"
+#          - name: "Self-hosted: Debug Docker image"
 #            build-type: "Debug"
-          - name: "Self-hosted: Push Release Docker image"
+          - name: "Self-hosted: Release Docker image"
             build-type: "Release"
-#          - name: "Self-hosted: Push RelWithDebInfo Docker image"
+#          - name: "Self-hosted: RelWithDebInfo Docker image"
 #            build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
@@ -89,13 +89,13 @@ jobs:
           echo "branch=${branch}" >> $GITHUB_OUTPUT
           echo "Branch name: ${branch}"
         id: extract_branch
-      - name: build zombie-tester
+      - name: Build zombie-tester
         working-directory: ./zombienet/docker
         run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
       - name: Archive zombie-tester
         shell: bash
         run: docker save -o /tmp/zombie-tester.tar zombie-tester:latest
-      - name: upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: zombie-tester
