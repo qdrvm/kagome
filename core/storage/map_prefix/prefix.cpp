@@ -126,10 +126,6 @@ namespace kagome::storage {
     return map->contains(_key(key));
   }
 
-  bool MapPrefix::empty() const {
-    throw std::logic_error{"MapPrefix::empty not implemented"};
-  }
-
   outcome::result<void> MapPrefix::put(const BufferView &key,
                                        BufferOrView &&value) {
     return map->put(_key(key), std::move(value));

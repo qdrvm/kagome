@@ -29,11 +29,6 @@ namespace kagome::storage::face {
     virtual outcome::result<bool> contains(const View<K> &key) const = 0;
 
     /**
-     * @brief Returns true if the storage is empty.
-     */
-    virtual bool empty() const = 0;
-
-    /**
      * @brief Get value by key
      * @param key K
      * @return V

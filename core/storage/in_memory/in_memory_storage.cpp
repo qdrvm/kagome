@@ -49,10 +49,6 @@ namespace kagome::storage {
     return storage.find(key.toHex()) != storage.end();
   }
 
-  bool InMemoryStorage::empty() const {
-    return storage.empty();
-  }
-
   outcome::result<void> InMemoryStorage::remove(const BufferView &key) {
     auto it = storage.find(key.toHex());
     if (it != storage.end()) {
