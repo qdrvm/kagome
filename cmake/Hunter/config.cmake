@@ -89,8 +89,8 @@ endif ()
 
 hunter_config(
     scale
-    URL  https://github.com/qdrvm/scale-codec-cpp/archive/914e441837d79303373bbc20fe04432a1bf08394.zip
-    SHA1 b2c3cfe57afb0481728b73c7f31598d9dd791f99
+    URL  https://github.com/qdrvm/scale-codec-cpp/archive/43666762dedfa216b47444d02b3544781108ed75.zip
+    SHA1 9e17a3be6aad5f01dd2744186692315ca6fd5ed6
     KEEP_PACKAGE_SOURCES
 )
 
