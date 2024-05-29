@@ -141,9 +141,7 @@ jobs:
         run: |
           docker load --input /tmp/zombie-tester.tar
           docker image ls -a
-      - name: Set owner of working dir recursively
-        run: sudo chown -R $(whoami) .
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: Run test
         working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }}
+        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
