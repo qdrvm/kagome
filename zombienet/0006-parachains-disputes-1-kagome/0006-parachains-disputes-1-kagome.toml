@@ -1,0 +1,82 @@
+[settings]
+timeout = 1000
+
+[relaychain]
+chain = "rococo-local"
+default_command = "polkadot"
+chain_spec_command = "polkadot build-spec --chain rococo-local --disable-default-bootnode"
+
+[relaychain.default_resources]
+limits = { memory = "4G", cpu = "2" }
+requests = { memory = "2G", cpu = "1" }
+
+  [[relaychain.nodes]]
+  name = "alice"
+  command = "malus dispute-ancestor"
+  args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "bob"
+  command = "malus dispute-ancestor"
+  args = [ "--bob", "-lparachain=debug"]
+
+  [[relaychain.nodes]]
+  name = "charlie"
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "dave"
+  args = [ "-lparachain=debug"]
+
+  [[relaychain.nodes]]
+  name = "ferdie"
+  args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "eve"
+  args = [ "-lparachain=debug"]
+
+  [[relaychain.nodes]]
+  name = "one"
+  args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "two"
+  args = [  "-lparachain=debug"]
+
+[[parachains]]
+id = 2000
+add_to_genesis = true
+genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=1"
+
+  [parachains.collator]
+  name = "collator01"
+  command = "undying-collator"
+  args = ["-lparachain=debug", "--pov-size=100000", "--pvf-complexity=1", "--parachain-id=2000"]
+
+[[parachains]]
+id = 2001
+add_to_genesis = true
+genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=2"
+
+  [parachains.collator]
+  name = "collator02"
+  command = "undying-collator"
+  args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2001", "--pvf-complexity=2"]
+
+[[parachains]]
+id = 2002
+add_to_genesis = true
+genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=10"
+
+  [parachains.collator]
+  name = "collator03"
+  command = "undying-collator"
+  args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2002", "--pvf-complexity=10"]
+
+[types.Header]
+number = "u64"
+parent_hash = "Hash"
+post_state = "Hash"

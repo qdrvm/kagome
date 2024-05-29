@@ -1,0 +1,30 @@
+[relaychain]
+default_command = "polkadot"
+chain = "rococo-local"
+
+  [[relaychain.nodes]]
+  name = "alice"
+  validator = true
+
+  [[relaychain.nodes]]
+  name = "bob"
+  validator = true
+  command = "kagome"
+  prometheus_prefix = "kagome"
+
+[[parachains]]
+id = 2000
+cumulus_based = true
+
+  # run charlie as parachain collator
+  [[parachains.collators]]
+  name = "charlie"
+  validator = true
+  command = "test-parachain"
+  args = ["-lparachain=debug"]
+
+  # Run dave as parachain full node
+  [[parachains.collators]]
+  name = "dave"
+  validator = false
+  command = "test-parachain"

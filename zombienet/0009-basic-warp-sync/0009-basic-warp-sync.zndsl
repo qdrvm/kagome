@@ -1,0 +1,25 @@
+Description: Warp sync
+Network: ./0009-basic-warp-sync.toml
+Creds: config
+
+alice: reports node_roles is 1
+bob: reports node_roles is 1
+charlie: reports node_roles is 1
+dave: reports node_roles is 1
+
+alice: reports peers count is at least 3 within 60 seconds
+bob: reports peers count is at least 3 within 60 seconds
+charlie: reports peers count is at least 3 within 60 seconds
+dave: reports peers count is at least 3 within 60 seconds
+
+
+# db snapshot has 5140 blocks
+dave: reports block height is at least 1 within 60 seconds
+dave: reports block height is at least 5140 within 60 seconds
+
+alice: reports block height is at least 5140 within 60 seconds
+bob: reports block height is at least 5140 within 60 seconds
+charlie: reports block height is at least 5140 within 60 seconds
+
+dave: log line matches "Synchronizer  Sync of state for block #[0-9]+ \(0x.*?\) has started" within 60 seconds
+dave: log line matches "Synchronizer  State syncing block #[0-9]+ \(0x.*?\) has finished." within 60 seconds

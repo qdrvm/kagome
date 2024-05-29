@@ -1,0 +1,24 @@
+[settings]
+timeout = 1000
+
+[relaychain]
+chain = "rococo-local"
+default_command = "polkadot"
+
+  [[relaychain.nodes]]
+  name = "alice"
+  args = ["-lruntime=debug,parachain=trace" ]
+
+  [[relaychain.nodes]]
+  name = "bob"
+  args = [ "-lruntime=debug,parachain=trace" ]
+
+  [[relaychain.nodes]]
+  name = "charlie"
+  args = [ "-lruntime=debug,parachain=trace" ]
+
+  [[relaychain.nodes]]
+  name = "dave"
+  args = [ "-lruntime=debug,parachain=trace" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
