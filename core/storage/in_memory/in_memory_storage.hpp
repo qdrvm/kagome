@@ -35,8 +35,6 @@ namespace kagome::storage {
     outcome::result<bool> contains(
         const common::BufferView &key) const override;
 
-    bool empty() const override;
-
     outcome::result<void> remove(const common::BufferView &key) override;
 
     std::unique_ptr<BufferBatch> batch() override;

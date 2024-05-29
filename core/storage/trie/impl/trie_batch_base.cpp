@@ -42,10 +42,6 @@ namespace kagome::storage::trie {
     return trie_->contains(key);
   }
 
-  bool TrieBatchBase::empty() const {
-    return trie_->empty();
-  }
-
   outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
   TrieBatchBase::createChildBatch(common::BufferView path) {
     OUTCOME_TRY(child_root_value, tryGet(path));

@@ -69,9 +69,6 @@ struct TrieTracker : TrieStorageBackend {
   outcome::result<bool> contains(const BufferView &key) const override {
     abort();
   }
-  bool empty() const override {
-    abort();
-  }
 
   outcome::result<void> put(const BufferView &key,
                             BufferOrView &&value) override {
