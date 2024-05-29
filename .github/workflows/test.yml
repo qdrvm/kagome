@@ -253,83 +253,39 @@ jobs:
           VERSION: ${{ github.ref }}
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
-  
-  Push-self-hosted-PR:
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master push') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Self-hosted: Push Debug Docker image"
-            build-type: "Debug"
-          - name: "Self-hosted: Push Release Docker image"
-            build-type: "Release"
-          - name: "Self-hosted: Push RelWithDebInfo Docker image"
-            build-type: "RelWithDebInfo"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - run: git config --global --add safe.directory /__w/kagome/kagome
-      - run: git fetch --prune --unshallow
-      - name: build
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
-        with:
-          login-server: https://index.docker.io/v1/
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - name: docker pack and push
-        env:
-          VERSION: ${{ github.ref }}
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-tests:
-    if: false
+    if: true
     strategy:
       fail-fast: false
       matrix:
         options:
-          - name: "Parachains smoke test"
-            test: "test0001"
-          - name: "Parachains smoke test kagome"
-            test: "test0001_kagome"
-          - name: "Parachains upgrade smoke test"
-            test: "test0002"
-          - name: "Parachains upgrade smoke test kagome"
-            test: "test0002_kagome"
-          - name: "Parachains smoke test cumulus"
-            test: "test0003"
-          - name: "Parachains smoke test cumulus kagome"
-            test: "test0003_kagome"
-          - name: "Runtime upgrade"
-            test: "test0004"
-          - name: "Runtime upgrade kagome"
-            test: "test0004_kagome"
-          - name: "Dispute valid block"
-            test: "test0005"
-          - name: "Parachains disputes"
-            test: "test0006"
-          - name: "Deregister register validator smoke"
-            test: "test0008"
-          - name: "Basic warp sync"
-            test: "test0009"
-          - name: "Validators warp sync"
-            test: "test0010"
-          - name: "Block building warp sync"
-            test: "test0011"
+          - name: "PVF preparation & execution time"
+            test: "test-polkadot-functional-0001-parachains-pvf"
+          - name: "Disputes initiation, conclusion and lag"
+            test: "test-polkadot-functional-0002-parachains-disputes"
+          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+            test: "test-polkadot-functional-0003-beefy-and-mmr"
+          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+          - name: "Past-session dispute slashing"
+            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+          - name: "Test if parachains make progress with most of approvals being tranch0"
+            test: "test-polkadot-functional-0006-parachains-max-tranche0"
+          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
+            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+            test: "test-polkadot-functional-0008-dispute-old-finalized"
+          - name: "Approval voting coalescing does not lag finality"
+            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+          - name: "Test validator disabling effects"
+            test: "test-polkadot-functional-0010-validator-disabling"
+          - name: "Test we are producing blocks at 6 seconds clip"
+            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
+    env:
+      BRANCH_NAME: ${{ github.head_ref }}
     needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively
@@ -337,7 +293,7 @@ jobs:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
-        run: make tester
+        run: make tester BRANCH_NAME=${{ env.BRANCH_NAME }}
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
