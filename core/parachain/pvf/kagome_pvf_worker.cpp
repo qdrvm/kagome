@@ -29,13 +29,11 @@
 #include <libp2p/common/asio_buffer.hpp>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/log/configurator.hpp>
-#include <libp2p/outcome/outcome-register.hpp>
 #include <soralog/macro.hpp>
 
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
@@ -73,8 +71,7 @@ namespace kagome::parachain {
 
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
-  outcome::result<void, SecureModeError> changeRoot(
-      const std::filesystem::path &worker_dir) {
+  SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
 
@@ -104,7 +101,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableSeccomp() {
+  SecureModeOutcome<void> enableSeccomp() {
     std::array forbidden_calls{
         SCMP_SYS(socketpair),
         SCMP_SYS(socket),
@@ -130,7 +127,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableLandlock(
+  SecureModeOutcome<void> enableLandlock(
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 1>
         allowed_exceptions;
@@ -298,9 +295,9 @@ namespace kagome::parachain {
       SL_WARN(logger, "Secure validator mode disabled in node configuration");
     }
 #else
-    SL_WARN(
-        logger,
-        "Secure validator mode is not implemented for the current platform. Proceed at your own risk.");
+    SL_WARN(logger,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));

@@ -69,8 +69,7 @@ namespace kagome::runtime {
         common::BufferView code_zstd,
         const RuntimeContext::ContextParams &config);
 
-    using CompilationResult =
-        outcome::result<std::shared_ptr<const Module>, CompilationError>;
+    using CompilationResult = CompilationOutcome<std::shared_ptr<const Module>>;
     CompilationResult tryCompileModule(
         const CodeHash &code_hash,
         common::BufferView code_zstd,

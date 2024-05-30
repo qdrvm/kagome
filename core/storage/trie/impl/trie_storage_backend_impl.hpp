@@ -26,7 +26,6 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
     outcome::result<bool> contains(const BufferView &key) const override;
-    bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override;

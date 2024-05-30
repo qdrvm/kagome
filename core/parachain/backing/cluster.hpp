@@ -17,6 +17,7 @@
 
 #include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
+#include "outcome/custom.hpp"
 #include "parachain/types.hpp"
 
 /// References
@@ -180,7 +181,7 @@ namespace kagome::parachain {
     ClusterTracker(std::vector<ValidatorIndex> validators,
                    size_t seconding_limit);
 
-    outcome::result<Accept, RejectIncoming> can_receive(
+    CustomOutcome<Accept, RejectIncoming> can_receive(
         ValidatorIndex sender,
         ValidatorIndex originator,
         network::CompactStatement statement);
@@ -206,7 +207,7 @@ namespace kagome::parachain {
                        ValidatorIndex originator,
                        network::CompactStatement statement);
 
-    outcome::result<void, RejectOutgoing> can_send(
+    CustomOutcome<void, RejectOutgoing> can_send(
         ValidatorIndex target,
         ValidatorIndex originator,
         network::CompactStatement statement);

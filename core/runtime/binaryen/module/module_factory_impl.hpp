@@ -40,7 +40,7 @@ namespace kagome::runtime::binaryen {
                       std::shared_ptr<storage::trie::TrieStorage> storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<std::shared_ptr<Module>, CompilationError> make(
+    CompilationOutcome<std::shared_ptr<Module>> make(
         common::BufferView code) const override;
 
    private:

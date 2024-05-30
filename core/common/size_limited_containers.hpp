@@ -8,12 +8,11 @@
 
 #include <fmt/format.h>
 #include <limits>
+#include <qtils/cxx20/lexicographical_compare_three_way.hpp>
 #include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
-
-#include "common/lexicographical_compare_three_way.hpp"
 
 namespace kagome::common {
 
@@ -363,7 +362,7 @@ namespace kagome::common {
     }
 
     auto operator<=>(const SizeLimitedContainer &other) const {
-      return cxx20::lexicographical_compare_three_way(
+      return qtils::cxx20::lexicographical_compare_three_way(
           Base::begin(), Base::end(), other.begin(), other.end());
     }
   };

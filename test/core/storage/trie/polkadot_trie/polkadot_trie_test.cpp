@@ -349,7 +349,6 @@ TEST_F(TrieTest, ClearPrefix) {
         return outcome::success();
       }));
   ASSERT_OUTCOME_IS_FALSE(trie->contains("bat"_buf));
-  ASSERT_TRUE(trie->empty());
 }
 
 struct DeleteData {
@@ -510,17 +509,6 @@ INSTANTIATE_TEST_SUITE_P(
                          {""_buf, "a"_buf},
                          {false, 2},
                          2}}));
-
-/**
- * @given an empty trie
- * @when putting something into the trie
- * @then the trie is empty no more
- */
-TEST_F(TrieTest, EmptyTrie) {
-  ASSERT_TRUE(trie->empty());
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put(Buffer{0}, "asdasd"_buf));
-  ASSERT_FALSE(trie->empty());
-}
 
 /**
  * @given a trie

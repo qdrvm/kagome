@@ -38,8 +38,8 @@ namespace kagome::parachain {
     PvfPoolWrapper(std::shared_ptr<runtime::ModuleFactory> inner)
         : inner_{std::move(inner)} {}
 
-    outcome::result<std::shared_ptr<runtime::Module>, runtime::CompilationError>
-    make(common::BufferView code) const override {
+    runtime::CompilationOutcome<std::shared_ptr<runtime::Module>> make(
+        common::BufferView code) const override {
       auto timer = metric_pvf_preparation_time().timer();
       return inner_->make(code);
     }
