@@ -676,7 +676,7 @@ namespace kagome::network {
                       std::find_if(self->queue_to_connect_.cbegin(),
                                    self->queue_to_connect_.cend(),
                                    [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item.get();
+                                     return peer_id == item;
                                    });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
