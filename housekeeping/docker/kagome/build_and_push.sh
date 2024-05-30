@@ -55,8 +55,6 @@ else
   TAG="qdrvm/kagome:$VERSION"
 fi
 
-echo "$TAG" > tag_output.txt
-
 CTX_DIR="${BUILD_DIR}/docker_context"
 echo "CTX_DIR: $CTX_DIR"
 
@@ -96,6 +94,8 @@ fi
 if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
   TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-rel-with-deb-info"
 fi
+
+echo "$TAG_HASH_COMMIT" > tag_output.txt
 
 docker tag $TAG $TAG_HASH_COMMIT
 docker push $TAG_HASH_COMMIT

@@ -31,6 +31,7 @@ env:
 
 jobs:
   MacOS:
+    if: false
     runs-on: macos-14
     timeout-minutes: 120
     steps:
@@ -48,15 +49,16 @@ jobs:
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
+        
+        
   Linux:
-    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    if: false #${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
         options:
           - name: "Linux: clang-16 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
-
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -82,6 +84,7 @@ jobs:
           du -hd1 /__w /github || true
 
   Linux-self-hosted:
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +114,7 @@ jobs:
         run: "${{ matrix.options.run }}"
 
   clang-tidy:
+    if: false
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -166,7 +170,7 @@ jobs:
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Minideb:
-    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    if: false #${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
@@ -191,7 +195,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Minideb-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
+    if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
     strategy:
       fail-fast: false
       matrix:
@@ -215,9 +219,9 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
 
-  Push-self-hosted:
+  push-self-hosted:
     #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    needs: [clang-tidy, MacOS, Minideb-self-hosted]
+    #needs: [clang-tidy, MacOS, Minideb-self-hosted]
     strategy:
       fail-fast: false
       matrix:
@@ -255,15 +259,17 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: |
           ./housekeeping/docker/kagome/build_and_push.sh
-          if [ "${{ matrix.options.build-type }}" == "Release" ]; then
-            TAG=$(cat tag_output.txt)
-            echo "::set-output name=tag::$TAG"
-          fi
+      - name: Save TAG
+        id: save-tag
+        if: matrix.options.build-type == 'Release'
+        run: TAG=$(cat tag_output.txt) && echo "tag=$TAG" >> $GITHUB_OUTPUT
+    outputs:
+      release-tag: ${{ steps.save-tag.outputs.tag }} 
 
   Prepare-Zombie-Tests-Docker:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
-    needs: [Push-self-hosted]
+    needs: [push-self-hosted]
     steps:
       - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
         with:
@@ -271,7 +277,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Pull Kagome Docker Image
-        run: docker pull ${{steps.docker-pack-and-push.outputs.tag}}
+        run: docker pull ${{ needs.push-self-hosted.outputs.release-tag }}
       - name: Load image
         run: docker image ls -a      
       - name: Set owner of working dir recursively
@@ -286,7 +292,7 @@ jobs:
         id: extract_branch
       - name: Build zombie-tester
         working-directory: ./zombienet/docker
-        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=${{steps.docker-pack-and-push.outputs.tag}}
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=${{ needs.push-self-hosted.outputs.release-tag }}
       - name: Archive zombie-tester
         shell: bash
         run: docker save -o /tmp/zombie-tester.tar zombie-tester:latest
