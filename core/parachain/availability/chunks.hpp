@@ -20,8 +20,7 @@
 #define _EC_CPP_TRY_OUT(tmp, out, expr) \
   _EC_CPP_TRY_VOID(tmp, expr);          \
   auto out = ec_cpp::resultGetValue(std::move(tmp));
-#define EC_CPP_TRY(out, expr) \
-  _EC_CPP_TRY_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr)
+#define EC_CPP_TRY(out, expr) _EC_CPP_TRY_OUT(OUTCOME_UNIQUE, out, expr)
 
 namespace kagome::parachain {
   inline outcome::result<size_t> minChunks(size_t validators) {

@@ -359,8 +359,8 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(common::BufferView code) const {
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+      common::BufferView code) const {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/buffer.hpp"
 #include "common/bytestr.hpp"
 #include "network/adapters/protobuf.hpp"
 #include "network/protobuf/light.v1.pb.h"

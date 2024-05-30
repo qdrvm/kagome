@@ -41,8 +41,8 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(common::BufferView code) const {
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+      common::BufferView code) const {
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
         storage_, serializer_, host_api_factory_, shared_from_this());
     OUTCOME_TRY(module,

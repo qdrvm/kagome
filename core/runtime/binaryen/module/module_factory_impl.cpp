@@ -25,8 +25,8 @@ namespace kagome::runtime::binaryen {
         storage_{std::move(storage)},
         hasher_(std::move(hasher)) {}
 
-  outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(common::BufferView code) const {
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+      common::BufferView code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(code_vec,

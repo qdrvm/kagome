@@ -5,10 +5,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
+#include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -21,7 +23,6 @@
 #include "primitives/block_header.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_context.hpp"
-#include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -309,7 +310,7 @@ namespace kagome::api {
 
     EXPECT_OUTCOME_ERROR(result,
                          subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+                         qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -327,7 +328,7 @@ namespace kagome::api {
 
     EXPECT_OUTCOME_ERROR(result,
                          subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+                         qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -341,11 +342,10 @@ namespace kagome::api {
         std::make_shared<api::state::request::SubscribeStorage>(state_api);
 
     jsonrpc::Request::Parameters params;
-    params.push_back(jsonrpc::Value::Array{std::string("0xtest_data")});
+    params.push_back(jsonrpc::Value::Array{std::string("0xtestdata")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         common::UnhexError::NON_HEX_INPUT);
+    EXPECT_OUTCOME_ERROR(
+        result, subscribe_storage->init(params), qtils::UnhexError::NON_HEX);
   }
 
   /**
