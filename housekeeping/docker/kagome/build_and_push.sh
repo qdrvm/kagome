@@ -55,6 +55,8 @@ else
   TAG="qdrvm/kagome:$VERSION"
 fi
 
+echo "$TAG" > tag_output.txt
+
 CTX_DIR="${BUILD_DIR}/docker_context"
 echo "CTX_DIR: $CTX_DIR"
 

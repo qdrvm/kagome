@@ -216,7 +216,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Push-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
     needs: [clang-tidy, MacOS, Minideb-self-hosted]
     strategy:
       fail-fast: false
@@ -249,13 +249,57 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: docker pack and push
+        id: docker-pack-and-push
         env:
           VERSION: ${{ github.ref }}
           BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
+        run: |
+          ./housekeeping/docker/kagome/build_and_push.sh
+          if [ "${{ matrix.options.build-type }}" == "Release" ]; then
+            TAG=$(cat tag_output.txt)
+            echo "::set-output name=tag::$TAG"
+          fi
 
-  zombie-tests:
-    if: true
+  Prepare-Zombie-Tests-Docker:
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    needs: [Push-self-hosted]
+    steps:
+      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Pull Kagome Docker Image
+        run: docker pull ${{steps.docker-pack-and-push.outputs.tag}}
+      - name: Load image
+        run: docker image ls -a      
+      - name: Set owner of working dir recursively
+        run: sudo chown -R $(whoami) .
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+          echo "Branch name: ${branch}"
+        id: extract_branch
+      - name: Build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=${{steps.docker-pack-and-push.outputs.tag}}
+      - name: Archive zombie-tester
+        shell: bash
+        run: docker save -o /tmp/zombie-tester.tar zombie-tester:latest
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-tester
+          path: /tmp/zombie-tester.tar
+
+  Zombie-Tests:
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 60
+    needs: [Prepare-Zombie-Tests-Docker]
     strategy:
       fail-fast: false
       matrix:
@@ -282,28 +326,17 @@ jobs:
             test: "test-polkadot-functional-0010-validator-disabling"
           - name: "Test we are producing blocks at 6 seconds clip"
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    env:
-      BRANCH_NAME: ${{ github.head_ref }}
-    needs: [Push-self-hosted]
     steps:
-      - name: Set owner of working dir recurively
-        run: sudo chown -R $(whoami) .
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zombie-tester
+          path: /tmp
+      - name: Load image
+        run: |
+          docker load --input /tmp/zombie-tester.tar
+          docker image ls -a
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester BRANCH_NAME=${{ env.BRANCH_NAME }}
       - name: Run test
         working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }}
-
-#  Trigger_CD:
-#    if: ${{ github.ref == 'refs/heads/master' }}
-#    needs: [Push-self-hosted]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: trigger cd job
-#        run: |
-#          curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
-#          curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"
+        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
