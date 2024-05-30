@@ -5669,18 +5669,14 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::handleAdvertisement(
-      network::CollationEvent &&pending_collation,
+      const RelayHash &relay_parent,
+      const libp2p::peer::PeerId &peer_id,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
     REINVOKE(*main_pool_handler_,
              handleAdvertisement,
-             std::move(pending_collation),
+             relay_parent,
+             peer_id,
              std::move(prospective_candidate));
-
-    const RelayHash &relay_parent =
-        pending_collation.pending_collation.relay_parent;
-    const libp2p::peer::PeerId &peer_id =
-        pending_collation.pending_collation.peer_id;
-    const ParachainId &para_id = pending_collation.pending_collation.para_id;
 
     auto opt_per_relay_parent = tryGetStateByRelayParent(relay_parent);
     if (!opt_per_relay_parent) {
@@ -5740,7 +5736,7 @@ namespace kagome::parachain {
 
     // Get the collator id and parachain id from the result of the advertisement
     // insertion
-    const auto &[collator_id, parachain_id] = insert_res.value();
+    const auto &[collator_id, para_id] = insert_res.value();
     if (!per_relay_parent.collations.hasSecondedSpace(relay_parent_mode)) {
       SL_TRACE(logger_, "Seconded limit reached.");
       return;

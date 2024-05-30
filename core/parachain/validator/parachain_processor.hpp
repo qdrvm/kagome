@@ -191,7 +191,8 @@ namespace kagome::parachain {
      * prospective candidate and the hash of the parent block.
      */
     void handleAdvertisement(
-        network::CollationEvent &&pending_collation,
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
 
     /**
