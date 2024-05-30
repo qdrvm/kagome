@@ -29,10 +29,10 @@
   auto &&val = var.error();
 
 #define EXPECT_OUTCOME_TRUE_1(expr) \
-  EXPECT_OUTCOME_TRUE_void(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
+  EXPECT_OUTCOME_TRUE_void(OUTCOME_UNIQUE, expr)
 
 #define EXPECT_OUTCOME_FALSE_1(expr) \
-  EXPECT_OUTCOME_FALSE_void(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr)
+  EXPECT_OUTCOME_FALSE_void(OUTCOME_UNIQUE, expr)
 
 /**
  * Use this macro in GTEST with 2 arguments to assert that getResult()
@@ -40,10 +40,10 @@
  * EXPECT_OUTCOME_TRUE(val, getResult());
  */
 #define EXPECT_OUTCOME_TRUE(val, expr) \
-  EXPECT_OUTCOME_TRUE_name(BOOST_OUTCOME_TRY_UNIQUE_NAME, val, expr)
+  EXPECT_OUTCOME_TRUE_name(OUTCOME_UNIQUE, val, expr)
 
 #define EXPECT_OUTCOME_FALSE(val, expr) \
-  EXPECT_OUTCOME_FALSE_name(BOOST_OUTCOME_TRY_UNIQUE_NAME, val, expr)
+  EXPECT_OUTCOME_FALSE_name(OUTCOME_UNIQUE, val, expr)
 
 // TODO(turuslan): #2047, remove ambigous duplicates
 #define ASSERT_OUTCOME_ERROR EXPECT_EC
@@ -56,5 +56,4 @@
   auto &&tmp = expr;                    \
   EXPECT_TRUE(tmp.has_error());         \
   EXPECT_EQ(tmp.error(), expected);
-#define EXPECT_EC(expr, expected) \
-  _EXPECT_EC(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr, expected)
+#define EXPECT_EC(expr, expected) _EXPECT_EC(OUTCOME_UNIQUE, expr, expected)

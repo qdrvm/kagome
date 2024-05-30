@@ -44,7 +44,6 @@ namespace kagome::storage {
     };
 
     MapPrefix(BufferView prefix, std::shared_ptr<BufferStorage> map);
-    MapPrefix(std::string_view prefix, std::shared_ptr<BufferStorage> map);
     Buffer _key(BufferView key) const;
 
     outcome::result<bool> contains(const BufferView &key) const override;

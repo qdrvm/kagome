@@ -44,9 +44,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
   _OUTCOME_TRY_MSG_VOID(tmp, expr, __VA_ARGS__);  \
   auto out = std::move(tmp).value();
 #define OUTCOME_TRY_MSG(out, expr, ...) \
-  _OUTCOME_TRY_MSG_OUT(BOOST_OUTCOME_TRY_UNIQUE_NAME, out, expr, __VA_ARGS__)
+  _OUTCOME_TRY_MSG_OUT(OUTCOME_UNIQUE, out, expr, __VA_ARGS__)
 #define OUTCOME_TRY_MSG_VOID(expr, ...) \
-  _OUTCOME_TRY_MSG_VOID(BOOST_OUTCOME_TRY_UNIQUE_NAME, expr, __VA_ARGS__)
+  _OUTCOME_TRY_MSG_VOID(OUTCOME_UNIQUE, expr, __VA_ARGS__)
 
 namespace {
 

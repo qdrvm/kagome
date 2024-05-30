@@ -91,7 +91,7 @@ namespace kagome::storage::trie {
         if (print_hash_) {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
                   << std::setw(0) << "hash: "
-                  << common::hex_upper(codec_.merkleValue(enc).asBuffer())
+                  << common::hex_lower(codec_.merkleValue(enc).asBuffer())
                   << "\n";
         }
       }
