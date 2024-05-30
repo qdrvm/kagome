@@ -18,26 +18,15 @@ namespace kagome::consensus::grandpa {
 
     std::vector<SignedMessage> seen;
     std::optional<uint64_t> prevote_idx, precommit_idx;
-
-    /**
-     * Set the number of messages seen before prevoting.
-     */
-    void set_prevoted_index() {
-      prevote_idx = seen.size();
-    }
-
-    /**
-     * Set the number of messages seen before precommiting.
-     */
-    void set_precommitted_index() {
-      precommit_idx = seen.size();
-    }
   };
 
   class SaveHistoricalVotes {
    public:
     virtual ~SaveHistoricalVotes() = default;
 
+    /**
+     * Called from `VotingRoundImpl` to `GrandpaImpl` to save historical vote.
+     */
     virtual void saveHistoricalVote(AuthoritySetId set,
                                     RoundNumber round,
                                     const SignedMessage &vote,
