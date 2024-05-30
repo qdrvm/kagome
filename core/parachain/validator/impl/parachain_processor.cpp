@@ -100,6 +100,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Already requested";
     case E::NOT_ADVERTISED:
       return "Not advertised";
+    case E::WRONG_PARA:
+      return "Wrong para id";
   }
   return "Unknown parachain processor error";
 }
@@ -1361,55 +1363,93 @@ namespace kagome::parachain {
              std::move(collation_event),
              std::move(response));
 
+    const auto &pending_collation = collation_event.pending_collation;
     SL_TRACE(logger_,
              "Processing collation from {}, relay parent: {}, para id: {}",
-             collation_event.pending_collation.peer_id,
-             collation_event.pending_collation.relay_parent,
-             collation_event.pending_collation.para_id);
+             pending_collation.peer_id,
+             pending_collation.relay_parent,
+             pending_collation.para_id);
 
     our_current_state_.collation_requests_cancel_handles.erase(
-        collation_event.pending_collation);
+        pending_collation);
 
-    auto collation_response =
-        if_type<network::CollationWithParentHeadData>(response.response_data);
-    if (!collation_response) {
-      SL_WARN(logger_,
-              "Not a CollationResponse message from {}.",
-              collation_event.pending_collation.peer_id);
+    outcome::result<network::PendingCollationFetch> p = visit_in_place(
+        std::move(response.response_data),
+        [&](network::CollationResponse &&value)
+            -> outcome::result<network::PendingCollationFetch> {
+          if (value.receipt.descriptor.para_id != pending_collation.para_id) {
+            SL_TRACE(logger_,
+                     "Got wrong para ID for requested collation. "
+                     "(expected_para_id={}, got_para_id={}, peer_id={})",
+                     pending_collation.para_id,
+                     value.receipt.descriptor.para_id,
+                     pending_collation.peer_id);
+            return Error::WRONG_PARA;
+          }
+
+          SL_TRACE(logger_,
+                   "Received collation (para_id={}, relay_parent={}, "
+                   "candidate_hash={})",
+                   pending_collation.para_id,
+                   pending_collation.relay_parent,
+                   value.receipt.hash(*hasher_));
+
+          return network::PendingCollationFetch{
+              .collation_event = std::move(collation_event),
+              .candidate_receipt = std::move(value.receipt),
+              .pov = std::move(value.pov),
+              .maybe_parent_head_data = std::nullopt,
+          };
+        },
+        [&](network::CollationWithParentHeadData &&value)
+            -> outcome::result<network::PendingCollationFetch> {
+          if (value.receipt.descriptor.para_id != pending_collation.para_id) {
+            SL_TRACE(logger_,
+                     "Got wrong para ID for requested collation (v3). "
+                     "(expected_para_id={}, got_para_id={}, peer_id={})",
+                     pending_collation.para_id,
+                     value.receipt.descriptor.para_id,
+                     pending_collation.peer_id);
+            return Error::WRONG_PARA;
+          }
+
+          SL_TRACE(logger_,
+                   "Received collation (v3) (para_id={}, relay_parent={}, "
+                   "candidate_hash={})",
+                   pending_collation.para_id,
+                   pending_collation.relay_parent,
+                   value.receipt.hash(*hasher_));
+
+          return network::PendingCollationFetch{
+              .collation_event = std::move(collation_event),
+              .candidate_receipt = std::move(value.receipt),
+              .pov = std::move(value.pov),
+              .maybe_parent_head_data = std::move(value.parent_head_data),
+          };
+        });
+
+    if (p.has_error()) {
+      SL_TRACE(logger_, "Collation process failed (error={})", p.error());
       return;
     }
 
-    SL_WARN(logger_,
-            "Received collation (v3) (para_id={}, relay_parent={}, "
-            "candidate_hash={})",
-            collation_event.pending_collation.para_id,
-            collation_event.pending_collation.relay_parent,
-            collation_response->get().receipt.hash(*hasher_));
+    CollatorId collator_id = p.value().collation_event.collator_id;
+    PendingCollation pending_collation_copy =
+        p.value().collation_event.pending_collation;
 
-    network::PendingCollationFetch p{
-        .collation_event = std::move(collation_event),
-        .candidate_receipt = std::move(collation_response->get().receipt),
-        .pov = std::move(collation_response->get().pov),
-        .maybe_parent_head_data =
-            std::move(collation_response->get().parent_head_data),
-    };
-
-    auto collator_id = p.collation_event.collator_id;
-    auto pending_collation = p.collation_event.pending_collation;
-
-    if (auto res = kick_off_seconding(std::move(p)); res.has_error()) {
+    if (auto res = kick_off_seconding(std::move(p.value())); res.has_error()) {
       SL_WARN(logger_,
               "Seconding aborted due to an error. (relay_parent={}, "
               "para_id={}, peer_id={}, error={})",
-              pending_collation.relay_parent,
-              pending_collation.para_id,
-              pending_collation.peer_id,
+              pending_collation_copy.relay_parent,
+              pending_collation_copy.para_id,
+              pending_collation_copy.peer_id,
               res.error());
 
       const auto maybe_candidate_hash =
-          utils::map(pending_collation.prospective_candidate,
+          utils::map(pending_collation_copy.prospective_candidate,
                      [](const auto &v) { return v.candidate_hash; });
-      dequeue_next_collation_and_fetch(pending_collation.relay_parent,
+      dequeue_next_collation_and_fetch(pending_collation_copy.relay_parent,
                                        {collator_id, maybe_candidate_hash});
     }
   }

@@ -129,7 +129,8 @@ namespace kagome::parachain {
       PARENT_HEAD_DATA_MISMATCH,
       NO_PEER,
       ALREADY_REQUESTED,
-      NOT_ADVERTISED
+      NOT_ADVERTISED,
+      WRONG_PARA
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
