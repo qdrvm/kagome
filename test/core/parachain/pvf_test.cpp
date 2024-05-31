@@ -21,6 +21,7 @@
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
@@ -40,6 +41,7 @@ using kagome::parachain::ParachainId;
 using kagome::parachain::ParachainRuntime;
 using kagome::parachain::Pvf;
 using kagome::parachain::PvfImpl;
+using kagome::parachain::PvfPool;
 using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
 using kagome::runtime::DontInstrumentWasm;
@@ -66,6 +68,8 @@ class PvfTest : public testing::Test {
   void SetUp() {
     testutil::prepareLoggers();
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*app_config_, parachainRuntimeInstanceCacheSize())
+        .WillRepeatedly(Return(2));
 
     auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderMock>();
@@ -93,14 +97,14 @@ class PvfTest : public testing::Test {
     pvf_ = std::make_shared<PvfImpl>(
         PvfImpl::Config{
             .precompile_modules = false,
-            .runtime_instance_cache_size = 2,
             .precompile_threads_num = 0,
         },
         nullptr,
         nullptr,
         hasher_,
-        module_factory_,
-        std::make_shared<DontInstrumentWasm>(),
+        std::make_shared<PvfPool>(*app_config_,
+                                  module_factory_,
+                                  std::make_shared<DontInstrumentWasm>()),
         block_tree,
         sr25519_provider,
         parachain_api,

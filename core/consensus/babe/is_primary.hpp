@@ -15,7 +15,7 @@ namespace kagome::consensus::babe {
       return false;
     }
     for (auto &digest : block.digest) {
-      auto pre = boost::get<primitives::PreRuntime>(&digest);
+      auto pre = std::get_if<primitives::PreRuntime>(&digest);
       if (!pre) {
         continue;
       }

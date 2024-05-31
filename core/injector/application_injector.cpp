@@ -9,7 +9,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  32  // TODO(Harrm): #2104 check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -48,6 +48,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
@@ -152,6 +153,7 @@
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
@@ -489,10 +491,6 @@ namespace {
                                                    std::move(storage),
                                                    std::move(substitutes),
                                                    std::move(block_storage));
-    if (res.has_error()) {
-      throw std::runtime_error("Error creating RuntimeUpgradeTrackerImpl: "
-                               + res.error().message());
-    }
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
@@ -600,8 +598,6 @@ namespace {
         config->isOffchainIndexingEnabled()};
     parachain::PvfImpl::Config pvf_config{
         .precompile_modules = config->shouldPrecompileParachainModules(),
-        .runtime_instance_cache_size =
-            config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
@@ -1067,6 +1063,12 @@ namespace kagome::injector {
   KagomeNodeInjector::injectPrintChainInfoMode() {
     return pimpl_->injector_
         .create<sptr<application::mode::PrintChainInfoMode>>();
+  }
+
+  sptr<application::mode::PrecompileWasmMode>
+  KagomeNodeInjector::injectPrecompileWasmMode() {
+    return pimpl_->injector_
+        .create<sptr<application::mode::PrecompileWasmMode>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

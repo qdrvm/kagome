@@ -48,8 +48,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(module_factory_ != nullptr);
   }
 
-  outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
-  ModuleImpl::createFromCode(
+  CompilationOutcome<std::shared_ptr<ModuleImpl>> ModuleImpl::createFromCode(
       const std::vector<uint8_t> &code,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       std::shared_ptr<const ModuleFactory> module_factory,

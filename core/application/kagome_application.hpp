@@ -18,6 +18,9 @@ namespace kagome::application {
     /// Prints chain info
     virtual int chainInfo() = 0;
 
+    /// Precompile wasm
+    virtual int precompileWasm() = 0;
+
     /// Runs recovery mode
     virtual int recovery() = 0;
 

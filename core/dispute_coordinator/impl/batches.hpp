@@ -9,6 +9,7 @@
 #include "clock/clock.hpp"
 #include "dispute_coordinator/impl/batch.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "log/logger.hpp"
 
 #include <queue>
 
@@ -22,7 +23,9 @@ namespace kagome::dispute {
   /// contained votes.
   class Batches final {
    public:
-    Batches(clock::SteadyClock &clock, std::shared_ptr<crypto::Hasher> hasher);
+    Batches(log::Logger logger,
+            clock::SteadyClock &clock,
+            std::shared_ptr<crypto::Hasher> hasher);
 
     /// Find a particular batch.
     ///
@@ -46,7 +49,12 @@ namespace kagome::dispute {
     /// ready.
     std::vector<PreparedImport> check_batches();
 
+    bool empty() const {
+      return waiting_queue_.empty();
+    }
+
    private:
+    log::Logger logger_;
     clock::SteadyClock &clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
 

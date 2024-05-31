@@ -734,7 +734,7 @@ namespace kagome::parachain::fragment {
           if (child_constraints_res.has_error()) {
             SL_TRACE(logger,
                      "Failed to apply modifications. (error={})",
-                     child_constraints_res.error().message());
+                     child_constraints_res.error());
             continue;
           }
 

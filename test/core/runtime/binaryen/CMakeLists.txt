@@ -51,10 +51,10 @@ target_link_libraries(block_builder_api_test
     logger_for_tests
     )
 
-addtest(parachain_test
+addtest(binaryen_parachain_test
     parachain_test.cpp
     )
-target_link_libraries(parachain_test
+target_link_libraries(binaryen_parachain_test
     binaryen_runtime_test
     parachain_host_api
     basic_code_provider

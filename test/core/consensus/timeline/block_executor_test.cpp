@@ -87,33 +87,6 @@ using testing::_;
 using testing::Return;
 using testing::ReturnRef;
 
-// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s, const detail::DigestItemCommon &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const ScheduledChange &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const ForcedChange &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const OnDisabled &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const Pause &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const Resume &) {
-    return s;
-  }
-}  // namespace kagome::primitives
-
 inline BabeAuthorityId operator"" _babe_auth(const char *c, size_t s) {
   BabeAuthorityId res;
   std::copy_n(c, std::min(s, res.size()), res.begin());

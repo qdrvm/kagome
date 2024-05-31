@@ -66,8 +66,6 @@ namespace kagome::storage::trie {
                 (const common::BufferView &buf, std::optional<uint64_t> limit),
                 (override));
 
-    MOCK_METHOD(bool, empty, (), (const, override));
-
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 commit,
                 (StateVersion),

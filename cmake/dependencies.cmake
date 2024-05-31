@@ -16,6 +16,9 @@ endif ()
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
 find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
 
+hunter_add_package(qtils)
+find_package(qtils CONFIG REQUIRED)
+
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)
 find_library(XXHASH NAMES libxxhash.a REQUIRED PATHS "${XXHASH_ROOT}/lib")

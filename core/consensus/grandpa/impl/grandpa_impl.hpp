@@ -11,6 +11,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/grandpa/historical_votes.hpp"
 #include "consensus/grandpa/impl/votes_cache.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "injector/lazy.hpp"
@@ -18,7 +19,7 @@
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
-#include "utils/safe_object.hpp"
+#include "utils/lru.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -135,123 +136,43 @@ namespace kagome::consensus::grandpa {
      */
     void stop();
 
-    /**
-     * Processes grandpa neighbour message
-     * Neighbour message is ignored if voter set ids between our and receiving
-     * peer do not match. Otherwsie if our peer is behind by grandpa rounds by
-     * more than GrandpaImpl::kCatchUpThreshold, then catch request is sent to
-     * the peer that sent us a message (see GrandpaImpl::onCatchUpRequest()).
-     *
-     * Otherwise our peer will send back the response containing known votes for
-     * the round in msg (if any)
-     * @param peer_id id of the peer that sent the message
-     * @param msg received grandpa neighbour message
-     */
+    // NeighborObserver
     void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
                            std::optional<network::PeerStateCompact> &&info_opt,
                            network::GrandpaNeighborMessage &&msg) override;
 
-    // Catch-up methods
-
-    /**
-     * Catch up request processing according to
-     * [spec](https://w3f.github.io/polkadot-spec/develop/sect-block-finalization.html#algo-process-catchup-request)
-     *
-     * We check voter set ids between ours and remote peer match. Then we check
-     * politeness of request and send response containing state for requested
-     * round
-     * @param peer_id id of the peer that sent catch up request
-     * @param msg network message containing catch up request
-     */
+    // CatchUpObserver
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                           std::optional<network::PeerStateCompact> &&info,
                           network::CatchUpRequest &&msg) override;
-
-    /**
-     * Catch up response processing according to
-     * [spec](https://w3f.github.io/polkadot-spec/develop/sect-block-finalization.html#algo-process-catchup-response)
-     *
-     * Response is ignored if remote peer's voter set id does not match ours
-     * peer id Response is ignored if message contains info about round in the
-     * past (earlier than our current round) If message is received from the
-     * future round we create round from the round state information in
-     * response, check round for completeness and execute the round following
-     * the round from response
-     * @param peer_id id of remote peer that sent catch up response
-     * @param msg message containing catch up response
-     */
     void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                            network::CatchUpResponse &&msg) override;
 
-    // Voting methods
-
-    /**
-     * Processing of vote messages
-     *
-     * Vote messages are ignored if they are not sent politely
-     * Otherwise, we check if we have the round that corresponds to the received
-     * message and process it by this round
-     * @param peer_id id of remote peer
-     * @param msg vote message that could be either primary propose, prevote, or
-     * precommit message
-     */
+    // RoundObserver
     void onVoteMessage(const libp2p::peer::PeerId &peer_id,
                        std::optional<network::PeerStateCompact> &&info_opt,
                        network::VoteMessage &&msg) override;
-
-    /**
-     * Processing of commit message
-     *
-     * We check commit message for politeness and send it to
-     * GrandpaImpl::applyJustification()
-     *
-     * @param peer_id id of remote peer
-     * @param msg message containing commit message with justification
-     */
     void onCommitMessage(const libp2p::peer::PeerId &peer_id,
                          network::FullCommitMessage &&msg) override;
 
-    /**
-     * Check justification votes signatures, ancestry and threshold.
-     */
+    // JustificationObserver
     outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
         const AuthoritySet &authorities) override;
-
-    /**
-     * Selects round that corresponds for justification, checks justification,
-     * finalizes corresponding block and stores justification in storage
-     *
-     * If there is no corresponding round, it will be created
-     * @param justification justification containing precommit votes and
-     * signatures for block info
-     * @return nothing or an error
-     */
     void applyJustification(const GrandpaJustification &justification,
                             ApplyJustificationCb &&callback) override;
-
     void reload() override;
 
-    // Round processing method
-
-    /**
-     * Creates and executes round that follows the round with provided
-     * round_number
-     *
-     * Also this method removes old round, so that only 3 rounds in total are
-     * stored at any moment
-     * @param round previous round from which new one is created and executed
-     */
+    // Grandpa
     void tryExecuteNextRound(
         const std::shared_ptr<VotingRound> &round) override;
-
-    /**
-     * Selects round next to provided one and updates it by checking if
-     * prevote_ghost, estimate and finalized block were updated.
-     * @see VotingRound::update()
-     * @param round_number the round after which we select the round for update
-     */
     void updateNextRound(RoundNumber round_number) override;
+
+    // SaveHistoricalVotes
+    void saveHistoricalVote(AuthoritySetId set,
+                            RoundNumber round,
+                            const SignedMessage &vote,
+                            bool set_index) override;
 
    private:
     struct WaitingBlock {
@@ -319,8 +240,11 @@ namespace kagome::consensus::grandpa {
     void onHead(const primitives::BlockInfo &block);
     void pruneWaitingBlocks();
 
-    void saveCachedVotes();
-    void applyCachedVotes(VotingRound &round);
+    void writeHistoricalVotes();
+    using HistoricalVotesDirty = std::pair<HistoricalVotes, bool>;
+    HistoricalVotesDirty &historicalVotes(AuthoritySetId set,
+                                          RoundNumber round);
+    void applyHistoricalVotes(VotingRound &round);
 
     void setTimerFallback();
 
@@ -357,14 +281,12 @@ namespace kagome::consensus::grandpa {
 
     std::vector<WaitingBlock> waiting_blocks_;
 
-    struct CachedRound {
-      SCALE_TIE(3);
-      AuthoritySetId set;
-      RoundNumber round;
-      VotingRound::Votes votes;
-    };
-    using CachedVotes = std::vector<CachedRound>;
-    CachedVotes cached_votes_;
+    using HistoricalVotesKey = std::pair<AuthoritySetId, RoundNumber>;
+    Lru<HistoricalVotesKey,
+        HistoricalVotesDirty,
+        boost::hash<HistoricalVotesKey>>
+        historical_votes_{5};
+    bool writing_historical_votes_ = false;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
