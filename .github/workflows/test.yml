@@ -31,7 +31,6 @@ env:
 
 jobs:
   MacOS:
-    if: false
     runs-on: macos-14
     timeout-minutes: 120
     steps:
@@ -52,7 +51,7 @@ jobs:
         
         
   Linux:
-    if: false #${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
@@ -84,7 +83,6 @@ jobs:
           du -hd1 /__w /github || true
 
   Linux-self-hosted:
-    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -114,7 +112,6 @@ jobs:
         run: "${{ matrix.options.run }}"
 
   clang-tidy:
-    if: false
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -170,7 +167,7 @@ jobs:
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Minideb:
-    if: false #${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
@@ -195,7 +192,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Minideb-self-hosted:
-    if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
     strategy:
       fail-fast: false
       matrix:
@@ -220,8 +217,8 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   push-self-hosted:
-    #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    #needs: [clang-tidy, MacOS, Minideb-self-hosted]
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    needs: [clang-tidy, MacOS, Minideb-self-hosted]
     strategy:
       fail-fast: false
       matrix:
