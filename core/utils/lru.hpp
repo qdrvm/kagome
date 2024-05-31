@@ -13,12 +13,12 @@ namespace kagome {
   /**
    * `std::unordered_map` with LRU.
    */
-  template <typename K, typename V>
+  template <typename K, typename V, typename H = std::hash<K>>
   class Lru {
    public:
     struct Item;
     // TODO(turuslan): remove unique_ptr after deprecating gcc 10
-    using Map = std::unordered_map<K, std::unique_ptr<Item>>;
+    using Map = std::unordered_map<K, std::unique_ptr<Item>, H>;
     using It = typename Map::iterator;
     struct Item {
       V v;
@@ -62,6 +62,12 @@ namespace kagome {
       }
       lru_extract(*it->second);
       map_.erase(it);
+    }
+
+    void forEach(const auto &f) {
+      for (auto &p : map_) {
+        f(p.first, p.second->v);
+      }
     }
 
     template <typename F>
