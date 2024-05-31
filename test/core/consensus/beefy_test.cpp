@@ -503,19 +503,13 @@ TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
 }
 
 TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
-  genesis_ = 7;
   makePeers(1);
-  // push 15 blocks with `AuthorityChange` digests every 10 blocks
-  generate_blocks_and_sync(10, 10);
-  // finalize 10 without justifications
-  finalize(all(), 10);
-  loop();
-  // Test initialization at session boundary.
-  // verify voter initialized with two sessions starting at blocks 7 and 10
-  // verify next vote target is mandatory block 7
-  expect(all(), {7, 10});
-
-  // TODO(turuslan): #1651, multiple beefy genesis
+  generate_blocks_and_sync(25, 10);
+  genesis_ = 15;
+  finalize_block_and_wait_for_beefy(genesis_, {genesis_});
+  // must ignore mandatory block 20 before new genesis
+  genesis_ = 25;
+  finalize_block_and_wait_for_beefy(genesis_, {genesis_});
 }
 
 TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {

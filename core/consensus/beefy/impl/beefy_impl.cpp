@@ -368,14 +368,31 @@ namespace kagome::network {
 
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
-    if (not beefy_genesis_) {
-      BOOST_OUTCOME_TRY(beefy_genesis_,
-                        beefy_api_->genesis(grandpa_finalized.hash));
-      if (not beefy_genesis_) {
-        SL_TRACE(log_, "no beefy pallet yet");
-        return outcome::success();
+
+    auto last_genesis = beefy_genesis_;
+    BOOST_OUTCOME_TRY(beefy_genesis_,
+                      beefy_api_->genesis(grandpa_finalized.hash));
+    if (beefy_genesis_ != last_genesis) {
+      // reset state when genesis changes
+      last_vote_.reset();
+      if (beefy_genesis_) {
+        if (beefy_finalized_ < *beefy_genesis_) {
+          beefy_finalized_ = 0;
+        }
+        sessions_.erase(sessions_.begin(),
+                        sessions_.lower_bound(*beefy_genesis_));
+        pending_justifications_.erase(
+            pending_justifications_.begin(),
+            pending_justifications_.lower_bound(*beefy_genesis_));
+        next_digest_ = std::max(beefy_finalized_, *beefy_genesis_);
+      } else {
+        sessions_.clear();
+        pending_justifications_.clear();
       }
-      next_digest_ = std::max(beefy_finalized_, *beefy_genesis_);
+    }
+    if (not beefy_genesis_) {
+      SL_TRACE(log_, "no beefy pallet yet");
+      return outcome::success();
     }
     if (grandpa_finalized.number < *beefy_genesis_) {
       return outcome::success();
