@@ -397,6 +397,7 @@ namespace kagome::network {
       }
       ++next_digest_;
     }
+    // stop voting on first finalized session when there are more sessions
     if (sessions_.size() > 1 and sessions_.begin()->first <= beefy_finalized_) {
       sessions_.erase(sessions_.begin());
     }
