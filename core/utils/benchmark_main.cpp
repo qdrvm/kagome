@@ -9,6 +9,7 @@
 #include "common/visitor.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome {
 
@@ -39,6 +40,7 @@ namespace kagome {
     auto &benchmark_config = *config_opt;
 
     auto block_benchmark = injector.injectBlockBenchmark();
+    auto watchdog = injector.injectWatchdog();
 
     auto res = visit_in_place(
         benchmark_config,
@@ -67,7 +69,7 @@ namespace kagome {
 
     SL_INFO(logger, "Kagome benchmark stopped");
     logger->flush();
-
+    watchdog->stop();
     return 0;
   }
 

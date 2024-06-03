@@ -7,6 +7,7 @@
 #include "runtime/common/runtime_instances_pool.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "log/profiling_logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -135,7 +136,9 @@ namespace kagome::runtime {
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
+      KAGOME_PROFILE_START(code_instrumentation);
       auto instr_res = instrument_->instrument(code, config.memory_limits);
+      KAGOME_PROFILE_END(code_instrumentation);
       if (!instr_res) {
         res = CompilationError{fmt::format("Failed to inject stack limiter: {}",
                                            instr_res.error().msg)};

@@ -53,11 +53,11 @@ hunter_config(
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.13.5-qdrvm1.zip
-      SHA1 3637f5df6892a762606393940539c0dcb6e9c022
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/feature/expose-jit.zip
+      SHA1 49c3c9d3b32b928b7ec2e9a6f4c504669697e8ce
       CMAKE_ARGS
-        WASMEDGE_BUILD_STATIC_LIB=ON
-        WASMEDGE_BUILD_SHARED_LIB=OFF
+        WASMEDGE_BUILD_STATIC_LIB=OFF
+        WASMEDGE_BUILD_SHARED_LIB=ON
       KEEP_PACKAGE_SOURCES
   )
 endif ()

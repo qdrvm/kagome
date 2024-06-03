@@ -109,9 +109,8 @@ namespace kagome::parachain {
 
   RuntimeEngine pvf_runtime_engine(
       const application::AppConfiguration &app_conf) {
-    bool interpreted =
-        app_conf.runtimeExecMethod()
-        == application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+    using ExecMethod = application::AppConfiguration::RuntimeExecutionMethod;
+    bool interpreted = app_conf.runtimeExecMethod() == ExecMethod::Interpret;
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     if (interpreted) {
@@ -124,7 +123,9 @@ namespace kagome::parachain {
         return RuntimeEngine::kBinaryen;
       }
     } else {  // Execution method Compiled while WasmEdge is compile-enabled
-      return RuntimeEngine::kWasmEdgeCompiled;
+      return app_conf.runtimeExecMethod() == ExecMethod::CompileAheadOfTime
+               ? RuntimeEngine::kWasmEdgeCompiledAot
+               : RuntimeEngine::kWasmEdgeCompiledJit;
     }
 #else
     if (interpreted) {  // WasmEdge is compile-disabled
@@ -181,12 +182,15 @@ namespace kagome::parachain {
         pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
         app_configuration_{std::move(app_configuration)} {
     app_state_manager->takeControl(*this);
-    constexpr std::array<std::string_view, 4> engines{
+    constexpr std::array<std::string_view, 5> engines{
         "kBinaryen",
         "kWAVM",
         "kWasmEdgeInterpreted",
-        "kWasmEdgeCompiled",
+        "kWasmEdgeCompiledAot",
+        "kWasmEdgeCompiledJit",
     };
+    static_assert(engines.size()
+                  == static_cast<size_t>(RuntimeEngine::KEnginesNum));
     SL_INFO(log_,
             "pvf runtime engine {}",
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);

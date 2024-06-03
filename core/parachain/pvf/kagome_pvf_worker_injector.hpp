@@ -7,6 +7,7 @@
 #pragma once
 
 #include <boost/di.hpp>
+#include <stdexcept>
 
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -133,16 +134,31 @@ namespace kagome::parachain {
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
             ,
-        bind_by_lambda<runtime::wasm_edge::ModuleFactoryImpl::Config>(
-            [engine = input.engine, &input](const auto &injector) {
-              using E = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
-              runtime::wasm_edge::ModuleFactoryImpl::Config config{
-                  engine == RuntimeEngine::kWasmEdgeCompiled ? E::Compiled
-                                                             : E::Interpreted,
-                  input.cache_dir,
-              };
-              return std::make_shared<decltype(config)>(config);
-            }),
+        bind_by_lambda<runtime::wasm_edge::ModuleFactoryImpl::
+                           Config>([engine = input.engine,
+                                    &input](const auto &injector) {
+          using E = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
+          E exec_type;
+          switch (engine) {
+            case RuntimeEngine::kWasmEdgeCompiledAot:
+              exec_type = E::AotCompiled;
+              break;
+            case RuntimeEngine::kWasmEdgeCompiledJit:
+              exec_type = E::JitCompiled;
+              break;
+            case RuntimeEngine::kWasmEdgeInterpreted:
+              exec_type = E::Interpreted;
+              break;
+            default:
+              throw std::runtime_error{
+                  "WasmEdge module factory requested, but WasmEdge is not the chosen runtime engine"};
+          }
+          runtime::wasm_edge::ModuleFactoryImpl::Config config{
+              exec_type,
+              input.cache_dir,
+          };
+          return std::make_shared<decltype(config)>(config);
+        }),
         di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>()
 #endif
     );

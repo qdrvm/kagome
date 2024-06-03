@@ -12,6 +12,7 @@
 
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
+#include "log/profiling_logger.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
@@ -77,23 +78,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   class ModuleInstanceImpl : public ModuleInstance {
@@ -369,10 +367,11 @@ namespace kagome::runtime::wasm_edge {
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
     WasmEdge_ASTModuleContext *module_ctx;
 
+    WasmEdge_ConfigureCompilerSetOptimizationLevel(
+        configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O1);
+
     switch (config_.exec) {
-      case ExecType::Compiled: {
-        WasmEdge_ConfigureCompilerSetOptimizationLevel(
-            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+      case ExecType::AotCompiled: {
         CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
         std::string filename = fmt::format("{}/wasm_{}",
                                            config_.compiled_module_dir.c_str(),
@@ -394,7 +393,9 @@ namespace kagome::runtime::wasm_edge {
             loader_ctx.raw(), &module_ctx, filename.c_str()));
         break;
       }
-      case ExecType::Interpreted: {
+      case ExecType::Interpreted:
+      case ExecType::JitCompiled: {
+        KAGOME_PROFILE_START(wasmedge_parse_code);
         WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromBuffer(
             loader_ctx.raw(), &module_ctx, code.data(), code.size()));
         break;
@@ -407,6 +408,12 @@ namespace kagome::runtime::wasm_edge {
     ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
     WasmEdge_UNWRAP_COMPILE_ERR(
         WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
+
+    if (config_.exec == ExecType::JitCompiled) {
+      KAGOME_PROFILE_START(wasmedge_prepare_jit);
+      WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderPrepareForJIT(
+          loader_ctx.raw(), module_ctx, configure_ctx.raw()));
+    }
 
     auto executor = std::make_shared<ExecutorContext>(
         WasmEdge_ExecutorCreate(nullptr, nullptr));

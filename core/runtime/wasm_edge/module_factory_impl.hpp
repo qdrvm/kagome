@@ -39,7 +39,8 @@ namespace kagome::runtime::wasm_edge {
    public:
     enum class ExecType {
       Interpreted,
-      Compiled,
+      AotCompiled,
+      JitCompiled,
     };
     struct Config {
       Config(ExecType exec, const std::filesystem::path &compiled_module_dir)

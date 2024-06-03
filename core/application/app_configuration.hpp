@@ -216,7 +216,8 @@ namespace kagome::application {
     virtual SyncMethod syncMethod() const = 0;
 
     enum class RuntimeExecutionMethod {
-      Compile,
+      CompileAheadOfTime,
+      CompileJustInTime,
       Interpret,
     };
 

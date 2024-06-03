@@ -165,7 +165,8 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+  std::array<std::string_view, 3> execution_methods{
+      "Interpreted", "Compiled", "CompiledJit"};
 
   std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
@@ -188,7 +189,10 @@ namespace {
       return REM::Interpret;
     }
     if (str == "Compiled") {
-      return REM::Compile;
+      return REM::CompileAheadOfTime;
+    }
+    if (str == "CompiledJit") {
+      return REM::CompileJustInTime;
     }
     return std::nullopt;
   }
@@ -880,7 +884,7 @@ namespace kagome::application {
         ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
           fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
-        ("purge-wavm-cache", "purge WAVM runtime cache")
+        ("purge-runtime-cache", "purge runtime module cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
           "Number of parachain runtime instances to keep cached")
@@ -1440,7 +1444,9 @@ namespace kagome::application {
 
     if (auto val = find_argument<std::string>(vm, "wasm-interpreter");
         val.has_value()) {
-      if (runtime_exec_method_ == RuntimeExecutionMethod::Compile) {
+      if (runtime_exec_method_ == RuntimeExecutionMethod::CompileAheadOfTime
+          || runtime_exec_method_
+                 == RuntimeExecutionMethod::CompileJustInTime) {
         SL_ERROR(
             logger_,
             "--wasm-interpreter defined, but the execution mode is Compile");
@@ -1462,7 +1468,7 @@ namespace kagome::application {
       use_wavm_cache_ = true;
     }
 
-    if (vm.count("purge-wavm-cache") > 0) {
+    if (vm.count("purge-runtime-cache") > 0) {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
         std::error_code ec;

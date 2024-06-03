@@ -250,7 +250,8 @@ namespace kagome::parachain {
         return std::errc::not_supported;
 #endif
       case RuntimeEngine::kWasmEdgeInterpreted:
-      case RuntimeEngine::kWasmEdgeCompiled:
+      case RuntimeEngine::kWasmEdgeCompiledAot:
+      case RuntimeEngine::kWasmEdgeCompiledJit:
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
         return injector.template create<
             std::shared_ptr<runtime::wasm_edge::ModuleFactoryImpl>>();
