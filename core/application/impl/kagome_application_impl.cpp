@@ -121,6 +121,7 @@ namespace kagome::application {
       metric_build_info->set(1);
     }
 
+#ifdef __linux__
     if (!app_config_->disableSecureMode() && app_config_->usePvfSubprocess()
         && app_config_->roles().flags.authority) {
       auto res = parachain::runSecureModeCheckProcess(
@@ -130,10 +131,17 @@ namespace kagome::application {
         exit(EXIT_FAILURE);
       }
       if (!res.assume_value().isTotallySupported()) {
-        SL_ERROR(logger_, "Secure mode is not supported completely.");
+        SL_ERROR(logger_,
+                 "Secure mode is not supported completely. You can disable it "
+                 "using --insecure-validator-i-know-what-i-do.");
         exit(EXIT_FAILURE);
       }
     }
+#else
+    SL_WARN(logger,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
+#endif
 
     app_state_manager->run();
 

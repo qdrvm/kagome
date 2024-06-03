@@ -302,12 +302,9 @@ namespace kagome::parachain {
       }
       SL_VERBOSE(logger, "Successfully enabled secure validator mode");
     } else {
-      SL_WARN(logger, "Secure validator mode disabled in node configuration");
+      SL_VERBOSE(logger,
+                 "Secure validator mode disabled in node configuration");
     }
-#else
-    SL_WARN(logger,
-            "Secure validator mode is not implemented for the current "
-            "platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
