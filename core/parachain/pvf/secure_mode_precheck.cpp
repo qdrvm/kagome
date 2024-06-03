@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <iostream>
 #include <libp2p/log/configurator.hpp>
+#include <qtils/bytestr.hpp>
 #include <scale/scale.hpp>
 #include <soralog/macro.hpp>
 
@@ -85,8 +86,8 @@ namespace kagome::parachain {
     if (process.wait() != 0) {
       return SecureModeError{"Secure mode check failed"};
     }
-    auto res = scale::decode<SecureModeSupport>(common::BufferView{
-        reinterpret_cast<uint8_t *>(output.data()), output.size()});
+    auto res = scale::decode<SecureModeSupport>(
+        common::BufferView{qtils::str2byte(output.data()), output.size()});
     if (!res) {
       return SecureModeError{res.error().message()};
     }
@@ -122,7 +123,7 @@ namespace kagome::parachain {
                 << enc_result.error().message() << "\n";
       return EXIT_FAILURE;
     }
-    std::cout.write(reinterpret_cast<char *>(enc_result.value().data()),
+    std::cout.write(qtils::byte2str(enc_result.value().data()),
                     enc_result.value().size());
     return 0;
   }
