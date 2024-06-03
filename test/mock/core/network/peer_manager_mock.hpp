@@ -84,6 +84,11 @@ namespace kagome::network {
                 createDefaultPeerState,
                 (const PeerId &),
                 (override));
+
+    MOCK_METHOD(std::optional<PeerId>,
+                peerFinalized,
+                (BlockNumber, const PeerPredicate &),
+                (override));
   };
 
 }  // namespace kagome::network
