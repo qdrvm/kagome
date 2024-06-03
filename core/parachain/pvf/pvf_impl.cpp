@@ -28,7 +28,7 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
-#include "utils/argv0.hpp"
+#include "utils/get_exe_path.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
