@@ -138,7 +138,7 @@ namespace kagome::application {
       }
     }
 #else
-    SL_WARN(logger,
+    SL_WARN(logger_,
             "Secure validator mode is not implemented for the current "
             "platform. Proceed at your own risk.");
 #endif
