@@ -57,7 +57,7 @@ namespace kagome::network {
       const StateResponse &res) {
     storage::trie::PolkadotCodec codec;
     BOOST_ASSERT(not complete());
-    OUTCOME_TRY(nodes, storage::trie::compactDecode(res.proof));
+    BOOST_OUTCOME_TRY(auto nodes, storage::trie::compactDecode(res.proof));
     auto diff_count = nodes.size(), diff_size = res.proof.size();
     if (diff_count != 0) {
       stat_count_ += diff_count;

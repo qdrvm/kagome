@@ -805,6 +805,7 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
+        ("version,v", "show version information")
         ("log,l", po::value<std::vector<std::string>>(),
           "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
@@ -942,6 +943,10 @@ namespace kagome::application {
       std::cout
           << "Available subcommands: storage-explorer db-editor benchmark\n";
       std::cout << desc << std::endl;
+      return false;
+    }
+    if (vm.count("version") > 0) {
+      std::cout << "Kagome version " << buildVersion() << std::endl;
       return false;
     }
 
