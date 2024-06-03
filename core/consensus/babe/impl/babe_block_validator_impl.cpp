@@ -128,6 +128,9 @@ namespace kagome::consensus::babe {
              config.randomness);
 
     if (babe_header.authority_index >= config.authorities.size()) {
+      SL_VERBOSE(log_,
+                 "Block {} is invalid because validator index out of bound",
+                 block_header.blockInfo());
       return ValidationError::NO_VALIDATOR;
     }
 
@@ -147,7 +150,7 @@ namespace kagome::consensus::babe {
     if (was_synchronized_) {
       std::vector<AuthorityIndex> disabled_validators;
       if (auto res = babe_api_->disabled_validators(block_header.parent_hash);
-          res.has_value()) {
+          res.has_error()) {
         SL_CRITICAL(log_,
                     "Can't obtain disabled validators list for block {}",
                     block_header.blockInfo());
@@ -156,6 +159,9 @@ namespace kagome::consensus::babe {
       if (std::binary_search(disabled_validators.begin(),
                              disabled_validators.end(),
                              babe_header.authority_index)) {
+        SL_VERBOSE(log_,
+                   "Block {} is invalid because produced by disabled validator",
+                   block_header.blockInfo());
         return ValidationError::DISABLED_VALIDATOR;
       }
     }
