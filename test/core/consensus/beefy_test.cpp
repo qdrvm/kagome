@@ -18,6 +18,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/beefy/fetch_justification.hpp"
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/protocols/beefy_protocol_mock.hpp"
@@ -42,6 +43,8 @@ using kagome::consensus::beefy::BeefyGossipMessage;
 using kagome::consensus::beefy::BeefyJustification;
 using kagome::consensus::beefy::Commitment;
 using kagome::consensus::beefy::ConsensusDigest;
+using kagome::consensus::beefy::FetchJustification;
+using kagome::consensus::beefy::FetchJustificationMock;
 using kagome::consensus::beefy::kMmr;
 using kagome::consensus::beefy::MmrRootHash;
 using kagome::consensus::beefy::SignedCommitment;
@@ -94,6 +97,7 @@ struct Timer : libp2p::basic::Scheduler {
 
 struct BeefyPeer {
   bool vote_ = true;
+  bool listen_ = true;
   std::shared_ptr<EcdsaKeypair> keys_;
   BlockNumber finalized_ = 0;
   std::vector<BlockNumber> justifications_;
@@ -105,6 +109,8 @@ struct BeefyPeer {
       std::make_shared<SessionKeysMock>();
   std::shared_ptr<BeefyProtocolMock> broadcast_ =
       std::make_shared<BeefyProtocolMock>();
+  std::shared_ptr<FetchJustificationMock> fetch_ =
+      std::make_shared<FetchJustificationMock>();
   ChainSubscriptionEnginePtr chain_sub_ =
       std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<BeefyImpl> beefy_;
@@ -172,16 +178,25 @@ struct BeefyTest : testing::Test {
           .WillRepeatedly([&](std::shared_ptr<BeefyGossipMessage> m) {
             if (auto jr = boost::get<BeefyJustification>(&*m)) {
               auto &j = boost::get<SignedCommitment>(*jr);
+              justifications_.emplace(j.commitment.block_number, *jr);
               peer.justifications_.emplace_back(j.commitment.block_number);
             }
             io_->post([&, m] {
               for (auto &peer2 : peers_) {
-                if (&peer2 != &peer) {
+                if (&peer2 != &peer and peer2.listen_) {
                   peer2.beefy_->onMessage(*m);
                 }
               }
             });
           });
+      EXPECT_CALL(*peer.fetch_, fetchJustification(_))
+          .WillRepeatedly(io_->wrap([&](BlockNumber block) {
+            auto it = justifications_.find(block);
+            if (it == justifications_.end()) {
+              return;
+            }
+            peer.beefy_->onMessage(it->second);
+          }));
       peer.beefy_ = std::make_shared<BeefyImpl>(
           app_state_manager,
           chain_spec_,
@@ -195,6 +210,7 @@ struct BeefyTest : testing::Test {
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
+          testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
           peer.chain_sub_);
       app_state_manager->start();
     }
@@ -265,11 +281,17 @@ struct BeefyTest : testing::Test {
     }
   }
 
+  void finalize_block_and_wait_for_beefy(std::set<size_t> peers,
+                                         BlockNumber finalized,
+                                         std::vector<BlockNumber> expected) {
+    finalize(peers, finalized);
+    loop();
+    expect(peers, expected);
+  }
+
   void finalize_block_and_wait_for_beefy(BlockNumber finalized,
                                          std::vector<BlockNumber> expected) {
-    finalize(all(), finalized);
-    loop();
-    expect(all(), expected);
+    finalize_block_and_wait_for_beefy(all(), finalized, expected);
   }
 
   ChainSpecMock chain_spec_;
@@ -285,6 +307,7 @@ struct BeefyTest : testing::Test {
   BlockNumber min_delta_ = 1;
   BlockNumber genesis_ = 1;
   std::vector<BeefyPeer> peers_;
+  std::map<BlockNumber, BeefyJustification> justifications_;
 };
 
 TEST_F(BeefyTest, beefy_finalizing_blocks) {
@@ -427,8 +450,44 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
   EXPECT_EQ(peer.beefy_->finalized(), 2);
 }
 
-// TODO(turuslan): #1651, fetch justifications
-// TEST_F(BeefyTest, on_demand_beefy_justification_sync) {}
+TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
+  min_delta_ = 4;
+  // Alice, Bob, Charlie start first and make progress through voting.
+  makePeers(4);
+  // Dave will start late and have to catch up using on-demand justification
+  // requests (since in this test there is no block import queue to
+  // automatically import justifications). Instantiate but don't run Dave, yet.
+  size_t dave{3};
+  peers_[dave].listen_ = false;
+
+  // push 30 blocks
+  generate_blocks_and_sync(30, 5);
+
+  // With 3 active voters and one inactive, consensus should happen and blocks
+  // BEEFY-finalized. Need to finalize at least one block in each session,
+  // choose randomly.
+  finalize_block_and_wait_for_beefy({0, 1, 2}, 20, {1, 5, 10, 15, 20});
+
+  // Spawn Dave, they are now way behind voting and can only catch up through
+  // on-demand justif sync.
+  // then verify Dave catches up through on-demand justification requests.
+  auto expect_dave = [&](BlockNumber finalized, BlockNumber expected) {
+    finalize({dave}, finalized);
+    loop();
+    EXPECT_EQ(peers_[dave].beefy_->finalized(), expected);
+  };
+  expect_dave(1, 1);
+  expect_dave(6, 5);
+  expect_dave(10, 10);
+  expect_dave(17, 15);
+  expect_dave(24, 20);
+
+  peers_[dave].listen_ = true;
+
+  // Have the other peers do some gossip so Dave finds out about their progress.
+  finalize_block_and_wait_for_beefy(25, {25});
+  finalize_block_and_wait_for_beefy(29, {29});
+}
 
 TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
   makePeers(1);
@@ -444,19 +503,13 @@ TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
 }
 
 TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
-  genesis_ = 7;
   makePeers(1);
-  // push 15 blocks with `AuthorityChange` digests every 10 blocks
-  generate_blocks_and_sync(10, 10);
-  // finalize 10 without justifications
-  finalize(all(), 10);
-  loop();
-  // Test initialization at session boundary.
-  // verify voter initialized with two sessions starting at blocks 7 and 10
-  // verify next vote target is mandatory block 7
-  expect(all(), {7, 10});
-
-  // TODO(turuslan): #1651, multiple beefy genesis
+  generate_blocks_and_sync(25, 10);
+  genesis_ = 15;
+  finalize_block_and_wait_for_beefy(genesis_, {genesis_});
+  // must ignore mandatory block 20 before new genesis
+  genesis_ = 25;
+  finalize_block_and_wait_for_beefy(genesis_, {genesis_});
 }
 
 TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
