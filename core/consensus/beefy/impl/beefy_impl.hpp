@@ -39,6 +39,9 @@ namespace kagome::common {
 namespace kagome::consensus {
   class Timeline;
 }
+namespace kagome::consensus::beefy {
+  class FetchJustification;
+}  // namespace kagome::consensus::beefy
 
 namespace kagome::crypto {
   class EcdsaProvider;
@@ -72,6 +75,8 @@ namespace kagome::network {
               LazySPtr<consensus::Timeline> timeline,
               std::shared_ptr<crypto::SessionKeys> session_keys,
               LazySPtr<BeefyProtocol> beefy_protocol,
+              LazySPtr<consensus::beefy::FetchJustification>
+                  beefy_justification_protocol,
               primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     bool tryStart();
@@ -126,6 +131,8 @@ namespace kagome::network {
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;
+    LazySPtr<consensus::beefy::FetchJustification>
+        beefy_justification_protocol_;
     primitives::BlockNumber min_delta_;
     primitives::events::ChainSub chain_sub_;
 
