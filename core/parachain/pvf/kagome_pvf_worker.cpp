@@ -39,6 +39,7 @@
 #include "scale/scale.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
+#include "parachain/pvf/secure_mode.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
@@ -72,6 +73,15 @@ namespace kagome::parachain {
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
   SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
+    std::error_code ec;
+    std::filesystem::create_directories(worker_dir, ec);
+    if (ec) {
+      return SecureModeError{
+          fmt::format("Failed to create worker directory {}: {}",
+                      worker_dir.c_str(),
+                      ec.message())};
+    }
+
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
 
@@ -292,12 +302,9 @@ namespace kagome::parachain {
       }
       SL_VERBOSE(logger, "Successfully enabled secure validator mode");
     } else {
-      SL_WARN(logger, "Secure validator mode disabled in node configuration");
+      SL_VERBOSE(logger,
+                 "Secure validator mode disabled in node configuration");
     }
-#else
-    SL_WARN(logger,
-            "Secure validator mode is not implemented for the current "
-            "platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
