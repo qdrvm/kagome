@@ -955,4 +955,17 @@ namespace kagome::network {
                            return (in_light ? roles.light : roles.full) == 1;
                          });
   }
+
+  std::optional<PeerId> PeerManagerImpl::peerFinalized(
+      BlockNumber min, const PeerPredicate &predicate) {
+    for (auto &[peer, info] : peer_states_) {
+      if (info.last_finalized < min) {
+        continue;
+      }
+      if (not predicate or predicate(peer)) {
+        return peer;
+      }
+    }
+    return std::nullopt;
+  }
 }  // namespace kagome::network
