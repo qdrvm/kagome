@@ -115,7 +115,7 @@ namespace kagome::parachain {
     }
     kagome::log::setLoggingSystem(logging_system);
 
-    auto result = checkSecureMode(std::filesystem::path{argv[1]});
+    auto result = checkSecureMode(std::filesystem::path{argv[2]});
     auto enc_result = scale::encode(result);
     if (!enc_result) {
       std::cerr << "Failed to encode secure mode check result: "
