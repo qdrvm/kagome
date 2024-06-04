@@ -34,7 +34,7 @@ hunter_config(
 
 hunter_config(
     rocksdb
-    VERSION 9.0.0
+    VERSION 9.2.1
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
