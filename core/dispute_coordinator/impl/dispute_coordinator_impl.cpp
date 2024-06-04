@@ -52,7 +52,7 @@ namespace kagome::dispute {
     constexpr auto disputesFinalityLagMetricName =
         "kagome_parachain_disputes_finality_lag";
 
-    inline common::Buffer getSignablePayload(
+    inline outcome::result<common::Buffer> getSignablePayload(
         const DisputeStatement &statement,
         const CandidateHash &candidate_hash,
         SessionIndex session) {
@@ -61,7 +61,7 @@ namespace kagome::dispute {
           [&](const ValidDisputeStatement &kind) {
             return visit_in_place(
                 kind,
-                [&](const Explicit &) {
+                [&](const Explicit &) -> outcome::result<std::vector<uint8_t>> {
                   std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
                   bool validity = true;
                   return scale::encode(
@@ -90,8 +90,23 @@ namespace kagome::dispute {
                   return scale::encode(
                       std::tie(magic, candidate_hash, session));
                 },
-                [&](const ApprovalCheckingMultipleCandidates &candidates) {
+                [&](const ApprovalCheckingMultipleCandidates &candidates)
+                    -> outcome::result<std::vector<uint8_t>> {
+                  /// Returns Error if the candidate_hash is not included in the
+                  /// list of signed candidate from
+                  /// ApprovalCheckingMultipleCandidate.
+                  if (std::find(
+                          candidates.begin(), candidates.end(), candidate_hash)
+                      == candidates.end()) {
+                    return ApprovalCheckingMultipleCandidatesError::NotIncluded;
+                  }
+
                   std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                  // Make this backwards compatible with `ApprovalVote` so if
+                  // we have just on the candidate signature will look the same.
+                  // This gives us the nice benefit that old nodes can still
+                  // check signatures when len is 1 and the new node can check
+                  // the signature coming from old nodes.
                   if (candidates.size() == 1) {
                     return scale::encode(
                         std::tie(magic, candidates.front(), session));
@@ -108,7 +123,8 @@ namespace kagome::dispute {
                   std::tie(magic, validity, candidate_hash, session));
             });
           });
-      BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
+      BOOST_ASSERT_MSG(res.has_value(),
+                       "Successful scale encoding       expected");
       return common::Buffer(std::move(res.value()));
     }
 
@@ -600,7 +616,15 @@ namespace kagome::dispute {
         DisputeStatement statement{valid_statement_kind};
 
         [[maybe_unused]] auto check_sig = [&]() -> bool {
-          auto payload = getSignablePayload(statement, candidate_hash, session);
+          auto payload_res =
+              getSignablePayload(statement, candidate_hash, session);
+          if (payload_res.has_error()) {
+            SL_CRITICAL(log_,
+                        "Scraped backing votes produces bad payload! {}",
+                        payload_res.error());
+            return false;
+          }
+          auto &payload = payload_res.value();
 
           auto validation_res = sr25519_crypto_provider_->verify(
               validator_signature, payload, validator_public);
@@ -693,23 +717,35 @@ namespace kagome::dispute {
                   session_info.validators[validator_index];
 
               [[maybe_unused]] auto check_sig = [&] {
-                auto payload = getSignablePayload(
+                auto payload_res = getSignablePayload(
                     dispute_statement, dispute_candidate, dispute_session);
+                if (payload_res.has_error()) {
+                  SL_CRITICAL(log_,
+                              "Scraped dispute votes produces bad payload! {}",
+                              payload_res.error());
+                  return false;
+                }
+                auto &payload = payload_res.value();
 
                 auto validation_res = sr25519_crypto_provider_->verify(
                     validator_signature, payload, validator_public);
 
                 if (validation_res.has_error()) {
+                  SL_CRITICAL(
+                      log_,
+                      "Cannot validate scraped dispute votes signature! {}",
+                      validation_res.error());
                   return false;
                 }
                 if (not validation_res.value()) {
+                  SL_CRITICAL(log_,
+                              "Scraped dispute votes had invalid signature!");
                   return false;
                 }
+
                 return true;
               };
-
-              BOOST_ASSERT_MSG(check_sig(),
-                               "Scraped dispute votes had invalid signature!");
+              BOOST_ASSERT(check_sig());
 
               Indexed<SignedDisputeStatement> signed_dispute_statement{
                   {
@@ -1465,13 +1501,21 @@ namespace kagome::dispute {
             std::make_tuple(session, candidate_hash), Active{});
 
         if (fresh) {
-          SL_INFO(log_, "New dispute initiated for candidate");
+          SL_INFO(log_,
+                  "New dispute initiated for candidate "
+                  "(session={}, candidate={})",
+                  session,
+                  candidate_hash);
         }
 
         // update status
         it->second = new_status;
 
-        SL_TRACE(log_, "Writing recent disputes with updates for candidate");
+        SL_TRACE(log_,
+                 "Writing recent disputes with updates for candidate "
+                 "(session={}, candidate={})",
+                 session,
+                 candidate_hash);
         storage_->write_recent_disputes(std::move(recent_disputes));
       }
     }
@@ -1578,20 +1622,20 @@ namespace kagome::dispute {
 
       DisputeStatement statement{statement_kind};
 
-      auto payload = getSignablePayload(
-          statement, our_vote.candidate_hash, our_vote.session_index);
+      OUTCOME_TRY(
+          payload,
+          getSignablePayload(
+              statement, our_vote.candidate_hash, our_vote.session_index));
 
-      auto validation_res = sr25519_crypto_provider_->verify(
-          validator_signature, payload, validator_public);
+      OUTCOME_TRY(is_valid,
+                  sr25519_crypto_provider_->verify(
+                      validator_signature, payload, validator_public));
 
-      if (validation_res.has_error()) {
-        return validation_res.as_failure();
-      }
-      if (not validation_res.value()) {
+      if (not is_valid) {
         return DisputeMessageCreationError::InvalidStoredStatement;
       }
 
-      // make other signed statement
+      // make another signed statement
 
       other_index = validator_index;
 
@@ -1709,8 +1753,15 @@ namespace kagome::dispute {
 
       auto &candidate_hash = vote_state.votes.candidate_receipt.hash(*hasher_);
 
-      auto payload = getSignablePayload(
+      auto payload_res = getSignablePayload(
           dispute_statement, candidate_hash, env.session_index);
+      if (payload_res.has_error()) {
+        SL_WARN(log_,
+                "Sending dispute vote produces bad payload! {}",
+                payload_res.error());
+        continue;
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           validator_signature, payload, validator_public);
@@ -1822,8 +1873,10 @@ namespace kagome::dispute {
           valid ? DisputeStatement{ValidDisputeStatement{Explicit{}}}
                 : DisputeStatement{InvalidDisputeStatement{Explicit{}}};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session);
+      BOOST_ASSERT(payload_res.has_value());
+      auto &payload = payload_res.value();
 
       OUTCOME_TRY(signature,
                   sr25519_crypto_provider_->sign(*keypair->first, payload));
@@ -2293,8 +2346,12 @@ namespace kagome::dispute {
 
       DisputeStatement dispute_statement{kind};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session_index);
+      if (payload_res.has_error()) {
+        return payload_res.as_failure();
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           signature, payload, validator_public);
@@ -2329,8 +2386,12 @@ namespace kagome::dispute {
 
       DisputeStatement dispute_statement{kind};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session_index);
+      if (payload_res.has_error()) {
+        return payload_res.as_failure();
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           signature, payload, validator_public);
