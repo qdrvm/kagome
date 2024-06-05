@@ -38,19 +38,20 @@
 #include "utils/profiler.hpp"
 
 #ifndef TRY_GET_OR_RET
-#define TRY_GET_OR_RET(name,op) \
-  auto name = (op); \
-  if (!op) { \
-    return; \
-  } else {}
-#endif //TRY_GET_OR_RET
+#define TRY_GET_OR_RET(name, op) \
+  auto name = (op);              \
+  if (!name) {                   \
+    return;                      \
+  } else {                       \
+  }
+#endif  // TRY_GET_OR_RET
 
 #ifndef CHECK_OR_RET
 #define CHECK_OR_RET(op) \
-  if(!(op)) { \
-    return; \
+  if (!(op)) {           \
+    return;              \
   }
-#endif //CHECK_OR_RET
+#endif  // CHECK_OR_RET
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
@@ -221,7 +222,6 @@ namespace kagome::parachain {
     REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
 
-    TRY_GET_OR_RET(relay_parent_state, tryGetStateByRelayParent(relay_parent));
     send_to_validators_group(
         relay_parent,
         {network::VersionedValidatorProtocolMessage{
@@ -244,9 +244,8 @@ namespace kagome::parachain {
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield) {
-          if (auto self = wptr_self.lock()) {
-            self->OnBroadcastBitfields(relay_parent, bitfield);
-          }
+          TRY_GET_OR_RET(self, wptr_self.lock());
+          self->OnBroadcastBitfields(relay_parent, bitfield);
         });
 
     // Subscribe to the BABE status observable
@@ -260,22 +259,22 @@ namespace kagome::parachain {
             bool &synchronized,
             auto /*event_type*/,
             const primitives::events::SyncStateEventParams &event) mutable {
-          if (auto self = wself.lock()) {
-            if (event == consensus::SyncState::SYNCHRONIZED) {
-              if (not was_synchronized) {
-                self->bitfield_signer_->start();
-                self->pvf_precheck_->start();
-                was_synchronized = true;
-              }
+          TRY_GET_OR_RET(self, wself.lock());
+
+          if (event == consensus::SyncState::SYNCHRONIZED) {
+            if (not was_synchronized) {
+              self->bitfield_signer_->start();
+              self->pvf_precheck_->start();
+              was_synchronized = true;
             }
-            if (was_synchronized) {
-              if (!synchronized) {
-                synchronized = true;
-                TRY_GET_OR_RET(my_view, self->peer_view_->getMyView());
-                SL_TRACE(self->logger_,
-                         "Broadcast my view because synchronized.");
-                self->broadcastView(my_view->get().view);
-              }
+          }
+          if (was_synchronized) {
+            if (!synchronized) {
+              synchronized = true;
+              TRY_GET_OR_RET(my_view, self->peer_view_->getMyView());
+              SL_TRACE(self->logger_,
+                       "Broadcast my view because synchronized.");
+              self->broadcastView(my_view->get().view);
             }
           }
         });
@@ -288,9 +287,8 @@ namespace kagome::parachain {
     chain_sub_.onDeactivate(
         [wptr{weak_from_this()}](
             const primitives::events::RemoveAfterFinalizationParams &event) {
-          if (auto self = wptr.lock()) {
-            self->onDeactivateBlocks(event);
-          }
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->onDeactivateBlocks(event);
         });
 
     // Set the callback for the my view observable
@@ -304,9 +302,8 @@ namespace kagome::parachain {
         *my_view_sub_,
         network::PeerView::EventType::kViewUpdated,
         [wptr{weak_from_this()}](const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->onViewUpdated(event);
-          }
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->onViewUpdated(event);
         });
 
     remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
@@ -316,9 +313,8 @@ namespace kagome::parachain {
         network::PeerView::EventType::kViewUpdated,
         [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
                                  const network::View &view) {
-          if (auto self = wptr.lock()) {
-            self->onUpdatePeerView(peer_id, view);
-          }
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->onUpdatePeerView(peer_id, view);
         });
 
     return true;
@@ -819,8 +815,6 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastViewToGroup(
       const primitives::BlockHash &relay_parent, const network::View &view) {
-    TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
-
     std::deque<network::PeerId> group;
     if (auto r = runtime_info_->get_session_info(relay_parent)) {
       auto &[session, info] = r.value();
@@ -894,15 +888,13 @@ namespace kagome::parachain {
           peer->id,
           network::CollationVersion::VStaging,
           [wptr{weak_from_this()}, peer_id{peer->id}](auto &&stream) {
-            if (auto self = wptr.lock()) {
-              auto ps = self->pm_->getPeerState(peer_id);
-              BOOST_ASSERT(ps);
+            TRY_GET_OR_RET(self, wptr.lock());
+            auto ps = self->pm_->getPeerState(peer_id);
 
-              ps->get().inc_use_count();
-              self->sendMyView(peer_id,
-                               stream,
-                               self->router_->getValidationProtocolVStaging());
-            }
+            ps->get().inc_use_count();
+            self->sendMyView(peer_id,
+                             stream,
+                             self->router_->getValidationProtocolVStaging());
           });
     }
   }
@@ -1002,7 +994,8 @@ namespace kagome::parachain {
      */
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater(
-        [self{this}, &is_parachain_validator] {
+        [wptr{weak_from_this()}, &is_parachain_validator] {
+          TRY_GET_OR_RET(self, wptr.lock());
           self->metric_is_parachain_validator_->set(is_parachain_validator);
         });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
@@ -1370,11 +1363,7 @@ namespace kagome::parachain {
           };
         });
 
-    if (p.has_error()) {
-      SL_TRACE(logger_, "Collation process failed (error={})", p.error());
-      return;
-    }
-
+    CHECK_OR_RET(p.has_value());
     CollatorId collator_id = p.value().collation_event.collator_id;
     PendingCollation pending_collation_copy =
         p.value().collation_event.pending_collation;
@@ -1427,10 +1416,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::dequeue_next_collation_and_fetch(
       const RelayHash &relay_parent,
       std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch) {
-    auto per_relay_state = tryGetStateByRelayParent(relay_parent);
-    if (!per_relay_state) {
-      return;
-    }
+    TRY_GET_OR_RET(per_relay_state, tryGetStateByRelayParent(relay_parent));
 
     while (auto collation =
                per_relay_state->get().collations.get_next_collation_to_fetch(
@@ -1503,10 +1489,7 @@ namespace kagome::parachain {
     SL_TRACE(logger_,
              "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
              bd->relay_parent);
-    auto parachain_state = tryGetStateByRelayParent(bd->relay_parent);
-    if (!parachain_state) {
-      return;
-    }
+    TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(bd->relay_parent));
 
     const auto &session_info =
         parachain_state->get().per_session_state->value().session_info;
@@ -1682,19 +1665,7 @@ namespace kagome::parachain {
       const std::deque<network::VersionedValidatorProtocolMessage> &messages) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
-    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
-    if (!relay_parent_state) {
-      SL_TRACE(logger_,
-               "After `send_to_validators_group` no parachain state on "
-               "relay_parent. (relay "
-               "parent={})",
-               relay_parent);
-      return;
-    }
-
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
     std::unordered_set<network::PeerId> group_set;
     if (auto r = runtime_info_->get_session_info(relay_parent)) {
       auto &[session, info] = r.value();
@@ -1918,20 +1889,13 @@ namespace kagome::parachain {
              peer_id,
              candidate_hash);
 
-    auto c = candidates_.get_confirmed(candidate_hash);
-    if (!c) {
-      return;
-    }
+    TRY_GET_OR_RET(c, candidates_.get_confirmed(candidate_hash));
     const RelayHash &relay_parent = c->get().relay_parent();
     const Hash &parent_head_data_hash = c->get().parent_head_data_hash();
     GroupIndex group_index = c->get().group_index();
     ParachainId para_id = c->get().para_id();
 
-    auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!opt_parachain_state) {
-      SL_TRACE(logger_, "Handled statement from {} out of view", relay_parent);
-      return;
-    }
+    TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
     auto &relay_parent_state = opt_parachain_state->get();
     BOOST_ASSERT(relay_parent_state.statement_store);
 
@@ -1949,15 +1913,11 @@ namespace kagome::parachain {
         },
         para_id,
         grid::ManifestKind::Acknowledgement);
-    if (!x) {
-      return;
-    }
+    CHECK_OR_RET(x);
 
     SL_TRACE(
         logger_, "Check local validator. (relay_parent = {})", relay_parent);
-    if (!relay_parent_state.local_validator) {
-      return;
-    }
+    CHECK_OR_RET(relay_parent_state.local_validator);
 
     const auto sender_index = x->sender_index;
     auto &local_validator = *relay_parent_state.local_validator;
@@ -1973,27 +1933,25 @@ namespace kagome::parachain {
         candidate_hash,
         peer_id,
         network::CollationVersion::VStaging);
-    if (!messages.empty()) {
-      auto se = pm_->getStreamEngine();
-      SL_TRACE(logger_, "Sending messages. (relay_parent = {})", relay_parent);
-      for (auto &msg : messages) {
-        if (auto m =
-                if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-          auto message = std::make_shared<network::WireMessage<
-              network::vstaging::ValidatorProtocolMessage>>(
-              std::move(m->get()));
-          se->send(peer_id, router_->getValidationProtocolVStaging(), message);
-        } else {
-          assert(false);
-        }
+
+    auto se = pm_->getStreamEngine();
+    SL_TRACE(logger_, "Sending messages. (relay_parent = {})", relay_parent);
+    for (auto &msg : messages) {
+      if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+        auto message = std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            std::move(m->get()));
+        se->send(peer_id, router_->getValidationProtocolVStaging(), message);
+      } else {
+        assert(false);
       }
     }
   }
 
   // Handles BackedCandidateManifest message
-  //  It performs various checks and operations, and if everything is
-  //  successful, it sends acknowledgement and statement messages to the
-  //  validators group or sends a request to fetch the attested candidate.
+  // It performs various checks and operations, and if everything is
+  // successful, it sends acknowledgement and statement messages to the
+  // validators group or sends a request to fetch the attested candidate.
   void ParachainProcessorImpl::handle_incoming_manifest(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
@@ -2004,22 +1962,10 @@ namespace kagome::parachain {
              manifest.candidate_hash,
              manifest.para_id,
              manifest.parent_head_data_hash);
-    auto relay_parent_state = tryGetStateByRelayParent(manifest.relay_parent);
-    if (!relay_parent_state) {
-      SL_WARN(logger_,
-              "After BackedCandidateManifest no parachain state on "
-              "relay_parent. (relay "
-              "parent={})",
-              manifest.relay_parent);
-      return;
-    }
 
-    if (!relay_parent_state->get().statement_store) {
-      SL_ERROR(logger_,
-               "Statement store is not initialized. (relay parent={})",
-               manifest.relay_parent);
-      return;
-    }
+    TRY_GET_OR_RET(relay_parent_state,
+                   tryGetStateByRelayParent(manifest.relay_parent));
+    CHECK_OR_RET(relay_parent_state->get().statement_store);
 
     SL_TRACE(logger_,
              "Handling incoming manifest common. (relay_parent={}, "
@@ -2037,9 +1983,7 @@ namespace kagome::parachain {
         },
         manifest.para_id,
         grid::ManifestKind::Full);
-    if (!x) {
-      return;
-    }
+    CHECK_OR_RET(x);
 
     const auto sender_index = x->sender_index;
     if (x->acknowledge) {
@@ -2078,10 +2022,6 @@ namespace kagome::parachain {
           manifest.group_index,
           manifest.candidate_hash,
           local_knowledge);
-
-      if (messages.empty()) {
-        return;
-      }
 
       SL_TRACE(logger_,
                "Send messages. (relay_parent={}, candidate_hash={})",
@@ -2188,9 +2128,7 @@ namespace kagome::parachain {
 
     const auto &session_info =
         parachain_state->get().per_session_state->value().session_info;
-    if (!parachain_state->get().local_validator) {
-      return;
-    }
+    CHECK_OR_RET(parachain_state->get().local_validator);
 
     auto &local_validator = *parachain_state->get().local_validator;
     auto originator_group =
@@ -2256,21 +2194,16 @@ namespace kagome::parachain {
         break;
       }
 
-      if (!grid_sender_index) {
-        return;
-      }
-
+      CHECK_OR_RET(grid_sender_index);
       const auto &[gsi, validator_knows_statement] = *grid_sender_index;
-      if (!validator_knows_statement) {
-        if (handle_grid_statement(stm.relay_parent,
-                                  parachain_state->get(),
-                                  local_validator.grid_tracker,
-                                  stm.compact,
-                                  gsi)
-                .has_error()) {
-          return;
-        }
-      } else {
+
+      CHECK_OR_RET(!validator_knows_statement);
+      if (handle_grid_statement(stm.relay_parent,
+                                parachain_state->get(),
+                                local_validator.grid_tracker,
+                                stm.compact,
+                                gsi)
+              .has_error()) {
         return;
       }
     }
@@ -2283,10 +2216,7 @@ namespace kagome::parachain {
                                                     stm.relay_parent,
                                                     *originator_group,
                                                     std::nullopt);
-    if (!res) {
-      return;
-    }
-
+    CHECK_OR_RET(res);
     const auto confirmed = candidates_.get_confirmed(candidate_hash);
     const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
     const auto &group = session_info.validator_groups[*originator_group];
@@ -2378,10 +2308,7 @@ namespace kagome::parachain {
     const auto originator = statement.payload.ix;
     const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
 
-    if (!relay_parent_state.local_validator) {
-      return;
-    }
-
+    CHECK_OR_RET(relay_parent_state.local_validator);
     enum DirectTargetKind {
       Cluster,
       Grid,
@@ -2492,8 +2419,6 @@ namespace kagome::parachain {
     }
 
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
     auto message_v2 = std::make_shared<
         network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         kagome::network::vstaging::ValidatorProtocolMessage{
@@ -2523,18 +2448,15 @@ namespace kagome::parachain {
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
       GroupIndex group_index) {
-    if (!relay_parent_state.local_validator) {
-      return;
-    }
+    CHECK_OR_RET(relay_parent_state.local_validator);
     auto &local_validator = *relay_parent_state.local_validator;
 
     const auto &session_info =
         relay_parent_state.per_session_state->value().session_info;
-    auto group =
-        relay_parent_state.per_session_state->value().groups.get(group_index);
-    if (!group) {
-      return;
-    }
+
+    TRY_GET_OR_RET(
+        group,
+        relay_parent_state.per_session_state->value().groups.get(group_index));
     const auto seconding_limit =
         relay_parent_state.prospective_parachains_mode->max_candidate_depth + 1;
 
@@ -2586,10 +2508,7 @@ namespace kagome::parachain {
       }
     }
 
-    if (validator_id >= session_info.discovery_keys.size()) {
-      return;
-    }
-
+    CHECK_OR_RET(validator_id < session_info.discovery_keys.size());
     auto filter = [&]() -> std::optional<network::vstaging::StatementFilter> {
       if (local_validator.active) {
         if (local_validator.active->cluster_tracker.knows_candidate(
@@ -2612,10 +2531,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }();
 
-    if (!filter) {
-      return;
-    }
-
+    CHECK_OR_RET(filter);
     filter->mask_seconded(unwanted_mask.seconded_in_group);
     filter->mask_valid(unwanted_mask.validated_in_group);
 
@@ -2659,10 +2575,9 @@ namespace kagome::parachain {
          group_index{group_index}](
             outcome::result<network::vstaging::AttestedCandidateResponse>
                 r) mutable {
-          if (auto self = wptr.lock()) {
-            self->handleFetchedStatementResponse(
-                std::move(r), relay_parent, candidate_hash, group_index);
-          }
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->handleFetchedStatementResponse(
+              std::move(r), relay_parent, candidate_hash, group_index);
         });
   }
 
@@ -2692,26 +2607,10 @@ namespace kagome::parachain {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// validate response
 
-    auto parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!parachain_state) {
-      SL_TRACE(
-          logger_,
-          "No relay parent data on fetch attested candidate response. (relay "
-          "parent={})",
-          relay_parent);
-      return;
-    }
-
-    if (!parachain_state->get().statement_store) {
-      SL_WARN(logger_,
-              "No statement store. (relay parent={}, candidate={})",
-              relay_parent,
-              candidate_hash);
-      return;
-    }
+    TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
+    CHECK_OR_RET(parachain_state->get().statement_store);
 
     const network::vstaging::AttestedCandidateResponse &response = r.value();
-
     SL_INFO(logger_,
             "Fetch attested candidate success. (relay parent={}, "
             "candidate={}, group index={}, statements={})",
@@ -2889,24 +2788,14 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::send_cluster_candidate_statements(
       const CandidateHash &candidate_hash, const RelayHash &relay_parent) {
-    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
-    if (!relay_parent_state) {
-      return;
-    }
-
-    auto local_group = relay_parent_state->get().our_group;
-    if (!local_group) {
-      return;
-    }
-
-    auto group =
+    TRY_GET_OR_RET(relay_parent_state, tryGetStateByRelayParent(relay_parent));
+    TRY_GET_OR_RET(local_group, relay_parent_state->get().our_group);
+    TRY_GET_OR_RET(
+        group,
         relay_parent_state->get().per_session_state->value().groups.get(
-            *local_group);
-    if (!group) {
-      return;
-    }
-    auto group_size = group->size();
+            *local_group));
 
+    auto group_size = group->size();
     relay_parent_state->get().statement_store->groupStatements(
         *group,
         candidate_hash,
@@ -2934,10 +2823,7 @@ namespace kagome::parachain {
       ParachainProcessorImpl::RelayParentState &per_relay_parent,
       const std::vector<ValidatorIndex> &group,
       const CandidateHash &candidate_hash) {
-    if (!per_relay_parent.statement_store) {
-      return;
-    }
-
+    CHECK_OR_RET(per_relay_parent.statement_store);
     std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
         imported;
     per_relay_parent.statement_store->fresh_statements_for_backing(
@@ -2979,10 +2865,10 @@ namespace kagome::parachain {
               [wself{weak_from_this()},
                relay_parent{relay_parent},
                carrying_pvd{std::move(carrying_pvd)}]() {
-                if (auto self = wself.lock()) {
-                  SL_TRACE(self->logger_, "Handle statement {}", relay_parent);
-                  self->handleStatement(relay_parent, carrying_pvd);
-                }
+                TRY_GET_OR_RET(self, wself.lock());
+
+                SL_TRACE(self->logger_, "Handle statement {}", relay_parent);
+                self->handleStatement(relay_parent, carrying_pvd);
               });
         });
 
@@ -2996,9 +2882,7 @@ namespace kagome::parachain {
       const network::StatementDistributionMessage &msg) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
-      if (auto r = canProcessParachains(); r.has_error()) {
-        return;
-      }
+      CHECK_OR_RET(canProcessParachains().has_value());
       if (auto r = isParachainValidator(statement_msg->relay_parent);
           r.has_error() || !r.value()) {
         return;
@@ -3102,8 +2986,6 @@ namespace kagome::parachain {
                   peer_info.id);
 
     auto protocol = router_->getReqPovProtocol();
-    BOOST_ASSERT(protocol);
-
     protocol->request(peer_info, candidate_hash, std::forward<F>(callback));
   }
 
@@ -3115,9 +2997,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    if (parachain_state.issued_statements.contains(candidate_hash)) {
-      return;
-    }
+    CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
 
     const auto &session_info =
         parachain_state.per_session_state->value().session_info;
@@ -3142,43 +3022,41 @@ namespace kagome::parachain {
            wself{weak_from_this()},
            relay_parent,
            peer_id{peer->id}](auto &&pov_response_result) mutable {
-            if (auto self = wself.lock()) {
-              auto parachain_state =
-                  self->tryGetStateByRelayParent(relay_parent);
-              if (!parachain_state) {
-                SL_TRACE(
-                    self->logger_,
-                    "After request pov no parachain state on relay_parent {}",
-                    relay_parent);
-                return;
-              }
-
-              if (!pov_response_result) {
-                self->logger_->warn("Request PoV on relay_parent {} failed {}",
-                                    relay_parent,
-                                    pov_response_result.error());
-                return;
-              }
-
-              network::ResponsePov &opt_pov = pov_response_result.value();
-              auto p{boost::get<network::ParachainBlock>(&opt_pov)};
-              if (!p) {
-                self->logger_->warn("No PoV.(candidate={})", candidate_hash);
-                self->onAttestNoPoVComplete(relay_parent, candidate_hash);
-                return;
-              }
-
-              self->logger_->info(
-                  "PoV received.(relay_parent={}, candidate hash={}, peer={})",
-                  relay_parent,
-                  candidate_hash,
-                  peer_id);
-              self->validateAsync<ValidationTaskType::kAttest>(
-                  std::move(candidate),
-                  std::move(*p),
-                  std::move(pvd),
+            TRY_GET_OR_RET(self, wself.lock());
+            auto parachain_state = self->tryGetStateByRelayParent(relay_parent);
+            if (!parachain_state) {
+              SL_TRACE(
+                  self->logger_,
+                  "After request pov no parachain state on relay_parent {}",
                   relay_parent);
+              return;
             }
+
+            if (!pov_response_result) {
+              self->logger_->warn("Request PoV on relay_parent {} failed {}",
+                                  relay_parent,
+                                  pov_response_result.error());
+              return;
+            }
+
+            network::ResponsePov &opt_pov = pov_response_result.value();
+            auto p{boost::get<network::ParachainBlock>(&opt_pov)};
+            if (!p) {
+              self->logger_->warn("No PoV.(candidate={})", candidate_hash);
+              self->onAttestNoPoVComplete(relay_parent, candidate_hash);
+              return;
+            }
+
+            self->logger_->info(
+                "PoV received.(relay_parent={}, candidate hash={}, peer={})",
+                relay_parent,
+                candidate_hash,
+                peer_id);
+            self->validateAsync<ValidationTaskType::kAttest>(
+                std::move(candidate),
+                std::move(*p),
+                std::move(pvd),
+                relay_parent);
           });
     }
   }
@@ -3192,23 +3070,19 @@ namespace kagome::parachain {
       return Error::NOT_CONFIRMED;
     }
 
-    auto relay_parent_state =
-        tryGetStateByRelayParent(confirmed->get().relay_parent());
-    if (!relay_parent_state) {
-      return Error::NO_STATE;
-    }
-
-    auto &local_validator = relay_parent_state->get().local_validator;
+    OUTCOME_TRY(relay_parent_state,
+                getStateByRelayParent(confirmed->get().relay_parent()));
+    auto &local_validator = relay_parent_state.get().local_validator;
     if (!local_validator) {
       return Error::NOT_A_VALIDATOR;
     }
-    BOOST_ASSERT(relay_parent_state->get().statement_store);
-    BOOST_ASSERT(relay_parent_state->get().our_index);
+    BOOST_ASSERT(relay_parent_state.get().statement_store);
+    BOOST_ASSERT(relay_parent_state.get().our_index);
 
     const auto &session_info =
-        relay_parent_state->get().per_session_state->value().session_info;
+        relay_parent_state.get().per_session_state->value().session_info;
     const auto &groups =
-        relay_parent_state->get().per_session_state->value().groups;
+        relay_parent_state.get().per_session_state->value().groups;
     auto group = groups.get(confirmed->get().group_index());
     if (!group) {
       SL_ERROR(logger_,
@@ -3288,7 +3162,7 @@ namespace kagome::parachain {
     /// https://github.com/qdrvm/kagome/issues/2060
     std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
         statements;
-    relay_parent_state->get().statement_store->groupStatements(
+    relay_parent_state.get().statement_store->groupStatements(
         *group,
         request.candidate_hash,
         and_mask,
@@ -3368,12 +3242,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
-
-    auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!opt_parachain_state) {
-      logger_->trace("Handled statement from {} out of view", relay_parent);
-      return;
-    }
+    TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
 
     auto &parachain_state = opt_parachain_state->get();
     const auto &assigned_para = parachain_state.assigned_para;
@@ -3487,9 +3356,7 @@ namespace kagome::parachain {
       RelayParentState &relay_parent_state,
       const ConfirmedCandidate &confirmed_candidate,
       const runtime::SessionInfo &session_info) {
-    if (!relay_parent_state.local_validator) {
-      return;
-    }
+    CHECK_OR_RET(relay_parent_state.local_validator);
     auto &local_validator = *relay_parent_state.local_validator;
 
     const auto relay_parent = confirmed_candidate.relay_parent();
@@ -3517,34 +3384,8 @@ namespace kagome::parachain {
                group_index);
       return;
     }
+
     const auto group_size = group->size();
-
-    SL_TRACE(logger_,
-             "======================== GRID VIEW group={} relay_parent={} "
-             "our_index={} our_id={} our_dk={} in_per_session={} "
-             "========================",
-             group_index,
-             relay_parent,
-             *relay_parent_state.our_index,
-             session_info.validators[*relay_parent_state.our_index],
-             session_info.discovery_keys[*relay_parent_state.our_index],
-             *relay_parent_state.per_session_state->value().our_index);
-
-    for (size_t k = 0; k < grid_view.size(); ++k) {
-      const auto &v = grid_view[k];
-      SL_TRACE(logger_, "\tGroup {}", k);
-      for (const auto vi : v.sending) {
-        SL_TRACE(logger_, "\t\tS: {}", vi);
-      }
-      for (const auto vi : v.receiving) {
-        SL_TRACE(logger_, "\t\tR: {}", vi);
-      }
-    }
-
-    SL_TRACE(
-        logger_,
-        "=================================================================");
-
     auto filter = local_knowledge_filter(group_size,
                                          group_index,
                                          candidate_hash,
@@ -3641,8 +3482,6 @@ namespace kagome::parachain {
     }
 
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
     if (!manifest_peers.empty()) {
       SL_TRACE(logger_,
                "Sending manifest to v2 peers. (candidate_hash={}, "
@@ -3714,10 +3553,8 @@ namespace kagome::parachain {
     const auto &confirmed = confirmed_opt->get();
 
     const auto relay_parent = confirmed.relay_parent();
-    auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
-    if (!relay_parent_state_opt) {
-      return;
-    }
+    TRY_GET_OR_RET(relay_parent_state_opt,
+                   tryGetStateByRelayParent(relay_parent));
     BOOST_ASSERT(relay_parent_state_opt->get().statement_store);
 
     const auto &session_info =
@@ -4395,10 +4232,7 @@ namespace kagome::parachain {
       const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &rp_state,
       std::optional<BackingStore::ImportResult> &summary) {
-    if (!summary) {
-      return;
-    }
-
+    CHECK_OR_RET(summary);
     SL_TRACE(logger_,
              "Import result.(candidate={}, para id={}, validity votes={})",
              summary->candidate,
@@ -4582,12 +4416,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const std::shared_ptr<network::Stream> &stream,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
-    auto my_view = peer_view_->getMyView();
-    if (!my_view) {
-      logger_->error("sendMyView failed, because my view still is not exists.");
-      return;
-    }
-
+    TRY_GET_OR_RET(my_view, peer_view_->getMyView());
     BOOST_ASSERT(protocol);
     logger_->info("Send my view.(peer={}, protocol={})",
                   peer_id,
@@ -4616,19 +4445,18 @@ namespace kagome::parachain {
     peer_state->get().version = version;
     if (tryOpenOutgoingCollatingStream(
             peer_id, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
-              if (auto self = wptr.lock()) {
-                switch (version) {
-                  case network::CollationVersion::V1:
-                  case network::CollationVersion::VStaging: {
-                    self->sendMyView(
-                        peer_id,
-                        stream,
-                        self->router_->getCollationProtocolVStaging());
-                  } break;
-                  default: {
-                    UNREACHABLE;
-                  } break;
-                }
+              TRY_GET_OR_RET(self, wptr.lock());
+              switch (version) {
+                case network::CollationVersion::V1:
+                case network::CollationVersion::VStaging: {
+                  self->sendMyView(
+                      peer_id,
+                      stream,
+                      self->router_->getCollationProtocolVStaging());
+                } break;
+                default: {
+                  UNREACHABLE;
+                } break;
               }
             })) {
       SL_DEBUG(logger_, "Initiated collation protocol with {}", peer_id);
@@ -4654,19 +4482,18 @@ namespace kagome::parachain {
             peer_id,
             version,
             [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
-              if (auto self = wptr.lock()) {
-                switch (version) {
-                  case network::CollationVersion::V1:
-                  case network::CollationVersion::VStaging: {
-                    self->sendMyView(
-                        peer_id,
-                        stream,
-                        self->router_->getValidationProtocolVStaging());
-                  } break;
-                  default: {
-                    UNREACHABLE;
-                  } break;
-                }
+              TRY_GET_OR_RET(self, wptr.lock());
+              switch (version) {
+                case network::CollationVersion::V1:
+                case network::CollationVersion::VStaging: {
+                  self->sendMyView(
+                      peer_id,
+                      stream,
+                      self->router_->getValidationProtocolVStaging());
+                } break;
+                default: {
+                  UNREACHABLE;
+                } break;
               }
             })) {
       logger_->info("Initiated validation protocol with {}", peer_id);
@@ -4745,9 +4572,8 @@ namespace kagome::parachain {
 
     auto it = our_current_state_.validator_side.fetched_candidates.find(
         fetched_collation);
-    if (it == our_current_state_.validator_side.fetched_candidates.end()) {
-      return;
-    }
+    CHECK_OR_RET(it
+                 != our_current_state_.validator_side.fetched_candidates.end());
 
     if (!it->second.pending_collation.commitments_hash
         || *it->second.pending_collation.commitments_hash
@@ -4831,38 +4657,13 @@ namespace kagome::parachain {
     return (app_config_.roles().flags.authority == 1);
   }
 
-  outcome::result<void> ParachainProcessorImpl::advCanBeProcessed(
-      const primitives::BlockHash &relay_parent,
-      const libp2p::peer::PeerId &peer_id) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
-    OUTCOME_TRY(canProcessParachains());
-
-    auto rps = our_current_state_.state_by_relay_parent.find(relay_parent);
-    if (rps == our_current_state_.state_by_relay_parent.end()) {
-      return Error::OUT_OF_VIEW;
-    }
-
-    if (rps->second.peers_advertised.count(peer_id) != 0ull) {
-      return Error::DUPLICATE;
-    }
-
-    rps->second.peers_advertised.insert(peer_id);
-    return outcome::success();
-  }
-
   void ParachainProcessorImpl::onValidationComplete(
       const ValidateAndSecondResult &validation_result) {
     logger_->trace("On validation complete. (relay parent={})",
                    validation_result.relay_parent);
 
-    auto opt_parachain_state =
-        tryGetStateByRelayParent(validation_result.relay_parent);
-    if (!opt_parachain_state) {
-      logger_->trace("Validated candidate from {} out of view",
-                     validation_result.relay_parent);
-      return;
-    }
-
+    TRY_GET_OR_RET(opt_parachain_state,
+                   tryGetStateByRelayParent(validation_result.relay_parent));
     auto &parachain_state = opt_parachain_state->get();
     const auto candidate_hash = validation_result.candidate.hash(*hasher_);
 
@@ -4876,10 +4677,7 @@ namespace kagome::parachain {
       return;
     }
 
-    if (parachain_state.issued_statements.contains(candidate_hash)) {
-      return;
-    }
-
+    CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
     logger_->trace("Second candidate complete. (candidate={}, relay parent={})",
                    candidate_hash,
                    validation_result.relay_parent);
@@ -4888,9 +4686,7 @@ namespace kagome::parachain {
         hasher_->blake2b_256(validation_result.pvd.parent_head);
     const auto ph =
         hasher_->blake2b_256(validation_result.commitments->para_head);
-    if (parent_head_data_hash == ph) {
-      return;
-    }
+    CHECK_OR_RET(parent_head_data_hash != ph);
 
     HypotheticalCandidateComplete hypothetical_candidate{
         .candidate_hash = candidate_hash,
@@ -4903,12 +4699,9 @@ namespace kagome::parachain {
     };
 
     fragment::FragmentTreeMembership fragment_tree_membership;
-    if (auto seconding_allowed =
-            secondingSanityCheck(hypothetical_candidate, false)) {
-      fragment_tree_membership = std::move(*seconding_allowed);
-    } else {
-      return;
-    }
+    TRY_GET_OR_RET(seconding_allowed,
+                   secondingSanityCheck(hypothetical_candidate, false));
+    fragment_tree_membership = std::move(*seconding_allowed);
 
     auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(
         parachain_state, validation_result);
@@ -4924,10 +4717,7 @@ namespace kagome::parachain {
       return;
     }
 
-    if (!res.value()) {
-      return;
-    }
-
+    CHECK_OR_RET(res.value());
     auto &stmt = *res.value();
     if (auto it = our_current_state_.per_candidate.find(candidate_hash);
         it != our_current_state_.per_candidate.end()) {
@@ -5141,15 +4931,9 @@ namespace kagome::parachain {
              candidate_hash,
              std::move(validate_and_second_result));
 
-    auto parachain_state =
-        tryGetStateByRelayParent(validate_and_second_result.relay_parent);
-    if (!parachain_state) {
-      SL_TRACE(logger_,
-               "After validation no parachain state on relay_parent {}",
-               validate_and_second_result.relay_parent);
-      return;
-    }
-
+    TRY_GET_OR_RET(
+        parachain_state,
+        tryGetStateByRelayParent(validate_and_second_result.relay_parent));
     SL_INFO(logger_,
             "Async validation complete.(relay parent={}, para_id={})",
             validate_and_second_result.relay_parent,
@@ -5177,25 +4961,17 @@ namespace kagome::parachain {
              std::move(pvd),
              relay_parent);
 
-    auto parachain_state =
-        tryGetStateByRelayParent(candidate.descriptor.relay_parent);
-    if (!parachain_state) {
-      return;
-    }
-
+    TRY_GET_OR_RET(parachain_state,
+                   tryGetStateByRelayParent(candidate.descriptor.relay_parent));
     const auto candidate_hash{candidate.hash(*hasher_)};
     if constexpr (kMode == ValidationTaskType::kAttest) {
-      if (parachain_state->get().issued_statements.contains(candidate_hash)) {
-        return;
-      }
+      CHECK_OR_RET(
+          !parachain_state->get().issued_statements.contains(candidate_hash));
     }
 
-    if (!parachain_state->get()
-             .awaiting_validation.insert(candidate_hash)
-             .second) {
-      return;
-    }
-
+    CHECK_OR_RET(parachain_state->get()
+                     .awaiting_validation.insert(candidate_hash)
+                     .second);
     SL_INFO(logger_,
             "Starting validation task.(para id={}, "
             "relay parent={}, candidate_hash={})",
@@ -5216,10 +4992,7 @@ namespace kagome::parachain {
                _measure,
                candidate_hash](
                   outcome::result<Pvf::Result> validation_result) mutable {
-      auto self = weak_self.lock();
-      if (not self) {
-        return;
-      }
+      TRY_GET_OR_RET(self, weak_self.lock());
       if (!validation_result) {
         SL_WARN(self->logger_,
                 "Candidate {} on relay_parent {}, para_id {} validation failed "
@@ -5238,7 +5011,8 @@ namespace kagome::parachain {
           .validation_data = std::move(data),
       };
 
-      auto measure2 = std::make_shared<TicToc>("===> EC validation", self->logger_);
+      auto measure2 =
+          std::make_shared<TicToc>("===> EC validation", self->logger_);
       auto chunks_res =
           self->validateErasureCoding(available_data, n_validators);
       if (chunks_res.has_error()) {
@@ -5273,10 +5047,7 @@ namespace kagome::parachain {
               pvd,
               [weak_self{weak_from_this()},
                cb{std::move(cb)}](outcome::result<Pvf::Result> r) mutable {
-                auto self = weak_self.lock();
-                if (not self) {
-                  return;
-                }
+                TRY_GET_OR_RET(self, weak_self.lock());
                 post(*self->main_pool_handler_,
                      [cb{std::move(cb)}, r{std::move(r)}]() mutable {
                        cb(std::move(r));
@@ -5286,14 +5057,8 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onAttestComplete(
       const ValidateAndSecondResult &result) {
-    auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
-    if (!parachain_state) {
-      logger_->warn(
-          "onAttestComplete result based on unexpected relay_parent {}",
-          result.relay_parent);
-      return;
-    }
-
+    TRY_GET_OR_RET(parachain_state,
+                   tryGetStateByRelayParent(result.relay_parent));
     logger_->info("Attest complete.(relay parent={}, para id={})",
                   result.relay_parent,
                   result.candidate.descriptor.para_id);
@@ -5324,23 +5089,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onAttestNoPoVComplete(
       const network::RelayHash &relay_parent,
       const CandidateHash &candidate_hash) {
-    auto parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!parachain_state) {
-      logger_->warn(
-          "onAttestNoPoVComplete result based on unexpected relay_parent. "
-          "(relay_parent={}, candidate={})",
-          relay_parent,
-          candidate_hash);
-      return;
-    }
+    TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
 
     auto it = parachain_state->get().fallbacks.find(candidate_hash);
-    if (it == parachain_state->get().fallbacks.end()) {
-      logger_->error(
-          "Internal error. Fallbacks doesn't contain candidate hash {}",
-          candidate_hash);
-      return;
-    }
+    CHECK_OR_RET(it != parachain_state->get().fallbacks.end());
 
     /// TODO(iceseer): make rotation on validators
     AttestingData &attesting = it->second;
@@ -5662,30 +5414,16 @@ namespace kagome::parachain {
              peer_id,
              std::move(prospective_candidate));
 
-    auto opt_per_relay_parent = tryGetStateByRelayParent(relay_parent);
-    if (!opt_per_relay_parent) {
-      SL_TRACE(
-          logger_, "Relay parent unknown. (relay_parent={})", relay_parent);
-      return;
-    }
-
+    TRY_GET_OR_RET(opt_per_relay_parent,
+                   tryGetStateByRelayParent(relay_parent));
     auto &per_relay_parent = opt_per_relay_parent->get();
     const ProspectiveParachainsModeOpt &relay_parent_mode =
         per_relay_parent.prospective_parachains_mode;
     const std::optional<network::ParachainId> &assignment =
         per_relay_parent.assigned_para;
 
-    auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
-      SL_TRACE(logger_, "Unknown peer. (peerd_id={})", peer_id);
-      return;
-    }
-
-    const auto collator_state = peer_state->get().collator_state;
-    if (!collator_state) {
-      SL_TRACE(logger_, "Undeclared collator. (peerd_id={})", peer_id);
-      return;
-    }
+    TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
+    TRY_GET_OR_RET(collator_state, peer_state->get().collator_state);
 
     const ParachainId collator_para_id = collator_state->para_id;
     if (!assignment || collator_para_id != *assignment) {
@@ -5897,11 +5635,7 @@ namespace kagome::parachain {
       return Error::ALREADY_REQUESTED;
     }
 
-    auto per_relay_parent = tryGetStateByRelayParent(pc.relay_parent);
-    if (!per_relay_parent) {
-      return Error::OUT_OF_VIEW;
-    }
-
+    OUTCOME_TRY(per_relay_parent, getStateByRelayParent(pc.relay_parent));
     network::CollationEvent collation_event{
         .collator_id = id,
         .collator_protocol_version = version,
@@ -5950,8 +5684,8 @@ namespace kagome::parachain {
     const auto maybe_candidate_hash =
         utils::map(pc.prospective_candidate,
                    [](const auto &v) { return std::cref(v.candidate_hash); });
-    per_relay_parent->get().collations.status = CollationStatus::Fetching;
-    per_relay_parent->get().collations.fetching_from.emplace(
+    per_relay_parent.get().collations.status = CollationStatus::Fetching;
+    per_relay_parent.get().collations.fetching_from.emplace(
         id, maybe_candidate_hash);
 
     if (network::CollationVersion::V1 == version) {

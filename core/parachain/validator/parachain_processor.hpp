@@ -470,19 +470,6 @@ namespace kagome::parachain {
      */
 
     /**
-     * @brief Checks if an advertisement can be processed.
-     *
-     * This function checks if an advertisement can be processed based on the
-     * relay parent and the peer id. It ensures that the relay parent is in the
-     * current view and that the advertisement has not been processed before. If
-     * the advertisement can be processed, it is added to the set of processed
-     * advertisements.
-     */
-    outcome::result<void> advCanBeProcessed(
-        const primitives::BlockHash &relay_parent,
-        const libp2p::peer::PeerId &peer_id);
-
-    /**
      * @brief Validates the erasure coding of the provided data.
      *
      * This function takes the available data from a runtime and the number of
