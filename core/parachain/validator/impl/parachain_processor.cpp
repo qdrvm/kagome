@@ -37,6 +37,21 @@
 #include "utils/pool_handler.hpp"
 #include "utils/profiler.hpp"
 
+#ifndef TRY_GET_OR_RET
+#define TRY_GET_OR_RET(name,op) \
+  auto name = (op); \
+  if (!op) { \
+    return; \
+  } else {}
+#endif //TRY_GET_OR_RET
+
+#ifndef CHECK_OR_RET
+#define CHECK_OR_RET(op) \
+  if(!(op)) { \
+    return; \
+  }
+#endif //CHECK_OR_RET
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
                             e) {
@@ -204,18 +219,9 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       const network::SignedBitfield &bitfield) {
     REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
-
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
-    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
-    if (!relay_parent_state) {
-      SL_TRACE(logger_,
-               "After `OnBroadcastBitfields` no parachain state on "
-               "relay_parent. (relay "
-               "parent={})",
-               relay_parent);
-      return;
-    }
 
+    TRY_GET_OR_RET(relay_parent_state, tryGetStateByRelayParent(relay_parent));
     send_to_validators_group(
         relay_parent,
         {network::VersionedValidatorProtocolMessage{
@@ -247,6 +253,7 @@ namespace kagome::parachain {
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
+
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
@@ -264,14 +271,7 @@ namespace kagome::parachain {
             if (was_synchronized) {
               if (!synchronized) {
                 synchronized = true;
-                auto my_view = self->peer_view_->getMyView();
-                if (!my_view) {
-                  SL_WARN(self->logger_,
-                          "Broadcast my view failed, "
-                          "because my view still not exists.");
-                  return;
-                }
-
+                TRY_GET_OR_RET(my_view, self->peer_view_->getMyView());
                 SL_TRACE(self->logger_,
                          "Broadcast my view because synchronized.");
                 self->broadcastView(my_view->get().view);
@@ -279,6 +279,7 @@ namespace kagome::parachain {
             }
           }
         });
+
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
@@ -326,11 +327,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onUpdatePeerView(
       const libp2p::peer::PeerId &peer, const network::View &new_view) {
     REINVOKE(*main_pool_handler_, onUpdatePeerView, peer, new_view);
-
-    auto peer_state = pm_->getPeerState(peer);
-    if (!peer_state) {
-      return;
-    }
+    TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer));
 
     auto fresh_implicit = peer_state->get().update_view(
         new_view, *our_current_state_.implicit_view);
@@ -345,10 +342,8 @@ namespace kagome::parachain {
       network::CollationVersion version,
       ValidatorIndex peer_validator_id,
       ParachainProcessorImpl::RelayParentState &relay_parent_state) {
-    if (!relay_parent_state.local_validator
-        || relay_parent_state.local_validator->active) {
-      return;
-    }
+    CHECK_OR_RET(relay_parent_state.local_validator);
+    CHECK_OR_RET(relay_parent_state.local_validator->active);
 
     const auto pending_statements =
         relay_parent_state.local_validator->active->cluster_tracker
@@ -5296,6 +5291,7 @@ namespace kagome::parachain {
           .validation_data = std::move(data),
       };
 
+      auto measure2 = std::make_shared<TicToc>("===> EC validation", self->logger_);
       auto chunks_res =
           self->validateErasureCoding(available_data, n_validators);
       if (chunks_res.has_error()) {
@@ -5304,6 +5300,7 @@ namespace kagome::parachain {
                 chunks_res.error());
         return;
       }
+      measure2.reset();
       auto &chunks = chunks_res.value();
 
       self->notifyAvailableData(std::move(chunks),
