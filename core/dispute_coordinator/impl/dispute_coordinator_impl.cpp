@@ -123,9 +123,10 @@ namespace kagome::dispute {
                   std::tie(magic, validity, candidate_hash, session));
             });
           });
-      BOOST_ASSERT_MSG(res.has_value(),
-                       "Successful scale encoding       expected");
-      return common::Buffer(std::move(res.value()));
+      if (res.has_value()) {
+        return common::Buffer(std::move(res.value()));
+      }
+      return res.as_failure();
     }
 
   }  // namespace
