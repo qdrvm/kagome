@@ -55,6 +55,7 @@ target_link_libraries(validator_parachain
 
 add_library(kagome_pvf_worker
     pvf/kagome_pvf_worker.cpp
+    pvf/secure_mode_precheck.cpp
     )
 target_link_libraries(kagome_pvf_worker
     PUBLIC

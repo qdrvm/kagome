@@ -6,6 +6,7 @@
 
 #include "application/impl/kagome_application_impl.hpp"
 
+#include <soralog/macro.hpp>
 #include <thread>
 
 #include "application/app_state_manager.hpp"
@@ -15,6 +16,7 @@
 #include "application/modes/recovery_mode.hpp"
 #include "injector/application_injector.hpp"
 #include "metrics/metrics.hpp"
+#include "parachain/pvf/secure_mode_precheck.hpp"
 #include "telemetry/service.hpp"
 #include "utils/watchdog.hpp"
 
@@ -118,6 +120,28 @@ namespace kagome::application {
            {"version", app_config_->nodeVersion()}});
       metric_build_info->set(1);
     }
+
+#ifdef __linux__
+    if (!app_config_->disableSecureMode() && app_config_->usePvfSubprocess()
+        && app_config_->roles().flags.authority) {
+      auto res = parachain::runSecureModeCheckProcess(
+          *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
+      if (!res) {
+        SL_ERROR(logger_, "Secure mode check failed: {}", res.error());
+        exit(EXIT_FAILURE);
+      }
+      if (!res.assume_value().isTotallySupported()) {
+        SL_ERROR(logger_,
+                 "Secure mode is not supported completely. You can disable it "
+                 "using --insecure-validator-i-know-what-i-do.");
+        exit(EXIT_FAILURE);
+      }
+    }
+#else
+    SL_WARN(logger_,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
+#endif
 
     app_state_manager->run();
 

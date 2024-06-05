@@ -41,6 +41,7 @@ namespace kagome::network {
     using BlockInfo = primitives::BlockInfo;
     using AdvResult = outcome::result<
         std::pair<const network::CollatorPublicKey &, network::ParachainId>>;
+    using PeerPredicate = std::function<bool(const PeerId &)>;
     using PeersCallback = std::function<bool(const PeerId &, PeerState &)>;
 
     virtual ~PeerManager() = default;
@@ -143,5 +144,12 @@ namespace kagome::network {
      */
     virtual void forOnePeer(const PeerId &peer_id,
                             std::function<void(const PeerId &)> func) const = 0;
+
+    /**
+     * Find peer that have already finalized specified block.
+     * Used by `SynchronizerImpl` and `BeefyImpl` to fetch justifications.
+     */
+    virtual std::optional<PeerId> peerFinalized(
+        BlockNumber min, const PeerPredicate &predicate) = 0;
   };
 }  // namespace kagome::network
