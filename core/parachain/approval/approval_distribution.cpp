@@ -1324,9 +1324,11 @@ namespace kagome::parachain {
         });
         if (outcome.has_error()) {
           self->logger_->warn(
-              "Approval validation failed.(parachain id={}, relay parent={})",
+              "Approval validation failed.(parachain id={}, relay parent={}). "
+              "Error: {}",
               candidate_receipt.descriptor.para_id,
-              candidate_receipt.descriptor.relay_parent);
+              candidate_receipt.descriptor.relay_parent,
+              outcome.error());
           self->dispute_coordinator_.get()->issueLocalStatement(
               session_index,
               hashed_candidate.getHash(),
