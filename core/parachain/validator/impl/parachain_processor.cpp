@@ -371,13 +371,7 @@ namespace kagome::parachain {
       }
     }
 
-    if (messages.empty()) {
-      return;
-    }
-
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
     for (auto &[peers, msg] : messages) {
       if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
         auto message = std::make_shared<
@@ -399,9 +393,7 @@ namespace kagome::parachain {
       ValidatorIndex peer_validator_id,
       const Groups &groups,
       ParachainProcessorImpl::RelayParentState &relay_parent_state) {
-    if (!relay_parent_state.local_validator) {
-      return;
-    }
+    CHECK_OR_RET(relay_parent_state.local_validator);
 
     auto pending_manifests =
         relay_parent_state.local_validator->grid_tracker.pending_manifests_for(
@@ -417,10 +409,7 @@ namespace kagome::parachain {
       }
 
       const auto group_index = confirmed_candidate->get().group_index();
-      auto group = groups.get(group_index);
-      if (!group) {
-        return;
-      }
+      TRY_GET_OR_RET(group, groups.get(group_index));
 
       const auto group_size = group->size();
       auto local_knowledge =
@@ -504,13 +493,7 @@ namespace kagome::parachain {
       }
     }
 
-    if (messages.empty()) {
-      return;
-    }
-
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
     for (auto &[peers, msg] : messages) {
       if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
         auto message = std::make_shared<
@@ -565,15 +548,8 @@ namespace kagome::parachain {
         main_pool_handler_
             ->isInCurrentThread());  // because of pm_->getPeerState(...)
 
-    auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
-      return;
-    }
-
-    auto parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!parachain_state) {
-      return;
-    }
+    TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
+    TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
 
     network::CollationVersion version = network::CollationVersion::VStaging;
     if (peer_state->get().version) {
@@ -601,12 +577,9 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
     REINVOKE(*main_pool_handler_, onViewUpdated, event);
+    CHECK_OR_RET(canProcessParachains().has_value());
 
     const auto &relay_parent = event.new_head.hash();
-    if (auto r = canProcessParachains(); r.has_error()) {
-      return;
-    }
-
     if (const auto r =
             prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
                 .new_head = {event.new_head},
@@ -846,12 +819,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::broadcastViewToGroup(
       const primitives::BlockHash &relay_parent, const network::View &view) {
-    auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
-    if (!opt_parachain_state) {
-      SL_ERROR(
-          logger_, "Relay state should exist. (relay_parent)", relay_parent);
-      return;
-    }
+    TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
 
     std::deque<network::PeerId> group;
     if (auto r = runtime_info_->get_session_info(relay_parent)) {
@@ -874,8 +842,6 @@ namespace kagome::parachain {
                          const std::shared_ptr<network::ProtocolBase>
                              &protocol) {
       auto se = pm_->getStreamEngine();
-      BOOST_ASSERT(se);
-
       auto message = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           msg);
@@ -1094,29 +1060,10 @@ namespace kagome::parachain {
           grid::shuffle(session_info->validator_groups, randomness),
           validator_index);
 
-      SL_TRACE(logger_,
-               "======================== GV INIT ========================");
-
-      for (size_t k = 0; k < grid_view.size(); ++k) {
-        const auto &v = grid_view[k];
-        SL_TRACE(logger_, "\tGroup {}", k);
-        for (const auto vi : v.sending) {
-          SL_TRACE(logger_, "\t\tS: {}", vi);
-        }
-        for (const auto vi : v.receiving) {
-          SL_TRACE(logger_, "\t\tR: {}", vi);
-        }
-      }
-
-      SL_TRACE(
-          logger_,
-          "=================================================================");
-
-      Groups g{session_info->validator_groups, minimum_backing_votes};
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
           *session_info,
-          std::move(g),
+          Groups{session_info->validator_groups, minimum_backing_votes},
           std::move(grid_view),
           validator_index,
           pm_,
