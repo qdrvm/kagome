@@ -180,8 +180,8 @@ namespace kagome::runtime {
       OUTCOME_TRY(transaction.main_batch->apply(*batch));
     }
     for (auto &p : child_batches_) {
-      OUTCOME_TRY(getChildBatchAt(*child));
-      auto child_batch = child_batches_.at(*child);
+      OUTCOME_TRY(getChildBatchAt(p.first));
+      auto child_batch = child_batches_.at(p.first);
       OUTCOME_TRY(child_apply(p.first, *child_batch));
     }
     return batch->commit(version);
