@@ -182,6 +182,13 @@ namespace kagome::parachain {
     return res.value();
   }
 
+  void BackingStoreImpl::printStoragesLoad() {
+    SL_TRACE(logger,
+             "[Backing store statistics]:"
+             "\n\t-> per_relay_parent={}",
+             per_relay_parent_.size());
+  }
+
   std::optional<std::reference_wrapper<const BackingStore::StatementInfo>>
   BackingStoreImpl::getCadidateInfo(
       const RelayHash &relay_parent,

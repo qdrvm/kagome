@@ -38,6 +38,7 @@ namespace kagome::parachain {
                   const CandidateHash &candidate_hash,
                   ErasureChunk &&chunk) override;
     void remove(const network::RelayHash &relay_parent) override;
+    void printStoragesLoad() override;
 
    private:
     struct PerCandidate {
@@ -52,6 +53,7 @@ namespace kagome::parachain {
           candidates_{};
     };
 
+    log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
     SafeObject<State> state_{};
   };
 }  // namespace kagome::parachain

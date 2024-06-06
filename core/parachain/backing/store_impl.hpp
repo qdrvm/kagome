@@ -85,6 +85,7 @@ namespace kagome::parachain {
 
     void onActivateLeaf(const RelayHash &relay_parent) override;
     void onDeactivateLeaf(const RelayHash &relay_parent) override;
+    void printStoragesLoad() override;
 
    private:
     struct AuthorityData {
@@ -138,6 +139,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::unordered_map<RelayHash, PerRelayParent> per_relay_parent_;
+    log::Logger logger = log::createLogger("BackingStore", "parachain");
   };
 }  // namespace kagome::parachain
 

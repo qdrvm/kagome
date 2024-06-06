@@ -787,6 +787,7 @@ namespace kagome::parachain {
     prune_old_advertisements(*our_current_state_.implicit_view,
                              our_current_state_.active_leaves,
                              our_current_state_.state_by_relay_parent);
+    printStoragesLoad();
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
@@ -5402,6 +5403,32 @@ namespace kagome::parachain {
       }
     }
     return false;
+  }
+
+  void ParachainProcessorImpl::printStoragesLoad() {
+    SL_TRACE(logger_,
+             "[Parachain storages statistics]:"
+             "\n\t-> state_by_relay_parent={}"
+             "\n\t-> per_leaf={}"
+             "\n\t-> per_candidate={}"
+             "\n\t-> active_leaves={}"
+             "\n\t-> blocked_advertisements={}"
+             "\n\t-> collation_requests_cancel_handles={}"
+             "\n\t-> validator_side.fetched_candidates={}",
+             our_current_state_.state_by_relay_parent.size(),
+             our_current_state_.per_leaf.size(),
+             our_current_state_.per_candidate.size(),
+             our_current_state_.active_leaves.size(),
+             our_current_state_.blocked_advertisements.size(),
+             our_current_state_.collation_requests_cancel_handles.size(),
+             our_current_state_.validator_side.fetched_candidates.size());
+    if (our_current_state_.implicit_view) {
+      our_current_state_.implicit_view->printStoragesLoad();
+    }
+    prospective_parachains_->printStoragesLoad();
+    bitfield_store_->printStoragesLoad();
+    backing_store_->printStoragesLoad();
+    av_store_->printStoragesLoad();
   }
 
   void ParachainProcessorImpl::handleAdvertisement(

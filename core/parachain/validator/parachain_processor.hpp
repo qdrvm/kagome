@@ -1063,6 +1063,8 @@ namespace kagome::parachain {
         const HypotheticalCandidate &hypothetical_candidate,
         bool backed_in_path_only);
 
+    void printStoragesLoad();
+
     outcome::result<void> kick_off_seconding(
         network::PendingCollationFetch &&pending_collation_fetch);
 
@@ -1102,11 +1104,6 @@ namespace kagome::parachain {
         std::unordered_map<network::FetchedCollation, network::CollationEvent>
             fetched_candidates;
       } validator_side;
-
-      struct {
-        std::unordered_set<Hash> implicit_view;
-        network::View view;
-      } statementDistributionV2;
     } our_current_state_;
 
     std::shared_ptr<PoolHandler> main_pool_handler_;

@@ -73,6 +73,15 @@ namespace kagome::parachain {
       BOOST_ASSERT(block_tree_);
     }
 
+    void printStoragesLoad() {
+      SL_TRACE(logger,
+               "[Prospective parachains storages statistics]:"
+               "\n\t-> view.active_leaves={}"
+               "\n\t-> view.candidate_storage={}",
+               view.active_leaves.size(),
+               view.candidate_storage.size());
+    }
+
     std::shared_ptr<blockchain::BlockTree> getBlockTree() {
       BOOST_ASSERT(block_tree_);
       return block_tree_;
