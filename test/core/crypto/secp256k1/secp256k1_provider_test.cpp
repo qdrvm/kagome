@@ -6,6 +6,7 @@
 
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 
+#include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
 #include <gtest/gtest.h>

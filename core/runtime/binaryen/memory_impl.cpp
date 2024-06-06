@@ -17,8 +17,6 @@ namespace kagome::runtime::binaryen {
                          const MemoryConfig &config)
       : memory_{memory},
         logger_{log::createLogger("Binaryen Memory", "binaryen")} {
-    // TODO(Harrm): #1714 temporary fix because binaryen doesn't recognize
-    // our memory resizes from our allocator
     memory_->resize(kInitialMemorySize);
   }
 

@@ -5,6 +5,7 @@
  */
 
 #include <iostream>
+#include "parachain/pvf/secure_mode_precheck.hpp"
 
 #if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
@@ -60,6 +61,10 @@ namespace {
       }
     }
 
+    if (configuration->precompileWasm()) {
+      return app->precompileWasm();
+    }
+
     // Recovery mode
     if (configuration->recoverState().has_value()) {
       return app->recovery();
@@ -101,6 +106,9 @@ int main(int argc, const char **argv, const char **env) {
     std::string_view name{argv[1]};
     if (name == "pvf-worker") {
       return kagome::parachain::pvf_worker_main(argc - 1, argv + 1, env);
+    }
+    if (name == "check-secure-mode") {
+      return kagome::parachain::secureModeCheckMain(argc, argv);
     }
   }
 

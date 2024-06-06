@@ -5,7 +5,7 @@
 #
 
 BasedOnStyle: Google
-BreakStringLiterals: false
+BreakStringLiterals: true
 NamespaceIndentation: All
 BreakBeforeBinaryOperators: NonAssignment
 AlignOperands: AlignAfterOperator
@@ -21,6 +21,7 @@ SortIncludes: CaseSensitive
 QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'constexpr', 'const', 'volatile', 'type', 'restrict']
 ReferenceAlignment: Right
+ReflowComments: true
 # uncomment in clang-format-16
 #RemoveSemicolon: true
 #InsertNewlineAtEOF: true

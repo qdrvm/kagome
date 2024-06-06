@@ -82,21 +82,6 @@ namespace kagome::storage::trie {
     return false;
   }
 
-  bool TopperTrieBatchImpl::empty() const {
-    if (not cache_.empty()
-        and std::any_of(cache_.begin(), cache_.end(), [](auto &p) {
-              return p.second.has_value();
-            })) {
-      return false;
-    }
-    // TODO(Harrm) PRE-462 consider clearPrefix here. Not an easy thing and is
-    // barely possible to happen, so leave it for the future
-    if (auto p = parent_.lock(); p != nullptr) {
-      return p->empty();
-    }
-    return true;
-  }
-
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
                                                  BufferOrView &&value) {
     cache_.insert_or_assign(Buffer{key}, value.intoBuffer());

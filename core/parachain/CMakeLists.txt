@@ -25,6 +25,7 @@ add_library(validator_parachain
     availability/recovery/recovery_impl.cpp
     availability/store/store_impl.cpp
     backing/store_impl.cpp
+    pvf/pool.cpp
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
     pvf/module_precompiler.cpp
@@ -35,6 +36,7 @@ add_library(validator_parachain
     approval/approval_distribution_error.cpp
     approval/approval.cpp
     backing/store_impl.cpp
+    backing/cluster.cpp
     validator/impl/fragment_tree.cpp
     validator/backing_implicit_view.cpp
     )
@@ -53,6 +55,7 @@ target_link_libraries(validator_parachain
 
 add_library(kagome_pvf_worker
     pvf/kagome_pvf_worker.cpp
+    pvf/secure_mode_precheck.cpp
     )
 target_link_libraries(kagome_pvf_worker
     PUBLIC

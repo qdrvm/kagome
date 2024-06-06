@@ -7,7 +7,6 @@
 #include "storage/map_prefix/prefix.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <libp2p/common/bytestr.hpp>
 
 namespace kagome::storage {
   inline std::optional<Buffer> afterPrefix(Buffer key) {
@@ -105,10 +104,6 @@ namespace kagome::storage {
         after_prefix{afterPrefix(this->prefix)},
         map{std::move(map)} {}
 
-  MapPrefix::MapPrefix(std::string_view prefix,
-                       std::shared_ptr<BufferStorage> map)
-      : MapPrefix{libp2p::bytestr(prefix), std::move(map)} {}
-
   Buffer MapPrefix::_key(BufferView key) const {
     return Buffer{prefix}.put(key);
   }
@@ -124,10 +119,6 @@ namespace kagome::storage {
 
   outcome::result<bool> MapPrefix::contains(const BufferView &key) const {
     return map->contains(_key(key));
-  }
-
-  bool MapPrefix::empty() const {
-    throw std::logic_error{"MapPrefix::empty not implemented"};
   }
 
   outcome::result<void> MapPrefix::put(const BufferView &key,

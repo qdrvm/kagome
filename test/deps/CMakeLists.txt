@@ -4,14 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(outcome_test
-    outcome_test.cpp
-    )
-target_link_libraries(outcome_test
-    outcome
-    dummy_error
-    )
-
 addtest(formatters_test
     formatters_test.cpp
     )

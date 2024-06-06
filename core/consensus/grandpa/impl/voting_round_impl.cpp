@@ -14,6 +14,7 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/historical_votes.hpp"
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -56,7 +57,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> env,
-      SaveCachedVotes save_cached_votes,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
@@ -69,7 +69,6 @@ namespace kagome::consensus::grandpa {
         grandpa_(grandpa),
         hasher_{std::move(hasher)},
         env_{std::move(env)},
-        save_cached_votes_{std::move(save_cached_votes)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
         scheduler_{std::move(scheduler)},
@@ -105,7 +104,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -116,7 +114,6 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -134,7 +131,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -145,7 +141,6 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -557,9 +552,6 @@ namespace kagome::consensus::grandpa {
     auto &signed_prevote = signed_prevote_opt.value();
     if (onPrevote({}, signed_prevote, Propagation::NEEDLESS)) {
       update(false, true, false);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
@@ -613,9 +605,6 @@ namespace kagome::consensus::grandpa {
     auto &signed_precommit = signed_precommit_opt.value();
     if (onPrecommit({}, signed_precommit, Propagation::NEEDLESS)) {
       update(false, false, true);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
@@ -1119,6 +1108,12 @@ namespace kagome::consensus::grandpa {
   template <typename T>
   outcome::result<void> VotingRoundImpl::onSigned(
       OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote) {
+    auto save_historical_vote = [&] {
+      if (auto grandpa = grandpa_.lock()) {
+        grandpa->saveHistoricalVote(
+            voter_set_->id(), round_number_, vote, vote.id == id_);
+      }
+    };
     BOOST_ASSERT(vote.is<T>());
 
     // Check if a voter is contained in a current voter set
@@ -1165,8 +1160,6 @@ namespace kagome::consensus::grandpa {
         if (result.has_error()) {
           tracker.unpush(vote, weight);
           auto log_lvl = log::Level::WARN;
-          // TODO(Harrm): this looks like a kind of a crutch,
-          //  think of a better way to pass this information
           if (result
               == outcome::failure(
                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
@@ -1184,6 +1177,7 @@ namespace kagome::consensus::grandpa {
                  result.error());
           return result.as_failure();
         }
+        save_historical_vote();
         return outcome::success();
       }
       case VoteTracker::PushResult::DUPLICATED: {
@@ -1204,6 +1198,7 @@ namespace kagome::consensus::grandpa {
 
         std::ignore = env_->reportEquivocation(*this, equivocation);
 
+        save_historical_vote();
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
       default:

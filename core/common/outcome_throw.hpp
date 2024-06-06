@@ -33,8 +33,8 @@ namespace kagome::common {
     boost::throw_exception(std::system_error(t.value(), t.category()));
   }
 
-  template <typename T, typename E>
-  void raise_on_err(const outcome::result<T, E> &res) {
+  template <typename T>
+  void raise_on_err(const outcome::result<T> &res) {
     if (res.has_error()) {
       raise(res.error());
     }

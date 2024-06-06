@@ -8,9 +8,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <qtils/cxx20/lexicographical_compare_three_way.hpp>
 #include <span>
-
-#include "common/lexicographical_compare_three_way.hpp"
 
 // `std::span` doesn't have comparison operator functions.
 // Can't add function to neither `std::span` nor `namespace std`.
@@ -34,7 +33,7 @@ auto operator<=>(const SpanAdl<T> &l_, const auto &r_)
     auto c = std::memcmp(l.data(), r.data(), n) <=> 0;
     return c != 0 ? c : l.size() <=> r.size();
   } else {
-    return cxx20::lexicographical_compare_three_way(
+    return qtils::cxx20::lexicographical_compare_three_way(
         l.begin(), l.end(), r.begin(), r.end());
   }
 }

@@ -14,11 +14,13 @@ if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
 fi
 
 KAGOME_ROOT="$(dirname "$0")/../../.."
+echo "KAGOME_ROOT: $KAGOME_ROOT"
 
 # cd to kagome source root
 cd "$KAGOME_ROOT"
 
 BUILD_DIR="${BUILD_DIR:-$(pwd)/build}"
+echo "BUILD_DIR: $BUILD_DIR"
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
@@ -54,6 +56,7 @@ else
 fi
 
 CTX_DIR="${BUILD_DIR}/docker_context"
+echo "CTX_DIR: $CTX_DIR"
 
 # Cleanup docker context
 rm -Rf ${CTX_DIR}
@@ -94,6 +97,8 @@ fi
 if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
   TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-rel-with-deb-info"
 fi
+
+echo "$TAG_HASH_COMMIT" > tag_output.txt
 
 docker tag $TAG $TAG_HASH_COMMIT
 docker push $TAG_HASH_COMMIT

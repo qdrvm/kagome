@@ -6,6 +6,9 @@
 
 #include "common/hexutil.hpp"
 
+#include <qtils/hex.hpp>
+#include <qtils/unhex.hpp>
+
 #include "common/buffer_view.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
@@ -26,64 +29,20 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
 }
 
 namespace kagome::common {
-
-  std::string int_to_hex(uint64_t n, size_t fixed_width) noexcept {
-    std::stringstream result;
-    result.width(fixed_width);
-    result.fill('0');
-    result << std::hex << std::uppercase << n;
-    auto str = result.str();
-    if (str.length() % 2 != 0) {
-      str.push_back('\0');
-      for (int64_t i = str.length() - 2; i >= 0; --i) {
-        str[i + 1] = str[i];
-      }
-      str[0] = '0';
-    }
-    return str;
-  }
-
-  std::string hex_upper(BufferView bytes) noexcept {
-    std::string res(bytes.size() * 2, '\x00');
-    boost::algorithm::hex(bytes.begin(), bytes.end(), res.begin());
-    return res;
-  }
-
   std::string hex_lower(BufferView bytes) noexcept {
-    std::string res(bytes.size() * 2, '\x00');
-    boost::algorithm::hex_lower(bytes.begin(), bytes.end(), res.begin());
-    return res;
+    return fmt::format("{:x}", std::span{bytes});
   }
 
   std::string hex_lower_0x(BufferView bytes) noexcept {
-    constexpr std::string_view prefix = "0x";
-
-    std::string res(bytes.size() * 2 + prefix.size(), 0);
-    res.replace(0, prefix.size(), prefix);
-
-    boost::algorithm::hex_lower(
-        bytes.begin(), bytes.end(), res.begin() + prefix.size());
-    return res;
-  }
-
-  std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept {
-    return hex_lower_0x(BufferView(data, size));
+    return fmt::format("{:0x}", std::span{bytes});
   }
 
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex) {
-    std::vector<uint8_t> blob;
-    blob.reserve((hex.size() + 1) / 2);
-
-    OUTCOME_TRY(unhex_to(hex, std::back_inserter(blob)));
-    return blob;
+    return qtils::unhex(hex);
   }
 
   outcome::result<std::vector<uint8_t>> unhexWith0x(
       std::string_view hex_with_prefix) {
-    constexpr std::string_view prefix = "0x";
-    if (!hex_with_prefix.starts_with(prefix)) {
-      return UnhexError::MISSING_0X_PREFIX;
-    }
-    return common::unhex(hex_with_prefix.substr(prefix.size()));
+    return qtils::unhex0x(hex_with_prefix);
   }
 }  // namespace kagome::common

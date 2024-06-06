@@ -578,10 +578,6 @@ namespace kagome::storage::trie {
     return node != nullptr && node->getValue();
   }
 
-  bool PolkadotTrieImpl::empty() const {
-    return nodes_->getRoot() == nullptr;
-  }
-
   outcome::result<void> PolkadotTrieImpl::remove(
       const common::BufferView &key) {
     auto key_nibbles = KeyNibbles::fromByteBuffer(key);
