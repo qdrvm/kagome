@@ -38,8 +38,6 @@ if(NOT CMAKE_CXX_COMPILER)
   fatal_error("clang++-16 not found")
 endif()
 
-message(STATUS "CXX COMPILER: " "${CMAKE_CXX_COMPILER}")
-
 set(
     CMAKE_C_COMPILER
     "${CMAKE_C_COMPILER}"
