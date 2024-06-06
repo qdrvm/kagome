@@ -71,8 +71,8 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   hunter_config(
       WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/feature/expose-jit.zip
-      SHA1 3c26ba9a056e5e2fd257bc6737e6bc31908812ad
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
+      SHA1 f21a4ebce61dd8c95547841eca92e46c430a7a2a
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=OFF
         WASMEDGE_BUILD_SHARED_LIB=ON
