@@ -1,5 +1,5 @@
 HunterGate(
-  URL  https://github.com/qdrvm/hunter/archive/refs/heads/update/boost-1.85.zip
-  SHA1 40c34d168dfa7d2a44d146928befa2d9d5680a71
+  URL  https://github.com/qdrvm/hunter/archive/refs/tags/v0.25.3-qdrvm14.zip
+  SHA1 6fc0eb2ab6b85cec6f43d247eb43c0ab0ecdaa65
   LOCAL
 )
