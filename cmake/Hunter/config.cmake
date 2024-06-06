@@ -52,9 +52,27 @@ hunter_config(
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
+      fmt
+      URL
+          https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
+      SHA1
+          d223964b782d2562d6722ffe67027204c6035453
+      CMAKE_ARGS
+          CMAKE_POSITION_INDEPENDENT_CODE=TRUE
+  )
+  
+  hunter_config(
+      spdlog
+      VERSION 1.12.0-p0
+      CMAKE_ARGS
+          SPDLOG_BUILD_PIC=ON
+          SPDLOG_FMT_EXTERNAL=ON
+  )
+
+  hunter_config(
       WasmEdge
       URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/feature/expose-jit.zip
-      SHA1 49c3c9d3b32b928b7ec2e9a6f4c504669697e8ce
+      SHA1 3c26ba9a056e5e2fd257bc6737e6bc31908812ad
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=OFF
         WASMEDGE_BUILD_SHARED_LIB=ON
