@@ -16,3 +16,4 @@ RUN apt-get update && \
 
 COPY kagome /usr/local/bin/
 COPY libwasmedge.so* /usr/local/lib/
+RUN ldconfig
