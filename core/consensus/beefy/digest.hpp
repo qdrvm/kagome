@@ -13,7 +13,7 @@ namespace kagome {
   inline std::optional<consensus::beefy::ValidatorSet> beefyValidatorsDigest(
       const primitives::BlockHeader &block) {
     for (auto &digest : block.digest) {
-      auto consensus = boost::get<primitives::Consensus>(&digest);
+      auto consensus = std::get_if<primitives::Consensus>(&digest);
       if (not consensus) {
         continue;
       }
@@ -36,7 +36,7 @@ namespace kagome {
   inline std::optional<consensus::beefy::MmrRootHash> beefyMmrDigest(
       const primitives::BlockHeader &block) {
     for (auto &digest : block.digest) {
-      auto consensus = boost::get<primitives::Consensus>(&digest);
+      auto consensus = std::get_if<primitives::Consensus>(&digest);
       if (not consensus) {
         continue;
       }

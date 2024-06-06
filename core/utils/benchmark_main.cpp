@@ -61,7 +61,7 @@ namespace kagome {
         });
 
     if (res.has_error()) {
-      SL_ERROR(logger, "Failed to run benchmark: {}", res.error().message());
+      SL_ERROR(logger, "Failed to run benchmark: {}", res.error());
       logger->flush();
 
       return res.error().value();

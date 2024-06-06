@@ -27,6 +27,7 @@ namespace kagome {
 
   namespace application::mode {
     class PrintChainInfoMode;
+    class PrecompileWasmMode;
     class RecoveryMode;
     class BenchmarkMode;
   }  // namespace application::mode
@@ -149,6 +150,8 @@ namespace kagome::injector {
 
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();
+    std::shared_ptr<application::mode::PrecompileWasmMode>
+    injectPrecompileWasmMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
     std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
 

@@ -69,6 +69,11 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void, updateNextRound, (RoundNumber round_number), (override));
+
+    MOCK_METHOD(void,
+                saveHistoricalVote,
+                (AuthoritySetId, RoundNumber, const SignedMessage &, bool),
+                (override));
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -21,10 +21,7 @@ namespace kagome::metrics {
 
   /**
    * @brief the class stores metrics, provides interface to create metrics and
-   * families of metrics
-   * TODO(sanblch) rethink interface to avoid error on calling registering
-   * metrics before registering family
-   * provides interfaces to register families and metrics of metric types:
+   * families of metrics and metrics of metric types:
    * counter, gauge, histogram, summary
    * @param name Set the metric name.
    * @param help Set an additional description.

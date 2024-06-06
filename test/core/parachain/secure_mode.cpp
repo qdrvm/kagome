@@ -12,10 +12,8 @@
 #include <fstream>
 #include <ios>
 #include <libp2p/common/final_action.hpp>
-#include <system_error>
-#include <type_traits>
 
-#include "parachain/pvf/kagome_pvf_worker.hpp"
+#include "parachain/pvf/secure_mode.hpp"
 
 #include "testutil/outcome.hpp"
 

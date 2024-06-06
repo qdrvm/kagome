@@ -235,6 +235,9 @@ namespace kagome::application {
     bool disableSecureMode() const override {
       return disable_secure_mode_;
     }
+    std::optional<PrecompileWasmConfig> precompileWasm() const override {
+      return precompile_wasm_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -387,6 +390,7 @@ namespace kagome::application {
     bool use_pvf_subprocess_{true};
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     bool disable_secure_mode_{false};
+    std::optional<PrecompileWasmConfig> precompile_wasm_;
   };
 
 }  // namespace kagome::application

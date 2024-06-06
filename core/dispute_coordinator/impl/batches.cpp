@@ -10,9 +10,10 @@
 
 namespace kagome::dispute {
 
-  Batches::Batches(clock::SteadyClock &clock,
+  Batches::Batches(log::Logger logger,
+                   clock::SteadyClock &clock,
                    std::shared_ptr<crypto::Hasher> hasher)
-      : clock_(clock), hasher_(std::move(hasher)) {}
+      : logger_(std::move(logger)), clock_(clock), hasher_(std::move(hasher)) {}
 
   outcome::result<std::tuple<std::shared_ptr<Batch>, bool>> Batches::find_batch(
       const CandidateHash &candidate_hash,
@@ -40,10 +41,10 @@ namespace kagome::dispute {
   std::vector<PreparedImport> Batches::check_batches() {
     std::vector<PreparedImport> imports;
 
-    // Wait for at least one batch to become ready
-
-    BOOST_ASSERT_MSG(not waiting_queue_.empty(),
-                     "Can't try to check if nothing waiting");
+    // Can't try to check if nothing waiting
+    if (waiting_queue_.empty()) {
+      return imports;
+    }
 
     auto now = clock_.now();
     for (;;) {
@@ -65,15 +66,16 @@ namespace kagome::dispute {
       // Batch done
       if (prepared_import_opt.has_value()) {
         auto &prepared_import = prepared_import_opt.value();
-        // LOG-TRACE: "Batch (candidate={}) became ready", candidate_hash
+        SL_TRACE(logger_, "Batch (candidate={}) became ready", candidate_hash);
         imports.push_back(std::move(prepared_import));
         batches_.erase(it);
         continue;
       }
 
       // Batch alive
-      // LOG-TRACE: "Batch (candidate={}) found to be still alive on check",
-      // candidate_hash
+      SL_TRACE(logger_,
+               "Batch (candidate={}) found to be still alive on check",
+               candidate_hash);
       waiting_queue_.emplace(candidate_hash);
     }
 

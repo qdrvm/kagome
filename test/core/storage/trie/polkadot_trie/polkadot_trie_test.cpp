@@ -91,10 +91,8 @@ TEST_P(TrieTest, RunCommand) {
           ASSERT_OUTCOME_SUCCESS(val, trie->get(command.key));
           ASSERT_EQ(val, command.value.value());
         } else {
-          EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
-          ASSERT_EQ(
-              err.value(),
-              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
+          EXPECT_EC(trie->get(command.key),
+                    kagome::storage::trie::TrieError::NO_VALUE);
         }
         break;
       }
@@ -351,7 +349,6 @@ TEST_F(TrieTest, ClearPrefix) {
         return outcome::success();
       }));
   ASSERT_OUTCOME_IS_FALSE(trie->contains("bat"_buf));
-  ASSERT_TRUE(trie->empty());
 }
 
 struct DeleteData {
@@ -514,23 +511,11 @@ INSTANTIATE_TEST_SUITE_P(
                          2}}));
 
 /**
- * @given an empty trie
- * @when putting something into the trie
- * @then the trie is empty no more
- */
-TEST_F(TrieTest, EmptyTrie) {
-  ASSERT_TRUE(trie->empty());
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put(Buffer{0}, "asdasd"_buf));
-  ASSERT_FALSE(trie->empty());
-}
-
-/**
  * @given a trie
  * @when getting a path in a trie to a valid node
  * @then the path is returned
  */
 TEST_F(TrieTest, GetPath) {
-  // TODO(Harrm) PRE-461 Make parametrized
   const std::vector<std::pair<Buffer, Buffer>> data = {
       {"123456"_hex2buf, "42"_hex2buf},
       {"1234"_hex2buf, "1234"_hex2buf},
@@ -576,8 +561,7 @@ TEST_F(TrieTest, GetPathToInvalid) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         trie->put(entry.first, BufferView{entry.second}));
   }
-  EXPECT_OUTCOME_SOME_ERROR(
-      _,
+  EXPECT_OUTCOME_FALSE_1(
       trie->forNodeInPath(trie->getRoot(),
                           KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
                           [](auto &node, auto idx, auto &child) mutable {

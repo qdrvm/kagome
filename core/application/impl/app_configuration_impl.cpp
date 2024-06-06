@@ -809,6 +809,7 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
+        ("version,v", "show version information")
         ("log,l", po::value<std::vector<std::string>>(),
           "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
@@ -897,6 +898,8 @@ namespace kagome::application {
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
+        ("precompile-relay", po::bool_switch(), "precompile relay")
+        ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -944,6 +947,10 @@ namespace kagome::application {
       std::cout
           << "Available subcommands: storage-explorer db-editor benchmark\n";
       std::cout << desc << std::endl;
+      return false;
+    }
+    if (vm.count("version") > 0) {
+      std::cout << "Kagome version " << buildVersion() << std::endl;
       return false;
     }
 
@@ -1614,6 +1621,20 @@ namespace kagome::application {
     }
 
     blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
+
+    if (find_argument(vm, "precompile-relay")) {
+      precompile_wasm_.emplace();
+    }
+    if (auto paths = find_argument<decltype(PrecompileWasmConfig::parachains)>(
+            vm, "precompile-para")) {
+      if (not precompile_wasm_) {
+        precompile_wasm_.emplace();
+      }
+      precompile_wasm_->parachains = *paths;
+    }
+    if (precompile_wasm_) {
+      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {

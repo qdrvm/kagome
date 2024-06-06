@@ -146,6 +146,9 @@ namespace kagome::network {
 
     void enumeratePeerState(const PeersCallback &callback) override;
 
+    std::optional<PeerId> peerFinalized(
+        BlockNumber min, const PeerPredicate &predicate) override;
+
    private:
     /// Right way to check self peer as it takes into account dev mode
     bool isSelfPeer(const PeerId &peer_id) const;

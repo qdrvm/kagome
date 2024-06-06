@@ -131,13 +131,6 @@ using testing::Return;
 
 using namespace std::chrono_literals;
 
-// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s, const detail::DigestItemCommon &) {
-    return s;
-  }
-}  // namespace kagome::primitives
-
 static Digest make_digest(SlotNumber slot, AuthorityIndex authority_index = 0) {
   Digest digest;
 
@@ -498,7 +491,7 @@ TEST_F(BabeTest, EquivocationReport) {
       "block_#1_second"_hash256            // hash
   };
 
-  OpaqueKeyOwnershipProof ownership_proof{"ownership_proof"_bytes};
+  OpaqueKeyOwnershipProof ownership_proof{Buffer{"ownership_proof"_bytes}};
 
   EquivocationProof equivocation_proof{
       .offender = authority_id,

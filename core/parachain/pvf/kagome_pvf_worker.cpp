@@ -29,18 +29,17 @@
 #include <libp2p/common/asio_buffer.hpp>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/log/configurator.hpp>
-#include <libp2p/outcome/outcome-register.hpp>
 #include <soralog/macro.hpp>
 
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
+#include "parachain/pvf/secure_mode.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
@@ -73,8 +72,16 @@ namespace kagome::parachain {
 
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
-  outcome::result<void, SecureModeError> changeRoot(
-      const std::filesystem::path &worker_dir) {
+  SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
+    std::error_code ec;
+    std::filesystem::create_directories(worker_dir, ec);
+    if (ec) {
+      return SecureModeError{
+          fmt::format("Failed to create worker directory {}: {}",
+                      worker_dir.c_str(),
+                      ec.message())};
+    }
+
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
 
@@ -95,8 +102,7 @@ namespace kagome::parachain {
     std::error_code err{};
     std::filesystem::current_path("..", err);
     if (err) {
-      return SecureModeError{
-          fmt::format("Failed to chdir to ..: {}", err.message())};
+      return SecureModeError{fmt::format("Failed to chdir to ..: {}", err)};
     }
     if (std::filesystem::current_path() != "/") {
       return SecureModeError{
@@ -105,7 +111,7 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableSeccomp() {
+  SecureModeOutcome<void> enableSeccomp() {
     std::array forbidden_calls{
         SCMP_SYS(socketpair),
         SCMP_SYS(socket),
@@ -131,12 +137,12 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<void, SecureModeError> enableLandlock(
+  SecureModeOutcome<void> enableLandlock(
       const std::filesystem::path &worker_dir) {
     std::array<std::pair<std::filesystem::path, uint64_t>, 1>
         allowed_exceptions;
-    // TODO(Harrm): Separate PVF workers on prepare and execute workers, and
-    // separate FS permissions accordingly
+    // TODO(Harrm): #2103 Separate PVF workers on prepare and execute workers,
+    // and separate FS permissions accordingly
     allowed_exceptions[0] =
         std::pair{worker_dir,
                   LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE
@@ -278,7 +284,7 @@ namespace kagome::parachain {
       if (auto res = changeRoot(input.cache_dir); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       input.cache_dir = "/";
@@ -286,23 +292,20 @@ namespace kagome::parachain {
       if (auto res = enableLandlock(input.cache_dir); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       if (auto res = enableSeccomp(); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (seccomp): {}",
-                 res.error().message());
+                 res.error());
         return std::errc::not_supported;
       }
       SL_VERBOSE(logger, "Successfully enabled secure validator mode");
     } else {
-      SL_WARN(logger, "Secure validator mode disabled in node configuration");
+      SL_VERBOSE(logger,
+                 "Secure validator mode disabled in node configuration");
     }
-#else
-    SL_WARN(
-        logger,
-        "Secure validator mode is not implemented for the current platform. Proceed at your own risk.");
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));

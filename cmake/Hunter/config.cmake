@@ -33,18 +33,6 @@ hunter_config(
 )
 
 hunter_config(
-    soralog
-    VERSION 0.2.3
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    libp2p
-    VERSION 0.1.22
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     rocksdb
     VERSION 9.0.0
     CMAKE_ARGS WITH_GFLAGS=OFF
@@ -103,12 +91,6 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       KEEP_PACKAGE_SOURCES
   )
 endif ()
-
-hunter_config(
-    scale
-    VERSION 1.1.2
-    KEEP_PACKAGE_SOURCES
-)
 
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
