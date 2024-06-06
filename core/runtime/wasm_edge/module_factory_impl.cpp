@@ -368,7 +368,7 @@ namespace kagome::runtime::wasm_edge {
     WasmEdge_ASTModuleContext *module_ctx;
 
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O1);
+        configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O2);
 
     switch (config_.exec) {
       case ExecType::AotCompiled: {
