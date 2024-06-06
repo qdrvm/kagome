@@ -1633,7 +1633,7 @@ namespace kagome::application {
       precompile_wasm_->parachains = *paths;
     }
     if (precompile_wasm_) {
-      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+      runtime_exec_method_ = RuntimeExecutionMethod::CompileAheadOfTime;
     }
 
     // if something wrong with config print help message
