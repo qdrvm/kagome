@@ -304,10 +304,6 @@ namespace kagome::dispute {
     SessionIndex highest_session_{0};
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;
-    // std::unique_ptr<RollingSessionWindow> rolling_session_window_;
-
-    // This tracks only rolling session window failures.
-    std::optional<SessionObtainingError> error_;
 
     /// Queues for messages from authority peers for rate limiting.
     ///

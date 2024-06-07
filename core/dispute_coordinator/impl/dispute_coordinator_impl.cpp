@@ -271,10 +271,6 @@ namespace kagome::dispute {
                                     .number = updated.new_head.number,
                                     .status = LeafStatus::Fresh};
 
-    // Prune obsolete disputes:
-    // db::v1::note_earliest_session( // FIXME Needed or not?
-    //     overlay_db, rolling_session_window.earliest_session())?;
-
     auto now = system_clock_.nowUint64();
 
     auto recent_disputes_res = storage_->load_recent_disputes();
@@ -1955,11 +1951,6 @@ namespace kagome::dispute {
       CbOutcome<OutputDisputes> &&cb) {
     REINVOKE(*dispute_thread_handler_, getRecentDisputes, std::move(cb));
 
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
-
     SL_TRACE(log_, "Loading recent disputes from db");
 
     auto recent_disputes_res = storage_->load_recent_disputes();
@@ -1988,11 +1979,6 @@ namespace kagome::dispute {
   void DisputeCoordinatorImpl::getActiveDisputes(
       CbOutcome<OutputDisputes> &&cb) {
     REINVOKE(*dispute_thread_handler_, getActiveDisputes, std::move(cb));
-
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::ActiveDisputes");
 
@@ -2043,11 +2029,6 @@ namespace kagome::dispute {
       const QueryCandidateVotes &query, CbOutcome<OutputCandidateVotes> &&cb) {
     REINVOKE(
         *dispute_thread_handler_, queryCandidateVotes, query, std::move(cb));
-
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::QueryCandidateVotes");
 
@@ -2106,11 +2087,6 @@ namespace kagome::dispute {
              base,
              std::move(block_descriptions),
              std::move(cb));
-
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::DetermineUndisputedChain");
 
