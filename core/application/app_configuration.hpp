@@ -211,8 +211,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint>
-        &telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint> &
+    telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -231,8 +231,8 @@ namespace kagome::application {
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
     enum class RuntimeInterpreter {
-      WasmEdge,
       Binaryen,
+      WasmEdge,
     };
 
     virtual RuntimeInterpreter runtimeInterpreter() const = 0;

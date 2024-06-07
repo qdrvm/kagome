@@ -14,6 +14,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "filesystem/common.hpp"
+#include "gmock/gmock.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -121,8 +122,11 @@ namespace {
         .WillRepeatedly(
             testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
     EXPECT_CALL(config_mock, runtimeExecMethod())
-        .WillRepeatedly(testing::Return(kagome::application::AppConfiguration::
-                                            RuntimeExecutionMethod::Interpret));
+        .WillRepeatedly(
+            testing::Return(kagome::application::AppConfiguration::
+                                RuntimeExecutionMethod::CompileAheadOfTime));
+    EXPECT_CALL(config_mock, useWavmCache())
+        .WillRepeatedly(testing::Return(true));
     EXPECT_CALL(config_mock, parachainRuntimeInstanceCacheSize())
         .WillRepeatedly(testing::Return(100));
   }

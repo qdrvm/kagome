@@ -463,6 +463,11 @@ namespace {
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<InterpretedType>>());
           case RuntimeInterpreter::WasmEdge:
+            if constexpr (KAGOME_WASM_COMPILER_WASM_EDGE != 1) {
+              throw std::runtime_error(
+                  "WasmEdge interpreter requested, but KAGOME built with WAVM "
+                  "support instead of WasmEdge.");
+            }
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<CompiledType>>());
         }
@@ -473,7 +478,8 @@ namespace {
       case RuntimeExecutionMethod::CompileJustInTime:
         if constexpr (KAGOME_WASM_COMPILER_WASM_EDGE != 1) {
           throw std::runtime_error(
-              "JIT requested, but KAGOME is built with WAVM. Only WasmEdge supports JIT.");
+              "JIT requested, but KAGOME is built with WAVM. Only WasmEdge "
+              "supports JIT.");
         }
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
