@@ -191,7 +191,13 @@ namespace kagome::runtime {
         [wptr{weak_from_this()}](
             const primitives::events::RemoveAfterFinalizationParams &event) {
           if (auto self = wptr.lock()) {
-            self->clearCaches(event);
+            std::vector<primitives::BlockHash> removed;
+            removed.reserve(event.removed.size());
+            std::transform(event.removed.begin(),
+                           event.removed.end(),
+                           std::back_inserter(removed),
+                           [](const auto &bi) { return bi.hash; });
+            self->clearCaches(removed);
           }
         });
 

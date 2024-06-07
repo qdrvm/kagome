@@ -794,12 +794,36 @@ namespace kagome::parachain {
       const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
 
-    for (const auto &lost : event) {
-      SL_TRACE(logger_, "Remove from storages.(relay parent={})", lost);
+    for (const auto &lost : event.removed) {
+      SL_TRACE(logger_,
+               "Remove from storages.(relay parent={}, number={})",
+               lost.hash,
+               lost.number);
 
-      backing_store_->onDeactivateLeaf(lost);
-      av_store_->remove(lost);
-      bitfield_store_->remove(lost);
+      backing_store_->onDeactivateLeaf(lost.hash);
+      av_store_->remove(lost.hash);
+      bitfield_store_->remove(lost.hash);
+    }
+
+    for (auto it = our_current_state_.state_by_relay_parent.begin();
+         it != our_current_state_.state_by_relay_parent.end();) {
+      const auto &hash = it->first;
+      const auto &per_relay_state = it->second;
+      const auto header = block_tree_->getBlockHeader(hash);
+
+      const bool keep = header.has_value()
+                     && per_relay_state.prospective_parachains_mode
+                     && (header.value().number
+                         + per_relay_state.prospective_parachains_mode
+                               ->allowed_ancestry_len
+                         + 1)
+                            >= event.finalized;
+      if (keep) {
+        ++it;
+      } else {
+        our_current_state_.implicit_view->deactivate_leaf(hash);
+        it = our_current_state_.state_by_relay_parent.erase(it);
+      }
     }
   }
 
