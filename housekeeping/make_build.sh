@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+echo "env BUILD_THREADS=${BUILD_THREADS}"
+
 BUILD_DIR="${BUILD_DIR:?BUILD_DIR variable is not defined}"
 BUILD_FINAL_TARGET="${BUILD_FINAL_TARGET:-test}"
 
@@ -29,6 +31,8 @@ fi
 which git
 
 cd "$(dirname $0)/.."
+
+echo "using BUILD_THREADS=${BUILD_THREADS}"
 
 cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
