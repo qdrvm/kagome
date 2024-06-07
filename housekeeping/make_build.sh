@@ -38,4 +38,4 @@ cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}
 fi
-cmake --build "${BUILD_DIR}" --target "${BUILD_FINAL_TARGET}"
+cmake --build "${BUILD_DIR}" --target "${BUILD_FINAL_TARGET}" -j${BUILD_THREADS}
