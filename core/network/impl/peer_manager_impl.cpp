@@ -673,11 +673,12 @@ namespace kagome::network {
                 // And remove from queue
                 if (auto piq_it = self->peers_in_queue_.find(peer_id);
                     piq_it != self->peers_in_queue_.end()) {
-                  auto qtc_it = std::find_if(self->queue_to_connect_.cbegin(),
-                                             self->queue_to_connect_.cend(),
-                                             [&peer_id](const auto &item) {
-                                               return peer_id == item.get();
-                                             });
+                  auto qtc_it =
+                      std::find_if(self->queue_to_connect_.cbegin(),
+                                   self->queue_to_connect_.cend(),
+                                   [&peer_id = peer_id](const auto &item) {
+                                     return peer_id == item;
+                                   });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
                   BOOST_ASSERT(self->queue_to_connect_.size()
