@@ -80,7 +80,7 @@ jobs:
         if: ${{ always() }}
         run: |
           df -m || true
-          du -hd1 /__w /github || true`
+          du -hd1 /__w /github || true
 
   Linux-self-hosted:
     strategy:
@@ -97,7 +97,7 @@ jobs:
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller-highmem ]
+    runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
