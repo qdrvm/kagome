@@ -87,6 +87,11 @@ namespace kagome::dispute {
     RedundantMessage,
   };
 
+  enum class ApprovalCheckingMultipleCandidatesError {
+    /// The candidate_hash is not included in the list of signed candidate
+    NotIncluded = 1,
+  };
+
 }  // namespace kagome::dispute
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SessionObtainingError);
@@ -95,3 +100,5 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeProcessingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, BatchError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute,
+                          ApprovalCheckingMultipleCandidatesError);
