@@ -14,3 +14,4 @@ endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 add_cache_flag(CMAKE_EXE_LINKER_FLAGS -fuse-ld=mold)
+add_cache_flag(CMAKE_SHARED_LINKER_FLAGS -fuse-ld=mold)
