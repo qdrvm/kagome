@@ -12,7 +12,7 @@
 
 namespace kagome::application {
 
-  class AppConfigurationMock : public AppConfiguration {
+  class fAppConfigurationMock : public AppConfiguration {
    public:
     MOCK_METHOD(network::Roles, roles, (), (const, override));
 

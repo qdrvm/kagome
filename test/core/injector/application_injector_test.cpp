@@ -121,10 +121,13 @@ namespace {
     EXPECT_CALL(config_mock, openmetricsHttpEndpoint())
         .WillRepeatedly(
             testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
+    EXPECT_CALL(config_mock, runtimeCacheDirPath())
+        .WillRepeatedly(testing::Return(db_path / "runtime_cache"));
     EXPECT_CALL(config_mock, runtimeExecMethod())
         .WillRepeatedly(
             testing::Return(kagome::application::AppConfiguration::
                                 RuntimeExecutionMethod::CompileAheadOfTime));
+
     EXPECT_CALL(config_mock, useWavmCache())
         .WillRepeatedly(testing::Return(true));
     EXPECT_CALL(config_mock, parachainRuntimeInstanceCacheSize())
