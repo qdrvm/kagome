@@ -53,7 +53,7 @@ jobs:
       - name: Copy WasmEdge
         env:
           KAGOME_BUILD_DIR: /__w/kagome/kagome/build
-        run: bash -c "cp -a $(ldd "${KAGOME_BUILD_DIR}/node/kagome" | grep -o /.*/lib/libwasmedge.so[.0-9]*)  ${KAGOME_BUILD_DIR}/docker_context"
+        run: bash -c "cp -a $(ldd "${KAGOME_BUILD_DIR}/node/kagome" | grep -o /.*/lib/libwasmedge.so[.0-9]*)  ${KAGOME_BUILD_DIR}/docker_context && ls ${KAGOME_BUILD_DIR}/docker_context"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker Image
