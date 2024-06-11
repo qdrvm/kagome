@@ -21,7 +21,7 @@ namespace kagome::parachain {
     kWasmEdgeInterpreted,
     kWasmEdgeCompiledAot,
     kWasmEdgeCompiledJit,
-    KEnginesNum,
+    kEnginesNum,
   };
 
   struct PvfWorkerInput {

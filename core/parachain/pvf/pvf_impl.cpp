@@ -178,15 +178,15 @@ namespace kagome::parachain {
         pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
         app_configuration_{std::move(app_configuration)} {
     app_state_manager->takeControl(*this);
-    constexpr std::array<std::string_view, 5> engines{
-        "kBinaryen",
-        "kWAVM",
-        "kWasmEdgeInterpreted",
-        "kWasmEdgeCompiledAot",
-        "kWasmEdgeCompiledJit",
-    };
-    static_assert(engines.size()
-                  == static_cast<size_t>(RuntimeEngine::KEnginesNum));
+    constexpr std::array<std::string_view,
+                         static_cast<size_t>(RuntimeEngine::kEnginesNum)>
+        engines{
+            "kBinaryen",
+            "kWAVM",
+            "kWasmEdgeInterpreted",
+            "kWasmEdgeCompiledAot",
+            "kWasmEdgeCompiledJit",
+        };
     SL_INFO(log_,
             "pvf runtime engine {}",
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
