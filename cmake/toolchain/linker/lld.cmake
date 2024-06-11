@@ -7,8 +7,8 @@ else ()
   set(POLLY_FLAGS_LINKER_MOLD_CMAKE_ 1)
 endif ()
 
-find_program(LLD_FOUND lld)
-if(NOT LLD_FOUND)
+find_program(LLD_PROGRAM_FOUND lld)
+if(NOT LLD_PROGRAM_FOUND)
   fatal_error("lld not found")
 endif()
 
