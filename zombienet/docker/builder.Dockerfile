@@ -43,6 +43,7 @@ FROM docker.io/parity/polkadot-parachain:$POLKADOT_RELEASE_GLOBAL_NUMERIC AS pol
 FROM zombie-builder AS final
 
 RUN mkdir -p /home/nonroot/bin
+RUN mkdir -p /home/nonroot/lib
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/malus /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/adder-collator /home/nonroot/bin
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/undying-collator /home/nonroot/bin
