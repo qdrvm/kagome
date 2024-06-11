@@ -92,7 +92,9 @@ jobs:
           - name: "Self-hosted: Linux: gcc-12 TSAN WAVM"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
           - name: "Self-hosted: Linux: clang-16 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_mold_cxx20.cmake -DUBSAN=ON
+            # mold and ld for some reason consume an infinite amount of memory when linking WasmEdge dependency as of kagome-dev:9-minideb
+            # so this is built with LLD
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_lld_cxx20.cmake -DUBSAN=ON
           - name: "Self-hosted: Linux: clang-16 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
 
