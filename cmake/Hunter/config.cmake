@@ -57,13 +57,19 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
           SPDLOG_FMT_EXTERNAL=ON
   )
 
+  if (BUILD_WITH_JIT)
+    set(NOT_BUILD_WITH_JIT OFF)
+  else()
+    set(NOT_BUILD_WITH_JIT ON)
+  endif()
+
   hunter_config(
       WasmEdge
       URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
       SHA1 58aea400de9179ad3e314c7e84fd4da345b8a643
       CMAKE_ARGS
-        WASMEDGE_BUILD_STATIC_LIB=OFF
-        WASMEDGE_BUILD_SHARED_LIB=ON
+        WASMEDGE_BUILD_STATIC_LIB=${NOT_BUILD_WITH_JIT}
+        WASMEDGE_BUILD_SHARED_LIB=${BUILD_WITH_JIT}
       KEEP_PACKAGE_SOURCES
   )
 endif ()

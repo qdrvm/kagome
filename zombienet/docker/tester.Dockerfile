@@ -9,9 +9,6 @@ ARG BRANCH_NAME
 ENV BRANCH_NAME=${BRANCH_NAME}
 
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
-COPY --from=kagome /usr/local/lib/libwasmedge.so* /home/nonroot/lib
-ENV LD_LIBRARY_PATH="/home/nonroot/lib:${LD_LIBRARY_PATH}"
-RUN ldconfig
 
 RUN echo "Cloning branch: ${BRANCH_NAME}"
 RUN git clone https://github.com/qdrvm/kagome.git -b ${BRANCH_NAME}

@@ -65,9 +65,6 @@ mkdir -p ${CTX_DIR}
 # Copy binaries
 cp -a "${BUILD_DIR}/node/kagome" ${CTX_DIR}/
 
-# wasmedge shared library
-cp $(ldd "${BUILD_DIR}/node/kagome" | grep -o /.*/lib/libwasmedge.so[.0-9]*) ${CTX_DIR}/
-
 if [ "$BUILD_TYPE" = "Release" ] || [ "$BUILD_TYPE" = "Custom" ]; then
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 

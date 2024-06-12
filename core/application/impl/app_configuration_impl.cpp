@@ -1433,6 +1433,16 @@ namespace kagome::application {
                      val,
                      execution_methods_str);
           } else {
+#ifndef KAGOME_ENABLE_JIT
+            if (runtime_exec_method_opt.value()
+                == RuntimeExecutionMethod::CompileJustInTime) {
+              SL_ERROR(logger_,
+                       "JIT compilation requested but KAGOME is built without "
+                       "JIT support. Use BUILD_WITH_JIT CMake parameter to "
+                       "enable JIT support during build.");
+              exec_method_value_error = true;
+            }
+#endif
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });

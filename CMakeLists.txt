@@ -84,6 +84,13 @@ if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
   fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")
 endif ()
 
+set(BUILD_WITH_JIT OFF CACHE STRING "Build KAGOME with WasmEdge JIT support, \
+                                     requires WasmEdge to be built as a shared library")
+
+if (BUILD_WITH_JIT AND NOT WASM_COMPILER STREQUAL WasmEdge)
+  fatal_error("BUILD_WITH_JIT is ON but WASM_COMPILER != WasmEdge. JIT is only supported by WasmEdge.")
+endif()
+
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN "Enable address sanitizer" OFF)
 option(LSAN "Enable leak sanitizer" OFF)
