@@ -343,3 +343,8 @@ jobs:
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
+      - name: Upload test logs as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs-${{ matrix.options.test }}
+          path: /tmp/test_logs
