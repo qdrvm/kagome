@@ -90,7 +90,6 @@ namespace {
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_use_wavm_cache_ = true;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
@@ -285,7 +284,6 @@ namespace kagome::application {
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         runtime_interpreter_{def_runtime_interpreter},
-        use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},

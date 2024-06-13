@@ -164,9 +164,6 @@ namespace kagome::application {
     RuntimeInterpreter runtimeInterpreter() const override {
       return runtime_interpreter_;
     }
-    bool useWavmCache() const override {
-      return use_wavm_cache_;
-    }
     bool purgeWavmCache() const override {
       return purge_wavm_cache_;
     }
@@ -367,7 +364,6 @@ namespace kagome::application {
     SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     RuntimeInterpreter runtime_interpreter_;
-    bool use_wavm_cache_;
     bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
