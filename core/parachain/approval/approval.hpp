@@ -45,6 +45,14 @@ namespace kagome::parachain::approval {
     ConstBuffer data;
   };
 
+  /// Multiple assignment stories based on the VRF that authorized the
+  /// relay-chain block where the candidates were included.
+  struct RelayVRFModuloCompact {
+    SCALE_TIE(1);
+    /// A bitfield representing the core indices claimed by this assignment.
+    scale::BitVec core_bitfield;
+  };
+
   /// Different kinds of input data or criteria that can prove a validator's
   /// assignment to check a particular parachain.
   using AssignmentCertKind = boost::variant<RelayVRFModulo, RelayVRFDelay>;
@@ -58,6 +66,37 @@ namespace kagome::parachain::approval {
     crypto::VRFOutput vrf;  /// The VRF showing the criterion is met.
   };
 
+  /// Certificate is changed compared to `AssignmentCertKind`:
+  /// - introduced RelayVRFModuloCompact
+  using AssignmentCertKindV2 =
+      boost::variant<RelayVRFModuloCompact, RelayVRFDelay, RelayVRFModulo>;
+
+  /// A certification of assignment.
+  struct AssignmentCertV2 {
+    SCALE_TIE(2);
+
+    /// The criterion which is claimed to be met by this cert.
+    AssignmentCertKindV2 kind;
+
+    /// The VRF showing the criterion is met.
+    crypto::VRFOutput vrf;
+  };
+
+  /// An assignment criterion which refers to the candidate under which the
+  /// assignment is relevant by block hash.
+  struct IndirectAssignmentCertV2 {
+    SCALE_TIE(3);
+
+    /// A block hash where the candidate appears.
+    Hash block_hash;
+
+    /// The validator index.
+    ValidatorIndex validator;
+
+    /// The cert itself.
+    AssignmentCertV2 cert;
+  };
+
   /// An assignment criterion which refers to the candidate under which the
   /// assignment is relevant by block hash.
   struct IndirectAssignmentCert {
@@ -67,6 +106,23 @@ namespace kagome::parachain::approval {
     ValidatorIndex validator;  /// The validator index.
     AssignmentCert cert;       /// The cert itself.
   };
+
+  /// A signed approval vote which references the candidate indirectly via the
+  /// block.
+  ///
+  /// In practice, we have a look-up from block hash and candidate index to
+  /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
+  struct IndirectApprovalVoteV2 {
+    SCALE_TIE(2);
+
+    /// A block hash where the candidate appears.
+    Hash block_hash;
+
+    /// The index of the candidate in the list of candidates fully included
+    /// as-of the block.
+    scale::BitVec candidate_indices;
+  };
+  using IndirectSignedApprovalVoteV2 = IndexedAndSigned<IndirectApprovalVoteV2>;
 
   /// A signed approval vote which references the candidate indirectly via the
   /// block.
