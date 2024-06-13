@@ -370,13 +370,15 @@ namespace kagome::runtime::wasm_edge {
       case ExecType::Compiled: {
         WasmEdge_ConfigureCompilerSetOptimizationLevel(
             configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+
         CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
-        std::string filename = fmt::format("{}/wasm_{}",
-                                           config_.compiled_module_dir.c_str(),
-                                           code_hash.toHex());
+
+        auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
+        std::string filename = fmt::format(
+            "{}/{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+            
         std::error_code ec;
-        if (!std::filesystem::create_directories(config_.compiled_module_dir,
-                                                 ec)
+        if (!std::filesystem::create_directories(versioned_cache_dir, ec)
             && ec) {
           return CompilationError{fmt::format(
               "Failed to create a dir for compiled modules: {}", ec)};
