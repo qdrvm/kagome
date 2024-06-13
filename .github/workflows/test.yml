@@ -34,8 +34,8 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 120
     steps:
-    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-    - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -63,8 +63,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -101,8 +101,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -117,10 +117,10 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -141,8 +141,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -181,8 +181,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -206,8 +206,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -233,8 +233,8 @@ jobs:
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -279,7 +279,7 @@ jobs:
         run: docker image ls -a      
       - name: Set owner of working dir recursively
         run: sudo chown -R $(whoami) .
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/checkout@v4
       - name: Extract branch name
         shell: bash
         run: |
@@ -339,7 +339,7 @@ jobs:
         run: |
           docker load --input /tmp/zombie-tester.tar
           docker image ls -a
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/checkout@v4
       - name: Run test
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
