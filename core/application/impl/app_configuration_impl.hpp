@@ -387,7 +387,7 @@ namespace kagome::application {
     uint32_t parachain_precompilation_thread_num_ =
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
-    bool use_pvf_subprocess_{true};
+    bool use_pvf_subprocess_{false};
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
