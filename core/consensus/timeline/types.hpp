@@ -25,6 +25,8 @@ namespace kagome::consensus {
   /// slot number of the block production
   using SlotNumber = uint64_t;
 
+  using AuthorityIndex = uint32_t;
+
   /// duration of single slot in milliseconds
   struct SlotDuration : public std::chrono::milliseconds {
     SlotDuration() = default;
