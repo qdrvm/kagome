@@ -18,6 +18,10 @@
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome::application {
+  class AppStateManager;
+}
+
 namespace kagome::consensus {
   class SlotsUtil;
 }
@@ -33,6 +37,10 @@ namespace kagome::crypto {
   class VRFProvider;
 }  // namespace kagome::crypto
 
+namespace kagome::runtime {
+  class BabeApi;
+}
+
 namespace kagome::consensus::babe {
 
   class BabeBlockValidatorImpl
@@ -40,17 +48,24 @@ namespace kagome::consensus::babe {
         public std::enable_shared_from_this<BabeBlockValidatorImpl> {
    public:
     BabeBlockValidatorImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         LazySPtr<SlotsUtil> slots_util,
         std::shared_ptr<BabeConfigRepository> config_repo,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::VRFProvider> vrf_provider);
+        std::shared_ptr<crypto::VRFProvider> vrf_provider,
+        std::shared_ptr<runtime::BabeApi> babe_api,
+        primitives::events::SyncStateSubscriptionEnginePtr
+            sync_state_observable);
+
+    void prepare();
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header) const;
 
     enum class ValidationError {
-      NO_AUTHORITIES = 1,
+      NO_VALIDATOR = 1,
+      DISABLED_VALIDATOR,
       INVALID_SIGNATURE,
       INVALID_VRF,
       TWO_BLOCKS_IN_SLOT,
@@ -107,6 +122,11 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
+    std::shared_ptr<runtime::BabeApi> babe_api_;
+    primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
+
+    bool was_synchronized_ = false;
+    primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
   };
 
 }  // namespace kagome::consensus::babe
