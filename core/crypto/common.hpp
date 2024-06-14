@@ -10,7 +10,7 @@
 #include <mutex>
 #include <type_traits>
 
-#include <openssl/crypto.h>
+#include <openssl/mem.h>
 #include <boost/assert.hpp>
 
 #include "common/blob.hpp"
@@ -67,6 +67,7 @@ namespace kagome::crypto {
   inline std::once_flag secure_heap_init_flag{};
   inline log::Logger secure_heap_logger;
 
+#ifndef OPENSSL_IS_BORINGSSL
   /**
    * An allocator on the OpenSSL secure heap
    */
@@ -113,6 +114,17 @@ namespace kagome::crypto {
 
     bool operator==(const SecureHeapAllocator &) const = default;
   };
+#else
+  /*
+  May copy OpenSSL code or reimplement custom allocator.
+
+  OpenSSL (https://github.com/openssl/openssl/blob/master/crypto/mem_sec.c)
+  prevents swap to disk (https://linux.die.net/man/2/mlock) and core dump to
+  disk (https://linux.die.net/man/2/madvise MADV_DONTDUMP).
+  */
+  template <typename T>
+  using SecureHeapAllocator = std::allocator<T>;
+#endif
 
   template <size_t SizeLimit = std::numeric_limits<size_t>::max()>
   using SecureBuffer =
