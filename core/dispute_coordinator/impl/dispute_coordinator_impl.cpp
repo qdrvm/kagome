@@ -63,7 +63,7 @@ namespace kagome::dispute {
           [&](const ValidDisputeStatement &kind) {
             return visit_in_place(
                 kind,
-                [&](const Explicit &x) {
+                [&](const Explicit &) {
                   std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
                   bool validity = true;
                   return scale::encode(
@@ -91,15 +91,6 @@ namespace kagome::dispute {
                   std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
                   return scale::encode(
                       std::tie(magic, candidate_hash, session));
-                },
-                [&](const ApprovalCheckingMultipleCandidates &candidates) {
-                  std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
-                  if (candidates.size() == 1) {
-                    return scale::encode(
-                        std::tie(magic, candidates.front(), session));
-                  } else {
-                    return scale::encode(std::tie(magic, candidates, session));
-                  }
                 });
           },
           [&](const InvalidDisputeStatement &kind) {
@@ -329,7 +320,7 @@ namespace kagome::dispute {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L298
     for (auto &[session, candidate_hash, status] : active_disputes) {
       auto env_opt = makeCandidateEnvironment(
-          *session_keys_, *rolling_session_window_, session, first_leaf.hash);
+          *session_keys_, *rolling_session_window_, session);
       if (not env_opt.has_value()) {
         continue;
       }
@@ -544,7 +535,6 @@ namespace kagome::dispute {
     auto res = process_active_leaves_update(update);
     if (res.has_error()) {
       SL_ERROR(log_, "Can't handle active list update: {}", res.error());
-      std::ignore = process_active_leaves_update(update);
       return;
     }
   }
@@ -560,6 +550,18 @@ namespace kagome::dispute {
       return outcome::success();
     }
 
+    // Obtain the session info, for sake of `ValidatorId`s either from the
+    // rolling session window. Must be called _after_ `fn
+    // cache_session_info_for_head` which guarantees that the session info is
+    // available for the current session.
+    auto session_info_opt = rolling_session_window_->session_info(session);
+    if (not session_info_opt.has_value()) {
+      SL_WARN(log_,
+              "Could not retrieve session info from rolling session window");
+      return outcome::success();
+    }
+    auto &session_info = session_info_opt.value().get();
+
     // Scraped on-chain backing votes for the candidates with the new active
     // leaf as if we received them via gossip.
     for (auto &[candidate_receipt, backers] :
@@ -568,11 +570,6 @@ namespace kagome::dispute {
       auto &candidate_hash = candidate_receipt.hash(*hasher_);
 
       SL_TRACE(log_, "Importing backing votes from chain for candidate");
-
-      OUTCOME_TRY(session, api_->session_index_for_child(relay_parent));
-      OUTCOME_TRY(session_info_opt, api_->session_info(relay_parent, session));
-      BOOST_ASSERT(session_info_opt.has_value());
-      const auto &session_info = session_info_opt.value();
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
       for (auto &[validator_index, attestation] : backers) {
@@ -981,14 +978,8 @@ namespace kagome::dispute {
   DisputeCoordinatorImpl::makeCandidateEnvironment(
       crypto::SessionKeys &session_keys,
       RollingSessionWindow &rolling_session_window,
-      SessionIndex session,
-      primitives::BlockHash relay_parent) {
-    auto session_info_opt_res = api_->session_info(relay_parent, session);
-    if (session_info_opt_res.has_error()) {
-      // TODO log
-      return std::nullopt;
-    }
-    auto session_info_opt = session_info_opt_res.value();
+      SessionIndex session) {
+    auto session_info_opt = rolling_session_window.session_info(session);
     if (not session_info_opt.has_value()) {
       return std::nullopt;
     }
