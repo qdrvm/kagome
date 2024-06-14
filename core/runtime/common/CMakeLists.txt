@@ -91,6 +91,7 @@ add_library(memory_allocator
 target_link_libraries(memory_allocator
     Boost::boost
     outcome
+    logger
     )
 kagome_install(memory_allocator)
 

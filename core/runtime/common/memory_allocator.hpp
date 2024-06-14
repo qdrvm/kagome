@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "common/literals.hpp"
+#include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
 
@@ -78,6 +79,7 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<MemoryHandle> memory_;
+    log::Logger logger_ = log::createLogger("MemoryAllocator", "runtime");
 
     std::array<std::optional<uint32_t>, kOrders> free_lists_;
 
