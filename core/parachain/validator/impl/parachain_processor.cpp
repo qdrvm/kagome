@@ -113,7 +113,7 @@ namespace kagome::parachain {
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
       : pm_(std::move(pm)),
@@ -132,7 +132,7 @@ namespace kagome::parachain {
         av_store_(std::move(av_store)),
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
-        babe_status_observable_(std::move(babe_status_observable)),
+        sync_state_observable_(std::move(sync_state_observable)),
         query_audi_{std::move(query_audi)},
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
         chain_sub_{std::move(chain_sub_engine)},
@@ -151,7 +151,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(av_store_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
-    BOOST_ASSERT(babe_status_observable_);
+    BOOST_ASSERT(sync_state_observable_);
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
@@ -215,10 +215,10 @@ namespace kagome::parachain {
         });
 
     // Subscribe to the BABE status observable
-    babe_status_observer_ =
-        std::make_shared<primitives::events::BabeStateEventSubscriber>(
-            babe_status_observable_, false);
-    babe_status_observer_->setCallback(
+    sync_state_observer_ =
+        std::make_shared<primitives::events::SyncStateEventSubscriber>(
+            sync_state_observable_, false);
+    sync_state_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
@@ -250,8 +250,8 @@ namespace kagome::parachain {
             }
           }
         });
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
+    sync_state_observer_->subscribe(
+        sync_state_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
 
     // Subscribe to the chain events engine
@@ -373,9 +373,10 @@ namespace kagome::parachain {
                               StatementDistributionMessage{manifest}}});
             } break;
             default: {
-              SL_ERROR(
-                  logger_,
-                  "Bug ValidationVersion::V1 should not be used in statement-distribution v2, legacy should have handled this.");
+              SL_ERROR(logger_,
+                       "Bug ValidationVersion::V1 should not be used in "
+                       "statement-distribution v2, legacy should have handled "
+                       "this.");
             } break;
           };
         } break;
@@ -468,9 +469,9 @@ namespace kagome::parachain {
         }
       } break;
       default: {
-        SL_ERROR(
-            logger_,
-            "Bug ValidationVersion::V1 should not be used in statement-distribution v2, legacy should have handled this");
+        SL_ERROR(logger_,
+                 "Bug ValidationVersion::V1 should not be used in "
+                 "statement-distribution v2, legacy should have handled this");
       } break;
     }
     return {};
@@ -528,11 +529,11 @@ namespace kagome::parachain {
                 .lost = event.lost,
             });
         r.has_error()) {
-      SL_WARN(
-          logger_,
-          "Prospective parachains leaf update failed. (relay_parent={}, error={})",
-          relay_parent,
-          r.error());
+      SL_WARN(logger_,
+              "Prospective parachains leaf update failed. (relay_parent={}, "
+              "error={})",
+              relay_parent,
+              r.error());
     }
 
     backing_store_->onActivateLeaf(relay_parent);
@@ -766,7 +767,7 @@ namespace kagome::parachain {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
     }
-    if (!babe_status_observer_->get()) {
+    if (!sync_state_observer_->get()) {
       return Error::NOT_SYNCHRONIZED;
     }
     return outcome::success();
@@ -817,10 +818,10 @@ namespace kagome::parachain {
         r.has_value()) {
       minimum_backing_votes = r.value();
     } else {
-      SL_TRACE(
-          logger_,
-          "Querying the backing threshold from the runtime is not supported by the current Runtime API. (relay_parent={})",
-          relay_parent);
+      SL_TRACE(logger_,
+               "Querying the backing threshold from the runtime is not "
+               "supported by the current Runtime API. (relay_parent={})",
+               relay_parent);
     }
 
     auto per_session_state = per_session_->get_or_insert(
@@ -910,14 +911,14 @@ namespace kagome::parachain {
       statement_store.emplace(per_session_state->value().groups);
     }
 
-    SL_VERBOSE(
-        logger_,
-        "Inited new backing task v2.(assigned_para={}, assigned_core={}, our index={}, relay "
-        "parent={})",
-        assigned_para,
-        assigned_core,
-        validator->validatorIndex(),
-        relay_parent);
+    SL_VERBOSE(logger_,
+               "Inited new backing task v2.(assigned_para={}, "
+               "assigned_core={}, our index={}, relay "
+               "parent={})",
+               assigned_para,
+               assigned_core,
+               validator->validatorIndex(),
+               relay_parent);
 
     return RelayParentState{
         .prospective_parachains_mode = mode,
@@ -1270,12 +1271,12 @@ namespace kagome::parachain {
     }
 
     if (acknowledge) {
-      SL_TRACE(
-          logger_,
-          "immediate ack, known candidate. (candidate hash={}, from={}, local_validator={})",
-          candidate_hash,
-          *sender_index,
-          *relay_parent_state->get().our_index);
+      SL_TRACE(logger_,
+               "immediate ack, known candidate. (candidate hash={}, from={}, "
+               "local_validator={})",
+               candidate_hash,
+               *sender_index,
+               *relay_parent_state->get().our_index);
     }
 
     return ManifestImportSuccess{
@@ -1421,9 +1422,9 @@ namespace kagome::parachain {
                         }}}});
       } break;
       default: {
-        SL_ERROR(
-            logger_,
-            "Bug ValidationVersion::V1 should not be used in statement-distribution v2, legacy should have handled this");
+        SL_ERROR(logger_,
+                 "Bug ValidationVersion::V1 should not be used in "
+                 "statement-distribution v2, legacy should have handled this");
         return {};
       } break;
     };
@@ -1498,7 +1499,8 @@ namespace kagome::parachain {
             default: {
               SL_ERROR(
                   logger_,
-                  "Bug ValidationVersion::V1 should not be used in statement-distribution v2, legacy should have handled this");
+                  "Bug ValidationVersion::V1 should not be used in "
+                  "statement-distribution v2, legacy should have handled this");
             } break;
           }
         });
@@ -1637,11 +1639,11 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(
-        logger_,
-        "Handling incoming manifest common. (relay_parent={}, candidate_hash={})",
-        manifest.relay_parent,
-        manifest.candidate_hash);
+    SL_TRACE(logger_,
+             "Handling incoming manifest common. (relay_parent={}, "
+             "candidate_hash={})",
+             manifest.relay_parent,
+             manifest.candidate_hash);
     ManifestImportSuccessOpt x = handle_incoming_manifest_common(
         peer_id,
         manifest.candidate_hash,
@@ -1679,11 +1681,11 @@ namespace kagome::parachain {
                                  manifest.group_index,
                                  manifest.candidate_hash,
                                  *relay_parent_state->get().statement_store);
-      SL_TRACE(
-          logger_,
-          "Get ack and statement messages. (relay_parent={}, candidate_hash={})",
-          manifest.relay_parent,
-          manifest.candidate_hash);
+      SL_TRACE(logger_,
+               "Get ack and statement messages. (relay_parent={}, "
+               "candidate_hash={})",
+               manifest.relay_parent,
+               manifest.candidate_hash);
       auto messages = acknowledgement_and_statement_messages(
           peer_id,
           network::CollationVersion::VStaging,
@@ -2753,12 +2755,12 @@ namespace kagome::parachain {
     post_import_statement_actions(relay_parent, parachain_state, res.value());
     if (auto result = res.value()) {
       if (!assigned_core || result->group_id != *assigned_core) {
-        SL_TRACE(
-            logger_,
-            "Registered statement from not our group(assigned_para our={}, assigned_core our={}, registered={}).",
-            assigned_para,
-            assigned_core,
-            result->group_id);
+        SL_TRACE(logger_,
+                 "Registered statement from not our group(assigned_para "
+                 "our={}, assigned_core our={}, registered={}).",
+                 assigned_para,
+                 assigned_core,
+                 result->group_id);
         return;
       }
 
@@ -2856,11 +2858,11 @@ namespace kagome::parachain {
     const auto group_index = confirmed_candidate.group_index();
 
     if (!relay_parent_state.per_session_state->value().grid_view) {
-      SL_TRACE(
-          logger_,
-          "Cannot handle backable candidate due to lack of topology. (candidate={}, relay_parent={})",
-          candidate_hash,
-          relay_parent);
+      SL_TRACE(logger_,
+               "Cannot handle backable candidate due to lack of topology. "
+               "(candidate={}, relay_parent={})",
+               candidate_hash,
+               relay_parent);
       return;
     }
 
@@ -2869,12 +2871,12 @@ namespace kagome::parachain {
     const auto group =
         relay_parent_state.per_session_state->value().groups.get(group_index);
     if (!group) {
-      SL_TRACE(
-          logger_,
-          "Handled backed candidate with unknown group? (candidate={}, relay_parent={}, group_index={})",
-          candidate_hash,
-          relay_parent,
-          group_index);
+      SL_TRACE(logger_,
+               "Handled backed candidate with unknown group? (candidate={}, "
+               "relay_parent={}, group_index={})",
+               candidate_hash,
+               relay_parent,
+               group_index);
       return;
     }
     const auto group_size = group->size();
@@ -2952,12 +2954,12 @@ namespace kagome::parachain {
     BOOST_ASSERT(se);
 
     if (!manifest_peers.empty()) {
-      SL_TRACE(
-          logger_,
-          "Sending manifest to v2 peers. (candidate_hash={}, local_validator={}, n_peers={})",
-          candidate_hash,
-          *relay_parent_state.our_index,
-          manifest_peers.size());
+      SL_TRACE(logger_,
+               "Sending manifest to v2 peers. (candidate_hash={}, "
+               "local_validator={}, n_peers={})",
+               candidate_hash,
+               *relay_parent_state.our_index,
+               manifest_peers.size());
       auto message = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           kagome::network::vstaging::ValidatorProtocolMessage{
@@ -2969,12 +2971,12 @@ namespace kagome::parachain {
     }
 
     if (!ack_peers.empty()) {
-      SL_TRACE(
-          logger_,
-          "Sending acknowledgement to v2 peers. (candidate_hash={}, local_validator={}, n_peers={})",
-          candidate_hash,
-          *relay_parent_state.our_index,
-          ack_peers.size());
+      SL_TRACE(logger_,
+               "Sending acknowledgement to v2 peers. (candidate_hash={}, "
+               "local_validator={}, n_peers={})",
+               candidate_hash,
+               *relay_parent_state.our_index,
+               ack_peers.size());
       auto message = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           kagome::network::vstaging::ValidatorProtocolMessage{
@@ -2986,12 +2988,12 @@ namespace kagome::parachain {
     }
 
     if (!post_statements.empty()) {
-      SL_TRACE(
-          logger_,
-          "Sending statements to v2 peers. (candidate_hash={}, local_validator={}, n_peers={})",
-          candidate_hash,
-          *relay_parent_state.our_index,
-          post_statements.size());
+      SL_TRACE(logger_,
+               "Sending statements to v2 peers. (candidate_hash={}, "
+               "local_validator={}, n_peers={})",
+               candidate_hash,
+               *relay_parent_state.our_index,
+               post_statements.size());
 
       for (auto &[peers, msg] : post_statements) {
         if (auto m =
@@ -3344,7 +3346,8 @@ namespace kagome::parachain {
     if (statement_validator_index >= validator_to_group.size()) {
       SL_TRACE(
           logger_,
-          "Invalid validator index. (candidate_hash={}, validator_to_group={}, statement_validator_index={}, n_cores={})",
+          "Invalid validator index. (candidate_hash={}, validator_to_group={}, "
+          "statement_validator_index={}, n_cores={})",
           candidate_hash,
           validator_to_group.size(),
           statement_validator_index,
@@ -3354,12 +3357,12 @@ namespace kagome::parachain {
 
     const auto group_index = validator_to_group[statement_validator_index];
     if (!group_index) {
-      SL_TRACE(
-          logger_,
-          "Invalid validator index. Empty group. (candidate_hash={}, statement_validator_index={}, n_cores={})",
-          candidate_hash,
-          statement_validator_index,
-          n_cores);
+      SL_TRACE(logger_,
+               "Invalid validator index. Empty group. (candidate_hash={}, "
+               "statement_validator_index={}, n_cores={})",
+               candidate_hash,
+               statement_validator_index,
+               n_cores);
       return std::nullopt;
     }
 
@@ -3367,13 +3370,13 @@ namespace kagome::parachain {
         group_rotation_info.coreForGroup(*group_index, n_cores);
 
     if (size_t(core_index) > n_cores) {
-      SL_WARN(
-          logger_,
-          "Invalid CoreIndex. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
-          candidate_hash,
-          core_index,
-          statement_validator_index,
-          n_cores);
+      SL_WARN(logger_,
+              "Invalid CoreIndex. (candidate_hash={}, core_index={}, "
+              "validator={}, n_cores={})",
+              candidate_hash,
+              core_index,
+              statement_validator_index,
+              n_cores);
       return std::nullopt;
     }
 
@@ -3395,7 +3398,8 @@ namespace kagome::parachain {
           [&](const runtime::FreeCore &) -> std::optional<ParachainId> {
             SL_TRACE(
                 logger_,
-                "Invalid CoreIndex, core is not assigned to any para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
+                "Invalid CoreIndex, core is not assigned to any para_id. "
+                "(candidate_hash={}, core_index={}, validator={}, n_cores={})",
                 candidate_hash,
                 core_index,
                 statement_validator_index,
@@ -3408,13 +3412,13 @@ namespace kagome::parachain {
       }
 
       if (*assigned_para_id != candidate_para_id) {
-        SL_TRACE(
-            logger_,
-            "Invalid CoreIndex, core is assigned to a different para_id. (candidate_hash={}, core_index={}, validator={}, n_cores={})",
-            candidate_hash,
-            core_index,
-            statement_validator_index,
-            n_cores);
+        SL_TRACE(logger_,
+                 "Invalid CoreIndex, core is assigned to a different para_id. "
+                 "(candidate_hash={}, core_index={}, validator={}, n_cores={})",
+                 candidate_hash,
+                 core_index,
+                 statement_validator_index,
+                 n_cores);
         return std::nullopt;
       }
       return core_index;
@@ -4079,13 +4083,13 @@ namespace kagome::parachain {
       const SignedFullStatementWithPVD &statement) {
     const CandidateHash candidate_hash =
         candidateHashFrom(getPayload(statement));
-    SL_TRACE(
-        logger_,
-        "Sharing statement. (relay parent={}, candidate hash={}, our_index={}, statement_ix={})",
-        relay_parent,
-        candidate_hash,
-        *per_relay_parent.our_index,
-        statement.payload.ix);
+    SL_TRACE(logger_,
+             "Sharing statement. (relay parent={}, candidate hash={}, "
+             "our_index={}, statement_ix={})",
+             relay_parent,
+             candidate_hash,
+             *per_relay_parent.our_index,
+             statement.payload.ix);
 
     BOOST_ASSERT(per_relay_parent.our_index);
 
@@ -4301,14 +4305,14 @@ namespace kagome::parachain {
         return;
       }
       if (!validation_result) {
-        SL_WARN(
-            self->logger_,
-            "Candidate {} on relay_parent {}, para_id {} validation failed with "
-            "error: {}",
-            candidate_hash,
-            candidate.descriptor.relay_parent,
-            candidate.descriptor.para_id,
-            validation_result.error());
+        SL_WARN(self->logger_,
+                "Candidate {} on relay_parent {}, para_id {} validation failed "
+                "with "
+                "error: {}",
+                candidate_hash,
+                candidate.descriptor.relay_parent,
+                candidate.descriptor.para_id,
+                validation_result.error());
         return;
       }
 

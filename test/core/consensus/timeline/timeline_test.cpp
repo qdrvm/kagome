@@ -68,8 +68,8 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::detail::DigestItemCommon;
-using kagome::primitives::events::BabeStateSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::CoreMock;
 using kagome::storage::trie::TrieStorageMock;
 using libp2p::basic::SchedulerMock;
@@ -159,7 +159,7 @@ class TimelineTest : public testing::Test {
     scheduler = std::make_shared<SchedulerMock>();
     core_api = std::make_shared<CoreMock>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
-    state_sub_engine = std::make_shared<BabeStateSubscriptionEngine>();
+    state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
 
     timeline = std::make_shared<TimelineImpl>(
         app_config,
@@ -197,7 +197,7 @@ class TimelineTest : public testing::Test {
   std::shared_ptr<GrandpaMock> justification_observer;
   std::shared_ptr<SchedulerMock> scheduler;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
-  std::shared_ptr<BabeStateSubscriptionEngine> state_sub_engine;
+  std::shared_ptr<SyncStateSubscriptionEngine> state_sub_engine;
   std::shared_ptr<CoreMock> core_api;
 
   std::shared_ptr<TimelineImpl> timeline;
