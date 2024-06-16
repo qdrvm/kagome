@@ -125,4 +125,7 @@ RUN install_packages  \
       software-properties-common \
       libstdc++6  \
       libc6  \
-      libnsl2
+      libnsl2 \
+      libtinfo6 \
+      libseccomp2 \
+      libatomic1
