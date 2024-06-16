@@ -7,15 +7,38 @@
 name : Zombie Builder
 
 on:
-  schedule:
-    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
+#  schedule:
+#    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
 
+env: 
+  POLKADOT_BINARY_REPO: ${secrets.GCP_REGISTRY_PATH}/polkadot-sdk-bin
+
 jobs:
+#  get_polkadot_binary_image:
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 120
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#
+#      - id: 'auth'
+#        uses: 'google-github-actions/auth@v2'
+#        with:
+#          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+#
+#      - name: 'Set up Cloud SDK'
+#        uses: 'google-github-actions/setup-gcloud@v2'
+#
+#      - name: "Configure Docker for GCR"
+#        run: |
+#          echo ${GOOGLE_APPLICATION_CREDENTIALS}
+#          gcloud auth configure-docker
+    
+    
   build_and_push_zombie_builder:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
     - uses: actions/checkout@v4
     - name: build zombie-builder
