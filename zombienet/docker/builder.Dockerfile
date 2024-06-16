@@ -55,7 +55,7 @@ COPY zombienet-versions.txt /home/nonroot/zombienet-versions.txt
 ENV PATH=/home/nonroot/bin:$PATH
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common curl gpg gpg-agent wget nano && \
+    apt-get install -y --no-install-recommends software-properties-common curl gpg gpg-agent wget nano usrmerge && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
       "deb http://deb.debian.org/debian/ experimental main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
