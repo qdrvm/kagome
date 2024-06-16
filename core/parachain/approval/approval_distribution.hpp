@@ -348,9 +348,9 @@ namespace kagome::parachain {
       }
     };
 
-    using DistribApprovalStateAssigned = approval::AssignmentCert;
+    using DistribApprovalStateAssigned = approval::AssignmentCertV2;
     using DistribApprovalStateApproved =
-        std::pair<approval::AssignmentCert, ValidatorSignature>;
+        std::pair<approval::AssignmentCertV2, ValidatorSignature>;
     using DistribApprovalState = boost::variant<DistribApprovalStateAssigned,
                                                 DistribApprovalStateApproved>;
 
@@ -629,7 +629,7 @@ namespace kagome::parachain {
 
     void runDistributeAssignment(
         const approval::IndirectAssignmentCertV2 &indirect_cert,
-        CandidateIndex candidate_index,
+        const scale::BitVec &candidate_indices,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void send_assignments_batched(std::deque<network::vstaging::Assignment> &&assignments,

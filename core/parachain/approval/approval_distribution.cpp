@@ -1759,16 +1759,6 @@ namespace kagome::parachain {
                std::get<2>(message_subject));
     }
 
-    const auto local = !source;
-    [[maybe_unused]] auto &message_state =
-        candidate_entry.messages
-            .emplace(validator_index,
-                     MessageState{
-                         .approval_state = assignment.cert,
-                         .local = local,
-                     })
-            .first->second;
-
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
       if (source && peer == source->get()) {
         return false;
@@ -1802,7 +1792,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
-    const auto candidate_index = vote.payload.payload.candidate_index;
+    const auto candidate_indices = vote.payload.payload.candidate_indices;
+
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
       logger_->info(
@@ -1821,33 +1812,8 @@ namespace kagome::parachain {
              validator_index);
 
     auto &entry = opt_entry->get();
-    if (candidate_index >= entry.candidates.size()) {
-      logger_->warn(
-          "Unexpected candidate entry in import approval. (candidate index={}, "
-          "block hash={}, validator index={})",
-          candidate_index,
-          block_hash,
-          validator_index);
-      return;
-    }
-
-    auto &candidate_entry = entry.candidates[candidate_index];
-    if (auto it = candidate_entry.messages.find(validator_index);
-        it != candidate_entry.messages.end()) {
-      if (kagome::is_type<DistribApprovalStateApproved>(
-              it->second.approval_state)) {
-        logger_->trace(
-            "Duplicate message. (candidate index={}, "
-            "block hash={}, validator index={})",
-            candidate_index,
-            block_hash,
-            validator_index);
-        return;
-      }
-    }
-
     auto message_subject{
-        std::make_tuple(block_hash, candidate_index, validator_index)};
+        std::make_tuple(block_hash, candidate_indices, validator_index)};
     auto message_kind{approval::MessageKind::Approval};
 
     if (source) {
@@ -1942,23 +1908,6 @@ namespace kagome::parachain {
                std::get<2>(message_subject));
     }
 
-    if (auto it = candidate_entry.messages.find(validator_index);
-        it != candidate_entry.messages.end()) {
-      auto cert{
-          boost::get<DistribApprovalStateAssigned>(&it->second.approval_state)};
-      BOOST_ASSERT(cert);
-      it->second.approval_state =
-          DistribApprovalStateApproved{*cert, vote.signature};
-    } else {
-      logger_->warn(
-          "Importing an approval we don't have an assignment for. (candidate "
-          "index={}, block hash={}, validator index={})",
-          candidate_index,
-          block_hash,
-          validator_index);
-      return;
-    }
-
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
       if (source && peer == source->get()) {
         return false;
@@ -1986,8 +1935,8 @@ namespace kagome::parachain {
       if (size_t(approval.payload.payload.candidate_index) > kMaxBitfieldSize) {
         SL_DEBUG(logger_,
                  "Bad approval v1, invalid candidate index. (block_hash={}, candidate_index={})",
-                 cert.block_hash,
-                 candidate_index
+                 approval.payload.payload.block_hash,
+                 approval.payload.payload.candidate_index
                  );
       } else {
         sanitized_approvals.approvals.emplace_back(::kagome::parachain::approval::from(approval));
@@ -2192,7 +2141,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::runDistributeAssignment(
       const approval::IndirectAssignmentCertV2 &indirect_cert,
-      CandidateIndex candidate_index,
+      const scale::BitVec &candidate_indices,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
     REINVOKE(*approval_thread_handler_,
              runDistributeAssignment,
@@ -2216,7 +2165,7 @@ namespace kagome::parachain {
             network::vstaging::ApprovalDistributionMessage{network::vstaging::Assignments{
                 .assignments = {network::vstaging::Assignment{
                     .indirect_assignment_cert = indirect_cert,
-                    .candidate_ix = candidate_index,
+                    .candidate_bitfield = candidate_indices,
                 }}}}),
         [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
