@@ -80,6 +80,17 @@ namespace kagome::parachain::approval {
 
     /// The VRF showing the criterion is met.
     crypto::VRFOutput vrf;
+
+    static AssignmentCertV2 from(const AssignmentCert &src) {
+      return AssignmentCertV2 {
+        .kind = visit_in_place(
+          src.kind,
+          [](const auto &v) -> AssignmentCertKindV2 {
+            return v;
+          }),
+        .vrf = src.vrf,
+      };
+    }
   };
 
   /// An assignment criterion which refers to the candidate under which the
@@ -112,23 +123,6 @@ namespace kagome::parachain::approval {
   ///
   /// In practice, we have a look-up from block hash and candidate index to
   /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
-  struct IndirectApprovalVoteV2 {
-    SCALE_TIE(2);
-
-    /// A block hash where the candidate appears.
-    Hash block_hash;
-
-    /// The index of the candidate in the list of candidates fully included
-    /// as-of the block.
-    scale::BitVec candidate_indices;
-  };
-  using IndirectSignedApprovalVoteV2 = IndexedAndSigned<IndirectApprovalVoteV2>;
-
-  /// A signed approval vote which references the candidate indirectly via the
-  /// block.
-  ///
-  /// In practice, we have a look-up from block hash and candidate index to
-  /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
   struct IndirectApprovalVote {
     SCALE_TIE(2);
 
@@ -138,6 +132,43 @@ namespace kagome::parachain::approval {
                           /// candidates fully included as-of the block.
   };
   using IndirectSignedApprovalVote = IndexedAndSigned<IndirectApprovalVote>;
+
+  /// A signed approval vote which references the candidate indirectly via the
+  /// block.
+  ///
+  /// In practice, we have a look-up from block hash and candidate index to
+  /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
+  struct IndirectApprovalVoteV2 {
+    SCALE_TIE(2);
+
+    /// A block hash where the candidate appears.
+    Hash block_hash;
+
+    /// The index of the candidate in the list of candidates fully included
+    /// as-of the block.
+    scale::BitVec candidate_indices;
+
+    static IndirectApprovalVoteV2 from(const IndirectApprovalVote &value) {
+      scale::BitVec v;
+      v.bits.resize(value.candidate_index + 1);
+      v.bits[value.candidate_index] = true;
+      return IndirectApprovalVoteV2 {
+        .block_hash = value.block_hash,
+        .candidate_indices = std::move(v),
+      };
+    }
+  };
+  using IndirectSignedApprovalVoteV2 = IndexedAndSigned<IndirectApprovalVoteV2>;
+
+  inline IndirectSignedApprovalVoteV2 from(const IndirectSignedApprovalVote &value) {
+    return IndirectSignedApprovalVoteV2 {
+      .payload = {
+        .payload = IndirectApprovalVoteV2::from(value.payload.payload),
+        .ix = value.payload.ix,
+      },
+      .signature = value.signature,
+    };
+  }
 
   struct RemoteApproval {
     ValidatorIndex validator_ix;

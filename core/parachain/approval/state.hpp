@@ -97,6 +97,16 @@ namespace kagome::parachain::approval {
     return count_ones;
   }
 
+  template<typename F>
+  inline outcome::result<void> iter_ones(const scale::BitVec &src, F &&f) {
+    for (size_t ix = 0; ix < src.bits.size(); ++ix) {
+      if (src.bits[ix]) {
+        OUTCOME_TRY(std::forward<F>(f)(ix));
+      }
+    }
+    return outcome::success();
+  }
+
   inline auto min_or_some(const std::optional<Tick> &l,
                           const std::optional<Tick> &r) {
     return (l && r) ? std::min(*l, *r)

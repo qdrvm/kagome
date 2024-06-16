@@ -299,21 +299,7 @@ namespace kagome::network {
    */
   using BitfieldDistributionMessage = boost::variant<BitfieldDistribution>;
 
-  /// A signed approval vote which references the candidate indirectly via the
-  /// block.
-  ///
-  /// In practice, we have a look-up from block hash and candidate index to
-  /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
-  struct ApprovalVote {
-    SCALE_TIE(2);
-
-    primitives::BlockHash
-        block_hash;  /// A block hash where the candidate appears.
-    CandidateIndex
-        candidate_index;  /// The index of the candidate in the list of
-                          /// candidates fully included as-of the block.
-  };
-  using IndirectSignedApprovalVote = parachain::IndexedAndSigned<ApprovalVote>;
+  using IndirectSignedApprovalVote = parachain::approval::IndirectSignedApprovalVote;
 
   struct Assignment {
     SCALE_TIE(2);

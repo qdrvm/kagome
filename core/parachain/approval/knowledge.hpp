@@ -14,16 +14,25 @@
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"
 
+template <>
+struct std::hash<scale::BitVec> {
+  auto operator()(const scale::BitVec &v) {
+    auto s = ::scale::encode(v).value();
+    return boost::hash_range(s.begin(), s.end());
+  }
+};
+
+
 namespace kagome::parachain::approval {
 
   enum struct MessageKind { Assignment, Approval };
-  using MessageSubject = std::tuple<Hash, CandidateIndex, ValidatorIndex>;
+  using MessageSubject = std::tuple<Hash, scale::BitVec, ValidatorIndex>;
 
   struct MessageSubjectHash {
     auto operator()(const MessageSubject &obj) const {
       size_t value{0ull};
       std::apply(
-          [&](const auto &...v) { (..., boost::hash_combine(value, v)); }, obj);
+          [&](const auto &...v) { (..., boost::hash_combine(value, std::hash<std::decay_t<decltype(v)>>()(v))); }, obj);
       return value;
     }
   };

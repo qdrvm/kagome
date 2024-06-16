@@ -452,8 +452,8 @@ namespace kagome::parachain {
     };
 
     using AssignmentOrApproval =
-        boost::variant<network::Assignment,
-                       network::IndirectSignedApprovalVote>;
+        boost::variant<network::vstaging::Assignment,
+                       network::vstaging::IndirectSignedApprovalVoteV2>;
     using PendingMessage = AssignmentOrApproval;
 
     using MessageSource =
@@ -504,17 +504,20 @@ namespace kagome::parachain {
                              const primitives::BlockHeader &block_header);
 
     AssignmentCheckResult check_and_import_assignment(
-        const approval::IndirectAssignmentCert &assignment,
-        CandidateIndex claimed_candidate_index);
+        const approval::IndirectAssignmentCertV2 &assignment,
+        const scale::BitVec &candidate_indices);
     ApprovalCheckResult check_and_import_approval(
-        const network::IndirectSignedApprovalVote &vote);
+        const approval::IndirectSignedApprovalVoteV2 &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
-        const approval::IndirectAssignmentCert &assignment,
-        CandidateIndex claimed_candidate_index);
+        const approval::IndirectAssignmentCertV2 &assignment,
+        const scale::BitVec &claimed_candidate_indices);
     void import_and_circulate_approval(
         const MessageSource &source,
-        const network::IndirectSignedApprovalVote &vote);
+        const approval::IndirectSignedApprovalVoteV2 &vote);
+
+    network::vstaging::Assignments sanitize_v1_assignments(const network::Assignments &assignments);
+    network::vstaging::Approvals sanitize_v1_approvals(const network::Approvals &approval);
 
     template <typename Func>
     void handle_new_head(const primitives::BlockHash &head,
@@ -586,7 +589,7 @@ namespace kagome::parachain {
                         const RelayHash &block_hash);
 
     void runLaunchApproval(
-        const approval::IndirectAssignmentCert &indirect_cert,
+        const approval::IndirectAssignmentCertV2 &indirect_cert,
         DelayTranche assignment_tranche,
         const RelayHash &relay_block_hash,
         CandidateIndex candidate_index,
@@ -625,11 +628,11 @@ namespace kagome::parachain {
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        const approval::IndirectAssignmentCert &indirect_cert,
+        const approval::IndirectAssignmentCertV2 &indirect_cert,
         CandidateIndex candidate_index,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
-    void send_assignments_batched(std::deque<network::Assignment> &&assignments,
+    void send_assignments_batched(std::deque<network::vstaging::Assignment> &&assignments,
                                   const libp2p::peer::PeerId &peer_id);
 
     void send_approvals_batched(
@@ -637,7 +640,7 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(
-        const network::IndirectSignedApprovalVote &vote,
+        const approval::IndirectSignedApprovalVoteV2 &vote,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
