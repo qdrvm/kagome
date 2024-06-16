@@ -21,9 +21,12 @@ ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
 RUN apt-get update && \
     apt-get install --no-install-recommends --yes \
             git \
-            pkg-config \
             openssl \
-            libssl-dev && \
+            ca-certificates \
+            build-essential \
+            clang \
+            protobuf-compiler \
+            libprotobuf-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -116,8 +119,9 @@ RUN install_packages  \
       curl  \
       gpg  \
       gpg-agent  \
+      git \
+      time \
       software-properties-common \
       libstdc++6  \
       libc6  \
       libnsl2
-
