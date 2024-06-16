@@ -32,7 +32,7 @@ jobs:
 #            build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
+    container: qdrvm/kagome-dev:testing
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
