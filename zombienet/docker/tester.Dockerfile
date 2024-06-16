@@ -4,7 +4,7 @@ ARG KAGOME_IMAGE
 
 FROM $KAGOME_IMAGE as kagome
 
-FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE AS tester
+FROM qdrvm/zombie-builder:$POLKADOT_SDK_RELEASE-testing AS tester
 ARG BRANCH_NAME
 ENV BRANCH_NAME=${BRANCH_NAME}
 

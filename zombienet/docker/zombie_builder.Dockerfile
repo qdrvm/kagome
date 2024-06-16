@@ -6,7 +6,12 @@ ARG ZOMBIENET_RELEASE
 ARG BASE_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
 ARG RUST_IMAGE=rust:1.79-slim-bookworm
 
+ARG AUTHOR="zak@zergling.ru <Zak Fein>"
+
 FROM ${RUST_IMAGE} AS polkadot-sdk-builder
+
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Polkadot SDK builder image"
 
 WORKDIR /home/nonroot/
 
@@ -15,7 +20,10 @@ ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
 
 RUN apt-get update && \
     apt-get install --no-install-recommends --yes \
-            git && \
+            git \
+            pkg-config \
+            openssl \
+            libssl-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -42,6 +50,9 @@ RUN echo "Listing files in /home/nonroot/polkadot-sdk/target: " && \
 
 
 FROM ${BASE_IMAGE} as zombienet-bin
+
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Zombienet image"
 
 ARG ZOMBIENET_RELEASE
 ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
@@ -91,6 +102,9 @@ RUN ./polkadot --version && \
 
 
 FROM zombienet-bin as final
+
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Zombienet Builder image"
 
 ENV PATH="/home/nonroot/bin:${PATH}"
 ARG ZOMBIENET_RELEASE
