@@ -77,23 +77,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   class ModuleInstanceImpl : public ModuleInstance {
@@ -373,13 +370,15 @@ namespace kagome::runtime::wasm_edge {
       case ExecType::Compiled: {
         WasmEdge_ConfigureCompilerSetOptimizationLevel(
             configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+
         CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
-        std::string filename = fmt::format("{}/wasm_{}",
-                                           config_.compiled_module_dir.c_str(),
-                                           code_hash.toHex());
+
+        auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
+        std::string filename = fmt::format(
+            "{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+
         std::error_code ec;
-        if (!std::filesystem::create_directories(config_.compiled_module_dir,
-                                                 ec)
+        if (!std::filesystem::create_directories(versioned_cache_dir, ec)
             && ec) {
           return CompilationError{fmt::format(
               "Failed to create a dir for compiled modules: {}", ec)};
