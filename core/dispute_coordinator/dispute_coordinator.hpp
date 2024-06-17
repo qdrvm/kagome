@@ -40,12 +40,6 @@ namespace kagome::dispute {
 
     virtual ~DisputeCoordinator() = default;
 
-    //    virtual void importStatements(CandidateReceipt candidate_receipt,
-    //                                  SessionIndex session,
-    //                                  std::vector<Indexed<SignedDisputeStatement>>
-    //                                      statements,  // FIXME avoid copy
-    //                                  CbOutcome<void> &&cb) = 0;
-
     /// Fetch a list of all recent disputes the coordinator is aware of.
     /// These are disputes which have occurred any time in recent sessions,
     /// and which may have already concluded.

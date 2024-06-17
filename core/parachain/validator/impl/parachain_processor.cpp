@@ -150,7 +150,7 @@ namespace kagome::parachain {
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -172,7 +172,7 @@ namespace kagome::parachain {
         av_store_(std::move(av_store)),
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
-        babe_status_observable_(std::move(babe_status_observable)),
+        sync_state_observable_(std::move(sync_state_observable)),
         query_audi_{std::move(query_audi)},
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
         slots_util_(std::move(slots_util)),
@@ -195,7 +195,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(av_store_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
-    BOOST_ASSERT(babe_status_observable_);
+    BOOST_ASSERT(sync_state_observable_);
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(worker_pool_handler_);
@@ -249,11 +249,10 @@ namespace kagome::parachain {
         });
 
     // Subscribe to the BABE status observable
-    babe_status_observer_ =
-        std::make_shared<primitives::events::BabeStateEventSubscriber>(
-            babe_status_observable_, false);
-
-    babe_status_observer_->setCallback(
+    sync_state_observer_ =
+        std::make_shared<primitives::events::SyncStateEventSubscriber>(
+            sync_state_observable_, false);
+    sync_state_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
@@ -278,9 +277,8 @@ namespace kagome::parachain {
             }
           }
         });
-
-    babe_status_observer_->subscribe(
-        babe_status_observer_->generateSubscriptionSetId(),
+    sync_state_observer_->subscribe(
+        sync_state_observer_->generateSubscriptionSetId(),
         primitives::events::SyncStateEventType::kSyncState);
 
     // Subscribe to the chain events engine
@@ -586,7 +584,7 @@ namespace kagome::parachain {
               "Prospective parachains leaf update failed. (relay_parent={}, "
               "error={})",
               relay_parent,
-              r.error().message());
+              r.error());
     }
 
     backing_store_->onActivateLeaf(relay_parent);
@@ -900,7 +898,7 @@ namespace kagome::parachain {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
     }
-    if (!babe_status_observer_->get()) {
+    if (!sync_state_observer_->get()) {
       return Error::NOT_SYNCHRONIZED;
     }
     return outcome::success();
@@ -5026,7 +5024,7 @@ namespace kagome::parachain {
                 candidate_hash,
                 candidate.descriptor.relay_parent,
                 candidate.descriptor.para_id,
-                validation_result.error().message());
+                validation_result.error());
         return;
       }
 

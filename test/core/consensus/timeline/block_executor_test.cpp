@@ -249,6 +249,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   kagome::primitives::BlockHash parent_hash = "parent_hash"_hash256;
   kagome::primitives::BlockHash some_hash = "some_hash"_hash256;
 
+  kagome::consensus::SlotNumber slot = 123;
   kagome::primitives::BlockHeader header{
       42,           // number
       parent_hash,  // parent
@@ -258,7 +259,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(BabeBlockHeader{.authority_index = 1,
-                                                   .slot_number = 1})
+                                                   .slot_number = slot})
                          .value()},
           }},
           kagome::primitives::Consensus{ScheduledChange{authorities, 0}},
@@ -268,6 +269,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           }}},
       some_hash  // hash
   };
+  ON_CALL(*production_consensus_, getSlot(_)).WillByDefault(Return(0));
 
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};

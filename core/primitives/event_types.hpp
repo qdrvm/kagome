@@ -248,15 +248,15 @@ namespace kagome::primitives::events {
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
-  using BabeStateSubscriptionEngine = subscription::SubscriptionEngine<
+  using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
       bool,
       primitives::events::SyncStateEventParams>;
-  using BabeStateSubscriptionEnginePtr =
-      std::shared_ptr<BabeStateSubscriptionEngine>;
+  using SyncStateSubscriptionEnginePtr =
+      std::shared_ptr<SyncStateSubscriptionEngine>;
 
-  using BabeStateEventSubscriber = BabeStateSubscriptionEngine::SubscriberType;
-  using BabeStateEventSubscriberPtr = std::shared_ptr<BabeStateEventSubscriber>;
+  using SyncStateEventSubscriber = SyncStateSubscriptionEngine::SubscriberType;
+  using SyncStateEventSubscriberPtr = std::shared_ptr<SyncStateEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,

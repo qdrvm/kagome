@@ -144,7 +144,7 @@ struct AuthorApiTest : public ::testing::Test {
 
     store = std::make_shared<KeyStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
-    key_pair = generateSr25519Keypair();
+    key_pair = generateSr25519Keypair(0);
     ASSERT_OUTCOME_SUCCESS_TRY(
         key_store->saveKeyPair(KeyTypes::BABE,
                                std::span(key_pair.public_key).first<32>(),

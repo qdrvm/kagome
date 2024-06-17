@@ -97,3 +97,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
   }
   return "unknown error (invalid BatchError)";
 };
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
+                            ApprovalCheckingMultipleCandidatesError,
+                            e) {
+  using E = kagome::dispute::ApprovalCheckingMultipleCandidatesError;
+  switch (e) {
+    case E::NotIncluded:
+      return "The candidate_hash is not included in the list of signed "
+             "candidate";
+  }
+  return "unknown error (invalid ApprovalCheckingMultipleCandidatesError)";
+};
