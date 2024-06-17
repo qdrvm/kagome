@@ -21,21 +21,21 @@ requests = { memory = "2G", cpu = "1" }
 #  [[relaychain.node_groups]]
 #  name = "honest-validator"
 #  count = 3
-#  args = ["-lparachain=trace", "--parachain-single-process"]
+#  args = ["-lparachain=debug"]
 
   [[relaychain.node_groups]]
   name = "honest-validator"
-  count = 4
-  args = [ "-lparachain=trace", "-lgrandpa=trace", "--parachain-single-process" ]
+  count = 3
+  args = [ "-lparachain=trace", "-lgrandpa=trace" ]
   command = "kagome"
   prometheus_prefix = "kagome"
 
-#  [[relaychain.node_groups]]
-#  image = "{{MALUS_IMAGE}}"
-#  name = "malus-validator"
-#  command = "malus suggest-garbage-candidate"
-#  args = ["-lMALUS=trace"]
-#  count = 1
+  [[relaychain.node_groups]]
+  image = "{{MALUS_IMAGE}}"
+  name = "malus-validator"
+  command = "malus suggest-garbage-candidate"
+  args = ["-lMALUS=trace"]
+  count = 1
 
 [[parachains]]
 id = 1000

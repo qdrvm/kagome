@@ -96,16 +96,8 @@ namespace kagome::dispute {
 
     // Transform all `CandidateVotes` into `MultiDisputeStatementSet`.
     MultiDisputeStatementSet result;
-
-    SL_TRACE(log_, "XXX >>> PrioritizedSelection::select_disputes");
-
     for (auto &[key, votes] : dispute_candidate_votes) {
       auto &[session_index, candidate_hash] = key;
-
-      SL_TRACE(log_,
-               "XXX   session={}, candidate_hash={}",
-               session_index,
-               candidate_hash);
 
       auto &statement_set = result.emplace_back(
           DisputeStatementSet{candidate_hash, session_index, {}});
@@ -116,11 +108,6 @@ namespace kagome::dispute {
             ValidDisputeStatement(statement),  //
             validator_index,
             validator_signature);
-
-        SL_TRACE(log_,
-                 "XXX      Valid, validator_index={}, validator_sign={}",
-                 validator_index,
-                 validator_signature);
       }
 
       for (auto &[validator_index, value] : votes.invalid) {
@@ -129,15 +116,8 @@ namespace kagome::dispute {
             InvalidDisputeStatement(statement),
             validator_index,
             validator_signature);
-
-        SL_TRACE(log_,
-                 "XXX      Invalid, validator_index={}, validator_sign={}",
-                 validator_index,
-                 validator_signature);
       }
     }
-
-    SL_TRACE(log_, "XXX <<< PrioritizedSelection::select_disputes");
 
     return result;
   }

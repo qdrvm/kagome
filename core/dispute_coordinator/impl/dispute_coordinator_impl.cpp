@@ -983,7 +983,7 @@ namespace kagome::dispute {
     if (not session_info_opt.has_value()) {
       return std::nullopt;
     }
-    auto session_info = std::move(session_info_opt.value());
+    auto &session_info = session_info_opt.value().get();
 
     std::unordered_set<ValidatorIndex> controlled_indices;
     auto keypair = session_keys.getParaKeyPair(session_info.validators);
@@ -992,7 +992,7 @@ namespace kagome::dispute {
     }
 
     return CandidateEnvironment{.session_index = session,
-                                .session = std::move(session_info),
+                                .session = session_info,
                                 .controlled_indices = controlled_indices};
   }
 
@@ -1014,6 +1014,16 @@ namespace kagome::dispute {
             ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
                   .hash(*hasher_)
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
+
+    auto env_opt = makeCandidateEnvironment(
+        *session_keys_, *rolling_session_window_, session);
+    if (not env_opt.has_value()) {
+      SL_DEBUG(log_,
+               "We are lacking a `SessionInfo` for handling import of "
+               "statements.");
+      return outcome::success(false);
+    }
+    auto &env = env_opt.value();
 
     // In case we are not provided with a candidate receipt we operate under
     // the assumption, that a previous vote which included a
@@ -1051,16 +1061,6 @@ namespace kagome::dispute {
     } else {
       relay_parent = old_state_opt->candidate_receipt.descriptor.relay_parent;
     }
-
-    auto env_opt = makeCandidateEnvironment(
-        *session_keys_, *rolling_session_window_, session, relay_parent);
-    if (not env_opt.has_value()) {
-      SL_DEBUG(log_,
-               "We are lacking a `SessionInfo` for handling import of "
-               "statements.");
-      return outcome::success(false);
-    }
-    auto &env = env_opt.value();
 
     auto disabled_validators_res = api_->disabled_validators(relay_parent);
     if (disabled_validators_res.has_error()) {
@@ -1154,24 +1154,19 @@ namespace kagome::dispute {
                                    statements.end());
               }
               ++imported_valid_votes;
-              //              return true;
+              return true;
             }
-            //            auto &existing = std::get<0>(it->second);
-            //            return visit_in_place(
-            //                valid,
-            //                [&](const Explicit &) {
-            //                  return not is_type<Explicit>(existing);
-            //                },
-            //                [&](const BackingSeconded &) { return false; },
-            //                [&](const BackingValid &) { return false; },
-            //                [&](const ApprovalChecking &) {
-            //                  return not is_type<ApprovalChecking>(existing);
-            //                },
-            //                [&](const ApprovalCheckingMultipleCandidates &) {
-            //                  return not
-            //                  is_type<ApprovalCheckingMultipleCandidates>(
-            //                      existing);
-            //                });
+            auto &existing = std::get<0>(it->second);
+            return visit_in_place(
+                valid,
+                [&](const Explicit &) {
+                  return not is_type<Explicit>(existing);
+                },
+                [&](const BackingSeconded &) { return false; },
+                [&](const BackingValid &) { return false; },
+                [&](const ApprovalChecking &) {
+                  return not is_type<ApprovalChecking>(existing);
+                });
           },
           [&](const InvalidDisputeStatement &invalid) {
             auto [it, fresh] = votes.invalid.emplace(
@@ -1186,9 +1181,9 @@ namespace kagome::dispute {
                                    statements.end());
               }
               ++imported_invalid_votes;
-              //              return true;
+              return true;
             }
-            //            return false;
+            return false;
           });
     }
 
@@ -1472,11 +1467,7 @@ namespace kagome::dispute {
                 sig,
                 session};
 
-            SL_TRACE(
-                log_,
-                "Sending out own approval vote. session={}, candidate_hash={}",
-                session,
-                candidate_hash);
+            SL_TRACE(log_, "Sending out own approval vote");
 
             auto dispute_message_res = make_dispute_message(
                 env.session, new_state.votes, statement, validator_index);
@@ -1800,12 +1791,7 @@ namespace kagome::dispute {
       bool valid) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1102
 
-    SL_TRACE(log_,
-             "Issuing local statement for candidate! "
-             "session={}, candidate_hash={}, relay_parent={}",
-             session,
-             candidate_hash,
-             candidate_receipt.descriptor.relay_parent);
+    SL_TRACE(log_, "Issuing local statement for candidate!");
 
     // Load environment:
 
@@ -2072,12 +2058,7 @@ namespace kagome::dispute {
              std::move(candidate_receipt),
              valid);
 
-    SL_TRACE(log_,
-             "DisputeCoordinatorMessage::IssueLocalStatement. "
-             "session={}, candidate_hash={}, relay_parent={}",
-             session,
-             candidate_hash,
-             candidate_receipt.descriptor.relay_parent);
+    SL_TRACE(log_, "DisputeCoordinatorMessage::IssueLocalStatement");
     auto res = issue_local_statement(
         candidate_hash, candidate_receipt, session, valid);
 
@@ -2525,12 +2506,6 @@ namespace kagome::dispute {
         return;
       }
     }
-
-    SL_TRACE(  // FIXME It's temporary code. Remove after tests
-        log_,
-        "Dispute (candidate={}) did not send. Disabled",
-        candidate_hash);
-    return;
 
     auto protocol = router_->getSendDisputeProtocol();
     BOOST_ASSERT_MSG(protocol,

@@ -192,11 +192,10 @@ namespace kagome::dispute {
         std::vector<Indexed<SignedDisputeStatement>> statements,
         CbOutcome<void> &&cb);
 
-    std::optional<CandidateEnvironment> makeCandidateEnvironment(
+    static std::optional<CandidateEnvironment> makeCandidateEnvironment(
         crypto::SessionKeys &session_keys,
         RollingSessionWindow &rolling_session_window,
-        SessionIndex session,
-        primitives::BlockHash relay_parent);
+        SessionIndex session);
 
     outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
 
