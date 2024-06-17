@@ -258,7 +258,7 @@ namespace kagome::network {
 
       auto val = uint8_t(core_index);
       for (size_t i = 0; i < 8; ++i) {
-        core_index_to_inject.bits[i] = ((1 << i) & val) >> i;
+        core_index_to_inject.bits[i] = (val >> i) & 1;
       }
       validator_indices.bits.insert(validator_indices.bits.end(),
                                     core_index_to_inject.bits.begin(),
