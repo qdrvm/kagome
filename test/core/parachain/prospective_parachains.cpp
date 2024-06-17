@@ -610,7 +610,8 @@ class ProspectiveParachainsTest : public testing::Test {
         candidate_relay_parent,
         hasher_->blake2b_256(parent_head_data),
         para_id);
-    ASSERT_EQ(resp, expected_pvd);
+    ASSERT_TRUE(resp.has_value());
+    ASSERT_EQ(resp.value(), expected_pvd);
   }
 };
 
