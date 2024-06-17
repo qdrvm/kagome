@@ -61,6 +61,13 @@ LABEL org.opencontainers.image.description="Zombienet image"
 ARG ZOMBIENET_RELEASE
 ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
 
+RUN useradd  --home-dir /home/nonroot \
+             --create-home \
+             --shell /bin/bash \
+             --gid nonroot \
+             --groups nonroot \
+             --uid 10000 nonroot
+
 WORKDIR /home/nonroot/
 
 RUN install_packages  \

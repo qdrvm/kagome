@@ -11,8 +11,22 @@ on:
 #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
 
-env: 
+env:
   POLKADOT_BINARY_REPO: ${secrets.GCP_REGISTRY_PATH}/polkadot-sdk-bin
+  BUILD_DIR: build
+  KAGOME_IN_DOCKER: 1
+  CTEST_OUTPUT_ON_FAILURE: 1
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  # Change all container: values to this variable once this feature is available
+  # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+  CACHE_VERSION: v07
+  CACHE_PATHS: |
+    ~/Library/Caches/pip
+    ~/.cargo
+    ~/.ccache
+    ~/.hunter
+    ~/.rustup
 
 jobs:
 #  get_polkadot_binary_image:
