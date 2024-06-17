@@ -37,7 +37,7 @@ jobs:
 #          - name: "Self-hosted: RelWithDebInfo Docker image"
 #            build-type: "RelWithDebInfo"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
+    timeout-minutes: 150
     container: qdrvm/kagome-dev:testing
     steps:
       - uses: actions/checkout@v4
