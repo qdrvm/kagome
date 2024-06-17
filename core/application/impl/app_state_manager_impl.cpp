@@ -10,10 +10,41 @@
 #include <functional>
 
 namespace kagome::application {
+  std::atomic_bool AppStateManagerImpl::signals_enabled{false};
+
+  void AppStateManagerImpl::signalsEnable() {
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = shuttingDownSignalsHandler;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask, SIGINT);
+    sigaddset(&act.sa_mask, SIGTERM);
+    sigaddset(&act.sa_mask, SIGQUIT);
+    sigprocmask(SIG_BLOCK, &act.sa_mask, nullptr);
+    sigaction(SIGINT, &act, nullptr);
+    sigaction(SIGTERM, &act, nullptr);
+    sigaction(SIGQUIT, &act, nullptr);
+    signals_enabled.store(true);
+    sigprocmask(SIG_UNBLOCK, &act.sa_mask, nullptr);
+  }
+
+  void AppStateManagerImpl::signalsDisable() {
+    auto expected = true;
+    if (not signals_enabled.compare_exchange_strong(expected, false)) {
+      return;
+    }
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = SIG_DFL;
+    sigaction(SIGINT, &act, nullptr);
+    sigaction(SIGTERM, &act, nullptr);
+    sigaction(SIGQUIT, &act, nullptr);
+  }
 
   std::weak_ptr<AppStateManagerImpl> AppStateManagerImpl::wp_to_myself;
 
   void AppStateManagerImpl::shuttingDownSignalsHandler(int signal) {
+    signalsDisable();
     if (auto self = wp_to_myself.lock()) {
       SL_TRACE(self->logger_, "Shutdown signal {} received", signal);
       self->shutdown();
@@ -22,37 +53,13 @@ namespace kagome::application {
 
   AppStateManagerImpl::AppStateManagerImpl()
       : logger_(log::createLogger("AppStateManager", "application")) {
-    struct sigaction act {};
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = shuttingDownSignalsHandler;  // NOLINT
-    sigset_t set;                                 // NOLINT
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-    sigaddset(&set, SIGTERM);
-    sigaddset(&set, SIGQUIT);
-    act.sa_mask = set;
-    sigaction(SIGINT, &act, nullptr);
-    sigaction(SIGTERM, &act, nullptr);
-    sigaction(SIGQUIT, &act, nullptr);
-    sigprocmask(SIG_UNBLOCK, &act.sa_mask, nullptr);
+    signalsEnable();
     SL_TRACE(logger_, "Signal handler set up");
   }
 
   AppStateManagerImpl::~AppStateManagerImpl() {
+    signalsDisable();
     wp_to_myself.reset();
-
-    struct sigaction act {};
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_DFL;  // NOLINT
-    sigset_t set;              // NOLINT
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-    sigaddset(&set, SIGTERM);
-    sigaddset(&set, SIGQUIT);
-    act.sa_mask = set;
-    sigaction(SIGINT, &act, nullptr);
-    sigaction(SIGTERM, &act, nullptr);
-    sigaction(SIGQUIT, &act, nullptr);
   }
 
   void AppStateManagerImpl::reset() {
@@ -214,6 +221,7 @@ namespace kagome::application {
   }
 
   void AppStateManagerImpl::shutdown() {
+    signalsDisable();
     if (state_.load() == State::ReadyToStop) {
       SL_TRACE(logger_, "Shutting down requested, but app is ready to stop");
       return;

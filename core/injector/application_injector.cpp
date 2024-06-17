@@ -396,11 +396,9 @@ namespace {
               module_cache_opt;
           auto &app_config =
               injector.template create<const application::AppConfiguration &>();
-          if (app_config.useWavmCache()) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(),
-                app_config.runtimeCacheDirPath());
-          }
+          module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+              injector.template create<sptr<crypto::Hasher>>(),
+              app_config.runtimeCacheDirPath());
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
@@ -929,7 +927,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+            makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

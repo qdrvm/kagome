@@ -17,6 +17,7 @@ namespace kagome::runtime::wasm_edge {
                          const MemoryConfig &config)
       : mem_instance_{mem_instance} {
     BOOST_ASSERT(mem_instance_ != nullptr);
+    resize(kInitialMemorySize);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
              fmt::ptr(this),
