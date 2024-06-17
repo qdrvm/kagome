@@ -1792,7 +1792,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
-    const auto candidate_indices = vote.payload.payload.candidate_indices;
+    const auto &candidate_indices = vote.payload.payload.candidate_indices;
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
@@ -1975,7 +1975,7 @@ namespace kagome::parachain {
         v.bits[candidate_index] = true;
         sanitized_assignments.assignments.emplace_back(
             network::vstaging::Assignment{
-              .indirect_assignment_cert = approval::AssignmentCertV2::from(cert),
+              .indirect_assignment_cert = approval::IndirectAssignmentCertV2::from(cert),
               .candidate_bitfield = std::move(v),
         });
       }
@@ -2067,25 +2067,23 @@ namespace kagome::parachain {
       return;
     }
 
-    network::vstaging::ApprovalDistributionMessage m = visit_in_place(
-        message,
-        [](const network::vstaging::ApprovalDistributionMessage &v) {
-          return v;
-        },
-        [](const network::ApprovalDistributionMessage &v) {
-          return visit_in_place(
-            v,
-            [](const network::Assignments &a) {
-              return sanitize_v1_assignments(a);
-            },
-            [](const network::Approvals &a) {
-              return sanitize_v1_approvals(a);
-            });
-        }
-      );
+    auto m = [&]() -> std::optional<std::reference_wrapper<const network::vstaging::ApprovalDistributionMessage>> {
+      auto m = if_type<const network::vstaging::ValidatorProtocolMessage>(message);
+      if (!m) {
+            SL_TRACE(logger_, "Received V1 message.(peer_id={})", peer_id);
+            return std::nullopt;
+      }
+
+      auto a = if_type<const network::vstaging::ApprovalDistributionMessage>(m->get());
+      if (!a) {
+            return std::nullopt;
+      }
+
+      return a;
+    }();
 
     visit_in_place(
-        m,
+        m->get(),
         [&](const network::vstaging::Assignments &assignments) {
           SL_TRACE(logger_,
                    "Received assignments.(peer_id={}, count={})",
@@ -2096,10 +2094,8 @@ namespace kagome::parachain {
                     assignment.indirect_assignment_cert.block_hash);
                 it != pending_known_.end()) {
               SL_TRACE(logger_,
-                       "Pending assignment.(block hash={}, claimed index={}, "
-                       "validator={}, peer={})",
+                       "Pending assignment.(block hash={}, validator={}, peer={})",
                        assignment.indirect_assignment_cert.block_hash,
-                       assignment.candidate_ix,
                        assignment.indirect_assignment_cert.validator,
                        peer_id);
               it->second.emplace_back(
@@ -2109,7 +2105,7 @@ namespace kagome::parachain {
 
             import_and_circulate_assignment(peer_id,
                                             assignment.indirect_assignment_cert,
-                                            assignment.candidate_ix);
+                                            assignment.candidate_bitfield);
           }
         },
         [&](const network::vstaging::Approvals &approvals) {
@@ -2122,10 +2118,8 @@ namespace kagome::parachain {
                     approval_vote.payload.payload.block_hash);
                 it != pending_known_.end()) {
               SL_TRACE(logger_,
-                       "Pending approval.(block hash={}, candidate index={}, "
-                       "validator={}, peer={})",
+                       "Pending approval.(block hash={}, validator={}, peer={})",
                        approval_vote.payload.payload.block_hash,
-                       approval_vote.payload.payload.candidate_index,
                        approval_vote.payload.ix,
                        peer_id);
               it->second.emplace_back(
@@ -2146,14 +2140,12 @@ namespace kagome::parachain {
     REINVOKE(*approval_thread_handler_,
              runDistributeAssignment,
              indirect_cert,
-             candidate_index,
+             candidate_indices,
              std::move(peers));
 
     SL_DEBUG(logger_,
-             "Distributing assignment on candidate (block hash={}, candidate "
-             "index={})",
-             indirect_cert.block_hash,
-             candidate_index);
+             "Distributing assignment on candidate (block hash={})",
+             indirect_cert.block_hash);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
@@ -2268,10 +2260,9 @@ namespace kagome::parachain {
              vote,
              std::move(peers));
 
-    logger_->info(
-        "Sending an approval to peers. (block={}, index={}, num peers={})",
+    SL_INFO(logger_,
+        "Sending an approval to peers. (block={}, num peers={})",
         vote.payload.payload.block_hash,
-        vote.payload.payload.candidate_index,
         peers.size());
 
     auto se = pm_->getStreamEngine();
@@ -2380,15 +2371,19 @@ namespace kagome::parachain {
                                .validator_sig = *sig,
                            });
 
+    scale::BitVec v;
+    v.bits.resize(*candidate_index + 1);
+    v.bits[*candidate_index] = true;
+
     import_and_circulate_approval(
         std::nullopt,
-        network::IndirectSignedApprovalVote{
+        approval::IndirectSignedApprovalVoteV2{
             .payload =
                 {
                     .payload =
-                        network::ApprovalVote{
+                        approval::IndirectApprovalVoteV2{
                             .block_hash = block_hash,
-                            .candidate_index = *candidate_index,
+                            .candidate_indices = std::move(v),
                         },
                     .ix = validator_index,
                 },
@@ -2425,7 +2420,7 @@ namespace kagome::parachain {
       const approval::IndirectAssignmentCertV2 &indirect_cert,
       DelayTranche assignment_tranche,
       const RelayHash &relay_block_hash,
-      CandidateIndex candidate_index,
+      const scale::BitVec &claimed_candidate_indices,
       SessionIndex session,
       const HashedCandidateReceipt &hashed_candidate,
       GroupIndex backing_group) {
@@ -2434,7 +2429,7 @@ namespace kagome::parachain {
     const auto validator_index = indirect_cert.validator;
 
     import_and_circulate_assignment(
-        std::nullopt, indirect_cert, candidate_index);
+        std::nullopt, indirect_cert, claimed_candidate_indices);
 
     std::optional<ApprovalOutcome> approval_state =
         approvals_cache_.exclusiveAccess(

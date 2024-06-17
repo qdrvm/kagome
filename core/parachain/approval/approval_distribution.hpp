@@ -592,7 +592,7 @@ namespace kagome::parachain {
         const approval::IndirectAssignmentCertV2 &indirect_cert,
         DelayTranche assignment_tranche,
         const RelayHash &relay_block_hash,
-        CandidateIndex candidate_index,
+        const scale::BitVec &claimed_candidate_indices,
         SessionIndex session,
         const HashedCandidateReceipt &hashed_candidate,
         GroupIndex backing_group);

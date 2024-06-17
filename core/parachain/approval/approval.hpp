@@ -95,6 +95,16 @@ namespace kagome::parachain::approval {
 
   /// An assignment criterion which refers to the candidate under which the
   /// assignment is relevant by block hash.
+  struct IndirectAssignmentCert {
+    SCALE_TIE(3);
+
+    Hash block_hash;           /// A block hash where the candidate appears.
+    ValidatorIndex validator;  /// The validator index.
+    AssignmentCert cert;       /// The cert itself.
+  };
+
+  /// An assignment criterion which refers to the candidate under which the
+  /// assignment is relevant by block hash.
   struct IndirectAssignmentCertV2 {
     SCALE_TIE(3);
 
@@ -106,16 +116,14 @@ namespace kagome::parachain::approval {
 
     /// The cert itself.
     AssignmentCertV2 cert;
-  };
 
-  /// An assignment criterion which refers to the candidate under which the
-  /// assignment is relevant by block hash.
-  struct IndirectAssignmentCert {
-    SCALE_TIE(3);
-
-    Hash block_hash;           /// A block hash where the candidate appears.
-    ValidatorIndex validator;  /// The validator index.
-    AssignmentCert cert;       /// The cert itself.
+    static IndirectAssignmentCertV2 from(const IndirectAssignmentCert &src) {
+      return IndirectAssignmentCertV2 {
+        .block_hash = src.block_hash,
+        .validator = src.validator,
+        .cert = AssignmentCertV2::from(src.cert),
+      };
+    }
   };
 
   /// A signed approval vote which references the candidate indirectly via the
