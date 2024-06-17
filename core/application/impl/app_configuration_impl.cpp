@@ -90,7 +90,6 @@ namespace {
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
@@ -285,7 +284,6 @@ namespace kagome::application {
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         runtime_interpreter_{def_runtime_interpreter},
-        use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
@@ -880,7 +878,6 @@ namespace kagome::application {
           fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
           fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
-        ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
@@ -1463,10 +1460,6 @@ namespace kagome::application {
                  interpreters_str);
         return false;
       }
-    }
-
-    if (vm.count("unsafe-cached-wavm-runtime") > 0) {
-      use_wavm_cache_ = true;
     }
 
     if (vm.count("purge-wavm-cache") > 0) {
