@@ -128,8 +128,6 @@ namespace {
             testing::Return(kagome::application::AppConfiguration::
                                 RuntimeExecutionMethod::CompileAheadOfTime));
 
-    EXPECT_CALL(config_mock, useWavmCache())
-        .WillRepeatedly(testing::Return(true));
     EXPECT_CALL(config_mock, parachainRuntimeInstanceCacheSize())
         .WillRepeatedly(testing::Return(100));
   }

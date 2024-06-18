@@ -238,9 +238,9 @@ namespace kagome::application {
     virtual RuntimeInterpreter runtimeInterpreter() const = 0;
 
     /**
-     * A flag marking if we must force-purge WAVM runtime cache
+     * A flag marking if we must purge runtime cache
      */
-    virtual bool purgeWavmCache() const = 0;
+    virtual bool purgeRuntimeCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
 

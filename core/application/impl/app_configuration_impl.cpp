@@ -90,7 +90,7 @@ namespace {
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_purge_wavm_cache_ = false;
+  const auto def_purge_runtime_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
@@ -288,7 +288,7 @@ namespace kagome::application {
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         runtime_interpreter_{def_runtime_interpreter},
-        purge_wavm_cache_(def_purge_wavm_cache_),
+        purge_runtime_cache_(def_purge_runtime_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
@@ -1479,7 +1479,7 @@ namespace kagome::application {
     }
 
     if (vm.count("purge-runtime-cache") > 0) {
-      purge_wavm_cache_ = true;
+      purge_runtime_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
         std::error_code ec;
         kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);

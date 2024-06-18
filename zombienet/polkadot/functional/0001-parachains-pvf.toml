@@ -1,5 +1,5 @@
 [settings]
-timeout = 100000
+timeout = 1000
 
 [relaychain]
 chain = "rococo-local"
@@ -28,13 +28,13 @@ requests = { memory = "2G", cpu = "1" }
   name = "ferdie"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--ferdie", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--ferdie", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "eve"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--eve", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--eve", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "one"
