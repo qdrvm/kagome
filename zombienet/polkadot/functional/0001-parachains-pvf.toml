@@ -1,5 +1,5 @@
 [settings]
-timeout = 1000
+timeout = 100000
 
 [relaychain]
 chain = "rococo-local"
@@ -28,25 +28,25 @@ requests = { memory = "2G", cpu = "1" }
   name = "ferdie"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--ferdie", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--ferdie", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "eve"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--eve", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--eve", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "one"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--one", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--one", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "two"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--two", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
 
 [[parachains]]
 id = 2000

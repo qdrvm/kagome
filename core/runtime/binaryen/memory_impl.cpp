@@ -17,7 +17,6 @@ namespace kagome::runtime::binaryen {
                          const MemoryConfig &config)
       : memory_{memory},
         logger_{log::createLogger("Binaryen Memory", "binaryen")} {
-    memory_->resize(kInitialMemorySize);
   }
 
   std::optional<WasmSize> MemoryImpl::pagesMax() const {

@@ -4,6 +4,7 @@
  */
 
 #include "runtime/wasm_edge/memory_impl.hpp"
+#include <wasmedge/wasmedge.h>
 
 #include <memory>
 
@@ -17,7 +18,10 @@ namespace kagome::runtime::wasm_edge {
                          const MemoryConfig &config)
       : mem_instance_{mem_instance} {
     BOOST_ASSERT(mem_instance_ != nullptr);
-    resize(kInitialMemorySize);
+    auto* mem_type = WasmEdge_MemoryInstanceGetMemoryType(mem_instance_);
+    BOOST_ASSERT(mem_type != nullptr);
+    auto limit = WasmEdge_MemoryTypeGetLimit(mem_type);
+    resize(limit.Min * kMemoryPageSize);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
              fmt::ptr(this),

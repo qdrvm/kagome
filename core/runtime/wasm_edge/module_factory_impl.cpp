@@ -13,7 +13,6 @@
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
 #include "log/profiling_logger.hpp"
-#include "log/trace_macros.hpp"
 #include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
