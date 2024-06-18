@@ -67,6 +67,23 @@ fetch_and_run:
 		echo "One or more files are missing."; \
 	fi
 
+polkadot_binary:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		CARGO_PACKETS="-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator"
+		
+		DOCKER_BUILDKIT=0 docker build -t $(POLKADOT_BINARY_REPO)/polkadot_binary:$$POLKADOT_SDK_RELEASE -t $(POLKADOT_BINARY_REPO)/polkadot_binary:latest \
+		-f polkadot_builder.Dockerfile \
+		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) \
+		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
+		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL \
+		--build-arg POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC . ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
+
 builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \

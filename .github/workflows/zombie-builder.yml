@@ -96,17 +96,64 @@ jobs:
         id: check-tag
         run: |
           TAG_VERSION=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
-          TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BINARY_REPO}/polkadot_builder:${TAG_VERSION} > /dev/null 2>&1 && echo "yes" || echo "no")
+          POLKADOT_BUILDER_IMAGE=${POLKADOT_BINARY_REPO}/polkadot_builder:${TAG_VERSION}
+          TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
+          echo "polkadot_builder_image=$POLKADOT_BUILDER_IMAGE" >> GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'no'
+        if: env.exists == 'false'
         run: make fetch_and_run \
           POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
         
       - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'no'
+        if: env.exists == 'false'
         run: make builder_push \
           POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
+        
+  building_binary:
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 120
+    container:
+      image: ${{ needs.build.outputs.polkadot_builder_image }}
+    steps:
+#      - run: rustup toolchain install stable --profile minimal
+#
+#      - name: Configure sccache env var and set build profile to ephemeral build
+#        run: |
+#          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+#          echo “SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+#
+#      - name: Run sccache-cache
+#        uses: mozilla-actions/sccache-action@v0.0.2
+      
+      - name: Build target
+        run: |
+          cargo update \ 
+            -p test-parachain-adder-collator \
+            -p polkadot-test-malus \
+            -p test-parachain-undying-collator && \
+          cargo build --profile testnet \
+            -p test-parachain-adder-collator \
+            -p polkadot-test-malus \
+            -p test-parachain-undying-collator
+          
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: malus
+          path: /home/nonroot/polkadot-sdk/target/testnet/malus
+      
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: undying-collator
+          path: /home/nonroot/polkadot-sdk/target/testnet/undying-collator
+          
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: adder-collator
+          path: /home/nonroot/polkadot-sdk/target/testnet/adder-collator
