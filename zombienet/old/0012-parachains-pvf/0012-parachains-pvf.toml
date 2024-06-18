@@ -28,25 +28,25 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.nodes]]
   name = "ferdie"
-  command = "kagome --wasm-execution Compiled --unsafe-cached-wavm-runtime"
+  command = "kagome --wasm-execution Compiled"
   prometheus_prefix = "kagome"
   args = [ "--ferdie", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "eve"
-  command = "kagome --wasm-execution Compiled --unsafe-cached-wavm-runtime"
+  command = "kagome --wasm-execution Compiled"
   prometheus_prefix = "kagome"
   args = [ "--eve", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "one"
-  command = "kagome --wasm-execution Compiled --unsafe-cached-wavm-runtime"
+  command = "kagome --wasm-execution Compiled"
   prometheus_prefix = "kagome"
   args = [ "--one", "-lparachain=debug", "-lruntime=debug" ]
 
   [[relaychain.nodes]]
   name = "two"
-  command = "kagome --wasm-execution Compiled --unsafe-cached-wavm-runtime"
+  command = "kagome --wasm-execution Compiled"
   prometheus_prefix = "kagome"
   args = [ "--two", "-lparachain=debug", "-lruntime=debug"]
 

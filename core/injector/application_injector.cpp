@@ -396,11 +396,9 @@ namespace {
               module_cache_opt;
           auto &app_config =
               injector.template create<const application::AppConfiguration &>();
-          if (app_config.useWavmCache()) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(),
-                app_config.runtimeCacheDirPath());
-          }
+          module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+              injector.template create<sptr<crypto::Hasher>>(),
+              app_config.runtimeCacheDirPath());
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),

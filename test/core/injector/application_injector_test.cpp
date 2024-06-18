@@ -142,6 +142,11 @@ class KagomeInjectorTest : public test::BaseFS_Test {
   void SetUp() override {
     writeKeys(db_path_ / "keys");
     config_ = std::make_shared<kagome::application::AppConfigurationMock>();
+
+    std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
+    EXPECT_CALL(*config_, runtimeCacheDirPath())
+        .WillRepeatedly(::testing::Return(temp_dir));
+
     initConfig(db_path_, *config_);
     injector_ = std::make_unique<kagome::injector::KagomeNodeInjector>(config_);
   }
