@@ -40,13 +40,13 @@ requests = { memory = "2G", cpu = "1" }
   name = "one"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--one", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--one", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
 
   [[relaychain.nodes]]
   name = "two"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--two", "--parachain-single-process", "--wasm-execution Interpreted", "--wasm-interpreter Binaryen", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug"]
 
 [[parachains]]
 id = 2000
