@@ -18,7 +18,7 @@ namespace kagome::runtime::wasm_edge {
                          const MemoryConfig &config)
       : mem_instance_{mem_instance} {
     BOOST_ASSERT(mem_instance_ != nullptr);
-    auto* mem_type = WasmEdge_MemoryInstanceGetMemoryType(mem_instance_);
+    auto *mem_type = WasmEdge_MemoryInstanceGetMemoryType(mem_instance_);
     BOOST_ASSERT(mem_type != nullptr);
     auto limit = WasmEdge_MemoryTypeGetLimit(mem_type);
     resize(limit.Min * kMemoryPageSize);
