@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  POLKADOT_BINARY_REPO: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/polkadot-sdk-bin
+  POLKADOT_BINARY_REPO: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev
   BUILD_DIR: build
   KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
@@ -74,12 +74,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - id: 'auth'
+      - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: 'Set up Cloud SDK'
+      - name: "Set up Cloud SDK"
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: "Configure Docker for GCR"
@@ -87,24 +87,26 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
           
-      - name: Get Polkadot and Zombienet versions
+      - name: "Get Polkadot and Zombienet versions"
         working-directory: ./zombienet/docker
         run: make get_versions
         
-      - name: Check if image tag exists
+      - name: "Check if image tag exists"
         working-directory: ./zombienet/docker
         id: check-tag
         run: |
           TAG_VERSION=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
-          TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BINARY_REPO}:${TAG_VERSION} > /dev/null 2>&1 && echo "yes" || echo "no")
+          TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BINARY_REPO}/polkadot_builder:${TAG_VERSION} > /dev/null 2>&1 && echo "yes" || echo "no")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
 
-      - name: Build Polkadot Builder
+      - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
         if: env.exists == 'no'
-        run: make fetch_and_run POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
+        run: make fetch_and_run \
+          POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
         
-      - name: Push Polkadot Builder
+      - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
         if: env.exists == 'no'
-        run: make builder_push POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
+        run: make builder_push \
+          POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}

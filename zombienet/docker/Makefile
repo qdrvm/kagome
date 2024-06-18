@@ -57,7 +57,7 @@ fetch_and_run:
 		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
-		DOCKER_BUILDKIT=0 docker build -t $(POLKADOT_BINARY_REPO):$$POLKADOT_SDK_RELEASE -t $(POLKADOT_BINARY_REPO):latest \
+		DOCKER_BUILDKIT=0 docker build -t $(POLKADOT_BINARY_REPO)/polkadot_builder:$$POLKADOT_SDK_RELEASE -t $(POLKADOT_BINARY_REPO)/polkadot_builder:latest \
 		-f polkadot_builder.Dockerfile \
 		--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
@@ -70,8 +70,8 @@ fetch_and_run:
 builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		docker push $(POLKADOT_BINARY_REPO):$$POLKADOT_SDK_RELEASE ; \
-		docker push $(POLKADOT_BINARY_REPO):latest ; \
+		docker push $(POLKADOT_BINARY_REPO)/polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
+		docker push $(POLKADOT_BINARY_REPO)/polkadot_builder:latest ; \
 	else \
 		echo "One or more files are missing."; \
 	fi	
