@@ -118,7 +118,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
+    MOCK_METHOD(bool, purgeRuntimeCache, (), (const, override));
 
     MOCK_METHOD(uint32_t,
                 parachainRuntimeInstanceCacheSize,

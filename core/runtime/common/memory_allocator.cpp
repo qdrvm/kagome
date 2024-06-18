@@ -7,6 +7,7 @@
 #include "runtime/common/memory_allocator.hpp"
 
 #include <boost/endian/conversion.hpp>
+#include <soralog/macro.hpp>
 
 #include "runtime/memory.hpp"
 
@@ -48,7 +49,7 @@ namespace kagome::runtime {
     }
     poisoned_ = true;
     if (size > kMaxAllocate) {
-      throw std::runtime_error{"RequestedAllocationTooLarge"};
+      throw std::runtime_error{"Requested allocation too large"};
     }
     size = std::max(size, kMinAllocate);
     size = math::nextHighPowerOf2(size);
@@ -67,16 +68,21 @@ namespace kagome::runtime {
         auto pages = sizeToPages(next_offset);
         if (pages > max_memory_pages_num_) {
           throw std::runtime_error{
-              "Memory resize failed, because maximum number of pages is reached."};
+              "Memory resize failed, because maximum number of pages is "
+              "reached."};
         }
         pages = std::max(pages, 2 * sizeToPages(memory_->size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);
         memory_->resize(pages * kMemoryPageSize);
+        SL_TRACE(logger_, "Resize memory to {}", pages * kMemoryPageSize);
       }
       offset_ = next_offset;
     }
     write_u64(*memory_, head_ptr, kOccupied | order);
     poisoned_ = false;
+    SL_TRACE(
+        logger_, "Allocate {} bytes -> {}", size, head_ptr + sizeof(Header));
+
     return head_ptr + sizeof(Header);
   }
 
@@ -88,6 +94,8 @@ namespace kagome::runtime {
     if (ptr < sizeof(Header)) {
       throw std::runtime_error{"Invalid pointer for deallocation"};
     }
+    SL_TRACE(logger_, "Deallocate {}", ptr);
+
     auto head_ptr = ptr - sizeof(Header);
     auto order = readOccupied(head_ptr);
     auto &list = free_lists_.at(order);

@@ -40,12 +40,36 @@ hunter_config(
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
-      WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.13.5-qdrvm1.zip
-      SHA1 3637f5df6892a762606393940539c0dcb6e9c022
+      fmt
+      URL
+          https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
+      SHA1
+          d223964b782d2562d6722ffe67027204c6035453
       CMAKE_ARGS
-        WASMEDGE_BUILD_STATIC_LIB=ON
-        WASMEDGE_BUILD_SHARED_LIB=OFF
+          CMAKE_POSITION_INDEPENDENT_CODE=TRUE
+  )
+  
+  hunter_config(
+      spdlog
+      VERSION 1.12.0-p0
+      CMAKE_ARGS
+          SPDLOG_BUILD_PIC=ON
+          SPDLOG_FMT_EXTERNAL=ON
+  )
+
+  if (BUILD_WITH_JIT)
+    set(NOT_BUILD_WITH_JIT OFF)
+  else()
+    set(NOT_BUILD_WITH_JIT ON)
+  endif()
+
+  hunter_config(
+      WasmEdge
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
+      SHA1 58aea400de9179ad3e314c7e84fd4da345b8a643
+      CMAKE_ARGS
+        WASMEDGE_BUILD_STATIC_LIB=${NOT_BUILD_WITH_JIT}
+        WASMEDGE_BUILD_SHARED_LIB=${BUILD_WITH_JIT}
       KEEP_PACKAGE_SOURCES
   )
 endif ()

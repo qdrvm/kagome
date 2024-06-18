@@ -164,8 +164,8 @@ namespace kagome::application {
     RuntimeInterpreter runtimeInterpreter() const override {
       return runtime_interpreter_;
     }
-    bool purgeWavmCache() const override {
-      return purge_wavm_cache_;
+    bool purgeRuntimeCache() const override {
+      return purge_runtime_cache_;
     }
     uint32_t parachainRuntimeInstanceCacheSize() const override {
       return parachain_runtime_instance_cache_size_;
@@ -364,7 +364,7 @@ namespace kagome::application {
     SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     RuntimeInterpreter runtime_interpreter_;
-    bool purge_wavm_cache_;
+    bool purge_runtime_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
     std::optional<Subcommand> subcommand_;

@@ -9,6 +9,7 @@
 #include <thread>
 
 #include <boost/asio/dispatch.hpp>
+#include <boost/beast/core/bind_handler.hpp>
 #include <boost/config.hpp>
 #include <libp2p/outcome/outcome.hpp>
 

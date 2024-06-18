@@ -63,7 +63,7 @@ rm -Rf ${CTX_DIR}
 mkdir -p ${CTX_DIR}
 
 # Copy binaries
-cp -a ${BUILD_DIR}/node/kagome ${CTX_DIR}/
+cp -a "${BUILD_DIR}/node/kagome" ${CTX_DIR}/
 
 if [ "$BUILD_TYPE" = "Release" ] || [ "$BUILD_TYPE" = "Custom" ]; then
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}

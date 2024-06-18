@@ -461,11 +461,24 @@ namespace {
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<InterpretedType>>());
           case RuntimeInterpreter::WasmEdge:
+            if constexpr (KAGOME_WASM_COMPILER_WASM_EDGE != 1) {
+              throw std::runtime_error(
+                  "WasmEdge interpreter requested, but KAGOME built with WAVM "
+                  "support instead of WasmEdge.");
+            }
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<CompiledType>>());
         }
         BOOST_UNREACHABLE_RETURN({});
-      case RuntimeExecutionMethod::Compile:
+      case RuntimeExecutionMethod::CompileAheadOfTime:
+        return std::static_pointer_cast<CommonType>(
+            injector.template create<sptr<CompiledType>>());
+      case RuntimeExecutionMethod::CompileJustInTime:
+        if constexpr (KAGOME_WASM_COMPILER_WASM_EDGE != 1) {
+          throw std::runtime_error(
+              "JIT requested, but KAGOME is built with WAVM. Only WasmEdge "
+              "supports JIT.");
+        }
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
     }
@@ -599,12 +612,23 @@ namespace {
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    using ExecType = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
+    using ConfigExecType =
+        application::AppConfiguration::RuntimeExecutionMethod;
+    ExecType exec_type;
+    switch (config->runtimeExecMethod()) {
+      case ConfigExecType::CompileAheadOfTime:
+        exec_type = ExecType::AotCompiled;
+        break;
+      case ConfigExecType::CompileJustInTime:
+        exec_type = ExecType::JitCompiled;
+        break;
+      case ConfigExecType::Interpret:
+        exec_type = ExecType::Interpreted;
+        break;
+    }
     runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
-        config->runtimeExecMethod()
-                == application::AppConfiguration::RuntimeExecutionMethod::
-                    Compile
-            ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
-            : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
+        exec_type,
         config->runtimeCacheDirPath(),
     };
 #endif
@@ -927,7 +951,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

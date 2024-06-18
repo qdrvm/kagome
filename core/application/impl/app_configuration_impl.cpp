@@ -90,7 +90,7 @@ namespace {
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_purge_wavm_cache_ = false;
+  const auto def_purge_runtime_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
@@ -164,7 +164,8 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+  std::array<std::string_view, 3> execution_methods{
+      "Interpreted", "Compiled", "CompiledJit"};
 
   std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
@@ -187,7 +188,10 @@ namespace {
       return REM::Interpret;
     }
     if (str == "Compiled") {
-      return REM::Compile;
+      return REM::CompileAheadOfTime;
+    }
+    if (str == "CompiledJit") {
+      return REM::CompileJustInTime;
     }
     return std::nullopt;
   }
@@ -284,7 +288,7 @@ namespace kagome::application {
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         runtime_interpreter_{def_runtime_interpreter},
-        purge_wavm_cache_(def_purge_wavm_cache_),
+        purge_runtime_cache_(def_purge_runtime_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
@@ -878,7 +882,7 @@ namespace kagome::application {
           fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
           fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
-        ("purge-wavm-cache", "purge WAVM runtime cache")
+        ("purge-runtime-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
           "Number of parachain runtime instances to keep cached")
@@ -1426,6 +1430,16 @@ namespace kagome::application {
                      val,
                      execution_methods_str);
           } else {
+#ifndef KAGOME_ENABLE_JIT
+            if (runtime_exec_method_opt.value()
+                == RuntimeExecutionMethod::CompileJustInTime) {
+              SL_ERROR(logger_,
+                       "JIT compilation requested but KAGOME is built without "
+                       "JIT support. Use BUILD_WITH_JIT CMake parameter to "
+                       "enable JIT support during build.");
+              exec_method_value_error = true;
+            }
+#endif
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });
@@ -1444,7 +1458,9 @@ namespace kagome::application {
 
     if (auto val = find_argument<std::string>(vm, "wasm-interpreter");
         val.has_value()) {
-      if (runtime_exec_method_ == RuntimeExecutionMethod::Compile) {
+      if (runtime_exec_method_ == RuntimeExecutionMethod::CompileAheadOfTime
+          || runtime_exec_method_
+                 == RuntimeExecutionMethod::CompileJustInTime) {
         SL_ERROR(
             logger_,
             "--wasm-interpreter defined, but the execution mode is Compile");
@@ -1462,8 +1478,8 @@ namespace kagome::application {
       }
     }
 
-    if (vm.count("purge-wavm-cache") > 0) {
-      purge_wavm_cache_ = true;
+    if (vm.count("purge-runtime-cache") > 0) {
+      purge_runtime_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
         std::error_code ec;
         kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);
@@ -1620,7 +1636,7 @@ namespace kagome::application {
       precompile_wasm_->parachains = *paths;
     }
     if (precompile_wasm_) {
-      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+      runtime_exec_method_ = RuntimeExecutionMethod::CompileAheadOfTime;
     }
 
     // if something wrong with config print help message

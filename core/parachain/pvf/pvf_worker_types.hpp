@@ -19,7 +19,9 @@ namespace kagome::parachain {
     kBinaryen = 0,
     kWAVM,
     kWasmEdgeInterpreted,
-    kWasmEdgeCompiled,
+    kWasmEdgeCompiledAot,
+    kWasmEdgeCompiledJit,
+    kEnginesNum,
   };
 
   struct PvfWorkerInput {

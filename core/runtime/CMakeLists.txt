@@ -28,6 +28,12 @@ else()
   fatal_error("Unknown WASM_COMPILER: ${WASM_COMPILER}")
 endif()
 
+if (BUILD_WITH_JIT)
+  target_compile_definitions(wasm_compiler INTERFACE
+    KAGOME_ENABLE_JIT
+  )
+endif()
+
 kagome_install(wasm_compiler)
 
 add_subdirectory(runtime_api/impl)

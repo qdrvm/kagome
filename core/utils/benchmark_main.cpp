@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <libp2p/common/final_action.hpp>
+
 #include "application/impl/app_configuration_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
 #include "common/visitor.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome {
 
@@ -39,7 +42,8 @@ namespace kagome {
     auto &benchmark_config = *config_opt;
 
     auto block_benchmark = injector.injectBlockBenchmark();
-
+    auto watchdog = injector.injectWatchdog();
+    libp2p::common::FinalAction stop = [watchdog] { watchdog->stop(); };
     auto res = visit_in_place(
         benchmark_config,
         [&](application::BlockBenchmarkConfig config) -> outcome::result<void> {
@@ -67,7 +71,6 @@ namespace kagome {
 
     SL_INFO(logger, "Kagome benchmark stopped");
     logger->flush();
-
     return 0;
   }
 

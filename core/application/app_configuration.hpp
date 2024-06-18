@@ -211,8 +211,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint>
-        &telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint> &
+    telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -220,7 +220,8 @@ namespace kagome::application {
     virtual SyncMethod syncMethod() const = 0;
 
     enum class RuntimeExecutionMethod {
-      Compile,
+      CompileAheadOfTime,
+      CompileJustInTime,
       Interpret,
     };
 
@@ -230,16 +231,16 @@ namespace kagome::application {
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
     enum class RuntimeInterpreter {
-      WasmEdge,
       Binaryen,
+      WasmEdge,
     };
 
     virtual RuntimeInterpreter runtimeInterpreter() const = 0;
 
     /**
-     * A flag marking if we must force-purge WAVM runtime cache
+     * A flag marking if we must purge runtime cache
      */
-    virtual bool purgeWavmCache() const = 0;
+    virtual bool purgeRuntimeCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
 

@@ -6,7 +6,6 @@
 
 #include "network/impl/state_protocol_observer_impl.hpp"
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/bind/storage.hpp>
 #include <libp2p/outcome/outcome.hpp>
 #include <unordered_set>
 
