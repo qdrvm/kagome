@@ -26,15 +26,11 @@ requests = { memory = "2G", cpu = "1" }
 
   [[relaychain.nodes]]
   name = "ferdie"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--ferdie", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--ferdie", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "eve"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--eve", "-lparachain=debug", "-lruntime=debug"]
+  args = [ "--eve", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "one"
