@@ -7,6 +7,7 @@
 #pragma once
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "log/logger.hpp"
 #include "network/types/dispute_messages.hpp"
 
 namespace kagome {
