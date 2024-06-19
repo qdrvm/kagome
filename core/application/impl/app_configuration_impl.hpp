@@ -164,9 +164,6 @@ namespace kagome::application {
     RuntimeInterpreter runtimeInterpreter() const override {
       return runtime_interpreter_;
     }
-    bool useWavmCache() const override {
-      return use_wavm_cache_;
-    }
     bool purgeWavmCache() const override {
       return purge_wavm_cache_;
     }
@@ -367,7 +364,6 @@ namespace kagome::application {
     SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     RuntimeInterpreter runtime_interpreter_;
-    bool use_wavm_cache_;
     bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
@@ -387,7 +383,8 @@ namespace kagome::application {
     uint32_t parachain_precompilation_thread_num_ =
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
-    bool use_pvf_subprocess_{true};
+    bool use_pvf_subprocess_{
+        false};  // TODO(kamilsa) #2123 set back to true when issue resolved
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
