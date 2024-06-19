@@ -39,8 +39,8 @@ hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
 # https://www.openssl.org/
-hunter_add_package(OpenSSL)
-find_package(OpenSSL REQUIRED)
+hunter_add_package(BoringSSL)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # https://developers.google.com/protocol-buffers/
 hunter_add_package(Protobuf)
