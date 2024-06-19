@@ -1,9 +1,19 @@
+RUST_IMAGE=rust:1.79-slim-bookworm
+
+export DOCKER_BUILDKIT=1
+export BUILDKIT_PROGRESS=auto
+# BUILDKIT_PROGRESS - auto, plain, tty, rawjson
+
+DOCKER_REGISTRY_PATH ?= ''
+
+
+
 BRANCH_NAME ?= master
 KAGOME_IMAGE ?= qdrvm/kagome:latest
 ZOMBIE_TESTER_IMAGE ?= qdrvm/zombie-tester:latest
 ZOOMBIE_BUILDER_IMAGE ?= qdrvm/zombie-builder:testing
 CONTAINER_NAME ?= zombienet-test
-POLKADOT_BINARY_REPO ?= qdrvm/zombie-builder
+PLATFORM ?= linux/amd64
 
 COPY_LOGS_TO_HOST ?= true
 HOST_LOGS_PATH ?= /tmp/test_logs
@@ -29,6 +39,32 @@ define run_test
 	exit $$TEST_EXIT_CODE
 endef
 
+get_versions:
+	python3 version.py https://github.com/paritytech/polkadot-sdk && \
+	python3 version.py https://github.com/paritytech/zombienet
+
+polkadot_builder:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		docker build --platform $(PLATFORM) \
+		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
+		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:latest \
+		-f polkadot_builder.Dockerfile \
+		--build-arg RUST_IMAGE=$(RUST_IMAGE) \
+		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
+
+polkadot_builder_push:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+  		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
+		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
+	else \
+		echo "One or more files are missing."; \
+	fi	
+
 copy_logs_to_host:
 	@CONTAINER_NAME=$(CONTAINER_NAME); \
 	FINISHED_CONTAINER_NAME=$$CONTAINER_NAME-finished; \
@@ -47,9 +83,8 @@ copy_logs_to_host:
 	docker rm -f $$FINISHED_CONTAINER_NAME; \
 	docker rmi $$FINISHED_IMAGE_NAME
 
-get_versions:
-	python3 version.py https://github.com/paritytech/polkadot-sdk && \
-	python3 version.py https://github.com/paritytech/zombienet
+
+
 
 fetch_and_run:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -84,14 +119,12 @@ polkadot_binary:
 		echo "One or more files are missing."; \
 	fi
 
-builder_push:
-	if [ -f polkadot-sdk-versions.txt ]; then \
-  		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		docker push $(POLKADOT_BINARY_REPO)/polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
-		docker push $(POLKADOT_BINARY_REPO)/polkadot_builder:latest ; \
-	else \
-		echo "One or more files are missing."; \
-	fi	
+build_polkadot_binary:
+	IMAGE=$(POLKADOT_BINARY_REPO)/polkadot_builder:latest; \
+	CARGO_PACKETS="-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator" \
+	docker run --rm --platform linux/amd64 -v $(PWD):/workspace -w /workspace $$IMAGE cargo build --release $$CARGO_PACKETS
+
+
 
 builder:
 	DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=$(CUMULUS_RELEASE) --build-arg POLKADOT_RELEASE=$(POLKADOT_RELEASE) --build-arg POLKADOT_RELEASE_GLOBAL=$(POLKADOT_RELEASE_GLOBAL) .

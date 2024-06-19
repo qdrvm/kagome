@@ -10,14 +10,23 @@ on:
 #  schedule:
 #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
+    inputs: 
+      polkadot_image_rebuild:
+        description: 'Rebuild the polkadot builder image'
+        required: false
+        default: 'false'
+        type: 'boolean'
 
 env:
-  POLKADOT_BINARY_REPO: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  FORCE_REBUILD: false
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  
+  
   BUILD_DIR: build
   KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
-  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
   CACHE_VERSION: v07
@@ -92,68 +101,68 @@ jobs:
         run: make get_versions
         
       - name: "Check if image tag exists"
-        working-directory: ./zombienet/docker
         id: check-tag
+        working-directory: ./zombienet/docker
         run: |
-          TAG_VERSION=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
-          POLKADOT_BUILDER_IMAGE=${POLKADOT_BINARY_REPO}/polkadot_builder:${TAG_VERSION}
+          POLKADOT_VERSION=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}polkadot_builder:${POLKADOT_VERSION}
           TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
           echo "polkadot_builder_image=$POLKADOT_BUILDER_IMAGE" >> GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false'
-        run: make fetch_and_run \
-          POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
+        if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
+        run: make polkadot_builder \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
         
       - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false'
-        run: make builder_push \
-          POLKADOT_BINARY_REPO=${POLKADOT_BINARY_REPO}
+        if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
+        run: make polkadot_builder_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
         
-  building_binary:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container:
-      image: ${{ needs.build.outputs.polkadot_builder_image }}
-    steps:
-#      - run: rustup toolchain install stable --profile minimal
-#
-#      - name: Configure sccache env var and set build profile to ephemeral build
+#  building_binary:
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 120
+#    container:
+#      image: ${{ needs.build.outputs.polkadot_builder_image }}
+#    steps:
+##      - run: rustup toolchain install stable --profile minimal
+##
+##      - name: Configure sccache env var and set build profile to ephemeral build
+##        run: |
+##          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+##          echo “SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+##
+##      - name: Run sccache-cache
+##        uses: mozilla-actions/sccache-action@v0.0.2
+#      
+#      - name: Build target
 #        run: |
-#          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-#          echo “SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-#
-#      - name: Run sccache-cache
-#        uses: mozilla-actions/sccache-action@v0.0.2
-      
-      - name: Build target
-        run: |
-          cargo update \ 
-            -p test-parachain-adder-collator \
-            -p polkadot-test-malus \
-            -p test-parachain-undying-collator && \
-          cargo build --profile testnet \
-            -p test-parachain-adder-collator \
-            -p polkadot-test-malus \
-            -p test-parachain-undying-collator
-          
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: malus
-          path: /home/nonroot/polkadot-sdk/target/testnet/malus
-      
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: undying-collator
-          path: /home/nonroot/polkadot-sdk/target/testnet/undying-collator
-          
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: adder-collator
-          path: /home/nonroot/polkadot-sdk/target/testnet/adder-collator
+#          cargo update \ 
+#            -p test-parachain-adder-collator \
+#            -p polkadot-test-malus \
+#            -p test-parachain-undying-collator && \
+#          cargo build --profile testnet \
+#            -p test-parachain-adder-collator \
+#            -p polkadot-test-malus \
+#            -p test-parachain-undying-collator
+#          
+#      - name: upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: malus
+#          path: /home/nonroot/polkadot-sdk/target/testnet/malus
+#      
+#      - name: upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: undying-collator
+#          path: /home/nonroot/polkadot-sdk/target/testnet/undying-collator
+#          
+#      - name: upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: adder-collator
+#          path: /home/nonroot/polkadot-sdk/target/testnet/adder-collator
