@@ -89,8 +89,3 @@ hunter_config(
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
-
-hunter_config(libp2p
-  URL  https://github.com/libp2p/cpp-libp2p/archive/e44b46754d3b58c257bb602d2ceac8b8e9c330e9.zip
-  SHA1 d9fa50676b9d859b7934a5c510a4acd485b51d6f
-)
