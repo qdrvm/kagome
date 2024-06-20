@@ -84,7 +84,77 @@ namespace {
     return false;
   }
 
-  void computeVrfModuloAssignments(
+  void computeVrfModuloAssignments_v2(
+    std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+        assignments_key,
+    const kagome::runtime::SessionInfo &config,
+    const RelayVRFStory &relay_vrf_story,
+    const std::vector<kagome::parachain::CoreIndex> &leaving_cores,
+    kagome::parachain::ValidatorIndex validator_index,
+    std::unordered_map<kagome::parachain::CoreIndex,
+                       kagome::parachain::ApprovalDistribution::OurAssignment>
+        &assignments) {
+    using namespace kagome::parachain;
+    using namespace kagome;
+
+    VRFCOutput cert_output;
+    VRFCProof cert_proof;
+    uint32_t *cores;
+    uint64_t cores_out_sz;
+    uint64_t cores_cap;
+
+    if (sr25519_relay_vrf_modulo_assignments_cert_v2(assignments_key.data(),
+                                                    config.relay_vrf_modulo_samples,
+                                                    config.n_cores,
+                                                    &relay_vrf_story,
+                                                    leaving_cores.data(),
+                                                    leaving_cores.size(),
+                                                    &cert_output,
+                                                    &cert_proof,
+                                                    &cores,
+                                                    &cores_out_sz,
+                                                    &cores_cap)) {
+      scale::BitVec assignment_bitfield;
+      for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+        const auto ci = cores[ix];
+        if (ci >= assignment_bitfield.bits.size()) {
+          assignment_bitfield.bits.resize(ci + 1);
+        }
+        assignment_bitfield.bits[ci] = true;        
+      }
+
+         crypto::VRFPreOutput o;
+        std::copy_n(std::make_move_iterator(cert_output.data),
+                    crypto::constants::sr25519::vrf::OUTPUT_SIZE,
+                    o.begin());
+
+        crypto::VRFProof p;
+        std::copy_n(std::make_move_iterator(cert_proof.data),
+                    crypto::constants::sr25519::vrf::PROOF_SIZE,
+                    p.begin());
+
+        ApprovalDistribution::OurAssignment assignment{
+            .cert =
+                approval::AssignmentCertV2 {
+                    .kind = approval::RelayVRFModuloCompact {
+                      .core_bitfield = assignment_bitfield,
+                    },
+                    .vrf = crypto::VRFOutput{.output = o, .proof = p},
+                    },
+            .tranche = 0ul,
+            .validator_index = validator_index,
+            .triggered = false};
+
+      for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+        const auto core_index = cores[ix];
+  			assignments.insert(core_index, assignment);
+      }
+
+	    sr25519_clear_assigned_cores_v2(cores, cores_out_sz, cores_cap);
+    }
+  }
+
+  void computeVrfModuloAssignments_v1(
       std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
           keypair_buf,
       const kagome::runtime::SessionInfo &config,
@@ -658,9 +728,13 @@ namespace kagome::parachain {
       const std::shared_ptr<crypto::KeyStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const CandidateIncludedList &leaving_cores) {
+      const CandidateIncludedList &leaving_cores,
+      bool enable_v2_assignments) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
+      SL_TRACE(logger_,
+               "Not producing assignments because config is degenerate. (n_cores={}, assignments_keys={}, validators_groups={})",
+               config.n_cores, config.assignment_keys.size(), config.validator_groups.size());
       return {};
     }
 
@@ -670,15 +744,15 @@ namespace kagome::parachain {
       return {};
     }
 
-    const auto &[validator_ix, assignments_key] = *found_key;
-    std::vector<CoreIndex> lc;
-    for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
-         leaving_cores) {
-      if (isInBackingGroup(config.validator_groups, validator_ix, group_ix)) {
-        continue;
+    const auto &[index, assignments_key] = *found_key;
+    std::vector<CandidateHash, CoreIndex> lc;
+    for (const auto &[c_hash, core, g] : leaving_cores) {
+      if (!isInBackingGroup(config.validator_groups, index, g)) {
+        lc.emplace_back(c_hash, core_ix);
       }
-      lc.push_back(core_ix);
     }
+
+    SL_TRACE(logger_, "Assigning to candidates from different backing groups. (assignable_cores={})", lc.size());
 
     common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
     crypto::SecureCleanGuard g{keypair_buf};
@@ -689,10 +763,15 @@ namespace kagome::parachain {
 
     std::unordered_map<CoreIndex, ApprovalDistribution::OurAssignment>
         assignments;
-    computeVrfModuloAssignments(
-        keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
+    if (enable_v2_assignments) {
+      computeVrfModuloAssignments_v2(
+          keypair_buf, config, relay_vrf_story, lc, index, assignments);
+    } else {
+      computeVrfModuloAssignments_v1(
+          keypair_buf, config, relay_vrf_story, lc, index, assignments);
+    }
     computeVrfDelayAssignments(
-        keypair_buf, config, relay_vrf_story, lc, validator_ix, assignments);
+        keypair_buf, config, relay_vrf_story, lc, index, assignments);
 
     return assignments;
   }
@@ -776,6 +855,8 @@ namespace kagome::parachain {
       default:
         return;
     }
+
+    
 
     approval::UnsafeVRFOutput unsafe_vrf{
         .vrf_output = ac.babe_block_header->vrf_output,

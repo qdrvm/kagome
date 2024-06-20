@@ -76,7 +76,7 @@ namespace kagome::parachain {
         public IApprovedAncestor {
     struct OurAssignment {
       SCALE_TIE(4);
-      approval::AssignmentCert cert;
+      approval::AssignmentCertV2 cert;
       uint32_t tranche;
       ValidatorIndex validator_index;
       bool triggered;  /// Whether the assignment has been triggered already.
@@ -99,7 +99,7 @@ namespace kagome::parachain {
     struct ApprovalEntry {
       SCALE_TIE(6);
       using MaybeCert = std::optional<
-          std::tuple<std::reference_wrapper<const approval::AssignmentCert>,
+          std::tuple<std::reference_wrapper<const approval::AssignmentCertV2>,
                      ValidatorIndex,
                      DelayTranche>>;
 
@@ -161,7 +161,7 @@ namespace kagome::parachain {
         import_assignment(
             our_assignment->tranche, our_assignment->validator_index, tick_now);
         return std::make_tuple(
-            std::reference_wrapper<const approval::AssignmentCert>(
+            std::reference_wrapper<const approval::AssignmentCertV2>(
                 our_assignment->cert),
             our_assignment->validator_index,
             our_assignment->tranche);
@@ -301,7 +301,8 @@ namespace kagome::parachain {
         const std::shared_ptr<crypto::KeyStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
-        const CandidateIncludedList &leaving_cores);
+        const CandidateIncludedList &leaving_cores,
+        bool enable_v2_assignments);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
