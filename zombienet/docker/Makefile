@@ -86,7 +86,7 @@ polkadot_binary:
 			-e RUSTC_WRAPPER=sccache \
 			-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
 			-e SCCACHE_GCS_KEY_PATH=/root/.gcp/google_creds.json \
-			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder \
+			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder_ \
 			-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 			-e SCCACHE_LOG=info \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
