@@ -80,6 +80,7 @@ polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		CONTAINER_NAME=polkadot_build_$$(openssl rand -hex 6); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		mkdir -p /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git; \
 		docker run -d --name $$CONTAINER_NAME \
 			--platform $(PLATFORM) \
 			--entrypoint "/bin/bash" \
@@ -97,11 +98,11 @@ polkadot_binary:
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
-			cargo build --profile testnet $(CARGO_PACKETS)"; \
+			cargo build --profile testnet $(CARGO_PACKETS); \
 			cp /home/nonroot/polkadot-sdk/target/testnet/malus \
 				/home/nonroot/polkadot-sdk/target/testnet/undying-collator \
 				/home/nonroot/polkadot-sdk/target/testnet/adder-collator \
-				/tmp/polkadot_binary/; \
+				/tmp/polkadot_binary/; " \
 		docker stop $$CONTAINER_NAME; \
 		docker rm -f $$CONTAINER_NAME; \
 	else \
