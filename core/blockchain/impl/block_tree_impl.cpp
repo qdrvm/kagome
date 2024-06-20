@@ -813,9 +813,13 @@ namespace kagome::blockchain {
 
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
 
-        std::vector<primitives::BlockHash> retired_hashes;
+        std::vector<
+            primitives::events::RemoveAfterFinalizationParams::HeaderInfo>
+            retired_hashes;
         for (auto parent = node->parent(); parent; parent = parent->parent()) {
-          retired_hashes.emplace_back(parent->info.hash);
+          retired_hashes.emplace_back(
+              primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
+                  parent->info.hash, parent->info.number});
         }
 
         auto changes = p.tree_->finalize(node);
@@ -846,12 +850,13 @@ namespace kagome::blockchain {
 
         main_pool_handler_->execute(
             [weak{weak_from_this()},
-             retired_hashes{std::move(retired_hashes)}] {
+             retired{primitives::events::RemoveAfterFinalizationParams{
+                 std::move(retired_hashes), header.number}}] {
               if (auto self = weak.lock()) {
                 self->chain_events_engine_->notify(
                     primitives::events::ChainEventType::
                         kDeactivateAfterFinalization,
-                    retired_hashes);
+                    retired);
               }
             });
 
@@ -1301,7 +1306,8 @@ namespace kagome::blockchain {
     }
 
     std::vector<primitives::Extrinsic> extrinsics;
-    std::vector<primitives::BlockHash> retired_hashes;
+    std::vector<primitives::events::RemoveAfterFinalizationParams::HeaderInfo>
+        retired_hashes;
 
     // remove from storage
     retired_hashes.reserve(changes.prune.size());
@@ -1329,33 +1335,39 @@ namespace kagome::blockchain {
         BOOST_ASSERT(block_header_opt.has_value());
         OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
-      retired_hashes.emplace_back(block.hash);
+      retired_hashes.emplace_back(
+          primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
+              block.hash, block.number});
       OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
 
     // trying to return extrinsics back to transaction pool
-    main_pool_handler_->execute([extrinsics{std::move(extrinsics)},
-                                 wself{weak_from_this()},
-                                 retired_hashes{
-                                     std::move(retired_hashes)}]() mutable {
-      if (auto self = wself.lock()) {
-        auto eo = self->block_tree_data_.sharedAccess(
-            [&](const BlockTreeData &p) { return p.extrinsic_observer_; });
+    main_pool_handler_->execute(
+        [extrinsics{std::move(extrinsics)},
+         wself{weak_from_this()},
+         retired{primitives::events::RemoveAfterFinalizationParams{
+             std::move(retired_hashes),
+             getLastFinalizedNoLock(p).number}}]() mutable {
+          if (auto self = wself.lock()) {
+            auto eo = self->block_tree_data_.sharedAccess(
+                [&](const BlockTreeData &p) { return p.extrinsic_observer_; });
 
-        for (auto &&extrinsic : extrinsics) {
-          auto result = eo->onTxMessage(extrinsic);
-          if (result) {
-            SL_DEBUG(self->log_, "Tx {} was reapplied", result.value().toHex());
-          } else {
-            SL_DEBUG(self->log_, "Tx was skipped: {}", result.error());
+            for (auto &&extrinsic : extrinsics) {
+              auto result = eo->onTxMessage(extrinsic);
+              if (result) {
+                SL_DEBUG(
+                    self->log_, "Tx {} was reapplied", result.value().toHex());
+              } else {
+                SL_DEBUG(self->log_, "Tx was skipped: {}", result.error());
+              }
+            }
+
+            self->chain_events_engine_->notify(
+                primitives::events::ChainEventType::
+                    kDeactivateAfterFinalization,
+                retired);
           }
-        }
-
-        self->chain_events_engine_->notify(
-            primitives::events::ChainEventType::kDeactivateAfterFinalization,
-            retired_hashes);
-      }
-    });
+        });
 
     return outcome::success();
   }

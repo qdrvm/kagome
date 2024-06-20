@@ -115,6 +115,15 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorIndex>> disabled_validators(
         const primitives::BlockHash &block) override;
 
+    outcome::result<std::optional<NodeFeatures>> node_features(
+        const primitives::BlockHash &block, SessionIndex index) override;
+
+    outcome::result<std::map<CoreIndex, std::vector<ParachainId>>> claim_queue(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<uint32_t> runtime_api_version(
+        const primitives::BlockHash &block) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);

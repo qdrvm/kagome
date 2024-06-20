@@ -11,6 +11,8 @@
 #include "testutil/prepare_loggers.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/type_hasher.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
@@ -19,6 +21,7 @@
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
+#include "parachain/validator/signer.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
@@ -104,6 +107,7 @@ class ProspectiveParachainsTest : public testing::Test {
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
     prospective_parachain_ = std::make_shared<ProspectiveParachains>(
         hasher_, parachain_api_, block_tree_);
+    sr25519_provider_ = std::make_shared<crypto::Sr25519ProviderImpl>();
   }
 
   void TearDown() override {
@@ -121,6 +125,7 @@ class ProspectiveParachainsTest : public testing::Test {
   std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
+  std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
   static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
   static constexpr uint32_t MAX_POV_SIZE = 1000000;
@@ -605,7 +610,8 @@ class ProspectiveParachainsTest : public testing::Test {
         candidate_relay_parent,
         hasher_->blake2b_256(parent_head_data),
         para_id);
-    ASSERT_EQ(resp, expected_pvd);
+    ASSERT_TRUE(resp.has_value());
+    ASSERT_EQ(resp.value(), expected_pvd);
   }
 };
 
@@ -3139,5 +3145,84 @@ TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
                           hypotheticals.end(),
                           HypotheticalCandidate{hypothetical_d})
                 != hypotheticals.end());
+  }
+}
+
+/// polkadot/node/network/statement-distribution/src/v2/statement_store.rs
+TEST_F(ProspectiveParachainsTest,
+       StatementsStore_always_provides_fresh_statements_in_order) {
+  const ValidatorIndex validator_a{1};
+  const ValidatorIndex validator_b{2};
+  const auto candidate_hash = fromNumber(42);
+
+  // SecondedCandidateHash, ValidCandidateHash
+  const network::vstaging::CompactStatement valid_statement{
+      network::vstaging::ValidCandidateHash{
+          .hash = candidate_hash,
+      }};
+  const network::vstaging::CompactStatement seconded_statement{
+      network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      }};
+
+  const Groups groups(
+      std::vector<std::vector<ValidatorIndex>>{{validator_a, validator_b}}, 2);
+  StatementStore store(groups);
+
+  kagome::parachain::IndexedAndSigned<network::vstaging::CompactStatement>
+      signed_valid_by_a{
+          .payload =
+              {
+                  .payload = valid_statement,
+                  .ix = validator_a,
+              },
+          .signature = {},
+      };
+  store.insert(groups, signed_valid_by_a, StatementOrigin::Remote);
+
+  kagome::parachain::IndexedAndSigned<network::vstaging::CompactStatement>
+      signed_seconded_by_b{
+          .payload =
+              {
+                  .payload = seconded_statement,
+                  .ix = validator_b,
+              },
+          .signature = {},
+      };
+  store.insert(groups, signed_seconded_by_b, StatementOrigin::Remote);
+
+  {
+    std::vector<ValidatorIndex> vals = {validator_a, validator_b};
+    std::vector<kagome::parachain::IndexedAndSigned<
+        network::vstaging::CompactStatement>>
+        statements;
+    store.fresh_statements_for_backing(
+        vals,
+        candidate_hash,
+        [&](const kagome::parachain::IndexedAndSigned<
+            network::vstaging::CompactStatement> &statement) {
+          statements.emplace_back(statement);
+        });
+    ASSERT_EQ(statements.size(), 2);
+    ASSERT_EQ(statements[0].payload.payload, seconded_statement);
+    ASSERT_EQ(statements[1].payload.payload, valid_statement);
+  }
+
+  {
+    std::vector<ValidatorIndex> vals = {validator_b, validator_a};
+    std::vector<kagome::parachain::IndexedAndSigned<
+        network::vstaging::CompactStatement>>
+        statements;
+    store.fresh_statements_for_backing(
+        vals,
+        candidate_hash,
+        [&](const kagome::parachain::IndexedAndSigned<
+            network::vstaging::CompactStatement> &statement) {
+          statements.emplace_back(statement);
+        });
+
+    ASSERT_EQ(statements.size(), 2);
+    ASSERT_EQ(statements[0].payload.payload, seconded_statement);
+    ASSERT_EQ(statements[1].payload.payload, valid_statement);
   }
 }

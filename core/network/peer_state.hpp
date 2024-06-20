@@ -37,16 +37,6 @@ namespace kagome::network {
     std::chrono::system_clock::time_point last_active;
   };
 
-  struct CollationEvent {
-    CollatorId collator_id;
-    struct {
-      RelayHash relay_parent;
-      network::ParachainId para_id;
-      libp2p::peer::PeerId peer_id;
-      std::optional<Hash> commitments_hash;
-    } pending_collation;
-  };
-
   using OurView = network::View;
 
   struct PeerStateCompact {
@@ -66,6 +56,7 @@ namespace kagome::network {
     LruSet<common::Hash256> known_grandpa_messages{
         kPeerStateMaxKnownGrandpaMessages,
     };
+    uint32_t use_count = 0;
 
     /// @brief parachain peer state
     std::optional<CollatingPeerState> collator_state = std::nullopt;
@@ -93,6 +84,20 @@ namespace kagome::network {
       view = new_view;
       implicit_view = next_implicit;
       return fresh_implicit;
+    }
+
+    /**
+     * Set of functions to manipulate in-parachain set of nodes.
+     */
+    bool can_be_disconnected() const {
+      return 0 == use_count;
+    }
+    void inc_use_count() {
+      ++use_count;
+    }
+    void dec_use_count() {
+      BOOST_ASSERT(use_count > 0);
+      --use_count;
     }
 
     /// Whether we know that a peer knows a relay-parent. The peer knows the
@@ -162,3 +167,22 @@ namespace kagome::network {
   }
 
 }  // namespace kagome::network
+
+template <>
+struct std::hash<kagome::network::FetchedCollation> {
+  size_t operator()(
+      const kagome::network::FetchedCollation &value) const noexcept {
+    using CollatorId = kagome::parachain::CollatorId;
+    using CandidateHash = kagome::parachain::CandidateHash;
+    using RelayHash = kagome::parachain::RelayHash;
+    using ParachainId = kagome::parachain::ParachainId;
+
+    size_t result = std::hash<RelayHash>()(value.relay_parent);
+    boost::hash_combine(result, std::hash<ParachainId>()(value.para_id));
+    boost::hash_combine(result,
+                        std::hash<CandidateHash>()(value.candidate_hash));
+    boost::hash_combine(result, std::hash<CollatorId>()(value.collator_id));
+
+    return result;
+  }
+};

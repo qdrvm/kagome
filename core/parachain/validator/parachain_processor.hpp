@@ -18,6 +18,8 @@
 #include "authority_discovery/query/query.hpp"
 #include "common/ref_cache.hpp"
 #include "common/visitor.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_manager.hpp"
@@ -27,6 +29,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/store/store.hpp"
+#include "parachain/backing/cluster.hpp"
 #include "parachain/backing/grid_tracker.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/pvf/precheck.hpp"
@@ -117,7 +120,17 @@ namespace kagome::parachain {
       OUT_OF_BOUND,
       REJECTED_BY_PROSPECTIVE_PARACHAINS,
       INCORRECT_BITFIELD_SIZE,
-      CORE_INDEX_UNAVAILABLE
+      CORE_INDEX_UNAVAILABLE,
+      INCORRECT_SIGNATURE,
+      CLUSTER_TRACKER_ERROR,
+      PERSISTED_VALIDATION_DATA_NOT_FOUND,
+      PERSISTED_VALIDATION_DATA_MISMATCH,
+      CANDIDATE_HASH_MISMATCH,
+      PARENT_HEAD_DATA_MISMATCH,
+      NO_PEER,
+      ALREADY_REQUESTED,
+      NOT_ADVERTISED,
+      WRONG_PARA
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -152,7 +165,11 @@ namespace kagome::parachain {
         primitives::events::SyncStateSubscriptionEnginePtr
             sync_state_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains);
+        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<consensus::SlotsUtil> slots_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repo);
     ~ParachainProcessorImpl() = default;
 
     /**
@@ -175,7 +192,8 @@ namespace kagome::parachain {
      * prospective candidate and the hash of the parent block.
      */
     void handleAdvertisement(
-        network::CollationEvent &&pending_collation,
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
 
     /**
@@ -229,7 +247,14 @@ namespace kagome::parachain {
 
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
-        const network::vstaging::AttestedCandidateRequest &request);
+        const network::vstaging::AttestedCandidateRequest &request,
+        const libp2p::peer::PeerId &peer_id);
+    outcome::result<BlockNumber> get_block_number_under_construction(
+        const RelayHash &relay_parent) const;
+    bool bitfields_indicate_availability(
+        size_t core_idx,
+        const std::vector<BitfieldStore::SignedBitfield> &bitfields,
+        const scale::BitVec &availability);
 
     /**
      * @brief Fetches the list of backed candidates for a given relay parent.
@@ -347,21 +372,50 @@ namespace kagome::parachain {
       };
     }
 
+    /// polkadot/node/network/statement-distribution/src/v2/mod.rs
+    struct ActiveValidatorState {
+      // The index of the validator.
+      ValidatorIndex index;
+      // our validator group
+      GroupIndex group;
+      // the assignment of our validator group, if any.
+      std::optional<ParachainId> assignment;
+      // the 'direct-in-group' communication at this relay-parent.
+      ClusterTracker cluster_tracker;
+    };
+
     struct LocalValidatorState {
       grid::GridTracker grid_tracker;
+      std::optional<ActiveValidatorState> active;
     };
 
     struct PerSessionState {
+      PerSessionState(const PerSessionState &) = delete;
+      PerSessionState &operator=(const PerSessionState &) = delete;
+
+      PerSessionState(PerSessionState &&) = default;
+      PerSessionState &operator=(PerSessionState &&) = delete;
+
+      SessionIndex session;
       runtime::SessionInfo session_info;
       Groups groups;
       std::optional<grid::Views> grid_view;
+      std::optional<ValidatorIndex> our_index;
+
+      std::shared_ptr<network::PeerManager> pm;
+      std::shared_ptr<authority_discovery::Query> query_audi;
+
+      PerSessionState(
+          SessionIndex _session,
+          const runtime::SessionInfo &_session_info,
+          Groups &&_groups,
+          grid::Views &&_grid_view,
+          ValidatorIndex _our_index,
+          const std::shared_ptr<network::PeerManager> &_pm,
+          const std::shared_ptr<authority_discovery::Query> &_query_audi);
+      ~PerSessionState();
     };
 
-    /**
-     * @struct RelayParentState
-     * @brief This structure encapsulates the state of a relay parent in the
-     * context of parachain processing.
-     */
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<CoreIndex> assigned_core;
@@ -370,7 +424,6 @@ namespace kagome::parachain {
       std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
           per_session_state;
 
-      std::optional<primitives::BlockHash> seconded;
       std::optional<network::ValidatorIndex> our_index;
       std::optional<network::GroupIndex> our_group;
 
@@ -389,6 +442,8 @@ namespace kagome::parachain {
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
       std::unordered_set<CandidateHash> backed_hashes{};
+
+      bool inject_core_index;
     };
 
     /**
@@ -414,19 +469,6 @@ namespace kagome::parachain {
     /*
      * Validation.
      */
-
-    /**
-     * @brief Checks if an advertisement can be processed.
-     *
-     * This function checks if an advertisement can be processed based on the
-     * relay parent and the peer id. It ensures that the relay parent is in the
-     * current view and that the advertisement has not been processed before. If
-     * the advertisement can be processed, it is added to the set of processed
-     * advertisements.
-     */
-    outcome::result<void> advCanBeProcessed(
-        const primitives::BlockHash &relay_parent,
-        const libp2p::peer::PeerId &peer_id);
 
     /**
      * @brief Validates the erasure coding of the provided data.
@@ -462,9 +504,7 @@ namespace kagome::parachain {
     void validateAsync(network::CandidateReceipt &&candidate,
                        network::ParachainBlock &&pov,
                        runtime::PersistedValidationData &&pvd,
-                       const libp2p::peer::PeerId &peer_id,
-                       const primitives::BlockHash &relay_parent,
-                       size_t n_validators);
+                       const primitives::BlockHash &relay_parent);
 
     /**
      * @brief This function is used to make a candidate available for
@@ -479,8 +519,7 @@ namespace kagome::parachain {
      * @param result The result of the validation and seconding process.
      */
     template <ParachainProcessorImpl::ValidationTaskType kMode>
-    void makeAvailable(const libp2p::peer::PeerId &peer_id,
-                       const primitives::BlockHash &candidate_hash,
+    void makeAvailable(const primitives::BlockHash &candidate_hash,
                        ValidateAndSecondResult &&result);
 
     /**
@@ -537,6 +576,30 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
+
+    /// Checks whether a statement is allowed, whether the signature is
+    /// accurate,
+    /// and importing into the cluster tracker if successful.
+    ///
+    /// if successful, this returns a checked signed statement if it should be
+    /// imported or otherwise an error indicating a reputational fault.
+    outcome::result<std::optional<network::vstaging::SignedCompactStatement>>
+    handle_cluster_statement(
+        const RelayHash &relay_parent,
+        ClusterTracker &cluster_tracker,
+        SessionIndex session,
+        const runtime::SessionInfo &session_info,
+        const network::vstaging::SignedCompactStatement &statement,
+        ValidatorIndex cluster_sender_index);
+
+    /// Check a statement signature under this parent hash.
+    outcome::result<
+        std::reference_wrapper<const network::vstaging::SignedCompactStatement>>
+    check_statement_signature(
+        SessionIndex session_index,
+        const std::vector<ValidatorId> &validators,
+        const RelayHash &relay_parent,
+        const network::vstaging::SignedCompactStatement &statement);
     void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::BackedCandidateManifest &msg);
@@ -576,7 +639,12 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         const CandidateHash &candidate_hash,
         GroupIndex group_index);
-    void request_attested_candidate(RelayParentState &relay_parent_state,
+    outcome::result<consensus::Randomness> getBabeRandomness(
+        const primitives::BlockHeader &block_header);
+    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+    fetch_claim_queue(const RelayHash &relay_parent);
+    void request_attested_candidate(const libp2p::peer::PeerId &peer,
+                                    RelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
@@ -680,28 +748,47 @@ namespace kagome::parachain {
         const BackingStore::StatementInfo &data,
         size_t validity_threshold);
     std::optional<BackingStore::BackedCandidate> table_attested_to_backed(
-        AttestedCandidate &&attested, TableContext &table_context);
+        AttestedCandidate &&attested,
+        TableContext &table_context,
+        bool inject_core_index);
     outcome::result<std::optional<ValidatorSigner>> isParachainValidator(
         const primitives::BlockHash &relay_parent) const;
 
     /*
      * Logic.
      */
-    std::optional<runtime::PersistedValidationData>
-    requestProspectiveValidationData(const RelayHash &relay_parent,
-                                     const Hash &parent_head_data_hash,
-                                     ParachainId para_id);
-    std::optional<runtime::PersistedValidationData>
+    /// Dequeue another collation and fetch.
+    void dequeue_next_collation_and_fetch(
+        const RelayHash &relay_parent,
+        std::pair<CollatorId, std::optional<CandidateHash>> previous_fetch);
+
+    outcome::result<std::optional<runtime::PersistedValidationData>>
+    requestProspectiveValidationData(
+        const RelayHash &relay_parent,
+        const Hash &parent_head_data_hash,
+        ParachainId para_id,
+        const std::optional<HeadData> &maybe_parent_head_data);
+    outcome::result<std::optional<runtime::PersistedValidationData>>
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
 
-    std::optional<runtime::PersistedValidationData>
+    /// Performs a sanity check between advertised and fetched collations.
+    /// Since the persisted validation data is constructed using the advertised
+    /// parent head data hash, the latter doesn't require an additional check.
+    outcome::result<void> fetched_collation_sanity_check(
+        const PendingCollation &advertised,
+        const network::CandidateReceipt &fetched,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>>
+            &persisted_validation_data,
+        std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash);
+
+    outcome::result<std::optional<runtime::PersistedValidationData>>
     fetchPersistedValidationData(const RelayHash &relay_parent,
                                  ParachainId para_id);
-    void onValidationComplete(const libp2p::peer::PeerId &peer_id,
-                              const ValidateAndSecondResult &result);
-    void onAttestComplete(const libp2p::peer::PeerId &peer_id,
-                          const ValidateAndSecondResult &result);
+    void onValidationComplete(const ValidateAndSecondResult &result);
+    void onAttestComplete(const ValidateAndSecondResult &result);
     void onAttestNoPoVComplete(const network::RelayHash &relay_parent,
                                const CandidateHash &candidate_hash);
 
@@ -710,8 +797,9 @@ namespace kagome::parachain {
         AttestingData &attesting_data,
         const runtime::PersistedValidationData &persisted_validation_data,
         RelayParentState &parachain_state);
-    void handleFetchedCollation(PendingCollation &&pending_collation,
-                                network::CollationFetchingResponse &&response);
+    void handle_collation_fetch_response(
+        network::CollationEvent &&collation_event,
+        network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
     std::optional<network::SignedStatement> createAndSignStatement(
         const ValidateAndSecondResult &validation_result);
@@ -741,12 +829,11 @@ namespace kagome::parachain {
         const SignedFullStatementWithPVD &statement);
     const network::CandidateDescriptor &candidateDescriptorFrom(
         const network::CollationFetchingResponse &collation) {
-      return visit_in_place(
-          collation.response_data,
-          [](const network::CollationResponse &collation_response)
-              -> const network::CandidateDescriptor & {
-            return collation_response.receipt.descriptor;
-          });
+      return visit_in_place(collation.response_data,
+                            [](const auto &collation_response)
+                                -> const network::CandidateDescriptor & {
+                              return collation_response.receipt.descriptor;
+                            });
     }
 
     std::optional<std::reference_wrapper<const network::CandidateDescriptor>>
@@ -771,23 +858,13 @@ namespace kagome::parachain {
       return descriptor.collator_id;
     }
 
-    network::CandidateReceipt candidateFromCommittedCandidateReceipt(
-        const network::CommittedCandidateReceipt &data) const {
-      network::CandidateReceipt receipt;
-      receipt.descriptor = data.descriptor,
-      receipt.commitments_hash =
-          hasher_->blake2b_256(scale::encode(data.commitments).value());
-      return receipt;
-    }
-
     primitives::BlockHash candidateHashFrom(
         const StatementWithPVD &statement) const {
       return visit_in_place(
           statement,
           [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
-                ::scale::encode(candidateFromCommittedCandidateReceipt(
-                                    val.committed_receipt))
+                ::scale::encode(val.committed_receipt.to_plain(*hasher_))
                     .value());
           },
           [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
@@ -820,11 +897,19 @@ namespace kagome::parachain {
     void share_local_statement_v1(RelayParentState &per_relay_parent,
                                   const primitives::BlockHash &relay_parent,
                                   const SignedFullStatementWithPVD &statement);
-    void notify(const libp2p::peer::PeerId &peer_id,
-                const primitives::BlockHash &relay_parent,
-                const SignedFullStatementWithPVD &statement);
-    void handleNotify(const libp2p::peer::PeerId &peer_id,
-                      const primitives::BlockHash &relay_parent);
+    template <bool kReinvoke = true>
+    void notifySeconded(const primitives::BlockHash &relay_parent,
+                        const SignedFullStatementWithPVD &statement);
+
+    template <bool kReinvoke = true>
+    void notifyInvalid(const primitives::BlockHash &parent,
+                       const network::CandidateReceipt &candidate_receipt);
+
+    /// Notify a collator that its collation got seconded.
+    void notify_collation_seconded(const libp2p::peer::PeerId &peer_id,
+                                   network::CollationVersion version,
+                                   const RelayHash &relay_parent,
+                                   const SignedFullStatementWithPVD &statement);
 
     void onDeactivateBlocks(
         const primitives::events::RemoveAfterFinalizationParams &event);
@@ -833,17 +918,16 @@ namespace kagome::parachain {
                               const network::SignedBitfield &bitfield);
     void onUpdatePeerView(const libp2p::peer::PeerId &peer_id,
                           const network::View &view);
-    void fetchCollation(
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
-        PendingCollation &&pc,
-        const CollatorId &id);
-    void fetchCollation(
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
-        PendingCollation &&pc,
-        const CollatorId &id,
-        network::CollationVersion version);
+    outcome::result<void> fetchCollation(const PendingCollation &pc,
+                                         const CollatorId &id);
+    outcome::result<void> fetchCollation(const PendingCollation &pc,
+                                         const CollatorId &id,
+                                         network::CollationVersion version);
     std::optional<std::reference_wrapper<RelayParentState>>
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
+    outcome::result<
+        std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
+    getStateByRelayParent(const primitives::BlockHash &relay_parent);
 
     /**
      * @brief Store the state of the relay parent.
@@ -873,11 +957,23 @@ namespace kagome::parachain {
         network::CollationVersion version,
         ValidatorIndex originator,
         const network::vstaging::CompactStatement &compact);
+    void prune_old_advertisements(
+        const parachain::ImplicitView &implicit_view,
+        const std::unordered_map<Hash, ProspectiveParachainsModeOpt>
+            &active_leaves,
+        const std::unordered_map<primitives::BlockHash, RelayParentState>
+            &per_relay_parent);
     void provide_candidate_to_grid(
         const CandidateHash &candidate_hash,
         RelayParentState &relay_parent_state,
         const ConfirmedCandidate &confirmed_candidate,
         const runtime::SessionInfo &session_info);
+    void send_pending_cluster_statements(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        ParachainProcessorImpl::RelayParentState &relay_parent_state);
     void send_pending_grid_messages(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
@@ -899,7 +995,8 @@ namespace kagome::parachain {
      * @param relay_parent The hash of the relay parent block for which the
      * backing task is to be created.
      */
-    void createBackingTask(const primitives::BlockHash &relay_parent);
+    void createBackingTask(const primitives::BlockHash &relay_parent,
+                           const network::HashedBlockHeader &block_header);
 
     /**
      * @brief The `initNewBackingTask` function is responsible for initializing
@@ -910,7 +1007,20 @@ namespace kagome::parachain {
      * validator index, required collator, and table context.
      */
     outcome::result<RelayParentState> initNewBackingTask(
-        const primitives::BlockHash &relay_parent);
+        const primitives::BlockHash &relay_parent,
+        const network::HashedBlockHeader &block_header);
+
+    void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
+
+    std::optional<ParachainProcessorImpl::LocalValidatorState>
+    find_active_validator_state(
+        ValidatorIndex validator_index,
+        const Groups &groups,
+        const std::vector<runtime::CoreState> &availability_cores,
+        const runtime::GroupDescriptor &group_rotation_info,
+        const std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+        size_t seconding_limit,
+        size_t max_candidate_depth);
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
@@ -925,7 +1035,6 @@ namespace kagome::parachain {
                                F &&callback);
 
     outcome::result<void> enqueueCollation(
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
         const RelayHash &relay_parent,
         ParachainId para_id,
         const libp2p::peer::PeerId &peer_id,
@@ -941,13 +1050,12 @@ namespace kagome::parachain {
         ParachainId para_id,
         const Hash &para_head);
     void requestUnblockedCollations(
-        ParachainProcessorImpl::RelayParentState &rp_state,
-        ParachainId para_id,
-        const Hash &para_head,
-        std::vector<BlockedAdvertisement> &&unblocked);
+        std::unordered_map<
+            ParachainId,
+            std::unordered_map<Hash, std::vector<BlockedAdvertisement>>>
+            &&unblocked);
 
-    bool canSecond(ParachainProcessorImpl::RelayParentState &per_relay_parent,
-                   ParachainId candidate_para_id,
+    bool canSecond(ParachainId candidate_para_id,
                    const Hash &candidate_relay_parent,
                    const CandidateHash &candidate_hash,
                    const Hash &parent_head_data_hash);
@@ -955,6 +1063,13 @@ namespace kagome::parachain {
     ParachainProcessorImpl::SecondingAllowed secondingSanityCheck(
         const HypotheticalCandidate &hypothetical_candidate,
         bool backed_in_path_only);
+
+    void printStoragesLoad();
+
+    /// Handle a fetched collation result.
+    /// polkadot/node/network/collator-protocol/src/validator_side/mod.rs
+    outcome::result<void> kick_off_seconding(
+        network::PendingCollationFetch &&pending_collation_fetch);
 
     std::optional<BackingStore::ImportResult> importStatementToTable(
         const RelayHash &relay_parent,
@@ -973,10 +1088,6 @@ namespace kagome::parachain {
     struct {
       std::unordered_map<primitives::BlockHash, RelayParentState>
           state_by_relay_parent;
-      std::unordered_map<
-          libp2p::peer::PeerId,
-          std::deque<std::pair<RelayHash, SignedFullStatementWithPVD>>>
-          seconded_statements;
       std::optional<ImplicitView> implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;
       std::unordered_map<CandidateHash, PerCandidateState> per_candidate;
@@ -993,12 +1104,11 @@ namespace kagome::parachain {
           collation_requests_cancel_handles;
 
       struct {
-        std::unordered_set<Hash> implicit_view;
-        network::View view;
-      } statementDistributionV2;
+        std::unordered_map<network::FetchedCollation, network::CollationEvent>
+            fetched_candidates;
+      } validator_side;
     } our_current_state_;
 
-    std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
@@ -1018,12 +1128,15 @@ namespace kagome::parachain {
     primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     Candidates candidates_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;

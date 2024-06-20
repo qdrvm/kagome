@@ -7,6 +7,7 @@
 #pragma once
 
 #include "common/tagged.hpp"
+#include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 
 namespace kagome::parachain {
@@ -61,5 +62,6 @@ namespace kagome::parachain {
     virtual std::optional<std::reference_wrapper<const StatementInfo>>
     getCadidateInfo(const RelayHash &relay_parent,
                     const network::CandidateHash &candidate_hash) const = 0;
+    virtual void printStoragesLoad() = 0;
   };
 }  // namespace kagome::parachain
