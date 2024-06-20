@@ -65,7 +65,6 @@ polkadot_builder:
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \
 		echo "One or more files are missing."; \
-		exit 1; \
 	fi
 
 polkadot_builder_push:
@@ -75,7 +74,6 @@ polkadot_builder_push:
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
 	else \
 		echo "One or more files are missing."; \
-		exit 1; \
 	fi	
 
 polkadot_binary:
@@ -88,7 +86,7 @@ polkadot_binary:
 			-e RUSTC_WRAPPER=sccache \
 			-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
 			-e SCCACHE_GCS_KEY_PATH=/root/.gcp/google_creds.json \
-			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder_ \
+			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder \
 			-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 			-e SCCACHE_LOG=info \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
@@ -97,23 +95,17 @@ polkadot_binary:
 			-v /tmp/cargo/git:/usr/local/cargo/git/ \
 			$(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
 			-c "tail -f /dev/null"; \
-		EXIT_CODE=$$(docker exec -it $$CONTAINER_NAME /bin/bash -c \
+		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
 			cargo build --profile testnet $(CARGO_PACKETS)"; \
 			cp /home/nonroot/polkadot-sdk/target/testnet/malus \
 				/home/nonroot/polkadot-sdk/target/testnet/undying-collator \
 				/home/nonroot/polkadot-sdk/target/testnet/adder-collator \
 				/tmp/polkadot_binary/; \
-			echo $$?); \
 		docker stop $$CONTAINER_NAME; \
 		docker rm -f $$CONTAINER_NAME; \
-		if [ $$EXIT_CODE -ne 0 ]; then \
-			echo "Error building polkadot binary"; \
-			exit 1; \
-		fi; \
 	else \
 		echo "One or more files are missing."; \
-		exit 1; \
 	fi
 
 

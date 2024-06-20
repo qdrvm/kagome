@@ -119,6 +119,7 @@ jobs:
         run: make polkadot_builder_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   
+  
   building_binaries:
     runs-on: [ actions-runner-controller ]
     needs: [build_polkadot_builder]
@@ -145,8 +146,13 @@ jobs:
         run: |
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+          
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./zombienet/docker
+        run: make get_versions
       
       - name: "Build target"
+        working-directory: ./zombienet/docker
         run: make polkadot_binary \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \

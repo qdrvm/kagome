@@ -44,7 +44,7 @@ ENV ARCHITECTURE=$ARCHITECTURE
 # Version >0.7.4 has a bug - work with GCS is broken
 RUN mkdir -p /tmp/download && \
     cd /tmp/download && \
-    wget -O sccache.tar.gz https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-${ARCHITECTURE}-unknown-linux-musl.tar.gz && \
+    wget -q -O sccache.tar.gz https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-${ARCHITECTURE}-unknown-linux-musl.tar.gz && \
     tar xzf sccache.tar.gz && \
     ls -la && \
     mv sccache-v*/sccache /usr/local/bin/sccache && \
