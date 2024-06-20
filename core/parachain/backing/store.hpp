@@ -7,6 +7,7 @@
 #pragma once
 
 #include "common/tagged.hpp"
+#include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 
 namespace kagome::parachain {

@@ -10,6 +10,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include "log/logger.hpp"
 #include "utils/safe_object.hpp"
 
 namespace kagome::parachain {
