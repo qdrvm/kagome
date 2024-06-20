@@ -1,34 +1,4 @@
-ARG POLKADOT_RELEASE_GLOBAL
-ARG POLKADOT_RELEASE_GLOBAL_NUMERIC
-ARG POLKADOT_SDK_RELEASE
-ARG ZOMBIENET_RELEASE
-ARG POLKADOT_BUILDER_IMAGE
-
-# bookworm
-ARG BASE_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
-
-ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
-
-FROM ${POLKADOT_BUILDER_IMAGE} AS polkadot-sdk-builder
-
-LABEL org.opencontainers.image.authors="${AUTHOR}"
-LABEL org.opencontainers.image.description="Polkadot SDK binary builder image"
-
-RUN cargo update  \
-      -p test-parachain-adder-collator \
-      -p polkadot-test-malus \
-      -p test-parachain-undying-collator
-
-RUN cargo build --profile testnet  \
-      -p test-parachain-adder-collator \
-      -p polkadot-test-malus \
-      -p test-parachain-undying-collator
-
-RUN echo "Listing files in /home/nonroot/polkadot-sdk/target: " && \
-    find /home/nonroot/polkadot-sdk/target/ -maxdepth 2 -print
-
-
-FROM ${BASE_IMAGE} as zombienet-bin
+FROM ${MINIDEB_IMAGE} as zombienet-bin
 
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Zombienet image"

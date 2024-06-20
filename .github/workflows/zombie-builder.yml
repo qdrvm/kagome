@@ -29,13 +29,10 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  CACHE_VERSION: v07
+  CACHE_VERSION: v001
   CACHE_PATHS: |
-    ~/Library/Caches/pip
-    ~/.cargo
-    ~/.ccache
-    ~/.hunter
-    ~/.rustup
+    /tmp/cargo/registry
+    /tmp/cargo/git
 
 jobs:
 #  get_polkadot_binary_image:
@@ -121,7 +118,45 @@ jobs:
         if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
         run: make polkadot_builder_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+  
+  building_binaries:
+    runs-on: [ actions-runner-controller ]
+    needs: [build_polkadot_builder]
+    timeout-minutes: 120
+            
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+      
+      - name: "Build target"
+        run: make polkadot_binary \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: polkadot_binary
+          path: /tmp/polkadot_binary
+          
 #  building_binary:
 #    runs-on: [ actions-runner-controller ]
 #    timeout-minutes: 120
@@ -153,16 +188,16 @@ jobs:
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: malus
-#          path: /home/nonroot/polkadot-sdk/target/testnet/malus
+#          path: /tmp/polkadot_binary/malus
 #      
 #      - name: upload artifact
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: undying-collator
-#          path: /home/nonroot/polkadot-sdk/target/testnet/undying-collator
+#          path: /tmp/polkadot_binary/undying-collator
 #          
 #      - name: upload artifact
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: adder-collator
-#          path: /home/nonroot/polkadot-sdk/target/testnet/adder-collator
+#          path: /tmp/polkadot_binary/adder-collator
