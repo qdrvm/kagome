@@ -638,8 +638,6 @@ namespace kagome::parachain {
           our_current_state_.implicit_view->deactivate_leaf(lost);
       for (const auto removed : pruned) {
         our_current_state_.state_by_relay_parent.erase(removed);
-        /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-        /// fetched_candidates ???
       }
 
       {  /// remove cancelations
@@ -2627,9 +2625,6 @@ namespace kagome::parachain {
       return;
     }
 
-    /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-    /// validate response
-
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
     CHECK_OR_RET(parachain_state->get().statement_store);
 
@@ -2777,6 +2772,7 @@ namespace kagome::parachain {
     }
   }
 
+  /// TODO(iceseer): https://github.com/qdrvm/kagome/issues/2133
   /// TODO(iceseer): do remove
   std::optional<GroupIndex> ParachainProcessorImpl::group_for_para(
       const std::vector<runtime::CoreState> &availability_cores,
@@ -4613,6 +4609,7 @@ namespace kagome::parachain {
     our_current_state_.validator_side.fetched_candidates.erase(it);
 
     /// TODO(iceseer): reduce collator's reputation
+    /// https://github.com/qdrvm/kagome/issues/2134
     dequeue_next_collation_and_fetch(parent, {id, candidate_hash});
   }
 

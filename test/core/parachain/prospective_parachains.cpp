@@ -3148,6 +3148,7 @@ TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
   }
 }
 
+/// polkadot/node/network/statement-distribution/src/v2/statement_store.rs
 TEST_F(ProspectiveParachainsTest,
        StatementsStore_always_provides_fresh_statements_in_order) {
   const ValidatorIndex validator_a{1};

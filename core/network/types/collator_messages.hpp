@@ -234,6 +234,7 @@ namespace kagome::network {
     std::vector<ValidityAttestation> validity_votes;
     scale::BitVec validator_indices;
 
+    /// Creates `BackedCandidate` from args.
     static BackedCandidate from(
         CommittedCandidateReceipt candidate_,
         std::vector<ValidityAttestation> validity_votes_,

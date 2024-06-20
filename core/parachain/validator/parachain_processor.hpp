@@ -372,6 +372,7 @@ namespace kagome::parachain {
       };
     }
 
+    /// polkadot/node/network/statement-distribution/src/v2/mod.rs
     struct ActiveValidatorState {
       // The index of the validator.
       ValidatorIndex index;
@@ -1065,6 +1066,8 @@ namespace kagome::parachain {
 
     void printStoragesLoad();
 
+    /// Handle a fetched collation result.
+    /// polkadot/node/network/collator-protocol/src/validator_side/mod.rs
     outcome::result<void> kick_off_seconding(
         network::PendingCollationFetch &&pending_collation_fetch);
 

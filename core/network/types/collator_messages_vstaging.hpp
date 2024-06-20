@@ -360,6 +360,8 @@ namespace kagome::network {
     VStaging = 2,
   };
 
+  /// Candidate supplied with a para head it's built on top of.
+  /// polkadot/node/network/collator-protocol/src/validator_side/collation.rs
   struct ProspectiveCandidate {
     SCALE_TIE(2);
     /// Candidate hash.
