@@ -442,6 +442,7 @@ namespace kagome::parachain {
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
       std::unordered_set<CandidateHash> backed_hashes{};
+      std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
 
       bool inject_core_index;
     };
@@ -617,12 +618,18 @@ namespace kagome::parachain {
         const std::vector<ValidatorIndex> &group,
         const CandidateHash &candidate_hash);
     void apply_post_confirmation(const PostConfirmation &post_confirmation);
-    std::optional<GroupIndex> group_for_para(
-        const std::vector<runtime::CoreState> &availability_cores,
-        const runtime::GroupDescriptor &group_rotation_info,
-        ParachainId para_id) const;
     void send_cluster_candidate_statements(const CandidateHash &candidate_hash,
                                            const RelayHash &relay_parent);
+
+    // Utility function to populate per relay parent `ParaId` to `GroupIndex`
+    // mappings.
+    std::unordered_map<ParachainId, std::vector<GroupIndex>>
+    determine_groups_per_para(
+        const std::vector<runtime::CoreState> &availability_cores,
+        const runtime::GroupDescriptor &group_rotation_info,
+        const std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+        size_t max_candidate_depth);
+
     void new_confirmed_candidate_fragment_tree_updates(
         const HypotheticalCandidate &candidate);
     void new_leaf_fragment_tree_updates(const Hash &leaf_hash);

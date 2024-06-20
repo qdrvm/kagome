@@ -1197,6 +1197,11 @@ namespace kagome::parachain {
                                     seconding_limit,
                                     mode->max_candidate_depth);
 
+    auto groups_per_para = determine_groups_per_para(cores,
+                                                     group_rotation_info,
+                                                     maybe_claim_queue,
+                                                     mode->max_candidate_depth);
+
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
                "assigned_core={}, our index={}, relay "
@@ -1232,8 +1237,52 @@ namespace kagome::parachain {
         .issued_statements = {},
         .peers_advertised = {},
         .fallbacks = {},
+        .groups_per_para = std::move(groups_per_para),
         .inject_core_index = inject_core_index,
     };
+  }
+
+  std::unordered_map<ParachainId, std::vector<GroupIndex>>
+  ParachainProcessorImpl::determine_groups_per_para(
+      const std::vector<runtime::CoreState> &availability_cores,
+      const runtime::GroupDescriptor &group_rotation_info,
+      const std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+      size_t max_candidate_depth) {
+    const auto n_cores = availability_cores.size();
+    std::vector<std::pair<ParachainId, CoreIndex>> para_core_indices = [&]() {
+      if (maybe_claim_queue) {
+        const auto &claim_queue = *maybe_claim_queue;
+        return claim_queue.iter_claims_at_depth(0);
+      }
+
+      std::vector<std::pair<ParachainId, CoreIndex>> res;
+      for (size_t index = 0; index < availability_cores.size(); ++index) {
+        const auto &core = availability_cores[index];
+        visit_in_place(
+            core,
+            [&](const runtime::ScheduledCore &scheduled_core) {
+              res.emplace_back(scheduled_core.para_id, index);
+            },
+            [&](const runtime::OccupiedCore &occupied_core) {
+              if (max_candidate_depth >= 1) {
+                if (occupied_core.next_up_on_available) {
+                  res.emplace_back(occupied_core.next_up_on_available->para_id,
+                                   index);
+                }
+              }
+            },
+            [](const auto &) {});
+      }
+      return res;
+    }();
+
+    std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
+    for (const auto &[para, core_index] : para_core_indices) {
+      const auto group_index =
+          group_rotation_info.groupForCore(core_index, n_cores);
+      groups_per_para[para].emplace_back(group_index);
+    }
+    return groups_per_para;
   }
 
   std::optional<ParachainProcessorImpl::LocalValidatorState>
@@ -1578,13 +1627,22 @@ namespace kagome::parachain {
       return {};
     }
 
-    auto expected_group =
-        group_for_para(relay_parent_state->get().availability_cores,
-                       relay_parent_state->get().group_rotation_info,
-                       para_id);
+    auto it = relay_parent_state->get().groups_per_para.find(para_id);
+    if (it == relay_parent_state->get().groups_per_para.end()) {
+      return {};
+    }
 
-    if (!expected_group
-        || *expected_group != manifest_summary.claimed_group_index) {
+    const auto &expected_groups = it->second;
+    const bool contains = [&]() {
+      for (const auto g : expected_groups) {
+        if (g == manifest_summary.claimed_group_index) {
+          return true;
+        }
+      }
+      return false;
+    }();
+
+    if (!contains) {
       return {};
     }
 
@@ -2748,19 +2806,31 @@ namespace kagome::parachain {
             tryGetStateByRelayParent(c->get().receipt.descriptor.relay_parent);
 
         if (prs && confirmed_candidate) {
-          const auto group_index =
-              group_for_para(prs->get().availability_cores,
-                             prs->get().group_rotation_info,
-                             c->get().receipt.descriptor.para_id);
+          const auto &per_session = prs->get().per_session_state->value();
+          const auto group_index = confirmed_candidate->get().group_index();
 
-          const auto &session_info =
-              prs->get().per_session_state->value().session_info;
-          if (!group_index
-              || *group_index >= session_info.validator_groups.size()) {
-            return;
+          auto it = prs->get().groups_per_para.find(
+              c->get().receipt.descriptor.para_id);
+          if (it == prs->get().groups_per_para.end()) {
+            continue;
           }
 
-          const auto &group = session_info.validator_groups[*group_index];
+          const auto &expected_groups = it->second;
+          const bool contains = [&]() {
+            for (const auto g : expected_groups) {
+              if (g == group_index) {
+                return true;
+              }
+            }
+            return false;
+          }();
+          if (!contains) {
+            continue;
+          }
+
+          const auto &group =
+              per_session.session_info
+                  .validator_groups[confirmed_candidate->get().group_index()];
           send_backing_fresh_statements(
               *confirmed_candidate,
               c->get().receipt.descriptor.relay_parent,
@@ -2770,39 +2840,6 @@ namespace kagome::parachain {
         }
       }
     }
-  }
-
-  /// TODO(iceseer): https://github.com/qdrvm/kagome/issues/2133
-  /// TODO(iceseer): do remove
-  std::optional<GroupIndex> ParachainProcessorImpl::group_for_para(
-      const std::vector<runtime::CoreState> &availability_cores,
-      const runtime::GroupDescriptor &group_rotation_info,
-      ParachainId para_id) const {
-    std::optional<CoreIndex> core_index;
-    for (CoreIndex i = 0; i < availability_cores.size(); ++i) {
-      const auto c = visit_in_place(
-          availability_cores[i],
-          [](const runtime::OccupiedCore &core) -> std::optional<ParachainId> {
-            return core.candidate_descriptor.para_id;
-          },
-          [](const runtime::ScheduledCore &core) -> std::optional<ParachainId> {
-            return core.para_id;
-          },
-          [](const auto &) -> std::optional<ParachainId> {
-            return std::nullopt;
-          });
-
-      if (c && *c == para_id) {
-        core_index = i;
-        break;
-      }
-    }
-
-    if (!core_index) {
-      return std::nullopt;
-    }
-    return group_rotation_info.groupForCore(*core_index,
-                                            availability_cores.size());
   }
 
   void ParachainProcessorImpl::send_cluster_candidate_statements(
