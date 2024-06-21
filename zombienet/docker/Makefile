@@ -78,6 +78,7 @@ polkadot_builder_push:
 
 polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \
+  		df -h ; \
 		CONTAINER_NAME=polkadot_build_$$(openssl rand -hex 6); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		mkdir -p /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git; \
@@ -105,7 +106,7 @@ polkadot_binary:
 				/home/nonroot/polkadot-sdk/target/testnet/adder-collator \
 				/tmp/polkadot_binary/; \
 		 	ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git" ; \
-			ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git ; \
+			ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git ; df -h ; \
 		docker stop $$CONTAINER_NAME; \
 	else \
 		echo "One or more files are missing."; \

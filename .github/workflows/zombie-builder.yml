@@ -121,7 +121,7 @@ jobs:
   
   
   building_binaries:
-    runs-on: [ actions-runner-controller ]
+    runs-on: ubuntu-latest
     needs: [build_polkadot_builder]
     timeout-minutes: 120
             
