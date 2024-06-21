@@ -81,7 +81,7 @@ polkadot_binary:
   		df -h ; \
 		CONTAINER_NAME=polkadot_build_$$(openssl rand -hex 6); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		mkdir -p /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git; \
+		mkdir -p ./polkadot_binary ./cargo/registry ./cargo/git; \
 		docker run -d --name $$CONTAINER_NAME \
 			--platform $(PLATFORM) \
 			--entrypoint "/bin/bash" \
@@ -92,21 +92,21 @@ polkadot_binary:
 			-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 			-e SCCACHE_LOG=info \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
-			-v /tmp/polkadot_binary:/tmp/polkadot_binary \
-			-v /tmp/cargo/registry:/usr/local/cargo/registry/ \
-			-v /tmp/cargo/git:/usr/local/cargo/git/ \
+			-v ./polkadot_binary:/tmp/polkadot_binary \
+			-v ./cargo/registry:/usr/local/cargo/registry/ \
+			-v ./cargo/git:/usr/local/cargo/git/ \
 			$(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
 			cargo build --profile testnet $(CARGO_PACKETS); \
-			la -la /home/nonroot/polkadot-sdk/target/testnet/ ; \
-			cp /home/nonroot/polkadot-sdk/target/testnet/malus \
-				/home/nonroot/polkadot-sdk/target/testnet/undying-collator \
-				/home/nonroot/polkadot-sdk/target/testnet/adder-collator \
-				/tmp/polkadot_binary/; \
-		 	ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git" ; \
-			ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git ; df -h ; \
+			la -la ./target/testnet/ ; \
+			cp ./target/testnet/malus \
+				./target/testnet/undying-collator \
+				./target/testnet/adder-collator \
+				/tmp/polkadot_binary/ ; \
+		 	ls -la /tmp/polkadot_binary /usr/local/cargo/registry /usr/local/cargo/git" ; \
+			ls -la ./polkadot_binary ./cargo/registry ./cargo/git ; df -h ; \
 		docker stop $$CONTAINER_NAME; \
 	else \
 		echo "One or more files are missing."; \

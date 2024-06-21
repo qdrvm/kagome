@@ -31,8 +31,8 @@ env:
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
   CACHE_VERSION: v001
   CACHE_PATHS: |
-    /tmp/cargo/registry
-    /tmp/cargo/git
+    ./cargo/registry
+    ./cargo/git
 
 jobs:
 #  get_polkadot_binary_image:
@@ -121,10 +121,10 @@ jobs:
   
   
   building_binaries:
-    runs-on: ubuntu-latest
+    runs-on: [ actions-runner-controller ]
     needs: [build_polkadot_builder]
     timeout-minutes: 120
-            
+        
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -157,11 +157,12 @@ jobs:
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \
         
-      - name: Upload artifact
+      - name: Archive build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: polkadot_binary
-          path: /tmp/polkadot_binary
+          name: build-output
+          path: ./zombienet/docker/polkadot_binary/
+
           
 #  building_binary:
 #    runs-on: [ actions-runner-controller ]
