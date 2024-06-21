@@ -99,15 +99,18 @@ polkadot_binary:
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
 			cargo build --profile testnet $(CARGO_PACKETS); \
+			la -la /home/nonroot/polkadot-sdk/target/testnet/ ; \
 			cp /home/nonroot/polkadot-sdk/target/testnet/malus \
 				/home/nonroot/polkadot-sdk/target/testnet/undying-collator \
 				/home/nonroot/polkadot-sdk/target/testnet/adder-collator \
-				/tmp/polkadot_binary/; " \
+				/tmp/polkadot_binary/; \
+		 	ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git" ; \
+			ls -la /tmp/polkadot_binary /tmp/cargo/registry /tmp/cargo/git ; \
 		docker stop $$CONTAINER_NAME; \
-		docker rm -f $$CONTAINER_NAME; \
 	else \
 		echo "One or more files are missing."; \
 	fi
+
 
 
 polkadot_binary_temp:
