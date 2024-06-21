@@ -845,11 +845,13 @@ namespace kagome::consensus::grandpa {
              msg,
              allow_missing_blocks);
 
-    // Skip message processing if same vote was already observed
-    if (votes_cache_.contains(msg)) {
-      return;
+    if (allow_missing_blocks) {
+      // Skip message processing if same vote was already observed
+      if (votes_cache_.contains(msg)) {
+        return;
+      }
+      votes_cache_.put(msg);
     }
-    votes_cache_.put(msg);
 
     if (not info.has_value() or not info->set_id.has_value()
         or not info->round_number.has_value()) {
