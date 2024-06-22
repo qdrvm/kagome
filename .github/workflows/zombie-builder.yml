@@ -158,8 +158,6 @@ jobs:
       - name: "Push Polkadot APT Package"
         working-directory: ./zombienet/docker
         run: |
-          ls -la ./polkadot_binary/ ./pkg/ ./cargo/registry/ ./cargo/git/
-          df -h
           make upload_apt_package
         
 #      - name: Archive build outputs

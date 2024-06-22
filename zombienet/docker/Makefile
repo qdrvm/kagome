@@ -4,7 +4,7 @@ MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2
 
 DOCKER_REGISTRY_PATH ?=
 PLATFORM ?= linux/amd64
-ARCH ?= amd64
+ARCHITECTURE ?= amd64
 SCCACHE_VERSION ?= 0.7.4
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
@@ -100,7 +100,7 @@ polkadot_binary:
 			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder \
 			-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 			-e SCCACHE_LOG=info \
-			-e ARCH=$(ARCH) \
+			-e ARCHITECTURE=$(ARCHITECTURE) \
 			-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 			-e POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
@@ -114,15 +114,14 @@ polkadot_binary:
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
 			cargo build --profile testnet $(CARGO_PACKETS) && \
-			mv -f $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
+			cp $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
 		 	./build_apt_package.sh \
 		 		$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
-		 		$ARCH \
+		 		$(ARCHITECTURE) \
 		 		polkadot-binary \
 		 		/tmp/polkadot_binary \
 		 		'Polkadot binaries: $(RESULT_BIN_NAMES)' \
 		 		'libstdc++6, zlib1g, libgcc-s1, libc6' ; \
-		 		ls -la ./polkadot_binary/ ./pkg/ ; \
 		 		" || DOCKER_EXEC_RESULT=$$? ; \
 		if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 			echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -130,7 +129,6 @@ polkadot_binary:
 			exit $$DOCKER_EXEC_RESULT; \
 		fi; \
 		docker stop $$CONTAINER_NAME; \
-		ls -la ./polkadot_binary/ ./pkg/ ./cargo/registry/ ./cargo/git/ ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
@@ -138,11 +136,10 @@ polkadot_binary:
 upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-	ARCH=$(ARCH); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts versions delete $$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH --package=polkadot-binary --quiet || true ; \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/polkadot-binary_$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$${SHORT_COMMIT_HASH}_$$ARCH.deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/polkadot-binary_$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$${SHORT_COMMIT_HASH}_$(ARCHITECTURE).deb
 
 
 polkadot_binary_temp:
