@@ -81,6 +81,8 @@ jobs:
     runs-on: [ actions-runner-controller ]
     needs: [build_polkadot_builder]
     timeout-minutes: 120
+    outputs:
+      polkadot_binary_package_version: ${{ steps.push_apt_package.outputs.polkadot_binary_package_version }}
         
     steps:
       - name: Checkout repository
@@ -116,10 +118,11 @@ jobs:
           
       - name: "Push Polkadot APT Package"
         working-directory: ./zombienet/docker
+        id: push_apt_package
         run: |
-          SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-          POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-          POLKADOT_BINARY_PACKAGE_VERSION=$${POLKADOT_RELEASE_GLOBAL_NUMERIC}-$${SHORT_COMMIT_HASH}; \
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          POLKADOT_RELEASE_GLOBAL_NUMERIC=$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_RELEASE_GLOBAL_NUMERIC}-${SHORT_COMMIT_HASH}
           echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> GITHUB_OUTPUT
           make upload_apt_package
         
@@ -159,9 +162,9 @@ jobs:
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
-          ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2)
-          POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE}
+          ZOMBIENET_RELEASE=$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_SDK_RELEASE=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${POLKADOT_SDK_RELEASE}_${ZOMBIENET_RELEASE}
           TAG_EXISTS=$(docker manifest inspect ${ZOMBIE_TESTER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
           echo "zombie_tester_image=$ZOMBIE_TESTER_IMAGE" >> GITHUB_OUTPUT
@@ -170,10 +173,10 @@ jobs:
         working-directory: ./zombienet/docker
         if: env.exists == 'false' || github.event.inputs.zombie_tester_image_rebuild == 'true'
         run: make zombie_tester \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} \
-          PROJECT_ID=${{ secrets.GCP_PROJECT }}
-          POLKADOT_BINARY_PACKAGE_VERSION=${{ needs.building_binaries.outputs.polkadot_binary_package_version }}
+          PROJECT_ID=${{ secrets.GCP_PROJECT }} \
+          POLKADOT_BINARY_PACKAGE_VERSION="${{ needs.building_binaries.outputs.polkadot_binary_package_version }}"
 
       - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
