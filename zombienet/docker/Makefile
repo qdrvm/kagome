@@ -12,10 +12,13 @@ REGION ?= europe-north1
 #USE_GCP_SCCACHE ?= true
 SCCACHE_GCS_BUCKET ?= 
 GOOGLE_APPLICATION_CREDENTIALS ?=
+PROJECT_ID ?= 
 
 CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
 RESULT_BINARIES=./target/testnet/malus ./target/testnet/undying-collator ./target/testnet/adder-collator
 RESULT_BIN_NAMES=malus undying-collator adder-collator
+
+POLKADOT_BINARY_PACKAGE_VERSION ?= 
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -82,6 +85,36 @@ polkadot_builder_push:
 	else \
 		echo "One or more files are missing."; \
 	fi	
+
+zombie_tester_push:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:latest ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
+
+zombie_tester:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+  		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		PROJECT_ID=$(PROJECT_ID) \
+		docker build \
+			--platform $(PLATFORM) \
+			--no-cache \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:latest \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
+			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
+			-f zombie_tester.Dockerfile \
+			--build-arg PROJECT_ID=$$PROJECT_ID \
+			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
+			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
+			--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
 
 polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \

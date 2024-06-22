@@ -16,61 +16,20 @@ on:
         required: false
         default: 'false'
         type: 'boolean'
+      zombie_tester_image_rebuild:
+        description: 'Rebuild the zombie tester image'
+        required: false
+        default: 'false'
+        type: 'boolean'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
-  FORCE_REBUILD: false
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  
-  
-  BUILD_DIR: build
-  KAGOME_IN_DOCKER: 1
-  CTEST_OUTPUT_ON_FAILURE: 1
-  # Change all container: values to this variable once this feature is available
-  # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
   CACHE_VERSION: v001
   CACHE_PATHS: ./zombienet/docker/cargo
 
 jobs:
-#  get_polkadot_binary_image:
-#    runs-on: ubuntu-latest
-#    timeout-minutes: 120
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - id: 'auth'
-#        uses: 'google-github-actions/auth@v2'
-#        with:
-#          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-#
-#      - name: 'Set up Cloud SDK'
-#        uses: 'google-github-actions/setup-gcloud@v2'
-#
-#      - name: "Configure Docker for GCR"
-#        run: |
-#          echo ${GOOGLE_APPLICATION_CREDENTIALS}
-#          gcloud auth configure-docker
-    
-    
-#  build_and_push_zombie_builder:
-#    runs-on: [ actions-runner-controller ]
-#    timeout-minutes: 120
-#    steps:
-#    - uses: actions/checkout@v4
-#    - name: build zombie-builder
-#      working-directory: ./zombienet/docker
-#      run: make builder_latest
-#    - uses: azure/docker-login@v2
-#      with:
-#        login-server: https://index.docker.io/v1/
-#        username: ${{ secrets.DOCKER_USERNAME }}
-#        password: ${{ secrets.DOCKER_TOKEN }}
-#    - name: Push zombie-builder docker image
-#      working-directory: ./zombienet/docker
-#      run: make builder_push
-
   build_polkadot_builder:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -158,6 +117,10 @@ jobs:
       - name: "Push Polkadot APT Package"
         working-directory: ./zombienet/docker
         run: |
+          SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+          POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+          POLKADOT_BINARY_PACKAGE_VERSION=$${POLKADOT_RELEASE_GLOBAL_NUMERIC}-$${SHORT_COMMIT_HASH}; \
+          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> GITHUB_OUTPUT
           make upload_apt_package
         
 #      - name: Archive build outputs
@@ -167,47 +130,54 @@ jobs:
 #          path: ./zombienet/docker/polkadot_binary/
 
           
-#  building_binary:
-#    runs-on: [ actions-runner-controller ]
-#    timeout-minutes: 120
-#    container:
-#      image: ${{ needs.build.outputs.polkadot_builder_image }}
-#    steps:
-##      - run: rustup toolchain install stable --profile minimal
-##
-##      - name: Configure sccache env var and set build profile to ephemeral build
-##        run: |
-##          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-##          echo “SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-##
-##      - name: Run sccache-cache
-##        uses: mozilla-actions/sccache-action@v0.0.2
-#      
-#      - name: Build target
-#        run: |
-#          cargo update \ 
-#            -p test-parachain-adder-collator \
-#            -p polkadot-test-malus \
-#            -p test-parachain-undying-collator && \
-#          cargo build --profile testnet \
-#            -p test-parachain-adder-collator \
-#            -p polkadot-test-malus \
-#            -p test-parachain-undying-collator
-#          
-#      - name: upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: malus
-#          path: /tmp/polkadot_binary/malus
-#      
-#      - name: upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: undying-collator
-#          path: /tmp/polkadot_binary/undying-collator
-#          
-#      - name: upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: adder-collator
-#          path: /tmp/polkadot_binary/adder-collator
+  build_zombie_tester:
+    runs-on: ubuntu-latest
+    needs: [building_binaries]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./zombienet/docker
+        run: make get_versions
+
+      - name: "Check if image tag exists"
+        id: check-tag
+        working-directory: ./zombienet/docker
+        run: |
+          ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE}
+          TAG_EXISTS=$(docker manifest inspect ${ZOMBIE_TESTER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
+          echo "zombie_tester_image=$ZOMBIE_TESTER_IMAGE" >> GITHUB_OUTPUT
+
+      - name: "Build Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.zombie_tester_image_rebuild == 'true'
+        run: make zombie_tester \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+          GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} \
+          PROJECT_ID=${{ secrets.GCP_PROJECT }}
+          POLKADOT_BINARY_PACKAGE_VERSION=${{ needs.building_binaries.outputs.polkadot_binary_package_version }}
+
+      - name: "Push Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.zombie_tester_image_rebuild == 'true'
+        run: make zombie_tester_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          
