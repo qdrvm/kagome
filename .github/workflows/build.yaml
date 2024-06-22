@@ -4,62 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name : Kagome Builder | Debian (Bookworm)
+name : New Build Pipeline
 
 on:
-  #  schedule:
-  #    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM
-  workflow_dispatch:
-    inputs:
-      kagome_image_rebuild:
-        description: 'Rebuild Kagome Builder Minideb image'
-        required: false
-        default: 'false'
-        type: 'boolean'
-
-env:
-  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
-
+  workflow_dispatch: 
+    
+    
 jobs:
-  build_polkadot_builder:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name : "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
-      - name: "Check if image tag exists"
-        id: check-tag
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          IMAGE_TAG=$(grep '^MINIDEB_IMAGE' Makefile | awk -F '[@:]' '{print $3}' | cut -c 1-7)_rust-$(grep '^RUST_VERSION' Makefile | sed 's/.*?= //')
-          KAGOME_BUILDER_DEB_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
-          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_DEB_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
-          echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "kagome_builder_deb=KAGOME_BUILDER_DEB_IMAGE" >> GITHUB_OUTPUT
-
-      - name: "Build Polkadot Builder"
-        working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
-
-      - name: "Push Polkadot Builder"
-        working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb_push \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   
