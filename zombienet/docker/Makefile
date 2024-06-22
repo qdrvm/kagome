@@ -4,13 +4,18 @@ MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2
 
 DOCKER_REGISTRY_PATH ?=
 PLATFORM ?= linux/amd64
+ARCH ?= amd64
 SCCACHE_VERSION ?= 0.7.4
+ARTIFACTS_REPO ?= kagome-apt
+REGION ?= europe-north1
 
 #USE_GCP_SCCACHE ?= true
 SCCACHE_GCS_BUCKET ?= 
 GOOGLE_APPLICATION_CREDENTIALS ?=
 
 CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
+RESULT_BINARIES=./target/testnet/malus ./target/testnet/undying-collator ./target/testnet/adder-collator
+RESULT_BIN_NAMES=malus undying-collator adder-collator
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -52,6 +57,8 @@ endef
 get_versions:
 	python3 version.py https://github.com/paritytech/polkadot-sdk && \
 	python3 version.py https://github.com/paritytech/zombienet
+	echo "full_commit_hash: `git rev-parse HEAD`" > commit_hash.txt
+	echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" >> commit_hash.txt
 
 polkadot_builder:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -78,10 +85,12 @@ polkadot_builder_push:
 
 polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \
-  		df -h ; \
 		CONTAINER_NAME=polkadot_build_$$(openssl rand -hex 6); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		mkdir -p ./polkadot_binary ./cargo/registry ./cargo/git; \
+		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+		DOCKER_EXEC_RESULT=0 ; \
+		mkdir -p ./polkadot_binary ./cargo/registry ./cargo/git ./pkg; \
 		docker run -d --name $$CONTAINER_NAME \
 			--platform $(PLATFORM) \
 			--entrypoint "/bin/bash" \
@@ -91,27 +100,46 @@ polkadot_binary:
 			-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder \
 			-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 			-e SCCACHE_LOG=info \
+			-e ARCH=$(ARCH) \
+			-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
+			-e POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
 			-v ./polkadot_binary:/tmp/polkadot_binary \
 			-v ./cargo/registry:/usr/local/cargo/registry/ \
 			-v ./cargo/git:/usr/local/cargo/git/ \
+			-v ./pkg:/home/nonroot/polkadot-sdk/pkg \
+			-v ./build_apt_package.sh:/home/nonroot/polkadot-sdk/build_apt_package.sh \
 			$(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
-			cargo build --profile testnet $(CARGO_PACKETS); \
-			la -la ./target/testnet/ ; \
-			cp ./target/testnet/malus \
-				./target/testnet/undying-collator \
-				./target/testnet/adder-collator \
-				/tmp/polkadot_binary/ ; \
-		 	ls -la /tmp/polkadot_binary /usr/local/cargo/registry /usr/local/cargo/git" ; \
-			ls -la ./polkadot_binary ./cargo/registry ./cargo/git ; df -h ; \
+			cargo build --profile testnet $(CARGO_PACKETS) && \
+			mv -f $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
+		 	./build_apt_package.sh \
+		 		$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
+		 		$ARCH \
+		 		polkadot-binary \
+		 		/tmp/polkadot_binary \
+		 		'Polkadot binaries: $(RESULT_BIN_NAMES)' \
+		 		'libstdc++6, zlib1g, libgcc-s1, libc6'"|| DOCKER_EXEC_RESULT=$$? ; \
+		if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
+			echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
+			docker stop $$CONTAINER_NAME; \
+			exit $$DOCKER_EXEC_RESULT; \
+		fi; \
 		docker stop $$CONTAINER_NAME; \
 	else \
 		echo "One or more files are missing."; \
 	fi
 
+upload_apt_package:
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+	ARCH=$(ARCH); \
+	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
+	gcloud config set artifacts/location $(REGION); \
+	gcloud artifacts versions delete $$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH --package=polkadot-binary --quiet || true ; \
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/polkadot-binary_$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$${SHORT_COMMIT_HASH}_$$ARCH.deb
 
 
 polkadot_binary_temp:

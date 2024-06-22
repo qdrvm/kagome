@@ -30,9 +30,7 @@ env:
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
   CACHE_VERSION: v001
-  CACHE_PATHS: |
-    ./cargo/registry
-    ./cargo/git
+  CACHE_PATHS: ./zombienet/docker/cargo
 
 jobs:
 #  get_polkadot_binary_image:
@@ -156,12 +154,16 @@ jobs:
         run: make polkadot_binary \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \
+          
+      - name: "Push Polkadot APT Package"
+        working-directory: ./zombienet/docker
+        run: make upload_apt_package
         
-      - name: Archive build outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: ./zombienet/docker/polkadot_binary/
+#      - name: Archive build outputs
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: build-output
+#          path: ./zombienet/docker/polkadot_binary/
 
           
 #  building_binary:
