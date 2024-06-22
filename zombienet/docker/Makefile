@@ -121,13 +121,16 @@ polkadot_binary:
 		 		polkadot-binary \
 		 		/tmp/polkadot_binary \
 		 		'Polkadot binaries: $(RESULT_BIN_NAMES)' \
-		 		'libstdc++6, zlib1g, libgcc-s1, libc6'"|| DOCKER_EXEC_RESULT=$$? ; \
+		 		'libstdc++6, zlib1g, libgcc-s1, libc6' ; \
+		 		ls -la ./polkadot_binary/ ./pkg/ ; \
+		 		" || DOCKER_EXEC_RESULT=$$? ; \
 		if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 			echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
 			docker stop $$CONTAINER_NAME; \
 			exit $$DOCKER_EXEC_RESULT; \
 		fi; \
 		docker stop $$CONTAINER_NAME; \
+		ls -la ./polkadot_binary/ ./pkg/ ./cargo/registry/ ./cargo/git/ ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
