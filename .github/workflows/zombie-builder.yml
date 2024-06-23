@@ -16,6 +16,11 @@ on:
         required: false
         default: 'false'
         type: 'boolean'
+      polkadot_binaries_rebuild:
+        description: 'Rebuild the polkadot binaries'
+        required: false
+        default: 'true'
+        type: 'boolean'
       zombie_tester_image_rebuild:
         description: 'Rebuild the zombie tester image'
         required: false
@@ -62,7 +67,7 @@ jobs:
           POLKADOT_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}polkadot_builder:${POLKADOT_VERSION}
           TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "polkadot_builder_image=$POLKADOT_BUILDER_IMAGE" >> GITHUB_OUTPUT
+          echo "polkadot_builder_image=$POLKADOT_BUILDER_IMAGE" >> $GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
@@ -110,20 +115,36 @@ jobs:
         working-directory: ./zombienet/docker
         run: make get_versions
       
+      - name: "Setup package version if not rebuilding"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'false'
+        working-directory: ./zombienet/docker
+        run: |
+          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
+          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
+          gcloud config set artifacts/repository $ARTIFACTS_REPO
+          gcloud config set artifacts/location $REGION
+          POLKADOT_BINARY_PACKAGE_VERSION=$(gcloud artifacts versions list --package=polkadot-binary  | sort -r -k2,2 | head -n 1 | awk '{print $1}' | cut -d '/' -f6)
+          echo "Package Vesion: $POLKADOT_BINARY_PACKAGE_VERSION"
+          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_ENV
+          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_OUTPUT
+      
       - name: "Build target"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
         working-directory: ./zombienet/docker
         run: make polkadot_binary \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \
           
       - name: "Push Polkadot APT Package"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
         working-directory: ./zombienet/docker
         id: push_apt_package
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
           POLKADOT_RELEASE_GLOBAL_NUMERIC=$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
-          POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_RELEASE_GLOBAL_NUMERIC}-${SHORT_COMMIT_HASH}
-          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> GITHUB_OUTPUT
+          POLKADOT_BINARY_PACKAGE_VERSION="${POLKADOT_RELEASE_GLOBAL_NUMERIC}-${SHORT_COMMIT_HASH}"
+          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_ENV
+          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_OUTPUT
           make upload_apt_package
         
 #      - name: Archive build outputs
@@ -167,7 +188,7 @@ jobs:
           ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${POLKADOT_SDK_RELEASE}_${ZOMBIENET_RELEASE}
           TAG_EXISTS=$(docker manifest inspect ${ZOMBIE_TESTER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "zombie_tester_image=$ZOMBIE_TESTER_IMAGE" >> GITHUB_OUTPUT
+          echo "zombie_tester_image=$ZOMBIE_TESTER_IMAGE" >> $GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
