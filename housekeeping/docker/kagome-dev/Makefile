@@ -33,6 +33,7 @@ export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
 export BUILDKIT_PROGRESS=auto
 
+
 get_versions:
 	echo "full_commit_hash: `git rev-parse HEAD`" > commit_hash.txt
 	echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" >> commit_hash.txt
