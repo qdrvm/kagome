@@ -22,7 +22,10 @@ CTEST_OUTPUT_ON_FAILURE ?= 1
 
 # Debug, Release, RelWithDebInfo
 BUILD_TYPE ?= Release
+
 BUILD_DIR ?= build
+CACHE_DIR := $(shell pwd)/../../../../kagome/$(BUILD_DIR)/cache
+WORKING_DIR := $(shell pwd)/../../../../kagome
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -46,6 +49,7 @@ kagome_builder_deb_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest
 
 kagome_dev_docker_build:
+	mkdir -p $(CACHE_DIR)/.cargo $(CACHE_DIR)/.hunter $(CACHE_DIR)/.cache/ccache $(CACHE_DIR)/.rustup ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
@@ -64,6 +68,10 @@ kagome_dev_docker_build:
 			-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 			-v $$(pwd)/../../../../kagome:/opt/kagome \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+			-v $(CACHE_DIR)/.cargo:/root/.cargo \
+			-v $(CACHE_DIR)/.hunter:/root/.hunter \
+			-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
+			-v $(CACHE_DIR)/.rustup:/root/.rustup \
 			$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \

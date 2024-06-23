@@ -15,22 +15,24 @@ env:
   KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
 
-#  CACHE_VERSION: v07
-#  CACHE_PATHS: |
-#    ~/Library/Caches/pip
-#    ~/.cargo
-#    ~/.ccache
-#    ~/.hunter
-#    ~/.rustup
+  CACHE_VERSION: v01
+  CACHE_PATH: ./build/cache
 
 jobs:
-  building_binaries:
+  kagome_dev_docker_build:
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
+    timeout-minutes: 180
 
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
+
+      - name: "Cache dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+          save-always: true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
