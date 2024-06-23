@@ -4,11 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name : New Build Pipeline
-
-on:
-  workflow_dispatch: 
-    
-    
-jobs:
-  
+#name : New Build Pipeline
+#
+#on:
+#  workflow_dispatch: 
+#    
+#    
+#jobs:
+#  

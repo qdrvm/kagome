@@ -86,8 +86,6 @@ jobs:
     runs-on: [ actions-runner-controller ]
     needs: [build_polkadot_builder]
     timeout-minutes: 120
-    outputs:
-      polkadot_binary_package_version: ${{ steps.push_apt_package.outputs.polkadot_binary_package_version }}
         
     steps:
       - name: Checkout repository
@@ -123,10 +121,9 @@ jobs:
           REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
           gcloud config set artifacts/repository $ARTIFACTS_REPO
           gcloud config set artifacts/location $REGION
-          POLKADOT_BINARY_PACKAGE_VERSION=$(gcloud artifacts versions list --package=polkadot-binary  | sort -r -k2,2 | head -n 1 | awk '{print $1}' | cut -d '/' -f6)
-          echo "Package Vesion: $POLKADOT_BINARY_PACKAGE_VERSION"
-          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_ENV
-          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          POLKADOT_BINARY_PACKAGE_VERSION=$(gcloud artifacts versions list --package=polkadot-binary --format=json | \
+            jq -r 'sort_by(.createTime) | .[-1] | {version: (.name | split("/") | last), createTime: .createTime} | .version')
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" | tee -a variables.env
       
       - name: "Build target"
         if: github.event.inputs.polkadot_binaries_rebuild == 'true'
@@ -143,10 +140,15 @@ jobs:
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
           POLKADOT_RELEASE_GLOBAL_NUMERIC=$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
           POLKADOT_BINARY_PACKAGE_VERSION="${POLKADOT_RELEASE_GLOBAL_NUMERIC}-${SHORT_COMMIT_HASH}"
-          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_ENV
-          echo "polkadot_binary_package_version=$POLKADOT_BINARY_PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" | tee -a variables.env
           make upload_apt_package
         
+      - name: "Upload Variables Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: variables-artifact
+          path: ./zombienet/docker/variables.env
+          
 #      - name: Archive build outputs
 #        uses: actions/upload-artifact@v4
 #        with:
@@ -159,7 +161,7 @@ jobs:
     needs: [building_binaries]
     timeout-minutes: 60
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
 
       - name : "Authenticate with Google Cloud"
@@ -179,6 +181,18 @@ jobs:
         working-directory: ./zombienet/docker
         run: make get_versions
 
+      - name: "Download Variables Artifact"
+        uses: actions/download-artifact@v4
+        with:
+          name: variables-artifact
+          path: .
+
+      - name: "Load Variables"
+        id: load-variables
+        run: |
+          source variables.env
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" >> $GITHUB_ENV
+
       - name: "Check if image tag exists"
         id: check-tag
         working-directory: ./zombienet/docker
@@ -197,7 +211,7 @@ jobs:
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} \
           PROJECT_ID=${{ secrets.GCP_PROJECT }} \
-          POLKADOT_BINARY_PACKAGE_VERSION="${{ needs.building_binaries.outputs.polkadot_binary_package_version }}"
+          POLKADOT_BINARY_PACKAGE_VERSION="${POLKADOT_BINARY_PACKAGE_VERSION}"
 
       - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
