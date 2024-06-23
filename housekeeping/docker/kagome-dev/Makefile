@@ -21,7 +21,7 @@ GITHUB_HUNTER_TOKEN ?=
 CTEST_OUTPUT_ON_FAILURE ?= 1
 
 # Debug, Release, RelWithDebInfo
-BUILD_TYPE ?= Debug
+BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 
 export DOCKER_BUILDKIT=1
@@ -50,7 +50,7 @@ kagome_dev_docker_build:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
 	DOCKER_EXEC_RESULT=0 ; \
-	if [ "$(BUILD_TYPE)" = "Debug" ]; then \
+	if [ "$(BUILD_TYPE)" = "Release" ]; then \
 	  	echo "debug"; \
 		docker run -d --name $$CONTAINER_NAME \
 			--platform $(PLATFORM) \
@@ -85,11 +85,11 @@ kagome_dev_docker_build:
             	'Kagome Dev Debian Package' \
             	'libstdc++6, zlib1g, libgcc-s1, libc6' ; \
             " || DOCKER_EXEC_RESULT=$$? ; \
-	elif [ "$(BUILD_TYPE)" = "Release" ]; then \
-		echo "release"; \
+	elif [ "$(BUILD_TYPE)" = "Debug" ]; then \
+		echo "Debug"; \
 		BUILD_THREADS=1 ; \
 	elif [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
-		echo "relwithdebinfo"; \
+		echo "RelWithDebInfo"; \
 		BUILD_THREADS=2 ; \
 	else \
 		echo "Invalid BUILD_TYPE"; \
