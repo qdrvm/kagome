@@ -73,6 +73,16 @@ mkdir -p ./pkg/${DIR_NAME}/usr/local/bin
 log "Copying artifacts..."
 mv -f ${ARTIFACTS_DIR}/* ./pkg/${DIR_NAME}/usr/local/bin/
 
+echo "Package: ${PACKAGE_NAME}"
+echo "Version: ${VERSION}"
+echo "Maintainer: ${MAINTAINER}"
+echo "Depends: ${DEPENDENCIES}"
+echo "Architecture: ${ARCHITECTURE}"
+echo "Homepage: ${HOMEPAGE}"
+echo "Description: ${DESCRIPTION}"
+echo "Artifacts: ${ARTIFACTS_DIR}"
+echo "Directory: ./pkg/${DIR_NAME}/usr/local/bin/"
+
 log "Creating control file..."
 cat <<EOF > ./pkg/${DIR_NAME}/DEBIAN/control
 Package: ${PACKAGE_NAME}
