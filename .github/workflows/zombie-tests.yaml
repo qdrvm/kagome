@@ -8,6 +8,16 @@ name: Zombie-Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'Release'
+        type: 'choice'
+        options:
+          - Release
+          - Debug
+          - ReleaseWithDebInfo
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -31,8 +41,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-          save-always: true
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}
+          #save-always: true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -68,14 +78,16 @@ jobs:
         run: make kagome_dev_docker_build \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
-          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }}
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          BUILD_TYPE=${{ github.event.inputs.build_type }}
 
       - name: "Push Polkadot APT Package"
         #if: github.event.inputs.polkadot_binaries_rebuild == 'true'
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          make upload_apt_package
+          make upload_apt_package \
+          BUILD_TYPE=${{ github.event.inputs.build_type }}
 
   
 #  Prepare-Kagome-Docker:
