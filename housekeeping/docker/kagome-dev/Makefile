@@ -6,16 +6,31 @@ MINIDEB_IMAGE ?= bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d1738
 
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= x86_64
+PACKAGE_ARCHITECTURE ?= amd64
 
 DOCKER_REGISTRY_PATH ?=
+ARTIFACTS_REPO ?= kagome-apt
+REGION ?= europe-north1
 
 MINIDEB_HASH := $(subst bitnami/minideb@sha256:,,$(MINIDEB_IMAGE))
 MINIDEB_SHORT_HASH := $(shell echo $(MINIDEB_HASH) | cut -c1-7)
 MINIDEB_TAG = $(MINIDEB_SHORT_HASH)_rust-$(RUST_VERSION)
 
+GITHUB_HUNTER_USERNAME ?=
+GITHUB_HUNTER_TOKEN ?=
+CTEST_OUTPUT_ON_FAILURE ?= 1
+
+# Debug, Release, RelWithDebInfo
+BUILD_TYPE ?= Debug
+BUILD_DIR ?= build
+
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
 export BUILDKIT_PROGRESS=auto
+
+get_versions:
+	echo "full_commit_hash: `git rev-parse HEAD`" > commit_hash.txt
+	echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" >> commit_hash.txt
 
 kagome_builder_deb:
 	docker build --platform $(PLATFORM) \
@@ -28,4 +43,67 @@ kagome_builder_deb:
 
 kagome_builder_deb_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) ; \
-	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest ; \
+	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest
+
+kagome_dev_docker_build:
+	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
+	DOCKER_EXEC_RESULT=0 ; \
+	if [ "$(BUILD_TYPE)" = "Debug" ]; then \
+	  	echo "debug"; \
+		docker run -d --name $$CONTAINER_NAME \
+			--platform $(PLATFORM) \
+			--entrypoint "/bin/bash" \
+			-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
+			-e BUILD_TYPE=$(BUILD_TYPE) \
+			-e BUILD_THREADS=$$BUILD_THREADS \
+			-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
+			-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
+			-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
+			-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
+			-v $$(pwd)/../../../../kagome:/opt/kagome \
+			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+			$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
+			-c "tail -f /dev/null"; \
+		docker exec -t $$CONTAINER_NAME /bin/bash -c \
+			"cd /opt/kagome && \
+			git config --global --add safe.directory /opt/kagome && \
+			source /venv/bin/activate && \
+			git submodule update --init && \
+			echo \"Building in $(pwd)\" && \
+			cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"${BUILD_TYPE}\" -DBACKWARD=OFF && \
+            cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
+            mkdir -p /tmp/kagome && \
+            cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
+            cd /opt/kagome/housekeeping/docker/kagome-dev && \
+            ./build_apt_package.sh \
+            	$$SHORT_COMMIT_HASH-$$BUILD_TYPE \
+            	$(PACKAGE_ARCHITECTURE) \
+            	kagome-dev \
+            	/tmp/kagome \
+            	'Kagome Dev Debian Package' \
+            	'libstdc++6, zlib1g, libgcc-s1, libc6' ; \
+            " || DOCKER_EXEC_RESULT=$$? ; \
+	elif [ "$(BUILD_TYPE)" = "Release" ]; then \
+		echo "release"; \
+		BUILD_THREADS=1 ; \
+	elif [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
+		echo "relwithdebinfo"; \
+		BUILD_THREADS=2 ; \
+	else \
+		echo "Invalid BUILD_TYPE"; \
+		exit 1; \
+	fi ; \
+	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
+		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
+		docker stop $$CONTAINER_NAME; \
+		exit $$DOCKER_EXEC_RESULT; \
+	fi; \
+	docker stop $$CONTAINER_NAME
+
+upload_apt_package:
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
+	gcloud config set artifacts/location $(REGION); \
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$SHORT_COMMIT_HASH-$$BUILD_TYPE_$(PACKAGE_ARCHITECTURE).deb

@@ -10,150 +10,201 @@ on:
   workflow_dispatch:
 
 env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   BUILD_DIR: build
   KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
-  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
 
-  CACHE_VERSION: v07
-  CACHE_PATHS: |
-    ~/Library/Caches/pip
-    ~/.cargo
-    ~/.ccache
-    ~/.hunter
-    ~/.rustup
+#  CACHE_VERSION: v07
+#  CACHE_PATHS: |
+#    ~/Library/Caches/pip
+#    ~/.cargo
+#    ~/.ccache
+#    ~/.hunter
+#    ~/.rustup
 
 jobs:
-  Prepare-Kagome-Docker:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-#          - name: "Self-hosted: Debug Docker image"
-#            build-type: "Debug"
-          - name: "Self-hosted: Release Docker image"
-            build-type: "Release"
-#          - name: "Self-hosted: RelWithDebInfo Docker image"
-#            build-type: "RelWithDebInfo"
+  building_binaries:
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 150
-    container: qdrvm/kagome-dev:testing
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - run: git config --global --add safe.directory /__w/kagome/kagome
-      - run: git fetch --prune --unshallow
-      - name: Build Kagome
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-          KAGOME_ROOT: /__w/kagome/kagome
-        run: bash -c "cd $KAGOME_ROOT && source /venv/bin/activate && ./housekeeping/docker/kagome-dev/make.sh"
-      - name: Copy Kagome
-        env:
-          KAGOME_BUILD_DIR: /__w/kagome/kagome/build
-        run: bash -c "mkdir -p ${KAGOME_BUILD_DIR}/docker_context && cp -a ${KAGOME_BUILD_DIR}/node/kagome ${KAGOME_BUILD_DIR}/docker_context"
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          tags: kagome-dev:${{ github.run_number }}
-          file: ./housekeeping/docker/kagome/minideb-release.Dockerfile
-          context: /__w/kagome/kagome/build/docker_context
-          outputs: type=docker,dest=/tmp/kagome_dev.tar
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kagome-dev
-          path: /tmp/kagome_dev.tar
+    timeout-minutes: 120
 
-  Prepare-Zombie-Tests-Docker:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    needs: [Prepare-Kagome-Docker]
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: kagome-dev
-          path: /tmp
-      - name: Load image
-        run: |
-          docker load --input /tmp/kagome_dev.tar
-          docker image ls -a          
-      - name: Set owner of working dir recursively
-        run: sudo chown -R $(whoami) .
-      - uses: actions/checkout@v4
-      - name: Extract branch name
-        shell: bash
-        run: |
-          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "branch=${branch}" >> $GITHUB_OUTPUT
-          echo "Branch name: ${branch}"
-        id: extract_branch
-      - name: Build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
-      - name: Archive zombie-tester
-        shell: bash
-        run: docker save -o /tmp/zombie-tester.tar zombie-tester:latest
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zombie-tester
-          path: /tmp/zombie-tester.tar
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  Zombie-Tests:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    needs: [Prepare-Zombie-Tests-Docker]
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-          - name: "Disputes initiation, conclusion and lag"
-            test: "test-polkadot-functional-0002-parachains-disputes"
-          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-            test: "test-polkadot-functional-0003-beefy-and-mmr"
-          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
-            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
-          - name: "Past-session dispute slashing"
-            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
-          - name: "Test if parachains make progress with most of approvals being tranch0"
-            test: "test-polkadot-functional-0006-parachains-max-tranche0"
-          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
-            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-            test: "test-polkadot-functional-0008-dispute-old-finalized"
-          - name: "Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-          - name: "Test validator disabling effects"
-            test: "test-polkadot-functional-0010-validator-disabling"
-          - name: "Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
         with:
-          name: zombie-tester
-          path: /tmp
-      - name: Load image
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
         run: |
-          docker load --input /tmp/zombie-tester.tar
-          docker image ls -a
-      - uses: actions/checkout@v4
-      - name: Run test
-        working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
-      - name: Upload test logs as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs-${{ matrix.options.test }}
-          path: /tmp/test_logs
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make get_versions
+
+#      - name: "Setup package version if not rebuilding"
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: |
+#          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
+#          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
+#          gcloud config set artifacts/repository $ARTIFACTS_REPO
+#          gcloud config set artifacts/location $REGION
+#          POLKADOT_BINARY_PACKAGE_VERSION=$(gcloud artifacts versions list --package=kagome-dev --format=json | \
+#            jq -r 'sort_by(.createTime) | .[-1] | {version: (.name | split("/") | last), createTime: .createTime} | .version')
+#          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" | tee -a variables.env
+
+      - name: "Build target"
+        #if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_dev_docker_build \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }}
+
+      - name: "Push Polkadot APT Package"
+        #if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          make upload_apt_package
+
+  
+#  Prepare-Kagome-Docker:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+##          - name: "Self-hosted: Debug Docker image"
+##            build-type: "Debug"
+#          - name: "Self-hosted: Release Docker image"
+#            build-type: "Release"
+##          - name: "Self-hosted: RelWithDebInfo Docker image"
+##            build-type: "RelWithDebInfo"
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 150
+#    container: qdrvm/kagome-dev:testing
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/cache@v4
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+#      - run: git config --global --add safe.directory /__w/kagome/kagome
+#      - run: git fetch --prune --unshallow
+#      - name: Build Kagome
+#        env:
+#          BUILD_TYPE: "${{ matrix.options.build-type }}"
+#          KAGOME_ROOT: /__w/kagome/kagome
+#        run: bash -c "cd $KAGOME_ROOT && source /venv/bin/activate && ./housekeeping/docker/kagome-dev/make.sh"
+#      - name: Copy Kagome
+#        env:
+#          KAGOME_BUILD_DIR: /__w/kagome/kagome/build
+#        run: bash -c "mkdir -p ${KAGOME_BUILD_DIR}/docker_context && cp -a ${KAGOME_BUILD_DIR}/node/kagome ${KAGOME_BUILD_DIR}/docker_context"
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#      - name: Build Docker Image
+#        uses: docker/build-push-action@v5
+#        with:
+#          tags: kagome-dev:${{ github.run_number }}
+#          file: ./housekeeping/docker/kagome/minideb-release.Dockerfile
+#          context: /__w/kagome/kagome/build/docker_context
+#          outputs: type=docker,dest=/tmp/kagome_dev.tar
+#      - name: upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: kagome-dev
+#          path: /tmp/kagome_dev.tar
+
+#  Prepare-Zombie-Tests-Docker:
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 60
+#    needs: [Prepare-Kagome-Docker]
+#    steps:
+#      - name: Download artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: kagome-dev
+#          path: /tmp
+#      - name: Load image
+#        run: |
+#          docker load --input /tmp/kagome_dev.tar
+#          docker image ls -a          
+#      - name: Set owner of working dir recursively
+#        run: sudo chown -R $(whoami) .
+#      - uses: actions/checkout@v4
+#      - name: Extract branch name
+#        shell: bash
+#        run: |
+#          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+#          echo "branch=${branch}" >> $GITHUB_OUTPUT
+#          echo "Branch name: ${branch}"
+#        id: extract_branch
+#      - name: Build zombie-tester
+#        working-directory: ./zombienet/docker
+#        run: make tester BRANCH_NAME=${{ steps.extract_branch.outputs.branch }} KAGOME_IMAGE=kagome-dev:${{ github.run_number }}
+#      - name: Archive zombie-tester
+#        shell: bash
+#        run: docker save -o /tmp/zombie-tester.tar zombie-tester:latest
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: zombie-tester
+#          path: /tmp/zombie-tester.tar
+#
+#  Zombie-Tests:
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 60
+#    needs: [Prepare-Zombie-Tests-Docker]
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "PVF preparation & execution time"
+#            test: "test-polkadot-functional-0001-parachains-pvf"
+#          - name: "Disputes initiation, conclusion and lag"
+#            test: "test-polkadot-functional-0002-parachains-disputes"
+#          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+#            test: "test-polkadot-functional-0003-beefy-and-mmr"
+#          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+#            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+#          - name: "Past-session dispute slashing"
+#            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+#          - name: "Test if parachains make progress with most of approvals being tranch0"
+#            test: "test-polkadot-functional-0006-parachains-max-tranche0"
+#          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
+#            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+#          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+#            test: "test-polkadot-functional-0008-dispute-old-finalized"
+#          - name: "Approval voting coalescing does not lag finality"
+#            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+#          - name: "Test validator disabling effects"
+#            test: "test-polkadot-functional-0010-validator-disabling"
+#          - name: "Test we are producing blocks at 6 seconds clip"
+#            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+#    steps:
+#      - name: Download artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: zombie-tester
+#          path: /tmp
+#      - name: Load image
+#        run: |
+#          docker load --input /tmp/zombie-tester.tar
+#          docker image ls -a
+#      - uses: actions/checkout@v4
+#      - name: Run test
+#        working-directory: ./zombienet/docker
+#        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=zombie-tester:latest
+#      - name: Upload test logs as artifact
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: logs-${{ matrix.options.test }}
+#          path: /tmp/test_logs
