@@ -63,6 +63,7 @@ jobs:
           PACKAGE_VERSION="$(date +'%d.%m.%y')-${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
           echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
           echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
           gcloud config set artifacts/repository $ARTIFACTS_REPO
           gcloud config set artifacts/location $REGION
           PACKAGE_EXIST=$(gcloud artifacts versions list --package=kagome-dev --format=json | jq -e ".[] | select(.name | endswith(\"${PACKAGE_VERSION}\"))" > /dev/null && echo "True" || echo "False")
@@ -73,7 +74,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-${{ env.short_commit_hash }}
           #save-always: true
 
       - name: "Build target"
