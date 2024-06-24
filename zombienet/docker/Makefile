@@ -60,7 +60,7 @@ define run_test
 		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
 		$(1) \
 		-c "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
-			install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
+			install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) kagome-dev-runtime && \
 			zombienet-linux-x64 test -p native /home/nonroot/bin/$$TEST_PATH " ; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \

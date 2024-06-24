@@ -17,7 +17,7 @@ def extract_version_and_sha(config_file_path, package_name):
     return version, sha
 
 if __name__ == "__main__":
-    config_file_path = '../cmake/Hunter/config.cmake'
+    config_file_path = '../../../cmake/Hunter/config.cmake'
     package_name = 'WasmEdge'
 
     version, sha = extract_version_and_sha(config_file_path, package_name)

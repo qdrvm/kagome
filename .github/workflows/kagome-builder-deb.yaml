@@ -62,4 +62,36 @@ jobs:
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: make kagome_builder_deb_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+
+  build_kagome_runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Build Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        # if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        run: make runtime_cache \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+
+      - name: "Push Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        # if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        run: make upload_apt_package_runtime \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   
