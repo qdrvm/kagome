@@ -540,6 +540,20 @@ namespace kagome::parachain {
         const MessageSource &source,
         const approval::IndirectSignedApprovalVoteV2 &vote);
 
+    // Returns the claimed core bitfield from the assignment cert, the candidate hash and a
+// `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot find the candidate hash
+// in the block entry which indicates a bug or corrupted storage.
+std::optional<scale::BitVec> get_assignment_core_indices(
+  const approval::AssignmentCertKindV2 &assignment,
+  const CandidateHash &candidate_hash,
+  const BlockEntry &block_entry
+);
+
+std::optional<scale::BitVec> cores_to_candidate_indices(
+  const scale::BitVec &core_indices,
+  const BlockEntry &block_entry
+);
+
     network::vstaging::Assignments sanitize_v1_assignments(const network::Assignments &assignments);
     network::vstaging::Approvals sanitize_v1_approvals(const network::Approvals &approval);
 

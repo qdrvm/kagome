@@ -263,68 +263,6 @@ namespace {
     }
   }
 
-// Returns the claimed core bitfield from the assignment cert, the candidate hash and a
-// `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot find the candidate hash
-// in the block entry which indicates a bug or corrupted storage.
-std::optional<scale::BitVec> get_assignment_core_indices(
-  const approval::AssignmentCertKindV2 &assignment,
-  const CandidateHash &candidate_hash,
-  const BlockEntry &block_entry
-) {
-  return visit_in_place(
-    assignment,
-    [&](const approval::RelayVRFModuloCompact &value) {
-      return value.core_bitfield;
-    },
-    [&](const approval::RelayVRFModulo &value) {
-      for (const auto &[core_index, h] : block_entry.candidates) {
-        if (candidate_hash == h) {
-          scale::BitVec v;
-          v.bits.resize(core_index + 1);
-          v.bits[core_index] = true;
-          return v;
-        }
-      }
-    },
-    [&](const approval::RelayVRFDelay &value) {
-      scale::BitVec v;
-      v.bits.resize(value.core_index + 1);
-      v.bits[value.core_index] = true;
-      return v;
-    });
-}
-
-std::optional<scale::BitVec> cores_to_candidate_indices(
-  const scale::BitVec &core_indices,
-  const BlockEntry &block_entry
-) {
-    std::vector<uint32_t> candidate_indices;
-    approval::iter_ones(core_indices, [&](const auto claimed_core_index) {
-      for (uint32_t candidate_index = 0; candidate_index < block_entry.candidates.size(); ++candidate_index) {
-        const auto &[core_index, _] = block_entry.candidates[candidate_index];
-        if (core_index == claimed_core_index) {
-          candidate_indices.emplace_back(candidate_index);
-          return outcome::success();
-        }
-      }
-      return outcome::success();
-    });
-
-    scale::BitVec v;
-    for (const auto candidate_index : candidate_indices) {
-      if (candidate_index >= v.bits.size()) {
-        v.bits.resize(candidate_index + 1);
-      }
-      v.bits[candidate_index] = true;
-    }
-
-    if (v.bits.empty()) {
-      return std::nullopt;
-    }
-
-    return v;
-}
-
   /// Determine the amount of tranches of assignments needed to determine
   /// approval of a candidate.
   kagome::parachain::approval::RequiredTranches tranchesToApprove(
@@ -838,6 +776,67 @@ namespace kagome::parachain {
 
     return assignments;
   }
+
+std::optional<scale::BitVec> ApprovalDistribution::get_assignment_core_indices(
+  const approval::AssignmentCertKindV2 &assignment,
+  const CandidateHash &candidate_hash,
+  const BlockEntry &block_entry
+) {
+  return visit_in_place(
+    assignment,
+    [&](const kagome::parachain::approval::RelayVRFModuloCompact &value) -> std::optional<scale::BitVec> {
+      return value.core_bitfield;
+    },
+    [&](const kagome::parachain::approval::RelayVRFModulo &value) -> std::optional<scale::BitVec> {
+      for (const auto &[core_index, h] : block_entry.candidates) {
+        if (candidate_hash == h) {
+          scale::BitVec v;
+          v.bits.resize(core_index + 1);
+          v.bits[core_index] = true;
+          return v;
+        }
+      }
+      return std::nullopt;
+    },
+    [&](const kagome::parachain::approval::RelayVRFDelay &value) -> std::optional<scale::BitVec> {
+      scale::BitVec v;
+      v.bits.resize(value.core_index + 1);
+      v.bits[value.core_index] = true;
+      return v;
+    });
+}
+
+std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
+  const scale::BitVec &core_indices,
+  const BlockEntry &block_entry
+) {
+    std::vector<uint32_t> candidate_indices;
+    std::ignore = approval::iter_ones(core_indices, [&](const auto claimed_core_index) -> outcome::result<void> {
+      for (uint32_t candidate_index = 0; candidate_index < block_entry.candidates.size(); ++candidate_index) {
+        const auto &[core_index, _] = block_entry.candidates[candidate_index];
+        if (core_index == claimed_core_index) {
+          candidate_indices.emplace_back(candidate_index);
+          return outcome::success();
+        }
+      }
+      return outcome::success();
+    });
+
+    scale::BitVec v;
+    for (const auto candidate_index : candidate_indices) {
+      if (candidate_index >= v.bits.size()) {
+        v.bits.resize(candidate_index + 1);
+      }
+      v.bits[candidate_index] = true;
+    }
+
+    if (v.bits.empty()) {
+      return std::nullopt;
+    }
+
+    return v;
+}
+
 
   void ApprovalDistribution::imported_block_info(
       const primitives::BlockHash &block_hash,
@@ -2862,7 +2861,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto &block_entry = opt_block_entry->get();
+    auto &block_entry = *opt_block_entry;
     auto &candidate_entry = opt_candidate_entry->get();
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
@@ -2946,9 +2945,9 @@ namespace kagome::parachain {
 
 
       if (auto claimed_core_indices = get_assignment_core_indices(indirect_cert.cert.kind, candidate_hash, block_entry)) {
-        if (auto claimed_candidate_indices = cores_to_candidate_indices(claimed_core_indices, block_entry)) {
+        if (auto claimed_candidate_indices = cores_to_candidate_indices(*claimed_core_indices, block_entry)) {
           bool distribute_assignment;
-          if (approval::count_ones(claimed_candidate_indices) > 1) {
+          if (approval::count_ones(*claimed_candidate_indices) > 1) {
             distribute_assignment = !block_entry.mark_assignment_distributed(*claimed_candidate_indices);
           } else {
             distribute_assignment = true;
@@ -2958,7 +2957,7 @@ namespace kagome::parachain {
           runLaunchApproval(indirect_cert,
                             tranche,
                             block_hash,
-                            CandidateIndex(*i),
+                            *claimed_candidate_indices,
                             block_entry.session,
                             candidate_entry.candidate,
                             backing_group);
@@ -2986,8 +2985,8 @@ namespace kagome::parachain {
       StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
       const libp2p::peer::PeerId &peer_id,
       const network::View &view) {
-    std::deque<network::Assignment> assignments_to_send;
-    std::deque<network::IndirectSignedApprovalVote> approvals_to_send;
+    std::deque<network::vstaging::Assignment> assignments_to_send;
+    std::deque<approval::IndirectSignedApprovalVoteV2> approvals_to_send;
 
     const auto view_finalized_number = view.finalized_number_;
     for (const auto &head : view.heads_) {
@@ -3015,14 +3014,14 @@ namespace kagome::parachain {
                 message_state.approval_state,
                 [](const DistribApprovalStateAssigned &cert)
                     -> std::pair<
-                        std::reference_wrapper<const approval::AssignmentCert>,
+                        std::reference_wrapper<const approval::AssignmentCertV2>,
                         std::optional<
                             std::reference_wrapper<const ValidatorSignature>>> {
                   return std::make_pair(std::cref(cert), std::nullopt);
                 },
                 [](const DistribApprovalStateApproved &val)
                     -> std::pair<
-                        std::reference_wrapper<const approval::AssignmentCert>,
+                        std::reference_wrapper<const approval::AssignmentCertV2>,
                         std::optional<
                             std::reference_wrapper<const ValidatorSignature>>> {
                   const auto &[cert, sig] = val;
