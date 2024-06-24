@@ -17,7 +17,7 @@ on:
         options:
           - Release
           - Debug
-          - ReleaseWithDebInfo
+          - RelWithDebInfo
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -60,13 +60,16 @@ jobs:
           ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
           REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          PACKAGE_VERSION="${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
+          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
+          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
           gcloud config set artifacts/repository $ARTIFACTS_REPO
           gcloud config set artifacts/location $REGION
-          PACKAGE_EXIST=$(gcloud artifacts versions list --package=kagome-dev --format=json | jq -e '.[] | select(.name | endswith("${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"))' > /dev/null && echo "True" || echo "False")
-          echo "PACKAGE_EXIST=${PACKAGE_EXIST}" >> $GITHUB_ENV
+          PACKAGE_EXIST=$(gcloud artifacts versions list --package=kagome-dev --format=json | jq -e ".[] | select(.name | endswith(\"${PACKAGE_VERSION}\"))" > /dev/null && echo "True" || echo "False")
+          echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: github.env.PACKAGE_EXIST == 'False'
+        if: env.package_exist == 'False'
         uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATH }}
@@ -74,7 +77,7 @@ jobs:
           #save-always: true
 
       - name: "Build target"
-        if: github.env.PACKAGE_EXIST == 'False'
+        if: env.package_exist == 'False'
         working-directory: ./housekeeping/docker/kagome-dev
         run: make kagome_dev_docker_build \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
@@ -83,7 +86,7 @@ jobs:
           BUILD_TYPE=${{ github.event.inputs.build_type }}
 
       - name: "Push Kagome APT Package"
-        if: github.env.PACKAGE_EXIST == 'False'
+        if: env.package_exist == 'False'
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
