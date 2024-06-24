@@ -7,3 +7,4 @@ polkadot
 cargo/
 pkg/
 polkadot_binary/
+kagome_runtime/
