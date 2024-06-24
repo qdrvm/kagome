@@ -128,6 +128,19 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
         
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+        
       - name: "Get Polkadot and Zombienet versions"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
@@ -150,7 +163,10 @@ jobs:
         
       - name: "Run test"
         working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} KAGOME_PACKAGE_VERSION=${{ env.package_version }}
+        run: |
+          make ${{ matrix.options.test }} \
+            ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} \
+            KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
         
       - name: "Upload test logs as artifact"
         if: always()
