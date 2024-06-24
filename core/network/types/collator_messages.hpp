@@ -183,10 +183,11 @@ namespace kagome::network {
    * Sent by nodes to the clients who issued a chunk fetching request.
    */
   struct Chunk {
-    SCALE_TIE(2);
+    SCALE_TIE(3);
 
     common::Buffer data;  /// chunk data
     ChunkProof proof;     /// chunk proof
+    uint32_t chunk_index;     /// index of the chunk
   };
   using FetchChunkResponse = boost::variant<Chunk, Empty>;
   using FetchAvailableDataRequest = CandidateHash;

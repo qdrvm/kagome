@@ -44,7 +44,7 @@ namespace kagome::network {
             FetchChunkResponse,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,
                                     host,
-                                    make_protocols(kFetchChunkProtocol,
+                                    make_protocols(kFetchChunkProtocolV2,
                                                    genesis_hash,
                                                    kProtocolPrefixPolkadot),
                                     log::createLogger(kFetchChunkProtocolName,

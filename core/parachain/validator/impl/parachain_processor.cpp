@@ -3219,6 +3219,7 @@ namespace kagome::parachain {
       return network::Chunk{
           .data = chunk->chunk,
           .proof = chunk->proof,
+          .chunk_index = request.chunk_index,
       };
     }
     return network::FetchChunkResponse{};
