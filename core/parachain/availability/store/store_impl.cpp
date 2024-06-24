@@ -102,6 +102,17 @@ namespace kagome::parachain {
     });
   }
 
+  void AvailabilityStoreImpl::printStoragesLoad() {
+    state_.sharedAccess([&](auto &state) {
+      SL_TRACE(logger,
+               "[Availability store statistics]:"
+               "\n\t-> state.candidates={}"
+               "\n\t-> state.per_candidate={}",
+               state.candidates_.size(),
+               state.per_candidate_.size());
+    });
+  }
+
   void AvailabilityStoreImpl::storeData(const network::RelayHash &relay_parent,
                                         const CandidateHash &candidate_hash,
                                         std::vector<ErasureChunk> &&chunks,

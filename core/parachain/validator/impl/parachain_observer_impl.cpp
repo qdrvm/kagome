@@ -53,7 +53,8 @@ namespace kagome::parachain {
               [&](network::CollatorAdvertisement &&collation_adv) {
                 onAdvertise(peer_id,
                             std::move(collation_adv.relay_parent),
-                            std::nullopt);
+                            std::nullopt,
+                            network::CollationVersion::V1);
               },
               [&](auto &&) {
                 SL_WARN(logger_, "Unexpected V1 collation message from.");
@@ -80,7 +81,8 @@ namespace kagome::parachain {
                       std::move(collation_adv.relay_parent),
                       std::make_pair(
                           std::move(collation_adv.candidate_hash),
-                          std::move(collation_adv.parent_head_data_hash)));
+                          std::move(collation_adv.parent_head_data_hash)),
+                      network::CollationVersion::VStaging);
                 },
                 [&](auto &&) {
                   SL_WARN(logger_,
@@ -135,33 +137,10 @@ namespace kagome::parachain {
   void ParachainObserverImpl::onAdvertise(
       const libp2p::peer::PeerId &peer_id,
       primitives::BlockHash relay_parent,
-      std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
-    const auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
-      logger_->warn("Received collation advertisement from unknown peer {}",
-                    peer_id);
-      return;
-    }
-
-    auto result = pm_->retrieveCollatorData(peer_state->get(), relay_parent);
-    if (!result) {
-      logger_->warn(
-          "Retrieve collator {} data failed: {}", peer_id, result.error());
-      return;
-    }
-
+      std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate,
+      network::CollationVersion collator_protocol_version) {
     processor_->handleAdvertisement(
-        network::CollationEvent{
-            .collator_id = result.value().first,
-            .pending_collation =
-                {
-                    .relay_parent = relay_parent,
-                    .para_id = result.value().second,
-                    .peer_id = peer_id,
-                    .commitments_hash = {},
-                },
-        },
-        std::move(prospective_candidate));
+        relay_parent, peer_id, std::move(prospective_candidate));
   }
 
   void ParachainObserverImpl::onDeclare(const libp2p::peer::PeerId &peer_id,

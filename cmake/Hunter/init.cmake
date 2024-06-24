@@ -26,5 +26,11 @@ set(HUNTER_CACHE_SERVERS
     CACHE STRING "Binary cache server"
 )
 
+# https://hunter.readthedocs.io/en/latest/reference/user-variables.html#hunter-use-cache-servers
+# set(
+#     HUNTER_USE_CACHE_SERVERS NO
+#     CACHE STRING "Disable binary cache"
+# )
+
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/hunter-gate-url.cmake)

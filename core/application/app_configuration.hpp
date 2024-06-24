@@ -237,13 +237,6 @@ namespace kagome::application {
     virtual RuntimeInterpreter runtimeInterpreter() const = 0;
 
     /**
-     * A flag marking if we use and store precompiled WAVM runtimes.
-     * Significantly increases node restart speed. Especially useful when
-     * debugging.
-     */
-    virtual bool useWavmCache() const = 0;
-
-    /**
      * A flag marking if we must force-purge WAVM runtime cache
      */
     virtual bool purgeWavmCache() const = 0;

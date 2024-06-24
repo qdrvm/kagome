@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <openssl/evp.h>
+#include <openssl/chacha.h>
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -17,11 +17,8 @@ namespace kagome::crypto {
   /// https://github.com/rust-random/rand
   class RandChaCha20 {
    public:
-    RandChaCha20(std::span<const uint8_t, 32> seed)
-        : ctx_{EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free},
-          index_{block_.size()} {
-      check(EVP_EncryptInit(ctx_.get(), EVP_chacha20(), seed.data(), nullptr));
-    }
+    using Seed = std::array<uint8_t, 32>;
+    RandChaCha20(const Seed &seed) : seed_{seed} {}
 
     template <std::ranges::contiguous_range R>
     void shuffle(R &&items) {
@@ -32,25 +29,27 @@ namespace kagome::crypto {
     }
 
    private:
-    void check(int r) {
-      if (r != 1) {
-        throw std::logic_error{"RandChaCha20"};
-      }
-    }
-
     using Block = std::array<uint32_t, 64>;
     Block block() {
-      std::array<uint8_t, sizeof(Block)> zero{};
+      const std::array<uint8_t, sizeof(Block)> zero{};
       Block r;
-      int len = 0;
-      check(EVP_CipherUpdate(ctx_.get(),
-                             reinterpret_cast<uint8_t *>(r.data()),
-                             &len,
-                             zero.data(),
-                             zero.size()));
-      if (len != zero.size()) {
-        throw std::logic_error{"RandChaCha20"};
+      std::array<uint8_t, 12> nonce_{};
+      CRYPTO_chacha_20(reinterpret_cast<uint8_t *>(r.data()),
+                       zero.data(),
+                       zero.size(),
+                       seed_.data(),
+                       nonce_.data(),
+                       counter_);
+
+      constexpr size_t kChachaBlock = 64;
+      // check BoringSSL u32 counter overflow (after generating 256GB)
+      // https://github.com/pyca/cryptography/issues/8956#issuecomment-1570582021
+      if (counter_ >= 0x100000000) {
+        throw std::runtime_error{"RandChaCha20 overflow"};
       }
+      static_assert(zero.size() % kChachaBlock == 0);
+      counter_ += zero.size() / kChachaBlock;
+
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
       for (auto &x : r) {
         x = __builtin_bswap32(x);
@@ -74,8 +73,9 @@ namespace kagome::crypto {
       }
     }
 
-    std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX *)> ctx_;
+    Seed seed_;
+    uint64_t counter_ = 0;
     Block block_;
-    size_t index_;
+    size_t index_ = block_.size();
   };
 }  // namespace kagome::crypto

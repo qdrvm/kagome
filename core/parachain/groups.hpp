@@ -40,6 +40,15 @@ namespace kagome::parachain {
       }
     }
 
+    bool all_empty() const {
+      for (const auto &[_, group] : groups) {
+        if (!group.empty()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     std::optional<GroupIndex> byValidatorIndex(
         ValidatorIndex validator_index) const {
       auto it = by_validator_index.find(validator_index);
