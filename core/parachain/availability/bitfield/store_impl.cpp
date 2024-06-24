@@ -26,6 +26,13 @@ namespace kagome::parachain {
     bitfields_.erase(relay_parent);
   }
 
+  void BitfieldStoreImpl::printStoragesLoad() {
+    SL_TRACE(logger_,
+             "[Bitfield store statistics]:"
+             "\n\t-> bitfields_={}",
+             bitfields_.size());
+  }
+
   std::vector<BitfieldStore::SignedBitfield> BitfieldStoreImpl::getBitfields(
       const BlockHash &relay_parent) const {
     auto it = bitfields_.find(relay_parent);

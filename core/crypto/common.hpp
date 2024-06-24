@@ -7,15 +7,12 @@
 #pragma once
 
 #include <cstdint>
-#include <mutex>
 #include <type_traits>
 
-#include <openssl/crypto.h>
-#include <boost/assert.hpp>
+#include <openssl/mem.h>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "log/logger.hpp"
 
 namespace kagome::crypto {
 
@@ -65,12 +62,16 @@ namespace kagome::crypto {
   SecureCleanGuard(common::Blob<N> &&) -> SecureCleanGuard<uint8_t, N>;
 
   inline std::once_flag secure_heap_init_flag{};
-  inline log::Logger secure_heap_logger;
 
-  /**
-   * An allocator on the OpenSSL secure heap
-   */
-  template <typename T, size_t HeapSize = 16384, size_t MinAllocationSize = 32>
+  // TODO(turuslan): #2129 secure allocator
+  /*
+  May copy OpenSSL code or reimplement custom allocator.
+
+  OpenSSL (https://github.com/openssl/openssl/blob/master/crypto/mem_sec.c)
+  prevents swap to disk (https://linux.die.net/man/2/mlock) and core dump to
+  disk (https://linux.die.net/man/2/madvise MADV_DONTDUMP).
+  */
+  template <typename T>
   class SecureHeapAllocator {
    public:
     using value_type = T;
@@ -79,22 +80,11 @@ namespace kagome::crypto {
 
     template <typename U>
     struct rebind {
-      using other = SecureHeapAllocator<U, HeapSize, MinAllocationSize>;
+      using other = SecureHeapAllocator<U>;
     };
 
     static pointer allocate(size_type n) {
-      std::call_once(secure_heap_init_flag, []() {
-        if (CRYPTO_secure_malloc_init(HeapSize, MinAllocationSize) != 1) {
-          throw std::runtime_error{"Failed to allocate OpenSSL secure heap"};
-        }
-        secure_heap_logger = log::createLogger("SecureAllocator", "crypto");
-      });
-      BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
-      auto p = OPENSSL_secure_malloc(n * sizeof(T));
-      SL_TRACE(secure_heap_logger,
-               "allocated {} bytes in secure heap, {} used",
-               OPENSSL_secure_actual_size(p),
-               CRYPTO_secure_used());
+      auto p = OPENSSL_malloc(n * sizeof(T));
       if (p == nullptr) {
         throw std::bad_alloc{};
       }
@@ -103,12 +93,7 @@ namespace kagome::crypto {
     }
 
     static void deallocate(pointer p, size_type) noexcept {
-      BOOST_ASSERT(CRYPTO_secure_malloc_initialized());
-      SL_TRACE(secure_heap_logger,
-               "free {} bytes in secure heap, {} used",
-               OPENSSL_secure_actual_size(p),
-               CRYPTO_secure_used());
-      OPENSSL_secure_free(p);
+      OPENSSL_free(p);
     }
 
     bool operator==(const SecureHeapAllocator &) const = default;

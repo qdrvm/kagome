@@ -25,7 +25,7 @@ requests = { memory = "2G", cpu = "1" }
   count = 1
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = ["--wasm-execution Compiled --unsafe-cached-wavm-runtime"]
+  args = ["--wasm-execution Compiled"]
 
   [[relaychain.node_groups]]
   name = "malus-validator"

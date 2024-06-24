@@ -42,6 +42,8 @@ namespace kagome::parachain {
     MOCK_METHOD(void, onActivateLeaf, (const RelayHash &), (override));
 
     MOCK_METHOD(void, onDeactivateLeaf, (const RelayHash &), (override));
+
+    MOCK_METHOD(void, printStoragesLoad, (), (override));
   };
 
 }  // namespace kagome::parachain

@@ -85,6 +85,7 @@ namespace kagome::parachain {
 
     void onActivateLeaf(const RelayHash &relay_parent) override;
     void onDeactivateLeaf(const RelayHash &relay_parent) override;
+    void printStoragesLoad() override;
 
    private:
     struct AuthorityData {
@@ -113,11 +114,11 @@ namespace kagome::parachain {
       }
     }
 
-    bool is_in_group(
+    bool is_member_of(
         const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
         GroupIndex group,
-        ValidatorIndex authority);
+        ValidatorIndex authority) const;
 
     outcome::result<std::optional<BackingStore::ImportResult>> validity_vote(
         PerRelayParent &state,
@@ -138,6 +139,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::unordered_map<RelayHash, PerRelayParent> per_relay_parent_;
+    log::Logger logger = log::createLogger("BackingStore", "parachain");
   };
 }  // namespace kagome::parachain
 

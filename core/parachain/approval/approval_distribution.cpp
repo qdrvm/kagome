@@ -678,31 +678,31 @@ namespace kagome::parachain {
     REINVOKE(*approval_thread_handler_, clearCaches, event);
 
     approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-      for (const auto &lost : event) {
+      for (const auto &lost : event.removed) {
         SL_TRACE(logger_,
                  "Cleaning up stale pending messages.(block hash={})",
-                 lost);
-        pending_known_.erase(lost);
-        active_tranches_.erase(lost);
-        approving_context_map_.erase(lost);
+                 lost.hash);
+        pending_known_.erase(lost.hash);
+        active_tranches_.erase(lost.hash);
+        approving_context_map_.erase(lost.hash);
         /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
-        if (auto block_entry = storedBlockEntries().get(lost)) {
+        if (auto block_entry = storedBlockEntries().get(lost.hash)) {
           for (const auto &candidate : block_entry->get().candidates) {
             recovery_->remove(candidate.second);
             storedCandidateEntries().extract(candidate.second);
             if (auto it_cached = approvals_cache.find(candidate.second);
                 it_cached != approvals_cache.end()) {
               ApprovalCache &approval_cache = it_cached->second;
-              approval_cache.blocks_.erase(lost);
+              approval_cache.blocks_.erase(lost.hash);
               if (approval_cache.blocks_.empty()) {
                 approvals_cache.erase(it_cached);
               }
             }
           }
-          storedBlockEntries().extract(lost);
+          storedBlockEntries().extract(lost.hash);
         }
-        storedDistribBlockEntries().extract(lost);
+        storedDistribBlockEntries().extract(lost.hash);
       }
     });
   }
@@ -1400,54 +1400,55 @@ namespace kagome::parachain {
       self->logger_->info(
           "Make exhaustive validation. Candidate hash {}, validator index "
           "{}, block hash {}",
-          hashed_candidate.getHash(),
-          validator_index,
-          block_hash);
-
-      runtime::ValidationCode &validation_code = *result.value();
-
-      auto cb = [weak_self{wself},
-                 hashed_candidate,
-                 session_index,
-                 validator_index,
-                 relay_block_hash](outcome::result<Pvf::Result> outcome) {
-        auto self = weak_self.lock();
-        if (not self) {
-          return;
-        }
-        const auto &candidate_receipt = hashed_candidate.get();
-        self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-          if (auto it = approvals_cache.find(hashed_candidate.getHash());
-              it != approvals_cache.end()) {
-            ApprovalCache &ac = it->second;
-            ac.approval_result = outcome.has_error()
-                                   ? ApprovalOutcome::Failed
-                                   : ApprovalOutcome::Approved;
-          }
-        });
-        if (outcome.has_error()) {
-          self->logger_->warn(
-              "Approval validation failed.(parachain id={}, relay parent={}). "
-              "Error: {}",
-              candidate_receipt.descriptor.para_id,
-              candidate_receipt.descriptor.relay_parent,
-              outcome.error());
-          self->dispute_coordinator_.get()->issueLocalStatement(
-              session_index,
               hashed_candidate.getHash(),
-              candidate_receipt,
-              false);
-        } else {
-          self->issue_approval(
-              hashed_candidate.getHash(), validator_index, relay_block_hash);
-        }
-      };
-      self->pvf_->pvfValidate(available_data.validation_data,
-                              available_data.pov,
-                              candidate_receipt,
-                              validation_code,
-                              std::move(cb));
-    };
+              validator_index,
+              block_hash);
+
+          runtime::ValidationCode &validation_code = *result.value();
+
+          auto cb = [weak_self{wself},
+                     hashed_candidate,
+                     session_index,
+                     validator_index,
+                     relay_block_hash](outcome::result<Pvf::Result> outcome) {
+            auto self = weak_self.lock();
+            if (not self) {
+              return;
+            }
+            const auto &candidate_receipt = hashed_candidate.get();
+            self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+              if (auto it = approvals_cache.find(hashed_candidate.getHash());
+                  it != approvals_cache.end()) {
+                ApprovalCache &ac = it->second;
+                ac.approval_result = outcome.has_error()
+                                       ? ApprovalOutcome::Failed
+                                       : ApprovalOutcome::Approved;
+              }
+            });
+            if (outcome.has_error()) {
+              self->logger_->warn(
+                  "Approval validation failed.(parachain id={}, relay "
+                  "parent={}, error={})",
+                  candidate_receipt.descriptor.para_id,
+                  candidate_receipt.descriptor.relay_parent,
+                  outcome.error());
+              self->dispute_coordinator_.get()->issueLocalStatement(
+                  session_index,
+                  hashed_candidate.getHash(),
+                  candidate_receipt,
+                  false);
+            } else {
+              self->issue_approval(hashed_candidate.getHash(),
+                                   validator_index,
+                                   relay_block_hash);
+            }
+          };
+          self->pvf_->pvfValidate(available_data.validation_data,
+                                  available_data.pov,
+                                  candidate_receipt,
+                                  validation_code,
+                                  std::move(cb));
+        };
 
     recovery_->recover(hashed_candidate,
                        session_index,

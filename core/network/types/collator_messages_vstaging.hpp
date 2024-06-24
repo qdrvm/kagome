@@ -137,6 +137,8 @@ namespace kagome::network::vstaging {
     }
   };
 
+  using SignedCompactStatement = IndexedAndSigned<CompactStatement>;
+
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
     auto p = visit_in_place(
         val.inner_value,
@@ -154,13 +156,40 @@ namespace kagome::network::vstaging {
     UNREACHABLE;
   }
 
+  inline CompactStatement from(const network::CompactStatement &stm) {
+    return visit_in_place(
+        stm,
+        [&](const network::CompactStatementSeconded &v) -> CompactStatement {
+          return CompactStatement(SecondedCandidateHash{
+              .hash = v,
+          });
+        },
+        [&](const network::CompactStatementValid &v) -> CompactStatement {
+          return CompactStatement(ValidCandidateHash{
+              .hash = v,
+          });
+        });
+  }
+
+  inline network::CompactStatement from(const CompactStatement &stm) {
+    return visit_in_place(
+        stm.inner_value,
+        [&](const SecondedCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementSeconded{v.hash};
+        },
+        [&](const ValidCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementValid{v.hash};
+        },
+        [&](const auto &) -> network::CompactStatement { UNREACHABLE; });
+  }
+
   /// A notification of a signed statement in compact form, for a given
   /// relay parent.
   struct StatementDistributionMessageStatement {
     SCALE_TIE(2);
 
     RelayHash relay_parent;
-    IndexedAndSigned<CompactStatement> compact;
+    SignedCompactStatement compact;
   };
 
   /// All messages for V1 for compatibility with the statement distribution
@@ -362,6 +391,75 @@ namespace kagome::network {
     V1 = 1,
     /// The staging version.
     VStaging = 2,
+  };
+
+  /// Candidate supplied with a para head it's built on top of.
+  /// polkadot/node/network/collator-protocol/src/validator_side/collation.rs
+  struct ProspectiveCandidate {
+    SCALE_TIE(2);
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Parent head-data hash as supplied in advertisement.
+    Hash parent_head_data_hash;
+  };
+
+  struct PendingCollation {
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Peer that advertised this collation.
+    libp2p::peer::PeerId peer_id;
+    /// Optional candidate hash and parent head-data hash if were
+    /// supplied in advertisement.
+    std::optional<ProspectiveCandidate> prospective_candidate;
+    /// Hash of the candidate's commitments.
+    std::optional<Hash> commitments_hash;
+  };
+
+  struct CollationEvent {
+    /// Collator id.
+    CollatorId collator_id;
+    /// The network protocol version the collator is using.
+    CollationVersion collator_protocol_version;
+    /// The requested collation data.
+    PendingCollation pending_collation;
+  };
+
+  struct PendingCollationFetch {
+    /// Collation identifier.
+    CollationEvent collation_event;
+    /// Candidate receipt.
+    CandidateReceipt candidate_receipt;
+    /// Proof of validity.
+    PoV pov;
+    /// Optional parachain parent head data.
+    /// Only needed for elastic scaling.
+    std::optional<HeadData> maybe_parent_head_data;
+  };
+
+  struct FetchedCollation {
+    SCALE_TIE(4);
+
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Id of the collator the collation was fetched from.
+    CollatorId collator_id;
+
+    static FetchedCollation from(const network::CandidateReceipt &receipt,
+                                 const crypto::Hasher &hasher) {
+      const auto &descriptor = receipt.descriptor;
+      return FetchedCollation{
+          .relay_parent = descriptor.relay_parent,
+          .para_id = descriptor.para_id,
+          .candidate_hash = receipt.hash(hasher),
+          .collator_id = descriptor.collator_id,
+      };
+    }
   };
 
   /**

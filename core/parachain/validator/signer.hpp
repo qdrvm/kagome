@@ -11,6 +11,7 @@
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome::parachain {
@@ -29,6 +30,10 @@ namespace kagome::parachain {
     static auto toSignable(const crypto::Hasher &hasher,
                            const network::Statement &v) {
       return toSignable(hasher, v.candidate_state);
+    }
+    static auto toSignable(const crypto::Hasher &,
+                           const network::vstaging::CompactStatement &v) {
+      return v;
     }
 
    public:

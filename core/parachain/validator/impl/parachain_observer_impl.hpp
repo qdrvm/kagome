@@ -65,7 +65,8 @@ namespace kagome::parachain {
     void onAdvertise(
         const libp2p::peer::PeerId &peer_id,
         primitives::BlockHash relay_parent,
-        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
+        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate,
+        network::CollationVersion collator_protocol_version);
 
     void onDeclare(const libp2p::peer::PeerId &peer_id,
                    network::CollatorPublicKey pubkey,

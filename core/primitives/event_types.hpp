@@ -48,7 +48,14 @@ namespace kagome::primitives::events {
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
-  using RemoveAfterFinalizationParams = std::vector<primitives::BlockHash>;
+  struct RemoveAfterFinalizationParams {
+    struct HeaderInfo {
+      primitives::BlockHash hash;
+      primitives::BlockNumber number;
+    };
+    std::vector<HeaderInfo> removed;
+    primitives::BlockNumber finalized;
+  };
 
   using ChainEventParams = boost::variant<std::nullopt_t,
                                           HeadsEventParams,

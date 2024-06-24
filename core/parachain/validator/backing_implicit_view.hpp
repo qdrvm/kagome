@@ -46,6 +46,15 @@ namespace kagome::parachain {
       return r;
     }
 
+    void printStoragesLoad() {
+      SL_TRACE(logger,
+               "[Backing implicit view statistics]:"
+               "\n\t-> leaves={}"
+               "\n\t-> block_info_storage={}",
+               leaves.size(),
+               block_info_storage.size());
+    }
+
     ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
 
    private:
@@ -71,6 +80,7 @@ namespace kagome::parachain {
     std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
     std::unordered_map<Hash, BlockInfo> block_info_storage;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
 
     outcome::result<FetchSummary> fetch_fresh_leaf_and_insert_ancestry(
         const Hash &leaf_hash);
