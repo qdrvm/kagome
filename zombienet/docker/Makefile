@@ -19,6 +19,7 @@ RESULT_BINARIES=./target/testnet/malus ./target/testnet/undying-collator ./targe
 RESULT_BIN_NAMES=malus undying-collator adder-collator
 
 POLKADOT_BINARY_PACKAGE_VERSION ?= 
+KAGOME_PACKAGE_VERSION ?=
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -48,7 +49,13 @@ POLKADOT_RELEASE_GLOBAL ?= v0.9.42
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
 	echo "Running test in container $$CONTAINER_NAME with params image:$(1), test:$(2)"; \
-	docker run --name $$CONTAINER_NAME --platform linux/amd64 $(1) "zombienet-linux-x64 test -p native $(2)"; \
+	docker run --name $$CONTAINER_NAME --platform linux/amd64 \
+	-u root \
+	-v ./kagome:/home/nonroot/bin/kagome \
+	-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+	$(1) "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
+		install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
+		zombienet-linux-x64 test -p native $(2)"; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \
