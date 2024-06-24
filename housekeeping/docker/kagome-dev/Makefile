@@ -121,6 +121,7 @@ runtime_cache:
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
 		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
+		-v ./kagome_runtime:/tmp/kagome_runtime \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
 		$(DOCKER_REGISTRY_PATH)zombie_tester:latest \
 		-c "tail -f /dev/null"; \
@@ -132,7 +133,7 @@ runtime_cache:
 		mkdir -p /tmp/kagome_runtime && \
 		cp -r /tmp/kagome/runtimes-cache/* /tmp/kagome_runtime && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
-		./build_apt_package.sh \
+		./build_apt_package_runtime.sh \
 			\"$${RUNTIME_VERSION}\" \
 			$(PACKAGE_ARCHITECTURE) \
 			kagome-dev-runtime \
@@ -152,4 +153,4 @@ upload_apt_package_runtime:
 	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_${RUNTIME_VERSION}_$(PACKAGE_ARCHITECTURE).deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./kagome_runtime/kagome-dev-runtime_${RUNTIME_VERSION}_$(PACKAGE_ARCHITECTURE).deb
