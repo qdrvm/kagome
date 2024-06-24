@@ -60,7 +60,7 @@ jobs:
           ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
           REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          PACKAGE_VERSION="${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
+          PACKAGE_VERSION="$(date +'%d.%m.%y')-${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
           echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
           echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
           gcloud config set artifacts/repository $ARTIFACTS_REPO

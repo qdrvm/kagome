@@ -48,7 +48,7 @@ POLKADOT_RELEASE_GLOBAL ?= v0.9.42
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
 	echo "Running test in container $$CONTAINER_NAME with params image:$(1), test:$(2)"; \
-	docker run --name $$CONTAINER_NAME --platform linux/amd64 $(1) zombienet-linux-x64 test -p native $(2); \
+	docker run --name $$CONTAINER_NAME --platform linux/amd64 $(1) "zombienet-linux-x64 test -p native $(2)"; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \

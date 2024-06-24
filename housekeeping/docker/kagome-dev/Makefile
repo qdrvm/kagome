@@ -88,7 +88,7 @@ kagome_dev_docker_build:
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		./build_apt_package.sh \
-			\"$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}\" \
+			\"$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}\" \
 			$(PACKAGE_ARCHITECTURE) \
 			kagome-dev \
 			/tmp/kagome \
@@ -106,4 +106,4 @@ upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}_$(PACKAGE_ARCHITECTURE).deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}_$(PACKAGE_ARCHITECTURE).deb
