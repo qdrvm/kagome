@@ -144,12 +144,13 @@ jobs:
           
       - name: "Get Zombie Tester Version"
         run: |
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie-tester:latest
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:latest
           echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
+          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
         
       - name: "Run test"
         working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} KAGOME_PACKAGE_VERSION=${{ env.PACKAGE_VERSION }}
+        run: make ${{ matrix.options.test }} ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} KAGOME_PACKAGE_VERSION=${{ env.package_version }}
         
       - name: "Upload test logs as artifact"
         if: always()

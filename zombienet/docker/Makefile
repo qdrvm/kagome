@@ -25,12 +25,12 @@ export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
 export BUILDKIT_PROGRESS=auto
 
-
+WORKING_DIR := $(shell pwd)/../../../kagome
 
 
 BRANCH_NAME ?= master
 KAGOME_IMAGE ?= qdrvm/kagome:latest
-ZOMBIE_TESTER_IMAGE ?= qdrvm/zombie-tester:latest
+ZOMBIE_TESTER_IMAGE ?= zombie_tester:latest
 ZOOMBIE_BUILDER_IMAGE ?= qdrvm/zombie-builder:testing
 CONTAINER_NAME ?= zombienet-test
 
@@ -48,14 +48,20 @@ POLKADOT_RELEASE_GLOBAL ?= v0.9.42
 
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
-	echo "Running test in container $$CONTAINER_NAME with params image:$(1), test:$(2)"; \
-	docker run --name $$CONTAINER_NAME --platform linux/amd64 \
-	-u root \
-	-v ./kagome:/home/nonroot/bin/kagome \
-	-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
-	$(1) "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
-		install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
-		zombienet-linux-x64 test -p native $(2)"; \
+	echo "Running test in container $$CONTAINER_NAME with params \n image:$(1), test:$(2) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
+	TEST_PATH=$$(echo $(2) | xargs); \
+	docker run --name $$CONTAINER_NAME \
+		--platform linux/amd64 \
+		--entrypoint "/bin/bash" \
+		-v $(WORKING_DIR):/home/nonroot/bin/kagome \
+		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+		-e TEST_PATH=$$TEST_PATH \
+		-e KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
+		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
+		$(1) \
+		-c "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
+			install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
+			zombienet-linux-x64 test -p native /home/nonroot/bin/$$TEST_PATH " ; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \
