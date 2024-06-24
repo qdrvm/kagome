@@ -79,6 +79,7 @@ kagome_dev_docker_build:
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome && \
 		git config --global --add safe.directory /opt/kagome && \
+		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $(pwd)\" && \
