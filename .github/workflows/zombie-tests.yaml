@@ -74,8 +74,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-${{ env.short_commit_hash }}
-          #save-always: true
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}
+          save-always: true
 
       - name: "Build target"
         if: env.package_exist == 'False'
@@ -96,7 +96,7 @@ jobs:
 
 
   Zombie-Tests:
-    runs-on: [ actions-runner-controller ]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
     strategy:
@@ -128,6 +128,18 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        
+      - name: Create and enable swap
+        run: |
+          free -h
+          df -h
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo swapon --show
+          free -h
+          df -h
         
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -167,7 +179,9 @@ jobs:
         run: |
           make ${{ matrix.options.test }} \
             ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} \
-            KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
+            KAGOME_PACKAGE_VERSION=${{ env.package_version }}
+          free -h
+          df -h
         
       - name: "Upload test logs as artifact"
         if: always()
@@ -176,6 +190,12 @@ jobs:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
   
+      - name: "Show system info"
+        if: always()
+        run: |
+          free -h
+          df -h
+        
 #  Prepare-Kagome-Docker:
 #    strategy:
 #      fail-fast: false
