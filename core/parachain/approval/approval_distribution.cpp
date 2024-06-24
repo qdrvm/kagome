@@ -114,7 +114,7 @@ namespace {
                                                     &cores,
                                                     &cores_out_sz,
                                                     &cores_cap)) {
-      scale::BitVec assignment_bitfield;
+      ::scale::BitVec assignment_bitfield;
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         const auto ci = cores[ix];
         if (ci >= assignment_bitfield.bits.size()) {
@@ -147,7 +147,7 @@ namespace {
 
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         const auto core_index = cores[ix];
-  			assignments.insert(core_index, assignment);
+  			assignments.emplace(core_index, assignment);
       }
 
 	    sr25519_clear_assigned_cores_v2(cores, cores_out_sz, cores_cap);
@@ -198,10 +198,10 @@ namespace {
         assignments.emplace(
             core,
             ApprovalDistribution::OurAssignment{
-                .cert =
+                .cert = approval::AssignmentCertV2::from(
                     approval::AssignmentCert{
                         .kind = approval::RelayVRFModulo{.sample = rvm_sample},
-                        .vrf = crypto::VRFOutput{.output = o, .proof = p}},
+                        .vrf = crypto::VRFOutput{.output = o, .proof = p}}),
                 .tranche = 0ul,
                 .validator_index = validator_ix,
                 .triggered = false});
@@ -252,7 +252,7 @@ namespace {
             core,
             ApprovalDistribution::OurAssignment{
                 .cert =
-                    approval::AssignmentCert{
+                    approval::AssignmentCertV2{
                         .kind = approval::RelayVRFDelay{.core_index = core},
                         .vrf = crypto::VRFOutput{.output = std::move(o),
                                                  .proof = std::move(p)}},
@@ -262,6 +262,68 @@ namespace {
       }
     }
   }
+
+// Returns the claimed core bitfield from the assignment cert, the candidate hash and a
+// `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot find the candidate hash
+// in the block entry which indicates a bug or corrupted storage.
+std::optional<scale::BitVec> get_assignment_core_indices(
+  const approval::AssignmentCertKindV2 &assignment,
+  const CandidateHash &candidate_hash,
+  const BlockEntry &block_entry
+) {
+  return visit_in_place(
+    assignment,
+    [&](const approval::RelayVRFModuloCompact &value) {
+      return value.core_bitfield;
+    },
+    [&](const approval::RelayVRFModulo &value) {
+      for (const auto &[core_index, h] : block_entry.candidates) {
+        if (candidate_hash == h) {
+          scale::BitVec v;
+          v.bits.resize(core_index + 1);
+          v.bits[core_index] = true;
+          return v;
+        }
+      }
+    },
+    [&](const approval::RelayVRFDelay &value) {
+      scale::BitVec v;
+      v.bits.resize(value.core_index + 1);
+      v.bits[value.core_index] = true;
+      return v;
+    });
+}
+
+std::optional<scale::BitVec> cores_to_candidate_indices(
+  const scale::BitVec &core_indices,
+  const BlockEntry &block_entry
+) {
+    std::vector<uint32_t> candidate_indices;
+    approval::iter_ones(core_indices, [&](const auto claimed_core_index) {
+      for (uint32_t candidate_index = 0; candidate_index < block_entry.candidates.size(); ++candidate_index) {
+        const auto &[core_index, _] = block_entry.candidates[candidate_index];
+        if (core_index == claimed_core_index) {
+          candidate_indices.emplace_back(candidate_index);
+          return outcome::success();
+        }
+      }
+      return outcome::success();
+    });
+
+    scale::BitVec v;
+    for (const auto candidate_index : candidate_indices) {
+      if (candidate_index >= v.bits.size()) {
+        v.bits.resize(candidate_index + 1);
+      }
+      v.bits[candidate_index] = true;
+    }
+
+    if (v.bits.empty()) {
+      return std::nullopt;
+    }
+
+    return v;
+}
 
   /// Determine the amount of tranches of assignments needed to determine
   /// approval of a candidate.
@@ -729,10 +791,11 @@ namespace kagome::parachain {
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
       const CandidateIncludedList &leaving_cores,
-      bool enable_v2_assignments) {
+      bool enable_v2_assignments,
+      log::Logger &logger) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
-      SL_TRACE(logger_,
+      SL_TRACE(logger,
                "Not producing assignments because config is degenerate. (n_cores={}, assignments_keys={}, validators_groups={})",
                config.n_cores, config.assignment_keys.size(), config.validator_groups.size());
       return {};
@@ -745,14 +808,14 @@ namespace kagome::parachain {
     }
 
     const auto &[index, assignments_key] = *found_key;
-    std::vector<CandidateHash, CoreIndex> lc;
+    std::vector<kagome::parachain::CoreIndex> lc;
     for (const auto &[c_hash, core, g] : leaving_cores) {
       if (!isInBackingGroup(config.validator_groups, index, g)) {
-        lc.emplace_back(c_hash, core_ix);
+        lc.emplace_back(core);
       }
     }
 
-    SL_TRACE(logger_, "Assigning to candidates from different backing groups. (assignable_cores={})", lc.size());
+    SL_TRACE(logger, "Assigning to candidates from different backing groups. (assignable_cores={})", lc.size());
 
     common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
     crypto::SecureCleanGuard g{keypair_buf};
@@ -811,7 +874,7 @@ namespace kagome::parachain {
              block_hash,
              std::move(context));
 
-    for_ACU(block_hash, [this, context{std::move(context)}](auto &acu) {
+    for_ACU(block_hash, [this, block_hash, context{std::move(context)}](auto &acu) {
       auto &&[included, session, babe_config] = std::move(context);
       auto &&[session_index, session_info] = std::move(session);
       auto &&[epoch_number, babe_block_header, authorities, randomness] =
@@ -823,7 +886,7 @@ namespace kagome::parachain {
       acu.second.authorities = std::move(authorities);
       acu.second.randomness = std::move(randomness);
 
-      this->try_process_approving_context(acu, session_index, session_info);
+      this->try_process_approving_context(acu, block_hash, session_index, session_info);
     });
   }
 
@@ -839,6 +902,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::try_process_approving_context(
       ApprovalDistribution::ApprovingContextUnit &acu,
+      const primitives::BlockHash &block_hash,
       SessionIndex session_index,
       const runtime::SessionInfo &session_info) {
     ApprovingContext &ac = acu.second;
@@ -856,7 +920,12 @@ namespace kagome::parachain {
         return;
     }
 
-    
+    bool enable_v2_assignments = false;
+    if (auto r = parachain_host_->node_features(block_hash, session_index); r.has_value()) {
+      if (r.value() && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2) {
+        enable_v2_assignments = r.value()->bits[runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2];
+      }
+    }
 
     approval::UnsafeVRFOutput unsafe_vrf{
         .vrf_output = ac.babe_block_header->vrf_output,
@@ -872,7 +941,7 @@ namespace kagome::parachain {
     }
 
     auto assignments = compute_assignments(
-        keystore_, session_info, relay_vrf, *ac.included_candidates);
+        keystore_, session_info, relay_vrf, *ac.included_candidates, enable_v2_assignments, logger_);
 
     /// TODO(iceseer): force approve impl
 
@@ -2785,7 +2854,7 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
-    auto opt_block_entry = storedBlockEntries().get(block_hash);
+    auto opt_block_entry = storedBlockEntries().extract(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
 
     if (!opt_block_entry || !opt_candidate_entry) {
@@ -2868,22 +2937,42 @@ namespace kagome::parachain {
           .cert = cert.get(),
       };
 
-      get_assignment_core_indices
-      if (auto i = block_entry.candidateIxByHash(candidate_hash)) {
-        SL_TRACE(logger_,
-                 "Launching approval work. (candidate_hash={}, para_id={}, "
-                 "block_hash={})",
-                 candidate_hash,
-                 candidate_receipt.descriptor.para_id,
-                 block_hash);
+      SL_TRACE(logger_,
+               "Launching approval work. (candidate_hash={}, para_id={}, "
+               "block_hash={})",
+               candidate_hash,
+               candidate_receipt.descriptor.para_id,
+               block_hash);
 
-        runLaunchApproval(indirect_cert,
-                          tranche,
-                          block_hash,
-                          CandidateIndex(*i),
-                          block_entry.session,
-                          candidate_entry.candidate,
-                          backing_group);
+
+      if (auto claimed_core_indices = get_assignment_core_indices(indirect_cert.cert.kind, candidate_hash, block_entry)) {
+        if (auto claimed_candidate_indices = cores_to_candidate_indices(claimed_core_indices, block_entry)) {
+          bool distribute_assignment;
+          if (approval::count_ones(claimed_candidate_indices) > 1) {
+            distribute_assignment = !block_entry.mark_assignment_distributed(*claimed_candidate_indices);
+          } else {
+            distribute_assignment = true;
+          }
+
+          storedBlockEntries().set(block_hash, BlockEntry(block_entry));
+          runLaunchApproval(indirect_cert,
+                            tranche,
+                            block_hash,
+                            CandidateIndex(*i),
+                            block_entry.session,
+                            candidate_entry.candidate,
+                            backing_group);
+
+        } else {
+          SL_WARN(logger_,
+                   "Failed to create assignment bitfield. (block_hash={})",
+                   block_hash);
+        }
+      } else {
+        SL_WARN(logger_,
+                 "Cannot get assignment claimed core indices. (candidate_hash={}, block_hash={})",
+                 candidate_hash,
+                 block_hash);
       }
     }
 

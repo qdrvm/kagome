@@ -302,7 +302,7 @@ namespace kagome::parachain {
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
         const CandidateIncludedList &leaving_cores,
-        bool enable_v2_assignments);
+        bool enable_v2_assignments, log::Logger &logger);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
@@ -398,14 +398,22 @@ namespace kagome::parachain {
       SessionIndex session;
       consensus::SlotNumber slot;
       RelayVRFStory relay_vrf_story;
+
       // The candidates included as-of this block and the index of the core they
       // are leaving. Sorted ascending by core index.
       std::vector<std::pair<CoreIndex, CandidateHash>> candidates;
+
       // A bitfield where the i'th bit corresponds to the i'th candidate in
       // `candidates`. The i'th bit is `true` iff the candidate has been
       // approved in the context of this block. The block can be considered
       // approved if the bitfield has all bits set to `true`.
       scale::BitVec approved_bitfield;
+
+      // A list of assignments for which we already distributed the assignment.
+      // We use this to ensure we don't distribute multiple core assignments twice as we track
+      // individual wakeups for each core.
+      scale::BitVec distributed_assignments;
+
       std::vector<Hash> children;
 
       std::optional<CandidateIndex> candidateIxByHash(
@@ -439,6 +447,21 @@ namespace kagome::parachain {
           return approved_bitfield.bits[*pos];
         }
         return false;
+      }
+
+      /// Mark distributed assignment for many candidate indices.
+      /// Returns `true` if an assignment was already distributed for the `candidates`.
+      bool mark_assignment_distributed(const scale::BitVec &bitfield) {
+        const auto total_one_bits = approval::count_ones(distributed_assignments);
+        const auto new_len = std::max(distributed_assignments.bits.size(), bitfield.bits.size());
+
+        distributed_assignments.bits.resize(new_len);
+        for (size_t ix = 0; ix < bitfield.bits.size(); ++ix) {
+          distributed_assignments.bits[ix] = distributed_assignments.bits[ix] || bitfield.bits[ix];
+        }
+
+        const auto distributed = (total_one_bits == approval::count_ones(distributed_assignments));
+        return distributed;
       }
     };
 
@@ -547,6 +570,7 @@ namespace kagome::parachain {
 
     void try_process_approving_context(
         ApprovingContextUnit &acu,
+        const primitives::BlockHash &block_hash,
         SessionIndex session_index,
         const runtime::SessionInfo &session_info);
 
