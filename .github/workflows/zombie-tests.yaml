@@ -95,7 +95,7 @@ jobs:
 
 
   Zombie-Tests:
-    runs-on: ubuntu-latest
+    runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
     strategy:
