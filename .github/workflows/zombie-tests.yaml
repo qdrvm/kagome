@@ -71,11 +71,11 @@ jobs:
 
       - name: "Cache dependencies"
         if: env.package_exist == 'False'
-        uses: actions/cache@v4
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}
-          save-always: true
 
       - name: "Build target"
         if: env.package_exist == 'False'
@@ -93,6 +93,14 @@ jobs:
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
           make upload_apt_package \
           BUILD_TYPE=${{ github.event.inputs.build_type }}
+
+      - name: "Always Save Cache"
+        id: cache-save
+        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
 
   Zombie-Tests:
@@ -133,7 +141,7 @@ jobs:
         run: |
           free -h
           df -h
-          sudo fallocate -l 4G /swapfile
+          sudo fallocate -l 8G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
