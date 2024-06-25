@@ -1224,63 +1224,63 @@ namespace kagome::parachain {
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
-    auto on_recover_complete = [wself{weak_from_this()},
-                                hashed_candidate{hashed_candidate},
-                                block_hash,
-                                session_index,
-                                validator_index,
-                                relay_block_hash](
-                                   std::optional<
-                                       outcome::result<runtime::AvailableData>>
-                                       &&opt_result) mutable {
-      auto self = wself.lock();
-      if (!self) {
-        return;
-      }
+    auto on_recover_complete =
+        [wself{weak_from_this()},
+         hashed_candidate{hashed_candidate},
+         block_hash,
+         session_index,
+         validator_index,
+         relay_block_hash](
+            std::optional<outcome::result<runtime::AvailableData>>
+                &&opt_result) mutable {
+          auto self = wself.lock();
+          if (!self) {
+            return;
+          }
 
-      const auto &candidate_receipt = hashed_candidate.get();
-      if (!opt_result) {  // Unavailable
-        self->logger_->warn(
-            "No available parachain data.(session index={}, candidate "
-            "hash={}, relay block hash={})",
-            session_index,
-            hashed_candidate.getHash(),
-            relay_block_hash);
-        return;
-      }
+          const auto &candidate_receipt = hashed_candidate.get();
+          if (!opt_result) {  // Unavailable
+            self->logger_->warn(
+                "No available parachain data.(session index={}, candidate "
+                "hash={}, relay block hash={})",
+                session_index,
+                hashed_candidate.getHash(),
+                relay_block_hash);
+            return;
+          }
 
-      if (opt_result->has_error()) {
-        self->logger_->warn(
-            "Parachain data recovery failed.(error={}, session index={}, "
-            "candidate hash={}, relay block hash={})",
-            opt_result->error(),
-            session_index,
-            hashed_candidate.getHash(),
-            relay_block_hash);
-        self->dispute_coordinator_.get()->issueLocalStatement(
-            session_index,
-            hashed_candidate.getHash(),
-            hashed_candidate.get(),
-            false);
-        return;
-      }
-      auto &available_data = opt_result->value();
-      auto result = self->parachain_host_->validation_code_by_hash(
-          block_hash, candidate_receipt.descriptor.validation_code_hash);
-      if (result.has_error() || !result.value()) {
-        self->logger_->warn(
-            "Approval state is failed. Block hash {}, session index {}, "
-            "validator index {}, relay parent {}",
-            block_hash,
-            session_index,
-            validator_index,
-            candidate_receipt.descriptor.relay_parent);
-        return;  /// ApprovalState::failed
-      }
+          if (opt_result->has_error()) {
+            self->logger_->warn(
+                "Parachain data recovery failed.(error={}, session index={}, "
+                "candidate hash={}, relay block hash={})",
+                opt_result->error(),
+                session_index,
+                hashed_candidate.getHash(),
+                relay_block_hash);
+            self->dispute_coordinator_.get()->issueLocalStatement(
+                session_index,
+                hashed_candidate.getHash(),
+                hashed_candidate.get(),
+                false);
+            return;
+          }
+          auto &available_data = opt_result->value();
+          auto result = self->parachain_host_->validation_code_by_hash(
+              block_hash, candidate_receipt.descriptor.validation_code_hash);
+          if (result.has_error() || !result.value()) {
+            self->logger_->warn(
+                "Approval state is failed. Block hash {}, session index {}, "
+                "validator index {}, relay parent {}",
+                block_hash,
+                session_index,
+                validator_index,
+                candidate_receipt.descriptor.relay_parent);
+            return;  /// ApprovalState::failed
+          }
 
-      self->logger_->info(
-          "Make exhaustive validation. Candidate hash {}, validator index "
-          "{}, block hash {}",
+          self->logger_->info(
+              "Make exhaustive validation. Candidate hash {}, validator index "
+              "{}, block hash {}",
               hashed_candidate.getHash(),
               validator_index,
               block_hash);

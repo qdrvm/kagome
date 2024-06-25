@@ -13,6 +13,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 #include <libp2p/protocol/ping.hpp>
 
+#include "authority_discovery/query/query.hpp"
 #include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
@@ -87,7 +88,8 @@ namespace kagome::network {
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ReputationRepository> reputation_repository,
-      std::shared_ptr<PeerView> peer_view)
+      std::shared_ptr<PeerView> peer_view,
+      std::shared_ptr<authority_discovery::Query> authority_discovery)
       : log_{log::createLogger("PeerManager", "network")},
         host_(host),
         main_pool_handler_{poolHandlerReadyMake(
@@ -104,7 +106,8 @@ namespace kagome::network {
         storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
-        peer_view_{std::move(peer_view)} {
+        peer_view_{std::move(peer_view)},
+        authority_discovery_{std::move(authority_discovery)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
@@ -115,6 +118,7 @@ namespace kagome::network {
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
+    BOOST_ASSERT(authority_discovery_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -309,7 +313,6 @@ namespace kagome::network {
 
     clearClosedPingingConnections();
 
-    // disconnect from peers with negative reputation
     using PriorityType = int32_t;
     using ItemType = std::pair<PriorityType, PeerId>;
 
@@ -324,6 +327,14 @@ namespace kagome::network {
         std::chrono::duration_cast<std::chrono::milliseconds>(peer_ttl).count();
 
     for (const auto &[peer_id, desc] : active_peers_) {
+      // Skip peer having immunity
+      // TODO(xDimon): it's validators now.
+      //  Probably is needed to limit them by common core
+      auto authority_id_opt = authority_discovery_->get(peer_id);
+      if (authority_id_opt.has_value()) {
+        continue;
+      }
+
       const uint64_t last_activity_ms =
           std::chrono::time_point_cast<std::chrono::milliseconds>(
               desc.time_point)
@@ -335,6 +346,7 @@ namespace kagome::network {
       [[maybe_unused]] bool activity_timeout =
           last_activity_ms + idle_ms < now_ms;
 
+      // disconnect from peers with negative reputation
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
       if (peer_reputation < kDisconnectReputation) {
         peers_list.push_back(

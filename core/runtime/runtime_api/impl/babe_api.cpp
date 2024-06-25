@@ -53,7 +53,6 @@ namespace kagome::runtime {
         key_owner_proof);
   }
 
-
   outcome::result<std::vector<consensus::AuthorityIndex>>
   BabeApiImpl::disabled_validators(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
