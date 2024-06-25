@@ -13,7 +13,7 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
-  class Memory;
+  class MemoryHandle;
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
@@ -35,16 +35,25 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
+  class MemoryAllocator {
+   public:
+    virtual ~MemoryAllocator() = default;
+
+    virtual WasmPointer allocate(WasmSize size) = 0;
+    virtual void deallocate(WasmPointer ptr) = 0;
+  };
+
   /**
    * Implementation of allocator for the runtime memory
    * Combination of monotonic and free-list allocator
    */
-  class MemoryAllocator final {
+  class MemoryAllocatorImpl final : public MemoryAllocator {
    public:
-    MemoryAllocator(Memory &memory, const struct MemoryConfig &config);
+    MemoryAllocatorImpl(std::shared_ptr<MemoryHandle> memory,
+                        const struct MemoryConfig &config);
 
-    WasmPointer allocate(WasmSize size);
-    void deallocate(WasmPointer ptr);
+    WasmPointer allocate(WasmSize size) override;
+    void deallocate(WasmPointer ptr) override;
 
     /*
       Following methods are needed mostly for testing purposes.
@@ -68,7 +77,7 @@ namespace kagome::runtime {
     std::optional<uint32_t> readFree(WasmPointer ptr) const;
 
    private:
-    Memory &memory_;
+    std::shared_ptr<MemoryHandle> memory_;
 
     std::array<std::optional<uint32_t>, kOrders> free_lists_;
 

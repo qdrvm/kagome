@@ -64,6 +64,10 @@ namespace kagome::runtime {
         const primitives::BlockHash &block_hash,
         consensus::babe::EquivocationProof equivocation_proof,
         consensus::babe::OpaqueKeyOwnershipProof key_owner_proof) = 0;
+
+    /// Returns a list of all disabled validators at the given block.
+    virtual outcome::result<std::vector<consensus::AuthorityIndex>>
+    disabled_validators(const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

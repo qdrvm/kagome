@@ -87,33 +87,6 @@ using testing::_;
 using testing::Return;
 using testing::ReturnRef;
 
-// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s, const detail::DigestItemCommon &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const ScheduledChange &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const ForcedChange &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const OnDisabled &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const Pause &) {
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s, const Resume &) {
-    return s;
-  }
-}  // namespace kagome::primitives
-
 inline BabeAuthorityId operator"" _babe_auth(const char *c, size_t s) {
   BabeAuthorityId res;
   std::copy_n(c, std::min(s, res.size()), res.begin());
@@ -276,6 +249,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   kagome::primitives::BlockHash parent_hash = "parent_hash"_hash256;
   kagome::primitives::BlockHash some_hash = "some_hash"_hash256;
 
+  kagome::consensus::SlotNumber slot = 123;
   kagome::primitives::BlockHeader header{
       42,           // number
       parent_hash,  // parent
@@ -285,7 +259,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(BabeBlockHeader{.authority_index = 1,
-                                                   .slot_number = 1})
+                                                   .slot_number = slot})
                          .value()},
           }},
           kagome::primitives::Consensus{ScheduledChange{authorities, 0}},
@@ -295,6 +269,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           }}},
       some_hash  // hash
   };
+  ON_CALL(*production_consensus_, getSlot(_)).WillByDefault(Return(0));
 
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};

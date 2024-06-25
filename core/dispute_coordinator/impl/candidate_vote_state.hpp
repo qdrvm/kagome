@@ -16,8 +16,18 @@ namespace kagome::dispute {
   /// concluded, whether we already voted, ...
   class CandidateVoteState final {
    public:
+    /**
+     * Creates CandidateVoteState based on collected votes, environment and
+     * taking into account disabled validators
+     * @param votes already collected votes for dispute
+     * @param env related data
+     * @param disabled presorted list of disabled validator indices
+     * @param now current timestamp
+     * @return CandidateVoteState with correct inner data
+     */
     static CandidateVoteState create(CandidateVotes votes,
                                      CandidateEnvironment &env,
+                                     std::vector<ValidatorIndex> &disabled,
                                      Timestamp now);
 
     /// Votes already existing for the candidate + receipt.

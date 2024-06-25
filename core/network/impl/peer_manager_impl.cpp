@@ -14,6 +14,7 @@
 #include <libp2p/protocol/ping.hpp>
 
 #include "authority_discovery/query/query.hpp"
+#include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -21,6 +22,7 @@
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
@@ -73,6 +75,7 @@ namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -87,8 +90,10 @@ namespace kagome::network {
       std::shared_ptr<ReputationRepository> reputation_repository,
       std::shared_ptr<PeerView> peer_view,
       std::shared_ptr<authority_discovery::Query> authority_discovery)
-      : app_state_manager_(std::move(app_state_manager)),
+      : log_{log::createLogger("PeerManager", "network")},
         host_(host),
+        main_pool_handler_{poolHandlerReadyMake(
+            this, app_state_manager, main_thread_pool, log_)},
         identify_(std::move(identify)),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
@@ -102,9 +107,7 @@ namespace kagome::network {
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
         peer_view_{std::move(peer_view)},
-        authority_discovery_{std::move(authority_discovery)},
-        log_(log::createLogger("PeerManager", "network")) {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
+        authority_discovery_{std::move(authority_discovery)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
@@ -127,20 +130,16 @@ namespace kagome::network {
     peers_count_metric_ = registry_->registerGaugeMetric(kPeersCountMetricName);
     peers_count_metric_->set(0);
 
-    app_state_manager_->takeControl(*this);
+    app_state_manager->takeControl(*this);
   }
 
-  bool PeerManagerImpl::prepare() {
+  bool PeerManagerImpl::tryStart() {
     if (not app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->critical(
           "Does not have any bootstrap nodes. "
           "Provide them by chain spec or CLI argument `--bootnodes'");
     }
 
-    return true;
-  }
-
-  bool PeerManagerImpl::start() {
     if (app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->warn(
           "Peer manager is started in passive mode, "
@@ -150,8 +149,6 @@ namespace kagome::network {
 
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
-    // It is used only for DEV mode
-    processDiscoveredPeer(host_.getPeerInfo().id);
 
     add_peer_handle_ =
         host_.getBus()
@@ -593,6 +590,16 @@ namespace kagome::network {
     return it->second;
   }
 
+  void PeerManagerImpl::enumeratePeerState(const PeersCallback &callback) {
+    if (nullptr != callback) {
+      for (auto &[peer, state] : peer_states_) {
+        if (!callback(peer, state)) {
+          break;
+        }
+      }
+    }
+  }
+
   std::optional<std::reference_wrapper<const PeerState>>
   PeerManagerImpl::getPeerState(const PeerId &peer_id) const {
     auto it = peer_states_.find(peer_id);
@@ -656,10 +663,11 @@ namespace kagome::network {
               auto &peer_id = peer_info.id;
 
               if (not stream_res.has_value()) {
-                self->log_->verbose("Unable to create stream {} with {}: {}",
-                                    protocol->protocolName(),
-                                    peer_id,
-                                    stream_res.error());
+                SL_VERBOSE(self->log_,
+                           "Unable to create stream {} with {}: {}",
+                           protocol->protocolName(),
+                           peer_id,
+                           stream_res.error());
                 self->connecting_peers_.erase(peer_id);
                 self->disconnectFromPeer(peer_id);
                 return;
@@ -668,7 +676,7 @@ namespace kagome::network {
                                      ? PeerType::PEER_TYPE_OUT
                                      : PeerType::PEER_TYPE_IN;
 
-              // Add to active peer list
+              // Add to the active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
                       peer_id, PeerDescriptor{peer_type, self->clock_->now()});
                   added) {
@@ -681,7 +689,7 @@ namespace kagome::network {
                       std::find_if(self->queue_to_connect_.cbegin(),
                                    self->queue_to_connect_.cend(),
                                    [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item.get();
+                                     return peer_id == item;
                                    });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
@@ -763,7 +771,7 @@ namespace kagome::network {
                                 "Unable to create stream {} with {}: {}",
                                 validation_protocol->protocolName(),
                                 peer_id,
-                                stream_result.error().message());
+                                stream_result.error());
                        return;
                      }
 
@@ -959,5 +967,18 @@ namespace kagome::network {
                            auto &roles = it->second.roles.flags;
                            return (in_light ? roles.light : roles.full) == 1;
                          });
+  }
+
+  std::optional<PeerId> PeerManagerImpl::peerFinalized(
+      BlockNumber min, const PeerPredicate &predicate) {
+    for (auto &[peer, info] : peer_states_) {
+      if (info.last_finalized < min) {
+        continue;
+      }
+      if (not predicate or predicate(peer)) {
+        return peer;
+      }
+    }
+    return std::nullopt;
   }
 }  // namespace kagome::network

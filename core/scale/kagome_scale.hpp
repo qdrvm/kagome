@@ -23,10 +23,6 @@
 #include "scale/libp2p_types.hpp"
 
 namespace kagome::scale {
-  namespace __outcome_detail {
-    template <typename T>
-    using Category = ::scale::__outcome_detail::Category<T>;
-  }
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;

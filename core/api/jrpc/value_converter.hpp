@@ -70,6 +70,10 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::Version &);
   inline jsonrpc::Value makeValue(const primitives::Justification &);
   inline jsonrpc::Value makeValue(const primitives::RpcMethods &);
+  inline jsonrpc::Value makeValue(
+      const primitives::events::RemoveAfterFinalizationParams &val);
+  inline jsonrpc::Value makeValue(
+      const primitives::events::RemoveAfterFinalizationParams::HeaderInfo &val);
 
   inline jsonrpc::Value makeValue(const uint32_t &val) {
     return static_cast<int64_t>(val);
@@ -93,7 +97,6 @@ namespace kagome::api {
     return ret;
   }
 
-  // TODO(Harrm): refactor to work specifically with Balance type
   inline jsonrpc::Value makeValue(const primitives::Balance &val) {
     jsonrpc::Value ret((*val).str());
     return ret;
@@ -151,17 +154,28 @@ namespace kagome::api {
     return value;
   }
 
+  inline jsonrpc::Value makeValue(
+      const primitives::events::RemoveAfterFinalizationParams &val) {
+    return makeValue(val.removed);
+  }
+
+  inline jsonrpc::Value makeValue(
+      const primitives::events::RemoveAfterFinalizationParams::HeaderInfo
+          &val) {
+    return makeValue(val.hash);
+  }
+
   template <size_t N>
   inline jsonrpc::Value makeValue(const common::Blob<N> &val) {
-    return common::hex_lower_0x(val.data(), val.size());
+    return makeValue(BufferView{val});
   }
 
   inline jsonrpc::Value makeValue(const common::Buffer &val) {
-    return common::hex_lower_0x(val.asVector().data(), val.asVector().size());
+    return makeValue(BufferView{val});
   }
 
   inline jsonrpc::Value makeValue(common::BufferView val) {
-    return common::hex_lower_0x(val.data(), val.size());
+    return common::hex_lower_0x(val);
   }
 
   inline jsonrpc::Value makeValue(const primitives::DigestItem &val) {

@@ -6,7 +6,6 @@ SPDX-License-Identifier: Apache-2.0
 
 ![logo](/docs/image_assets/kagome-logo-(new-2020).svg)
 
-[![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
 [![](https://img.shields.io/twitter/follow/qdrvm_io?label=Follow&style=social)](https://twitter.com/qdrvm_io)
 
@@ -17,7 +16,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 
 ## Status
 
-![kagome-components-Host drawio-light](https://github.com/soramitsu/kagome/assets/9370151/323c1677-b628-468c-adb8-5c09c2164fc3)
+![kagome-components-Host drawio-light](https://github.com/qdrvm/kagome/assets/9370151/323c1677-b628-468c-adb8-5c09c2164fc3)
 
 
 - [x] JSON-RPC (compatible with Polkadot JS)
@@ -31,7 +30,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 - [x] Consensus
     - [x] BABE
     - [x] GRANDPA
-    - [ ] SASSAFRAS (Q4 2023)
+    - [ ] SASSAFRAS
 - [x] Storage
     - [x] Blockchain
         - [x] Block storage
@@ -40,8 +39,8 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
     - [x] Trie storage (merkle trie)
     - [x] RocksDB
     - [x] Dynamic pruning
-    - [ ] Trie nodes caches (Q4 2023)
-    - [ ] State caches (Q4 2023)
+    - [ ] Trie nodes caches
+    - [ ] State caches
 - [x] Runtime
     - [x] Host API
     - [x] WASM engine
@@ -53,7 +52,8 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
    - [x] Data availability
    - [x] Approval voting
    - [x] Disputes resolution
-   - [ ] Async-Backing (planned for Q3 2023)
+   - [x] Async-Backing
+   - [ ] Elastic scaling
 - [x] Networking
     - [x] Peer manager
         - [x] /dot/block-announces/1
@@ -74,8 +74,8 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
     - [x] Libp2p
         - [x] Transport
             - [x] TCP
-            - [ ] QUIC (Q4 2023)
-            - [ ] WebRTC (Q4 2023)
+            - [ ] QUIC
+            - [ ] WebRTC
         - [x] Secure connection
             - [x] Noise
             - [x] TLS

@@ -10,11 +10,11 @@ SPDX-License-Identifier: Apache-2.0
 <!-- ### Requirements -->
 <!-- * Filling out the template is required. Any pull request that does not include enough information to be reviewed in a timely manner may be closed at the maintainers' discretion. -->
 <!-- * All new code must have code coverage above 70% (https://docs.codecov.io/docs/about-code-coverage). -->
-<!-- * Branch must be rebased onto base branch (https://soramitsu.atlassian.net/wiki/spaces/IS/pages/11173889/Rebase+and+merge+guide). -->
+<!-- * Branch must be rebased onto base branch. -->
 
 ### Referenced issues
 
-<!-- Id of the task from Jira. Example: Resolves #42 (Note that to link Pull Request with issue use one of the following keywords: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved). If there is no corresponding issue, then remove this field -->
+<!-- Issues id from Github Issues. Example: Resolves #42 (Note that to link Pull Request with issue use one of the following keywords: close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved). If there is no corresponding issue, then remove this field -->
 
 ### Description of the Change
 

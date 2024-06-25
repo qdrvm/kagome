@@ -45,6 +45,12 @@ namespace kagome::network {
       BOOST_ASSERT(!protocols_.empty());
     }
 
+    /**
+     * @brief Starts the protocol setting the protocol handler
+     * @tparam T - the type of the protocol observer
+     * @param wp - a weak pointer to the protocol observer
+     * @return true if the protocol was started successfully, false otherwise
+     */
     template <typename T>
     bool start(std::weak_ptr<T> wp) {
       host_.setProtocolHandler(

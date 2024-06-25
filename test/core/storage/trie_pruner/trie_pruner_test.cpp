@@ -68,10 +68,6 @@ class PolkadotTrieMock final : public trie::PolkadotTrie {
     throw std::runtime_error{"Not implemented"};
   }
 
-  bool empty() const override {
-    throw std::runtime_error{"Not implemented"};
-  }
-
   outcome::result<face::OwnedOrView<Buffer>> get(
       const face::View<Buffer> &key) const override {
     throw std::runtime_error{"Not implemented"};

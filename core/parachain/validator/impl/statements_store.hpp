@@ -13,44 +13,12 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/groups.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::parachain {
-
-  struct Groups {
-    std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> groups;
-    std::unordered_map<ValidatorIndex, GroupIndex> by_validator_index;
-
-    Groups(std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> &&g)
-        : groups{std::move(g)} {
-      for (const auto &[g, vxs] : groups) {
-        for (const auto &v : vxs) {
-          by_validator_index[v] = g;
-        }
-      }
-    }
-
-    Groups(const std::vector<std::vector<ValidatorIndex>> &grs) {
-      for (GroupIndex g = 0; g < grs.size(); ++g) {
-        const auto &group = grs[g];
-        groups[g] = group;
-        for (const auto &v : group) {
-          by_validator_index[v] = g;
-        }
-      }
-    }
-
-    std::optional<GroupIndex> byValidatorIndex(
-        ValidatorIndex validator_index) const {
-      auto it = by_validator_index.find(validator_index);
-      if (it != by_validator_index.end()) {
-        return it->second;
-      }
-      return std::nullopt;
-    }
-  };
 
   struct ValidatorMeta {
     GroupIndex group;
@@ -130,6 +98,20 @@ namespace kagome::parachain {
       }
     }
 
+    std::optional<std::reference_wrapper<const StoredStatement>>
+    validator_statement(
+        ValidatorIndex validator_index,
+        const network::vstaging::CompactStatement &statement) const {
+      auto it = known_statements.find(Fingerprint{
+          .index = validator_index,
+          .statement = statement,
+      });
+      if (it != known_statements.end()) {
+        return std::cref(it->second);
+      }
+      return {};
+    }
+
     void fill_statement_filter(
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
@@ -189,6 +171,8 @@ namespace kagome::parachain {
                     .hash = candidate_hash,
                 },
         });
+      }
+      for (const auto &vi : validators) {
         call(Fingerprint{
             .index = vi,
             .statement =
@@ -200,10 +184,11 @@ namespace kagome::parachain {
     }
 
     template <typename F>
-    void groupStatements(const std::vector<ValidatorIndex> &group_validators,
-                         const CandidateHash &candidate_hash,
-                         const network::vstaging::StatementFilter &filter,
-                         F &&cb) const {
+    void groupStatements(
+        const std::span<const ValidatorIndex> &group_validators,
+        const CandidateHash &candidate_hash,
+        const network::vstaging::StatementFilter &filter,
+        F &&cb) const {
       auto call = [&](const scale::BitVec &target,
                       network::vstaging::CompactStatement &&stm) {
         Fingerprint fingerprint{

@@ -33,18 +33,6 @@ hunter_config(
 )
 
 hunter_config(
-    soralog
-    VERSION 0.2.3
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    libp2p
-    VERSION 0.1.20
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     rocksdb
     VERSION 9.0.0
     CMAKE_ARGS WITH_GFLAGS=OFF
@@ -86,12 +74,6 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   )
 endif ()
 
-hunter_config(
-    scale
-    VERSION 1.1.2
-    KEEP_PACKAGE_SOURCES
-)
-
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(
@@ -102,21 +84,8 @@ if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER
 endif ()
 
 hunter_config(
-        wabt
-        URL https://github.com/qdrvm/wabt/archive/refs/tags/1.0.34-qdrvm1.zip
-        SHA1 d22995329c9283070f3a32d2c5e07f4d75c2fc31
-        KEEP_PACKAGE_SOURCES
-        CMAKE_ARGS
-        BUILD_TESTS=OFF
-        BUILD_TOOLS=OFF
-        BUILD_LIBWASM=OFF
-        USE_INTERNAL_SHA256=OFF
-)
-
-hunter_config(
     libsecp256k1
-    URL https://github.com/qdrvm/soramitsu-libsecp256k1/archive/ace3e08075d9cc1ecff1afe1be65c31fc9059c4c.zip
-    SHA1 bc1e4413a56ce2cdc17175dd1c9b569345c1e709
+    VERSION 0.4.1-qdrvm1
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )

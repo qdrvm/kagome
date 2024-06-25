@@ -48,7 +48,14 @@ namespace kagome::primitives::events {
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
-  using RemoveAfterFinalizationParams = std::vector<primitives::BlockHash>;
+  struct RemoveAfterFinalizationParams {
+    struct HeaderInfo {
+      primitives::BlockHash hash;
+      primitives::BlockNumber number;
+    };
+    std::vector<HeaderInfo> removed;
+    primitives::BlockNumber finalized;
+  };
 
   using ChainEventParams = boost::variant<std::nullopt_t,
                                           HeadsEventParams,
@@ -241,15 +248,15 @@ namespace kagome::primitives::events {
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
-  using BabeStateSubscriptionEngine = subscription::SubscriptionEngine<
+  using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
       bool,
       primitives::events::SyncStateEventParams>;
-  using BabeStateSubscriptionEnginePtr =
-      std::shared_ptr<BabeStateSubscriptionEngine>;
+  using SyncStateSubscriptionEnginePtr =
+      std::shared_ptr<SyncStateSubscriptionEngine>;
 
-  using BabeStateEventSubscriber = BabeStateSubscriptionEngine::SubscriberType;
-  using BabeStateEventSubscriberPtr = std::shared_ptr<BabeStateEventSubscriber>;
+  using SyncStateEventSubscriber = SyncStateSubscriptionEngine::SubscriberType;
+  using SyncStateEventSubscriberPtr = std::shared_ptr<SyncStateEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,

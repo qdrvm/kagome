@@ -19,13 +19,6 @@ target_link_libraries(buffer_view_test
     hexutil
     )
 
-addtest(hexutil_test
-    hexutil_test.cpp
-    )
-target_link_libraries(hexutil_test
-    hexutil
-    )
-
 addtest(blob_test
     blob_test.cpp
     )

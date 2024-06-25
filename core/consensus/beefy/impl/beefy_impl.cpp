@@ -15,6 +15,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/beefy/digest.hpp"
+#include "consensus/beefy/fetch_justification.hpp"
 #include "consensus/beefy/impl/beefy_thread_pool.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "consensus/timeline/timeline.hpp"
@@ -28,7 +29,6 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 // TODO(turuslan): #1651, report equivocation
-// TODO(turuslan): #1651, fetch justifications
 
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
@@ -55,6 +55,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       LazySPtr<BeefyProtocol> beefy_protocol,
+      LazySPtr<consensus::beefy::FetchJustification>
+          beefy_justification_protocol,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
@@ -68,6 +70,7 @@ namespace kagome::network {
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
+        beefy_justification_protocol_{std::move(beefy_justification_protocol)},
         min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -365,14 +368,31 @@ namespace kagome::network {
 
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
-    if (not beefy_genesis_) {
-      BOOST_OUTCOME_TRY(beefy_genesis_,
-                        beefy_api_->genesis(grandpa_finalized.hash));
-      if (not beefy_genesis_) {
-        SL_TRACE(log_, "no beefy pallet yet");
-        return outcome::success();
+
+    auto last_genesis = beefy_genesis_;
+    BOOST_OUTCOME_TRY(beefy_genesis_,
+                      beefy_api_->genesis(grandpa_finalized.hash));
+    if (beefy_genesis_ != last_genesis) {
+      // reset state when genesis changes
+      last_vote_.reset();
+      if (beefy_genesis_) {
+        if (beefy_finalized_ < *beefy_genesis_) {
+          beefy_finalized_ = 0;
+        }
+        sessions_.erase(sessions_.begin(),
+                        sessions_.lower_bound(*beefy_genesis_));
+        pending_justifications_.erase(
+            pending_justifications_.begin(),
+            pending_justifications_.lower_bound(*beefy_genesis_));
+        next_digest_ = std::max(beefy_finalized_, *beefy_genesis_);
+      } else {
+        sessions_.clear();
+        pending_justifications_.clear();
       }
-      next_digest_ = std::max(beefy_finalized_, *beefy_genesis_);
+    }
+    if (not beefy_genesis_) {
+      SL_TRACE(log_, "no beefy pallet yet");
+      return outcome::success();
     }
     if (grandpa_finalized.number < *beefy_genesis_) {
       return outcome::success();
@@ -394,7 +414,18 @@ namespace kagome::network {
       }
       ++next_digest_;
     }
+    // stop voting on first finalized session when there are more sessions
+    if (sessions_.size() > 1 and sessions_.begin()->first <= beefy_finalized_) {
+      sessions_.erase(sessions_.begin());
+    }
     std::ignore = vote();
+    if (not sessions_.empty()) {
+      auto first = sessions_.begin()->first;
+      if (first > beefy_finalized_
+          and not pending_justifications_.contains(first)) {
+        beefy_justification_protocol_.get()->fetchJustification(first);
+      }
+    }
     return outcome::success();
   }
 

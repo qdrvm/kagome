@@ -6,11 +6,14 @@
 
 #include <gtest/gtest.h>
 #include <cstdint>
+#include <memory>
 
+#include "common/buffer.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/common/memory_allocator.hpp"
+#include "runtime/memory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -34,8 +37,12 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     rei_ =
         std::make_unique<runtime::binaryen::RuntimeExternalInterface>(host_api);
 
-    memory_ = std::make_unique<MemoryImpl>(
-        rei_->getMemory(), runtime::MemoryConfig{kDefaultHeapBase, {}});
+    runtime::MemoryConfig config{kDefaultHeapBase, {}};
+    auto handle = std::make_shared<MemoryImpl>(rei_->getMemory(), config);
+    auto allocator =
+        std::make_unique<runtime::MemoryAllocatorImpl>(handle, config);
+    allocator_ = allocator.get();
+    memory_ = std::make_unique<runtime::Memory>(handle, std::move(allocator));
   }
 
   void TearDown() override {
@@ -48,7 +55,8 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
       512_MB / runtime::kMemoryPageSize;
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
-  std::unique_ptr<MemoryImpl> memory_;
+  std::unique_ptr<runtime::Memory> memory_;
+  runtime::MemoryAllocatorImpl *allocator_;
 };
 
 /**
@@ -58,7 +66,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
  */
 TEST_F(BinaryenMemoryHeapTest, Return0WhenSize0) {
   auto ptr = memory_->allocate(0);
-  ASSERT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr), 8);
+  ASSERT_EQ(allocator_->getAllocatedChunkSize(ptr), 8);
 }
 
 /**
@@ -103,7 +111,7 @@ TEST_F(BinaryenMemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto ptr1 = memory_->allocate(size1);
 
-  ASSERT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr1),
+  ASSERT_EQ(allocator_->getAllocatedChunkSize(ptr1),
             runtime::roundUpAlign(size1));
   memory_->deallocate(ptr1);
 }
@@ -177,9 +185,9 @@ TEST_F(BinaryenMemoryHeapTest, CombineDeallocatedChunks) {
   // A: [ 1 ]                         [ 7 ]
   // D:      [ 2    3    4    5    6 ]
 
-  EXPECT_EQ(memory_->getAllocator().getDeallocatedChunksNum(), 5);
-  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr1), size1);
-  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr7),
+  EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 5);
+  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr1), size1);
+  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr7),
             math::nextHighPowerOf2(size7));
 }
 

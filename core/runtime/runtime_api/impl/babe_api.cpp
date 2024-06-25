@@ -6,6 +6,7 @@
 
 #include "runtime/runtime_api/impl/babe_api.hpp"
 
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::runtime {
@@ -52,4 +53,15 @@ namespace kagome::runtime {
         key_owner_proof);
   }
 
+  outcome::result<std::vector<consensus::AuthorityIndex>>
+  BabeApiImpl::disabled_validators(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    auto res = executor_->call<std::vector<consensus::AuthorityIndex>>(
+        ctx, "ParachainHost_disabled_validators");
+    if (res.has_error()
+        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
+      return std::vector<consensus::AuthorityIndex>{};
+    }
+    return res;
+  }
 }  // namespace kagome::runtime

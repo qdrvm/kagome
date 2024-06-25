@@ -21,13 +21,18 @@
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
+#include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/pvf_thread_pool.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::TestThreadPool;
 using kagome::application::AppConfigurationMock;
+using kagome::application::StartApp;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
@@ -36,6 +41,8 @@ using kagome::parachain::ParachainId;
 using kagome::parachain::ParachainRuntime;
 using kagome::parachain::Pvf;
 using kagome::parachain::PvfImpl;
+using kagome::parachain::PvfPool;
+using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
 using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::MemoryLimits;
@@ -61,6 +68,8 @@ class PvfTest : public testing::Test {
   void SetUp() {
     testutil::prepareLoggers();
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*app_config_, parachainRuntimeInstanceCacheSize())
+        .WillRepeatedly(Return(2));
 
     auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderMock>();
@@ -82,27 +91,29 @@ class PvfTest : public testing::Test {
     EXPECT_CALL(*parachain_api, session_executor_params(_, _))
         .WillRepeatedly(Return(outcome::success(std::nullopt)));
 
-    auto app_state_manager =
-        std::make_shared<application::AppStateManagerMock>();
+    auto app_state_manager = std::make_shared<StartApp>();
 
+    PvfThreadPool pvf_thread{TestThreadPool{io_}};
     pvf_ = std::make_shared<PvfImpl>(
         PvfImpl::Config{
             .precompile_modules = false,
-            .runtime_instance_cache_size = 2,
             .precompile_threads_num = 0,
         },
         nullptr,
         nullptr,
         hasher_,
-        module_factory_,
-        std::make_shared<DontInstrumentWasm>(),
+        std::make_shared<PvfPool>(*app_config_,
+                                  module_factory_,
+                                  std::make_shared<DontInstrumentWasm>()),
         block_tree,
         sr25519_provider,
         parachain_api,
         executor,
         ctx_factory,
+        pvf_thread,
         app_state_manager,
         app_config_);
+    app_state_manager->start();
   }
 
   auto mockModule(uint8_t code_i) {
@@ -137,7 +148,13 @@ class PvfTest : public testing::Test {
       receipt.descriptor.para_head_hash = hasher_->blake2b_256(pvd.parent_head);
       receipt.commitments_hash = hasher_->blake2b_256(
           scale::encode(Pvf::CandidateCommitments{}).value());
-      ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvd, pov, receipt, code));
+      testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
+      EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
+        EXPECT_TRUE(r);
+      });
+      pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
+      io_->restart();
+      io_->run();
     };
   }
 
@@ -149,7 +166,26 @@ class PvfTest : public testing::Test {
   std::shared_ptr<ModuleFactoryMock> module_factory_ =
       std::make_shared<ModuleFactoryMock>();
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
+  std::shared_ptr<boost::asio::io_context> io_ =
+      std::make_shared<boost::asio::io_context>();
 };
+
+TEST_F(PvfTest, InputEncodeDecode) {
+  kagome::parachain::PvfWorkerInput input{
+      .engine = kagome::parachain::RuntimeEngine::kWasmEdgeInterpreted,
+      .runtime_code = {1, 2, 3, 4},
+      .function = "test",
+      .params = {1, 2, 3, 4},
+      .runtime_params{.memory_limits = {}},
+      .cache_dir = "/tmp/kagome_pvf_test",
+      .log_params = {},
+  };
+  ASSERT_OUTCOME_SUCCESS(buf, scale::encode(input));
+  ASSERT_OUTCOME_SUCCESS(dec_input,
+                         scale::decode<kagome::parachain::PvfWorkerInput>(buf));
+
+  ASSERT_EQ(dec_input, input);
+}
 
 TEST_F(PvfTest, InstancesCached) {
   auto module1 = mockModule(1);

@@ -9,7 +9,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  32  // TODO(Harrm): #2104 check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -48,6 +48,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
@@ -133,6 +134,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
+#include "network/kademlia_random_walk.hpp"
 #include "network/warp/cache.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
@@ -151,6 +153,7 @@
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
@@ -320,7 +323,7 @@ namespace {
     kademlia_config.protocols =
         network::make_protocols("/{}/kad", genesis, chain_spec);
     kademlia_config.maxBucketSize = 1000;
-    kademlia_config.randomWalk = {.interval = random_wak_interval};
+    kademlia_config.randomWalk.enabled = false;
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
         std::move(kademlia_config));
@@ -393,11 +396,9 @@ namespace {
               module_cache_opt;
           auto &app_config =
               injector.template create<const application::AppConfiguration &>();
-          if (app_config.useWavmCache()) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(),
-                app_config.runtimeCacheDirPath());
-          }
+          module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+              injector.template create<sptr<crypto::Hasher>>(),
+              app_config.runtimeCacheDirPath());
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
@@ -488,10 +489,6 @@ namespace {
                                                    std::move(storage),
                                                    std::move(substitutes),
                                                    std::move(block_storage));
-    if (res.has_error()) {
-      throw std::runtime_error("Error creating RuntimeUpgradeTrackerImpl: "
-                               + res.error().message());
-    }
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
@@ -599,8 +596,6 @@ namespace {
         config->isOffchainIndexingEnabled()};
     parachain::PvfImpl::Config pvf_config{
         .precompile_modules = config->shouldPrecompileParachainModules(),
-        .runtime_instance_cache_size =
-            config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
@@ -610,6 +605,7 @@ namespace {
                     Compile
             ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
             : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
+        config->runtimeCacheDirPath(),
     };
 #endif
 
@@ -878,6 +874,7 @@ namespace {
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
             di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
+            di::bind<consensus::beefy::FetchJustification>.template to<network::BeefyJustificationProtocol>(),
             di::bind<network::Beefy>.template to<network::BeefyImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
@@ -1066,6 +1063,12 @@ namespace kagome::injector {
         .create<sptr<application::mode::PrintChainInfoMode>>();
   }
 
+  sptr<application::mode::PrecompileWasmMode>
+  KagomeNodeInjector::injectPrecompileWasmMode() {
+    return pimpl_->injector_
+        .create<sptr<application::mode::PrecompileWasmMode>>();
+  }
+
   std::shared_ptr<application::mode::RecoveryMode>
   KagomeNodeInjector::injectRecoveryMode() {
     return pimpl_->injector_
@@ -1105,4 +1108,7 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
   }
 
+  void KagomeNodeInjector::kademliaRandomWalk() {
+    pimpl_->injector_.create<sptr<KademliaRandomWalk>>();
+  }
 }  // namespace kagome::injector

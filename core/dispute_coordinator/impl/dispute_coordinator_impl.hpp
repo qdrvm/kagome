@@ -8,6 +8,7 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
+#include "network/types/dispute_messages.hpp"
 
 #include <list>
 
@@ -22,7 +23,6 @@
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
 #include "dispute_coordinator/participation/types.hpp"
-#include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
 #include "dispute_coordinator/types.hpp"
@@ -69,7 +69,6 @@ namespace kagome::dispute {
 }  // namespace kagome::dispute
 
 namespace kagome::network {
-  struct DisputeMessage;
   class Router;
   class PeerView;
 }  // namespace kagome::network
@@ -192,10 +191,10 @@ namespace kagome::dispute {
         std::vector<Indexed<SignedDisputeStatement>> statements,
         CbOutcome<void> &&cb);
 
-    static std::optional<CandidateEnvironment> makeCandidateEnvironment(
+    std::optional<CandidateEnvironment> makeCandidateEnvironment(
         crypto::SessionKeys &session_keys,
-        RollingSessionWindow &rolling_session_window,
-        SessionIndex session);
+        SessionIndex session,
+        primitives::BlockHash relay_parent);
 
     outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
 
@@ -259,6 +258,8 @@ namespace kagome::dispute {
         const network::DisputeMessage &request,
         CbOutcome<void> &&cb);
 
+    void check_batches();
+
     void start_import(PreparedImport &&prepared_import);
 
     void sendDisputeResponse(outcome::result<void> res, CbOutcome<void> &&cb);
@@ -273,8 +274,7 @@ namespace kagome::dispute {
 
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
-    log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
-
+    log::Logger log_;
     clock::SystemClock &system_clock_;
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -301,13 +301,9 @@ namespace kagome::dispute {
     std::atomic_bool initialized_ = false;
 
     std::unique_ptr<ChainScraper> scraper_;
-    SessionIndex highest_session_;
+    SessionIndex highest_session_{0};
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;
-    std::unique_ptr<RollingSessionWindow> rolling_session_window_;
-
-    // This tracks only rolling session window failures.
-    std::optional<SessionObtainingError> error_;
 
     /// Queues for messages from authority peers for rate limiting.
     ///
@@ -328,6 +324,13 @@ namespace kagome::dispute {
         std::deque<std::tuple<network::DisputeMessage, CbOutcome<void>>>>
         queues_;
 
+    /// Collection of DisputeRequests from disabled validators
+    std::unordered_map<CandidateHash,
+                       std::tuple<primitives::AuthorityDiscoveryId,
+                                  network::DisputeMessage,
+                                  CbOutcome<void>>>
+        requests_from_disabled_validators_;
+
     /// Delay timer for establishing the rate limit.
     std::optional<libp2p::basic::Scheduler::Handle> rate_limit_timer_;
 
@@ -337,6 +340,7 @@ namespace kagome::dispute {
 
     /// Currently active batches of imports per candidate.
     std::unique_ptr<Batches> batches_;
+    std::optional<libp2p::basic::Scheduler::Handle> batch_collecting_timer_;
 
     /// All heads we currently consider active.
     std::unordered_set<primitives::BlockHash> active_heads_;

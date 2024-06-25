@@ -16,6 +16,7 @@ namespace kagome::injector {
 }
 
 namespace kagome::application {
+  class Mode;
 
   class KagomeApplicationImpl final : public KagomeApplication {
     template <class T>
@@ -31,11 +32,15 @@ namespace kagome::application {
 
     int chainInfo() override;
 
+    int precompileWasm() override;
+
     int recovery() override;
 
     void run() override;
 
    private:
+    int runMode(Mode &mode);
+
     injector::KagomeNodeInjector &injector_;
 
     std::shared_ptr<AppConfiguration> app_config_;

@@ -6,7 +6,9 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <boost/program_options/value_semantic.hpp>
 #include <charconv>
+#include <filesystem>
 #include <limits>
 #include <regex>
 #include <string>
@@ -88,7 +90,6 @@ namespace {
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
@@ -283,7 +284,6 @@ namespace kagome::application {
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         runtime_interpreter_{def_runtime_interpreter},
-        use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
@@ -803,6 +803,7 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
+        ("version,v", "show version information")
         ("log,l", po::value<std::vector<std::string>>(),
           "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
@@ -877,7 +878,6 @@ namespace kagome::application {
           fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
           fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
-        ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
@@ -890,6 +890,9 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
+        ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
+        ("precompile-relay", po::bool_switch(), "precompile relay")
+        ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -937,6 +940,10 @@ namespace kagome::application {
       std::cout
           << "Available subcommands: storage-explorer db-editor benchmark\n";
       std::cout << desc << std::endl;
+      return false;
+    }
+    if (vm.count("version") > 0) {
+      std::cout << "Kagome version " << buildVersion() << std::endl;
       return false;
     }
 
@@ -1455,10 +1462,6 @@ namespace kagome::application {
       }
     }
 
-    if (vm.count("unsafe-cached-wavm-runtime") > 0) {
-      use_wavm_cache_ = true;
-    }
-
     if (vm.count("purge-wavm-cache") > 0) {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
@@ -1470,6 +1473,17 @@ namespace kagome::application {
                    runtimeCacheDirPath(),
                    ec);
         }
+      }
+    }
+    {
+      std::error_code ec;
+      kagome::filesystem::create_directories(runtimeCacheDirPath(), ec);
+      if (ec) {
+        SL_ERROR(logger_,
+                 "Failed to create runtime cache dir {}: {}",
+                 runtimeCacheDirPath(),
+                 ec);
+        return false;
       }
     }
 
@@ -1493,10 +1507,15 @@ namespace kagome::application {
     if (find_argument(vm, "parachain-single-process")) {
       use_pvf_subprocess_ = false;
     }
+    logger_->info("Parachain multi process: {}", use_pvf_subprocess_);
 
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
+    }
+
+    if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {
+      disable_secure_mode_ = true;
     }
 
     bool offchain_worker_value_error = false;
@@ -1589,6 +1608,20 @@ namespace kagome::application {
     }
 
     blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
+
+    if (find_argument(vm, "precompile-relay")) {
+      precompile_wasm_.emplace();
+    }
+    if (auto paths = find_argument<decltype(PrecompileWasmConfig::parachains)>(
+            vm, "precompile-para")) {
+      if (not precompile_wasm_) {
+        precompile_wasm_.emplace();
+      }
+      precompile_wasm_->parachains = *paths;
+    }
+    if (precompile_wasm_) {
+      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {

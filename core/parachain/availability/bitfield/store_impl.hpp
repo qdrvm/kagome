@@ -23,6 +23,7 @@ namespace kagome::parachain {
     std::vector<SignedBitfield> getBitfields(
         const BlockHash &relay_parent) const override;
     void remove(const BlockHash &relay_parent) override;
+    void printStoragesLoad() override;
 
    private:
     std::unordered_map<BlockHash, std::vector<SignedBitfield>> bitfields_;

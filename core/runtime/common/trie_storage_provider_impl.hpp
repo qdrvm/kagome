@@ -8,7 +8,6 @@
 
 #include "runtime/trie_storage_provider.hpp"
 
-#include <stack>
 #include <unordered_map>
 
 #include "common/buffer.hpp"
@@ -17,12 +16,14 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_storage.hpp"
 
+namespace kagome::storage::trie {
+  class TopperTrieBatchImpl;
+}  // namespace kagome::storage::trie
+
 namespace kagome::runtime {
 
   class TrieStorageProviderImpl : public TrieStorageProvider {
    public:
-    enum class Error { NO_BATCH = 1, UNFINISHED_TRANSACTIONS_LEFT };
-
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie::TrieSerializer> trie_serializer);
@@ -47,11 +48,15 @@ namespace kagome::runtime {
     getMutableChildBatchAt(const common::Buffer &root_path) override;
 
     outcome::result<storage::trie::RootHash> commit(
-        StateVersion version) override;
+        const std::optional<BufferView> &child, StateVersion version) override;
 
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;
+
+    KillStorageResult clearPrefix(const std::optional<BufferView> &child,
+                                  BufferView prefix,
+                                  const ClearPrefixLimit &limit) override;
 
    private:
     outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
@@ -65,10 +70,10 @@ namespace kagome::runtime {
 
     struct Transaction {
       // batch for the main trie in this transaction
-      std::shared_ptr<storage::trie::TopperTrieBatch> main_batch;
+      std::shared_ptr<storage::trie::TopperTrieBatchImpl> main_batch;
       // batches for child tries in this transaction
       std::unordered_map<common::Buffer,
-                         std::shared_ptr<storage::trie::TopperTrieBatch>>
+                         std::shared_ptr<storage::trie::TopperTrieBatchImpl>>
           child_batches;
     };
     std::vector<Transaction> transaction_stack_;
@@ -83,5 +88,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, TrieStorageProviderImpl::Error);

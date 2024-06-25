@@ -12,7 +12,7 @@ namespace kagome::consensus::grandpa {
   struct HasAuthoritySetChange {
     HasAuthoritySetChange(const primitives::BlockHeader &block) {
       for (auto &digest : block.digest) {
-        auto consensus = boost::get<primitives::Consensus>(&digest);
+        auto consensus = std::get_if<primitives::Consensus>(&digest);
         if (not consensus) {
           continue;
         }
@@ -21,15 +21,15 @@ namespace kagome::consensus::grandpa {
           continue;
         }
         auto &decoded = decoded_res.value();
-        auto grandpa = boost::get<primitives::GrandpaDigest>(&decoded.digest);
+        auto grandpa = std::get_if<primitives::GrandpaDigest>(&decoded.digest);
         if (not grandpa) {
           continue;
         }
-        if (auto change = boost::get<ScheduledChange>(grandpa)) {
+        if (auto change = std::get_if<ScheduledChange>(grandpa)) {
           scheduled = std::move(*change);
           continue;
         }
-        if (auto change = boost::get<ForcedChange>(grandpa)) {
+        if (auto change = std::get_if<ForcedChange>(grandpa)) {
           forced = std::move(*change);
           continue;
         }

@@ -106,7 +106,7 @@ class ExecutorTest : public testing::Test {
     auto memory_provider =
         std::make_shared<kagome::runtime::MemoryProviderMock>();
     EXPECT_CALL(*memory_provider, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     EXPECT_CALL(*memory_provider, resetMemory(_))
         .WillRepeatedly(Return(outcome::success()));
 

@@ -359,8 +359,8 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(common::BufferView code) const {
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+      common::BufferView code) const {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
@@ -382,7 +382,7 @@ namespace kagome::runtime::wasm_edge {
                                                  ec)
             && ec) {
           return CompilationError{fmt::format(
-              "Failed to create a dir for compiled modules: {}", ec.message())};
+              "Failed to create a dir for compiled modules: {}", ec)};
         }
         if (!std::filesystem::exists(filename)) {
           SL_INFO(log_, "Start compiling wasm module {}…", code_hash);

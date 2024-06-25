@@ -4,7 +4,7 @@ Kagome documentation
 
 .. image:: ../image_assets/kagome-logo-(new-2020).svg
 
-Kagome is a C++ implementation of `Polkadot Host <https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec>`_ developed by `Soramitsu <https://soramitsu.co.jp/>`_ and funded by Web3 Foundation `grant <https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md>`_.
+Kagome is a C++ implementation of `Polkadot Host <https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec>`_ developed by Quadrivium and funded by Web3 Foundation `grant <https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md>`_.
 
 **WARNING:** Kagome is early-stage software. While we are doing our best to be compatible with other Polkadot Host implementations, we cannot guarantee full compatibility due to specification being in development.
 

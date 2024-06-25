@@ -7,7 +7,12 @@
 #pragma once
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "log/logger.hpp"
 #include "network/types/dispute_messages.hpp"
+
+namespace kagome {
+  class PoolHandler;
+}
 
 namespace kagome::authority_discovery {
   class Query;
@@ -32,6 +37,8 @@ namespace kagome::dispute {
     /// employing a per-peer rate limit, we need to limit the construction of
     /// new `SendTask`s.
     SendingDispute(
+        log::Logger logger,
+        std::shared_ptr<PoolHandler> main_pool_handler,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
         std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
         const network::DisputeMessage &request);
@@ -69,9 +76,18 @@ namespace kagome::dispute {
       Succeeded,
     };
 
+    /// Broadcasts dispute request to provided authorities
     bool send_requests(
-        std::vector<primitives::AuthorityDiscoveryId> &authorities);
+        std::vector<primitives::AuthorityDiscoveryId> &&authorities);
 
+    /// Asynchronous part of broadcasting dispute request
+    void asyncSendRequests(
+        std::shared_ptr<network::SendDisputeProtocol> &&protocol,
+        std::vector<std::tuple<primitives::AuthorityDiscoveryId,
+                               libp2p::peer::PeerId>> &&receivers);
+
+    log::Logger logger_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
     std::weak_ptr<network::SendDisputeProtocol> dispute_protocol_;
 

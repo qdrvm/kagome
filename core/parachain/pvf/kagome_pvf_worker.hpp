@@ -7,5 +7,6 @@
 #pragma once
 
 namespace kagome::parachain {
-  int pvf_worker_main(int argc, const char **argv);
-}
+
+  int pvf_worker_main(int argc, const char **argv, const char **env);
+}  // namespace kagome::parachain

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "outcome/custom.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
@@ -16,6 +17,10 @@ namespace kagome::runtime {
     std::string msg;
   };
 
+  inline auto format_as(const WabtError &e) {
+    return e.msg;
+  }
+
   inline std::error_code make_error_code(const WabtError &) {
     return Error::INSTRUMENTATION_FAILED;
   }
@@ -25,5 +30,5 @@ namespace kagome::runtime {
   }
 
   template <typename T>
-  using WabtOutcome = outcome::result<T, WabtError>;
+  using WabtOutcome = CustomOutcome<T, WabtError>;
 }  // namespace kagome::runtime

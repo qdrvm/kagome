@@ -5,15 +5,21 @@
  */
 
 #include <dlfcn.h>
+#include <mach-o/dyld.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char **argv) {
+  uint32_t size = 0;
+  _NSGetExecutablePath(NULL, &size);
+  char *exe = (char *)malloc(size);
+  _NSGetExecutablePath(exe, &size);
+
   const char *suffix = ".dylib";
-  char *dylib = (char *)malloc(strlen(argv[0]) + strlen(suffix) + 1);
-  strcpy(dylib, argv[0]);
-  strcpy(dylib + strlen(argv[0]), suffix);
+  char *dylib = (char *)malloc(strlen(exe) + strlen(suffix) + 1);
+  strcpy(dylib, exe);
+  strcpy(dylib + strlen(exe), suffix);
 
   void *lib = dlopen(dylib, RTLD_NOW);
   if (lib == NULL) {

@@ -44,8 +44,7 @@ namespace kagome::runtime::binaryen {
 
     ~ModuleImpl() override = default;
 
-    static outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
-    createFromCode(
+    static CompilationOutcome<std::shared_ptr<ModuleImpl>> createFromCode(
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         std::shared_ptr<const ModuleFactory> module_factory,

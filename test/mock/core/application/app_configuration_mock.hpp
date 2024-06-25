@@ -118,8 +118,6 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(bool, useWavmCache, (), (const, override));
-
     MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
 
     MOCK_METHOD(uint32_t,
@@ -145,6 +143,8 @@ namespace kagome::application {
                 pvfSubprocessDeadline,
                 (),
                 (const, override));
+
+    MOCK_METHOD(bool, disableSecureMode, (), (const, override));
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
@@ -191,6 +191,11 @@ namespace kagome::application {
 
     MOCK_METHOD(std::optional<BenchmarkConfigSection>,
                 getBenchmarkConfig,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::optional<PrecompileWasmConfig>,
+                precompileWasm,
                 (),
                 (const, override));
   };

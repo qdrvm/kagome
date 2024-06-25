@@ -7,6 +7,7 @@
 #pragma once
 
 #include <boost/variant.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
@@ -83,6 +84,7 @@ namespace kagome::network {
     common::Buffer payload;
   };
 
+  using PoV = ParachainBlock;
   using RequestPov = CandidateHash;
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
 
@@ -124,11 +126,28 @@ namespace kagome::network {
   struct CollationResponse {
     SCALE_TIE(2);
 
-    CandidateReceipt receipt;  /// Candidate receipt
-    ParachainBlock pov;        /// PoV block
+    /// Candidate receipt
+    CandidateReceipt receipt;
+
+    /// PoV block
+    ParachainBlock pov;
   };
 
-  using ReqCollationResponseData = boost::variant<CollationResponse>;
+  struct CollationWithParentHeadData {
+    SCALE_TIE(3);
+    /// The receipt of the candidate.
+    CandidateReceipt receipt;
+
+    /// Candidate's proof of validity.
+    ParachainBlock pov;
+
+    /// The head data of the candidate's parent.
+    /// This is needed for elastic scaling to work.
+    HeadData parent_head_data;
+  };
+
+  using ReqCollationResponseData =
+      boost::variant<CollationResponse, CollationWithParentHeadData>;
 
   /**
    * Sent by clients who want to retrieve the advertised collation at the
@@ -181,6 +200,14 @@ namespace kagome::network {
     CandidateCommitments commitments;  /// commitments retrieved from validation
     /// result and produced by the execution
     /// and validation parachain candidate
+
+    CandidateReceipt to_plain(const crypto::Hasher &hasher) const {
+      CandidateReceipt receipt;
+      receipt.descriptor = descriptor,
+      receipt.commitments_hash =
+          hasher.blake2b_256(scale::encode(commitments).value());
+      return receipt;
+    }
   };
 
   struct FetchStatementRequest {
@@ -206,6 +233,38 @@ namespace kagome::network {
     CommittedCandidateReceipt candidate;
     std::vector<ValidityAttestation> validity_votes;
     scale::BitVec validator_indices;
+
+    /// Creates `BackedCandidate` from args.
+    static BackedCandidate from(
+        CommittedCandidateReceipt candidate_,
+        std::vector<ValidityAttestation> validity_votes_,
+        scale::BitVec validator_indices_,
+        std::optional<CoreIndex> core_index_) {
+      BackedCandidate backed{
+          .candidate = std::move(candidate_),
+          .validity_votes = std::move(validity_votes_),
+          .validator_indices = std::move(validator_indices_),
+      };
+
+      if (core_index_) {
+        backed.inject_core_index(*core_index_);
+      }
+
+      return backed;
+    }
+
+    void inject_core_index(CoreIndex core_index) {
+      scale::BitVec core_index_to_inject;
+      core_index_to_inject.bits.assign(8, false);
+
+      auto val = uint8_t(core_index);
+      for (size_t i = 0; i < 8; ++i) {
+        core_index_to_inject.bits[i] = (val >> i) & 1;
+      }
+      validator_indices.bits.insert(validator_indices.bits.end(),
+                                    core_index_to_inject.bits.begin(),
+                                    core_index_to_inject.bits.end());
+    }
   };
 
   using CandidateState =
@@ -246,13 +305,14 @@ namespace kagome::network {
     SignedBitfield data;
   };
 
+  /// Data that makes a statement unique.
   struct StatementMetadata {
     SCALE_TIE(2);
 
-    primitives::BlockHash relay_parent;  /// Hash of the relay chain block
-    primitives::BlockHash
-        candidate_hash;  /// Hash of candidate that was used create the
-                         /// `CommitedCandidateRecept`.
+    /// Relay parent this statement is relevant under.
+    primitives::BlockHash relay_parent;
+    /// Hash of candidate that was used create the `CommitedCandidateRecept`.
+    primitives::BlockHash candidate_hash;
   };
 
   /// A succinct representation of a peer's view. This consists of a bounded
@@ -337,7 +397,14 @@ namespace kagome::network {
                     /// block.
   };
 
-  using ApprovalDistributionMessage = boost::variant<Assignments, Approvals>;
+  /// Network messages used by the approval distribution subsystem.
+  using ApprovalDistributionMessage = boost::variant<
+      /// Assignments for candidates in recent, unfinalized blocks.
+      ///
+      /// Actually checking the assignment may yield a different result.
+      Assignments,
+      /// Approvals for candidates in some recent, unfinalized block.
+      Approvals>;
 
   /// Attestation is either an implicit or explicit attestation of the validity
   /// of a parachain candidate, where 1 implies an implicit vote (in
@@ -395,17 +462,18 @@ namespace kagome::network {
     static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
   };
 
-  using CompactStatementSeconded = primitives::BlockHash;
-  using CompactStatementValid = primitives::BlockHash;
+  /// Proposal of a parachain candidate.
+  using CompactStatementSeconded =
+      Tagged<primitives::BlockHash, struct SecondedTag>;
+
+  /// State that a parachain
+  /// candidate is valid.
+  using CompactStatementValid = Tagged<primitives::BlockHash, struct ValidTag>;
 
   /// Statements that can be made about parachain candidates. These are the
   /// actual values that are signed.
-  using CompactStatement = boost::variant<
-      Tagged<CompactStatementSeconded,
-             struct SecondedTag>,  /// Proposal of a parachain candidate.
-      Tagged<CompactStatementValid, struct ValidTag>  /// State that a parachain
-                                                      /// candidate is valid.
-      >;
+  using CompactStatement =
+      std::variant<CompactStatementSeconded, CompactStatementValid>;
 
   /// ViewUpdate message. Maybe will be implemented later.
   struct ViewUpdate {
@@ -422,6 +490,14 @@ namespace kagome::network {
     /// The collator required to author the block, if any.
     std::optional<CollatorId> collator;
   };
+
+  inline const CandidateHash &candidateHash(const CompactStatement &val) {
+    auto p = visit_in_place(
+        val, [&](const auto &v) -> std::reference_wrapper<const CandidateHash> {
+          return v;
+        });
+    return p.get();
+  }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {

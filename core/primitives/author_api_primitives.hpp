@@ -27,7 +27,6 @@ namespace kagome::primitives {
   struct Session {
     uint32_t id{};
   };
-  // TODO(yuraz): PRE-221 investigate and implement Session primitive
 
   /**
    * @brief ExtrinsicKey is used as a key to search extrinsic

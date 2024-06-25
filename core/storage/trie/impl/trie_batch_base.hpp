@@ -35,7 +35,6 @@ namespace kagome::storage::trie {
         const BufferView &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     outcome::result<bool> contains(const BufferView &key) const override;
-    bool empty() const override;
 
     virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
     createChildBatch(common::BufferView path) override;

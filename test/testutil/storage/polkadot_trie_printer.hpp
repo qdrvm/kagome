@@ -91,7 +91,7 @@ namespace kagome::storage::trie {
         if (print_hash_) {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
                   << std::setw(0) << "hash: "
-                  << common::hex_upper(codec_.merkleValue(enc).asBuffer())
+                  << common::hex_lower(codec_.merkleValue(enc).asBuffer())
                   << "\n";
         }
       }
@@ -105,8 +105,7 @@ namespace kagome::storage::trie {
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrie &trie) {
-    if (not trie.empty()) {
-      auto root = trie.getRoot();
+    if (auto root = trie.getRoot()) {
       printer_internal::NodePrinter p(s);
       p.printNode(root, trie);
     }
