@@ -68,7 +68,7 @@ namespace kagome::network {
     /// The erasure-encoded chunk of data belonging to the candidate block.
     common::Buffer chunk;
     /// The index of this erasure-encoded chunk of data.
-    ValidatorIndex index;
+    ChunkIndex index;
     /// Proof for this chunk's branch in the Merkle tree.
     ChunkProof proof;
   };
@@ -176,7 +176,7 @@ namespace kagome::network {
     SCALE_TIE(2);
 
     CandidateHash candidate;  /// parachain candidate hash
-    uint32_t chunk_index;     /// index of the chunk
+    ChunkIndex chunk_index;   /// index of the chunk
   };
 
   /**

@@ -38,6 +38,7 @@ namespace kagome::parachain {
   using HeadData = common::Buffer;
   using CandidateHash = Hash;
   using RelayHash = Hash;
+  using ChunkIndex = uint32_t;
   using ChunkProof = std::vector<common::Buffer>;
   using CandidateIndex = uint32_t;
   using CoreIndex = uint32_t;
