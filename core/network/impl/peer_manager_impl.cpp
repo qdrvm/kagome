@@ -26,8 +26,11 @@
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
   constexpr const char *kPeersCountMetricName = "kagome_sub_libp2p_peers_count";
-  /// Reputation change for a node when we get disconnected from it.
+  /// Reputation value for a node when we get disconnected from it.
   static constexpr int32_t kDisconnectReputation = -256;
+  /// Reputation change for a node when we get disconnected from it.
+  static constexpr int32_t kMinReputationForInnerConnection = -128;
+  static constexpr int32_t kMinReputationForOuterConnection = -128;
 }  // namespace
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
@@ -421,6 +424,18 @@ namespace kagome::network {
       return;
     }
 
+    // Don't establish connection to bad (negative reputation) peers
+    const auto peer_reputation = reputation_repository_->reputation(peer_id);
+    if (peer_reputation < kMinReputationForOuterConnection) {
+      SL_DEBUG(log_,
+               "Attempt to establish connection to peer {} skipped: "
+               "peer has low ({}) reputation",
+               peer_id,
+               peer_reputation);
+      connecting_peers_.erase(peer_id);
+      return;
+    }
+
     auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
     if (peer_info.addresses.empty()) {
       SL_DEBUG(log_, "Not found addresses for peer {}", peer_id);
@@ -797,6 +812,19 @@ namespace kagome::network {
         disconnectFromPeer(peer_id);
         return;
       }
+    }
+
+    // Don't accept connection from bad (negative reputation) peers
+    const auto peer_reputation = reputation_repository_->reputation(peer_id);
+    if (peer_reputation < kMinReputationForInnerConnection) {
+      SL_DEBUG(log_,
+               "New connection from peer {} was dropped: "
+               "peer has low ({}) reputation",
+               peer_id,
+               peer_reputation);
+      connecting_peers_.erase(peer_id);
+      disconnectFromPeer(peer_id);
+      return;
     }
 
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
