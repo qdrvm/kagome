@@ -55,7 +55,7 @@ namespace kagome::parachain {
     void chunk(const CandidateHash &candidate_hash);
     void chunk(const CandidateHash &candidate_hash,
                ValidatorIndex index,
-               outcome::result<network::FetchChunkResponse> _chunk);
+               outcome::result<network::FetchChunkResponseObsolete> _chunk);
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
     void done(Lock &lock,

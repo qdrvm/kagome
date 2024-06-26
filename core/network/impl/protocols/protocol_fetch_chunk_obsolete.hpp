@@ -25,26 +25,27 @@ namespace kagome::network {
 
   struct ReqPovProtocolImpl;
 
-  class FetchChunkProtocol final
+  class FetchChunkProtocolObsolete final
       : public RequestResponseProtocol<FetchChunkRequest,
-                                       FetchChunkResponse,
+                                       FetchChunkResponseObsolete,
                                        ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocol() = delete;
-    ~FetchChunkProtocol() override = default;
+    FetchChunkProtocolObsolete() = delete;
+    ~FetchChunkProtocolObsolete() override = default;
 
-    FetchChunkProtocol(libp2p::Host &host,
-                       const application::ChainSpec &chain_spec,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+    FetchChunkProtocolObsolete(
+        libp2p::Host &host,
+        const application::ChainSpec &chain_spec,
+        const blockchain::GenesisBlockHash &genesis_hash,
+        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
             FetchChunkRequest,
-            FetchChunkResponse,
+            FetchChunkResponseObsolete,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,
                                     host,
-                                    make_protocols(kFetchChunkProtocol,
+                                    make_protocols(kFetchChunkProtocolObsolete,
                                                    genesis_hash,
                                                    kProtocolPrefixPolkadot),
                                     log::createLogger(kFetchChunkProtocolName,
@@ -66,7 +67,7 @@ namespace kagome::network {
       } else {
         visit_in_place(
             res.value(),
-            [&](const network::Chunk &r) {
+            [&](const network::ChunkObsolete &r) {
               base().logger()->info("Fetching chunk response with data.");
             },
             [&](const auto &) {
@@ -82,7 +83,8 @@ namespace kagome::network {
                              request.chunk_index);
     }
 
-    inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol"s;
+    inline static const auto kFetchChunkProtocolName =
+        "FetchChunkProtocolObsolete"s;
     std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
   };
 

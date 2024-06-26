@@ -3211,17 +3211,17 @@ namespace kagome::parachain {
     };
   }
 
-  outcome::result<network::FetchChunkResponse>
+  outcome::result<network::FetchChunkResponseObsolete>
   ParachainProcessorImpl::OnFetchChunkRequest(
       const network::FetchChunkRequest &request) {
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
-      return network::Chunk{
+      return network::ChunkObsolete{
           .data = chunk->chunk,
           .proof = chunk->proof,
       };
     }
-    return network::FetchChunkResponse{};
+    return network::FetchChunkResponseObsolete{};
   }
 
   std::optional<

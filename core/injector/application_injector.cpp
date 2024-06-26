@@ -122,7 +122,7 @@
 #include "network/impl/protocols/light.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
-#include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
 #include "network/impl/protocols/send_dispute_protocol.hpp"
@@ -629,7 +629,7 @@ namespace {
                   injector.template create<sptr<application::ChainSpec>>();
               return crypto::KeyStore::Config{config.keystorePath(chain_spec->id())};
             }),
-            
+
             // inherit host injector
             libp2p::injector::makeHostInjector(
                 libp2p::injector::useWssPem(config->nodeWssPem()),

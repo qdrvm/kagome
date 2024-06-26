@@ -37,7 +37,7 @@ namespace kagome::parachain {
 
     void fetch(const CandidateHash &candidate_hash);
     void fetch(const CandidateHash &candidate_hash,
-               outcome::result<network::FetchChunkResponse> _chunk);
+               outcome::result<network::FetchChunkResponseObsolete> _chunk);
 
     std::shared_ptr<AvailabilityStore> av_store_;
     std::shared_ptr<authority_discovery::Query> query_audi_;

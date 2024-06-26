@@ -242,7 +242,7 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
 
-    outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
+    outcome::result<network::FetchChunkResponseObsolete> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
 
     outcome::result<network::vstaging::AttestedCandidateResponse>

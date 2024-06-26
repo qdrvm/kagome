@@ -7,7 +7,7 @@
 #include "parachain/availability/recovery/recovery_impl.hpp"
 
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
-#include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 
@@ -177,7 +177,7 @@ namespace kagome::parachain {
             peer->id,
             {candidate_hash, index},
             [=, weak{weak_from_this()}](
-                outcome::result<network::FetchChunkResponse> r) {
+                outcome::result<network::FetchChunkResponseObsolete> r) {
               auto self = weak.lock();
               if (not self) {
                 return;
@@ -195,7 +195,7 @@ namespace kagome::parachain {
   void RecoveryImpl::chunk(
       const CandidateHash &candidate_hash,
       ValidatorIndex index,
-      outcome::result<network::FetchChunkResponse> _chunk) {
+      outcome::result<network::FetchChunkResponseObsolete> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
@@ -204,7 +204,7 @@ namespace kagome::parachain {
     auto &active = it->second;
     --active.chunks_active;
     if (_chunk) {
-      if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
+      if (auto chunk2 = boost::get<network::ChunkObsolete>(&_chunk.value())) {
         network::ErasureChunk chunk{
             std::move(chunk2->data), index, std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
