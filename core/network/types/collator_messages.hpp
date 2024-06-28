@@ -192,6 +192,22 @@ namespace kagome::network {
     ChunkProof proof;
   };
   using FetchChunkResponseObsolete = boost::variant<ChunkObsolete, Empty>;
+
+  /**
+   * Sent by nodes to the clients who issued a chunk fetching request. Version 2
+   */
+  struct Chunk {
+    SCALE_TIE(3);
+
+    /// chunk data
+    common::Buffer data;
+    /// chunk proof
+    ChunkProof proof;
+    /// chunk index
+    ChunkIndex chunk_index;
+  };
+  using FetchChunkResponse = boost::variant<Chunk, Empty>;
+
   using FetchAvailableDataRequest = CandidateHash;
   using FetchAvailableDataResponse =
       boost::variant<runtime::AvailableData, Empty>;

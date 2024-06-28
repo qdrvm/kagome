@@ -7,7 +7,9 @@
 #include "parachain/availability/recovery/recovery_impl.hpp"
 
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
+#include "network/peer_manager.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 
@@ -20,13 +22,18 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<AvailabilityStore> av_store,
       std::shared_ptr<authority_discovery::Query> query_audi,
-      std::shared_ptr<network::Router> router)
-      : hasher_{std::move(hasher)},
+      std::shared_ptr<network::Router> router,
+      std::shared_ptr<network::PeerManager> pm)
+      : logger_{log::createLogger("Recovery", "parachain")},
+        hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
         parachain_api_{std::move(parachain_api)},
         av_store_{std::move(av_store)},
         query_audi_{std::move(query_audi)},
-        router_{std::move(router)} {}
+        router_{std::move(router)},
+        pm_{std::move(pm)} {
+    BOOST_ASSERT(pm_);
+  }
 
   void RecoveryImpl::remove(const CandidateHash &candidate) {
     std::unique_lock lock{mutex_};
@@ -173,17 +180,85 @@ namespace kagome::parachain {
       auto peer = query_audi_->get(active.validators[index]);
       if (peer) {
         ++active.chunks_active;
-        router_->getFetchChunkProtocol()->doRequest(
-            peer->id,
-            {candidate_hash, index},
-            [=, weak{weak_from_this()}](
-                outcome::result<network::FetchChunkResponseObsolete> r) {
-              auto self = weak.lock();
-              if (not self) {
-                return;
-              }
-              self->chunk(candidate_hash, index, std::move(r));
-            });
+
+        const auto &peer_id = peer.value().id;
+        auto peer_state = [&]() {
+          auto res = pm_->getPeerState(peer_id);
+          if (!res) {
+            SL_TRACE(logger_, "From unknown peer {}", peer_id);
+            res = pm_->createDefaultPeerState(peer_id);
+          }
+          return res;
+        }();
+
+        auto req_chunk_version =
+            // peer_state->get().req_chunk_version.value_or(
+            // network::ReqChunkVersion::V1_obsolete);
+            network::ReqChunkVersion::V2;
+
+        switch (req_chunk_version) {
+          case network::ReqChunkVersion::V2:
+            SL_DEBUG(logger_,
+                     "Sent request of chunk {} of candidate {} to peer {}",
+                     index,
+                     candidate_hash,
+                     peer_id);
+            router_->getFetchChunkProtocol()->doRequest(
+                peer->id,
+                {candidate_hash, index},
+                [=, chunk_index{index}, weak{weak_from_this()}](
+                    outcome::result<network::FetchChunkResponse> r) {
+                  if (auto self = weak.lock()) {
+                    if (r.has_value()) {
+                      SL_DEBUG(logger_,
+                               "Result of request chunk {} of candidate {} to "
+                               "peer {}: success",
+                               chunk_index,
+                               candidate_hash,
+                               peer_id);
+                    } else {
+                      SL_DEBUG(logger_,
+                               "Result of request chunk {} of candidate {} to "
+                               "peer {}: {}",
+                               chunk_index,
+                               candidate_hash,
+                               peer_id,
+                               r.error());
+                    }
+
+                    self->chunk(candidate_hash, index, std::move(r));
+                  }
+                });
+            break;
+          case network::ReqChunkVersion::V1_obsolete:
+            router_->getFetchChunkProtocolObsolete()->doRequest(
+                peer->id,
+                {candidate_hash, index},
+                [=, weak{weak_from_this()}](
+                    outcome::result<network::FetchChunkResponseObsolete> r) {
+                  if (auto self = weak.lock()) {
+                    if (r.has_value()) {
+                      auto response = visit_in_place(
+                          r.value(),
+                          [](const network::Empty &empty)
+                              -> network::FetchChunkResponse { return empty; },
+                          [&](const network::ChunkObsolete &chunk_obsolete)
+                              -> network::FetchChunkResponse {
+                            return network::Chunk{
+                                .data = std::move(chunk_obsolete.data),
+                                .proof = std::move(chunk_obsolete.proof),
+                                .chunk_index = index};
+                          });
+                      self->chunk(candidate_hash, index, std::move(response));
+                    } else {
+                      self->chunk(candidate_hash, index, r.as_failure());
+                    }
+                  }
+                });
+            break;
+          default:
+            UNREACHABLE;
+        }
         return;
       }
     }
@@ -195,7 +270,7 @@ namespace kagome::parachain {
   void RecoveryImpl::chunk(
       const CandidateHash &candidate_hash,
       ValidatorIndex index,
-      outcome::result<network::FetchChunkResponseObsolete> _chunk) {
+      outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
@@ -204,7 +279,7 @@ namespace kagome::parachain {
     auto &active = it->second;
     --active.chunks_active;
     if (_chunk) {
-      if (auto chunk2 = boost::get<network::ChunkObsolete>(&_chunk.value())) {
+      if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
         network::ErasureChunk chunk{
             std::move(chunk2->data), index, std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {

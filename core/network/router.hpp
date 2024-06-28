@@ -18,6 +18,7 @@ namespace kagome::network {
   class ValidationProtocol;
   class ReqCollationProtocol;
   class ReqPovProtocol;
+  class FetchChunkProtocol;
   class FetchChunkProtocolObsolete;
   class FetchAvailableDataProtocol;
   class StatementFetchingProtocol;
@@ -54,8 +55,10 @@ namespace kagome::network {
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const = 0;
-    virtual std::shared_ptr<FetchChunkProtocolObsolete> getFetchChunkProtocol()
+    virtual std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol()
         const = 0;
+    virtual std::shared_ptr<FetchChunkProtocolObsolete>
+    getFetchChunkProtocolObsolete() const = 0;
     virtual std::shared_ptr<FetchAttestedCandidateProtocol>
     getFetchAttestedCandidateProtocol() const = 0;
     virtual std::shared_ptr<FetchAvailableDataProtocol>

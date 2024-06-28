@@ -62,7 +62,8 @@ namespace kagome::network {
     std::optional<CollatingPeerState> collator_state = std::nullopt;
     View view;
     std::unordered_set<common::Hash256> implicit_view;
-    std::optional<CollationVersion> version;
+    std::optional<CollationVersion> collation_version;
+    std::optional<ReqChunkVersion> req_chunk_version;
 
     /// Update the view, returning a vector of implicit relay-parents which
     /// weren't previously part of the view.

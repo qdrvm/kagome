@@ -353,11 +353,18 @@ namespace kagome::network::vstaging {
 
 namespace kagome::network {
 
-  enum CollationVersion {
+  enum class CollationVersion {
     /// The first version.
     V1 = 1,
     /// The staging version.
     VStaging = 2,
+  };
+
+  enum class ReqChunkVersion {
+    /// The first (obsolete) version.
+    V1_obsolete = 1,
+    /// The second version.
+    V2 = 2,
   };
 
   /// Candidate supplied with a para head it's built on top of.

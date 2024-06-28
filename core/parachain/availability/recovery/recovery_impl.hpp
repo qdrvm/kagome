@@ -14,9 +14,14 @@
 
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_tree.hpp"
+#include "log/logger.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/store/store.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+
+namespace kagome::network {
+  class PeerManager;
+}
 
 namespace kagome::parachain {
   class RecoveryImpl : public Recovery,
@@ -27,7 +32,8 @@ namespace kagome::parachain {
                  std::shared_ptr<runtime::ParachainHost> parachain_api,
                  std::shared_ptr<AvailabilityStore> av_store,
                  std::shared_ptr<authority_discovery::Query> query_audi,
-                 std::shared_ptr<network::Router> router);
+                 std::shared_ptr<network::Router> router,
+                 std::shared_ptr<network::PeerManager> pm);
 
     void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
@@ -55,19 +61,21 @@ namespace kagome::parachain {
     void chunk(const CandidateHash &candidate_hash);
     void chunk(const CandidateHash &candidate_hash,
                ValidatorIndex index,
-               outcome::result<network::FetchChunkResponseObsolete> _chunk);
+               outcome::result<network::FetchChunkResponse> _chunk);
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
     void done(Lock &lock,
               ActiveMap::iterator it,
               const std::optional<outcome::result<AvailableData>> &result);
 
+    log::Logger logger_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<AvailabilityStore> av_store_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> pm_;
 
     std::mutex mutex_;
     std::default_random_engine random_;
