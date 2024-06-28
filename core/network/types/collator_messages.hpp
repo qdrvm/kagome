@@ -201,10 +201,10 @@ namespace kagome::network {
 
     /// chunk data
     common::Buffer data;
-    /// chunk proof
-    ChunkProof proof;
     /// chunk index
     ChunkIndex chunk_index;
+    /// chunk proof
+    ChunkProof proof;
   };
   using FetchChunkResponse = boost::variant<Chunk, Empty>;
 

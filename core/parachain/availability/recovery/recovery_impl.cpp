@@ -246,8 +246,9 @@ namespace kagome::parachain {
                               -> network::FetchChunkResponse {
                             return network::Chunk{
                                 .data = std::move(chunk_obsolete.data),
+                                .chunk_index = index,
                                 .proof = std::move(chunk_obsolete.proof),
-                                .chunk_index = index};
+                            };
                           });
                       self->chunk(candidate_hash, index, std::move(response));
                     } else {

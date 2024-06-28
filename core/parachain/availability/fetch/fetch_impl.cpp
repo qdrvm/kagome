@@ -134,8 +134,9 @@ namespace kagome::parachain {
                               -> network::FetchChunkResponse {
                             return network::Chunk{
                                 .data = std::move(chunk_obsolete.data),
+                                .chunk_index = active.chunk_index,
                                 .proof = std::move(chunk_obsolete.proof),
-                                .chunk_index = active.chunk_index};
+                            };
                           });
                       self->fetch(candidate_hash, std::move(response));
                     } else {

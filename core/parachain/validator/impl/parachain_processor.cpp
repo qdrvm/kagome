@@ -3218,8 +3218,8 @@ namespace kagome::parachain {
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       return network::Chunk{
           .data = chunk->chunk,
-          .proof = chunk->proof,
           .chunk_index = request.chunk_index,
+          .proof = chunk->proof,
       };
     }
     return network::FetchChunkResponse{};
