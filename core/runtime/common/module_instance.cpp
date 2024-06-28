@@ -8,6 +8,7 @@
 
 #include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
+#include "runtime/module.hpp"
 #include "runtime/trie_storage_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
@@ -39,8 +40,12 @@ namespace kagome::runtime {
     }
     uint32_t heap_base = boost::get<int32_t>(*opt_heap_base);
     auto &memory_provider = getEnvironment().memory_provider;
-    OUTCOME_TRY(const_cast<MemoryProvider &>(*memory_provider)
-                    .resetMemory(MemoryConfig{heap_base, limits}));
+    OUTCOME_TRY(
+        const_cast<MemoryProvider &>(*memory_provider)
+            .resetMemory(MemoryConfig{heap_base,
+                                      getModule()->getInitialMemorySize(),
+                                      getModule()->getMaxMemorySize(),
+                                      limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     size_t max_data_segment_end = 0;

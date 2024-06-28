@@ -94,8 +94,6 @@ class ExecutorTest : public testing::Test {
         }));
 
     auto module_instance = std::make_shared<ModuleInstanceMock>();
-    EXPECT_CALL(*module_instance, resetEnvironment())
-        .WillRepeatedly(Return(outcome::success()));
     static const auto code_hash = "code_hash"_hash256;
     EXPECT_CALL(*module_instance, getCodeHash())
         .WillRepeatedly(Return(code_hash));

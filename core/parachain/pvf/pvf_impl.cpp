@@ -23,6 +23,8 @@
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/heap_alloc_strategy_heappages.hpp"
+#include "runtime/memory.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
@@ -334,6 +336,19 @@ namespace kagome::parachain {
 
     constexpr auto name = "validate_block";
     if (not app_configuration_->usePvfSubprocess()) {
+      if (executor_params.memory_limits.heap_alloc_strategy.which() == 0) {
+        auto dynamic = boost::get<runtime::HeapAllocStrategyDynamic>(
+            executor_params.memory_limits.heap_alloc_strategy);
+        SL_INFO(log_,
+                "Heap allocation strategy dynamic: max pages {}",
+                dynamic.maximum_pages.value_or(0));
+      } else {
+        SL_INFO(log_,
+                "Heap allocation strategy static: extra pages {}",
+                boost::get<runtime::HeapAllocStrategyStatic>(
+                    executor_params.memory_limits.heap_alloc_strategy)
+                    .extra_pages);
+      }
       CB_TRY(auto instance,
              pvf_pool_->pool()->instantiateFromCode(
                  code_hash, code_zstd, executor_params));

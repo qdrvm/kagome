@@ -6,6 +6,7 @@
 
 #include "runtime/wabt/instrument.hpp"
 
+#include "log/logger.hpp"
 #include "runtime/wabt/stack_limiter.hpp"
 #include "runtime/wabt/util.hpp"
 
@@ -76,6 +77,10 @@ namespace kagome::runtime {
             init + boost::get<HeapAllocStrategyStatic>(config).extra_pages;
         limit = {max, max};
       }
+      log::createLogger("wabt", "runtime")
+          ->info("Memory after patching: {} {}",
+                 memory->memory.page_limits.initial,
+                 memory->memory.page_limits.max);
     }
     return outcome::success();
   }

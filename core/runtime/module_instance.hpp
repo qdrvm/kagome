@@ -119,7 +119,6 @@ namespace kagome::runtime {
     virtual void forDataSegment(const DataSegmentProcessor &callback) const = 0;
 
     virtual const InstanceEnvironment &getEnvironment() const = 0;
-    virtual outcome::result<void> resetEnvironment() = 0;
 
     outcome::result<void> resetMemory(const MemoryLimits &config);
   };

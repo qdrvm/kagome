@@ -81,7 +81,7 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    module->memory.initial = kDefaultHeappages;
+    // module->memory.initial = kDefaultHeappages;
 
     return std::make_shared<ModuleImpl>(
         std::move(module), module_factory, env_factory, code_hash);
@@ -94,4 +94,11 @@ namespace kagome::runtime::binaryen {
         std::move(env.env), shared_from_this(), env.rei, code_hash_);
   }
 
+  WasmSize ModuleImpl::getInitialMemorySize() const {
+    return module_->memory.initial.addr;
+  }
+
+  std::optional<WasmSize> ModuleImpl::getMaxMemorySize() const {
+    return module_->memory.max;
+  }
 }  // namespace kagome::runtime::binaryen

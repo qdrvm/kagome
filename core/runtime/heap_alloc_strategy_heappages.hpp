@@ -10,7 +10,7 @@
 #include "storage/buffer_map_types.hpp"
 #include "storage/predefined_keys.hpp"
 
-namespace kagome {
+namespace kagome::runtime {
   constexpr uint32_t kDefaultHeapAllocPages = 2048;
 
   /// Convert ":heappages" from state trie to `HeapAllocStrategy`.
@@ -30,4 +30,4 @@ namespace kagome {
     OUTCOME_TRY(config, heapAllocStrategyHeappages(trie));
     return config.value_or(HeapAllocStrategyStatic{kDefaultHeapAllocPages});
   }
-}  // namespace kagome
+}  // namespace kagome::runtime

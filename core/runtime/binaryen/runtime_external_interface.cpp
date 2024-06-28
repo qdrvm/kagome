@@ -9,6 +9,7 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/register_host_api.hpp"
 #include "runtime/memory.hpp"
+#include "runtime/types.hpp"
 
 namespace {
   /**
@@ -141,7 +142,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<host_api::HostApi> host_api)
       : host_api_{std::move(host_api)},
         logger_{log::createLogger("RuntimeExternalInterface", "binaryen")} {
-    memory.resize(kInitialMemorySize);
+    // memory.resize(kInitialMemorySize);
     BOOST_ASSERT(host_api_);
     registerMethods();
   }
@@ -195,6 +196,11 @@ namespace kagome::runtime::binaryen {
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,
                                       wasm::ModuleInstance &instance) {
+    SL_DEBUG(logger_,
+             "Init: Resize memory to {} bytes, {} pages",
+             wasm.memory.initial * wasm::Memory::kPageSize,
+             wasm.memory.initial.addr);
+
     memory.resize(wasm.memory.initial * wasm::Memory::kPageSize);
     if (wasm.memory.hasMax()) {
       memory.pages_max = wasm.memory.max;
@@ -292,6 +298,21 @@ namespace kagome::runtime::binaryen {
       return callImport(func, arguments);
     } else {
       return instance.callFunctionInternal(func->name, arguments);
+    }
+  }
+
+  void RuntimeExternalInterface::reset(WasmSize initial_memory,
+                                       std::optional<WasmSize> max_memory) {
+    memory.reset();
+    // init doesn't modify module and instance
+    SL_DEBUG(logger_,
+             "Init: Resize memory to {} bytes, {} pages",
+             initial_memory * wasm::Memory::kPageSize,
+             initial_memory);
+
+    memory.resize(initial_memory * wasm::Memory::kPageSize);
+    if (max_memory) {
+      memory.pages_max = *max_memory;
     }
   }
 

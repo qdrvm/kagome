@@ -58,6 +58,10 @@ namespace kagome::runtime::binaryen {
                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
                const common::Hash256 &code_hash);
 
+    WasmSize getInitialMemorySize() const override;
+
+    std::optional<WasmSize> getMaxMemorySize() const override;
+
    private:
     std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;

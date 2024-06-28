@@ -41,6 +41,7 @@ namespace kagome::runtime::binaryen {
     auto rei = external_interface_.lock();
     BOOST_ASSERT(rei != nullptr);
     if (rei) {
+      rei->reset(config.initial, config.max);
       std::shared_ptr handle = memory_factory_->make(rei->getMemory(), config);
       memory_ = std::make_shared<Memory>(
           handle, std::make_unique<MemoryAllocatorImpl>(handle, config));

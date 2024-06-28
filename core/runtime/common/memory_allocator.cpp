@@ -74,7 +74,8 @@ namespace kagome::runtime {
         pages = std::max(pages, 2 * sizeToPages(memory_->size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);
         memory_->resize(pages * kMemoryPageSize);
-        SL_TRACE(logger_, "Resize memory to {}", pages * kMemoryPageSize);
+        SL_TRACE(
+            logger_, "Allocator: Resize memory to {}", pages * kMemoryPageSize);
       }
       offset_ = next_offset;
     }

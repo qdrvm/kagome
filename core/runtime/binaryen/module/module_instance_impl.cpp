@@ -110,6 +110,9 @@ namespace kagome::runtime::binaryen {
     const auto args_list =
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
 
+    SL_INFO(logger_,
+            "Memory size: {}",
+            getEnvironment().memory_provider->getCurrentMemory()->get().size());
     if (auto res =
             module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
         nullptr == res) {
@@ -158,11 +161,6 @@ namespace kagome::runtime::binaryen {
 
   const InstanceEnvironment &ModuleInstanceImpl::getEnvironment() const {
     return env_;
-  }
-
-  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
-    env_.host_api->reset();
-    return outcome::success();
   }
 
   void ModuleInstanceImpl::forDataSegment(

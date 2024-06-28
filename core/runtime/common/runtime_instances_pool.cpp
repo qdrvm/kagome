@@ -65,10 +65,6 @@ namespace kagome::runtime {
       return instance_->getEnvironment();
     }
 
-    outcome::result<void> resetEnvironment() override {
-      return instance_->resetEnvironment();
-    }
-
    private:
     std::weak_ptr<RuntimeInstancesPoolImpl> pool_;
     common::Hash256 hash_;
@@ -94,9 +90,10 @@ namespace kagome::runtime {
     std::unique_lock lock{pools_mtx_};
     OUTCOME_TRY(module, getModule(lock, code_hash, code_zstd, config));
     OUTCOME_TRY(instance, module.get().instantiate(lock));
-    BOOST_ASSERT(shared_from_this());
-    return std::make_shared<BorrowedInstance>(
-        weak_from_this(), code_hash, config, std::move(instance));
+    return instance;
+    //    BOOST_ASSERT(shared_from_this());
+    //    return std::make_shared<BorrowedInstance>(
+    //       weak_from_this(), code_hash, config, std::move(instance));
   }
 
   outcome::result<void> RuntimeInstancesPoolImpl::precompile(

@@ -241,8 +241,4 @@ namespace kagome::runtime::wavm {
     return env_;
   }
 
-  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
-    env_.host_api->reset();
-    return outcome::success();
-  }
 }  // namespace kagome::runtime::wavm

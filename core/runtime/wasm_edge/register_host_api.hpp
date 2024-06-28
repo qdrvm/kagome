@@ -7,10 +7,10 @@
 
 #include <wasmedge/wasmedge.h>
 
-#include <iostream>
 #include <unordered_set>
 
 #include "host_api/host_api.hpp"
+#include "log/logger.hpp"
 #include "runtime/common/register_host_api.hpp"
 
 namespace kagome::runtime::wasm_edge {
@@ -222,7 +222,12 @@ namespace kagome::runtime::wasm_edge {
         module,
         const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
         imports_num);
-
+    log::createLogger("WasmEdge", "runtime")
+        ->info("Imports num {}", imports.size());
+    if (imports.size() == 1) {
+      auto name = WasmEdge_ImportTypeGetExternalName(imports[0]);
+      log::createLogger("WasmEdge", "runtime")->info("Import: {}", name.Buf);
+    }
     std::unordered_set<std::string_view> existing_imports;
     REGISTER_HOST_METHODS
 

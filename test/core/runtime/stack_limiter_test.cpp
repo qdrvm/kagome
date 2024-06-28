@@ -26,11 +26,11 @@
 static constexpr uint32_t ACTIVATION_FRAME_COST = 2;
 
 using kagome::byte2str;
-using kagome::HeapAllocStrategy;
-using kagome::HeapAllocStrategyDynamic;
-using kagome::HeapAllocStrategyStatic;
 using kagome::str2byte;
 using kagome::runtime::convertMemoryImportIntoExport;
+using kagome::runtime::HeapAllocStrategy;
+using kagome::runtime::HeapAllocStrategyDynamic;
+using kagome::runtime::HeapAllocStrategyStatic;
 using kagome::runtime::setupMemoryAccordingToHeapAllocStrategy;
 using kagome::runtime::wabtDecode;
 using kagome::runtime::wabtEncode;

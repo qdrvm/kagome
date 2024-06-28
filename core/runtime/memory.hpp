@@ -126,6 +126,10 @@ namespace kagome::runtime {
       return PtrSize{ptr, static_cast<WasmSize>(v.size())}.combine();
     }
 
+    size_t size() const {
+      return handle_->size();
+    }
+
    private:
     std::shared_ptr<MemoryHandle> handle_;
     std::unique_ptr<MemoryAllocator> allocator_;

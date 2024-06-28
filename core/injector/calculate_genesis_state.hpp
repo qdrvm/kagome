@@ -33,7 +33,7 @@ namespace kagome::injector {
 
     runtime::MemoryLimits config;
     BOOST_OUTCOME_TRY(config.heap_alloc_strategy,
-                      heapAllocStrategyHeappagesDefault(*top_trie));
+                      runtime::heapAllocStrategyHeappagesDefault(*top_trie));
     OUTCOME_TRY(
         runtime_version,
         runtime::callCoreVersion(module_factory, code, config, runtime_cache));

@@ -61,7 +61,6 @@ namespace kagome::runtime::wavm {
     void forDataSegment(const DataSegmentProcessor &callback) const override;
 
     const InstanceEnvironment &getEnvironment() const override;
-    outcome::result<void> resetEnvironment() override;
 
    private:
     InstanceEnvironment env_;

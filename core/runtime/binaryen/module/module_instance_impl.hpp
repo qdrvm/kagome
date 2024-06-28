@@ -50,8 +50,6 @@ namespace kagome::runtime::binaryen {
 
     const InstanceEnvironment &getEnvironment() const override;
 
-    outcome::result<void> resetEnvironment() override;
-
     void forDataSegment(const DataSegmentProcessor &callback) const override;
 
    private:

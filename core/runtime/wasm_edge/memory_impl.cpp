@@ -10,6 +10,7 @@
 
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/common/memory_error.hpp"
+#include "runtime/memory.hpp"
 #include "runtime/memory_check.hpp"
 
 namespace kagome::runtime::wasm_edge {
@@ -21,11 +22,16 @@ namespace kagome::runtime::wasm_edge {
     auto *mem_type = WasmEdge_MemoryInstanceGetMemoryType(mem_instance_);
     BOOST_ASSERT(mem_type != nullptr);
     auto limit = WasmEdge_MemoryTypeGetLimit(mem_type);
-    resize(limit.Min * kMemoryPageSize);
+    auto start_size = size();
     SL_DEBUG(logger_,
-             "Created memory wrapper {} for internal instance {}",
+             "Created memory wrapper {} for internal instance {} with initial "
+             "size {}, limit min {}, limit max {}, heap base {}",
              fmt::ptr(this),
-             fmt::ptr(mem_instance_));
+             fmt::ptr(mem_instance_),
+             start_size,
+             limit.Min,
+             limit.Max,
+             config.heap_base);
   }
 
   std::optional<WasmSize> MemoryImpl::pagesMax() const {

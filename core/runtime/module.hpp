@@ -10,6 +10,7 @@
 
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::runtime {
 
@@ -27,5 +28,8 @@ namespace kagome::runtime {
 
     virtual outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const = 0;
+
+    virtual WasmSize getInitialMemorySize() const = 0;
+    virtual std::optional<WasmSize> getMaxMemorySize() const = 0;
   };
 }  // namespace kagome::runtime

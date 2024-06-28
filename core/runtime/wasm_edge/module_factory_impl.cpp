@@ -163,7 +163,9 @@ namespace kagome::runtime::wasm_edge {
           fmt::ptr(env_.memory_provider),
           fmt::ptr(&env_.memory_provider->getCurrentMemory().value().get()),
           fmt::ptr(env_.storage_provider));
-
+      SL_DEBUG(log_,
+               "Memory size {} bytes",
+               env_.memory_provider->getCurrentMemory().value().get().size());
       auto res = WasmEdge_ExecutorInvoke(executor_->raw(),
                                          func,
                                          params.data(),
@@ -196,11 +198,6 @@ namespace kagome::runtime::wasm_edge {
 
     const InstanceEnvironment &getEnvironment() const override {
       return env_;
-    }
-
-    outcome::result<void> resetEnvironment() override {
-      env_.host_api->reset();
-      return outcome::success();
     }
 
    private:
@@ -316,6 +313,18 @@ namespace kagome::runtime::wasm_edge {
                                                   host_instance,
                                                   std::move(env),
                                                   code_hash_);
+    }
+
+    WasmSize getInitialMemorySize() const override {
+      return WasmEdge_MemoryTypeGetLimit(memory_type_).Min;
+    }
+
+    std::optional<WasmSize> getMaxMemorySize() const override {
+      auto limit = WasmEdge_MemoryTypeGetLimit(memory_type_);
+      if (limit.HasMax) {
+        return limit.Max;
+      }
+      return {};
     }
 
    private:

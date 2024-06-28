@@ -13,7 +13,7 @@
 #include "scale/tie.hpp"
 #include "scale/tie_hash.hpp"
 
-namespace kagome {
+namespace kagome::runtime {
   /**
    * Allocate the initial heap pages as requested by the wasm file and then
    * allow it to grow dynamically.
@@ -51,4 +51,4 @@ namespace kagome {
    */
   using HeapAllocStrategy =
       boost::variant<HeapAllocStrategyDynamic, HeapAllocStrategyStatic>;
-}  // namespace kagome
+}  // namespace kagome::runtime

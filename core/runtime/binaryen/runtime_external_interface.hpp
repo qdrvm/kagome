@@ -50,6 +50,8 @@ namespace kagome::runtime::binaryen {
       Memory(Memory &) = delete;
       Memory &operator=(const Memory &) = delete;
 
+      static constexpr size_t minSize = 1 << 12;
+
      public:
       Memory() = default;
       void resize(size_t newSize) {
@@ -59,19 +61,32 @@ namespace kagome::runtime::binaryen {
         // ensuring that the performance doesn't needlessly degrade.
         //
         // The code is optimistic this will work until WG21's p0035r0 happens.
-        const size_t minSize = 1 << 12;
+
         size_t oldSize = memory.size();
         memory.resize(std::max(minSize, newSize));
         if (newSize < oldSize && newSize < minSize) {
           std::memset(&memory[newSize], 0, minSize - newSize);
         }
+        log::createLogger("Memory", "runtime")
+            ->debug("Memory: Resize memory to {}, but with minSize it's {}",
+                    newSize,
+                    std::max(minSize, newSize));
       }
+
+      void reset() {
+        memory.resize(minSize);
+        log::createLogger("Memory", "runtime")
+            ->debug("Memory: Reset memory to {}", minSize);
+      }
+
       auto getSize() const {
         return memory.size();
       }
+
       std::optional<WasmSize> pagesMax() const {
         return pages_max;
       }
+
       template <typename T>
       void set(size_t address, T value) {
         check(address, sizeof(T));
@@ -124,6 +139,8 @@ namespace kagome::runtime::binaryen {
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
+    void reset(WasmSize initial_memory, std::optional<WasmSize> max_memory);
+
     InternalMemory *getMemory();
 
     int8_t load8s(wasm::Address addr) override {
@@ -172,6 +189,7 @@ namespace kagome::runtime::binaryen {
     }
 
     void growMemory(wasm::Address /*oldSize*/, wasm::Address newSize) override {
+      logger_->info("Grow memory to {}", newSize.addr);
       memory.resize(newSize);
     }
 

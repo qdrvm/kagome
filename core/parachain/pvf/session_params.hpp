@@ -22,14 +22,16 @@ namespace kagome::parachain {
     config.memory_limits.max_stack_values_num =
         runtime::RuntimeContext::DEFAULT_STACK_MAX;
     config.memory_limits.heap_alloc_strategy =
-        HeapAllocStrategyDynamic{kDefaultHeapPagesEstimate + kExtraHeapPages};
+        runtime::HeapAllocStrategyDynamic{kDefaultHeapPagesEstimate
+                                          + kExtraHeapPages};
     if (session_params) {
       for (auto &param : *session_params) {
         if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
           config.memory_limits.max_stack_values_num = stack_max->max_values_num;
         } else if (auto *pages_max = get_if<runtime::MaxMemoryPages>(&param)) {
-          config.memory_limits.heap_alloc_strategy = HeapAllocStrategyDynamic{
-              kDefaultHeapPagesEstimate + pages_max->limit};
+          config.memory_limits.heap_alloc_strategy =
+              runtime::HeapAllocStrategyDynamic{kDefaultHeapPagesEstimate
+                                                + pages_max->limit};
         }
       }
     }
