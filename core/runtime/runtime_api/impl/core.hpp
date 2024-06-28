@@ -13,13 +13,6 @@
 namespace kagome::runtime {
 
   class Executor;
-  class RuntimePropertiesCache;
-
-  outcome::result<primitives::Version> callCoreVersion(
-      const ModuleFactory &module_factory,
-      common::BufferView code,
-      const MemoryLimits &config,
-      const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache);
 
   class RestrictedCoreImpl final : public RestrictedCore {
    public:

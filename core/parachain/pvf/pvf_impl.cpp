@@ -100,13 +100,6 @@ namespace kagome::parachain {
       },
   };
 
-  metrics::HistogramHelper metric_code_size{
-      "kagome_parachain_candidate_validation_code_size",
-      "The size of the decompressed WASM validation blob used for checking a "
-      "candidate",
-      metrics::exponentialBuckets(16384, 2, 10),
-  };
-
   RuntimeEngine pvf_runtime_engine(
       const application::AppConfiguration &app_conf) {
     bool interpreted =
@@ -245,9 +238,6 @@ namespace kagome::parachain {
     }
 
     auto timer = metric_pvf_execution_time.timer();
-    ParachainRuntime code;
-    CB_TRYV(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    metric_code_size.observe(code.size());
     ValidationParams params;
     params.parent_head = data.parent_head;
     CB_TRYV(runtime::uncompressCodeIfNeeded(pov.payload,
@@ -256,7 +246,7 @@ namespace kagome::parachain {
     params.relay_parent_storage_root = data.relay_parent_storage_root;
     callWasm(receipt,
              code_hash,
-             code,
+             code_zstd,
              params,
              libp2p::SharedFn{[weak_self{weak_from_this()},
                                data,
@@ -329,25 +319,22 @@ namespace kagome::parachain {
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
 
     constexpr auto name = "validate_block";
+    CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, executor_params));
     if (not app_configuration_->usePvfSubprocess()) {
-      CB_TRY(auto instance,
-             pvf_pool_->pool()->instantiateFromCode(
-                 code_hash, code_zstd, executor_params));
+      CB_TRY(
+          auto instance,
+          pvf_pool_->pool()->instantiateFromCode(
+              code_hash, [&] { return PvfError::NO_CODE; }, executor_params));
       CB_TRY(auto ctx,
-             ctx_factory_->ephemeral(
-                 instance, storage::trie::kEmptyRootHash, executor_params));
+             ctx_factory_->ephemeral(instance, storage::trie::kEmptyRootHash));
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
-    CB_TRYV(
-        pvf_pool_->pool()->precompile(code_hash, code_zstd, executor_params));
 
     PvfWorkerInput input{
         pvf_runtime_engine(*app_configuration_),
-        code_zstd,
+        pvf_pool_->pool()->cachePath(code_hash, executor_params),
         name,
         common::Buffer{scale::encode(params).value()},
-        executor_params,
-        app_configuration_->runtimeCacheDirPath(),
         app_configuration_->log(),
         app_configuration_->disableSecureMode(),
     };

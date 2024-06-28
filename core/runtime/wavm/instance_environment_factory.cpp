@@ -7,7 +7,6 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
-#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
@@ -21,13 +20,11 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-      std::shared_ptr<const ModuleFactory> module_factory)
+      std::shared_ptr<CoreApiFactory> core_factory)
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
-        module_factory_{module_factory} {
-    BOOST_ASSERT(module_factory_ != nullptr);
-  }
+        core_factory_{core_factory} {}
 
   InstanceEnvironment InstanceEnvironmentFactory::make(
       MemoryOrigin memory_origin,
@@ -35,7 +32,6 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<IntrinsicModuleInstance> intrinsic_instance) const {
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
-    auto core_factory = std::make_shared<CoreApiFactoryImpl>(module_factory_);
 
     std::shared_ptr<MemoryProvider> memory_provider;
     switch (memory_origin) {
@@ -49,7 +45,7 @@ namespace kagome::runtime::wavm {
       } break;
     }
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
-        core_factory, memory_provider, new_storage_provider));
+        core_factory_, memory_provider, new_storage_provider));
 
     return InstanceEnvironment{std::move(memory_provider),
                                std::move(new_storage_provider),

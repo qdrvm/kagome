@@ -10,6 +10,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
@@ -37,6 +38,7 @@ namespace kagome::consensus {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       const clock::SystemClock &clock,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<SlotsUtil> slots_util,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ConsensusSelector> consensus_selector,
@@ -57,6 +59,7 @@ namespace kagome::consensus {
       : log_(log::createLogger("Timeline", "timeline")),
         app_state_manager_(std::move(app_state_manager)),
         clock_(clock),
+        main_pool_handler_{main_thread_pool.handlerStarted()},
         slots_util_(std::move(slots_util)),
         block_tree_(std::move(block_tree)),
         consensus_selector_(std::move(consensus_selector)),
@@ -272,7 +275,13 @@ namespace kagome::consensus {
 
       if (validator_status == ValidatorStatus::SingleValidator) {
         SL_INFO(log_, "Starting single validating node.");
-        onSynchronized();
+        main_pool_handler_->execute([weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (not self) {
+            return;
+          }
+          self->onSynchronized();
+        });
         return true;
       }
     }

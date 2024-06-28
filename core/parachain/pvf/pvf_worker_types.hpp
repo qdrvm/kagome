@@ -23,14 +23,12 @@ namespace kagome::parachain {
   };
 
   struct PvfWorkerInput {
-    SCALE_TIE(8);
+    SCALE_TIE(6);
 
     RuntimeEngine engine;
-    common::Buffer runtime_code;
+    std::string path_compiled;
     std::string function;
     common::Buffer params;
-    runtime::RuntimeContextFactory::ContextParams runtime_params;
-    std::string cache_dir;
     std::vector<std::string> log_params;
     bool force_disable_secure_mode;
   };

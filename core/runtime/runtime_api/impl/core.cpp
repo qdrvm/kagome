@@ -10,29 +10,8 @@
 #include "log/logger.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module_instance.hpp"
-#include "runtime/runtime_properties_cache.hpp"
 
 namespace kagome::runtime {
-
-  outcome::result<primitives::Version> callCoreVersion(
-      const ModuleFactory &module_factory,
-      common::BufferView code,
-      const MemoryLimits &config,
-      const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache) {
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(
-                    module_factory, code, {config}));
-    return runtime_properties_cache->getVersion(
-        ctx.module_instance->getCodeHash(),
-        [&ctx]() -> outcome::result<primitives::Version> {
-          OUTCOME_TRY(
-              raw_res,
-              ctx.module_instance->callExportFunction(ctx, "Core_version", {}));
-          return ModuleInstance::decodedCall<primitives::Version>(
-              "Core_version", raw_res);
-        });
-  }
-
   RestrictedCoreImpl::RestrictedCoreImpl(RuntimeContext ctx)
       : ctx_{std::move(ctx)} {}
 

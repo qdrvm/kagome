@@ -19,8 +19,9 @@ namespace kagome::host_api {
 }
 
 namespace kagome::runtime {
+  class CoreApiFactory;
   class TrieStorageProvider;
-}
+}  // namespace kagome::runtime
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
@@ -33,20 +34,16 @@ namespace kagome::storage::trie {
 
 namespace kagome::runtime::wasm_edge {
 
-  class ModuleFactoryImpl
-      : public ModuleFactory,
-        public std::enable_shared_from_this<ModuleFactoryImpl> {
+  class ModuleFactoryImpl : public ModuleFactory {
    public:
     enum class ExecType {
       Interpreted,
       Compiled,
     };
     struct Config {
-      Config(ExecType exec, const std::filesystem::path &compiled_module_dir)
-          : exec{exec}, compiled_module_dir{compiled_module_dir} {}
+      Config(ExecType exec) : exec{exec} {}
 
       ExecType exec;
-      std::filesystem::path compiled_module_dir;
     };
 
     explicit ModuleFactoryImpl(
@@ -54,16 +51,21 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<CoreApiFactory> core_factory,
         Config config);
 
-    CompilationOutcome<std::shared_ptr<Module>> make(
-        common::BufferView code) const override;
+    std::optional<std::string> compilerType() const override;
+    CompilationOutcome<void> compile(std::filesystem::path path_compiled,
+                                     BufferView code) const override;
+    CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
+        std::filesystem::path path_compiled) const override;
 
    private:
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
+    std::shared_ptr<CoreApiFactory> core_factory_;
     log::Logger log_;
     Config config_;
   };

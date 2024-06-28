@@ -6,13 +6,13 @@
 
 #include "crypto/key_store/key_file_storage.hpp"
 
-#include <fstream>
-
 #include "common/hexutil.hpp"
 #include "crypto/key_store/key_type.hpp"
 #include "filesystem/common.hpp"
 #include "utils/json_unquote.hpp"
+#include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
+#include "utils/write_file.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
@@ -29,10 +29,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
       return "specified key file is invalid";
     case E::INCONSISTENT_KEYFILE:
       return "key file is inconsistent, public key != derived public key";
-    case E::KEYS_PATH_IS_NOT_DIRECTORY:
-      return "specified key storage directory path is not a directory";
-    case E::FAILED_CREATE_KEYS_DIRECTORY:
-      return "failed to create key storage directory";
   }
   return "unknown KeyFileStorage error";
 }
@@ -80,44 +76,13 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> KeyFileStorage::initialize() {
-    std::error_code ec{};
-    bool does_exist = filesystem::exists(keystore_path_, ec);
-    if (ec and ec != std::errc::no_such_file_or_directory) {
-      logger_->error("Error initializing key storage: {}", ec);
-      return outcome::failure(ec);
-    }
-    if (does_exist) {
-      // check whether specified path is a directory
-      if (not filesystem::is_directory(keystore_path_, ec)) {
-        return Error::KEYS_PATH_IS_NOT_DIRECTORY;
-      }
-      if (ec) {
-        logger_->error("Error scanning key storage: {}", ec);
-        return outcome::failure(ec);
-      }
-    } else {
-      // try create directory
-      if (not filesystem::create_directories(keystore_path_, ec)) {
-        return Error::FAILED_CREATE_KEYS_DIRECTORY;
-      }
-      if (ec) {
-        logger_->error("Error creating keystore dir: {}", ec);
-        return outcome::failure(ec);
-      }
-    }
-
+    OUTCOME_TRY(mkdirs(keystore_path_));
     return outcome::success();
   }
 
   outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
       common::BufferView private_key, const KeyFileStorage::Path &path) const {
-    std::ofstream file;
-    file.open(path.native(), std::ios::out | std::ios::trunc);
-    if (!file.is_open()) {
-      return Error::FAILED_OPEN_FILE;
-    }
-    auto hex = common::hex_lower_0x(private_key);
-    file << hex;
+    OUTCOME_TRY(writeFile(path, common::hex_lower_0x(private_key)));
     SL_TRACE(logger_, "Saving key to {}", path.native());
     return outcome::success();
   }

@@ -17,11 +17,6 @@
 namespace kagome::runtime {
   using BytesOut = std::span<uint8_t>;
 
-  inline constexpr size_t kInitialMemorySize = []() {
-    using kagome::common::literals::operator""_MB;
-    return 2_MB;
-  }();
-
   // according to $3.1.2.1 in the Polkadot Host Spec
   // https://webassembly.github.io/spec/core/exec/runtime.html#memory-instances
   inline constexpr size_t kMemoryPageSize = []() {

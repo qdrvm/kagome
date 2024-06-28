@@ -10,12 +10,12 @@
 
 #include "filesystem/common.hpp"
 
-#include "filesystem/directories.hpp"
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb_batch.hpp"
 #include "storage/rocksdb/rocksdb_cursor.hpp"
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 #include "storage/rocksdb/rocksdb_util.hpp"
+#include "utils/mkdirs.hpp"
 
 namespace kagome::storage {
   namespace fs = filesystem;
@@ -36,9 +36,7 @@ namespace kagome::storage {
       rocksdb::Options options,
       uint32_t memory_budget_mib,
       bool prevent_destruction) {
-    if (!filesystem::createDirectoryRecursive(path)) {
-      return DatabaseError::DB_PATH_NOT_CREATED;
-    }
+    OUTCOME_TRY(mkdirs(path));
 
     auto log = log::createLogger("RocksDB", "storage");
     auto absolute_path = fs::absolute(path);

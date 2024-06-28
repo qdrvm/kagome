@@ -32,16 +32,17 @@ namespace kagome::runtime::binaryen {
 
   class InstanceEnvironmentFactory;
 
-  class ModuleFactoryImpl final
-      : public ModuleFactory,
-        public std::enable_shared_from_this<ModuleFactoryImpl> {
+  class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(std::shared_ptr<InstanceEnvironmentFactory> env_factory,
                       std::shared_ptr<storage::trie::TrieStorage> storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
-    CompilationOutcome<std::shared_ptr<Module>> make(
-        common::BufferView code) const override;
+    std::optional<std::string> compilerType() const override;
+    CompilationOutcome<void> compile(std::filesystem::path path_compiled,
+                                     BufferView code) const override;
+    CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
+        std::filesystem::path path_compiled) const override;
 
    private:
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;

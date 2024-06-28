@@ -70,7 +70,7 @@ namespace kagome::runtime {
     });
     OUTCOME_TRY(runtime_instance,
                 runtime_instances_pool_->instantiateFromCode(
-                    item.hash, *item.code, {item.config}));
+                    item.hash, [&] { return item.code; }, {item.config}));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;

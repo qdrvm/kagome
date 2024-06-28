@@ -49,37 +49,25 @@ namespace kagome::runtime {
         header_repo_{std::move(header_repo)} {}
 
   outcome::result<RuntimeContext> RuntimeContextFactory::fromCode(
-      const runtime::ModuleFactory &module_factory,
-      common::BufferView code_zstd,
-      ContextParams params) {
-    common::Buffer code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    BOOST_OUTCOME_TRY(code,
-                      prepareBlobForCompilation(code, params.memory_limits));
-    auto runtime_module_res = module_factory.make(code);
-    if (!runtime_module_res) {
-      return Error::COMPILATION_FAILED;
-    }
-    OUTCOME_TRY(instance, runtime_module_res.value()->instantiate());
+      std::shared_ptr<ModuleInstance> instance) {
     runtime::RuntimeContext ctx{
         instance,
     };
     instance->getEnvironment()
         .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
         .value();
-    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
+    OUTCOME_TRY(instance->resetMemory());
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::fromBatch(
       std::shared_ptr<ModuleInstance> instance,
-      std::shared_ptr<storage::trie::TrieBatch> batch,
-      ContextParams params) const {
+      std::shared_ptr<storage::trie::TrieBatch> batch) const {
     runtime::RuntimeContext ctx{
         instance,
     };
     instance->getEnvironment().storage_provider->setTo(batch);
-    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
+    OUTCOME_TRY(instance->resetMemory());
     return ctx;
   }
 
@@ -87,80 +75,75 @@ namespace kagome::runtime {
       std::shared_ptr<ModuleInstance> instance,
       const storage::trie::RootHash &state,
       std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-          changes_tracker_opt,
-      ContextParams params) const {
+          changes_tracker_opt) const {
     runtime::RuntimeContext ctx{
         instance,
     };
     OUTCOME_TRY(instance->getEnvironment().storage_provider->setToPersistentAt(
         state, changes_tracker_opt));
-    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
+    OUTCOME_TRY(instance->resetMemory());
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeral(
       std::shared_ptr<ModuleInstance> instance,
-      const storage::trie::RootHash &state,
-      ContextParams params) const {
+      const storage::trie::RootHash &state) const {
     runtime::RuntimeContext ctx{
         instance,
     };
     OUTCOME_TRY(
         instance->getEnvironment().storage_provider->setToEphemeralAt(state));
-    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
+    OUTCOME_TRY(instance->resetMemory());
     return ctx;
   }
 
-  outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAtGenesis(
-      ContextParams params) const {
+  outcome::result<RuntimeContext>
+  RuntimeContextFactoryImpl::ephemeralAtGenesis() const {
     OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
     OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({genesis_hash, 0},
                                             genesis_header.state_root));
 
-    OUTCOME_TRY(ctx, ephemeral(instance, genesis_header.state_root, params));
+    OUTCOME_TRY(ctx, ephemeral(instance, genesis_header.state_root));
 
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::persistentAt(
       const primitives::BlockHash &block_hash,
-      TrieChangesTrackerOpt changes_tracker,
-      ContextParams params) const {
+      TrieChangesTrackerOpt changes_tracker) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
                                             header.state_root));
 
-    OUTCOME_TRY(
-        ctx, persistent(instance, header.state_root, changes_tracker, params));
+    OUTCOME_TRY(ctx, persistent(instance, header.state_root, changes_tracker));
 
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
-      const primitives::BlockHash &block_hash, ContextParams params) const {
+      const primitives::BlockHash &block_hash) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
                                             header.state_root));
 
-    OUTCOME_TRY(ctx, ephemeral(instance, header.state_root, params));
+    OUTCOME_TRY(ctx, ephemeral(instance, header.state_root));
 
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
       const primitives::BlockHash &block_hash,
-      const storage::trie::RootHash &state_hash,
-      ContextParams params) const {
+      const storage::trie::RootHash &state_hash) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
                                             header.state_root));
 
-    OUTCOME_TRY(ctx, ephemeral(instance, state_hash, params));
+    OUTCOME_TRY(ctx, ephemeral(instance, state_hash));
 
     return ctx;
   }

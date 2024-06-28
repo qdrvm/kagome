@@ -38,8 +38,7 @@ namespace kagome::runtime::binaryen {
    */
   class MemoryImpl final : public MemoryHandle {
    public:
-    MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
-               const MemoryConfig &config);
+    MemoryImpl(RuntimeExternalInterface::InternalMemory *memory);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
     MemoryImpl(MemoryImpl &&move) = delete;

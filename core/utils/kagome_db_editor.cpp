@@ -4,12 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/throw_exception.hpp>
-#include <chrono>
-#include <fstream>
-#include <string_view>
-#include <thread>
-
 #if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
 #endif

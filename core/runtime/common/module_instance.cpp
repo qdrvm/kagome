@@ -27,8 +27,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
 
 namespace kagome::runtime {
   using namespace kagome::common::literals;
-  outcome::result<void> ModuleInstance::resetMemory(
-      const MemoryLimits &limits) {
+  outcome::result<void> ModuleInstance::resetMemory() {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
     OUTCOME_TRY(opt_heap_base, getGlobal("__heap_base"));
@@ -40,7 +39,7 @@ namespace kagome::runtime {
     uint32_t heap_base = boost::get<int32_t>(*opt_heap_base);
     auto &memory_provider = getEnvironment().memory_provider;
     OUTCOME_TRY(const_cast<MemoryProvider &>(*memory_provider)
-                    .resetMemory(MemoryConfig{heap_base, limits}));
+                    .resetMemory(MemoryConfig{heap_base}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     size_t max_data_segment_end = 0;

@@ -14,8 +14,15 @@ namespace kagome::blockchain {
   class BlockTree;
 }  // namespace kagome::blockchain
 
+namespace kagome::crypto {
+  class Hasher;
+}  // namespace kagome::crypto
+
+namespace kagome::parachain {
+  class PvfPool;
+}  // namespace kagome::parachain
+
 namespace kagome::runtime {
-  class ModuleFactory;
   class ParachainHost;
 }  // namespace kagome::runtime
 
@@ -28,7 +35,8 @@ namespace kagome::application::mode {
     PrecompileWasmMode(const application::AppConfiguration &app_config,
                        std::shared_ptr<blockchain::BlockTree> block_tree,
                        std::shared_ptr<runtime::ParachainHost> parachain_api,
-                       std::shared_ptr<runtime::ModuleFactory> module_factory);
+                       std::shared_ptr<crypto::Hasher> hasher,
+                       std::shared_ptr<parachain::PvfPool> module_factory);
 
     int run() const override;
 
@@ -39,6 +47,7 @@ namespace kagome::application::mode {
     application::PrecompileWasmConfig config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
-    std::shared_ptr<runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<parachain::PvfPool> module_factory_;
   };
 }  // namespace kagome::application::mode

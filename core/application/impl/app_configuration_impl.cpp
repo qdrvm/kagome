@@ -8,7 +8,6 @@
 
 #include <boost/program_options/value_semantic.hpp>
 #include <charconv>
-#include <filesystem>
 #include <limits>
 #include <regex>
 #include <string>
@@ -31,9 +30,10 @@
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
-#include "filesystem/directories.hpp"
 #include "log/formatters/filepath.hpp"
+#include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
+#include "utils/write_file.hpp"
 
 namespace {
   namespace fs = kagome::filesystem;
@@ -507,7 +507,7 @@ namespace kagome::application {
       return false;
     }
 
-    if (base_path_.empty() or !fs::createDirectoryRecursive(base_path_)) {
+    if (not mkdirs(base_path_)) {
       SL_ERROR(logger_,
                "Base path {} does not exist, "
                "please specify a valid path with -d option",
@@ -988,13 +988,10 @@ namespace kagome::application {
         }
 
         if (not kagome::filesystem::exists(chain_spec_path_)) {
-          kagome::filesystem::create_directories(
-              chain_spec_path_.parent_path());
+          mkdirs(chain_spec_path_.parent_path()).value();
 
-          std::ofstream ofs;
-          ofs.open(chain_spec_path_.native(), std::ios::ate);
-          ofs << kagome::assets::embedded_chainspec;
-          ofs.close();
+          writeFile(chain_spec_path_, kagome::assets::embedded_chainspec)
+              .value();
 
           auto chain_spec = ChainSpecImpl::loadFrom(chain_spec_path_.native());
           auto path = keystorePath(chain_spec.value()->id());
@@ -1015,12 +1012,10 @@ namespace kagome::application {
           auto ma_res = chain_spec.value()->bootNodes()[0];
           listen_addresses_.emplace_back(ma_res);
 
-          kagome::filesystem::create_directories(path);
+          mkdirs(path).value();
 
           for (auto key_descr : kagome::assets::embedded_keys) {
-            ofs.open((path / key_descr.first).native(), std::ios::ate);
-            ofs << key_descr.second;
-            ofs.close();
+            writeFile(path / key_descr.first, key_descr.second).value();
           }
         }
 
@@ -1476,13 +1471,12 @@ namespace kagome::application {
       }
     }
     {
-      std::error_code ec;
-      kagome::filesystem::create_directories(runtimeCacheDirPath(), ec);
-      if (ec) {
+      auto r = mkdirs(runtimeCacheDirPath());
+      if (not r) {
         SL_ERROR(logger_,
                  "Failed to create runtime cache dir {}: {}",
                  runtimeCacheDirPath(),
-                 ec);
+                 r.error());
         return false;
       }
     }

@@ -6,26 +6,35 @@
 
 #include "core_api_factory_impl.hpp"
 
-#include "runtime/common/runtime_properties_cache_impl.hpp"
-#include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/module_repository.hpp"
+#include "runtime/heap_alloc_strategy_heappages.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_context.hpp"
+#include "runtime/runtime_instances_pool.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime {
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
-      std::shared_ptr<const ModuleFactory> module_factory)
-      : module_factory_{module_factory} {
-    BOOST_ASSERT(module_factory_);
-  }
+      std::shared_ptr<crypto::Hasher> hasher,
+      LazySPtr<RuntimeInstancesPool> module_factory)
+      : hasher_{std::move(hasher)},
+        module_factory_{std::move(module_factory)} {}
 
   outcome::result<std::unique_ptr<RestrictedCore>> CoreApiFactoryImpl::make(
-      std::shared_ptr<const crypto::Hasher> hasher,
-      const std::vector<uint8_t> &runtime_code) const {
-    OUTCOME_TRY(
-        ctx,
-        RuntimeContextFactory::fromCode(*module_factory_, runtime_code, {}));
+      BufferView code_zstd,
+      std::shared_ptr<TrieStorageProvider> storage_provider) const {
+    auto code_hash = hasher_->blake2b_256(code_zstd);
+    // TODO(turuslan): #2139, read_embedded_version
+    MemoryLimits config;
+    BOOST_OUTCOME_TRY(config.heap_alloc_strategy,
+                      heapAllocStrategyHeappagesDefault(
+                          *storage_provider->getCurrentBatch()));
+    OUTCOME_TRY(instance,
+                module_factory_.get()->instantiateFromCode(
+                    code_hash,
+                    [&] { return std::make_shared<Buffer>(code_zstd); },
+                    {config}));
+    OUTCOME_TRY(ctx, RuntimeContextFactory::fromCode(instance));
     return std::make_unique<RestrictedCoreImpl>(std::move(ctx));
   }
 
