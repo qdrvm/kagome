@@ -272,17 +272,19 @@ namespace kagome::parachain {
 
 #ifdef __linux__
     if (!input.force_disable_secure_mode) {
+      std::filesystem::path path_compiled{input.path_compiled};
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
-      if (auto res = changeRoot(input.cache_dir); !res) {
+      if (auto res = changeRoot(path_compiled.parent_path()); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
                  res.error());
         return std::errc::not_supported;
       }
-      input.cache_dir = "/";
+      path_compiled = "/" / path_compiled.filename();
+      input.path_compiled = path_compiled.native();
 
-      if (auto res = enableLandlock(input.cache_dir); !res) {
+      if (auto res = enableLandlock(path_compiled.parent_path()); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
