@@ -7,6 +7,7 @@
 add_library(wasm_instrument
     instrument.cpp
     stack_limiter.cpp
+    version.cpp
     )
 target_link_libraries(wasm_instrument
     logger

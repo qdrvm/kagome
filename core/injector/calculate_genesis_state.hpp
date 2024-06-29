@@ -7,8 +7,10 @@
 #pragma once
 
 #include "application/chain_spec.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/heap_alloc_strategy_heappages.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/wabt/version.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -30,14 +32,17 @@ namespace kagome::injector {
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
-
-    runtime::MemoryLimits config;
-    BOOST_OUTCOME_TRY(config.heap_alloc_strategy,
-                      heapAllocStrategyHeappagesDefault(*top_trie));
-    OUTCOME_TRY(
-        runtime_version,
-        runtime::callCoreVersion(module_factory, code, config, runtime_cache));
-    auto version = storage::trie::StateVersion{runtime_version.state_version};
+    BOOST_OUTCOME_TRY(code, runtime::uncompressCodeIfNeeded(code));
+    OUTCOME_TRY(runtime_version, runtime::readEmbeddedVersion(code));
+    if (not runtime_version) {
+      runtime::MemoryLimits config;
+      BOOST_OUTCOME_TRY(config.heap_alloc_strategy,
+                        heapAllocStrategyHeappagesDefault(*top_trie));
+      BOOST_OUTCOME_TRY(runtime_version,
+                        runtime::callCoreVersion(
+                            module_factory, code, config, runtime_cache));
+    }
+    auto version = storage::trie::StateVersion{runtime_version->state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
