@@ -12,6 +12,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
+#include "log/profiling_logger.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
@@ -26,6 +27,7 @@
 #include "runtime/module.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 
@@ -44,7 +46,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
     case PvfError::PERSISTED_DATA_HASH:
-      return "Incorrect Perssted Data hash";
+      return "Incorrect Persisted Data hash";
     case PvfError::NO_CODE:
       return "No code";
     case PvfError::NO_PERSISTED_DATA:
@@ -63,6 +65,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
       return "Commitments hash mismatch";
     case PvfError::OUTPUTS:
       return "ValidationResult is invalid";
+    case PvfError::COMPILATION_ERROR:
+      return "PVF code failed to compile";
   }
   return "unknown error (kagome::parachain::PvfError)";
 }
@@ -145,6 +149,7 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
+      std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -159,6 +164,7 @@ namespace kagome::parachain {
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         pvf_pool_{std::move(pvf_pool)},
+        module_factory_{std::move(module_factory)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
@@ -176,6 +182,7 @@ namespace kagome::parachain {
     SL_INFO(log_,
             "pvf runtime engine {}",
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
+    BOOST_ASSERT(module_factory_ != nullptr);
   }
 
   PvfImpl::~PvfImpl() {
@@ -318,11 +325,24 @@ namespace kagome::parachain {
     constexpr auto name = "validate_block";
     CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, executor_params));
     if (not app_configuration_->usePvfSubprocess()) {
-      CB_TRY(
-          auto instance,
-          pvf_pool_->pool()->instantiateFromCode(
-              code_hash, [&] { return PvfError::NO_CODE; }, executor_params));
-      CB_TRY(auto ctx, ctx_factory_->stateless(instance));
+      // Reusing instances for PVF calls doesn't work, runtime calls start to
+      // crash on access out of memory bounds
+      KAGOME_PROFILE_START_L(log_, single_process_runtime_instantitation);
+      auto res = module_factory_->loadCompiled(
+          pvf_pool_->pool()->cachePath(code_hash, executor_params));
+      if (!res) {
+        SL_WARN(log_,
+                "Failed to compile PVF code for parachain ID {}: {}",
+                receipt.descriptor.para_id,
+                res.error().message());
+        cb(PvfError::COMPILATION_ERROR);
+        return;
+      }
+      auto &wasm_module = res.value();
+      CB_TRY(auto instance, wasm_module->instantiate());
+      CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
+      KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
+      KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({

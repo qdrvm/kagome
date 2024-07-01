@@ -31,6 +31,7 @@ namespace kagome::runtime {
   class Executor;
   class RuntimeContextFactory;
   class RuntimeInstancesPool;
+  class ModuleFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
@@ -46,6 +47,7 @@ namespace kagome::parachain {
     OUTPUTS,
     PERSISTED_DATA_HASH,
     NO_CODE,
+    COMPILATION_ERROR
   };
 }  // namespace kagome::parachain
 
@@ -86,6 +88,7 @@ namespace kagome::parachain {
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
+            std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
             PvfThreadPool &pvf_thread_pool,
             std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -132,6 +135,7 @@ namespace kagome::parachain {
     log::Logger log_;
 
     std::shared_ptr<PvfPool> pvf_pool_;
+    std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;
     std::shared_ptr<application::AppConfiguration> app_configuration_;
