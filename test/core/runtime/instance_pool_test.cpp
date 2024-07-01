@@ -23,10 +23,10 @@
 
 using kagome::application::AppConfigurationMock;
 using kagome::common::Buffer;
-using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
+using kagome::runtime::NoopWasmInstrumenter;
 using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;

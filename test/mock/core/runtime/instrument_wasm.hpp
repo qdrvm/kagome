@@ -11,7 +11,7 @@
 #include <gmock/gmock.h>
 
 namespace kagome::runtime {
-  struct DontInstrumentWasm : InstrumentWasm {
+  struct NoopWasmInstrumenter : WasmInstrumenter {
     WabtOutcome<common::Buffer> instrument(
         common::BufferView code, const MemoryLimits &) const override {
       return common::Buffer{code};

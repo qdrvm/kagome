@@ -9,6 +9,7 @@
 
 #include "log/logger.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::crypto {
   class Hasher;

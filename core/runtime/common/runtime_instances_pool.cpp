@@ -83,7 +83,7 @@ namespace kagome::runtime {
   RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
       const application::AppConfiguration &app_config,
       std::shared_ptr<ModuleFactory> module_factory,
-      std::shared_ptr<InstrumentWasm> instrument,
+      std::shared_ptr<WasmInstrumenter> instrument,
       size_t capacity)
       : cache_dir_{app_config.runtimeCacheDirPath()},
         module_factory_{std::move(module_factory)},

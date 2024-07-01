@@ -151,6 +151,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
+      std::shared_ptr<const runtime::WasmInstrumenter> instrumenter,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<application::AppConfiguration> app_configuration)
@@ -162,6 +163,7 @@ namespace kagome::parachain {
         parachain_api_{std::move(parachain_api)},
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
+        instrumenter_{std::move(instrumenter)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         pvf_pool_{std::move(pvf_pool)},
         module_factory_{std::move(module_factory)},

@@ -15,7 +15,7 @@ namespace kagome::application {
 }  // namespace kagome::application
 
 namespace kagome::runtime {
-  class InstrumentWasm;
+  class WasmInstrumenter;
   class ModuleFactory;
   class RuntimeInstancesPoolImpl;
 }  // namespace kagome::runtime
@@ -28,7 +28,7 @@ namespace kagome::parachain {
    public:
     PvfPool(const application::AppConfiguration &app_config,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
-            std::shared_ptr<runtime::InstrumentWasm> instrument);
+            std::shared_ptr<runtime::WasmInstrumenter> instrument);
 
     auto &pool() const {
       return pool_;

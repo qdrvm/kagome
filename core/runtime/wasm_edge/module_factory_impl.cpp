@@ -371,6 +371,7 @@ namespace kagome::runtime::wasm_edge {
         config_{config} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(host_api_factory_);
+    BOOST_ASSERT(instrumenter_);
   }
 
   std::optional<std::string> ModuleFactoryImpl::compilerType() const {

@@ -45,6 +45,7 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<CoreApiFactory> core_factory_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
+    std::shared_ptr<const WasmInstrumenter> instrumenter_;
   };
 
 }  // namespace kagome::runtime::binaryen

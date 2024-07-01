@@ -13,6 +13,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -90,6 +91,7 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
+            std::shared_ptr<const runtime::WasmInstrumenter> instrumenter,
             PvfThreadPool &pvf_thread_pool,
             std::shared_ptr<application::AppStateManager> app_state_manager,
             std::shared_ptr<application::AppConfiguration> app_configuration);
@@ -132,6 +134,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<runtime::Executor> executor_;
     std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
+    std::shared_ptr<const runtime::WasmInstrumenter> instrumenter_;
     log::Logger log_;
 
     std::shared_ptr<PvfPool> pvf_pool_;

@@ -80,7 +80,7 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
-  WabtOutcome<common::Buffer> prepareBlobForCompilation(
+  WabtOutcome<common::Buffer> instrumentCodeForCompilation(
       common::BufferView code, const MemoryLimits &config) {
     OUTCOME_TRY(module, wabtDecode(code));
     if (config.max_stack_values_num) {
@@ -94,8 +94,8 @@ namespace kagome::runtime {
     return wabtEncode(module);
   }
 
-  WabtOutcome<common::Buffer> InstrumentWasm::instrument(
+  WabtOutcome<common::Buffer> WasmInstrumenter::instrument(
       common::BufferView code, const MemoryLimits &config) const {
-    return prepareBlobForCompilation(code, config);
+    return instrumentCodeForCompilation(code, config);
   }
 }  // namespace kagome::runtime

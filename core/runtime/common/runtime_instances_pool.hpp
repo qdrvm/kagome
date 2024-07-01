@@ -22,7 +22,7 @@ namespace kagome::application {
 }  // namespace kagome::application
 
 namespace kagome::runtime {
-  class InstrumentWasm;
+  class WasmInstrumenter;
 
   /**
    * @brief Pool of runtime instances - per state. Encapsulates modules cache.
@@ -34,7 +34,7 @@ namespace kagome::runtime {
     explicit RuntimeInstancesPoolImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<ModuleFactory> module_factory,
-        std::shared_ptr<InstrumentWasm> instrument,
+        std::shared_ptr<WasmInstrumenter> instrument,
         size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
@@ -86,7 +86,7 @@ namespace kagome::runtime {
 
     std::filesystem::path cache_dir_;
     std::shared_ptr<ModuleFactory> module_factory_;
-    std::shared_ptr<InstrumentWasm> instrument_;
+    std::shared_ptr<WasmInstrumenter> instrument_;
 
     std::mutex pools_mtx_;
     Lru<Key, InstancePool> pools_;

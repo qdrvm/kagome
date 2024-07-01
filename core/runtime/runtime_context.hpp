@@ -29,6 +29,7 @@ namespace kagome::runtime {
   class ModuleInstance;
   class ModuleRepository;
   class Memory;
+  class WasmInstrumenter;
 
   class RuntimeContext {
    public:

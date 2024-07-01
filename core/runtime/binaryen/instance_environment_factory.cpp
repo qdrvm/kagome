@@ -9,6 +9,7 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -22,6 +23,7 @@ namespace kagome::runtime::binaryen {
         core_factory_{std::move(core_factory)},
         host_api_factory_{std::move(host_api_factory)} {
     BOOST_ASSERT(host_api_factory_);
+    BOOST_ASSERT(instrumenter_);
   }
 
   BinaryenInstanceEnvironment InstanceEnvironmentFactory::make() const {

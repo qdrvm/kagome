@@ -44,7 +44,7 @@ namespace kagome::parachain {
 
   PvfPool::PvfPool(const application::AppConfiguration &app_config,
                    std::shared_ptr<runtime::ModuleFactory> module_factory,
-                   std::shared_ptr<runtime::InstrumentWasm> instrument)
+                   std::shared_ptr<runtime::WasmInstrumenter> instrument)
       : pool_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
           app_config,
           std::move(module_factory),

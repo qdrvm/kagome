@@ -12,6 +12,7 @@
 #include <string>
 #include <system_error>
 #include <vector>
+#include "runtime/wabt/instrument.hpp"
 
 #ifdef __linux__
 #include <linux/landlock.h>
