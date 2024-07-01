@@ -10,6 +10,7 @@
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
 #include "network/peer_manager.hpp"
+#include "parachain/availability/availability_chunk_index.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 
