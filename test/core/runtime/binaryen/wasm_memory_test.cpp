@@ -44,6 +44,15 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     memory_ = std::make_unique<runtime::Memory>(handle, std::move(allocator));
   }
 
+  void TearDown() override {
+    memory_.reset();
+    rei_.reset();
+  }
+
+  static constexpr uint32_t memory_size_ = 20 * runtime::kMemoryPageSize;
+  static constexpr uint32_t memory_page_limit_ =
+      512_MB / runtime::kMemoryPageSize;
+
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<runtime::Memory> memory_;
   runtime::MemoryAllocatorImpl *allocator_;
