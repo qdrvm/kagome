@@ -60,7 +60,7 @@ namespace kagome::parachain {
               outcome::result<network::FetchAvailableDataResponse> _backed);
     void chunk(const CandidateHash &candidate_hash);
     void chunk(const CandidateHash &candidate_hash,
-               ValidatorIndex index,
+               ChunkIndex index,
                outcome::result<network::FetchChunkResponse> _chunk);
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);

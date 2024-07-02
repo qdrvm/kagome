@@ -79,10 +79,8 @@ namespace kagome::parachain {
           return res;
         }();
 
-        auto req_chunk_version =
-            // peer_state->get().req_chunk_version.value_or(
-            // network::ReqChunkVersion::V1_obsolete);
-            network::ReqChunkVersion::V2;
+        auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+            network::ReqChunkVersion::V1_obsolete);
 
         switch (req_chunk_version) {
           case network::ReqChunkVersion::V2:

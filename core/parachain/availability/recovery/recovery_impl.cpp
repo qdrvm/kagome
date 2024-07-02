@@ -192,10 +192,8 @@ namespace kagome::parachain {
           return res;
         }();
 
-        auto req_chunk_version =
-            // peer_state->get().req_chunk_version.value_or(
-            // network::ReqChunkVersion::V1_obsolete);
-            network::ReqChunkVersion::V2;
+        auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+            network::ReqChunkVersion::V1_obsolete);
 
         switch (req_chunk_version) {
           case network::ReqChunkVersion::V2:
@@ -207,7 +205,7 @@ namespace kagome::parachain {
             router_->getFetchChunkProtocol()->doRequest(
                 peer->id,
                 {candidate_hash, index},
-                [=, chunk_index{index}, weak{weak_from_this()}](
+                [=, this, chunk_index{index}, weak{weak_from_this()}](
                     outcome::result<network::FetchChunkResponse> r) {
                   if (auto self = weak.lock()) {
                     if (r.has_value()) {
@@ -271,7 +269,7 @@ namespace kagome::parachain {
 
   void RecoveryImpl::chunk(
       const CandidateHash &candidate_hash,
-      ValidatorIndex index,
+      ChunkIndex index,
       outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
