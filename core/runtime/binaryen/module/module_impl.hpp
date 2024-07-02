@@ -33,7 +33,6 @@ namespace kagome::runtime::binaryen {
   class ModuleImpl final : public runtime::Module,
                            public std::enable_shared_from_this<ModuleImpl> {
    public:
-    static constexpr auto kDefaultHeappages = 1024;
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
     ModuleImpl(ModuleImpl &&) = default;
