@@ -98,5 +98,7 @@ add_library(core_api_factory core_api_factory_impl.cpp)
 target_link_libraries(core_api_factory
     core_api
     outcome
+    uncompress_if_needed
+    wasm_instrument
     )
 kagome_install(core_api_factory)
