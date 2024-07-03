@@ -100,7 +100,6 @@ class PvfTest : public testing::Test {
             .precompile_threads_num = 0,
         },
         nullptr,
-        nullptr,
         hasher_,
         std::make_shared<PvfPool>(*app_config_,
                                   module_factory_,
@@ -169,23 +168,6 @@ class PvfTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
 };
-
-TEST_F(PvfTest, InputEncodeDecode) {
-  kagome::parachain::PvfWorkerInput input{
-      .engine = kagome::parachain::RuntimeEngine::kWasmEdgeInterpreted,
-      .runtime_code = {1, 2, 3, 4},
-      .function = "test",
-      .params = {1, 2, 3, 4},
-      .runtime_params{.memory_limits = {}},
-      .cache_dir = "/tmp/kagome_pvf_test",
-      .log_params = {},
-  };
-  ASSERT_OUTCOME_SUCCESS(buf, scale::encode(input));
-  ASSERT_OUTCOME_SUCCESS(dec_input,
-                         scale::decode<kagome::parachain::PvfWorkerInput>(buf));
-
-  ASSERT_EQ(dec_input, input);
-}
 
 TEST_F(PvfTest, InstancesCached) {
   auto module1 = mockModule(1);

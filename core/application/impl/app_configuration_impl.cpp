@@ -890,6 +890,8 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
+        ("pvf-max-workers", po::value<size_t>()->default_value(pvf_max_workers_),
+        "Max PVF execution threads or processes.")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ("precompile-relay", po::bool_switch(), "precompile relay")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
@@ -1512,6 +1514,10 @@ namespace kagome::application {
     if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
         arg.has_value()) {
       pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
+    }
+
+    if (auto arg = find_argument<size_t>(vm, "pvf-max-workers")) {
+      pvf_max_workers_ = *arg;
     }
 
     if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {

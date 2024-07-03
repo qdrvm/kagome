@@ -17,8 +17,8 @@
 #include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
-#include "parachain/pvf/run_worker.hpp"
 #include "parachain/pvf/session_params.hpp"
+#include "parachain/pvf/workers.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -28,7 +28,6 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
-#include "utils/get_exe_path.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
@@ -146,8 +145,7 @@ namespace kagome::parachain {
 
   PvfImpl::PvfImpl(
       const Config &config,
-      std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      std::shared_ptr<PvfWorkers> workers,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -159,8 +157,7 @@ namespace kagome::parachain {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<application::AppConfiguration> app_configuration)
       : config_{config},
-        io_context_{std::move(io_context)},
-        scheduler_{std::move(scheduler)},
+        workers_{std::move(workers)},
         hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -340,28 +337,16 @@ namespace kagome::parachain {
     }
     CB_TRYV(
         pvf_pool_->pool()->precompile(code_hash, code_zstd, executor_params));
-
-    PvfWorkerInput input{
-        pvf_runtime_engine(*app_configuration_),
-        code_zstd,
-        name,
-        common::Buffer{scale::encode(params).value()},
-        executor_params,
-        app_configuration_->runtimeCacheDirPath(),
-        app_configuration_->log(),
-        app_configuration_->disableSecureMode(),
-    };
-    runWorker(*io_context_,
-              scheduler_,
-              app_configuration_->pvfSubprocessDeadline(),
-              exePath(),
-              common::Buffer{scale::encode(input).value()},
-              [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
-                if (r.has_error()) {
-                  return cb(r.error());
-                }
-                cb(scale::decode<ValidationResult>(r.value()));
-              });
+    workers_->execute({
+        {code_hash, code_zstd, executor_params},
+        scale::encode(params).value(),
+        [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+          if (r.has_error()) {
+            return cb(r.error());
+          }
+          cb(scale::decode<ValidationResult>(r.value()));
+        },
+    });
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

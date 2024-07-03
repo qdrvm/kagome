@@ -229,6 +229,9 @@ namespace kagome::application {
     std::chrono::milliseconds pvfSubprocessDeadline() const override {
       return pvf_subprocess_deadline_;
     }
+    size_t pvfMaxWorkers() const override {
+      return pvf_max_workers_;
+    }
     bool disableSecureMode() const override {
       return disable_secure_mode_;
     }
@@ -386,6 +389,7 @@ namespace kagome::application {
     bool use_pvf_subprocess_{
         false};  // TODO(kamilsa) #2123 set back to true when issue resolved
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
+    size_t pvf_max_workers_{4};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
   };

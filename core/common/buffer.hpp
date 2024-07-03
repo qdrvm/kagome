@@ -40,7 +40,7 @@ namespace kagome::common {
      * @brief lvalue construct buffer from a byte vector
      */
     explicit SLBuffer(const typename Base::Base &other) : Base(other) {}
-    explicit SLBuffer(typename Base::Base &&other) : Base(std::move(other)) {}
+    SLBuffer(typename Base::Base &&other) : Base(std::move(other)) {}
 
     template <size_t OtherMaxSize>
     SLBuffer(const OtherSLBuffer<OtherMaxSize> &other) : Base(other) {}

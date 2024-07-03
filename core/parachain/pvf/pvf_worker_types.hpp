@@ -11,7 +11,12 @@
 #include "common/buffer.hpp"
 #include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
+#include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
+
+namespace kagome::application {
+  class AppConfiguration;
+}  // namespace kagome::application
 
 namespace kagome::parachain {
 
@@ -22,17 +27,25 @@ namespace kagome::parachain {
     kWasmEdgeCompiled,
   };
 
-  struct PvfWorkerInput {
-    SCALE_TIE(8);
+  RuntimeEngine pvf_runtime_engine(
+      const application::AppConfiguration &app_config);
+
+  struct PvfWorkerInputConfig {
+    SCALE_TIE(4);
 
     RuntimeEngine engine;
-    common::Buffer runtime_code;
-    std::string function;
-    common::Buffer params;
-    runtime::RuntimeContextFactory::ContextParams runtime_params;
     std::string cache_dir;
     std::vector<std::string> log_params;
     bool force_disable_secure_mode;
   };
 
+  struct PvfWorkerInputCode {
+    SCALE_TIE(3);
+
+    Hash256 code_hash;
+    Buffer runtime_code;
+    runtime::RuntimeContextFactory::ContextParams runtime_params;
+  };
+
+  using PvfWorkerInput = std::variant<PvfWorkerInputCode, Buffer>;
 }  // namespace kagome::parachain
