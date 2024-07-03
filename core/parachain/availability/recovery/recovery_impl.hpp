@@ -15,9 +15,14 @@
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/store/store.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+
+namespace kagome::application {
+  class ChainSpec;
+}
 
 namespace kagome::network {
   class PeerManager;
@@ -27,7 +32,8 @@ namespace kagome::parachain {
   class RecoveryImpl : public Recovery,
                        public std::enable_shared_from_this<RecoveryImpl> {
    public:
-    RecoveryImpl(std::shared_ptr<crypto::Hasher> hasher,
+    RecoveryImpl(std::shared_ptr<application::ChainSpec> chain_spec,
+                 std::shared_ptr<crypto::Hasher> hasher,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::ParachainHost> parachain_api,
                  std::shared_ptr<AvailabilityStore> av_store,
@@ -81,5 +87,12 @@ namespace kagome::parachain {
     std::default_random_engine random_;
     std::unordered_map<CandidateHash, outcome::result<AvailableData>> cached_;
     ActiveMap active_;
+
+    // metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Counter *full_recoveries_started_;
+    std::unordered_map<std::string,
+                       std::unordered_map<std::string, metrics::Counter *>>
+        full_recoveries_finished_;
   };
 }  // namespace kagome::parachain

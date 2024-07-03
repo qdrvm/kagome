@@ -6,6 +6,7 @@
 
 #include "parachain/availability/recovery/recovery_impl.hpp"
 
+#include "application/chain_spec.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
@@ -14,10 +15,36 @@
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 
+namespace {
+  constexpr auto fullRecoveriesStartedMetricName =
+      "kagome_parachain_availability_recovery_recoveries_started";
+  constexpr auto fullRecoveriesFinishedMetricName =
+      "kagome_parachain_availability_recovery_recoveries_finished";
+
+  constexpr std::array<std::string_view, 4> strategy_type = {
+      "full_from_backers", "systematic_chunks", "regular_chunks", "all"};
+
+  constexpr std::array<std::string_view, 3> result = {
+      "success", "failure", "invalid"};
+
+#define incFullRecoveriesFinished(strategy, result)                           \
+  do {                                                                        \
+    BOOST_ASSERT_MSG(std::find(strategy_type.begin(), strategy_type.end(), s) \
+                         != strategy_type.end(),                              \
+                     "Unknown strategy type");                                \
+    BOOST_ASSERT_MSG(                                                         \
+        std::find(result.begin(), result.end(), r) != result.end(),           \
+        "Unknown result type");                                               \
+    full_recoveries_finished_[s][r].inc();                                    \
+  } while (false)
+
+}  // namespace
+
 namespace kagome::parachain {
   constexpr size_t kParallelRequests = 50;
 
   RecoveryImpl::RecoveryImpl(
+      std::shared_ptr<application::ChainSpec> chain_spec,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -33,6 +60,25 @@ namespace kagome::parachain {
         query_audi_{std::move(query_audi)},
         router_{std::move(router)},
         pm_{std::move(pm)} {
+    // Register metrics
+    metrics_registry_->registerCounterFamily(
+        fullRecoveriesStartedMetricName, "Total number of started recoveries");
+    full_recoveries_started_ = metrics_registry_->registerCounterMetric(
+        fullRecoveriesStartedMetricName);
+
+    size_t i = 0;
+    for (auto &s : strategy_type) {
+      auto &metrics_for_strategy = full_recoveries_finished_[s];
+      for (auto &r : result) {
+        auto &metrics_for_result = metrics_for_strategy[r];
+        metrics_for_result = metrics_registry_->registerCounterMetric(
+            fullRecoveriesFinishedMetricName,
+            {{"result", std::string(r)},
+             {"strategy_type", std::string(s)},
+             {"chain", chain_spec->chainType()}});
+      }
+    }
+
     BOOST_ASSERT(pm_);
   }
 
