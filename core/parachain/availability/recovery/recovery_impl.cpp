@@ -21,21 +21,22 @@ namespace {
   constexpr auto fullRecoveriesFinishedMetricName =
       "kagome_parachain_availability_recovery_recoveries_finished";
 
-  constexpr std::array<std::string_view, 4> strategy_type = {
+  constexpr std::array<std::string_view, 4> strategy_types = {
       "full_from_backers", "systematic_chunks", "regular_chunks", "all"};
 
-  constexpr std::array<std::string_view, 3> result = {
+  constexpr std::array<std::string_view, 3> results = {
       "success", "failure", "invalid"};
 
-#define incFullRecoveriesFinished(strategy, result)                           \
-  do {                                                                        \
-    BOOST_ASSERT_MSG(std::find(strategy_type.begin(), strategy_type.end(), s) \
-                         != strategy_type.end(),                              \
-                     "Unknown strategy type");                                \
-    BOOST_ASSERT_MSG(                                                         \
-        std::find(result.begin(), result.end(), r) != result.end(),           \
-        "Unknown result type");                                               \
-    full_recoveries_finished_[s][r].inc();                                    \
+#define incFullRecoveriesFinished(strategy, result)                         \
+  do {                                                                      \
+    BOOST_ASSERT_MSG(                                                       \
+        std::find(strategy_types.begin(), strategy_types.end(), strategy)   \
+            != strategy_types.end(),                                        \
+        "Unknown strategy type");                                           \
+    BOOST_ASSERT_MSG(                                                       \
+        std::find(results.begin(), results.end(), result) != results.end(), \
+        "Unknown result type");                                             \
+    full_recoveries_finished_[strategy][result]->inc();                     \
   } while (false)
 
 }  // namespace
@@ -67,14 +68,14 @@ namespace kagome::parachain {
         fullRecoveriesStartedMetricName);
 
     size_t i = 0;
-    for (auto &s : strategy_type) {
-      auto &metrics_for_strategy = full_recoveries_finished_[s];
-      for (auto &r : result) {
-        auto &metrics_for_result = metrics_for_strategy[r];
+    for (auto &strategy : strategy_types) {
+      auto &metrics_for_strategy = full_recoveries_finished_[strategy];
+      for (auto &result : results) {
+        auto &metrics_for_result = metrics_for_strategy[result];
         metrics_for_result = metrics_registry_->registerCounterMetric(
             fullRecoveriesFinishedMetricName,
-            {{"result", std::string(r)},
-             {"strategy_type", std::string(s)},
+            {{"result", std::string(result)},
+             {"strategy_type", std::string(strategy)},
              {"chain", chain_spec->chainType()}});
       }
     }
@@ -350,14 +351,20 @@ namespace kagome::parachain {
   void RecoveryImpl::done(
       Lock &lock,
       ActiveMap::iterator it,
-      const std::optional<outcome::result<AvailableData>> &result) {
-    if (result) {
-      cached_.emplace(it->first, *result);
+      const std::optional<outcome::result<AvailableData>> &result_op) {
+    if (result_op.has_value()) {
+      auto &result = result_op.value();
+
+      cached_.emplace(it->first, result);
+
+      if (result.has_value()) {
+        // incFullRecoveriesFinished("unknown", "success"); // TODO fix strategy
+      }
     }
     auto node = active_.extract(it);
     lock.unlock();
     for (auto &cb : node.mapped().cb) {
-      cb(result);
+      cb(result_op);
     }
   }
 }  // namespace kagome::parachain
