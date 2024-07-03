@@ -74,15 +74,6 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   )
 endif ()
 
-# Fix for Apple clang (or clang from brew) of versions 15 and higher
-if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
-  hunter_config(
-      binaryen
-      URL https://github.com/qdrvm/binaryen/archive/e6a2fea157bde503f07f28444b350512374cf5bf.zip
-      SHA1 301f8b1775904179cb552c12be237b4aa076981e
-  )
-endif ()
-
 hunter_config(
     libsecp256k1
     VERSION 0.4.1-qdrvm1

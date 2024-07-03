@@ -51,7 +51,7 @@ namespace kagome::runtime::binaryen {
        * deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        memory_->resize(sizeToPages(new_size) * kMemoryPageSize);
+        memory_->pagesResize(sizeToPages(new_size));
       }
     }
 

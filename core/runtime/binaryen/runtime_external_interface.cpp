@@ -194,7 +194,7 @@ namespace kagome::runtime::binaryen {
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,
                                       wasm::ModuleInstance &instance) {
-    memory.resize(wasm.memory.initial * wasm::Memory::kPageSize);
+    memory.pagesResize(wasm.memory.initial);
     if (wasm.memory.hasMax()) {
       memory.pages_max = wasm.memory.max;
     }
