@@ -389,7 +389,8 @@ namespace kagome::application {
     bool use_pvf_subprocess_{
         false};  // TODO(kamilsa) #2123 set back to true when issue resolved
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
-    size_t pvf_max_workers_{4};
+    size_t pvf_max_workers_{
+        std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
   };
