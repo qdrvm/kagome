@@ -27,4 +27,11 @@ namespace kagome::runtime {
 
   UncompressOutcome<void> uncompressCodeIfNeeded(common::BufferView buf,
                                                  common::Buffer &res);
+
+  inline UncompressOutcome<Buffer> uncompressCodeIfNeeded(
+      BufferView data_zstd) {
+    Buffer data;
+    OUTCOME_TRY(uncompressCodeIfNeeded(data_zstd, data));
+    return data;
+  }
 }  // namespace kagome::runtime

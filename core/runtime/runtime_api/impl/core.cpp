@@ -10,6 +10,7 @@
 #include "log/logger.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module_instance.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 
 namespace kagome::runtime {
@@ -44,9 +45,11 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       std::shared_ptr<Executor> executor,
+      std::shared_ptr<ModuleRepository> module_repository,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker)
       : executor_{std::move(executor)},
+        module_repository_{std::move(module_repository)},
         header_repo_{std::move(header_repo)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)} {
     BOOST_ASSERT(executor_ != nullptr);
@@ -56,6 +59,10 @@ namespace kagome::runtime {
 
   outcome::result<primitives::Version> CoreImpl::version(
       const primitives::BlockHash &block) {
+    OUTCOME_TRY(version, module_repository_->embeddedVersion(block));
+    if (version) {
+      return *version;
+    }
     return version_.call(*header_repo_,
                          *runtime_upgrade_tracker_,
                          *executor_,

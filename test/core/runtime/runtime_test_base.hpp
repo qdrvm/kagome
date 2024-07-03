@@ -171,6 +171,7 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<runtime::RuntimeInstancesPoolImpl>(
             module_factory, std::make_shared<runtime::InstrumentWasm>()),
         hasher_,
+        header_repo_,
         upgrade_tracker,
         trie_storage_,
         module_factory,
