@@ -276,7 +276,7 @@ namespace kagome::parachain {
     SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
 
 #ifdef __linux__
-    if (!input.force_disable_secure_mode) {
+    if (!input_config.force_disable_secure_mode) {
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
       if (auto res = changeRoot(input_config.cache_dir); !res) {
