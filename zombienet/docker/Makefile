@@ -127,3 +127,6 @@ test-polkadot-functional-0010-validator-disabling:
 
 test-polkadot-functional-0011-async-backing-6-seconds-rate:
 	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0011-async-backing-6-seconds-rate.zndsl")
+
+test-polkadot-functional-0013-systematic-chunk-recovery:
+	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0013-systematic-chunk-recovery.zndsl")

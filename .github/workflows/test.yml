@@ -329,6 +329,8 @@ jobs:
             test: "test-polkadot-functional-0010-validator-disabling"
           - name: "Test we are producing blocks at 6 seconds clip"
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+          - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
+            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
