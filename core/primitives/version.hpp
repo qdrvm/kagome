@@ -141,6 +141,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Version &v) {
+    // `.value()` may throw, `scale::decode` will catch that
     v = Version::decode(s, std::nullopt).value();
     return s;
   }
