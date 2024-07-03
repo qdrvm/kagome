@@ -7,6 +7,7 @@
 #pragma once
 
 #include "runtime/instance_environment.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;

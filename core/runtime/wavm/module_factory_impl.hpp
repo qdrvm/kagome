@@ -9,6 +9,7 @@
 #include "runtime/module_factory.hpp"
 
 #include "outcome/outcome.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -30,6 +31,10 @@ namespace kagome::storage::trie {
   class TrieStorage;
   class TrieSerializer;
 }  // namespace kagome::storage::trie
+
+namespace kagome::runtime {
+  class WasmInstrumenter;
+}
 
 namespace kagome::runtime::wavm {
 
@@ -65,6 +70,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<const WasmInstrumenter> instrumenter_;
   };
 
 }  // namespace kagome::runtime::wavm

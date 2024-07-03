@@ -60,12 +60,14 @@ namespace kagome::runtime::wavm {
         storage_{storage},
         serializer_{serializer},
         intrinsic_module_{std::move(intrinsic_module)},
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        instrumenter_{std::move(instrumenter)} {
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_params_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(instrumenter_ != nullptr);
 
     [[maybe_unused]] static auto init = [] {
       WAVM::Runtime::setGlobalObjectCache(std::make_shared<ObjectCache>());
