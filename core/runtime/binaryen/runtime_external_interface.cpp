@@ -141,7 +141,6 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<host_api::HostApi> host_api)
       : host_api_{std::move(host_api)},
         logger_{log::createLogger("RuntimeExternalInterface", "binaryen")} {
-    memory.resize(kInitialMemorySize);
     BOOST_ASSERT(host_api_);
     registerMethods();
   }
@@ -195,7 +194,7 @@ namespace kagome::runtime::binaryen {
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,
                                       wasm::ModuleInstance &instance) {
-    memory.resize(wasm.memory.initial * wasm::Memory::kPageSize);
+    memory.pagesResize(wasm.memory.initial);
     if (wasm.memory.hasMax()) {
       memory.pages_max = wasm.memory.max;
     }
