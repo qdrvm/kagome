@@ -325,8 +325,7 @@ namespace kagome::parachain {
           auto instance,
           pvf_pool_->pool()->instantiateFromCode(
               code_hash, [&] { return PvfError::NO_CODE; }, executor_params));
-      CB_TRY(auto ctx,
-             ctx_factory_->ephemeral(instance, storage::trie::kEmptyRootHash));
+      CB_TRY(auto ctx, ctx_factory_->stateless(instance));
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
 
