@@ -48,14 +48,15 @@ namespace kagome::injector {
                       [&] { return std::make_shared<Buffer>(code); },
                       {config}));
       OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
-      OUTCOME_TRY(runtime_version,
-                  runtime_cache->getVersion(
-                      ctx.module_instance->getCodeHash(),
-                      [&]() -> outcome::result<primitives::Version> {
-                        return ctx.module_instance
-                            ->callAndDecodeExportFunction<primitives::Version>(
-                                ctx, "Core_version");
-                      }));
+      BOOST_OUTCOME_TRY(
+          runtime_version,
+          runtime_cache->getVersion(
+              ctx.module_instance->getCodeHash(),
+              [&]() -> outcome::result<primitives::Version> {
+                return ctx.module_instance
+                    ->callAndDecodeExportFunction<primitives::Version>(
+                        ctx, "Core_version");
+              }));
     }
     auto version = storage::trie::StateVersion{runtime_version->state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
