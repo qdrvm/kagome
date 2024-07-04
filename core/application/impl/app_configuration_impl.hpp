@@ -386,8 +386,7 @@ namespace kagome::application {
     uint32_t parachain_precompilation_thread_num_ =
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
-    bool use_pvf_subprocess_{
-        false};  // TODO(kamilsa) #2123 set back to true when issue resolved
+    bool use_pvf_subprocess_{true};
     std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
