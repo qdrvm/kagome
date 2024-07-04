@@ -10,6 +10,12 @@
 
 #include <memory>
 
+#include "injector/lazy.hpp"
+
+namespace kagome::crypto {
+  class Hasher;
+}  // namespace kagome::crypto
+
 namespace kagome::storage::trie {
   class TrieStorage;
 }
@@ -19,7 +25,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::runtime {
-  class ModuleFactory;
+  class RuntimeInstancesPool;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime {
@@ -28,16 +34,16 @@ namespace kagome::runtime {
       : public runtime::CoreApiFactory,
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
-    explicit CoreApiFactoryImpl(
-        std::shared_ptr<const ModuleFactory> module_factory);
-    ~CoreApiFactoryImpl() = default;
+    explicit CoreApiFactoryImpl(std::shared_ptr<crypto::Hasher> hasher,
+                                LazySPtr<RuntimeInstancesPool> module_factory);
 
     outcome::result<std::unique_ptr<RestrictedCore>> make(
-        std::shared_ptr<const crypto::Hasher> hasher,
-        const std::vector<uint8_t> &runtime_code) const override;
+        BufferView code,
+        std::shared_ptr<TrieStorageProvider> storage_provider) const override;
 
    private:
-    std::shared_ptr<const ModuleFactory> module_factory_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    LazySPtr<RuntimeInstancesPool> module_factory_;
   };
 
 }  // namespace kagome::runtime

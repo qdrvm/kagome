@@ -9,8 +9,6 @@
 #include <filesystem>
 #include <fstream>
 
-#include "common/buffer.hpp"
-
 namespace kagome {
 
   template <typename T>
@@ -19,11 +17,13 @@ namespace kagome {
 
   template <typename T>
   concept ByteContainer = requires(T t, std::streampos pos) {
-    { t.data() } -> StandardLayoutPointer;
-    { t.size() } -> std::convertible_to<std::streamsize>;
-    { t.resize(pos) };
-    { t.clear() };
-  };
+                            { t.data() } -> StandardLayoutPointer;
+                            {
+                              t.size()
+                              } -> std::convertible_to<std::streamsize>;
+                            { t.resize(pos) };
+                            { t.clear() };
+                          };
 
   template <ByteContainer Out>
   bool readFile(Out &out, const std::filesystem::path &path) {

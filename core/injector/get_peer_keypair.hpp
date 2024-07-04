@@ -6,15 +6,13 @@
 
 #pragma once
 
-#include <fstream>
-
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
-#include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/random_generator.hpp"
+#include "utils/write_file.hpp"
 
 namespace kagome::injector {
   inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
@@ -80,8 +78,7 @@ namespace kagome::injector {
     auto generated_keypair = crypto_provider.generateKeypair(seed, {}).value();
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
-      std::ofstream file{path.c_str()};
-      file.write(byte2str(seed.unsafeBytes()).data(), seed.size());
+      writeFile(path, seed.unsafeBytes()).value();
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(

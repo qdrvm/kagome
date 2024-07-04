@@ -22,6 +22,10 @@ namespace kagome::host_api {
   class HostApiFactory;
 }
 
+namespace kagome::runtime {
+  class CoreApiFactory;
+}  // namespace kagome::runtime
+
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieSerializer;
@@ -33,29 +37,30 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicModule;
   struct ModuleParams;
-  struct ModuleCache;
 
-  class ModuleFactoryImpl final
-      : public ModuleFactory,
-        public std::enable_shared_from_this<ModuleFactoryImpl> {
+  class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
+        std::shared_ptr<CoreApiFactory> core_factory,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
-        std::optional<std::shared_ptr<ModuleCache>> module_cache,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    CompilationOutcome<std::shared_ptr<Module>> make(
-        common::BufferView code) const override;
+    std::optional<std::string> compilerType() const override;
+    CompilationOutcome<void> compile(std::filesystem::path path_compiled,
+                                     BufferView code) const override;
+    CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
+        std::filesystem::path path_compiled) const override;
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
+    std::shared_ptr<CoreApiFactory> core_factory_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;

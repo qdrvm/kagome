@@ -18,7 +18,7 @@ namespace kagome::host_api {
 }
 
 namespace kagome::runtime {
-  class ModuleFactory;
+  class CoreApiFactory;
 }
 
 namespace kagome::runtime::binaryen {
@@ -30,20 +30,20 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<RuntimeExternalInterface> rei;
   };
 
-  class InstanceEnvironmentFactory final
-      : public std::enable_shared_from_this<InstanceEnvironmentFactory> {
+  class InstanceEnvironmentFactory final {
    public:
     InstanceEnvironmentFactory(
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<CoreApiFactory> core_factory,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory);
 
-    [[nodiscard]] BinaryenInstanceEnvironment make(
-        std::shared_ptr<const ModuleFactory> module_factory) const;
+    [[nodiscard]] BinaryenInstanceEnvironment make() const;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
+    std::shared_ptr<CoreApiFactory> core_factory_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
   };
 

@@ -17,6 +17,10 @@
 #include "runtime/module_factory.hpp"
 #include "utils/lru.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}  // namespace kagome::application
+
 namespace kagome::runtime {
   class InstrumentWasm;
 
@@ -28,13 +32,14 @@ namespace kagome::runtime {
         public std::enable_shared_from_this<RuntimeInstancesPoolImpl> {
    public:
     explicit RuntimeInstancesPoolImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<ModuleFactory> module_factory,
         std::shared_ptr<InstrumentWasm> instrument,
         size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
         const CodeHash &code_hash,
-        common::BufferView code_zstd,
+        const GetCode &get_code,
         const RuntimeContext::ContextParams &config) override;
 
     /**
@@ -48,9 +53,13 @@ namespace kagome::runtime {
                  const RuntimeContext::ContextParams &config,
                  std::shared_ptr<ModuleInstance> &&instance);
 
+    std::filesystem::path cachePath(
+        const CodeHash &code_hash,
+        const RuntimeContext::ContextParams &config) const;
+
     outcome::result<void> precompile(
         const CodeHash &code_hash,
-        common::BufferView code_zstd,
+        const GetCode &get_code,
         const RuntimeContext::ContextParams &config);
 
    private:
@@ -66,15 +75,16 @@ namespace kagome::runtime {
     outcome::result<std::reference_wrapper<InstancePool>> getModule(
         std::unique_lock<std::mutex> &lock,
         const CodeHash &code_hash,
-        common::BufferView code_zstd,
+        const GetCode &get_code,
         const RuntimeContext::ContextParams &config);
 
     using CompilationResult = CompilationOutcome<std::shared_ptr<const Module>>;
     CompilationResult tryCompileModule(
         const CodeHash &code_hash,
-        common::BufferView code_zstd,
+        const GetCode &get_code,
         const RuntimeContext::ContextParams &config);
 
+    std::filesystem::path cache_dir_;
     std::shared_ptr<ModuleFactory> module_factory_;
     std::shared_ptr<InstrumentWasm> instrument_;
 
@@ -90,6 +100,7 @@ namespace kagome::runtime {
 
 template <>
 struct boost::di::ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
-  BOOST_DI_INJECT_TRAITS(std::shared_ptr<kagome::runtime::ModuleFactory>,
+  BOOST_DI_INJECT_TRAITS(const kagome::application::AppConfiguration &,
+                         std::shared_ptr<kagome::runtime::ModuleFactory>,
                          std::shared_ptr<kagome::runtime::InstrumentWasm>);
 };

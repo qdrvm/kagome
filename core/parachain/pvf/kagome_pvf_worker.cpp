@@ -43,6 +43,7 @@
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "utils/mkdirs.hpp"
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
@@ -73,14 +74,7 @@ namespace kagome::parachain {
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
   SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
-    std::error_code ec;
-    std::filesystem::create_directories(worker_dir, ec);
-    if (ec) {
-      return SecureModeError{
-          fmt::format("Failed to create worker directory {}: {}",
-                      worker_dir.c_str(),
-                      ec.message())};
-    }
+    OUTCOME_TRY(mkdirs(worker_dir));
 
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
@@ -274,7 +268,20 @@ namespace kagome::parachain {
     kagome::log::tuneLoggingSystem(input_config.log_params);
 
     SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
+    if (not std::filesystem::path{input_config.cache_dir}.is_absolute()) {
+      throw std::logic_error{"cache dir must be absolute"};
+    }
 
+    std::string chroot_prefix;
+    auto chroot_path = [&](std::string_view path) {
+      if (path == chroot_prefix) {
+        return std::string{"/"};
+      }
+      if (not path.starts_with(chroot_prefix)) {
+        throw std::logic_error{"path outside chroot prefix"};
+      }
+      return std::string{path.substr(chroot_prefix.size())};
+    };
 #ifdef __linux__
     if (!input_config.force_disable_secure_mode) {
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
@@ -285,9 +292,13 @@ namespace kagome::parachain {
                  res.error());
         return std::errc::not_supported;
       }
-      input_config.cache_dir = "/";
+      chroot_prefix = input_config.cache_dir;
+      if (chroot_prefix.ends_with("/")) {
+        chroot_prefix.pop_back();
+      }
 
-      if (auto res = enableLandlock(input_config.cache_dir); !res) {
+      if (auto res = enableLandlock(chroot_path(input_config.cache_dir));
+          !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
@@ -307,25 +318,23 @@ namespace kagome::parachain {
 #endif
     auto injector = pvf_worker_injector(input_config);
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
-    std::optional<PvfWorkerInputCode> input_code;
+    std::shared_ptr<runtime::ModuleInstance> instance;
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
       if (auto *code = std::get_if<PvfWorkerInputCode>(&input)) {
-        input_code = std::move(*code);
+        OUTCOME_TRY(module, factory->loadCompiled(code->path_compiled));
+        BOOST_OUTCOME_TRY(instance, module->instantiate());
         continue;
       }
       auto &input_args = std::get<Buffer>(input);
-      if (not input_code) {
+      if (not instance) {
         throw std::logic_error{"PvfWorkerInputCode expected"};
       }
+      OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
       OUTCOME_TRY(
-          ctx,
-          runtime::RuntimeContextFactory::fromCode(
-              *factory, input_code->runtime_code, input_code->runtime_params));
-      OUTCOME_TRY(result,
-                  ctx.module_instance->callExportFunction(
-                      ctx, "validate_block", input_args));
-      OUTCOME_TRY(ctx.module_instance->resetEnvironment());
+          result,
+          instance->callExportFunction(ctx, "validate_block", input_args));
+      OUTCOME_TRY(instance->resetEnvironment());
       OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
       std::cout.write((const char *)len.data(), len.size());
       std::cout.write((const char *)result.data(), result.size());

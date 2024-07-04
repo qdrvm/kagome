@@ -17,9 +17,6 @@ namespace kagome::runtime {
   static_assert(roundUpAlign(kDefaultHeapBase) == kDefaultHeapBase,
                 "Heap base must be aligned");
 
-  static_assert(kDefaultHeapBase < kInitialMemorySize,
-                "Heap base must be in memory");
-
   constexpr auto kPoisoned{"the allocator has been poisoned"};
 
   static uint64_t read_u64(const MemoryHandle &memory, WasmPointer ptr) {

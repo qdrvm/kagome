@@ -20,6 +20,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::consensus {
 
@@ -43,7 +44,8 @@ namespace kagome::consensus {
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
-        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
+        worker_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, worker_thread_pool)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},

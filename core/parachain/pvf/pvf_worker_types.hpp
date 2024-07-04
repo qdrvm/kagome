@@ -40,11 +40,9 @@ namespace kagome::parachain {
   };
 
   struct PvfWorkerInputCode {
-    SCALE_TIE(3);
+    SCALE_TIE(1);
 
-    Hash256 code_hash;
-    Buffer runtime_code;
-    runtime::RuntimeContextFactory::ContextParams runtime_params;
+    std::string path_compiled;
   };
 
   using PvfWorkerInput = std::variant<PvfWorkerInputCode, Buffer>;
