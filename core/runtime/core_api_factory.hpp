@@ -7,21 +7,11 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
 #include "common/buffer_view.hpp"
 #include "outcome/outcome.hpp"
 
-namespace kagome::host_api {
-  class HostApiFactory;
-}
-
-namespace kagome::crypto {
-  class Hasher;
-}
-
 namespace kagome::runtime {
-  struct MemoryLimits;
   class RestrictedCore;
   class TrieStorageProvider;
 
