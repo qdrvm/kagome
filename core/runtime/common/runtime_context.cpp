@@ -48,7 +48,7 @@ namespace kagome::runtime {
       : module_repo_{std::move(module_repo)},
         header_repo_{std::move(header_repo)} {}
 
-  outcome::result<RuntimeContext> RuntimeContextFactory::fromCode(
+  outcome::result<RuntimeContext> RuntimeContextFactory::stateless(
       std::shared_ptr<ModuleInstance> instance) {
     runtime::RuntimeContext ctx{
         instance,

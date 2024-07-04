@@ -37,7 +37,7 @@ TEST_P(WavmModuleInitTest, DISABLED_SingleModule) {
           .value();
   EXPECT_OUTCOME_TRUE(
       runtime_context,
-      kagome::runtime::RuntimeContextFactory::fromCode(instance));
+      kagome::runtime::RuntimeContextFactory::stateless(instance));
   EXPECT_OUTCOME_TRUE(response,
                       runtime_context.module_instance->callExportFunction(
                           runtime_context, "Core_version", {}));

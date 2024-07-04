@@ -306,7 +306,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
     OUTCOME_TRY(module, factory->loadCompiled(input.path_compiled));
     OUTCOME_TRY(instance, module->instantiate());
-    OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::fromCode(instance));
+    OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
     OUTCOME_TRY(result,
                 ctx.module_instance->callExportFunction(
                     ctx, input.function, input.params));

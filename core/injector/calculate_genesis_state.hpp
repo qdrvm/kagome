@@ -47,7 +47,7 @@ namespace kagome::injector {
                       code_hash,
                       [&] { return std::make_shared<Buffer>(code); },
                       {config}));
-      OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::fromCode(instance));
+      OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
       OUTCOME_TRY(runtime_version,
                   runtime_cache->getVersion(
                       ctx.module_instance->getCodeHash(),

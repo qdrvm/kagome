@@ -55,7 +55,7 @@ namespace kagome::runtime {
                     code_hash,
                     [&] { return std::make_shared<Buffer>(code); },
                     {config}));
-    OUTCOME_TRY(ctx, RuntimeContextFactory::fromCode(instance));
+    OUTCOME_TRY(ctx, RuntimeContextFactory::stateless(instance));
     return std::make_unique<RestrictedCoreImpl>(std::move(ctx));
   }
 

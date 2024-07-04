@@ -69,7 +69,7 @@ namespace kagome::runtime {
 
     virtual ~RuntimeContextFactory() = default;
 
-    static outcome::result<RuntimeContext> fromCode(
+    static outcome::result<RuntimeContext> stateless(
         std::shared_ptr<ModuleInstance> instance);
 
     virtual outcome::result<RuntimeContext> fromBatch(
