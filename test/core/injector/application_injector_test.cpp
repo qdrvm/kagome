@@ -127,7 +127,7 @@ namespace {
         .WillRepeatedly(testing::Return(100));
     EXPECT_CALL(config_mock, log()).WillRepeatedly([] {
       static std::vector<std::string> log;
-      return log;
+      return std::cref(log);
     });
   }
 }  // namespace
