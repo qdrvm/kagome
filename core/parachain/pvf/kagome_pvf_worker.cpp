@@ -43,6 +43,7 @@
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "utils/mkdirs.hpp"
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
@@ -73,14 +74,7 @@ namespace kagome::parachain {
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
   SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
-    std::error_code ec;
-    std::filesystem::create_directories(worker_dir, ec);
-    if (ec) {
-      return SecureModeError{
-          fmt::format("Failed to create worker directory {}: {}",
-                      worker_dir.c_str(),
-                      ec.message())};
-    }
+    OUTCOME_TRY(mkdirs(worker_dir));
 
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
@@ -274,21 +268,23 @@ namespace kagome::parachain {
     OUTCOME_TRY(input, decodeInput());
     kagome::log::tuneLoggingSystem(input.log_params);
 
-    SL_VERBOSE(logger, "Cache directory: {}", input.cache_dir);
+    SL_VERBOSE(logger, "Compiled path: {}", input.path_compiled);
 
 #ifdef __linux__
     if (!input.force_disable_secure_mode) {
+      std::filesystem::path path_compiled{input.path_compiled};
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
-      if (auto res = changeRoot(input.cache_dir); !res) {
+      if (auto res = changeRoot(path_compiled.parent_path()); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
                  res.error());
         return std::errc::not_supported;
       }
-      input.cache_dir = "/";
+      path_compiled = "/" / path_compiled.filename();
+      input.path_compiled = path_compiled.native();
 
-      if (auto res = enableLandlock(input.cache_dir); !res) {
+      if (auto res = enableLandlock(path_compiled.parent_path()); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
@@ -308,9 +304,9 @@ namespace kagome::parachain {
 #endif
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(
-                    *factory, input.runtime_code, input.runtime_params));
+    OUTCOME_TRY(module, factory->loadCompiled(input.path_compiled));
+    OUTCOME_TRY(instance, module->instantiate());
+    OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
     OUTCOME_TRY(result,
                 ctx.module_instance->callExportFunction(
                     ctx, input.function, input.params));

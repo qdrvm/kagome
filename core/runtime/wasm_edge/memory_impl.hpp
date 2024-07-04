@@ -18,8 +18,7 @@ namespace kagome::runtime::wasm_edge {
 
   class MemoryImpl final : public MemoryHandle {
    public:
-    MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
-               const MemoryConfig &config);
+    MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance);
 
     /**
      * @brief Return the size of the memory

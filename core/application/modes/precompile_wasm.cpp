@@ -8,10 +8,9 @@
 
 #include "blockchain/block_tree.hpp"
 #include "common/bytestr.hpp"
+#include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/session_params.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/module_factory.hpp"
-#include "runtime/wabt/instrument.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "utils/read_file.hpp"
 
 namespace kagome::application::mode {
@@ -19,11 +18,13 @@ namespace kagome::application::mode {
       const application::AppConfiguration &app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
-      std::shared_ptr<runtime::ModuleFactory> module_factory)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<parachain::PvfPool> module_factory)
       : log_{log::createLogger("PrecompileWasm")},
         config_{*app_config.precompileWasm()},
         block_tree_{std::move(block_tree)},
         parachain_api_{std::move(parachain_api)},
+        hasher_{std::move(hasher)},
         module_factory_{std::move(module_factory)} {}
 
   int PrecompileWasmMode::run() const {
@@ -55,13 +56,11 @@ namespace kagome::application::mode {
       if (text.starts_with("0x")) {
         BOOST_OUTCOME_TRY(bytes, common::unhexWith0x(text));
       }
-      Buffer code;
-      OUTCOME_TRY(runtime::uncompressCodeIfNeeded(bytes, code));
+      // https://github.com/paritytech/polkadot-sdk/blob/b4ae5b01da280f754ccc00b94314a30b658182a1/polkadot/parachain/src/primitives.rs#L74-L81
+      auto code_hash = hasher_->blake2b_256(bytes);
       OUTCOME_TRY(config,
                   parachain::sessionParams(*parachain_api_, block.hash));
-      BOOST_OUTCOME_TRY(
-          code, runtime::prepareBlobForCompilation(code, config.memory_limits));
-      OUTCOME_TRY(module_factory_->make(code));
+      OUTCOME_TRY(module_factory_->precompile(code_hash, bytes, config));
     }
     return outcome::success();
   }

@@ -59,7 +59,12 @@ TEST_F(MiscExtensionTest, CoreVersion) {
       }));
 
   kagome::host_api::MiscExtension m{
-      42, std::make_shared<HasherMock>(), memory_provider, core_factory};
+      42,
+      std::make_shared<HasherMock>(),
+      memory_provider,
+      nullptr,
+      core_factory,
+  };
   ASSERT_EQ(memory[m.ext_misc_runtime_version_version_1(memory["test"_v])],
             v1_enc);
 }
