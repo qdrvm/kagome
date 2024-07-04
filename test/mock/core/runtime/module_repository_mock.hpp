@@ -21,6 +21,11 @@ namespace kagome::runtime {
                 (const primitives::BlockInfo &block,
                  const storage::trie::RootHash &state_root),
                 (override));
+
+    MOCK_METHOD(outcome::result<std::optional<primitives::Version>>,
+                embeddedVersion,
+                (const primitives::BlockHash &),
+                (override));
   };
 
 }  // namespace kagome::runtime

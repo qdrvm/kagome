@@ -215,6 +215,7 @@ int main() {
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       hasher,
+      header_repo,
       runtime_upgrade_tracker,
       trie_storage,
       module_factory,

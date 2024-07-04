@@ -181,6 +181,7 @@ class RuntimeTestBaseImpl {
     auto module_repo =
         std::make_shared<runtime::ModuleRepositoryImpl>(instance_pool_,
                                                         hasher_,
+                                                        header_repo_,
                                                         upgrade_tracker,
                                                         trie_storage_,
                                                         module_factory,

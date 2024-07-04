@@ -28,6 +28,7 @@ namespace kagome::runtime {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
+        std::shared_ptr<ModuleRepository> module_repository,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
@@ -48,6 +49,7 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<ModuleRepository> module_repository_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 
