@@ -39,11 +39,9 @@ namespace kagome::parachain {
     bool force_disable_secure_mode;
   };
 
-  struct PvfWorkerInputCode {
-    SCALE_TIE(1);
+  using PvfWorkerInputCode = std::string;
 
-    std::string path_compiled;
-  };
+  using PvfWorkerInputArgs = Buffer;
 
-  using PvfWorkerInput = std::variant<PvfWorkerInputCode, Buffer>;
+  using PvfWorkerInput = std::variant<PvfWorkerInputCode, PvfWorkerInputArgs>;
 }  // namespace kagome::parachain

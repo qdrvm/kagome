@@ -269,36 +269,44 @@ namespace kagome::parachain {
 
     SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
     if (not std::filesystem::path{input_config.cache_dir}.is_absolute()) {
-      throw std::logic_error{"cache dir must be absolute"};
+      SL_ERROR(
+          logger, "cache dir must be absolute: {}", input_config.cache_dir);
+      return std::errc::invalid_argument;
     }
 
-    std::string chroot_prefix;
-    auto chroot_path = [&](std::string_view path) {
-      if (path == chroot_prefix) {
-        return std::string{"/"};
-      }
-      if (not path.starts_with(chroot_prefix)) {
-        throw std::logic_error{"path outside chroot prefix"};
-      }
-      return std::string{path.substr(chroot_prefix.size())};
-    };
+    std::function<outcome::result<std::filesystem::path>(
+        const std::filesystem::path &)>
+        chroot_path = [](const std::filesystem::path &path) { return path; };
 #ifdef __linux__
     if (!input_config.force_disable_secure_mode) {
+      auto root = input_config.cache_dir;
+      if (root.ends_with("/")) {
+        root.pop_back();
+      }
+      chroot_path = [=](const std::filesystem::path &path)
+          -> outcome::result<std::filesystem::path> {
+        std::string_view s{path.native()};
+        if (s == root) {
+          return std::filesystem::path{"/"};
+        }
+        if (not s.starts_with(root)
+            or not s.substr(root.size()).starts_with("/")) {
+          SL_ERROR(logger, "path outside chroot: {}", s);
+          return std::errc::permission_denied;
+        }
+        return std::filesystem::path{s.substr(root.size())};
+      };
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
-      if (auto res = changeRoot(input_config.cache_dir); !res) {
+      if (auto res = changeRoot(root); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
                  res.error());
         return std::errc::not_supported;
       }
-      chroot_prefix = input_config.cache_dir;
-      if (chroot_prefix.ends_with("/")) {
-        chroot_prefix.pop_back();
-      }
 
-      if (auto res = enableLandlock(chroot_path(input_config.cache_dir));
-          !res) {
+      OUTCOME_TRY(path, chroot_path(input_config.cache_dir));
+      if (auto res = enableLandlock(path); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
@@ -322,13 +330,15 @@ namespace kagome::parachain {
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
       if (auto *code = std::get_if<PvfWorkerInputCode>(&input)) {
-        OUTCOME_TRY(module, factory->loadCompiled(code->path_compiled));
+        OUTCOME_TRY(path, chroot_path(*code));
+        OUTCOME_TRY(module, factory->loadCompiled(path));
         BOOST_OUTCOME_TRY(instance, module->instantiate());
         continue;
       }
-      auto &input_args = std::get<Buffer>(input);
+      auto &input_args = std::get<PvfWorkerInputArgs>(input);
       if (not instance) {
-        throw std::logic_error{"PvfWorkerInputCode expected"};
+        SL_ERROR(logger, "PvfWorkerInputCode expected");
+        return std::errc::invalid_argument;
       }
       OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
       OUTCOME_TRY(

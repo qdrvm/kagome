@@ -326,7 +326,7 @@ namespace kagome::parachain {
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        {pvf_pool_->pool()->cachePath(code_hash, executor_params)},
+        pvf_pool_->pool()->cachePath(code_hash, executor_params),
         scale::encode(params).value(),
         [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
           if (r.has_error()) {

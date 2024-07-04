@@ -52,7 +52,7 @@ namespace kagome::parachain {
    private:
     struct Worker {
       std::shared_ptr<ProcessAndPipes> process;
-      Hash256 code_hash{};
+      std::optional<PvfWorkerInputCode> code;
     };
     struct Used {
       Used(PvfWorkers &self);

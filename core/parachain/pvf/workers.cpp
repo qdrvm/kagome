@@ -155,7 +155,7 @@ namespace kagome::parachain {
   void PvfWorkers::findFree(Job &&job) {
     auto it =
         std::find_if(free_.begin(), free_.end(), [&](const Worker &worker) {
-          return worker.code_hash == job.code.code_hash;
+          return worker.code == job.code;
         });
     if (it == free_.end()) {
       it = free_.begin();
@@ -178,11 +178,11 @@ namespace kagome::parachain {
   void PvfWorkers::writeCode(Job &&job,
                              Worker &&worker,
                              std::shared_ptr<Used> &&used) {
-    if (worker.code_hash == job.code.code_hash) {
+    if (worker.code == job.code) {
       call(std::move(job), std::move(worker), std::move(used));
       return;
     }
-    worker.code_hash = job.code.code_hash;
+    worker.code = job.code;
     worker.process->writeScale(
         PvfWorkerInput{job.code},
         [WEAK_SELF, job{std::move(job)}, worker, used{std::move(used)}](
