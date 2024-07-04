@@ -38,6 +38,7 @@ namespace kagome::runtime::binaryen {
                       std::shared_ptr<storage::trie::TrieStorage> storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
+    // ModuleFactory
     std::optional<std::string> compilerType() const override;
     CompilationOutcome<void> compile(std::filesystem::path path_compiled,
                                      BufferView code) const override;

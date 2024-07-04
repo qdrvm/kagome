@@ -50,14 +50,8 @@ namespace kagome::runtime {
 
   outcome::result<RuntimeContext> RuntimeContextFactory::stateless(
       std::shared_ptr<ModuleInstance> instance) {
-    runtime::RuntimeContext ctx{
-        instance,
-    };
-    instance->getEnvironment()
-        .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
-        .value();
-    OUTCOME_TRY(instance->resetMemory());
-    return ctx;
+    OUTCOME_TRY(instance->stateless());
+    return RuntimeContext{instance};
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::fromBatch(

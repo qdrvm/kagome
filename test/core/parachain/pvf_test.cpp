@@ -123,18 +123,16 @@ class PvfTest : public testing::Test {
         .WillRepeatedly(Return(std::nullopt));
     EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code)))
         .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=, this] {
+    EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=] {
       auto module = std::make_shared<ModuleMock>();
-      ON_CALL(*module, instantiate()).WillByDefault([=, this] {
+      ON_CALL(*module, instantiate()).WillByDefault([=] {
         auto instance = std::make_shared<ModuleInstanceMock>();
         ON_CALL(*instance, callExportFunction(_, "validate_block", _))
             .WillByDefault(
                 Return(Buffer{scale::encode(ValidationResult{}).value()}));
         ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
-        ON_CALL(*ctx_factory, ephemeral(_, _))
-            .WillByDefault(Invoke([instance]() {
-              return runtime::RuntimeContext::create_TEST(instance);
-            }));
+        EXPECT_CALL(*instance, stateless())
+            .WillRepeatedly(Return(outcome::success()));
         return instance;
       });
       return module;

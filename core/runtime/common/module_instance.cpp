@@ -26,7 +26,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
 }
 
 namespace kagome::runtime {
-  using namespace kagome::common::literals;
   outcome::result<void> ModuleInstance::resetMemory() {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
@@ -64,6 +63,14 @@ namespace kagome::runtime {
       memory.storeBuffer(offset, segment);
     });
 
+    return outcome::success();
+  }
+
+  outcome::result<void> ModuleInstance::stateless() {
+    getEnvironment()
+        .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
+        .value();
+    OUTCOME_TRY(resetMemory());
     return outcome::success();
   }
 }  // namespace kagome::runtime
