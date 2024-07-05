@@ -36,6 +36,7 @@
 #include "utils/map.hpp"
 #include "utils/pool_handler.hpp"
 #include "utils/profiler.hpp"
+#include "utils/weak_macro.hpp"
 
 #ifndef TRY_GET_OR_RET
 #define TRY_GET_OR_RET(name, op) \
@@ -908,11 +909,8 @@ namespace kagome::parachain {
       tryOpenOutgoingValidationStream(
           peer->id,
           network::CollationVersion::VStaging,
-          [wptr{weak_from_this()}, peer_id{peer->id}](auto &&stream) {
-            TRY_GET_OR_RET(self, wptr.lock());
-            auto ps = self->pm_->getPeerState(peer_id);
-
-            ps->get().inc_use_count();
+          [WEAK_SELF, peer_id{peer->id}](auto &&stream) {
+            WEAK_LOCK(self);
             self->sendMyView(peer_id,
                              stream,
                              self->router_->getValidationProtocolVStaging());
@@ -925,49 +923,38 @@ namespace kagome::parachain {
       const runtime::SessionInfo &_session_info,
       Groups &&_groups,
       grid::Views &&_grid_view,
-      ValidatorIndex _our_index,
-      const std::shared_ptr<network::PeerManager> &_pm,
-      const std::shared_ptr<authority_discovery::Query> &_query_audi)
+      ValidatorIndex _our_index)
       : session{_session},
         session_info{_session_info},
         groups{std::move(_groups)},
         grid_view{std::move(_grid_view)},
-        our_index{_our_index},
-        pm{_pm},
-        query_audi{_query_audi} {}
-
-  ParachainProcessorImpl::PerSessionState::~PerSessionState() {
-    if (our_index && grid_view) {
-      if (auto our_group = groups.byValidatorIndex(*our_index)) {
-        BOOST_ASSERT(*our_group < session_info.validator_groups.size());
-        const auto &group = session_info.validator_groups[*our_group];
-
-        auto dec_use_count_for_peer = [&](ValidatorIndex vi) {
-          if (auto peer = query_audi->get(session_info.discovery_keys[vi])) {
-            auto ps = pm->getPeerState(peer->id);
-            BOOST_ASSERT(ps);
-            ps->get().dec_use_count();
-          }
-        };
-
-        /// update peers of our group
-        for (const auto vi : group) {
-          dec_use_count_for_peer(vi);
-        }
-
-        /// update peers in grid view
-        if (grid_view) {
-          BOOST_ASSERT(*our_group < grid_view->size());
-          const auto &view = (*grid_view)[*our_group];
-          for (const auto vi : view.sending) {
-            dec_use_count_for_peer(vi);
-          }
-          for (const auto vi : view.receiving) {
-            dec_use_count_for_peer(vi);
-          }
-        }
-      }
+        our_index{_our_index} {
+    if (our_index) {
+      our_group = groups.byValidatorIndex(*our_index);
     }
+    if (our_group) {
+      BOOST_ASSERT(*our_group < session_info.validator_groups.size());
+      BOOST_ASSERT(*our_group < grid_view.size());
+    }
+  }
+
+  bool ParachainProcessorImpl::PerSessionState::isUsed(
+      const primitives::AuthorityDiscoveryId &audi) const {
+    if (not our_index or not our_group) {
+      return false;
+    }
+    auto it = std::find(session_info.discovery_keys.begin(),
+                        session_info.discovery_keys.end(),
+                        audi);
+    if (it == session_info.discovery_keys.end()) {
+      return false;
+    }
+    ValidatorIndex index = it - session_info.discovery_keys.begin();
+    if (groups.byValidatorIndex(index) == our_group) {
+      return true;
+    }
+    const auto &view = grid_view[*our_group];
+    return view.sending.contains(index) or view.receiving.contains(index);
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -1064,25 +1051,25 @@ namespace kagome::parachain {
                relay_parent);
     }
 
-    auto per_session_state = per_session_->get_or_insert(session_index, [&]() {
-      const auto validator_index{validator->validatorIndex()};
-      SL_TRACE(
-          logger_, "===> Grid build (validator_index={})", validator_index);
+    auto per_session_state = SAFE_UNIQUE(per_session_) {
+      return per_session_->get_or_insert(session_index, [&] {
+        const auto validator_index{validator->validatorIndex()};
+        SL_TRACE(
+            logger_, "===> Grid build (validator_index={})", validator_index);
 
-      grid::Views grid_view = grid::makeViews(
-          session_info->validator_groups,
-          grid::shuffle(session_info->validator_groups, randomness),
-          validator_index);
+        grid::Views grid_view = grid::makeViews(
+            session_info->validator_groups,
+            grid::shuffle(session_info->validator_groups, randomness),
+            validator_index);
 
-      return RefCache<SessionIndex, PerSessionState>::RefObj(
-          session_index,
-          *session_info,
-          Groups{session_info->validator_groups, minimum_backing_votes},
-          std::move(grid_view),
-          validator_index,
-          pm_,
-          query_audi_);
-    });
+        return RefCache<SessionIndex, PerSessionState>::RefObj(
+            session_index,
+            *session_info,
+            Groups{session_info->validator_groups, minimum_backing_votes},
+            std::move(grid_view),
+            validator_index);
+      });
+    };
 
     if (auto our_group = per_session_state->value().groups.byValidatorIndex(
             validator->validatorIndex())) {
@@ -1093,7 +1080,7 @@ namespace kagome::parachain {
       }
 
       /// update peers in grid view
-      const auto &grid_view = *per_session_state->value().grid_view;
+      const auto &grid_view = per_session_state->value().grid_view;
       BOOST_ASSERT(*our_group < grid_view.size());
       const auto &view = grid_view[*our_group];
       for (const auto vi : view.sending) {
@@ -1588,12 +1575,8 @@ namespace kagome::parachain {
       return {};
     }
 
-    if (!relay_parent_state->get().per_session_state->value().grid_view) {
-      return {};
-    }
-
     const auto &grid_topology =
-        *relay_parent_state->get().per_session_state->value().grid_view;
+        relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
       return {};
     }
@@ -2275,13 +2258,11 @@ namespace kagome::parachain {
     }
 
     const auto is_importable = candidates_.is_importable(candidate_hash);
-    if (parachain_state->get().per_session_state->value().grid_view) {
-      local_validator.grid_tracker.learned_fresh_statement(
-          parachain_state->get().per_session_state->value().groups,
-          *parachain_state->get().per_session_state->value().grid_view,
-          originator_index,
-          statement);
-    }
+    local_validator.grid_tracker.learned_fresh_statement(
+        parachain_state->get().per_session_state->value().groups,
+        parachain_state->get().per_session_state->value().grid_view,
+        originator_index,
+        statement);
 
     if (is_importable && confirmed) {
       send_backing_fresh_statements(confirmed->get(),
@@ -3381,17 +3362,8 @@ namespace kagome::parachain {
     const auto relay_parent = confirmed_candidate.relay_parent();
     const auto group_index = confirmed_candidate.group_index();
 
-    if (!relay_parent_state.per_session_state->value().grid_view) {
-      SL_TRACE(logger_,
-               "Cannot handle backable candidate due to lack of topology. "
-               "(candidate={}, relay_parent={})",
-               candidate_hash,
-               relay_parent);
-      return;
-    }
-
     const auto &grid_view =
-        *relay_parent_state.per_session_state->value().grid_view;
+        relay_parent_state.per_session_state->value().grid_view;
     const auto group =
         relay_parent_state.per_session_state->value().groups.get(group_index);
     if (!group) {
@@ -4908,14 +4880,12 @@ namespace kagome::parachain {
           local_index, network::vstaging::from(getPayload(compact_statement)));
     }
 
-    if (per_relay_parent.per_session_state->value().grid_view) {
-      auto &l = *per_relay_parent.local_validator;
-      l.grid_tracker.learned_fresh_statement(
-          per_relay_parent.per_session_state->value().groups,
-          *per_relay_parent.per_session_state->value().grid_view,
-          local_index,
-          getPayload(compact_statement));
-    }
+    auto &l = *per_relay_parent.local_validator;
+    l.grid_tracker.learned_fresh_statement(
+        per_relay_parent.per_session_state->value().groups,
+        per_relay_parent.per_session_state->value().grid_view,
+        local_index,
+        getPayload(compact_statement));
 
     circulate_statement(relay_parent, per_relay_parent, compact_statement);
     if (post_confirmation) {
@@ -5760,4 +5730,18 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
+  bool ParachainProcessorImpl::canDisconnect(const libp2p::PeerId &peer) const {
+    auto audi = query_audi_->get(peer);
+    if (not audi) {
+      return true;
+    }
+    return SAFE_SHARED(per_session_) {
+      auto used = false;
+      per_session_->values([&](const PerSessionState &state) {
+        used = state.isUsed(*audi);
+        return not used;
+      });
+      return not used;
+    };
+  }
 }  // namespace kagome::parachain
