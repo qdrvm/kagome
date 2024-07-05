@@ -2114,8 +2114,7 @@ namespace kagome::parachain {
       SL_ERROR(logger_, "Reject outgoing error.");
       return Error::CLUSTER_TRACKER_ERROR;
     }
-    OUTCOME_TRY(_,
-                check_statement_signature(
+    OUTCOME_TRY(check_statement_signature(
                     session, session_info.validators, relay_parent, statement));
 
     cluster_tracker.note_received(
