@@ -6,17 +6,18 @@
 
 #pragma once
 
+#include <span>
 #include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
-#include <span>
 
+#include "common/blob.hpp"
 #include "common/buffer_view.hpp"
+#include "common/hexutil.hpp"
 #include "common/size_limited_containers.hpp"
-#include "hexutil.hpp"
 #include "macro/endianness_utils.hpp"
 #include "outcome/outcome.hpp"
 
@@ -25,13 +26,13 @@ namespace kagome::common {
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
-  template <size_t MaxSize>
-  class SLBuffer : public SLVector<uint8_t, MaxSize> {
+  template <size_t MaxSize, typename Allocator = std::allocator<uint8_t>>
+  class SLBuffer : public SLVector<uint8_t, MaxSize, Allocator> {
    public:
-    using Base = SLVector<uint8_t, MaxSize>;
+    using Base = SLVector<uint8_t, MaxSize, Allocator>;
 
     template <size_t OtherMaxSize>
-    using OtherSLBuffer = SLBuffer<OtherMaxSize>;
+    using OtherSLBuffer = SLBuffer<OtherMaxSize, Allocator>;
 
     SLBuffer() = default;
 
@@ -160,6 +161,11 @@ namespace kagome::common {
       return std::span(*this).subspan(offset, length);
     }
 
+    template <size_t Offset, size_t Length>
+    BufferView view() const {
+      return std::span(*this).template subspan<Offset, Length>();
+    }
+
     /**
      * @brief encode bytearray as hex
      * @return hex-encoded string
@@ -213,7 +219,7 @@ namespace kagome::common {
     return os << BufferView(buffer);
   }
 
-  typedef SLBuffer<std::numeric_limits<size_t>::max()> Buffer;
+  using Buffer = SLBuffer<std::numeric_limits<size_t>::max()>;
 
   inline static const Buffer kEmptyBuffer{};
 
@@ -225,14 +231,16 @@ namespace kagome::common {
       return Buffer(std::move(chars));
     }
 
-    // TODO(GaroRobe): After migrating to C++20 would be good to use
-    //  literal operator template
-    inline Buffer operator""_hex2buf(const char *c, size_t s) {
-      return Buffer::fromHex({c, s}).value();
+    inline Buffer operator""_hex2buf(const char *hex, unsigned long size) {
+      return Buffer::fromHex(std::string_view{hex, size}).value();
     }
   }  // namespace literals
 
 }  // namespace kagome::common
+
+namespace kagome {
+  using common::Buffer;
+}  // namespace kagome
 
 template <size_t N>
 struct std::hash<kagome::common::SLBuffer<N>> {

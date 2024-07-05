@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include <libp2p/peer/peer_info.hpp>
 #include <set>
+
+#include <libp2p/peer/peer_info.hpp>
 
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"

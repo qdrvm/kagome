@@ -91,7 +91,7 @@ class OffchainExtensionTest : public ::testing::Test {
   void SetUp() override {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     offchain_storage_ = std::make_shared<OffchainPersistentStorageMock>();
     offchain_worker_ = std::make_shared<OffchainWorkerMock>();
     offchain_worker_pool_ = std::make_shared<OffchainWorkerPoolMock>();
@@ -215,7 +215,7 @@ TEST_F(OffchainExtensionTest, RandomSeed) {
 
   EXPECT_CALL(*offchain_worker_, randomSeed()).WillOnce(Return(result));
 
-  ASSERT_EQ(memory_
+  ASSERT_EQ(memory_.memory
                 .view(offchain_extension_->ext_offchain_random_seed_version_1(),
                       result.size())
                 .value(),

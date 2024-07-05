@@ -42,9 +42,8 @@ namespace kagome::runtime::wasm_edge {
       Compiled,
     };
     struct Config {
-      Config(ExecType exec)
-          : exec{exec},
-            compiled_module_dir{"/tmp/kagome/wasm-edge"} {}
+      Config(ExecType exec, const std::filesystem::path &compiled_module_dir)
+          : exec{exec}, compiled_module_dir{compiled_module_dir} {}
 
       ExecType exec;
       std::filesystem::path compiled_module_dir;
@@ -57,7 +56,7 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         Config config);
 
-    outcome::result<std::shared_ptr<Module>, CompilationError> make(
+    CompilationOutcome<std::shared_ptr<Module>> make(
         common::BufferView code) const override;
 
    private:

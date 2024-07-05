@@ -15,17 +15,20 @@
 
 #include "runtime/common/runtime_instances_pool.hpp"
 
+#include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_mock.hpp"
 
 using kagome::common::Buffer;
+using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
 using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;
+using testing::Return;
 
 RuntimeInstancesPool::CodeHash make_code_hash(int i) {
   return RuntimeInstancesPool::CodeHash::fromString(
@@ -58,16 +61,16 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
 
-  auto pool =
-      std::make_shared<RuntimeInstancesPoolImpl>(module_factory, POOL_SIZE);
+  auto pool = std::make_shared<RuntimeInstancesPoolImpl>(
+      module_factory, std::make_shared<DontInstrumentWasm>(), POOL_SIZE);
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
           pool->instantiateFromCode(make_code_hash(i % POOL_SIZE),
-                                   code,
-                                   RuntimeContext::ContextParams{{{}, {}}}));
+                                    code,
+                                    RuntimeContext::ContextParams{{{}, {}}}));
     });
   }
 
@@ -82,8 +85,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   for (int i = 0; i < POOL_SIZE; i++) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         pool->instantiateFromCode(make_code_hash(i),
-                                 code.view(),
-                                 RuntimeContext::ContextParams{{{}, {}}}));
+                                  code.view(),
+                                  RuntimeContext::ContextParams{{{}, {}}}));
   }
   ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

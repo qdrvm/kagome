@@ -23,6 +23,9 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 }
 
 namespace kagome::authority_discovery {
+  constexpr std::chrono::seconds kIntervalInitial{2};
+  constexpr std::chrono::hours kIntervalMax{1};
+
   AddressPublisher::AddressPublisher(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
       network::Roles roles,
@@ -44,7 +47,7 @@ namespace kagome::authority_discovery {
         sr_crypto_provider_(std::move(sr_crypto_provider)),
         host_(host),
         kademlia_(std::move(kademlia)),
-        scheduler_(std::move(scheduler)),
+        interval_{kIntervalInitial, kIntervalMax, std::move(scheduler)},
         log_{log::createLogger("AddressPublisher", "authority_discovery")} {
     BOOST_ASSERT(authority_discovery_api_ != nullptr);
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -53,13 +56,16 @@ namespace kagome::authority_discovery {
     BOOST_ASSERT(ed_crypto_provider_ != nullptr);
     BOOST_ASSERT(sr_crypto_provider_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
-    BOOST_ASSERT(scheduler_ != nullptr);
     app_state_manager->atLaunch([this] { return start(); });
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
+      std::array<uint8_t, crypto::constants::ed25519::PRIVKEY_SIZE>
+          private_key_bytes{};
+      std::copy_n(libp2p_key.privateKey.data.begin(),
+                  crypto::constants::ed25519::PRIVKEY_SIZE,
+                  private_key_bytes.begin());
       libp2p_key_.emplace(crypto::Ed25519Keypair{
-          .secret_key =
-              crypto::Ed25519PrivateKey::fromSpan(libp2p_key.privateKey.data)
-                  .value(),
+          .secret_key = crypto::Ed25519PrivateKey::from(
+              crypto::SecureCleanGuard(private_key_bytes)),
           .public_key =
               crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
                   .value(),
@@ -78,11 +84,17 @@ namespace kagome::authority_discovery {
     if (not roles_.flags.authority) {
       return true;
     }
-    // TODO(ortyomka): #1358, republish in scheduler with some interval
-    auto maybe_error = publishOwnAddress();
-    if (maybe_error.has_error()) {
-      SL_ERROR(log_, "publishOwnAddress failed: {}", maybe_error.error());
-    }
+    interval_.start([weak_self{weak_from_this()}] {
+      auto self = weak_self.lock();
+      if (not self) {
+        return;
+      }
+      auto maybe_error = self->publishOwnAddress();
+      if (not maybe_error) {
+        SL_WARN(
+            self->log_, "publishOwnAddress failed: {}", maybe_error.error());
+      }
+    });
     return true;
   }
 

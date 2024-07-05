@@ -48,7 +48,14 @@ namespace kagome::primitives::events {
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
-  using RemoveAfterFinalizationParams = std::vector<primitives::BlockHash>;
+  struct RemoveAfterFinalizationParams {
+    struct HeaderInfo {
+      primitives::BlockHash hash;
+      primitives::BlockNumber number;
+    };
+    std::vector<HeaderInfo> removed;
+    primitives::BlockNumber finalized;
+  };
 
   using ChainEventParams = boost::variant<std::nullopt_t,
                                           HeadsEventParams,
@@ -241,15 +248,15 @@ namespace kagome::primitives::events {
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
-  using BabeStateSubscriptionEngine = subscription::SubscriptionEngine<
+  using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
       bool,
       primitives::events::SyncStateEventParams>;
-  using BabeStateSubscriptionEnginePtr =
-      std::shared_ptr<BabeStateSubscriptionEngine>;
+  using SyncStateSubscriptionEnginePtr =
+      std::shared_ptr<SyncStateSubscriptionEngine>;
 
-  using BabeStateEventSubscriber = BabeStateSubscriptionEngine::SubscriberType;
-  using BabeStateEventSubscriberPtr = std::shared_ptr<BabeStateEventSubscriber>;
+  using SyncStateEventSubscriber = SyncStateSubscriptionEngine::SubscriberType;
+  using SyncStateEventSubscriberPtr = std::shared_ptr<SyncStateEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,
@@ -261,31 +268,46 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
+  template <typename EventKey, typename Receiver, typename... Arguments>
+  void subscribe(
+      subscription::Subscriber<EventKey, Receiver, Arguments...> &sub,
+      EventKey type,
+      auto f) {
+    sub.setCallback(
+        [f{std::move(f)}](subscription::SubscriptionSetId,
+                          Receiver &,
+                          EventKey,
+                          const Arguments &...args) { f(args...); });
+    sub.subscribe(sub.generateSubscriptionSetId(), type);
+  }
+
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
             std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
-      sub->subscribe(sub->generateSubscriptionSetId(), type);
-      sub->setCallback(
-          [f{std::move(f)}](subscription::SubscriptionSetId,
-                            ChainSubscriptionEngine::ReceiverType &,
-                            ChainEventType,
-                            const ChainEventParams &args) {
-            auto &block = boost::get<HeadsEventParams>(args).get();
-            if constexpr (std::is_invocable_v<decltype(f)>) {
-              f();
-            } else {
-              f(block);
-            }
-          });
+      subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {
+        auto &block = boost::get<HeadsEventParams>(args).get();
+        if constexpr (std::is_invocable_v<decltype(f)>) {
+          f();
+        } else {
+          f(block);
+        }
+      });
     }
     void onFinalize(auto f) {
       onBlock(ChainEventType::kFinalizedHeads, std::move(f));
     }
     void onHead(auto f) {
       onBlock(ChainEventType::kNewHeads, std::move(f));
+    }
+    void onDeactivate(auto f) {
+      subscribe(*sub,
+                ChainEventType::kDeactivateAfterFinalization,
+                [f{std::move(f)}](const ChainEventParams &args) {
+                  f(boost::get<RemoveAfterFinalizationParams>(args));
+                });
     }
 
     ChainEventSubscriberPtr sub;

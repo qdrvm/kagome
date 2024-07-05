@@ -111,12 +111,12 @@ namespace kagome::storage::trie_pruner {
     return true;
   }
 
-  class EncoderCache {
+  class Encoder {
    public:
-    explicit EncoderCache(const trie::Codec &codec, log::Logger logger)
+    explicit Encoder(const trie::Codec &codec, log::Logger logger)
         : codec{codec}, logger{logger} {}
 
-    ~EncoderCache() {
+    ~Encoder() {
       SL_DEBUG(logger, "Encode called {} times", encode_called);
     }
 
@@ -140,7 +140,6 @@ namespace kagome::storage::trie_pruner {
     outcome::result<trie::MerkleValue> getMerkleValue(
         const trie::TrieNode &node, trie::StateVersion version) {
       encode_called++;
-      // TODO(Harrm): cache is broken and thus temporarily disabled
       OUTCOME_TRY(
           merkle_value,
           codec.merkleValue(
@@ -215,12 +214,12 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
-    OUTCOME_TRY(forEachChildTrie(
-        *trie,
-        [this, &node_batch](common::BufferView child_key,
-                                          const trie::RootHash &child_hash) {
-          return prune(node_batch, child_hash);
-        }));
+    OUTCOME_TRY(
+        forEachChildTrie(*trie,
+                         [this, &node_batch](common::BufferView child_key,
+                                             const trie::RootHash &child_hash) {
+                           return prune(node_batch, child_hash);
+                         }));
 
     size_t nodes_removed = 0;
     size_t values_removed = 0;
@@ -235,7 +234,7 @@ namespace kagome::storage::trie_pruner {
     std::vector<Entry> queued_nodes;
     queued_nodes.push_back({root_hash, trie->getRoot(), 0});
 
-    EncoderCache encoder{*codec_, logger_};
+    Encoder encoder{*codec_, logger_};
 
     logger_->debug("Prune state root {}", root_hash);
 
@@ -369,7 +368,7 @@ namespace kagome::storage::trie_pruner {
     };
     std::vector<Entry> queued_nodes;
 
-    EncoderCache encoder{*codec_, logger_};
+    Encoder encoder{*codec_, logger_};
 
     OUTCOME_TRY(root_hash,
                 encoder.getMerkleValue(*new_trie.getRoot(), version));
@@ -407,8 +406,7 @@ namespace kagome::storage::trie_pruner {
         auto value_hash_opt = encoder.getValueHash(*node, version);
         if (value_hash_opt) {
           auto &value_ref_count = value_ref_count_[*value_hash_opt];
-          OUTCOME_TRY(contains_value,
-                      node_storage_->contains(*value_hash_opt));
+          OUTCOME_TRY(contains_value, node_storage_->contains(*value_hash_opt));
           if (value_ref_count == 0 && contains_value && !thorough_pruning_) {
             value_ref_count++;
           }
@@ -474,7 +472,7 @@ namespace kagome::storage::trie_pruner {
                    "Failed to restore trie pruner state starting from last "
                    "finalized "
                    "block: {}",
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {
@@ -495,7 +493,7 @@ namespace kagome::storage::trie_pruner {
                 "Failed to restore trie pruner state starting from base "
                 "block {}: {}",
                 last_pruned_block.value(),
-                res.error().message());
+                res.error());
       }
     }
     return outcome::success();

@@ -6,28 +6,22 @@
 
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
+#include "common/span_adl.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
-                            TrieStorageProviderImpl::Error,
-                            e) {
-  using E = kagome::runtime::TrieStorageProviderImpl::Error;
-  switch (e) {
-    case E::NO_BATCH:
-      return "Batch was not created or already was destructed.";
-    case E::UNFINISHED_TRANSACTIONS_LEFT:
-      return "Attempt to commit state with unfinished transactions";
-  }
-  return "Unknown error";
-}
-
 namespace kagome::runtime {
-  using storage::trie::TopperTrieBatch;
+  using storage::kChildStoragePrefix;
   using storage::trie::TopperTrieBatchImpl;
   using storage::trie::TrieSerializer;
   using storage::trie::TrieStorage;
+
+  inline bool starts_with_child_storage_key(const BufferView &key) {
+    auto n = std::min(key.size(), kChildStoragePrefix.size());
+    return SpanAdl{key.first(n)} == std::span{kChildStoragePrefix}.first(n);
+  }
 
   TrieStorageProviderImpl::TrieStorageProviderImpl(
       std::shared_ptr<TrieStorage> trie_storage,
@@ -65,12 +59,16 @@ namespace kagome::runtime {
     child_batches_.clear();
     base_batch_ = batch;
     transaction_stack_.clear();
+    transaction_stack_.emplace_back(
+        Transaction{std::make_shared<TopperTrieBatchImpl>(base_batch_), {}});
   }
 
   std::shared_ptr<TrieStorageProviderImpl::Batch>
   TrieStorageProviderImpl::getCurrentBatch() const {
-    return transaction_stack_.empty() ? base_batch_
-                                      : transaction_stack_.back().main_batch;
+    if (transaction_stack_.empty()) {
+      throw std::runtime_error("TrieStorageProviderImpl::getCurrentBatch");
+    }
+    return transaction_stack_.back().main_batch;
   }
 
   outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
@@ -97,8 +95,9 @@ namespace kagome::runtime {
     SL_DEBUG(logger_,
              "Creating new base batch for child storage {}",
              root_path.toHex());
-    if (child_batches_.count(root_path) != 0) {
-      return child_batches_.at(root_path);
+    auto it = child_batches_.find(root_path);
+    if (it != child_batches_.end()) {
+      return it->second;
     }
     OUTCOME_TRY(child_batch, base_batch_->createChildBatch(root_path));
     // we've checked for duplicates above
@@ -121,9 +120,12 @@ namespace kagome::runtime {
   TrieStorageProviderImpl::getMutableChildBatchAt(
       const common::Buffer &root_path) {
     // if we already have the batch, return it
-    if (!transaction_stack_.empty()
-        && transaction_stack_.back().child_batches.count(root_path) != 0) {
-      return *transaction_stack_.back().child_batches.at(root_path);
+    if (not transaction_stack_.empty()) {
+      auto &top = transaction_stack_.back();
+      auto it = top.child_batches.find(root_path);
+      if (it != top.child_batches.end()) {
+        return *it->second;
+      }
     }
 
     // start with checking that the base batch exists, create one if it doesn't
@@ -153,15 +155,36 @@ namespace kagome::runtime {
   }
 
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
-      StateVersion version) {
-    if (!transaction_stack_.empty()) {
-      return Error::UNFINISHED_TRANSACTIONS_LEFT;
+      const std::optional<BufferView> &child, StateVersion version) {
+    // TODO(turuslan): #2067, clone batch or implement delta_trie_root
+    auto child_apply =
+        [&](BufferView child,
+            storage::BufferStorage &map) -> outcome::result<void> {
+      for (auto &transaction : transaction_stack_) {
+        auto it = transaction.child_batches.find(child);
+        if (it == transaction.child_batches.end()) {
+          continue;
+        }
+        OUTCOME_TRY(it->second->apply(map));
+      }
+      return outcome::success();
+    };
+    if (child) {
+      OUTCOME_TRY(getChildBatchAt(*child));
+      auto child_batch = child_batches_.at(*child);
+      OUTCOME_TRY(child_apply(*child, *child_batch));
+      return child_batch->commit(version);
     }
-    if (base_batch_ != nullptr) {
-      OUTCOME_TRY(root, base_batch_->commit(version));
-      return root;
+    auto batch = base_batch_;
+    for (auto &transaction : transaction_stack_) {
+      OUTCOME_TRY(transaction.main_batch->apply(*batch));
     }
-    return Error::NO_BATCH;
+    for (auto &p : child_batches_) {
+      OUTCOME_TRY(getChildBatchAt(p.first));
+      auto child_batch = child_batches_.at(p.first);
+      OUTCOME_TRY(child_apply(p.first, *child_batch));
+    }
+    return batch->commit(version);
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
@@ -174,7 +197,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
-    if (transaction_stack_.empty()) {
+    if (transaction_stack_.size() <= 1) {
       return RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
@@ -186,7 +209,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
-    if (transaction_stack_.empty()) {
+    if (transaction_stack_.size() <= 1) {
       return RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
@@ -202,4 +225,46 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
+  KillStorageResult TrieStorageProviderImpl::clearPrefix(
+      const std::optional<BufferView> &child,
+      BufferView prefix,
+      const ClearPrefixLimit &limit) {
+    KillStorageResult result;
+    if (not child and starts_with_child_storage_key(prefix)) {
+      return result;
+    }
+    storage::trie::TrieBatch *overlay;
+    if (child) {
+      overlay = &getMutableChildBatchAt(*child).value().get();
+    } else {
+      overlay = getCurrentBatch().get();
+    }
+    // https://github.com/paritytech/polkadot-sdk/blob/c973fe86f8c668462186c95655a58fda04508e9a/substrate/primitives/state-machine/src/overlayed_changes/mod.rs#L396-L399
+    overlay->clearPrefix(prefix).value();
+    std::unique_ptr<storage::BufferStorageCursor> cursor;
+    if (child) {
+      cursor = child_batches_.at(*child)->cursor();
+    } else {
+      cursor = base_batch_->cursor();
+    }
+    if (not cursor->seek(prefix)) {
+      return result;
+    }
+    while (cursor->isValid()) {
+      auto key = cursor->key().value();
+      if (not startsWith(key, prefix)) {
+        break;
+      }
+      if (limit and result.loops == *limit) {
+        result.more = true;
+        break;
+      }
+      overlay->remove(key).value();
+      ++result.loops;
+      if (not cursor->next()) {
+        break;
+      }
+    }
+    return result;
+  }
 }  // namespace kagome::runtime

@@ -21,8 +21,7 @@
 
 namespace kagome::runtime::wavm {
 
-  outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
-  ModuleImpl::compileFrom(
+  CompilationOutcome<std::shared_ptr<ModuleImpl>> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
@@ -103,8 +102,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModuleInstance>(
             intrinsic_module_->instantiate());
 
-    auto resolver =
-        std::make_shared<IntrinsicResolverImpl>(compartment_, new_intrinsic_module_instance);
+    auto resolver = std::make_shared<IntrinsicResolverImpl>(
+        compartment_, new_intrinsic_module_instance);
 
     auto internal_instance =
         WAVM::Runtime::instantiateModule(compartment_->getCompartment(),

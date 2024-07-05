@@ -9,6 +9,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "outcome/custom.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::common {
@@ -51,9 +52,9 @@ namespace kagome::common {
             typename E,
             typename F,
             typename R = std::invoke_result_t<F, const T &>>
-  outcome::result<R, E> map_result(const outcome::result<T, E> &res, const F &f) {
+  CustomOutcome<R, E> map_result(const CustomOutcome<T, E> &res, const F &f) {
     if (res.has_value()) {
-      return outcome::result<R, E>{f(res.value())};
+      return CustomOutcome<R, E>{f(res.value())};
     }
     return res.as_failure();
   }

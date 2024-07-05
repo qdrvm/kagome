@@ -15,9 +15,57 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/offchain_extension.hpp"
+#include "host_api/impl/storage_util.hpp"
 #include "runtime/trie_storage_provider.hpp"
+#include "storage/predefined_keys.hpp"
+
+#define FFI \
+  Ffi ffi { memory_provider_->getCurrentMemory().value().get() }
 
 namespace kagome::host_api {
+  /**
+   * Helps reading arguments from wasm and writing result to wasm.
+   */
+  struct Ffi {
+    runtime::Memory &memory;
+
+    /**
+     * Read bytes argument.
+     */
+    auto bytes(runtime::WasmSpan arg) {
+      return memory.view(arg).value();
+    }
+    /**
+     * Read clear_prefix limit argument.
+     */
+    auto limit(runtime::WasmSpan arg) {
+      return scale::decode<ClearPrefixLimit>(bytes(arg)).value();
+    }
+    /**
+     * Read child trie argument.
+     */
+    auto child(runtime::WasmSpan arg) {
+      return Buffer{storage::kChildStorageDefaultPrefix}.put(bytes(arg));
+    }
+    /**
+     * Read `StateVersion` argument.
+     */
+    auto version(runtime::WasmI32 version) {
+      return detail::toStateVersion(version);
+    }
+    /**
+     * Write bytes result.
+     */
+    runtime::WasmSpan bytes(BufferView r) {
+      return memory.storeBuffer(r);
+    }
+    /**
+     * Write scale encoded result.
+     */
+    runtime::WasmSpan scale(const auto &r) {
+      return bytes(scale::encode(r).value());
+    }
+  };
 
   HostApiImpl::HostApiImpl(
       const OffchainExtensionConfig &offchain_config,
@@ -30,7 +78,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::EllipticCurves> elliptic_curves,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
@@ -48,7 +96,7 @@ namespace kagome::host_api {
                     std::move(ed25519_provider),
                     std::move(secp256k1_provider),
                     hasher,
-                    std::move(crypto_store)),
+                    std::move(key_store)),
         elliptic_curves_ext_(memory_provider_, std::move(elliptic_curves)),
         io_ext_(memory_provider_),
         memory_ext_(memory_provider_),
@@ -106,21 +154,27 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix) {
-    return storage_ext_.ext_storage_clear_prefix_version_1(prefix);
+    FFI;
+    return storage_ext_.ext_storage_clear_prefix_version_1(ffi.bytes(prefix));
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_clear_prefix_version_2(
       runtime::WasmSpan prefix, runtime::WasmSpan limit) {
-    return storage_ext_.ext_storage_clear_prefix_version_2(prefix, limit);
+    FFI;
+    return ffi.scale(storage_ext_.ext_storage_clear_prefix_version_2(
+        ffi.bytes(prefix), ffi.limit(limit)));
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_root_version_1() {
-    return storage_ext_.ext_storage_root_version_1();
+    FFI;
+    return ffi.bytes(storage_ext_.ext_storage_root_version_1());
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_root_version_2(
       runtime::WasmI32 state_version) {
-    return storage_ext_.ext_storage_root_version_2(state_version);
+    FFI;
+    return ffi.bytes(
+        storage_ext_.ext_storage_root_version_2(ffi.version(state_version)));
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_changes_root_version_1(
@@ -533,21 +587,26 @@ namespace kagome::host_api {
 
   runtime::WasmSpan HostApiImpl::ext_default_child_storage_root_version_1(
       runtime::WasmSpan child_storage_key) const {
-    return child_storage_ext_.ext_default_child_storage_root_version_1(
-        child_storage_key);
+    FFI;
+    return ffi.bytes(
+        child_storage_ext_.ext_default_child_storage_root_version_1(
+            ffi.child(child_storage_key)));
   }
 
   runtime::WasmSpan HostApiImpl::ext_default_child_storage_root_version_2(
       runtime::WasmSpan child_storage_key,
       runtime::WasmI32 state_version) const {
-    return child_storage_ext_.ext_default_child_storage_root_version_2(
-        child_storage_key, state_version);
+    FFI;
+    return ffi.bytes(
+        child_storage_ext_.ext_default_child_storage_root_version_2(
+            ffi.child(child_storage_key), ffi.version(state_version)));
   }
 
   void HostApiImpl::ext_default_child_storage_clear_prefix_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) {
+    FFI;
     return child_storage_ext_.ext_default_child_storage_clear_prefix_version_1(
-        child_storage_key, prefix);
+        ffi.child(child_storage_key), ffi.bytes(prefix));
   }
 
   runtime::WasmSpan
@@ -555,8 +614,10 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key,
       runtime::WasmSpan prefix,
       runtime::WasmSpan limit) {
-    return child_storage_ext_.ext_default_child_storage_clear_prefix_version_2(
-        child_storage_key, prefix, limit);
+    FFI;
+    return ffi.scale(
+        child_storage_ext_.ext_default_child_storage_clear_prefix_version_2(
+            ffi.child(child_storage_key), ffi.bytes(prefix), ffi.limit(limit)));
   }
 
   runtime::WasmSpan HostApiImpl::ext_default_child_storage_read_version_1(
@@ -576,15 +637,18 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_default_child_storage_storage_kill_version_1(
       runtime::WasmSpan child_storage_key) {
+    FFI;
     return child_storage_ext_.ext_default_child_storage_storage_kill_version_1(
-        child_storage_key);
+        ffi.child(child_storage_key));
   }
 
   runtime::WasmSpan
   HostApiImpl::ext_default_child_storage_storage_kill_version_3(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) {
-    return child_storage_ext_.ext_default_child_storage_storage_kill_version_3(
-        child_storage_key, limit);
+    FFI;
+    return ffi.scale(
+        child_storage_ext_.ext_default_child_storage_storage_kill_version_3(
+            ffi.child(child_storage_key), ffi.limit(limit)));
   }
 
   void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(

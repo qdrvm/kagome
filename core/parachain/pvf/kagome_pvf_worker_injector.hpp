@@ -25,6 +25,7 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -47,6 +48,23 @@ using kagome::injector::bind_by_lambda;
 #endif
 
 namespace kagome::parachain {
+  struct NullTrieStorage : storage::trie::TrieStorage {
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getPersistentBatchAt(const storage::trie::RootHash &root,
+                         TrieChangesTrackerOpt changes_tracker) override {
+      return nullptr;
+    }
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getEphemeralBatchAt(const storage::trie::RootHash &root) const override {
+      return nullptr;
+    }
+    outcome::result<std::unique_ptr<storage::trie::TrieBatch>>
+    getProofReaderBatchAt(const storage::trie::RootHash &root,
+                          const OnNodeLoaded &on_node_loaded) const override {
+      return nullptr;
+    }
+  };
+
   template <typename T>
   auto bind_null() {
     return bind_by_lambda<T>([](auto &) { return nullptr; });
@@ -65,11 +83,11 @@ namespace kagome::parachain {
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
         bind_null<crypto::EllipticCurves>(),
-        bind_null<crypto::CryptoStore>(),
+        bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
-        bind_null<storage::trie::TrieStorage>(),
+        di::bind<storage::trie::TrieStorage>.to<NullTrieStorage>(),
         bind_null<storage::trie::TrieSerializer>()
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
@@ -93,12 +111,9 @@ namespace kagome::parachain {
                                                               input.cache_dir](
                                                              const auto
                                                                  &injector) {
-          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-              module_cache_opt;
-          if (cache_dir) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(), *cache_dir);
-          }
+          kagome::filesystem::path path_cache_dir(cache_dir);
+          auto module_cache = std::make_shared<runtime::wavm::ModuleCache>(
+              injector.template create<sptr<crypto::Hasher>>(), path_cache_dir);
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
               injector
                   .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
@@ -107,8 +122,7 @@ namespace kagome::parachain {
               injector.template create<sptr<storage::trie::TrieStorage>>(),
               injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              injector.template create<sptr<runtime::SingleModuleCache>>(),
-              module_cache_opt,
+              module_cache,
               injector.template create<sptr<crypto::Hasher>>());
         }),
         bind_by_lambda<runtime::ModuleFactory>([](const auto &injector) {
@@ -120,11 +134,12 @@ namespace kagome::parachain {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
             ,
         bind_by_lambda<runtime::wasm_edge::ModuleFactoryImpl::Config>(
-            [engine = input.engine](const auto &injector) {
+            [engine = input.engine, &input](const auto &injector) {
               using E = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
               runtime::wasm_edge::ModuleFactoryImpl::Config config{
                   engine == RuntimeEngine::kWasmEdgeCompiled ? E::Compiled
                                                              : E::Interpreted,
+                  input.cache_dir,
               };
               return std::make_shared<decltype(config)>(config);
             }),

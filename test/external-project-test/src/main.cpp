@@ -10,15 +10,13 @@
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
-#include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
 #include <kagome/crypto/elliptic_curves/elliptic_curves_impl.hpp>
 #include <kagome/crypto/hasher/hasher_impl.hpp>
+#include <kagome/crypto/key_store/key_store_impl.hpp>
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <kagome/crypto/sr25519/sr25519_provider_impl.hpp>
-#include <kagome/filesystem/common.hpp>
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
@@ -32,13 +30,11 @@
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
 #include <kagome/runtime/module.hpp>
-#include <kagome/runtime/runtime_context.hpp>
-#include <kagome/storage/in_memory/in_memory_storage.hpp>
+#include <kagome/runtime/wabt/instrument.hpp>
 #include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
 #include <kagome/storage/trie/impl/trie_storage_impl.hpp>
 #include <kagome/storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp>
-#include <kagome/storage/trie/serialization/polkadot_codec.hpp>
 #include <kagome/storage/trie/serialization/trie_serializer_impl.hpp>
 #include <kagome/storage/trie_pruner/impl/trie_pruner_impl.hpp>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
@@ -146,20 +142,26 @@ int main() {
   auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
       pbkdf2_provider, hasher);
 
-  auto ecdsa_suite =
-      std::make_shared<kagome::crypto::EcdsaSuite>(ecdsa_provider);
-  auto ed_suite =
-      std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
-  auto sr_suite =
-      std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
   auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
+
+  auto key_store_dir = "/tmp/kagome_tmp_key_storage";
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
-      kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
-          .value();
+      kagome::crypto::KeyFileStorage::createAt(key_store_dir).value();
   auto csprng =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
-      ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
+  auto crypto_store = std::make_shared<kagome::crypto::KeyStore>(
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::Sr25519Provider>>(
+          sr25519_provider, bip39_provider, csprng, key_fs),
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::Ed25519Provider>>(
+          ed25519_provider, bip39_provider, csprng, key_fs),
+      std::make_unique<
+          kagome::crypto::KeySuiteStoreImpl<kagome::crypto::EcdsaProvider>>(
+          ecdsa_provider, bip39_provider, csprng, key_fs),
+      ed25519_provider,
+      app_state_manager,
+      kagome::crypto::KeyStore::Config{key_store_dir});
 
   auto offchain_persistent_storage =
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
@@ -183,8 +185,6 @@ int main() {
 
   auto cache = std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 
-  auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
-
   auto instance_env_factory =
       std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
           trie_storage, serializer, host_api_factory);
@@ -195,12 +195,14 @@ int main() {
 
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPoolImpl>(
-          module_factory);
+          module_factory, std::make_shared<kagome::runtime::InstrumentWasm>());
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
+      hasher,
+      header_repo,
       runtime_upgrade_tracker,
+      trie_storage,
       module_factory,
-      smc,
       code_provider);
 
   [[maybe_unused]] auto ctx_factory =
@@ -208,10 +210,5 @@ int main() {
                                                                    header_repo);
   [[maybe_unused]] auto executor =
       kagome::runtime::Executor(ctx_factory, cache);
-
-  // TODO(Harrm): Currently, the test only checks if kagome builds as
-  // a dependency in some project. However, we can use the test to run
-  // some integration tests, like it's done in polkadot tests
-
   return 0;
 }

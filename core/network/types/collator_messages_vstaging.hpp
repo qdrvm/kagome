@@ -67,9 +67,16 @@ namespace kagome::network::vstaging {
     CandidateHash hash;
   };
 
+  /// Statements that can be made about parachain candidates. These are the
+  /// actual values that are signed.
   struct CompactStatement {
     std::array<char, 4> header = {'B', 'K', 'N', 'G'};
-    boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>
+
+    boost::variant<Empty,
+                   /// Proposal of a parachain candidate.
+                   SecondedCandidateHash,
+                   /// Statement that a parachain candidate is valid.
+                   ValidCandidateHash>
         inner_value{};
 
     CompactStatement(
@@ -91,7 +98,13 @@ namespace kagome::network::vstaging {
       s >> c.header >> c.inner_value;
       return s;
     }
+
+    bool operator==(const CompactStatement &r) const {
+      return inner_value == r.inner_value;
+    }
   };
+
+  using SignedCompactStatement = IndexedAndSigned<CompactStatement>;
 
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
     auto p = visit_in_place(
@@ -110,14 +123,56 @@ namespace kagome::network::vstaging {
     UNREACHABLE;
   }
 
+  inline CompactStatement from(const network::CompactStatement &stm) {
+    return visit_in_place(
+        stm,
+        [&](const network::CompactStatementSeconded &v) -> CompactStatement {
+          return CompactStatement(SecondedCandidateHash{
+              .hash = v,
+          });
+        },
+        [&](const network::CompactStatementValid &v) -> CompactStatement {
+          return CompactStatement(ValidCandidateHash{
+              .hash = v,
+          });
+        });
+  }
+
+  inline network::CompactStatement from(const CompactStatement &stm) {
+    return visit_in_place(
+        stm.inner_value,
+        [&](const SecondedCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementSeconded{v.hash};
+        },
+        [&](const ValidCandidateHash &v) -> network::CompactStatement {
+          return network::CompactStatementValid{v.hash};
+        },
+        [&](const auto &) -> network::CompactStatement { UNREACHABLE; });
+  }
+
+  /// A notification of a signed statement in compact form, for a given
+  /// relay parent.
   struct StatementDistributionMessageStatement {
     SCALE_TIE(2);
 
     RelayHash relay_parent;
-    IndexedAndSigned<CompactStatement> compact;
+    SignedCompactStatement compact;
   };
 
+  /// All messages for V1 for compatibility with the statement distribution
+  /// protocol, for relay-parents that don't support asynchronous backing.
+  ///
+  /// These are illegal to send to V1 peers, and illegal to send concerning
+  /// relay-parents which support asynchronous backing. This backwards
+  /// compatibility should be considered immediately deprecated and can be
+  /// removed once the node software is not required to support logic from
+  /// before asynchronous backing anymore.
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
+
+  enum StatementKind {
+    Seconded,
+    Valid,
+  };
 
   struct StatementFilter {
     SCALE_TIE(2);
@@ -128,18 +183,95 @@ namespace kagome::network::vstaging {
     scale::BitVec validated_in_group;
 
     StatementFilter() = default;
-    StatementFilter(size_t len) {
-      seconded_in_group.bits.assign(len, false);
-      validated_in_group.bits.assign(len, false);
+    StatementFilter(size_t len, bool val = false) {
+      seconded_in_group.bits.assign(len, val);
+      validated_in_group.bits.assign(len, val);
+    }
+
+    void mask_seconded(const scale::BitVec &mask) {
+      for (size_t i = 0; i < seconded_in_group.bits.size(); ++i) {
+        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
+        seconded_in_group.bits[i] = seconded_in_group.bits[i] && !m;
+      }
+    }
+
+    void mask_valid(const scale::BitVec &mask) {
+      for (size_t i = 0; i < validated_in_group.bits.size(); ++i) {
+        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
+        validated_in_group.bits[i] = validated_in_group.bits[i] && !m;
+      }
+    }
+
+    bool has_len(size_t len) const {
+      return seconded_in_group.bits.size() == len
+          && validated_in_group.bits.size() == len;
+    }
+
+    bool has_seconded() const {
+      for (const auto x : seconded_in_group.bits) {
+        if (x) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    size_t backing_validators() const {
+      BOOST_ASSERT(seconded_in_group.bits.size()
+                   == validated_in_group.bits.size());
+
+      size_t count = 0;
+      for (size_t ix = 0; ix < seconded_in_group.bits.size(); ++ix) {
+        const auto s = seconded_in_group.bits[ix];
+        const auto v = validated_in_group.bits[ix];
+        count += size_t(s || v);
+      }
+      return count;
+    }
+
+    bool contains(size_t index, StatementKind statement_kind) const {
+      switch (statement_kind) {
+        case StatementKind::Seconded:
+          return index < seconded_in_group.bits.size()
+              && seconded_in_group.bits[index];
+        case StatementKind::Valid:
+          return index < validated_in_group.bits.size()
+              && validated_in_group.bits[index];
+      }
+      return false;
+    }
+
+    void set(size_t index, StatementKind statement_kind) {
+      switch (statement_kind) {
+        case StatementKind::Seconded:
+          if (index < seconded_in_group.bits.size()) {
+            seconded_in_group.bits[index] = true;
+          }
+          break;
+        case StatementKind::Valid:
+          if (index < validated_in_group.bits.size()) {
+            validated_in_group.bits[index] = true;
+          }
+          break;
+      }
     }
   };
 
+  /// A manifest of a known backed candidate, along with a description
+  /// of the statements backing it.
   struct BackedCandidateManifest {
     SCALE_TIE(6);
+    /// The relay-parent of the candidate.
     RelayHash relay_parent;
+    /// The hash of the candidate.
     CandidateHash candidate_hash;
+    /// The group index backing the candidate at the relay-parent.
     GroupIndex group_index;
+    /// The para ID of the candidate. It is illegal for this to
+    /// be a para ID which is not assigned to the group indicated
+    /// in this manifest.
     ParachainId para_id;
+    /// The head-data corresponding to the candidate.
     Hash parent_head_data_hash;
     /// A statement filter which indicates which validators in the
     /// para's group at the relay-parent have validated this candidate
@@ -164,18 +296,38 @@ namespace kagome::network::vstaging {
     std::vector<IndexedAndSigned<CompactStatement>> statements;
   };
 
+  /// An acknowledgement of a backed candidate being known.
   struct BackedCandidateAcknowledgement {
     SCALE_TIE(2);
+    /// The hash of the candidate.
     CandidateHash candidate_hash;
+    /// A statement filter which indicates which validators in the
+    /// para's group at the relay-parent have validated this candidate
+    /// and issued statements about it, to the advertiser's knowledge.
+    ///
+    /// This MUST have exactly the minimum amount of bytes
+    /// necessary to represent the number of validators in the assigned
+    /// backing group as-of the relay-parent.
     StatementFilter statement_knowledge;
   };
 
-  using StatementDistributionMessage =
-      boost::variant<StatementDistributionMessageStatement,  // 0
-                     BackedCandidateManifest,                // 1
-                     BackedCandidateAcknowledgement          // 2
-                     // v1StatementDistributionMessage  // 255
-                     >;
+  /// Network messages used by the statement distribution subsystem.
+  /// Polkadot-sdk analogue:
+  /// https://github.com/paritytech/polkadot-sdk/blob/4220503d28f46a72c2bc71f22e7d9708618f9c68/polkadot/node/network/protocol/src/lib.rs#L769
+  using StatementDistributionMessage = boost::variant<
+      StatementDistributionMessageStatement,  // 0
+                                              /// A notification of a backed
+                                              /// candidate being known by the
+                                              /// sending node, for the purpose
+                                              /// of being requested by the
+                                              /// receiving node if needed.
+      BackedCandidateManifest,                // 1,
+      /// A notification of a backed candidate being known by the sending node,
+      /// for the purpose of informing a receiving node which already has the
+      /// candidate.
+      BackedCandidateAcknowledgement  // 2
+      // v1StatementDistributionMessage  // 255
+      >;
 
   struct CollationFetchingRequest {
     SCALE_TIE(3);
@@ -206,6 +358,75 @@ namespace kagome::network {
     V1 = 1,
     /// The staging version.
     VStaging = 2,
+  };
+
+  /// Candidate supplied with a para head it's built on top of.
+  /// polkadot/node/network/collator-protocol/src/validator_side/collation.rs
+  struct ProspectiveCandidate {
+    SCALE_TIE(2);
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Parent head-data hash as supplied in advertisement.
+    Hash parent_head_data_hash;
+  };
+
+  struct PendingCollation {
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Peer that advertised this collation.
+    libp2p::peer::PeerId peer_id;
+    /// Optional candidate hash and parent head-data hash if were
+    /// supplied in advertisement.
+    std::optional<ProspectiveCandidate> prospective_candidate;
+    /// Hash of the candidate's commitments.
+    std::optional<Hash> commitments_hash;
+  };
+
+  struct CollationEvent {
+    /// Collator id.
+    CollatorId collator_id;
+    /// The network protocol version the collator is using.
+    CollationVersion collator_protocol_version;
+    /// The requested collation data.
+    PendingCollation pending_collation;
+  };
+
+  struct PendingCollationFetch {
+    /// Collation identifier.
+    CollationEvent collation_event;
+    /// Candidate receipt.
+    CandidateReceipt candidate_receipt;
+    /// Proof of validity.
+    PoV pov;
+    /// Optional parachain parent head data.
+    /// Only needed for elastic scaling.
+    std::optional<HeadData> maybe_parent_head_data;
+  };
+
+  struct FetchedCollation {
+    SCALE_TIE(4);
+
+    /// Candidate's relay parent.
+    RelayHash relay_parent;
+    /// Parachain id.
+    ParachainId para_id;
+    /// Candidate hash.
+    CandidateHash candidate_hash;
+    /// Id of the collator the collation was fetched from.
+    CollatorId collator_id;
+
+    static FetchedCollation from(const network::CandidateReceipt &receipt,
+                                 const crypto::Hasher &hasher) {
+      const auto &descriptor = receipt.descriptor;
+      return FetchedCollation{
+          .relay_parent = descriptor.relay_parent,
+          .para_id = descriptor.para_id,
+          .candidate_hash = receipt.hash(hasher),
+          .collator_id = descriptor.collator_id,
+      };
+    }
   };
 
   /**

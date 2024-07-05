@@ -22,6 +22,21 @@ namespace kagome::runtime {
     outcome::result<consensus::babe::Epoch> next_epoch(
         const primitives::BlockHash &block) override;
 
+    outcome::result<std::optional<consensus::babe::OpaqueKeyOwnershipProof>>
+    generate_key_ownership_proof(
+        const primitives::BlockHash &block_hash,
+        consensus::SlotNumber slot,
+        consensus::babe::AuthorityId authority_id) override;
+
+    outcome::result<void> submit_report_equivocation_unsigned_extrinsic(
+        const primitives::BlockHash &block_hash,
+        consensus::babe::EquivocationProof equivocation_proof,
+        consensus::babe::OpaqueKeyOwnershipProof key_owner_proof) override;
+
+    /// Returns a list of all disabled validators at the given block.
+    outcome::result<std::vector<consensus::AuthorityIndex>> disabled_validators(
+        const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

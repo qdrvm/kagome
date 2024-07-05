@@ -36,7 +36,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
       std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller,
@@ -45,7 +45,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : block_tree_{std::move(block_tree)},
         authority_discovery_api_{std::move(authority_discovery_api)},
-        crypto_store_{std::move(crypto_store)},
+        key_store_{std::move(key_store)},
         sr_crypto_provider_{std::move(sr_crypto_provider)},
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
         key_marshaller_{std::move(key_marshaller)},
@@ -101,7 +101,7 @@ namespace kagome::authority_discovery {
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     OUTCOME_TRY(local_keys,
-                crypto_store_->getSr25519PublicKeys(
+                key_store_->sr25519().getPublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
     auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
                   const primitives::AuthorityDiscoveryId &key) {
@@ -172,6 +172,7 @@ namespace kagome::authority_discovery {
                                          signed_record_pb.size())) {
       return Error::DECODE_ERROR;
     }
+
     libp2p::crypto::ProtobufKey protobuf_key{
         common::Buffer{str2byte(signed_record.peer_signature().public_key())}};
     OUTCOME_TRY(peer_key, key_marshaller_->unmarshalPublicKey(protobuf_key));

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 
 namespace kagome::crypto {

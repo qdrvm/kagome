@@ -287,11 +287,12 @@ namespace kagome::transaction_pool {
             for (auto &provider : ready_status.tx->provided_tags) {
               PendingStatus &ps = pool_state.dependency_graph_[provider];
               // TODO(kamilsa): Uncomment when #1786 is fixed
+              // https://github.com/qdrvm/kagome/issues/1786
               // BOOST_ASSERT(ps.tag_provided);
               ps.tag_provided = false;
             }
 
-            // вызываем для каждого child rollback
+            // call rollback for every child
             for (auto &h : ready_status.triggered) {
               rollback(pool_state, h);
             }

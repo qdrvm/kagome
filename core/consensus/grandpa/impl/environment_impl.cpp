@@ -6,9 +6,11 @@
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
 
-#include <boost/optional/optional_io.hpp>
 #include <latch>
 #include <utility>
+
+#include <boost/optional/optional_io.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -18,14 +20,19 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/make_ancestry.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
+#include "consensus/grandpa/voting_round.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "crypto/hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/types.hpp"
 #include "network/grandpa_transmitter.hpp"
+#include "offchain/offchain_worker_factory.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "parachain/backing/store.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/grandpa_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "scale/scale.hpp"
 #include "utils/pool_handler.hpp"
@@ -37,6 +44,7 @@ namespace kagome::consensus::grandpa {
   using primitives::Justification;
 
   EnvironmentImpl::EnvironmentImpl(
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -44,11 +52,14 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
       std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue,
+      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+      common::MainThreadPool &main_thread_pool)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
@@ -56,20 +67,26 @@ namespace kagome::consensus::grandpa {
         approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
         verified_justification_queue_(std::move(verified_justification_queue)),
+        grandpa_api_(std::move(grandpa_api)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
         hasher_(std::move(hasher)),
-        main_pool_handler_(std::move(main_pool_handler)),
+        offchain_worker_factory_(std::move(offchain_worker_factory)),
+        offchain_worker_pool_(std::move(offchain_worker_pool)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
+    BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(dispute_coordinator_ != nullptr);
     BOOST_ASSERT(parachain_api_ != nullptr);
     BOOST_ASSERT(backing_store_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(offchain_worker_factory_ != nullptr);
+    BOOST_ASSERT(offchain_worker_pool_ != nullptr);
     BOOST_ASSERT(main_pool_handler_ != nullptr);
 
     auto kApprovalLag = "kagome_parachain_approval_checking_finality_lag";
@@ -438,4 +455,59 @@ namespace kagome::consensus::grandpa {
     return outcome::success(std::move(grandpa_justification));
   }
 
+  outcome::result<void> EnvironmentImpl::reportEquivocation(
+      const VotingRound &round, const Equivocation &equivocation) const {
+    auto last_finalized = round.lastFinalizedBlock();
+    auto authority_set_id = round.voterSetId();
+
+    // generate key ownership proof at that block
+    auto key_owner_proof_res = grandpa_api_->generate_key_ownership_proof(
+        last_finalized.hash, authority_set_id, equivocation.offender());
+    if (key_owner_proof_res.has_error()) {
+      SL_WARN(logger_,
+              "Round #{}: "
+              "can't generate key ownership proof for equivocation report: {}",
+              equivocation.round(),
+              key_owner_proof_res.error());
+      return key_owner_proof_res.as_failure();
+    }
+    const auto &key_owner_proof_opt = key_owner_proof_res.value();
+
+    if (not key_owner_proof_opt.has_value()) {
+      SL_DEBUG(logger_,
+               "Round #{}: "
+               "can't generate key ownership proof for equivocation report: "
+               "Equivocation offender is not part of the authority set.",
+               equivocation.round());
+      return outcome::success();  // ensure if an error type is right
+    }
+    const auto &key_owner_proof = key_owner_proof_opt.value();
+
+    // submit an equivocation report at **best** block
+    EquivocationProof equivocation_proof{
+        .set_id = authority_set_id,
+        .equivocation = std::move(equivocation),
+    };
+
+    offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
+    ::libp2p::common::FinalAction remove(
+        [&] { offchain_worker_pool_->removeWorker(); });
+    auto submit_res =
+        grandpa_api_->submit_report_equivocation_unsigned_extrinsic(
+            last_finalized.hash, equivocation_proof, key_owner_proof);
+    if (submit_res.has_error()) {
+      SL_WARN(logger_,
+              "Round #{}: can't submit equivocation report: {}",
+              equivocation.round(),
+              key_owner_proof_res.error());
+      return submit_res.as_failure();
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> EnvironmentImpl::makeAncestry(
+      GrandpaJustification &justification) const {
+    return grandpa::makeAncestry(justification, *block_tree_);
+  }
 }  // namespace kagome::consensus::grandpa

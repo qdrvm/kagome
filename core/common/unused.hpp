@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <qtils/enum_error_code.hpp>
+
 #include "common/empty.hpp"
 #include "common/tagged.hpp"
 
@@ -15,6 +17,16 @@ namespace kagome {
     AttemptToEncodeUnused = 1,
     AttemptToDecodeUnused,
   };
+  Q_ENUM_ERROR_CODE(UnusedError) {
+    using E = decltype(e);
+    switch (e) {
+      case E::AttemptToEncodeUnused:
+        return "AttemptToEncodeUnused";
+      case E::AttemptToDecodeUnused:
+        return "AttemptToDecodeUnused";
+    }
+    abort();
+  }
 
   /// Number-based marker-type for using as tag
   template <size_t Num>

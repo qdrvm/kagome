@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#pragma once
+
+#include "consensus/babe/types/authority.hpp"
 #include "consensus/babe/types/randomness.hpp"
 
 namespace kagome::consensus::babe {

@@ -36,7 +36,7 @@ namespace kagome::runtime::binaryen {
    * @note Memory size of this implementation is at least a page size (4096
    * bytes)
    */
-  class MemoryImpl final : public Memory {
+  class MemoryImpl final : public MemoryHandle {
    public:
     MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                const MemoryConfig &config);
@@ -46,16 +46,13 @@ namespace kagome::runtime::binaryen {
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
     ~MemoryImpl() override = default;
 
-    WasmPointer allocate(WasmSize size) override;
-    void deallocate(WasmPointer ptr) override;
-
     void resize(WasmSize new_size) override {
       /**
        * We use this condition to avoid
        * deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        memory_->resize(sizeToPages(new_size) * kMemoryPageSize);
+        memory_->pagesResize(sizeToPages(new_size));
       }
     }
 
@@ -64,17 +61,13 @@ namespace kagome::runtime::binaryen {
       return memory_->getSize();
     }
 
+    std::optional<WasmSize> pagesMax() const override;
+
     outcome::result<BytesOut> view(WasmPointer ptr,
                                    WasmSize size) const override;
 
-    // for testing purposes
-    const MemoryAllocator &getAllocator() const {
-      return *allocator_;
-    }
-
    private:
     RuntimeExternalInterface::InternalMemory *memory_;
-    std::unique_ptr<MemoryAllocator> allocator_;
 
     log::Logger logger_;
   };

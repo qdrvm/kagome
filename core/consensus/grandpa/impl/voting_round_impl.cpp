@@ -14,6 +14,7 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/historical_votes.hpp"
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -56,7 +57,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> env,
-      SaveCachedVotes save_cached_votes,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
@@ -69,7 +69,6 @@ namespace kagome::consensus::grandpa {
         grandpa_(grandpa),
         hasher_{std::move(hasher)},
         env_{std::move(env)},
-        save_cached_votes_{std::move(save_cached_votes)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
         scheduler_{std::move(scheduler)},
@@ -105,7 +104,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -116,7 +114,6 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -134,7 +131,6 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
-      SaveCachedVotes save_cached_votes,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
@@ -145,7 +141,6 @@ namespace kagome::consensus::grandpa {
                         config,
                         std::move(hasher),
                         env,
-                        std::move(save_cached_votes),
                         vote_crypto_provider,
                         prevotes,
                         precommits,
@@ -288,7 +283,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PREVOTE_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PREVOTE;
@@ -356,7 +351,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS
                  || stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
 
     // https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/voter/voting_round.rs#L630-L633
     if (not prevote_ghost_) {
@@ -438,7 +433,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
-    stage_timer_handle_.cancel();
+    stage_timer_handle_.reset();
     on_complete_handler_ = nullptr;
 
     // Final attempt to finalize round what should be success
@@ -452,8 +447,8 @@ namespace kagome::consensus::grandpa {
     if (stage_ != Stage::COMPLETED) {
       SL_DEBUG(logger_, "Round #{}: End round", round_number_);
       on_complete_handler_ = nullptr;
-      stage_timer_handle_.cancel();
-      pending_timer_handle_.cancel();
+      stage_timer_handle_.reset();
+      pending_timer_handle_.reset();
       stage_ = Stage::COMPLETED;
     }
   }
@@ -557,9 +552,6 @@ namespace kagome::consensus::grandpa {
     auto &signed_prevote = signed_prevote_opt.value();
     if (onPrevote({}, signed_prevote, Propagation::NEEDLESS)) {
       update(false, true, false);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
@@ -613,9 +605,6 @@ namespace kagome::consensus::grandpa {
     auto &signed_precommit = signed_precommit_opt.value();
     if (onPrecommit({}, signed_precommit, Propagation::NEEDLESS)) {
       update(false, false, true);
-      if (save_cached_votes_) {
-        save_cached_votes_();
-      }
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
@@ -653,7 +642,10 @@ namespace kagome::consensus::grandpa {
         .round_number = round_number_,
         .block_info = block,
         .items = getPrecommitJustification(block, precommits_->getMessages())};
-    // TODO(turuslan): #1931, make justification ancestry
+
+    if (auto r = env_->makeAncestry(justification); not r) {
+      SL_ERROR(logger_, "doCommit: makeAncestry: {}", r.error());
+    }
 
     SL_DEBUG(logger_,
              "Round #{}: Sending commit message for block {}",
@@ -1116,9 +1108,15 @@ namespace kagome::consensus::grandpa {
   template <typename T>
   outcome::result<void> VotingRoundImpl::onSigned(
       OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote) {
+    auto save_historical_vote = [&] {
+      if (auto grandpa = grandpa_.lock()) {
+        grandpa->saveHistoricalVote(
+            voter_set_->id(), round_number_, vote, vote.id == id_);
+      }
+    };
     BOOST_ASSERT(vote.is<T>());
 
-    // Check if voter is contained in current voter set
+    // Check if a voter is contained in a current voter set
     auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
     if (!index_and_weight_opt) {
       SL_DEBUG(
@@ -1162,8 +1160,6 @@ namespace kagome::consensus::grandpa {
         if (result.has_error()) {
           tracker.unpush(vote, weight);
           auto log_lvl = log::Level::WARN;
-          // TODO(Harrm): this looks like a kind of a crutch,
-          //  think of a better way to pass this information
           if (result
               == outcome::failure(
                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
@@ -1181,6 +1177,7 @@ namespace kagome::consensus::grandpa {
                  result.error());
           return result.as_failure();
         }
+        save_historical_vote();
         return outcome::success();
       }
       case VoteTracker::PushResult::DUPLICATED: {
@@ -1189,6 +1186,19 @@ namespace kagome::consensus::grandpa {
       case VoteTracker::PushResult::EQUIVOCATED: {
         equivocators[index] = true;
         graph_->remove(type, vote.id);
+
+        auto maybe_votes_opt = tracker.getMessage(vote.id);
+        BOOST_ASSERT(maybe_votes_opt.has_value());
+        const auto &votes_opt =
+            if_type<EquivocatorySignedMessage>(maybe_votes_opt.value());
+        BOOST_ASSERT(votes_opt.has_value());
+        const auto &votes = votes_opt.value().get();
+
+        Equivocation equivocation{round_number_, votes.first, votes.second};
+
+        std::ignore = env_->reportEquivocation(*this, equivocation);
+
+        save_historical_vote();
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
       default:

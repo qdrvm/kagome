@@ -18,6 +18,7 @@
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
+#include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::primitives {
@@ -59,20 +60,20 @@ namespace kagome::primitives {
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/lib.rs#L130
   using BabeDigest =
       /// Note: order of types in variant matters
-      boost::variant<Unused<0>,
-                     consensus::babe::EpochData,        // 1: (Auth[]; Rand)
-                     consensus::babe::OnDisabled,       // 2: AuthIndex
-                     consensus::babe::NextConfigData>;  // 3: c, S2nd
+      std::variant<Unused<0>,
+                   consensus::babe::EpochData,        // 1: (Auth[]; Rand)
+                   consensus::babe::OnDisabled,       // 2: AuthIndex
+                   consensus::babe::NextConfigData>;  // 3: c, S2nd
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =
       /// Note: order of types in variant matters
-      boost::variant<Unused<0>,
-                     consensus::grandpa::ScheduledChange,  // 1: (Auth[]; Delay)
-                     consensus::grandpa::ForcedChange,     // 2: (Auth[]; Delay)
-                     consensus::grandpa::OnDisabled,       // 3: AuthIndex
-                     consensus::grandpa::Pause,            // 4: Delay
-                     consensus::grandpa::Resume>;          // 5: Delay
+      std::variant<Unused<0>,
+                   consensus::grandpa::ScheduledChange,  // 1: (Auth[]; Delay)
+                   consensus::grandpa::ForcedChange,     // 2: (Auth[]; Delay)
+                   consensus::grandpa::OnDisabled,       // 3: AuthIndex
+                   consensus::grandpa::Pause,            // 4: Delay
+                   consensus::grandpa::Resume>;          // 5: Delay
 
   using UnsupportedDigest_POL1 = Tagged<Empty, struct POL1>;
   using UnsupportedDigest_BEEF = Tagged<Empty, struct BEEF>;
@@ -102,14 +103,14 @@ namespace kagome::primitives {
 
     const GrandpaDigest &asGrandpaDigest() const {
       BOOST_ASSERT(consensus_engine_id == primitives::kGrandpaEngineId);
-      return boost::relaxed_get<GrandpaDigest>(digest);
+      return std::get<GrandpaDigest>(digest);
     }
 
     ConsensusEngineId consensus_engine_id;
-    boost::variant<BabeDigest,
-                   GrandpaDigest,
-                   UnsupportedDigest_POL1,
-                   UnsupportedDigest_BEEF>
+    std::variant<BabeDigest,
+                 GrandpaDigest,
+                 UnsupportedDigest_POL1,
+                 UnsupportedDigest_BEEF>
         digest{};
 
    private:
@@ -162,15 +163,15 @@ namespace kagome::primitives {
   /// provide opaque access to other items.
   /// Note: order of types in variant matters. Should match type ids from here:
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.12/primitives/runtime/src/generic/digest.rs#L272
-  using DigestItem = boost::variant<Other,                       // 0
-                                    Unused<1>,                   // 1
-                                    Unused<2>,                   // 2
-                                    Unused<3>,                   // 3
-                                    Consensus,                   // 4
-                                    Seal,                        // 5
-                                    PreRuntime,                  // 6
-                                    Unused<7>,                   // 7
-                                    RuntimeEnvironmentUpdated>;  // 8
+  using DigestItem = std::variant<Other,                       // 0
+                                  Unused<1>,                   // 1
+                                  Unused<2>,                   // 2
+                                  Unused<3>,                   // 3
+                                  Consensus,                   // 4
+                                  Seal,                        // 5
+                                  PreRuntime,                  // 6
+                                  Unused<7>,                   // 7
+                                  RuntimeEnvironmentUpdated>;  // 8
 
   namespace {
     // This value is enough to disable each of validators in each of two

@@ -12,7 +12,7 @@
 #include <boost/functional/hash.hpp>
 #include <scale/scale.hpp>
 
-#include "common/buffer.hpp"
+#include "common/buffer_view.hpp"
 #include "common/hexutil.hpp"
 #include "macro/endianness_utils.hpp"
 
@@ -198,9 +198,7 @@ namespace kagome::common {
     }
 
     /**
-     * Create Blob from span of uint8_t
-     * @param buffer
-     * @return
+     * Create Blob from BufferView
      */
     static outcome::result<Blob<size_>> fromSpan(const BufferView &span) {
       if (span.size() != size_) {
@@ -232,6 +230,10 @@ namespace kagome::common {
   }
 
 }  // namespace kagome::common
+
+namespace kagome {
+  using common::Hash256;
+}  // namespace kagome
 
 template <size_t N>
 struct std::hash<kagome::common::Blob<N>> {

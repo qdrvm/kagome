@@ -14,6 +14,7 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/block_announce_observer.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
@@ -63,6 +64,8 @@ namespace kagome::consensus {
   class TimelineImpl final : public Timeline,
                              public network::BlockAnnounceObserver,
                              public std::enable_shared_from_this<TimelineImpl> {
+    static const size_t kMaxSlotObserveForEquivocation = 1000;
+
    public:
     TimelineImpl(
         const application::AppConfiguration &app_config,
@@ -83,7 +86,7 @@ namespace kagome::consensus {
             justification_observer,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
+        primitives::events::SyncStateSubscriptionEnginePtr state_sub_engine,
         std::shared_ptr<runtime::Core> core_api);
 
     /// @see AppStateManager::takeControl
@@ -106,6 +109,9 @@ namespace kagome::consensus {
 
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
+
+    void checkAndReportEquivocation(
+        const primitives::BlockHeader &header) override;
 
    private:
     bool updateSlot(TimePoint now);
@@ -148,7 +154,7 @@ namespace kagome::consensus {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     primitives::events::ChainSub chain_sub_;
-    primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine_;
+    primitives::events::SyncStateSubscriptionEnginePtr state_sub_engine_;
     std::shared_ptr<runtime::Core> core_api_;
 
     application::SyncMethod sync_method_;
@@ -169,6 +175,12 @@ namespace kagome::consensus {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_major_syncing_;
+
+    using AuthorityIndex = uint32_t;
+
+    std::map<std::tuple<SlotNumber, AuthorityIndex>,
+             std::tuple<primitives::BlockHash, bool>>
+        data_for_equvocation_checks_;
 
     telemetry::Telemetry telemetry_;
   };

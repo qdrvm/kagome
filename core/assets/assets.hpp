@@ -15,6 +15,7 @@ namespace kagome::assets {
   extern const char *const embedded_chainspec_kusama;
   extern const char *const embedded_chainspec_rococo;
   extern const char *const embedded_chainspec_westend;
+  extern const char *const embedded_chainspec_paseo;
   extern const std::vector<std::pair<const char *, const char *>> embedded_keys;
 
 }  // namespace kagome::assets

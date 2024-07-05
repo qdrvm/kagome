@@ -10,6 +10,7 @@ extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 
+#include "crypto/common.hpp"
 #include "crypto/hasher.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
@@ -38,17 +39,20 @@ namespace kagome::crypto {
       if (not junction.hard) {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
-      seed = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD"_bytes, seed, junction.cc).value());
+      auto hash = hasher_->blake2b_256(
+          scale::encode("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc)
+              .value());
+      seed = Ed25519Seed::from(SecureCleanGuard(hash));
     }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
-    ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
-    Ed25519Keypair kp;
-    std::copy_n(
-        kp_bytes.begin(), ED25519_SECRET_KEY_LENGTH, kp.secret_key.begin());
-    std::copy_n(kp_bytes.begin() + ED25519_SECRET_KEY_LENGTH,
-                ED25519_PUBLIC_KEY_LENGTH,
-                kp.public_key.begin());
+    ed25519_keypair_from_seed(kp_bytes.data(), seed.unsafeBytes().data());
+    Ed25519Keypair kp{
+        Ed25519PrivateKey::from(SecureCleanGuard{
+            std::span(kp_bytes).subspan<0, ED25519_SECRET_KEY_LENGTH>()}),
+        Ed25519PublicKey::fromSpan(std::span(kp_bytes)
+                                       .subspan<ED25519_SECRET_KEY_LENGTH,
+                                                ED25519_PUBLIC_KEY_LENGTH>())
+            .value()};
     return kp;
   }
 
@@ -56,9 +60,8 @@ namespace kagome::crypto {
       const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
-    std::copy(keypair.secret_key.begin(),
-              keypair.secret_key.end(),
-              keypair_bytes.begin());
+    SecureCleanGuard g{keypair_bytes};
+    std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_bytes.begin());
     std::copy(keypair.public_key.begin(),
               keypair.public_key.end(),
               keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);

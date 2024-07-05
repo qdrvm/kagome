@@ -117,7 +117,7 @@ namespace kagome::runtime::wasm_edge {
       BOOST_ASSERT(executor_ != nullptr);
     }
 
-    const common::Hash256 &getCodeHash() const override {
+    common::Hash256 getCodeHash() const override {
       return code_hash_;
     }
 
@@ -269,8 +269,12 @@ namespace kagome::runtime::wasm_edge {
         const override {
       StoreContext store = WasmEdge_StoreCreate();
 
+      auto env_name = WasmEdge_StringCreateByCString("env");
+
       auto host_instance = std::make_shared<ModuleInstanceContext>(
-          WasmEdge_ModuleInstanceCreate(WasmEdge_StringCreateByCString("env")));
+          WasmEdge_ModuleInstanceCreate(env_name));
+
+      WasmEdge_StringDelete(env_name);
 
       std::shared_ptr<MemoryProvider> memory_provider;
       if (memory_type_) {
@@ -355,8 +359,8 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(common::BufferView code) const {
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+      common::BufferView code) const {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
@@ -378,7 +382,7 @@ namespace kagome::runtime::wasm_edge {
                                                  ec)
             && ec) {
           return CompilationError{fmt::format(
-              "Failed to create a dir for compiled modules: {}", ec.message())};
+              "Failed to create a dir for compiled modules: {}", ec)};
         }
         if (!std::filesystem::exists(filename)) {
           SL_INFO(log_, "Start compiling wasm module {}…", code_hash);

@@ -88,7 +88,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponse) {
         finished = true;
         return response_;
       },
-      [](auto &&err) { FAIL() << err.error().message(); });
+      [](auto &&err) { FAIL(); });
 
   ASSERT_TRUE(finished);
 }

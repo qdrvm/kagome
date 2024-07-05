@@ -55,5 +55,6 @@ namespace kagome::parachain {
 
     /// Clears all data according to this relay_parent
     virtual void remove(const network::RelayHash &relay_parent) = 0;
+    virtual void printStoragesLoad() = 0;
   };
 }  // namespace kagome::parachain

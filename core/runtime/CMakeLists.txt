@@ -6,6 +6,7 @@
 
 add_subdirectory(common)
 add_subdirectory(binaryen)
+add_subdirectory(wabt)
 
 add_library(wasm_compiler INTERFACE)
 

@@ -13,11 +13,11 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 1. Docker container runtime must be installed in your OS. 
    Manual of that can be found in [official site](https://docs.docker.com/engine/install/).
 
-2. Image of kagome docker container is soramitsu/kagome 
+2. Image of kagome docker container is qdrvm/kagome 
 
    ```bash
    # In Debian-like OS (Debian, Ubuntu, Mint, etc.)
-   docker image pull soramitsu/kagome
+   docker image pull qdrvm/kagome
    ```
    
 3. Directory containing configs and keys 
@@ -57,9 +57,9 @@ docker run \
   --publish 30363:30363 \             
   --publish 9933:9933 \
   --publish 9944:9944 \
-  soramitsu/kagome \           
+  qdrvm/kagome \           
   kagome \   
-  --chain localchain.json \    
+  --chain kusama \    
   --base-path base_path \ 
   --port 30363 \
   --rpc-port 9933 \ 

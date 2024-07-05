@@ -7,6 +7,7 @@
 #pragma once
 
 #include "consensus/grandpa/types/authority.hpp"
+#include "consensus/grandpa/types/equivocation_proof.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::runtime {
@@ -35,6 +36,18 @@ namespace kagome::runtime {
      */
     virtual outcome::result<AuthoritySetId> current_set_id(
         const primitives::BlockHash &block) = 0;
+
+    virtual outcome::result<
+        std::optional<consensus::grandpa::OpaqueKeyOwnershipProof>>
+    generate_key_ownership_proof(
+        const primitives::BlockHash &block_hash,
+        consensus::SlotNumber slot,
+        consensus::grandpa::AuthorityId authority_id) = 0;
+
+    virtual outcome::result<void> submit_report_equivocation_unsigned_extrinsic(
+        const primitives::BlockHash &block_hash,
+        consensus::grandpa::EquivocationProof equivocation_proof,
+        consensus::grandpa::OpaqueKeyOwnershipProof key_owner_proof) = 0;
   };
 
 }  // namespace kagome::runtime

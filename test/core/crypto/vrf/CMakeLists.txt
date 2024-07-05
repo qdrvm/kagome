@@ -10,4 +10,5 @@ addtest(vrf_provider_test
 target_link_libraries(vrf_provider_test
     vrf_provider
     keccak
+    log_configurator
     )

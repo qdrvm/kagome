@@ -18,6 +18,7 @@ namespace kagome::runtime {
   outcome::result<primitives::Version> callCoreVersion(
       const ModuleFactory &module_factory,
       common::BufferView code,
+      const MemoryLimits &config,
       const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache);
 
   class RestrictedCoreImpl final : public RestrictedCore {
@@ -34,6 +35,7 @@ namespace kagome::runtime {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
+        std::shared_ptr<ModuleRepository> module_repository,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
@@ -54,6 +56,7 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<ModuleRepository> module_repository_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 

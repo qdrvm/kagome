@@ -10,23 +10,34 @@
 
 #include "api/service/author/author_api.hpp"
 #include "api/service/base_request.hpp"
+#include "crypto/common.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::api::author::request {
 
   class InsertKey final
-      : public details::
-            RequestType<void, std::string, std::string, std::string> {
+      : public details::RequestType<
+            void,
+            std::string,
+            std::vector<char, crypto::SecureHeapAllocator<char>>,
+            std::string> {
    public:
     explicit InsertKey(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
     outcome::result<Return> execute() override {
-      OUTCOME_TRY(seed, common::unhexWith0x(getParam<1>()));
+      auto &seed_hex = getParam<1>();
+      crypto::SecureBuffer<> seed_buf(seed_hex.size() / 2 - 1);
+      OUTCOME_TRY(common::unhexWith0x(
+          std::string_view{seed_hex.data(), seed_hex.size()},
+          seed_buf.begin()));
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<2>()));
-      return api_->insertKey(
-          crypto::decodeKeyTypeFromStr(getParam<0>()), seed, public_key);
+      if (auto key_type = crypto::KeyType::fromString(getParam<0>())) {
+        return api_->insertKey(*key_type, std::move(seed_buf), public_key);
+      }
+      return crypto::KeyTypeError::UNSUPPORTED_KEY_TYPE;
     }
 
    private:

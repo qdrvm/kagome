@@ -187,51 +187,22 @@ namespace kagome::host_api {
     return (res.has_value() and res.value()) ? 1 : 0;
   }
 
-  void StorageExtension::ext_storage_clear_prefix_version_1(
-      runtime::WasmSpan prefix_span) {
-    auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto prefix = memory.loadN(prefix_ptr, prefix_size);
-    SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
-    (void)clearPrefix(prefix, std::nullopt);
+  void StorageExtension::ext_storage_clear_prefix_version_1(BufferView prefix) {
+    storage_provider_->clearPrefix(std::nullopt, prefix, std::nullopt);
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_clear_prefix_version_2(
-      runtime::WasmSpan prefix_span, runtime::WasmSpan limit_span) {
-    auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
-    auto [limit_ptr, limit_size] = runtime::PtrSize(limit_span);
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto prefix = memory.loadN(prefix_ptr, prefix_size);
-    auto enc_limit = memory.loadN(limit_ptr, limit_size);
-    auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
-    if (!limit_res) {
-      auto msg = fmt::format(
-          "ext_storage_clear_prefix_version_2 failed at decoding second "
-          "argument: {}",
-          limit_res.error());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
-    }
-    auto limit_opt = std::move(limit_res.value());
-    SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt);
-    return clearPrefix(prefix, limit_opt);
+  KillStorageResult StorageExtension::ext_storage_clear_prefix_version_2(
+      BufferView prefix, ClearPrefixLimit limit) {
+    return storage_provider_->clearPrefix(std::nullopt, prefix, limit);
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_root_version_1() {
-    return ext_storage_root_version_2(runtime::WasmI32(0));
+  Hash256 StorageExtension::ext_storage_root_version_1() {
+    return ext_storage_root_version_2(storage::trie::StateVersion::V0);
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
-      runtime::WasmI32 version) {
-    auto state_version = detail::toStateVersion(version);
-    auto res = storage_provider_->commit(state_version);
-    if (res.has_error()) {
-      logger_->error("ext_storage_root resulted with an error: {}",
-                     res.error());
-    }
-    const auto &root = res.value();
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    return memory.storeBuffer(root);
+  Hash256 StorageExtension::ext_storage_root_version_2(
+      storage::trie::StateVersion version) {
+    return storage_provider_->commit(std::nullopt, version).value();
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
@@ -305,7 +276,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction start has failed: {}", res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     ++transactions_;
   }
@@ -316,7 +287,7 @@ namespace kagome::host_api {
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     --transactions_;
   }
@@ -327,7 +298,7 @@ namespace kagome::host_api {
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error());
-      throw std::runtime_error(res.error().message());
+      res.value();
     }
     --transactions_;
   }
@@ -353,7 +324,6 @@ namespace kagome::host_api {
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
       logger_->error("failed to decode pairs: {}", pairs.error());
-      throw std::runtime_error(pairs.error().message());
     }
 
     auto &&pv = pairs.value();
@@ -381,7 +351,6 @@ namespace kagome::host_api {
         codec.encodeNode(*trie->getRoot(), storage::trie::StateVersion::V0, {});
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error());
-      throw std::runtime_error(enc.error().message());
     }
     const auto &hash = codec.hash256(enc.value());
 
@@ -438,28 +407,5 @@ namespace kagome::host_api {
 
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     return runtime::PtrSize(memory.storeBuffer(ordered_hash.value())).ptr;
-  }
-
-  runtime::WasmSpan StorageExtension::clearPrefix(
-      common::BufferView prefix, std::optional<uint32_t> limit) {
-    auto batch = storage_provider_->getCurrentBatch();
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-
-    auto res = batch->clearPrefix(
-        prefix, limit ? std::optional<uint64_t>(limit.value()) : std::nullopt);
-    if (not res) {
-      auto msg =
-          fmt::format("ext_storage_clear_prefix failed: {}", res.error());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
-    }
-    auto enc_res = scale::encode(res.value());
-    if (not enc_res) {
-      auto msg =
-          fmt::format("ext_storage_clear_prefix failed: {}", enc_res.error());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
-    }
-    return memory.storeBuffer(enc_res.value());
   }
 }  // namespace kagome::host_api

@@ -28,12 +28,13 @@
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/grandpa/voting_round_update.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/retain_if.hpp"
 
 namespace {
@@ -65,6 +66,13 @@ namespace kagome::consensus::grandpa {
   // https://github.com/paritytech/polkadot/pull/6217
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
+  inline auto historicalVotesKey(AuthoritySetId set, RoundNumber round) {
+    auto key = storage::kGrandpaHistoricalVotesPrefix;
+    key.putUint64(set);
+    key.putUint64(round);
+    return key;
+  }
+
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -79,8 +87,8 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool)
+      common::MainThreadPool &main_thread_pool,
+      GrandpaThreadPool &grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -94,14 +102,12 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_pool_handler_(std::move(main_pool_handler)),
-        grandpa_pool_handler_{[&] {
-          BOOST_ASSERT(grandpa_thread_pool != nullptr);
-          return grandpa_thread_pool->handler();
-        }()},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        grandpa_pool_handler_{poolHandlerReadyMake(
+            this, app_state_manager, grandpa_thread_pool, logger_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                grandpa_thread_pool->io_context()),
+                grandpa_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -112,8 +118,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(grandpa_pool_handler_ != nullptr);
-
-    BOOST_ASSERT(app_state_manager != nullptr);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(highestGrandpaRoundMetricName,
@@ -127,24 +131,7 @@ namespace kagome::consensus::grandpa {
     app_state_manager->takeControl(*this);
   }
 
-  bool GrandpaImpl::start() {
-    grandpa_pool_handler_->start();
-
-    if (!grandpa_pool_handler_->isInCurrentThread()) {
-      grandpa_pool_handler_->execute([wptr{weak_from_this()}] {
-        if (auto self = wptr.lock()) {
-          self->start();
-        }
-      });
-      return true;
-    }
-
-    if (auto r = db_->get(storage::kGrandpaVotesKey)) {
-      if (auto r2 = scale::decode<CachedVotes>(r.value())) {
-        cached_votes_ = std::move(r2.value());
-      }
-    }
-
+  bool GrandpaImpl::tryStart() {
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -189,24 +176,7 @@ namespace kagome::consensus::grandpa {
     }
 
     // Timer to send neighbor message if round does not change long time (1 min)
-    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
-        [wp{weak_from_this()}] {
-          auto self = wp.lock();
-          if (not self) {
-            return;
-          }
-          BOOST_ASSERT_MSG(self->current_round_,
-                           "Current round must be defiled anytime after start");
-          auto round =
-              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
-          if (round) {
-            round->sendNeighborMessage();
-          }
-
-          std::ignore =
-              self->fallback_timer_handle_.reschedule(std::chrono::minutes(1));
-        },
-        std::chrono::minutes(1));
+    setTimerFallback();
 
     tryExecuteNextRound(current_round_);
 
@@ -220,8 +190,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    grandpa_pool_handler_->stop();
-    fallback_timer_handle_.cancel();
+    fallback_timer_handle_.reset();
   }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
@@ -243,24 +212,18 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto save_cached_votes = [weak{weak_from_this()}]() {
-      if (auto self = weak.lock()) {
-        self->saveCachedVotes();
-      }
-    };
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
-        std::move(save_cached_votes),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round_state);
-    applyCachedVotes(*new_round);
+    applyHistoricalVotes(*new_round);
 
     new_round->end();  // it is okay, because we do not want to actually execute
                        // this round
@@ -309,24 +272,18 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto save_cached_votes = [weak{weak_from_this()}]() {
-      if (auto self = weak.lock()) {
-        self->saveCachedVotes();
-      }
-    };
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
-        std::move(save_cached_votes),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round);
-    applyCachedVotes(*new_round);
+    applyHistoricalVotes(*new_round);
     return new_round;
   }
 
@@ -402,7 +359,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(res.value() != nullptr);
     current_round_ = std::move(res.value());
 
-    std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+    setTimerFallback();
 
     // Truncate chain of rounds
     size_t i = 0;
@@ -758,7 +715,7 @@ namespace kagome::consensus::grandpa {
 
     ::libp2p::common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
-        catchup_request_timer_handle_.cancel();
+        catchup_request_timer_handle_.reset();
         pending_catchup_request_.reset();
       }
     });
@@ -823,7 +780,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*current_round_, &grandpa_context};
+    VotingRoundUpdate update{*round, grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
@@ -888,11 +845,13 @@ namespace kagome::consensus::grandpa {
              msg,
              allow_missing_blocks);
 
-    // Skip message processing if same vote was already observed
-    if (votes_cache_.contains(msg)) {
-      return;
+    if (allow_missing_blocks) {
+      // Skip message processing if same vote was already observed
+      if (votes_cache_.contains(msg)) {
+        return;
+      }
+      votes_cache_.put(msg);
     }
-    votes_cache_.put(msg);
 
     if (not info.has_value() or not info->set_id.has_value()
         or not info->round_number.has_value()) {
@@ -1026,7 +985,7 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*target_round, &grandpa_context, true};
+    VotingRoundUpdate update{*target_round, grandpa_context, true};
     update.vote(msg.vote);
     update.update();
 
@@ -1224,7 +1183,6 @@ namespace kagome::consensus::grandpa {
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
         environment_,
-        nullptr,
         std::make_shared<VoteCryptoProviderImpl>(
             nullptr, crypto_provider_, justification.round_number, voters),
         std::make_shared<VoteTrackerImpl>(),
@@ -1374,8 +1332,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::reload() {
-    if (not start()) {
-      SL_ERROR(logger_, "reload: start failed");
+    REINVOKE(*grandpa_pool_handler_, reload);
+    if (not tryStart()) {
+      SL_CRITICAL(logger_, "reload failed");
     }
   }
 
@@ -1455,35 +1414,103 @@ namespace kagome::consensus::grandpa {
     retain_if(waiting_blocks_, f);
   }
 
-  void GrandpaImpl::saveCachedVotes() {
-    CachedVotes rounds;
-    for (auto round = current_round_; round;
-         round = round->getPreviousRound()) {
-      rounds.emplace_back(CachedRound{
-          round->voterSetId(),
-          round->roundNumber(),
-          round->votes(),
-      });
-    }
-    std::ignore =
-        db_->put(storage::kGrandpaVotesKey, scale::encode(rounds).value());
-  }
-
-  void GrandpaImpl::applyCachedVotes(VotingRound &round) {
-    auto it = std::find_if(
-        cached_votes_.begin(), cached_votes_.end(), [&](const CachedRound &c) {
-          return c.set == round.voterSetId() and c.round == round.roundNumber();
-        });
-    if (it == cached_votes_.end()) {
+  void GrandpaImpl::saveHistoricalVote(AuthoritySetId set,
+                                       RoundNumber round,
+                                       const SignedMessage &vote,
+                                       bool set_index) {
+    REINVOKE(*grandpa_pool_handler_,
+             saveHistoricalVote,
+             set,
+             round,
+             vote,
+             set_index);
+    auto &[votes, dirty] = historicalVotes(set, round);
+    if (std::find(votes.seen.begin(), votes.seen.end(), vote)
+        != votes.seen.end()) {
       return;
     }
-    VotingRoundUpdate update{round};
-    for (auto &vote : it->votes.first) {
-      update.vote(vote);
+    if (set_index) {
+      auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
+                  : vote.is<Precommit>() ? &votes.precommit_idx
+                                         : nullptr;
+      if (index and not *index) {
+        *index = votes.seen.size();
+      }
     }
-    for (auto &vote : it->votes.second) {
+    votes.seen.emplace_back(vote);
+    dirty = true;
+    if (writing_historical_votes_) {
+      return;
+    }
+    writing_historical_votes_ = true;
+    grandpa_pool_handler_->execute([weak_self{weak_from_this()}] {
+      auto self = weak_self.lock();
+      if (not self) {
+        return;
+      }
+      self->writeHistoricalVotes();
+    });
+  }
+
+  void GrandpaImpl::writeHistoricalVotes() {
+    writing_historical_votes_ = false;
+    historical_votes_.forEach(
+        [&](const HistoricalVotesKey &key, HistoricalVotesDirty &cache) {
+          if (not cache.second) {
+            return;
+          }
+          cache.second = false;
+          std::ignore = db_->put(historicalVotesKey(key.first, key.second),
+                                 scale::encode(cache.first).value());
+        });
+  }
+
+  GrandpaImpl::HistoricalVotesDirty &GrandpaImpl::historicalVotes(
+      AuthoritySetId set, RoundNumber round) {
+    auto key = std::make_pair(set, round);
+    auto cache = historical_votes_.get(key);
+    if (not cache) {
+      cache = historical_votes_.put(key, {{}, false});
+      if (auto r = db_->get(historicalVotesKey(set, round))) {
+        if (auto r2 = scale::decode<HistoricalVotes>(r.value())) {
+          cache->get().first = std::move(r2.value());
+        } else {
+          SL_ERROR(logger_,
+                   "historicalVotes(set={}, round={}): decode error",
+                   set,
+                   round);
+        }
+      }
+    }
+    return cache->get();
+  }
+
+  void GrandpaImpl::applyHistoricalVotes(VotingRound &round) {
+    auto &votes =
+        historicalVotes(round.voterSetId(), round.roundNumber()).first;
+    VotingRoundUpdate update{round};
+    for (auto &vote : votes.seen) {
       update.vote(vote);
     }
     update.update();
+  }
+
+  void GrandpaImpl::setTimerFallback() {
+    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
+        [weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (not self) {
+            return;
+          }
+          BOOST_ASSERT_MSG(self->current_round_,
+                           "Current round must be defiled anytime after start");
+          auto round =
+              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
+          if (round) {
+            round->sendNeighborMessage();
+          }
+          self->setTimerFallback();
+        },
+        std::chrono::minutes(1));
   }
 }  // namespace kagome::consensus::grandpa

@@ -9,10 +9,12 @@
 #include <fstream>
 
 #include "application/app_configuration.hpp"
+#include "application/chain_spec.hpp"
 #include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/random_generator.hpp"
 
 namespace kagome::injector {
   inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
@@ -20,7 +22,7 @@ namespace kagome::injector {
       const application::ChainSpec &chain,
       const crypto::Ed25519Provider &crypto_provider,
       crypto::CSPRNG &csprng,
-      crypto::CryptoStore &crypto_store) {
+      crypto::KeyStore &key_store) {
     auto log = log::createLogger("Injector", "injector");
 
     if (app_config.nodeKey()) {
@@ -40,7 +42,7 @@ namespace kagome::injector {
       const auto &path = app_config.nodeKeyFile().value();
       log->info(
           "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
-      auto key = crypto_store.loadLibp2pKeypair(path);
+      auto key = key_store.loadLibp2pKeypair(path);
       if (key.has_error()) {
         log->error("Unable to load user provided key from {}. Error: {}",
                    path,
@@ -54,7 +56,7 @@ namespace kagome::injector {
     }
 
     auto path = app_config.chainPath(chain.id()) / "network/secret_ed25519";
-    if (auto r = crypto_store.loadLibp2pKeypair(path)) {
+    if (auto r = key_store.loadLibp2pKeypair(path)) {
       log->info(
           "Will use LibP2P keypair from config or args (loading from base "
           "path)");
@@ -71,13 +73,15 @@ namespace kagome::injector {
         "Can not obtain a libp2p keypair from crypto storage. "
         "A unique one will be generated");
 
-    crypto::Ed25519Seed seed;
-    csprng.fillRandomly(seed);
+    crypto::SecureBuffer<> seed_buf(crypto::Ed25519Seed::size());
+    csprng.fillRandomly(seed_buf);
+    // SAFETY: buffer is initialized with seed's size
+    auto seed = crypto::Ed25519Seed::from(std::move(seed_buf)).value();
     auto generated_keypair = crypto_provider.generateKeypair(seed, {}).value();
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
       std::ofstream file{path.c_str()};
-      file.write(byte2str(seed).data(), seed.size());
+      file.write(byte2str(seed.unsafeBytes()).data(), seed.size());
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(

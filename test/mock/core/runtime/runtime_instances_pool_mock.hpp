@@ -20,23 +20,10 @@ namespace kagome::runtime {
                  common::BufferView code_zstd,
                  const RuntimeContext::ContextParams &config));
 
-    MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
-                instantiateFromState,
-                (const TrieHash &state,
-                 const RuntimeContext::ContextParams &config));
-
     MOCK_METHOD(void,
                 release,
                 (const TrieHash &state,
                  std::shared_ptr<ModuleInstance> &&instance));
-
-    MOCK_METHOD(std::optional<std::shared_ptr<const Module>>,
-                getModule,
-                (const TrieHash &state));
-
-    MOCK_METHOD(void,
-                putModule,
-                (const TrieHash &state, std::shared_ptr<Module> module));
   };
 
 }  // namespace kagome::runtime

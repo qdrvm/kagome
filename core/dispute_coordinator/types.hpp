@@ -48,10 +48,21 @@ namespace kagome::dispute {
   using BackingValid = Tagged<CandidateHash, struct BackingValidTag>;
   /// An approval vote from the approval checking phase.
   using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
+  /// An approval vote from the new version.
+  /// We can't create this version until all nodes have been updated to support
+  /// it and max_approval_coalesce_count is set to more than 1.
+  using ApprovalCheckingMultipleCandidates =
+      Tagged<std::vector<CandidateHash>,
+             struct ApprovalCheckingMultipleCandidatesTag>;
 
   /// A valid statement, of the given kind
   using ValidDisputeStatement =
-      boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
+      boost::variant<Explicit,                           // 0
+                     BackingSeconded,                    // 1
+                     BackingValid,                       // 2
+                     ApprovalChecking,                   // 3
+                     ApprovalCheckingMultipleCandidates  // 4
+                     >;
 
   /// An invalid statement, of the given kind.
   using InvalidDisputeStatement = boost::variant<Explicit>;
@@ -104,10 +115,14 @@ namespace kagome::dispute {
   /// successfully ourselves).
   using Confirmed = Tagged<Empty, struct ConfirmedTag>;
 
+  /// Dispute has been postponed 'cause all votes is received from disabled
+  /// validators.
+  using Postponed = Tagged<Empty, struct PostponedTag>;
+
   /// The status of dispute.
   /// NOTE: This status is persisted to the database
-  using DisputeStatus =
-      boost::variant<Active, ConcludedFor, ConcludedAgainst, Confirmed>;
+  using DisputeStatus = boost::
+      variant<Active, ConcludedFor, ConcludedAgainst, Confirmed, Postponed>;
 
   /// The mapping for recent disputes; any which have not
   /// yet been pruned for being ancient.
@@ -148,7 +163,7 @@ namespace kagome::dispute {
     /// The session the candidate appeared in.
     SessionIndex session_index;
     /// Session for above index.
-    SessionInfo &session;
+    SessionInfo session;
     /// Validator indices controlled by this node.
     std::unordered_set<ValidatorIndex> controlled_indices{};
   };

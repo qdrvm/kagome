@@ -180,7 +180,8 @@ namespace kagome::host_api {
     ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data) = 0;
 
-    // TODO(xDimon): add doc-comment
+    /// Conducts a 256-bit Blake2 trie root formed from the enumerated items
+    /// considering provided version
     [[nodiscard]] virtual runtime::WasmPointer
     ext_trie_blake2_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) = 0;

@@ -148,6 +148,27 @@ namespace kagome::runtime {
                 minimum_backing_votes,
                 (const primitives::BlockHash &, SessionIndex),
                 (override));
+
+    MOCK_METHOD(outcome::result<std::vector<ValidatorIndex>>,
+                disabled_validators,
+                (const primitives::BlockHash &),
+                (override));
+
+    MOCK_METHOD(outcome::result<std::optional<NodeFeatures>>,
+                node_features,
+                (const primitives::BlockHash &, SessionIndex),
+                (override));
+
+    MOCK_METHOD(
+        (outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>),
+        claim_queue,
+        (const primitives::BlockHash &),
+        (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                runtime_api_version,
+                (const primitives::BlockHash &),
+                (override));
   };
 
 }  // namespace kagome::runtime

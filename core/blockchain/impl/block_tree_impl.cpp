@@ -126,7 +126,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler) {
+      common::MainThreadPool &main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -285,7 +285,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
                           state_pruner,
-                          std::move(main_pool_handler)));
+                          main_thread_pool));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -421,7 +421,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
@@ -435,7 +435,7 @@ namespace kagome::blockchain {
           .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
-        main_pool_handler_(std::move(main_pool_handler)) {
+        main_pool_handler_{main_thread_pool.handlerStarted()} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);
@@ -595,9 +595,18 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash) {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
-          // Check if block is leaf
-          if (block_hash == getLastFinalizedNoLock(p).hash) {
-            return BlockTreeError::BLOCK_IS_FINALIZED;
+          auto finalized = getLastFinalizedNoLock(p);
+          if (block_hash == finalized.hash) {
+            OUTCOME_TRY(header, getBlockHeader(block_hash));
+            OUTCOME_TRY(p.storage_->removeJustification(finalized.hash));
+            auto parent = *header.parentInfo();
+            ReorgAndPrune changes{
+                Reorg{parent, {finalized}, {}},
+                {finalized},
+            };
+            p.tree_ = std::make_unique<CachedTree>(parent);
+            OUTCOME_TRY(reorgAndPrune(p, changes));
+            return outcome::success();
           }
           if (not p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
@@ -804,9 +813,13 @@ namespace kagome::blockchain {
 
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
 
-        std::vector<primitives::BlockHash> retired_hashes;
+        std::vector<
+            primitives::events::RemoveAfterFinalizationParams::HeaderInfo>
+            retired_hashes;
         for (auto parent = node->parent(); parent; parent = parent->parent()) {
-          retired_hashes.emplace_back(parent->info.hash);
+          retired_hashes.emplace_back(
+              primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
+                  parent->info.hash, parent->info.number});
         }
 
         auto changes = p.tree_->finalize(node);
@@ -837,12 +850,13 @@ namespace kagome::blockchain {
 
         main_pool_handler_->execute(
             [weak{weak_from_this()},
-             retired_hashes{std::move(retired_hashes)}] {
+             retired{primitives::events::RemoveAfterFinalizationParams{
+                 std::move(retired_hashes), header.number}}] {
               if (auto self = weak.lock()) {
                 self->chain_events_engine_->notify(
                     primitives::events::ChainEventType::
                         kDeactivateAfterFinalization,
-                    retired_hashes);
+                    retired);
               }
             });
 
@@ -1292,7 +1306,8 @@ namespace kagome::blockchain {
     }
 
     std::vector<primitives::Extrinsic> extrinsics;
-    std::vector<primitives::BlockHash> retired_hashes;
+    std::vector<primitives::events::RemoveAfterFinalizationParams::HeaderInfo>
+        retired_hashes;
 
     // remove from storage
     retired_hashes.reserve(changes.prune.size());
@@ -1320,33 +1335,39 @@ namespace kagome::blockchain {
         BOOST_ASSERT(block_header_opt.has_value());
         OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
-      retired_hashes.emplace_back(block.hash);
+      retired_hashes.emplace_back(
+          primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
+              block.hash, block.number});
       OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
 
     // trying to return extrinsics back to transaction pool
-    main_pool_handler_->execute([extrinsics{std::move(extrinsics)},
-                                 wself{weak_from_this()},
-                                 retired_hashes{
-                                     std::move(retired_hashes)}]() mutable {
-      if (auto self = wself.lock()) {
-        auto eo = self->block_tree_data_.sharedAccess(
-            [&](const BlockTreeData &p) { return p.extrinsic_observer_; });
+    main_pool_handler_->execute(
+        [extrinsics{std::move(extrinsics)},
+         wself{weak_from_this()},
+         retired{primitives::events::RemoveAfterFinalizationParams{
+             std::move(retired_hashes),
+             getLastFinalizedNoLock(p).number}}]() mutable {
+          if (auto self = wself.lock()) {
+            auto eo = self->block_tree_data_.sharedAccess(
+                [&](const BlockTreeData &p) { return p.extrinsic_observer_; });
 
-        for (auto &&extrinsic : extrinsics) {
-          auto result = eo->onTxMessage(extrinsic);
-          if (result) {
-            SL_DEBUG(self->log_, "Tx {} was reapplied", result.value().toHex());
-          } else {
-            SL_DEBUG(self->log_, "Tx was skipped: {}", result.error());
+            for (auto &&extrinsic : extrinsics) {
+              auto result = eo->onTxMessage(extrinsic);
+              if (result) {
+                SL_DEBUG(
+                    self->log_, "Tx {} was reapplied", result.value().toHex());
+              } else {
+                SL_DEBUG(self->log_, "Tx was skipped: {}", result.error());
+              }
+            }
+
+            self->chain_events_engine_->notify(
+                primitives::events::ChainEventType::
+                    kDeactivateAfterFinalization,
+                retired);
           }
-        }
-
-        self->chain_events_engine_->notify(
-            primitives::events::ChainEventType::kDeactivateAfterFinalization,
-            retired_hashes);
-      }
-    });
+        });
 
     return outcome::success();
   }

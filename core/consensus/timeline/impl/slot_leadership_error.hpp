@@ -11,7 +11,8 @@
 namespace kagome::consensus {
 
   enum class SlotLeadershipError {
-    NO_VALIDATOR = 1,
+    NON_VALIDATOR = 1,
+    DISABLED_VALIDATOR,
     NO_SLOT_LEADER,
     BACKING_OFF,
   };

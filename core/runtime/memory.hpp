@@ -6,13 +6,11 @@
 
 #pragma once
 
-#include <array>
-
 #include <optional>
 
-#include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 #include "common/literals.hpp"
+#include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/types.hpp"
 
@@ -35,27 +33,19 @@ namespace kagome::runtime {
     return (size + kMemoryPageSize - 1) / kMemoryPageSize;
   }
 
-  /** The underlying memory can be accessed through unaligned pointers which
-   * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
-   * properly. Avoid emitting unaligned load/store by checking for alignment
-   * explicitly, and performing memcpy if unaligned.
-   *
-   * The allocated memory tries to have the same alignment as the memory being
-   * simulated.
-   */
-  class Memory {
-   public:
-    virtual ~Memory() = default;
+  class MemoryAllocator;
 
-    /**
-     * @brief Return the size of the memory
-     */
+  /**
+   * An interface for a particular WASM engine memory implementation
+   */
+  class MemoryHandle {
+   public:
+    virtual ~MemoryHandle() = default;
+
     virtual WasmSize size() const = 0;
 
-    /**
-     * Resizes memory to the given size
-     * @param new_size
-     */
+    virtual std::optional<WasmSize> pagesMax() const = 0;
+
     virtual void resize(WasmSize new_size) = 0;
 
     virtual outcome::result<BytesOut> view(WasmPointer ptr,
@@ -68,6 +58,39 @@ namespace kagome::runtime {
     outcome::result<BytesOut> view(WasmSpan span) const {
       return view(PtrSize{span});
     }
+  };
+
+  /**
+   * A convenience wrapper around a memory handle and a memory allocator.
+   *
+   * Mind that the underlying memory can be accessed through unaligned pointers
+   * which isn't well-behaved in C++. WebAssembly nonetheless expects it to
+   * behave properly. Avoid emitting unaligned load/store by checking for
+   * alignment explicitly, and performing memcpy if unaligned.
+   *
+   * The allocated memory tries to have the same alignment as the memory being
+   * simulated.
+   */
+  class Memory final {
+   public:
+    Memory(std::shared_ptr<MemoryHandle> handle,
+           std::unique_ptr<MemoryAllocator> allocator)
+        : handle_{std::move(handle)}, allocator_{std::move(allocator)} {
+      BOOST_ASSERT(handle_);
+      BOOST_ASSERT(allocator_);
+    }
+
+    outcome::result<BytesOut> view(WasmPointer ptr, WasmSize size) const {
+      return handle_->view(ptr, size);
+    }
+
+    outcome::result<BytesOut> view(PtrSize ptr_size) const {
+      return handle_->view(ptr_size);
+    }
+
+    outcome::result<BytesOut> view(WasmSpan span) const {
+      return handle_->view(span);
+    }
 
     /**
      * Allocates memory of given size and returns address in the memory
@@ -75,7 +98,9 @@ namespace kagome::runtime {
      * @return address to allocated memory. If there is no available slot for
      * such allocation, then -1 is returned
      */
-    virtual WasmPointer allocate(WasmSize size) = 0;
+    WasmPointer allocate(WasmSize size) {
+      return allocator_->allocate(size);
+    }
 
     /**
      * Deallocates memory in provided region
@@ -83,14 +108,16 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual void deallocate(WasmPointer ptr) = 0;
+    void deallocate(WasmPointer ptr) {
+      return allocator_->deallocate(ptr);
+    }
 
     common::BufferView loadN(WasmPointer ptr, WasmSize size) const {
-      return view(ptr, size).value();
+      return handle_->view(ptr, size).value();
     }
 
     void storeBuffer(WasmPointer ptr, common::BufferView v) {
-      memcpy(view(ptr, v.size()).value().data(), v.data(), v.size());
+      memcpy(handle_->view(ptr, v.size()).value().data(), v.data(), v.size());
     }
 
     WasmSpan storeBuffer(common::BufferView v) {
@@ -98,5 +125,9 @@ namespace kagome::runtime {
       storeBuffer(ptr, v);
       return PtrSize{ptr, static_cast<WasmSize>(v.size())}.combine();
     }
+
+   private:
+    std::shared_ptr<MemoryHandle> handle_;
+    std::unique_ptr<MemoryAllocator> allocator_;
   };
 }  // namespace kagome::runtime

@@ -41,14 +41,21 @@ namespace kagome::crypto {
       if (not junction.hard) {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
-      seed = hasher_->blake2b_256(
-          scale::encode("Secp256k1HDKD"_bytes, seed, junction.cc).value());
+      auto bytes =
+          scale::encode("Secp256k1HDKD"_bytes, seed.unsafeBytes(), junction.cc)
+              .value();
+      SecureCleanGuard g{bytes};
+      auto _ = hasher_->blake2b_256(bytes);
+      seed = EcdsaSeed::from(
+          SecureCleanGuard(static_cast<std::array<uint8_t, 32>>(_)));
     }
-    EcdsaKeypair keys;
-    keys.secret_key = seed;
+    EcdsaKeypair keys{
+        .secret_key = EcdsaPrivateKey::from(seed),
+        .public_key = {},
+    };
     secp256k1_pubkey ffi_pub;
     if (secp256k1_ec_pubkey_create(
-            context_.get(), &ffi_pub, keys.secret_key.data())
+            context_.get(), &ffi_pub, keys.secret_key.unsafeBytes().data())
         == 0) {
       return Error::DERIVE_FAILED;
     }
@@ -75,7 +82,7 @@ namespace kagome::crypto {
     if (secp256k1_ecdsa_sign_recoverable(context_.get(),
                                          &ffi_sig,
                                          message.data(),
-                                         key.cbegin(),
+                                         key.unsafeBytes().data(),
                                          secp256k1_nonce_function_rfc6979,
                                          nullptr)
         == 0) {

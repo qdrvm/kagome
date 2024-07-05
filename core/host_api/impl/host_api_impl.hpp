@@ -45,7 +45,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::EllipticCurves> elliptic_curves,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<crypto::CryptoStore> crypto_store,
+        std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);

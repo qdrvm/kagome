@@ -51,6 +51,16 @@ namespace kagome::runtime::wavm {
     return WAVM::IR::ValueType::i64;
   }
 
+  template <>
+  WAVM::IR::ValueType get_wavm_type<uint32_t>() {
+    return WAVM::IR::ValueType::i32;
+  }
+
+  template <>
+  WAVM::IR::ValueType get_wavm_type<uint64_t>() {
+    return WAVM::IR::ValueType::i64;
+  }
+
   template <auto Method, typename... Args>
   auto host_method_thunk(WAVM::Runtime::ContextRuntimeData *, Args... args) {
     return std::invoke(Method, peekHostApi(), args...);
@@ -77,10 +87,9 @@ namespace kagome::runtime::wavm {
     }
 #define REGISTER_HOST_METHOD(Ret, name, ...)                                \
   registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(, ) __VA_ARGS__>( \
-      module, #name);                                                       \
+      module, #name);
 
     REGISTER_HOST_METHODS
-
   }
 
 }  // namespace kagome::runtime::wavm

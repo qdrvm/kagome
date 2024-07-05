@@ -9,7 +9,6 @@ add_subdirectory(provisioner)
 
 add_library(dispute_coordinator
     impl/dispute_coordinator_impl.cpp
-    impl/rolling_session_window_impl.cpp
     impl/storage_impl.cpp
     impl/chain_scraper_impl.cpp
     impl/scraped_candidates.cpp

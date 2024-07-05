@@ -18,6 +18,8 @@ namespace kagome::consensus::grandpa {
 
     std::vector<VoteVariant> getMessages() const override;
 
+    std::optional<VoteVariant> getMessage(Id id) const override;
+
     size_t getTotalWeight() const override;
 
    private:

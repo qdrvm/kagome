@@ -25,17 +25,18 @@ namespace kagome::parachain {
         const primitives::BlockHash &, const network::SignedBitfield &)>;
     using Candidates = std::vector<std::optional<network::CandidateHash>>;
 
-    BitfieldSigner(std::shared_ptr<crypto::Hasher> hasher,
-                   std::shared_ptr<ValidatorSignerFactory> signer_factory,
-                   std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-                   std::shared_ptr<runtime::ParachainHost> parachain_api,
-                   std::shared_ptr<AvailabilityStore> store,
-                   std::shared_ptr<Fetch> fetch,
-                   std::shared_ptr<BitfieldStore> bitfield_store);
+    BitfieldSigner(
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<ValidatorSignerFactory> signer_factory,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<runtime::ParachainHost> parachain_api,
+        std::shared_ptr<AvailabilityStore> store,
+        std::shared_ptr<Fetch> fetch,
+        std::shared_ptr<BitfieldStore> bitfield_store,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     /// Subscribes to new heads.
-    void start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                   chain_sub_engine);
+    void start();
 
     /// Sign bitfield for given block.
     outcome::result<void> sign(const ValidatorSigner &signer,
@@ -55,7 +56,7 @@ namespace kagome::parachain {
     std::shared_ptr<AvailabilityStore> store_;
     std::shared_ptr<Fetch> fetch_;
     std::shared_ptr<BitfieldStore> bitfield_store_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     BroadcastCallback broadcast_;
     log::Logger logger_ = log::createLogger("BitfieldSigner", "parachain");
   };

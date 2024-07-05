@@ -23,10 +23,6 @@
 #include "scale/libp2p_types.hpp"
 
 namespace kagome::scale {
-  namespace __outcome_detail {
-    template <typename T>
-    using Category = ::scale::__outcome_detail::Category<T>;
-  }
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;
@@ -47,9 +43,13 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const network::BlocksResponse &b);
 
-  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  template <typename F,
+            typename ElementType,
+            size_t MaxSize,
+            typename Allocator>
   constexpr void encode(
-      const F &func, const common::SLVector<ElementType, MaxSize, Args...> &c);
+      const F &func,
+      const common::SLVector<ElementType, MaxSize, Allocator> &c);
 
   template <typename F, typename T, typename Tag, typename Base>
   constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c);
@@ -122,10 +122,14 @@ namespace kagome::scale {
     }
   }
 
-  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  template <typename F,
+            typename ElementType,
+            size_t MaxSize,
+            typename Allocator>
   constexpr void encode(
-      const F &func, const common::SLVector<ElementType, MaxSize, Args...> &c) {
-    encode(func, static_cast<const std::vector<ElementType, Args...> &>(c));
+      const F &func,
+      const common::SLVector<ElementType, MaxSize, Allocator> &c) {
+    encode(func, static_cast<const std::vector<ElementType, Allocator> &>(c));
   }
 
   template <typename F, typename T, typename Tag, typename Base>

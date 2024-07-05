@@ -29,7 +29,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
-#include "utils/pool_handler.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -65,7 +65,7 @@ namespace {
       "kagome_import_queue_blocks_submitted";
   constexpr auto kLoadBlocksMaxExpire = std::chrono::seconds{5};
 
-  kagome::network::BlockAttributes attributesForSync(
+  kagome::network::BlockAttribute attributesForSync(
       kagome::application::SyncMethod method) {
     using SM = kagome::application::SyncMethod;
     switch (method) {
@@ -87,7 +87,7 @@ namespace kagome::network {
 
   SynchronizerImpl::SynchronizerImpl(
       const application::AppConfiguration &app_config,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
@@ -102,9 +102,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
+      common::MainThreadPool &main_thread_pool)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
-        app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
@@ -119,8 +118,8 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_pool_handler_(std::move(main_pool_handler)) {
-    BOOST_ASSERT(app_state_manager_);
+        main_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, main_thread_pool)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -142,7 +141,7 @@ namespace kagome::network {
         metrics_registry_->registerGaugeMetric(kImportQueueLength);
     metric_import_queue_length_->set(0);
 
-    app_state_manager_->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   /** @see AppStateManager::takeControl */
@@ -560,7 +559,7 @@ namespace kagome::network {
                              peer_id,
                              handler = std::move(handler),
                              need_body =
-                                 request.attributeIsSet(BlockAttribute::BODY),
+                                 has(request.fields, BlockAttribute::BODY),
                              parent_hash = primitives::BlockHash{}](
                                 outcome::result<BlocksResponse>
                                     response_res) mutable {
@@ -1297,27 +1296,15 @@ namespace kagome::network {
 
   std::optional<libp2p::peer::PeerId> SynchronizerImpl::chooseJustificationPeer(
       primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint) {
-    std::optional<PeerId> chosen;
-    peer_manager_->forEachPeer([&](const PeerId &peer) {
-      if (chosen) {
-        return;
-      }
+    return peer_manager_->peerFinalized(block, [&](const PeerId &peer) {
       if (busy_peers_.contains(peer)) {
-        return;
+        return false;
       }
       if (recent_requests_.contains({peer, fingerprint})) {
-        return;
+        return false;
       }
-      auto info = peer_manager_->getPeerState(peer);
-      if (not info) {
-        return;
-      }
-      if (info->get().last_finalized < block) {
-        return;
-      }
-      chosen = peer;
+      return true;
     });
-    return chosen;
   }
 
   bool SynchronizerImpl::fetchJustification(const primitives::BlockInfo &block,

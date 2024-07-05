@@ -57,9 +57,6 @@ namespace kagome::storage::trie {
       }
       return std::nullopt;
     }
-    if (wasClearedByPrefix(key)) {
-      return std::nullopt;
-    }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->tryGet(key);
     }
@@ -79,28 +76,10 @@ namespace kagome::storage::trie {
     if (auto it = cache_.find(key); it != cache_.end()) {
       return it->second.has_value();
     }
-    if (wasClearedByPrefix(key)) {
-      return false;
-    }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->contains(key);
     }
     return false;
-  }
-
-  bool TopperTrieBatchImpl::empty() const {
-    if (not cache_.empty()
-        and std::any_of(cache_.begin(), cache_.end(), [](auto &p) {
-              return p.second.has_value();
-            })) {
-      return false;
-    }
-    // TODO(Harrm) PRE-462 consider clearPrefix here. Not an easy thing and is
-    // barely possible to happen, so leave it for the future
-    if (auto p = parent_.lock(); p != nullptr) {
-      return p->empty();
-    }
-    return true;
   }
 
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
@@ -123,7 +102,6 @@ namespace kagome::storage::trie {
       it->second = std::nullopt;
     }
 
-    cleared_prefixes_.emplace_back(prefix);
     if (parent_.lock() != nullptr) {
       return outcome::success(std::make_tuple(false, 0ULL));
     }
@@ -132,19 +110,21 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
     if (auto p = parent_.lock()) {
-      for (const auto &prefix : cleared_prefixes_) {
-        OUTCOME_TRY(p->clearPrefix(prefix));
-      }
-      for (auto it = cache_.begin(); it != cache_.end(); it++) {
-        if (it->second.has_value()) {
-          OUTCOME_TRY(p->put(it->first, BufferView{it->second.value()}));
-        } else {
-          OUTCOME_TRY(p->remove(it->first));
-        }
-      }
-      return outcome::success();
+      return apply(*p);
     }
     return Error::PARENT_EXPIRED;
+  }
+
+  outcome::result<void> TopperTrieBatchImpl::apply(
+      storage::BufferStorage &map) {
+    for (auto &[k, v] : cache_) {
+      if (v) {
+        OUTCOME_TRY(map.put(k, BufferView{*v}));
+      } else {
+        OUTCOME_TRY(map.remove(k));
+      }
+    }
+    return outcome::success();
   }
 
   outcome::result<RootHash> TopperTrieBatchImpl::commit(StateVersion version) {
@@ -154,15 +134,6 @@ namespace kagome::storage::trie {
   outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
   TopperTrieBatchImpl::createChildBatch(common::BufferView path) {
     return Error::CHILD_BATCH_NOT_SUPPORTED;
-  }
-
-  bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
-    for (const auto &prefix : cleared_prefixes_) {
-      if (startsWith(key, prefix)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   TopperTrieCursor::TopperTrieCursor(std::shared_ptr<TopperTrieBatchImpl> batch,
@@ -253,7 +224,7 @@ namespace kagome::storage::trie {
     if (choice_.overlay) {
       return not overlay_it_->second;
     }
-    return parent_batch_->wasClearedByPrefix(*cached_parent_key_);
+    return false;
   }
 
   outcome::result<void> TopperTrieCursor::skipRemoved() {

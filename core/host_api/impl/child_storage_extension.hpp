@@ -10,7 +10,9 @@
 
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
+#include "primitives/kill_storage_result.hpp"
 #include "runtime/types.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
   class MemoryProvider;
@@ -59,29 +61,25 @@ namespace kagome::host_api {
     /**
      * @see HostApi::ext_default_child_storage_root_version_1
      */
-    runtime::WasmSpan ext_default_child_storage_root_version_1(
-        runtime::WasmSpan child_storage_key) const;
+    Hash256 ext_default_child_storage_root_version_1(BufferView child) const;
 
     /**
      * @see HostApi::ext_default_child_storage_root_version_2
      */
-    runtime::WasmSpan ext_default_child_storage_root_version_2(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmI32 state_version) const;
+    Hash256 ext_default_child_storage_root_version_2(
+        BufferView child, storage::trie::StateVersion version) const;
 
     /**
      * @see HostApi::ext_default_child_storage_clear_prefix_version_1
      */
-    void ext_default_child_storage_clear_prefix_version_1(
-        runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix);
+    void ext_default_child_storage_clear_prefix_version_1(BufferView child,
+                                                          BufferView prefix);
 
     /**
      * @see HostApi::ext_default_child_storage_clear_prefix_version_2
      */
-    runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan prefix,
-        runtime::WasmSpan limit);
+    KillStorageResult ext_default_child_storage_clear_prefix_version_2(
+        BufferView child, BufferView prefix, ClearPrefixLimit limit);
 
     /**
      * @see HostApi::ext_default_child_storage_read_version_1
@@ -101,14 +99,13 @@ namespace kagome::host_api {
     /**
      * @see HostApi::ext_default_child_storage_storage_kill_version_1
      */
-    void ext_default_child_storage_storage_kill_version_1(
-        runtime::WasmSpan child_storage_key);
+    void ext_default_child_storage_storage_kill_version_1(BufferView child);
 
     /**
      * @see HostApi::ext_default_child_storage_storage_kill_version_3
      */
-    runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
-        runtime::WasmSpan child_storage_key, runtime::WasmSpan limit);
+    KillStorageResult ext_default_child_storage_storage_kill_version_3(
+        BufferView child, ClearPrefixLimit limit);
 
    private:
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
