@@ -57,7 +57,6 @@ class WavmMemoryHeapTest : public ::testing::Test {
     memory_ = std::make_unique<Memory>(handle, std::move(allocator));
   }
 
-  static const uint32_t memory_size_ = 20 * kagome::runtime::kMemoryPageSize;
   static const uint32_t memory_page_limit_ = 512_MB;
 
   std::unique_ptr<Memory> memory_;

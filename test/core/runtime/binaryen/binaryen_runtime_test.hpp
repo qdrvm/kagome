@@ -8,7 +8,6 @@
 
 #include "core/runtime/runtime_test_base.hpp"
 
-#include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
