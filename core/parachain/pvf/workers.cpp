@@ -145,7 +145,9 @@ namespace kagome::parachain {
               return job.cb(r.error());
             }
             self->writeCode(
-                std::move(job), {std::move(process)}, std::move(used));
+                std::move(job),
+                {.process = std::move(process), .code = std::nullopt},
+                std::move(used));
           });
       return;
     }

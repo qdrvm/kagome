@@ -211,7 +211,7 @@ int main() {
       std::make_shared<kagome::runtime::RuntimeInstancesPoolImpl>(
           app_config,
           module_factory,
-          std::make_shared<kagome::runtime::InstrumentWasm>());
+          std::make_shared<kagome::runtime::WasmInstrumenter>());
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       hasher,

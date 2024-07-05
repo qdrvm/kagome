@@ -61,7 +61,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   auto pool = std::make_shared<RuntimeInstancesPoolImpl>(
       app_config,
       module_factory,
-      std::make_shared<DontInstrumentWasm>(),
+      std::make_shared<NoopWasmInstrumenter>(),
       POOL_SIZE);
 
   EXPECT_CALL(*module_factory, compilerType())

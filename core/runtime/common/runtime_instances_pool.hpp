@@ -102,5 +102,5 @@ template <>
 struct boost::di::ctor_traits<kagome::runtime::RuntimeInstancesPoolImpl> {
   BOOST_DI_INJECT_TRAITS(const kagome::application::AppConfiguration &,
                          std::shared_ptr<kagome::runtime::ModuleFactory>,
-                         std::shared_ptr<kagome::runtime::InstrumentWasm>);
+                         std::shared_ptr<kagome::runtime::WasmInstrumenter>);
 };
