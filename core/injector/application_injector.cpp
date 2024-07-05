@@ -156,6 +156,7 @@
 #include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
+#include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"

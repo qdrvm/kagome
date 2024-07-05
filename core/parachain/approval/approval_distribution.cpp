@@ -32,7 +32,6 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
-#include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;

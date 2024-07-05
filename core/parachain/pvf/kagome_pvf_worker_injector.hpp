@@ -72,7 +72,7 @@ namespace kagome::parachain {
 
   template <typename T>
   using sptr = std::shared_ptr<T>;
-  auto pvf_worker_injector(const PvfWorkerInput &input) {
+  auto pvf_worker_injector(const PvfWorkerInputConfig &input) {
     namespace di = boost::di;
     return di::make_injector(
         di::bind<crypto::Hasher>.to<crypto::HasherImpl>(),
