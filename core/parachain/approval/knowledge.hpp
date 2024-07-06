@@ -31,8 +31,9 @@ namespace kagome::parachain::approval {
   struct MessageSubjectHash {
     auto operator()(const MessageSubject &obj) const {
       size_t value{0ull};
-      std::apply(
-          [&](const auto &...v) { (..., boost::hash_combine(value, std::hash<std::decay_t<decltype(v)>>()(v))); }, obj);
+      boost::hash_range(value, std::get<0>(obj).begin(), std::get<0>(obj).end());
+      boost::hash_range(value, std::get<1>(obj).bits.begin(), std::get<1>(obj).bits.end());
+      boost::hash_combine(value, std::get<2>(obj));
       return value;
     }
   };

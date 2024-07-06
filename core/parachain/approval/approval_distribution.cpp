@@ -2573,13 +2573,16 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       const scale::BitVec &claimed_candidate_indices,
       SessionIndex session,
       const HashedCandidateReceipt &hashed_candidate,
-      GroupIndex backing_group) {
+      GroupIndex backing_group,
+        bool distribute_assignment) {
     /// TODO(iceseer): don't launch approval work if the node is syncing.
     const auto &block_hash = indirect_cert.block_hash;
     const auto validator_index = indirect_cert.validator;
 
-    import_and_circulate_assignment(
-        std::nullopt, indirect_cert, claimed_candidate_indices);
+    if (distribute_assignment) {
+      import_and_circulate_assignment(
+          std::nullopt, indirect_cert, claimed_candidate_indices);
+    }
 
     std::optional<ApprovalOutcome> approval_state =
         approvals_cache_.exclusiveAccess(
@@ -2960,7 +2963,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                             *claimed_candidate_indices,
                             block_entry.session,
                             candidate_entry.candidate,
-                            backing_group);
+                            backing_group, distribute_assignment);
 
         } else {
           SL_WARN(logger_,
@@ -2984,7 +2987,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
   void ApprovalDistribution::unify_with_peer(
       StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
       const libp2p::peer::PeerId &peer_id,
-      const network::View &view) {
+      const network::View &view,
+      bool retry_known_blocks) {
     std::deque<network::vstaging::Assignment> assignments_to_send;
     std::deque<approval::IndirectSignedApprovalVoteV2> approvals_to_send;
 
@@ -2998,7 +3002,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         }
 
         auto &entry = opt_entry->get();
-        if (entry.known_by.count(peer_id) != 0ull) {
+        if (entry.known_by.count(peer_id) != 0ull && !retry_known_blocks) {
           break;
         }
 

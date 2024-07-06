@@ -594,7 +594,8 @@ std::optional<scale::BitVec> cores_to_candidate_indices(
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
                          const libp2p::peer::PeerId &peer_id,
-                         const network::View &view);
+                         const network::View &view,
+      bool retry_known_blocks);
 
     outcome::result<BlockImportedCandidates> processImportedBlock(
         primitives::BlockNumber block_number,
@@ -634,7 +635,8 @@ std::optional<scale::BitVec> cores_to_candidate_indices(
         const scale::BitVec &claimed_candidate_indices,
         SessionIndex session,
         const HashedCandidateReceipt &hashed_candidate,
-        GroupIndex backing_group);
+        GroupIndex backing_group,
+        bool distribute_assignment);
 
     void runNewBlocks(approval::BlockApprovalMeta &&approval_meta,
                       primitives::BlockNumber finalized_block_number);
