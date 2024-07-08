@@ -15,13 +15,7 @@ namespace kagome::crypto {
     std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
     bandersnatch_keypair_from_seed(seed.unsafeBytes().data(), kp.data());
 
-    // for (auto &junction : junctions) {
-    //   decltype(kp) next;
-    //   (junction.hard ? bandersnatch_derive_keypair_hard
-    //                  : bandersnatch_derive_keypair_soft)(
-    //       next.data(), kp.data(), junction.cc.data());
-    //   kp = next;
-    // }
+    BOOST_ASSERT_MSG(junctions.empty(), "Junctions is not supported now");
 
     BandersnatchKeypair keypair{
         BandersnatchSecretKey::from(SecureCleanGuard{
