@@ -100,8 +100,7 @@ namespace kagome::parachain {
         auto &code_zstd = *code_zstd_res.value();
         auto res = [&]() -> outcome::result<void> {
           OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
-          OUTCOME_TRY(
-              pvf_pool_->pool()->precompile(code_hash, code_zstd, config));
+          OUTCOME_TRY(pvf_pool_->precompile(code_hash, code_zstd, config));
           return outcome::success();
         }();
         if (res) {

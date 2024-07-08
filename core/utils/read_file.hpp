@@ -9,8 +9,6 @@
 #include <filesystem>
 #include <fstream>
 
-#include "common/buffer.hpp"
-
 namespace kagome {
 
   template <typename T>

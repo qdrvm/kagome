@@ -23,6 +23,7 @@
 #include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
 #include <kagome/runtime/binaryen/instance_environment_factory.hpp>
 #include <kagome/runtime/binaryen/module/module_factory_impl.hpp>
+#include <kagome/runtime/common/core_api_factory_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
 #include <kagome/runtime/common/runtime_instances_pool.hpp>
 #include <kagome/runtime/common/runtime_properties_cache_impl.hpp>
@@ -52,6 +53,8 @@ int main() {
     exit(EXIT_FAILURE);
   }
   kagome::log::setLoggingSystem(logging_system);
+
+  kagome::application::AppConfigurationImpl app_config;
 
   rocksdb::Options db_options{};
   db_options.create_if_missing = true;
@@ -185,17 +188,29 @@ int main() {
 
   auto cache = std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 
+  std::shared_ptr<kagome::runtime::RuntimeInstancesPoolImpl>
+      runtime_instances_pool;
+  auto injector = boost::di::make_injector(
+      boost::di::bind<kagome::runtime::RuntimeInstancesPool>().to(
+          [&](const auto &) { return runtime_instances_pool; }));
+  auto core_factory = std::make_shared<kagome::runtime::CoreApiFactoryImpl>(
+      hasher,
+      injector
+          .create<kagome::LazySPtr<kagome::runtime::RuntimeInstancesPool>>());
+
   auto instance_env_factory =
       std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
-          trie_storage, serializer, host_api_factory);
+          trie_storage, serializer, core_factory, host_api_factory);
 
   auto module_factory =
       std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
           instance_env_factory, trie_storage, hasher);
 
-  auto runtime_instances_pool =
+  runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPoolImpl>(
-          module_factory, std::make_shared<kagome::runtime::InstrumentWasm>());
+          app_config,
+          module_factory,
+          std::make_shared<kagome::runtime::InstrumentWasm>());
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       hasher,

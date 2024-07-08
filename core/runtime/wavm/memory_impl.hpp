@@ -19,17 +19,12 @@
 #include "runtime/types.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
-namespace kagome::runtime {
-  class MemoryAllocator;
-  struct MemoryConfig;
-}  // namespace kagome::runtime
-
 namespace kagome::runtime::wavm {
   static_assert(kMemoryPageSize == WAVM::IR::numBytesPerPage);
 
   class MemoryImpl final : public kagome::runtime::MemoryHandle {
    public:
-    MemoryImpl(WAVM::Runtime::Memory *memory, const MemoryConfig &config);
+    MemoryImpl(WAVM::Runtime::Memory *memory);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
     MemoryImpl(MemoryImpl &&move) = delete;

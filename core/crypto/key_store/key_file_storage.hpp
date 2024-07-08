@@ -30,8 +30,6 @@ namespace kagome::crypto {
       FILE_DOESNT_EXIST,
       INVALID_FILE_FORMAT,
       INCONSISTENT_KEYFILE,
-      KEYS_PATH_IS_NOT_DIRECTORY,
-      FAILED_CREATE_KEYS_DIRECTORY
     };
 
     using Buffer = common::Buffer;

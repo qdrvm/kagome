@@ -144,6 +144,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(size_t, pvfMaxWorkers, (), (const, override));
+
     MOCK_METHOD(bool, disableSecureMode, (), (const, override));
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));

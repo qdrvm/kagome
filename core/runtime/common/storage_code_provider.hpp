@@ -34,8 +34,6 @@ namespace kagome::runtime {
     Result getCodeAt(const storage::trie::RootHash &state) const override;
 
    private:
-    outcome::result<common::Buffer> setCodeFromBatch(
-        const storage::trie::TrieBatch &batch) const;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;

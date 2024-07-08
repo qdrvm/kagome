@@ -262,6 +262,11 @@ namespace kagome::application {
     virtual std::chrono::milliseconds pvfSubprocessDeadline() const = 0;
 
     /**
+     * Max PVF execution threads or processes.
+     */
+    virtual size_t pvfMaxWorkers() const = 0;
+
+    /**
      * Whether secure validator mode should be disabled.
      */
     virtual bool disableSecureMode() const = 0;

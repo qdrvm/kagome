@@ -14,6 +14,8 @@
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "utils/read_file.hpp"
+#include "utils/write_file.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -25,15 +27,25 @@ namespace kagome::runtime::binaryen {
         storage_{std::move(storage)},
         hasher_(std::move(hasher)) {}
 
-  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      common::BufferView code) const {
-    std::vector<uint8_t> code_vec{code.begin(), code.end()};
-    OUTCOME_TRY(module,
-                ModuleImpl::createFromCode(code_vec,
-                                           env_factory_,
-                                           shared_from_this(),
-                                           hasher_->sha2_256(code)));
-    return module;
+  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+    return std::nullopt;
   }
 
+  CompilationOutcome<void> ModuleFactoryImpl::compile(
+      std::filesystem::path path_compiled, BufferView code) const {
+    OUTCOME_TRY(writeFileTmp(path_compiled, code));
+    return outcome::success();
+  }
+
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
+      std::filesystem::path path_compiled) const {
+    Buffer code;
+    if (not readFile(code, path_compiled)) {
+      return CompilationError{"read file failed"};
+    }
+    OUTCOME_TRY(module,
+                ModuleImpl::createFromCode(
+                    code, env_factory_, hasher_->blake2b_256(code)));
+    return module;
+  }
 }  // namespace kagome::runtime::binaryen
