@@ -40,8 +40,8 @@ alice: reports histogram polkadot_pvf_preparation_time has at least 1 samples in
 bob: reports histogram polkadot_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
 charlie: reports histogram polkadot_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
 dave: reports histogram polkadot_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
-ferdie: reports histogram kagome_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
-eve: reports histogram kagome_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
+ferdie: reports histogram polkadot_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
+eve: reports histogram polkadot_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
 one: reports histogram kagome_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
 two: reports histogram kagome_pvf_preparation_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2", "3", "10"] within 10 seconds
 
@@ -50,8 +50,8 @@ alice: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets 
 bob: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
 charlie: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
 dave: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
-ferdie: reports histogram kagome_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
-eve: reports histogram kagome_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
+ferdie: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
+eve: reports histogram polkadot_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
 one: reports histogram kagome_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
 two: reports histogram kagome_pvf_preparation_time has 0 samples in buckets ["20", "30", "60", "120", "+Inf"] within 10 seconds
 
@@ -68,8 +68,8 @@ alice: reports histogram polkadot_pvf_execution_time has at least 1 samples in b
 bob: reports histogram polkadot_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
 charlie: reports histogram polkadot_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
 dave: reports histogram polkadot_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
-ferdie: reports histogram kagome_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
-eve: reports histogram kagome_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
+ferdie: reports histogram polkadot_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
+eve: reports histogram polkadot_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
 one: reports histogram kagome_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
 two: reports histogram kagome_pvf_execution_time has at least 1 samples in buckets ["0.1", "0.5", "1", "2"] within 10 seconds
 
@@ -78,7 +78,7 @@ alice: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["
 bob: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
 charlie: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
 dave: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
-ferdie: reports histogram kagome_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
-eve: reports histogram kagome_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
+ferdie: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
+eve: reports histogram polkadot_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
 one: reports histogram kagome_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds
 two: reports histogram kagome_pvf_execution_time has 0 samples in buckets ["3", "4", "5", "6", "+Inf"] within 10 seconds

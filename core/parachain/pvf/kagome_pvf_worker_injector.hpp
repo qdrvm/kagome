@@ -22,6 +22,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
@@ -33,7 +34,6 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
 #endif
@@ -73,7 +73,7 @@ namespace kagome::parachain {
 
   template <typename T>
   using sptr = std::shared_ptr<T>;
-  auto pvf_worker_injector(const PvfWorkerInput &input) {
+  auto pvf_worker_injector(const PvfWorkerInputConfig &input) {
     namespace di = boost::di;
     return di::make_injector(
         di::bind<crypto::Hasher>.to<crypto::HasherImpl>(),
@@ -87,8 +87,10 @@ namespace kagome::parachain {
         bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
+        di::bind<runtime::CoreApiFactory>.to<runtime::CoreApiFactoryImpl>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
         di::bind<storage::trie::TrieStorage>.to<NullTrieStorage>(),
+        bind_null<runtime::RuntimeInstancesPool>(),
         bind_null<storage::trie::TrieSerializer>()
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
@@ -107,40 +109,18 @@ namespace kagome::parachain {
               runtime::wavm::registerHostApiMethods(*module);
               return module;
             }),
-
-        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([cache_dir =
-                                                              input.cache_dir](
-                                                             const auto
-                                                                 &injector) {
-          kagome::filesystem::path path_cache_dir(cache_dir);
-          auto module_cache = std::make_shared<runtime::wavm::ModuleCache>(
-              injector.template create<sptr<crypto::Hasher>>(), path_cache_dir);
-          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
-              injector
-                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
-              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-              injector.template create<sptr<host_api::HostApiFactory>>(),
-              injector.template create<sptr<storage::trie::TrieStorage>>(),
-              injector.template create<sptr<storage::trie::TrieSerializer>>(),
-              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              module_cache,
-              injector.template create<sptr<crypto::Hasher>>());
-        }),
-        bind_by_lambda<runtime::ModuleFactory>([](const auto &injector) {
-          return injector
-              .template create<sptr<runtime::wavm::ModuleFactoryImpl>>();
-        })
+        di::bind<runtime::ModuleFactory>()
+            .to<runtime::wavm::ModuleFactoryImpl>()
 #endif
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
             ,
         bind_by_lambda<runtime::wasm_edge::ModuleFactoryImpl::Config>(
-            [engine = input.engine, &input](const auto &injector) {
+            [engine = input.engine](const auto &injector) {
               using E = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
               runtime::wasm_edge::ModuleFactoryImpl::Config config{
                   engine == RuntimeEngine::kWasmEdgeCompiled ? E::Compiled
                                                              : E::Interpreted,
-                  input.cache_dir,
               };
               return std::make_shared<decltype(config)>(config);
             }),

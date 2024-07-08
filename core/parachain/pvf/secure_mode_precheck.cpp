@@ -14,11 +14,13 @@
 #include <boost/process/v2/stdio.hpp>
 #include <filesystem>
 #include <iostream>
+#include <libp2p/common/asio_buffer.hpp>
 #include <libp2p/log/configurator.hpp>
 #include <qtils/bytestr.hpp>
 #include <scale/scale.hpp>
 #include <soralog/macro.hpp>
 
+#include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
@@ -78,20 +80,15 @@ namespace kagome::parachain {
                                 exePath().c_str(),
                                 {"check-secure-mode", cache_dir.c_str()},
                                 process_v2::process_stdio{{}, pipe, {}}};
-    std::vector<char> output;
-
+    Buffer output;
     boost::system::error_code ec;
-    boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);
+    boost::asio::read(pipe, libp2p::asioBuffer(output), ec);
 
     if (process.wait() != 0) {
       return SecureModeError{"Secure mode check failed"};
     }
-    auto res = scale::decode<SecureModeSupport>(
-        common::BufferView{qtils::str2byte(output.data()), output.size()});
-    if (!res) {
-      return SecureModeError{res.error().message()};
-    }
-    return res.value();
+    OUTCOME_TRY(res, scale::decode<SecureModeSupport>(output));
+    return res;
   }
 
   int secureModeCheckMain(int argc, const char **argv) {

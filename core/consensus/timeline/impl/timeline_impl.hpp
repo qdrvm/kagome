@@ -18,6 +18,10 @@
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome {
+  class PoolHandler;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppStateManager;
   class AppConfiguration;
@@ -26,6 +30,10 @@ namespace kagome::application {
 namespace kagome::blockchain {
   class BlockTree;
 }
+
+namespace kagome::common {
+  class MainThreadPool;
+}  // namespace kagome::common
 
 namespace kagome::consensus {
   class SlotsUtil;
@@ -71,6 +79,7 @@ namespace kagome::consensus {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         const clock::SystemClock &clock,
+        common::MainThreadPool &main_thread_pool,
         std::shared_ptr<SlotsUtil> slots_util,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ConsensusSelector> consensus_selector,
@@ -138,6 +147,7 @@ namespace kagome::consensus {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     const clock::SystemClock &clock_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<SlotsUtil> slots_util_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ConsensusSelector> consensus_selector_;

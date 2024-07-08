@@ -18,6 +18,7 @@
 
 namespace kagome {
   class PoolHandler;
+  class PoolHandlerReady;
 }  // namespace kagome
 
 namespace kagome::application {
@@ -86,7 +87,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
-    std::shared_ptr<PoolHandler> worker_pool_handler_;
+    std::shared_ptr<PoolHandlerReady> worker_pool_handler_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

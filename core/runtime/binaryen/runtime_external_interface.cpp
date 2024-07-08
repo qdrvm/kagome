@@ -209,9 +209,9 @@ namespace kagome::runtime::binaryen {
           > wasm.memory.initial * wasm::Memory::kPageSize) {
         trap("invalid offset when initializing memory");
       }
-      for (size_t i = 0; i != segment.data.size(); ++i) {
-        memory.set(offset + i, segment.data[i]);
-      }
+      memcpy(memory.view(offset, segment.data.size()).data(),
+             segment.data.data(),
+             segment.data.size());
     }
 
     table.resize(wasm.table.initial);

@@ -28,8 +28,8 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> WavmExternalMemoryProvider::resetMemory(
       const MemoryConfig &config) {
-    auto handle = std::make_shared<MemoryImpl>(
-        intrinsic_module_->getExportedMemory(), config);
+    auto handle =
+        std::make_shared<MemoryImpl>(intrinsic_module_->getExportedMemory());
 
     current_memory_ = std::make_shared<Memory>(
         handle, std::make_unique<MemoryAllocatorImpl>(handle, config));

@@ -19,8 +19,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<std::unique_ptr<RestrictedCore>>,
                 make,
-                (std::shared_ptr<const crypto::Hasher> hasher,
-                 const std::vector<uint8_t> &runtime_code),
+                (BufferView, std::shared_ptr<TrieStorageProvider>),
                 (const, override));
   };
 

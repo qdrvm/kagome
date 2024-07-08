@@ -101,6 +101,7 @@ namespace kagome::host_api {
         misc_ext_{DEFAULT_CHAIN_ID,
                   hasher,
                   memory_provider_,
+                  storage_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, hasher),
         child_storage_ext_(storage_provider_, memory_provider_),

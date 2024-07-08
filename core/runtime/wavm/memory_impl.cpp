@@ -13,11 +13,9 @@
 
 namespace kagome::runtime::wavm {
 
-  MemoryImpl::MemoryImpl(WAVM::Runtime::Memory *memory,
-                         const MemoryConfig &config)
+  MemoryImpl::MemoryImpl(WAVM::Runtime::Memory *memory)
       : memory_{memory}, logger_{log::createLogger("WAVM Memory", "wavm")} {
     BOOST_ASSERT(memory_);
-    resize(kInitialMemorySize);
   }
 
   std::optional<WasmSize> MemoryImpl::pagesMax() const {

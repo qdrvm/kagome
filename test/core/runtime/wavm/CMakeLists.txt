@@ -59,4 +59,5 @@ target_link_libraries(wavm_module_init_test
     runtime_properties_cache
     logger_for_tests
     module_repository
+    wavm_runtime_test
 )

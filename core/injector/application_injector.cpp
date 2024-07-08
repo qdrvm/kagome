@@ -157,6 +157,7 @@
 #include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
+#include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -203,7 +204,6 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
-#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 
 #endif
@@ -391,26 +391,6 @@ namespace {
                       .template create<sptr<runtime::wavm::IntrinsicModule>>();
               return module->instantiate();
             }),
-        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
-                                                                &injector) {
-          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-              module_cache_opt;
-          auto &app_config =
-              injector.template create<const application::AppConfiguration &>();
-          module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-              injector.template create<sptr<crypto::Hasher>>(),
-              app_config.runtimeCacheDirPath());
-          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
-              injector
-                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
-              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-              injector.template create<sptr<host_api::HostApiFactory>>(),
-              injector.template create<sptr<storage::trie::TrieStorage>>(),
-              injector.template create<sptr<storage::trie::TrieSerializer>>(),
-              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              module_cache_opt,
-              injector.template create<sptr<crypto::Hasher>>());
-        }),
         di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
 #endif
         std::forward<decltype(args)>(args)...);
@@ -606,7 +586,6 @@ namespace {
                     Compile
             ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
             : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
-        config->runtimeCacheDirPath(),
     };
 #endif
 
@@ -728,12 +707,13 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-              auto module_factory = injector.template create<sptr<runtime::ModuleFactory>>();
               auto root_res =
                   injector::calculate_genesis_state(
                       injector
                           .template create<const application::ChainSpec &>(),
-                      *module_factory,
+                      injector
+                          .template create<const crypto::Hasher &>(),
+                      injector.template create<runtime::RuntimeInstancesPool&>(),
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
