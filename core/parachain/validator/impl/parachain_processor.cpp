@@ -2115,7 +2115,7 @@ namespace kagome::parachain {
       return Error::CLUSTER_TRACKER_ERROR;
     }
     OUTCOME_TRY(check_statement_signature(
-                    session, session_info.validators, relay_parent, statement);
+        session, session_info.validators, relay_parent, statement));
 
     cluster_tracker.note_received(
         cluster_sender_index,
