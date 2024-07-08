@@ -72,7 +72,7 @@ jobs:
       - name: "Cache dependencies"
         if: env.package_exist == 'False'
         id: cache-restore
-        uses: MansaGroup/gcs-cache-action@v1.0.3
+        uses: pass-culture-github-actions/gcs-cache@v1.0.0
         with:
           bucket: ci-cache-kagome
           path: ${{ env.CACHE_PATH }}
@@ -106,13 +106,13 @@ jobs:
           make upload_apt_package \
           BUILD_TYPE=${{ github.event.inputs.build_type }}
 
-      - name: "Always Save Cache"
-        id: cache-save
-        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+#      - name: "Always Save Cache"
+#        id: cache-save
+#        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+#        uses: actions/cache/save@v4
+#        with:
+#          path: ${{ env.CACHE_PATH }}
+#          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
 
   Zombie-Tests:
