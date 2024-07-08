@@ -7,7 +7,6 @@
 #pragma once
 
 #include "runtime/core_api_factory.hpp"
-#include "runtime/wabt/instrument.hpp"
 
 #include <memory>
 

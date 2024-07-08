@@ -11,7 +11,6 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
-#include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/module.hpp"
