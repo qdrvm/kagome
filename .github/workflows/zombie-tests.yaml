@@ -72,7 +72,7 @@ jobs:
       - name: "Cache dependencies"
         if: env.package_exist == 'False'
         id: cache-restore
-        uses: pass-culture-github-actions/gcs-cache@v1.0.0
+        uses: MansaGroup/gcs-cache-action@v1.0.3
         with:
           bucket: ci-cache-kagome
           path: ${{ env.CACHE_PATH }}
