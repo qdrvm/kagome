@@ -26,6 +26,7 @@ using ::testing::Invoke;
 using ::testing::Return;
 using ::testing::Test;
 
+using kagome::ExtrinsicInclusionMode;
 using kagome::authorship::BlockBuilder;
 using kagome::authorship::BlockBuilderError;
 using kagome::authorship::BlockBuilderFactoryMock;
@@ -73,8 +74,10 @@ class ProposerTest : public ::testing::Test {
     block_builder_ = new BlockBuilderMock;
     EXPECT_CALL(*block_builder_factory_,
                 make(expected_block_, inherent_digests_, _))
-        .WillOnce(Invoke([this](auto &&, auto &&, auto &&) {
-          return std::unique_ptr<BlockBuilderMock>{block_builder_};
+        .WillOnce(Invoke([&] {
+          return std::make_pair(
+              std::unique_ptr<BlockBuilderMock>{block_builder_},
+              ExtrinsicInclusionMode::AllExtrinsics);
         }));
   }
 

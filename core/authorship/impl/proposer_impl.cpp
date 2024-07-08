@@ -46,9 +46,10 @@ namespace kagome::authorship {
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest,
       TrieChangesTrackerOpt changes_tracker) {
-    OUTCOME_TRY(block_builder,
+    OUTCOME_TRY(block_builder_mode,
                 block_builder_factory_->make(
                     parent_block, inherent_digest, std::move(changes_tracker)));
+    auto &[block_builder, mode] = block_builder_mode;
 
     // Retrieve and add the inherent extrinsics to the block
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
@@ -83,106 +84,112 @@ namespace kagome::authorship {
       }
     }
 
-    // Remove stale transactions from the transaction pool
-    auto remove_res = transaction_pool_->removeStale(parent_block.number);
-    if (remove_res.has_error()) {
-      SL_ERROR(logger_,
-               "Stale transactions remove failure: {}, Parent is {}",
-               remove_res.error(),
-               parent_block);
-    }
-
-    /// TODO(iceseer): switch to callback case(this case is needed to make tests
-    /// complete)
-
-    // Retrieve ready transactions from the transaction pool
-    std::vector<std::pair<primitives::Transaction::Hash,
-                          std::shared_ptr<const primitives::Transaction>>>
-        ready_txs = transaction_pool_->getReadyTransactions();
-
-    bool transaction_pushed = false;
-    bool hit_block_size_limit = false;
-
-    auto skipped = 0;
-    auto block_size_limit = kBlockSizeLimit;
-    const auto kMaxVarintLength = 9;  /// Max varint size in bytes when encoded
-    // we move estimateBlockSize() out of the loop for optimization purposes.
-    // to avoid varint bytes length recalculation which indicates extrinsics
-    // quantity, we add the maximum varint length at once.
-    auto block_size = block_builder->estimateBlockSize() + kMaxVarintLength;
-    // at the moment block_size includes block headers and a counter to hold a
-    // number of transactions to be pushed to the block
-
-    size_t included_tx_count = 0;
     std::vector<primitives::Transaction::Hash> included_hashes;
-
-    // Iterate through the ready transactions
-    for (const auto &[hash, tx] : ready_txs) {
-      // Check if the deadline has been reached
-      if (deadline && clock_->now() >= deadline) {
-        break;
+    if (mode == ExtrinsicInclusionMode::AllExtrinsics) {
+      // Remove stale transactions from the transaction pool
+      auto remove_res = transaction_pool_->removeStale(parent_block.number);
+      if (remove_res.has_error()) {
+        SL_ERROR(logger_,
+                 "Stale transactions remove failure: {}, Parent is {}",
+                 remove_res.error(),
+                 parent_block);
       }
 
-      // Estimate the size of the transaction
-      scale::ScaleEncoderStream s(true);
-      s << tx->ext;
-      auto estimate_tx_size = s.size();
+      /// TODO(iceseer): switch to callback case(this case is needed to make
+      /// tests complete)
 
-      // Check if adding the transaction would exceed the block size limit
-      if (block_size + estimate_tx_size > block_size_limit) {
-        if (skipped < kMaxSkippedTransactions) {
-          ++skipped;
-          SL_DEBUG(logger_,
-                   "Transaction would overflow the block size limit, but will "
-                   "try {} more transactions before quitting.",
-                   kMaxSkippedTransactions - skipped);
-          continue;
+      // Retrieve ready transactions from the transaction pool
+      std::vector<std::pair<primitives::Transaction::Hash,
+                            std::shared_ptr<const primitives::Transaction>>>
+          ready_txs = transaction_pool_->getReadyTransactions();
+
+      bool transaction_pushed = false;
+      bool hit_block_size_limit = false;
+
+      auto skipped = 0;
+      auto block_size_limit = kBlockSizeLimit;
+      const auto kMaxVarintLength =
+          9;  /// Max varint size in bytes when encoded
+      // we move estimateBlockSize() out of the loop for optimization purposes.
+      // to avoid varint bytes length recalculation which indicates extrinsics
+      // quantity, we add the maximum varint length at once.
+      auto block_size = block_builder->estimateBlockSize() + kMaxVarintLength;
+      // at the moment block_size includes block headers and a counter to hold a
+      // number of transactions to be pushed to the block
+
+      size_t included_tx_count = 0;
+
+      // Iterate through the ready transactions
+      for (const auto &[hash, tx] : ready_txs) {
+        // Check if the deadline has been reached
+        if (deadline && clock_->now() >= deadline) {
+          break;
         }
-        // Reached the block size limit, stop adding transactions
-        SL_DEBUG(logger_,
-                 "Reached block size limit, proceeding with proposing.");
-        hit_block_size_limit = true;
-        break;
-      }
 
-      // Add the transaction to the block
-      SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
-      auto inserted_res = block_builder->pushExtrinsic(tx->ext);
-      if (not inserted_res) {
-        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+        // Estimate the size of the transaction
+        scale::ScaleEncoderStream s(true);
+        s << tx->ext;
+        auto estimate_tx_size = s.size();
+
+        // Check if adding the transaction would exceed the block size limit
+        if (block_size + estimate_tx_size > block_size_limit) {
           if (skipped < kMaxSkippedTransactions) {
-            // Skip the transaction and continue with the next one
             ++skipped;
-            SL_DEBUG(logger_,
-                     "Block seems full, but will try {} more transactions "
-                     "before quitting.",
-                     kMaxSkippedTransactions - skipped);
+            SL_DEBUG(
+                logger_,
+                "Transaction would overflow the block size limit, but will "
+                "try {} more transactions before quitting.",
+                kMaxSkippedTransactions - skipped);
+            continue;
+          }
+          // Reached the block size limit, stop adding transactions
+          SL_DEBUG(logger_,
+                   "Reached block size limit, proceeding with proposing.");
+          hit_block_size_limit = true;
+          break;
+        }
+
+        // Add the transaction to the block
+        SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
+        auto inserted_res = block_builder->pushExtrinsic(tx->ext);
+        if (not inserted_res) {
+          if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+            if (skipped < kMaxSkippedTransactions) {
+              // Skip the transaction and continue with the next one
+              ++skipped;
+              SL_DEBUG(logger_,
+                       "Block seems full, but will try {} more transactions "
+                       "before quitting.",
+                       kMaxSkippedTransactions - skipped);
+            } else {
+              // Maximum number of transactions reached, stop adding
+              // transactions
+              SL_DEBUG(logger_, "Block is full, proceed with proposing.");
+              break;
+            }
           } else {
-            // Maximum number of transactions reached, stop adding transactions
-            SL_DEBUG(logger_, "Block is full, proceed with proposing.");
-            break;
+            logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
+                          tx->ext.data,
+                          inserted_res.error());
           }
         } else {
-          logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
-                        tx->ext.data,
-                        inserted_res.error());
+          // Transaction was successfully added to the block
+          block_size += estimate_tx_size;
+          transaction_pushed = true;
+          ++included_tx_count;
+          included_hashes.emplace_back(hash);
         }
-      } else {
-        // Transaction was successfully added to the block
-        block_size += estimate_tx_size;
-        transaction_pushed = true;
-        ++included_tx_count;
-        included_hashes.emplace_back(hash);
       }
-    }
 
-    // Set the number of included transactions in the block metric
-    metric_tx_included_in_block_->set(included_tx_count);
+      // Set the number of included transactions in the block metric
+      metric_tx_included_in_block_->set(included_tx_count);
 
-    if (hit_block_size_limit and not transaction_pushed) {
-      SL_WARN(logger_,
-              "Hit block size limit of `{}` without including any transaction!",
-              block_size_limit);
+      if (hit_block_size_limit and not transaction_pushed) {
+        SL_WARN(
+            logger_,
+            "Hit block size limit of `{}` without including any transaction!",
+            block_size_limit);
+      }
     }
 
     // Create the block
