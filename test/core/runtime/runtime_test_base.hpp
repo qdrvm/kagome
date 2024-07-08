@@ -105,7 +105,8 @@ class RuntimeTestBase : public ::testing::Test {
             bip39_provider,
             random_generator,
             key_file_storage),
-        std::make_unique<crypto::KeySuiteStoreImpl<crypto::BandersnatchProvider>>(
+        std::make_unique<
+            crypto::KeySuiteStoreImpl<crypto::BandersnatchProvider>>(
             bandersnatch_provider,
             bip39_provider,
             random_generator,

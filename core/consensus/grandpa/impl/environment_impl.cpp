@@ -464,21 +464,21 @@ namespace kagome::consensus::grandpa {
     auto key_owner_proof_res = grandpa_api_->generate_key_ownership_proof(
         last_finalized.hash, authority_set_id, equivocation.offender());
     if (key_owner_proof_res.has_error()) {
-      SL_WARN(
-          logger_,
-          "Round #{}: can't generate key ownership proof for equivocation report: {}",
-          equivocation.round(),
-          key_owner_proof_res.error());
+      SL_WARN(logger_,
+              "Round #{}: can't generate key ownership proof for equivocation "
+              "report: {}",
+              equivocation.round(),
+              key_owner_proof_res.error());
       return key_owner_proof_res.as_failure();
     }
     const auto &key_owner_proof_opt = key_owner_proof_res.value();
 
     if (not key_owner_proof_opt.has_value()) {
-      SL_DEBUG(
-          logger_,
-          "Round #{}: can't generate key ownership proof for equivocation report: "
-          "Equivocation offender is not part of the authority set.",
-          equivocation.round());
+      SL_DEBUG(logger_,
+               "Round #{}: can't generate key ownership proof for equivocation "
+               "report: "
+               "Equivocation offender is not part of the authority set.",
+               equivocation.round());
       return outcome::success();  // ensure if an error type is right
     }
     const auto &key_owner_proof = key_owner_proof_opt.value();
