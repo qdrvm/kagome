@@ -30,41 +30,23 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
   return "Unknown BlockExecutionBenchmark error";
 }
 
-#define STR_SIMPLE(a) #a
-#define STR(a) STR_SIMPLE(a)
-#define CONCAT_SIMPLE(a, b) a##b
-#define CONCAT(a, b) CONCAT_SIMPLE(a, b)
-
-static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
-
-// mind if you want to move it to global scope, __LINE__ is not very reliable,
-// may use __COUNTER__ instead
-#define OUTCOME_TRY_MSG(var, expr, msg, ...)              \
-  auto CONCAT(_res_, __LINE__) = (expr);                  \
-  do {                                                    \
-    if (CONCAT(_res_, __LINE__).has_error()) {            \
-      SL_ERROR(logger_,                                   \
-               "Failure on {}: {} ({})",                  \
-               #expr,                                     \
-               CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
-      return CONCAT(_res_, __LINE__).as_failure();        \
-    }                                                     \
-  } while (false);                                        \
-  auto var = std::move(CONCAT(_res_, __LINE__).value());
-
-#define OUTCOME_TRY_MSG_VOID(expr, msg, ...)              \
-  do {                                                    \
-    auto CONCAT(_res_, __LINE__) = (expr);                \
-    if (CONCAT(_res_, __LINE__).has_error()) {            \
-      SL_ERROR(logger_,                                   \
-               "Failure on {}: {} ({})",                  \
-               #expr,                                     \
-               CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
-      return CONCAT(_res_, __LINE__).as_failure();        \
-    }                                                     \
-  } while (false);
+#define _OUTCOME_TRY_MSG_VOID(tmp, expr, ...) \
+  auto &&tmp = expr;                          \
+  if (tmp.has_error()) {                      \
+    SL_ERROR(logger_,                         \
+             "Failure on {}: {} ({})",        \
+             #expr,                           \
+             tmp.error(),                     \
+             fmt::format(__VA_ARGS__));       \
+    return std::move(tmp).error();            \
+  }
+#define _OUTCOME_TRY_MSG_OUT(tmp, out, expr, ...) \
+  _OUTCOME_TRY_MSG_VOID(tmp, expr, __VA_ARGS__);  \
+  auto out = std::move(tmp).value();
+#define OUTCOME_TRY_MSG(out, expr, ...) \
+  _OUTCOME_TRY_MSG_OUT(OUTCOME_UNIQUE, out, expr, __VA_ARGS__)
+#define OUTCOME_TRY_MSG_VOID(expr, ...) \
+  _OUTCOME_TRY_MSG_VOID(OUTCOME_UNIQUE, expr, __VA_ARGS__)
 
 namespace {
 
@@ -123,18 +105,15 @@ namespace kagome::benchmark {
       std::shared_ptr<runtime::Core> core_api,
       std::shared_ptr<const blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
-      std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage)
       : logger_{log::createLogger("BlockExecutionBenchmark", "benchmark")},
         core_api_{core_api},
         block_tree_{block_tree},
         module_repo_{module_repo},
-        code_provider_{code_provider},
         trie_storage_{trie_storage} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);
-    BOOST_ASSERT(code_provider_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
 

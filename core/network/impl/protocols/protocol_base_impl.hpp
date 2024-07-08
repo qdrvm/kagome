@@ -45,11 +45,18 @@ namespace kagome::network {
       BOOST_ASSERT(!protocols_.empty());
     }
 
+    /**
+     * @brief Starts the protocol setting the protocol handler
+     * @tparam T - the type of the protocol observer
+     * @param wp - a weak pointer to the protocol observer
+     * @return true if the protocol was started successfully, false otherwise
+     */
     template <typename T>
     bool start(std::weak_ptr<T> wp) {
       host_.setProtocolHandler(
           protocols_,
-          [wp = std::move(wp), log = logger()](auto &&stream_and_proto) {
+          [wp = std::move(wp),
+           log = logger()](libp2p::StreamAndProtocol stream_and_proto) {
             if (auto self = wp.lock()) {
               BOOST_ASSERT(stream_and_proto.stream);
 
@@ -62,7 +69,7 @@ namespace kagome::network {
                 SL_TRACE(log,
                          "Handled {} protocol stream from {}",
                          protocol,
-                         peer_id);
+                         peer_id.value());
                 BOOST_ASSERT(stream);
                 self->onIncomingStream(std::move(stream));
                 return;

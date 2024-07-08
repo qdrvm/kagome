@@ -19,8 +19,11 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
+#include "mock/core/offchain/offchain_worker_factory_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/parachain/approved_ancestor.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
@@ -28,14 +31,13 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Watchdog;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::consensus::grandpa::Chain;
@@ -45,13 +47,17 @@ using kagome::consensus::grandpa::JustificationObserver;
 using kagome::crypto::HasherMock;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::network::GrandpaTransmitterMock;
+using kagome::offchain::OffchainWorkerFactoryMock;
+using kagome::offchain::OffchainWorkerPoolMock;
 using kagome::parachain::ApprovedAncestorMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::runtime::GrandpaApiMock;
 using kagome::runtime::ParachainHostMock;
+
 using testing::_;
 using testing::Invoke;
 using testing::Return;
@@ -63,15 +69,16 @@ class ChainTest : public testing::Test {
   }
 
   void SetUp() override {
-    auto app_state_manager = std::make_shared<AppStateManagerMock>();
+    StartApp app_state_manager;
 
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
-    main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
-    main_pool_handler->start();
+
+    offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
+    offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
 
     chain = std::make_shared<EnvironmentImpl>(
+        app_state_manager,
         tree,
         header_repo,
         authority_manager,
@@ -79,11 +86,16 @@ class ChainTest : public testing::Test {
         approved_ancestor,
         testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
         nullptr,
+        grandpa_api,
         dispute_coordinator,
         parachain_api,
         backing_store,
         hasher,
-        main_pool_handler);
+        offchain_worker_factory,
+        offchain_worker_pool,
+        *main_thread_pool);
+
+    app_state_manager.start();
   }
 
   /**
@@ -133,7 +145,8 @@ class ChainTest : public testing::Test {
   std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =
       std::make_shared<GrandpaTransmitterMock>();
   std::shared_ptr<GrandpaMock> grandpa_ = std::make_shared<GrandpaMock>();
-
+  std::shared_ptr<GrandpaApiMock> grandpa_api =
+      std::make_shared<GrandpaApiMock>();
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator =
       std::make_shared<DisputeCoordinatorMock>();
   std::shared_ptr<ParachainHostMock> parachain_api =
@@ -147,7 +160,9 @@ class ChainTest : public testing::Test {
   std::shared_ptr<Watchdog> watchdog =
       std::make_shared<Watchdog>(std::chrono::milliseconds(1));
   std::shared_ptr<MainThreadPool> main_thread_pool;
-  std::shared_ptr<MainPoolHandler> main_pool_handler;
+
+  std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory;
+  std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
 
   std::shared_ptr<Chain> chain;
 };

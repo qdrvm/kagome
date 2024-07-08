@@ -98,7 +98,7 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(Return(outcome::success()));
     static const auto code_hash = "code_hash"_hash256;
     EXPECT_CALL(*module_instance, getCodeHash())
-        .WillRepeatedly(ReturnRef(code_hash));
+        .WillRepeatedly(Return(code_hash));
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*module_instance,
                 callExportFunction(_, std::string_view{"addTwo"}, _))
@@ -106,7 +106,7 @@ class ExecutorTest : public testing::Test {
     auto memory_provider =
         std::make_shared<kagome::runtime::MemoryProviderMock>();
     EXPECT_CALL(*memory_provider, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(Return(std::ref(memory_.memory)));
     EXPECT_CALL(*memory_provider, resetMemory(_))
         .WillRepeatedly(Return(outcome::success()));
 
@@ -119,11 +119,6 @@ class ExecutorTest : public testing::Test {
       EXPECT_CALL(*storage_provider, setToEphemeralAt(storage_state))
           .WillOnce(Return(outcome::success()));
     }
-    auto batch = std::make_shared<kagome::storage::trie::TrieBatchMock>();
-    EXPECT_CALL(*storage_provider, getCurrentBatch()).WillOnce(Return(batch));
-    static const auto heappages = ":heappages"_buf;
-    EXPECT_CALL(*batch, tryGetMock(heappages.view()))
-        .WillOnce(Return(kagome::common::Buffer{}));
 
     auto env = std::make_shared<kagome::runtime::InstanceEnvironment>(
         memory_provider, storage_provider, nullptr, nullptr);

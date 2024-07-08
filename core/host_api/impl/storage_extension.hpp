@@ -10,8 +10,10 @@
 
 #include "common/buffer_or_view.hpp"
 #include "log/logger.hpp"
+#include "primitives/kill_storage_result.hpp"
 #include "runtime/types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::crypto {
   class Hasher;
@@ -71,24 +73,23 @@ namespace kagome::host_api {
     /**
      * @see HostApi::ext_storage_clear_prefix_version_1
      */
-    void ext_storage_clear_prefix_version_1(runtime::WasmSpan prefix);
+    void ext_storage_clear_prefix_version_1(BufferView prefix);
 
     /**
      * @see HostApi::ext_storage_clear_prefix_version_2
      */
-    runtime::WasmSpan ext_storage_clear_prefix_version_2(
-        runtime::WasmSpan prefix, runtime::WasmSpan limit);
+    KillStorageResult ext_storage_clear_prefix_version_2(
+        BufferView prefix, ClearPrefixLimit limit);
 
     /**
      * @see HostApi::ext_storage_root_version_1
      */
-    runtime::WasmSpan ext_storage_root_version_1();
+    Hash256 ext_storage_root_version_1();
 
     /**
      * @see HostApi::ext_storage_root_version_2
      */
-    runtime::WasmSpan ext_storage_root_version_2(
-        runtime::WasmI32 state_version);
+    Hash256 ext_storage_root_version_2(storage::trie::StateVersion version);
 
     /**
      * @see HostApi::ext_storage_changes_root_version_1
@@ -172,9 +173,6 @@ namespace kagome::host_api {
      */
     outcome::result<std::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
-
-    runtime::WasmSpan clearPrefix(common::BufferView prefix,
-                                  std::optional<uint32_t> limit);
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;

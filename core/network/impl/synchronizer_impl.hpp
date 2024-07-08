@@ -29,6 +29,10 @@
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome {
+  class PoolHandlerReady;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppConfiguration;
 }
@@ -38,7 +42,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainPoolHandler;
+  class MainThreadPool;
 }
 
 namespace kagome::consensus {
@@ -105,7 +109,7 @@ namespace kagome::network {
 
     SynchronizerImpl(
         const application::AppConfiguration &app_config,
-        std::shared_ptr<application::AppStateManager> app_state_manager,
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
@@ -120,7 +124,7 @@ namespace kagome::network {
         LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
+        common::MainThreadPool &main_thread_pool);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -234,7 +238,6 @@ namespace kagome::network {
 
     log::Logger log_;
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
@@ -249,7 +252,7 @@ namespace kagome::network {
     std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandlerReady> main_pool_handler_;
 
     application::SyncMethod sync_method_;
 

@@ -94,3 +94,24 @@ namespace kagome {
                   });                                                          \
     }                                                                          \
   } while (false)
+
+/// Reinvokes function once depending on `template <bool kReinvoke>` argument.
+/// If `true` reinvoke takes place, otherwise direct call. After reinvoke called
+/// function has `false` in kReinvoke.
+#define REINVOKE_ONCE(ctx, func, ...)                                         \
+  do {                                                                        \
+    if constexpr (kReinvoke) {                                                \
+      return post(                                                            \
+          ctx,                                                                \
+          [weak{weak_from_this()},                                            \
+           args = std::make_tuple(__VA_ARGS__)]() mutable {                   \
+            if (auto self = weak.lock()) {                                    \
+              std::apply(                                                     \
+                  [&](auto &&...args) mutable {                               \
+                    self->func<false>(std::forward<decltype(args)>(args)...); \
+                  },                                                          \
+                  std::move(args));                                           \
+            }                                                                 \
+          });                                                                 \
+    }                                                                         \
+  } while (false)

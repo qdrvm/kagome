@@ -16,6 +16,9 @@ endif ()
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
 find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
 
+hunter_add_package(qtils)
+find_package(qtils CONFIG REQUIRED)
+
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)
 find_library(XXHASH NAMES libxxhash.a REQUIRED PATHS "${XXHASH_ROOT}/lib")
@@ -31,13 +34,13 @@ find_package(binaryen CONFIG REQUIRED)
 hunter_add_package(benchmark)
 find_package(benchmark CONFIG REQUIRED)
 
-# https://github.com/soramitsu/libp2p
+# https://github.com/libp2p/cpp-libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
 # https://www.openssl.org/
-hunter_add_package(OpenSSL)
-find_package(OpenSSL REQUIRED)
+hunter_add_package(BoringSSL)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # https://developers.google.com/protocol-buffers/
 hunter_add_package(Protobuf)
@@ -80,6 +83,7 @@ find_package(scale CONFIG REQUIRED)
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 
+  
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_add_package(wavm)
   find_package(LLVM CONFIG REQUIRED)

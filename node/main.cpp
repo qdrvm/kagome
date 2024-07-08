@@ -5,6 +5,7 @@
  */
 
 #include <iostream>
+#include "parachain/pvf/secure_mode_precheck.hpp"
 
 #if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
@@ -23,7 +24,6 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
-#include "utils/argv0.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
@@ -61,6 +61,10 @@ namespace {
       }
     }
 
+    if (configuration->precompileWasm()) {
+      return app->precompileWasm();
+    }
+
     // Recovery mode
     if (configuration->recoverState().has_value()) {
       return app->recovery();
@@ -89,7 +93,7 @@ namespace {
 
 }  // namespace
 
-int main(int argc, const char **argv) {
+int main(int argc, const char **argv, const char **env) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -97,12 +101,14 @@ int main(int argc, const char **argv) {
   // Needed for zombienet
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
-  kagome::argv0() = argv[0];
 
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "pvf-worker") {
-      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1);
+      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1, env);
+    }
+    if (name == "check-secure-mode") {
+      return kagome::parachain::secureModeCheckMain(argc, argv);
     }
   }
 

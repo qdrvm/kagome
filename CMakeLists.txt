@@ -170,7 +170,7 @@ if (CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif ()
 if (EMBEDDINGS)
-  add_compile_definitions(PRIVATE USE_KAGOME_EMBEDDINGS)
+  add_compile_definitions(USE_KAGOME_EMBEDDINGS)
 endif ()
 if (NOT DEFINED PROFILING)
   if (${CMAKE_BUILD_TYPE} EQUALS "Debug")
@@ -178,7 +178,7 @@ if (NOT DEFINED PROFILING)
   endif ()
 endif ()
 if (PROFILING)
-  add_compile_definitions(PRIVATE KAGOME_PROFILING)
+  add_compile_definitions(KAGOME_PROFILING)
 endif ()
 
 include(GNUInstallDirs)
@@ -189,7 +189,6 @@ include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
 
 add_subdirectory(core)
 
-# TODO(Harrm): refactor to avoid manually adding each new directory
 kagome_install_setup(
     HEADER_DIRS
     # cmake-format: sortable

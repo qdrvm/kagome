@@ -8,33 +8,39 @@
 
 namespace kagome::crypto {
 
-  BandersnatchKeypair BandersnatchProviderImpl::generateKeypair(
+  outcome::result<BandersnatchKeypair>
+  BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
     std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
+    bandersnatch_keypair_from_seed(seed.unsafeBytes().data(), kp.data());
 
-    bandersnatch_keypair_from_seed(seed.data(), kp.data());
+    // for (auto &junction : junctions) {
+    //   decltype(kp) next;
+    //   (junction.hard ? bandersnatch_derive_keypair_hard
+    //                  : bandersnatch_derive_keypair_soft)(
+    //       next.data(), kp.data(), junction.cc.data());
+    //   kp = next;
+    // }
 
-    BandersnatchKeypair keypair;
-
-    std::copy_n(kp.begin(),
-                constants::bandersnatch::SECRET_SIZE,
-                keypair.secret_key.begin());
-    std::copy_n(kp.begin() + constants::bandersnatch::SECRET_SIZE,
-                constants::bandersnatch::PUBLIC_SIZE,
-                keypair.public_key.begin());
-
+    BandersnatchKeypair keypair{
+        BandersnatchSecretKey::from(SecureCleanGuard{
+            std::span(kp).subspan<0, constants::bandersnatch::SECRET_SIZE>()}),
+        BandersnatchPublicKey::fromSpan(
+            std::span(kp).subspan(constants::bandersnatch::SECRET_SIZE,
+                                  constants::bandersnatch::PUBLIC_SIZE))
+            .value()};
     return keypair;
   }
 
   outcome::result<BandersnatchSignature> BandersnatchProviderImpl::sign(
       const BandersnatchKeypair &keypair, common::BufferView message) const {
-    auto seed = BandersnatchSeed::fromSpan(keypair.secret_key).value();
-
     BandersnatchSignature signature;
 
-    ::bandersnatch_sign(
-        seed.data(), message.data(), message.size(), signature.data());
+    ::bandersnatch_sign(keypair.secret_key.unsafeBytes().data(),
+                        message.data(),
+                        message.size(),
+                        signature.data());
 
     return signature;
   }

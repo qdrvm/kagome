@@ -32,6 +32,10 @@ namespace kagome::application {
     uint16_t times;
   };
 
+  struct PrecompileWasmConfig {
+    std::vector<filesystem::path> parachains;
+  };
+
   using BenchmarkConfigSection = std::variant<BlockBenchmarkConfig>;
 
   /**
@@ -233,13 +237,6 @@ namespace kagome::application {
     virtual RuntimeInterpreter runtimeInterpreter() const = 0;
 
     /**
-     * A flag marking if we use and store precompiled WAVM runtimes.
-     * Significantly increases node restart speed. Especially useful when
-     * debugging.
-     */
-    virtual bool useWavmCache() const = 0;
-
-    /**
      * A flag marking if we must force-purge WAVM runtime cache
      */
     virtual bool purgeWavmCache() const = 0;
@@ -263,6 +260,11 @@ namespace kagome::application {
      * Effective only when usePvfSubprocess() == true.
      */
     virtual std::chrono::milliseconds pvfSubprocessDeadline() const = 0;
+
+    /**
+     * Whether secure validator mode should be disabled.
+     */
+    virtual bool disableSecureMode() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
@@ -309,6 +311,8 @@ namespace kagome::application {
 
     virtual std::optional<BenchmarkConfigSection> getBenchmarkConfig()
         const = 0;
+
+    virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
   };
 
 }  // namespace kagome::application

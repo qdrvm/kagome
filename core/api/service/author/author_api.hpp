@@ -9,7 +9,8 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/common.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "primitives/author_api_primitives.hpp"
 #include "primitives/transaction_validity.hpp"
 
@@ -53,7 +54,7 @@ namespace kagome::api {
      * @param public_key The public key in binary
      */
     virtual outcome::result<void> insertKey(crypto::KeyType key_type,
-                                            const BufferView &seed,
+                                            crypto::SecureBuffer<> seed,
                                             const BufferView &public_key) = 0;
 
     /**

@@ -16,6 +16,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::common::Hash256;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::Ed25519PrivateKey;
@@ -25,6 +26,7 @@ using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::SecureCleanGuard;
 
 struct Ed25519ProviderTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -45,8 +47,9 @@ struct Ed25519ProviderTest : public ::testing::Test {
   }
 
   auto generate() {
-    Ed25519Seed seed;
-    csprng->fillRandomly(seed);
+    Hash256 seed_bytes;
+    csprng->fillRandomly(seed_bytes);
+    Ed25519Seed seed = Ed25519Seed::from(SecureCleanGuard{seed_bytes});
     return ed25519_provider->generateKeypair(seed, {}).value();
   }
 
@@ -150,11 +153,14 @@ TEST_F(Ed25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
  * @then public and private keys come up with predefined values
  */
 TEST_F(Ed25519ProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(seed, Ed25519Seed::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(
+      seed, Ed25519Seed::fromHex(SecureCleanGuard(std::string(hex_seed))));
   EXPECT_OUTCOME_TRUE(public_key, Ed25519PublicKey::fromHex(hex_public_key));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(private_key, Ed25519PrivateKey::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(
+      private_key,
+      Ed25519PrivateKey::fromHex(SecureCleanGuard(std::string(hex_seed))));
 
   auto kp = ed25519_provider->generateKeypair(seed, {}).value();
 
@@ -172,7 +178,7 @@ TEST_F(Ed25519ProviderTest, Junctions) {
     auto bip = bip_provider.generateSeed(phrase).value();
     auto keys =
         ed25519_provider
-            ->generateKeypair(bip.as<Ed25519Seed>().value(), bip.junctions)
+            ->generateKeypair(Ed25519Seed::from(bip.seed), bip.junctions)
             .value();
     EXPECT_EQ(keys.public_key.toHex(), pub_str);
   };

@@ -6,9 +6,9 @@
 #include "parachain/pvf/module_precompiler.hpp"
 
 #include <atomic>
-#include <future>
-#include <ranges>
 
+#include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/session_params.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
@@ -23,11 +23,11 @@ namespace kagome::parachain {
   ModulePrecompiler::ModulePrecompiler(
       const kagome::parachain::ModulePrecompiler::Config &config,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
-      std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache,
+      std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_{config},
         parachain_api_{parachain_api},
-        runtime_cache_{runtime_cache},
+        pvf_pool_{std::move(pvf_pool)},
         hasher_{hasher} {
     if (getThreadsNum() > std::thread::hardware_concurrency() - 1) {
       SL_WARN(
@@ -61,6 +61,8 @@ namespace kagome::parachain {
 
   outcome::result<void> ModulePrecompiler::precompileModulesAt(
       const primitives::BlockHash &last_finalized) {
+    OUTCOME_TRY(executor_params,
+                sessionParams(*parachain_api_, last_finalized));
     auto cores_res = parachain_api_->availability_cores(last_finalized);
     if (cores_res.has_error()
         && cores_res.error()
@@ -84,6 +86,7 @@ namespace kagome::parachain {
     std::vector<std::thread> threads;
     for (size_t i = 0; i < config_.precompile_threads_num; i++) {
       auto compilation_worker = [self = shared_from_this(),
+                                 &executor_params,
                                  &cores_queue_mutex,
                                  &cores,
                                  &stats,
@@ -101,7 +104,7 @@ namespace kagome::parachain {
             cores.pop_back();
           }
           auto res = self->precompileModulesForCore(
-              stats, last_finalized, ParachainCore{core});
+              stats, last_finalized, executor_params, ParachainCore{core});
           if (!res) {
             using namespace std::string_literals;
             auto id = get_para_id(core);
@@ -141,6 +144,7 @@ namespace kagome::parachain {
   outcome::result<void> ModulePrecompiler::precompileModulesForCore(
       PrecompilationStats &stats,
       const primitives::BlockHash &last_finalized,
+      const runtime::RuntimeContext::ContextParams &executor_params,
       const ParachainCore &_core) {
     auto &core = _core.state;
     if (std::holds_alternative<runtime::FreeCore>(core)) {
@@ -176,7 +180,7 @@ namespace kagome::parachain {
              hash);
     stats.total_code_size += code.size();
 
-    OUTCOME_TRY(runtime_cache_->instantiateFromCode(hash, code, {}));
+    OUTCOME_TRY(pvf_pool_->pool()->precompile(hash, code, executor_params));
     SL_DEBUG(log_,
              "Instantiated runtime instance with code hash {} for parachain "
              "{}, {} left",

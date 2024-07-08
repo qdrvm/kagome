@@ -8,11 +8,11 @@ find_program(CMAKE_C_COMPILER gcc-13)
 find_program(CMAKE_CXX_COMPILER g++-13)
 
 if(NOT CMAKE_C_COMPILER)
-  fatal_error("gcc-13 not found")
+  message(FATAL_ERROR "gcc-13 not found")
 endif()
 
 if(NOT CMAKE_CXX_COMPILER)
-  fatal_error("g++-13 not found")
+message(FATAL_ERROR "g++-13 not found")
 endif()
 
 set(

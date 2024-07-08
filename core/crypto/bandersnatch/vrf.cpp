@@ -26,7 +26,8 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   VrfOutput vrf_output(const BandersnatchSecretKey &secret,
                        const VrfInput &input) {
-    auto output_ptr = ::bandersnatch_vrf_output(secret.data(), input.ptr);
+    auto output_ptr =
+        ::bandersnatch_vrf_output(secret.unsafeBytes().data(), input.ptr);
     VrfOutput output;
     ::bandersnatch_vrf_output_encode(output_ptr, output.data());
     return output;
@@ -99,7 +100,7 @@ namespace kagome::crypto::bandersnatch::vrf {
   VrfSignature vrf_sign(const BandersnatchSecretKey &secret_key,
                         const VrfSignData &sign_data) {
     auto signature_ptr =
-        ::bandersnatch_vrf_sign(secret_key.data(), sign_data.ptr);
+        ::bandersnatch_vrf_sign(secret_key.unsafeBytes().data(), sign_data.ptr);
 
     static const size_t maxEncodedSize = 1
                                        + MAX_VRF_IOS * BANDERSNATCH_PREOUT_SIZE
@@ -133,7 +134,7 @@ namespace kagome::crypto::bandersnatch::vrf {
                                  const VrfSignData &sign_data,
                                  const RingProver &ring_prover) {
     auto ring_signature_ptr = ::bandersnatch_ring_vrf_sign(
-        secret_key.data(), sign_data.ptr, ring_prover.ptr);
+        secret_key.unsafeBytes().data(), sign_data.ptr, ring_prover.ptr);
 
     static const size_t maxEncodedSize = 1
                                        + MAX_VRF_IOS * BANDERSNATCH_PREOUT_SIZE

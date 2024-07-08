@@ -20,7 +20,6 @@ namespace kagome::blockchain {
 
 namespace kagome::runtime {
   class ModuleFactory;
-  class SingleModuleCache;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime {

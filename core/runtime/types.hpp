@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "outcome/outcome.hpp"
+#include "runtime/heap_alloc_strategy.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::runtime {
@@ -18,11 +19,12 @@ namespace kagome::runtime {
    * @brief type of wasm log levels
    */
   enum class WasmLogLevel {
-    Error = 0,
-    Warn = 1,
-    Info = 2,
-    Debug = 3,
-    Trace = 4,
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
   };
 
   using WasmPointer = uint32_t;
@@ -53,7 +55,7 @@ namespace kagome::runtime {
     SCALE_TIE(2);
 
     std::optional<uint32_t> max_stack_values_num{};
-    std::optional<uint32_t> max_memory_pages_num{};
+    HeapAllocStrategy heap_alloc_strategy;
   };
 
   struct MemoryConfig {
@@ -75,8 +77,13 @@ namespace kagome::runtime {
     return {minor_part, major_part};
   }
 
-  enum class Error { COMPILATION_FAILED = 1, INSTRUMENTATION_FAILED };
+  enum class Error {
+    COMPILATION_FAILED = 1,
+    INSTRUMENTATION_FAILED,
+  };
 
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, Error);
+
+SCALE_TIE_HASH_STD(kagome::runtime::MemoryLimits);

@@ -17,6 +17,11 @@ namespace kagome::consensus {
     MOCK_METHOD(SyncState, getCurrentState, (), (const, override));
 
     MOCK_METHOD(bool, wasSynchronized, (), (const, override));
+
+    MOCK_METHOD(void,
+                checkAndReportEquivocation,
+                (const primitives::BlockHeader &),
+                (override));
   };
 
 }  // namespace kagome::consensus

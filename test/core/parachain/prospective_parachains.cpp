@@ -11,6 +11,8 @@
 #include "testutil/prepare_loggers.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/type_hasher.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
@@ -19,6 +21,7 @@
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
+#include "parachain/validator/signer.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
@@ -104,6 +107,7 @@ class ProspectiveParachainsTest : public testing::Test {
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
     prospective_parachain_ = std::make_shared<ProspectiveParachains>(
         hasher_, parachain_api_, block_tree_);
+    sr25519_provider_ = std::make_shared<crypto::Sr25519ProviderImpl>();
   }
 
   void TearDown() override {
@@ -121,6 +125,7 @@ class ProspectiveParachainsTest : public testing::Test {
   std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
+  std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
   static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
   static constexpr uint32_t MAX_POV_SIZE = 1000000;
@@ -150,6 +155,29 @@ class ProspectiveParachainsTest : public testing::Test {
         .upgrade_restriction = std::nullopt,
         .future_validation_code = std::nullopt,
     };
+  }
+
+  std::pair<network::CommittedCandidateReceipt, CandidateHash>
+  make_and_back_candidate(const TestState &test_state,
+                          const TestLeaf &leaf,
+                          const network::CommittedCandidateReceipt &parent,
+                          uint64_t index) {
+    auto tmp = make_candidate(leaf.hash,
+                              leaf.number,
+                              1,
+                              parent.commitments.para_head,
+                              {uint8_t(index)},
+                              test_state.validation_code_hash);
+
+    tmp.first.descriptor.para_head_hash = fromNumber(index);
+    const auto &[candidate, pvd] = tmp;
+    const Hash candidate_hash = network::candidateHash(*hasher_, candidate);
+
+    introduce_candidate(candidate, pvd);
+    second_candidate(candidate);
+    back_candidate(candidate, candidate_hash);
+
+    return {candidate, candidate_hash};
   }
 
   std::pair<network::CommittedCandidateReceipt,
@@ -355,7 +383,7 @@ class ProspectiveParachainsTest : public testing::Test {
     EXPECT_CALL(*block_tree_, getBlockHeader(hash))
         .WillRepeatedly(Return(header));
 
-    BlockNumber min_min = [&]() -> BlockNumber {
+    BlockNumber min_min = [&, number = number]() -> BlockNumber {
       std::optional<BlockNumber> min_min;
       for (const auto &[_, data] : leaf.para_data) {
         min_min = min_min ? std::min(*min_min, data.min_relay_parent)
@@ -371,12 +399,8 @@ class ProspectiveParachainsTest : public testing::Test {
     std::deque<BlockNumber> ancestry_numbers;
 
     Hash d = hash;
-    for (BlockNumber x = 0; x <= ancestry_len; ++x) {
+    for (BlockNumber x = 0; x <= ancestry_len + 1; ++x) {
       assert(number - x - 1 != 0);
-      if (x == 0) {
-        d = get_parent_hash(d);
-        continue;
-      }
       ancestry_hashes.emplace_back(d);
       ancestry_numbers.push_front(number - ancestry_len + x - 1);
       d = get_parent_hash(d);
@@ -385,7 +409,7 @@ class ProspectiveParachainsTest : public testing::Test {
 
     if (ancestry_len > 0) {
       EXPECT_CALL(*block_tree_,
-                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
+                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN + 1))
           .WillRepeatedly(Return(ancestry_hashes));
       EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
           .WillRepeatedly(Return(1));
@@ -438,10 +462,11 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {update.new_head},
-        .lost = update.lost,
-    });
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {update.new_head},
+            .lost = update.lost,
+        }));
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
       return l.first < r.first;
@@ -494,13 +519,14 @@ class ProspectiveParachainsTest : public testing::Test {
         network::candidateHash(*hasher_, candidate));
   }
 
-  auto get_backable_candidate(
+  auto get_backable_candidates(
       const TestLeaf &leaf,
       ParachainId para_id,
       std::vector<CandidateHash> required_path,
-      const std::optional<std::pair<CandidateHash, Hash>> &expected_result) {
-    auto resp = prospective_parachain_->answerGetBackableCandidate(
-        leaf.hash, para_id, required_path);
+      uint32_t count,
+      const std::vector<std::pair<CandidateHash, Hash>> &expected_result) {
+    auto resp = prospective_parachain_->answerGetBackableCandidates(
+        leaf.hash, para_id, count, required_path);
     ASSERT_EQ(resp, expected_result);
   }
 
@@ -568,10 +594,11 @@ class ProspectiveParachainsTest : public testing::Test {
         .new_head = {},
         .lost = {hash},
     };
-    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update.lost,
+        });
   }
 
   auto get_pvd(
@@ -583,7 +610,8 @@ class ProspectiveParachainsTest : public testing::Test {
         candidate_relay_parent,
         hasher_->blake2b_256(parent_head_data),
         para_id);
-    ASSERT_EQ(resp, expected_pvd);
+    ASSERT_TRUE(resp.has_value());
+    ASSERT_EQ(resp.value(), expected_pvd);
   }
 };
 
@@ -608,7 +636,7 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
       .WillRepeatedly(
           Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
 
-  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
   });
@@ -933,7 +961,8 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkCandidateOnMultipleForks) {
   }
 }
 
-TEST_F(ProspectiveParachainsTest, FragmentTree_checkBackableQuery) {
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_checkBackableQuerySingleCandidate) {
   TestState test_state(hasher_);
   TestLeaf leaf_a{
       .number = 100,
@@ -970,24 +999,29 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkBackableQuery) {
   introduce_candidate(candidate_a, pvd_a);
   introduce_candidate(candidate_b, pvd_b);
 
-  get_backable_candidate(leaf_a, 1, {candidate_hash_a}, std::nullopt);
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 1, {});
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 0, {});
+  get_backable_candidates(leaf_a, 1, {}, 0, {});
 
   second_candidate(candidate_a);
   second_candidate(candidate_b);
 
-  get_backable_candidate(leaf_a, 1, {candidate_hash_a}, std::nullopt);
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 1, {});
 
   back_candidate(candidate_a, candidate_hash_a);
   back_candidate(candidate_b, candidate_hash_b);
 
-  get_backable_candidate(
-      leaf_a, 1, {}, std::make_pair(candidate_hash_a, leaf_a.hash));
-  get_backable_candidate(leaf_a,
-                         1,
-                         {candidate_hash_a},
-                         std::make_pair(candidate_hash_b, leaf_a.hash));
+  // Should not get any backable candidates for the other para.
+  get_backable_candidates(leaf_a, 2, {}, 1, {});
+  get_backable_candidates(leaf_a, 2, {candidate_hash_a}, 1, {});
 
-  get_backable_candidate(leaf_a, 1, {candidate_hash_b}, std::nullopt);
+  // Get backable candidate.
+  get_backable_candidates(leaf_a, 1, {}, 1, {{candidate_hash_a, leaf_a.hash}});
+
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a}, 1, {{candidate_hash_b, leaf_a.hash}});
+
+  get_backable_candidates(leaf_a, 1, {candidate_hash_b}, 1, {});
 
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
   ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
@@ -996,6 +1030,351 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkBackableQuery) {
     auto it = prospective_parachain_->view.candidate_storage.find(1);
     ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
     ASSERT_EQ(it->second.len(), std::make_pair(size_t(2), size_t(2)));
+  }
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(2);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(0), size_t(0)));
+  }
+}
+
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_checkBackableQueryMultipleCandidates_1) {
+  // Parachain 1 looks like this:
+  //          +---A----+
+  //          |        |
+  //     +----B---+    C
+  //     |    |   |    |
+  //     D    E   F    H
+  //              |    |
+  //              G    I
+  //                   |
+  //                   J
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  introduce_candidate(candidate_a, pvd_a);
+  second_candidate(candidate_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  const auto &[candidate_b, candidate_hash_b] =
+      make_and_back_candidate(test_state, leaf_a, candidate_a, 2);
+  const auto &[candidate_c, candidate_hash_c] =
+      make_and_back_candidate(test_state, leaf_a, candidate_a, 3);
+  const auto &[_candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 4);
+  const auto &[_candidate_e, candidate_hash_e] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 5);
+  const auto &[candidate_f, candidate_hash_f] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 6);
+  const auto &[_candidate_g, candidate_hash_g] =
+      make_and_back_candidate(test_state, leaf_a, candidate_f, 7);
+  const auto &[candidate_h, candidate_hash_h] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 8);
+  const auto &[candidate_i, candidate_hash_i] =
+      make_and_back_candidate(test_state, leaf_a, candidate_h, 9);
+  const auto &[_candidate_j, candidate_hash_j] =
+      make_and_back_candidate(test_state, leaf_a, candidate_i, 10);
+
+  get_backable_candidates(leaf_a, 2, {}, 1, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {candidate_hash_a}, 1, {});
+
+  // empty required_path
+  get_backable_candidates(leaf_a, 1, {}, 1, {{candidate_hash_a, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {},
+                          4,
+                          {{candidate_hash_a, leaf_a.hash},
+                           {candidate_hash_b, leaf_a.hash},
+                           {candidate_hash_f, leaf_a.hash},
+                           {candidate_hash_g, leaf_a.hash}});
+
+  // required path of 1
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a}, 1, {{candidate_hash_b, leaf_a.hash}});
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {candidate_hash_a},
+      2,
+      {{candidate_hash_b, leaf_a.hash}, {candidate_hash_d, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_a},
+                          3,
+                          {{candidate_hash_b, leaf_a.hash},
+                           {candidate_hash_f, leaf_a.hash},
+                           {candidate_hash_g, leaf_a.hash}});
+
+  for (uint32_t count = 5; count < 10; ++count) {
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a},
+                            count,
+                            {{candidate_hash_c, leaf_a.hash},
+                             {candidate_hash_h, leaf_a.hash},
+                             {candidate_hash_i, leaf_a.hash},
+                             {candidate_hash_j, leaf_a.hash}});
+  }
+
+  // required path of 2
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_a, candidate_hash_b},
+                          1,
+                          {{candidate_hash_d, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_a, candidate_hash_c},
+                          1,
+                          {{candidate_hash_h, leaf_a.hash}});
+  for (uint32_t count = 4; count < 10; ++count) {
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a, candidate_hash_c},
+                            count,
+                            {{candidate_hash_h, leaf_a.hash},
+                             {candidate_hash_i, leaf_a.hash},
+                             {candidate_hash_j, leaf_a.hash}});
+  }
+
+  // No more candidates in any chain.
+  {
+    std::vector<std::vector<CandidateHash>> required_paths = {
+        {candidate_hash_a, candidate_hash_b, candidate_hash_e},
+        {candidate_hash_a,
+         candidate_hash_c,
+         candidate_hash_h,
+         candidate_hash_i,
+         candidate_hash_j}};
+
+    for (const auto &path : required_paths) {
+      for (uint32_t count = 1; count < 4; ++count) {
+        get_backable_candidates(leaf_a, 1, path, count, {});
+      }
+    }
+  }
+
+  // Should not get anything at the wrong path.
+  get_backable_candidates(leaf_a, 1, {candidate_hash_b}, 1, {});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_b, candidate_hash_a}, 3, {});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a, candidate_hash_b, candidate_hash_c}, 3, {});
+
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(1);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(7), size_t(10)));
+  }
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(2);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(0), size_t(0)));
+  }
+}
+
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_checkBackableQueryMultipleCandidates_2) {
+  // A tree with multiple roots.
+  // Parachain 1 looks like this:
+  //       (imaginary root)
+  //          |        |
+  //     +----B---+    A
+  //     |    |   |    |
+  //     |    |   |    C
+  //     D    E   F    |
+  //              |    H
+  //              G    |
+  //                   I
+  //                   |
+  //                   J
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+
+  const auto &[candidate_b, pvd_b] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {2},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  introduce_candidate(candidate_b, pvd_b);
+  second_candidate(candidate_b);
+  back_candidate(candidate_b, candidate_hash_b);
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  introduce_candidate(candidate_a, pvd_a);
+  second_candidate(candidate_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  const auto &[candidate_c, candidate_hash_c] =
+      make_and_back_candidate(test_state, leaf_a, candidate_a, 3);
+  const auto &[_candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 4);
+  const auto &[_candidate_e, candidate_hash_e] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 5);
+  const auto &[candidate_f, candidate_hash_f] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 6);
+  const auto &[_candidate_g, candidate_hash_g] =
+      make_and_back_candidate(test_state, leaf_a, candidate_f, 7);
+  const auto &[candidate_h, candidate_hash_h] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 8);
+  const auto &[candidate_i, candidate_hash_i] =
+      make_and_back_candidate(test_state, leaf_a, candidate_h, 9);
+  const auto &[_candidate_j, candidate_hash_j] =
+      make_and_back_candidate(test_state, leaf_a, candidate_i, 10);
+
+  // Should not get any backable candidates for the other para.
+  get_backable_candidates(leaf_a, 2, {}, 1, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {candidate_hash_a}, 1, {});
+
+  // empty required_path
+  get_backable_candidates(leaf_a, 1, {}, 1, {{candidate_hash_b, leaf_a.hash}});
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {},
+      2,
+      {{candidate_hash_b, leaf_a.hash}, {candidate_hash_d, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {},
+                          4,
+                          {{candidate_hash_a, leaf_a.hash},
+                           {candidate_hash_c, leaf_a.hash},
+                           {candidate_hash_h, leaf_a.hash},
+                           {candidate_hash_i, leaf_a.hash}});
+
+  // required path of 1
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a}, 1, {{candidate_hash_c, leaf_a.hash}});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_b}, 1, {{candidate_hash_d, leaf_a.hash}});
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {candidate_hash_a},
+      2,
+      {{candidate_hash_c, leaf_a.hash}, {candidate_hash_h, leaf_a.hash}});
+
+  for (uint32_t count = 2; count < 10; ++count) {
+    get_backable_candidates(
+        leaf_a,
+        1,
+        {candidate_hash_b},
+        count,
+        {{candidate_hash_f, leaf_a.hash}, {candidate_hash_g, leaf_a.hash}});
+  }
+
+  // required path of 2
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_b, candidate_hash_f},
+                          1,
+                          {{candidate_hash_g, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_a, candidate_hash_c},
+                          1,
+                          {{candidate_hash_h, leaf_a.hash}});
+  for (uint32_t count = 4; count < 10; ++count) {
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a, candidate_hash_c},
+                            count,
+                            {{candidate_hash_h, leaf_a.hash},
+                             {candidate_hash_i, leaf_a.hash},
+                             {candidate_hash_j, leaf_a.hash}});
+  }
+
+  // No more candidates in any chain.
+  {
+    std::vector<std::vector<CandidateHash>> required_paths = {
+        {candidate_hash_b, candidate_hash_f, candidate_hash_g},
+        {candidate_hash_b, candidate_hash_e},
+        {candidate_hash_b, candidate_hash_d},
+        {
+            candidate_hash_a,
+            candidate_hash_c,
+            candidate_hash_h,
+            candidate_hash_i,
+            candidate_hash_j,
+        }};
+
+    for (const auto &path : required_paths) {
+      for (uint32_t count = 1; count < 4; ++count) {
+        get_backable_candidates(leaf_a, 1, path, count, {});
+      }
+    }
+  }
+
+  // Should not get anything at the wrong path.
+  get_backable_candidates(leaf_a, 1, {candidate_hash_d}, 1, {});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_b, candidate_hash_a}, 3, {});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a, candidate_hash_c, candidate_hash_d}, 3, {});
+
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(1);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(7), size_t(10)));
   }
   {
     auto it = prospective_parachain_->view.candidate_storage.find(2);
@@ -1206,10 +1585,11 @@ TEST_F(ProspectiveParachainsTest,
   second_candidate(candidate_b);
   back_candidate(candidate_b, candidate_hash_b);
 
-  get_backable_candidate(leaf_b,
-                         para_id,
-                         {candidate_hash_a},
-                         std::make_pair(candidate_hash_b, leaf_b_hash));
+  get_backable_candidates(leaf_b,
+                          para_id,
+                          {candidate_hash_a},
+                          1,
+                          {{candidate_hash_b, leaf_b_hash}});
 }
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
@@ -1251,11 +1631,8 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
   second_candidate(candidate_a);
   back_candidate(candidate_a, candidate_hash_a);
 
-  get_backable_candidate(
-      leaf_a,
-      para_id,
-      {},
-      std::make_pair(candidate_hash_a, candidate_relay_parent));
+  get_backable_candidates(
+      leaf_a, para_id, {}, 1, {{candidate_hash_a, candidate_relay_parent}});
 
   TestLeaf leaf_b{
       .number = candidate_relay_parent_number + 1,
@@ -1274,12 +1651,12 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
                     .allowed_ancestry_len = 0,
                 });
 
-  get_backable_candidate(leaf_b, para_id, {}, std::nullopt);
+  get_backable_candidates(leaf_b, para_id, {}, 1, {});
 }
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   std::vector<Hash> ancestry_hashes{
-      fromNumber(4), fromNumber(3), fromNumber(2)};
+      fromNumber(4), fromNumber(3), fromNumber(2), fromNumber(1)};
   const BlockNumber number = 5;
   const Hash hash = fromNumber(5);
   const uint32_t ancestry_len = 3;
@@ -1318,7 +1695,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
   EXPECT_CALL(*block_tree_, getBlockHeader(hash))
       .WillRepeatedly(Return(header));
 
-  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len))
+  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len + 1))
       .WillRepeatedly(Return(ancestry_hashes));
 
   EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
@@ -1348,7 +1725,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
     }
   }
 
-  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
   });
@@ -1393,7 +1770,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
   activate_leaf(leaf_b, test_state, async_backing_params);
   activate_leaf(leaf_b, test_state, async_backing_params);
 
-  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {},
       .lost = {},
   });
@@ -1429,10 +1806,11 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
     };
     // handle_leaf_activation_2(update2, leaf_c, test_state,
     // async_backing_params);
-    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update2.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update2.lost,
+        });
   }
 
   {
@@ -1465,10 +1843,11 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
         .new_head = {},
         .lost = {leaf_a.hash, leaf_b.hash, leaf_c.hash},
     };
-    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {},
-        .lost = update2.lost,
-    });
+    std::ignore =
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = update2.lost,
+        });
   }
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
   ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
@@ -2766,5 +3145,84 @@ TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
                           hypotheticals.end(),
                           HypotheticalCandidate{hypothetical_d})
                 != hypotheticals.end());
+  }
+}
+
+/// polkadot/node/network/statement-distribution/src/v2/statement_store.rs
+TEST_F(ProspectiveParachainsTest,
+       StatementsStore_always_provides_fresh_statements_in_order) {
+  const ValidatorIndex validator_a{1};
+  const ValidatorIndex validator_b{2};
+  const auto candidate_hash = fromNumber(42);
+
+  // SecondedCandidateHash, ValidCandidateHash
+  const network::vstaging::CompactStatement valid_statement{
+      network::vstaging::ValidCandidateHash{
+          .hash = candidate_hash,
+      }};
+  const network::vstaging::CompactStatement seconded_statement{
+      network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      }};
+
+  const Groups groups(
+      std::vector<std::vector<ValidatorIndex>>{{validator_a, validator_b}}, 2);
+  StatementStore store(groups);
+
+  kagome::parachain::IndexedAndSigned<network::vstaging::CompactStatement>
+      signed_valid_by_a{
+          .payload =
+              {
+                  .payload = valid_statement,
+                  .ix = validator_a,
+              },
+          .signature = {},
+      };
+  store.insert(groups, signed_valid_by_a, StatementOrigin::Remote);
+
+  kagome::parachain::IndexedAndSigned<network::vstaging::CompactStatement>
+      signed_seconded_by_b{
+          .payload =
+              {
+                  .payload = seconded_statement,
+                  .ix = validator_b,
+              },
+          .signature = {},
+      };
+  store.insert(groups, signed_seconded_by_b, StatementOrigin::Remote);
+
+  {
+    std::vector<ValidatorIndex> vals = {validator_a, validator_b};
+    std::vector<kagome::parachain::IndexedAndSigned<
+        network::vstaging::CompactStatement>>
+        statements;
+    store.fresh_statements_for_backing(
+        vals,
+        candidate_hash,
+        [&](const kagome::parachain::IndexedAndSigned<
+            network::vstaging::CompactStatement> &statement) {
+          statements.emplace_back(statement);
+        });
+    ASSERT_EQ(statements.size(), 2);
+    ASSERT_EQ(statements[0].payload.payload, seconded_statement);
+    ASSERT_EQ(statements[1].payload.payload, valid_statement);
+  }
+
+  {
+    std::vector<ValidatorIndex> vals = {validator_b, validator_a};
+    std::vector<kagome::parachain::IndexedAndSigned<
+        network::vstaging::CompactStatement>>
+        statements;
+    store.fresh_statements_for_backing(
+        vals,
+        candidate_hash,
+        [&](const kagome::parachain::IndexedAndSigned<
+            network::vstaging::CompactStatement> &statement) {
+          statements.emplace_back(statement);
+        });
+
+    ASSERT_EQ(statements.size(), 2);
+    ASSERT_EQ(statements[0].payload.payload, seconded_statement);
+    ASSERT_EQ(statements[1].payload.payload, valid_statement);
   }
 }

@@ -13,14 +13,13 @@
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"
+#include "crypto/common.hpp"
 #include "primitives/math.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::crypto {
   namespace constants::bandersnatch {
-    /**
-     * Important constants to deal with bandersnatch
-     */
+    /// Important constants to deal with bandersnatch
     enum {
       SEED_SIZE = BANDERSNATCH_SEED_SIZE,
       SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
@@ -39,25 +38,25 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           BandersnatchSecretKey,
-                           constants::bandersnatch::SECRET_SIZE);
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            BandersnatchPublicKey,
                            constants::bandersnatch::PUBLIC_SIZE);
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            BandersnatchSignature,
                            constants::bandersnatch::SIGNATURE_SIZE);
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           BandersnatchSeed,
-                           constants::bandersnatch::SEED_SIZE);
 
 namespace kagome::crypto {
+
+  using BandersnatchSecretKey = PrivateKey<constants::bandersnatch::SECRET_SIZE,
+                                           struct BandersnatchSecretKeyTag>;
+  using BandersnatchSeed = PrivateKey<constants::bandersnatch::SEED_SIZE,
+                                      struct BandersnatchSeedTag>;
 
   struct BandersnatchKeypair {
     BandersnatchSecretKey secret_key;
     BandersnatchPublicKey public_key;
 
-    auto operator<=>(const BandersnatchKeypair &other) const = default;
+    bool operator==(const BandersnatchKeypair &other) const = default;
+    bool operator!=(const BandersnatchKeypair &other) const = default;
   };
 
   struct BandersnatchKeypairAndSeed : BandersnatchKeypair {

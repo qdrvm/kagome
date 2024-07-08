@@ -14,7 +14,7 @@ namespace kagome::runtime {
 
   class ModuleInstanceMock : public ModuleInstance {
    public:
-    MOCK_METHOD(const common::Hash256 &, getCodeHash, (), (const, override));
+    MOCK_METHOD(common::Hash256, getCodeHash, (), (const, override));
 
     MOCK_METHOD(std::shared_ptr<const Module>,
                 getModule,

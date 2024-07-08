@@ -7,6 +7,7 @@
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 
 #include "common/blob.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
 #include "scale/std_variant.hpp"
@@ -17,7 +18,7 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : executor_{std::move(executor)},
-        chain_events_engine_{std::move(chain_events_engine)} {
+        chain_sub_{std::move(chain_events_engine)} {
     BOOST_ASSERT(executor_);
   }
 
@@ -186,26 +187,19 @@ namespace kagome::runtime {
   }
 
   bool ParachainHostImpl::prepare() {
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_events_engine_);
-    chain_sub_->subscribe(
-        chain_sub_->generateSubscriptionSetId(),
-        primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback([wptr{weak_from_this()}](
-                                auto /*set_id*/,
-                                auto && /*internal_obj*/,
-                                auto /*event_type*/,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (auto self = wptr.lock()) {
-        auto event_opt =
-            if_type<const primitives::events::RemoveAfterFinalizationParams>(
-                event);
-        if (event_opt.has_value()) {
-          self->clearCaches(event_opt.value());
-        }
-      }
-    });
+    chain_sub_.onDeactivate(
+        [wptr{weak_from_this()}](
+            const primitives::events::RemoveAfterFinalizationParams &event) {
+          if (auto self = wptr.lock()) {
+            std::vector<primitives::BlockHash> removed;
+            removed.reserve(event.removed.size());
+            std::transform(event.removed.begin(),
+                           event.removed.end(),
+                           std::back_inserter(removed),
+                           [](const auto &bi) { return bi.hash; });
+            self->clearCaches(removed);
+          }
+        });
 
     return false;
   }
@@ -224,6 +218,7 @@ namespace kagome::runtime {
     session_info_.erase(blocks);
     dmq_contents_.erase(blocks);
     inbound_hrmp_channels_contents_.erase(blocks);
+    disabled_validators_.erase(blocks);
   }
 
   outcome::result<std::optional<std::vector<ExecutorParam>>>
@@ -276,6 +271,19 @@ namespace kagome::runtime {
         ctx, "ParachainHost_para_backing_state", id);
   }
 
+  outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>
+  ParachainHostImpl::claim_queue(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::map<CoreIndex, std::vector<ParachainId>>>(
+        ctx, "ParachainHost_claim_queue");
+  }
+
+  outcome::result<uint32_t> ParachainHostImpl::runtime_api_version(
+      const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<uint32_t>(ctx, "ParachainHost_runtime_api_version");
+  }
+
   outcome::result<parachain::fragment::AsyncBackingParams>
   ParachainHostImpl::staging_async_backing_params(
       const primitives::BlockHash &block) {
@@ -289,6 +297,31 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<uint32_t>(ctx,
                                      "ParachainHost_minimum_backing_votes");
+  }
+
+  outcome::result<std::vector<ValidatorIndex>>
+  ParachainHostImpl::disabled_validators(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    auto res = executor_->call<std::vector<ValidatorIndex>>(
+        ctx, "ParachainHost_disabled_validators");
+    if (res.has_error()
+        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
+      return outcome::success(std::vector<ValidatorIndex>{});
+    }
+    return res;
+  }
+
+  outcome::result<std::optional<ParachainHost::NodeFeatures>>
+  ParachainHostImpl::node_features(const primitives::BlockHash &block,
+                                   SessionIndex index) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    auto res = executor_->call<ParachainHost::NodeFeatures>(
+        ctx, "ParachainHost_node_features");
+    if (res.has_error()
+        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
+      return outcome::success(std::nullopt);
+    }
+    return res.value();
   }
 
 }  // namespace kagome::runtime

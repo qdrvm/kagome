@@ -42,7 +42,6 @@ using namespace consensus::grandpa;
 using namespace storage;
 using application::AppStateManagerMock;
 using std::chrono_literals::operator""ms;
-using common::MainPoolHandler;
 using common::MainThreadPool;
 using consensus::Timeline;
 using network::Synchronizer;
@@ -81,7 +80,7 @@ class SynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::SyncMethod::Full));
@@ -91,14 +90,11 @@ class SynchronizerTest
 
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
-    main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
-    main_pool_handler->start();
 
     auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
-                                                    app_state_manager,
+                                                    *app_state_manager,
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
@@ -113,7 +109,7 @@ class SynchronizerTest
                                                     _timeline,
                                                     nullptr,
                                                     grandpa_environment,
-                                                    main_pool_handler);
+                                                    *main_thread_pool);
   }
 
   void TearDown() override {
@@ -152,7 +148,6 @@ class SynchronizerTest
   std::shared_ptr<Watchdog> watchdog =
       std::make_shared<Watchdog>(std::chrono::milliseconds(1));
   std::shared_ptr<MainThreadPool> main_thread_pool;
-  std::shared_ptr<MainPoolHandler> main_pool_handler;
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 

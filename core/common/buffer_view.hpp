@@ -6,10 +6,10 @@
 
 #pragma once
 
+#include <qtils/cxx20/lexicographical_compare_three_way.hpp>
 #include <span>
 
 #include "common/hexutil.hpp"
-#include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
 
 #include <ranges>
@@ -20,7 +20,7 @@ inline auto operator""_bytes(const char *s, std::size_t size) {
 }
 
 namespace kagome::common {
-  template <size_t MaxSize>
+  template <size_t MaxSize, typename Allocator>
   class SLBuffer;
 }
 
@@ -72,7 +72,7 @@ namespace kagome::common {
     }
 
     auto operator<=>(const BufferView &other) const noexcept {
-      return cxx20::lexicographical_compare_three_way(
+      return qtils::cxx20::lexicographical_compare_three_way(
           span::begin(), span::end(), other.begin(), other.end());
     }
 
@@ -94,6 +94,10 @@ namespace kagome::common {
     return false;
   }
 }  // namespace kagome::common
+
+namespace kagome {
+  using common::BufferView;
+}  // namespace kagome
 
 template <>
 struct fmt::formatter<kagome::common::BufferView> {

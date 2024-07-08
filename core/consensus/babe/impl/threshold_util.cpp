@@ -14,6 +14,8 @@ namespace kagome::consensus::babe {
   Threshold calculateThreshold(const std::pair<uint64_t, uint64_t> &ratio,
                                const Authorities &authorities,
                                AuthorityIndex authority_index) {
+    BOOST_ASSERT(authority_index < authorities.size());
+
     double float_point_ratio = double(ratio.first) / ratio.second;
 
     using boost::adaptors::transformed;

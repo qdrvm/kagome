@@ -21,8 +21,8 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/crypto_store/key_file_storage.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/key_file_storage.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
@@ -39,11 +39,12 @@
 
 namespace kagome {
   class PoolHandler;
-}
+  class PoolHandlerReady;
+}  // namespace kagome
 
 namespace kagome::common {
-  class MainPoolHandler;
-  class WorkerPoolHandler;
+  class MainThreadPool;
+  class WorkerThreadPool;
 }  // namespace kagome::common
 
 namespace kagome::consensus::babe {
@@ -152,7 +153,7 @@ namespace kagome::parachain {
       }
 
       // Note that our assignment is triggered. No-op if already triggered.
-      MaybeCert trigger_our_assignment(network::Tick const tick_now) {
+      MaybeCert trigger_our_assignment(const network::Tick tick_now) {
         if (!our_assignment || our_assignment->triggered) {
           return std::nullopt;
         }
@@ -270,10 +271,11 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<crypto::CryptoStore> keystore,
+        std::shared_ptr<crypto::KeyStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ParachainProcessorImpl> parachain_processor,
@@ -283,22 +285,20 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
+        ApprovalThreadPool &approval_thread_pool,
+        common::MainThreadPool &main_thread_pool,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
-    bool prepare();
-    void start();
-    void stop();
+    bool tryStart();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
 
     static AssignmentsList compute_assignments(
-        const std::shared_ptr<crypto::CryptoStore> &keystore,
+        const std::shared_ptr<crypto::KeyStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
         const CandidateIncludedList &leaving_cores);
@@ -361,36 +361,6 @@ namespace kagome::parachain {
     struct MessageState {
       DistribApprovalState approval_state;
       bool local;
-    };
-
-    template <typename T>
-    struct DeferedSender final {
-      using ContainerT =
-          std::unordered_map<libp2p::peer::PeerId, std::deque<T>>;
-      ContainerT messages;
-      std::function<void(ContainerT &&)> f;
-
-      template <typename F>
-      DeferedSender(F &&f_) : f{std::forward<F>(f_)} {}
-
-      DeferedSender(const DeferedSender &) = delete;
-      DeferedSender &operator=(const DeferedSender &) = delete;
-
-      DeferedSender(DeferedSender &&) = default;
-      DeferedSender &operator=(DeferedSender &&) = default;
-
-      void postponeSend(const std::unordered_set<libp2p::peer::PeerId> &peers,
-                        const T &msg) {
-        for (const auto &peer : peers) {
-          messages[peer].emplace_back(msg);
-        }
-      }
-
-      ~DeferedSender() {
-        if (f && !messages.empty()) {
-          f(std::move(messages));
-        }
-      }
     };
 
     /// Information about candidates in the context of a particular block they
@@ -533,12 +503,6 @@ namespace kagome::parachain {
     void imported_block_info(const primitives::BlockHash &block_hash,
                              const primitives::BlockHeader &block_header);
 
-    ApprovalOutcome validate_candidate_exhaustive(
-        const runtime::PersistedValidationData &data,
-        const network::ParachainBlock &pov,
-        const network::CandidateReceipt &receipt,
-        const ParachainRuntime &code);
-
     AssignmentCheckResult check_and_import_assignment(
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
@@ -546,12 +510,10 @@ namespace kagome::parachain {
         const network::IndirectSignedApprovalVote &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
-        DeferedSender<network::Assignment> &defered_sender,
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
     void import_and_circulate_approval(
         const MessageSource &source,
-        DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
         const network::IndirectSignedApprovalVote &vote);
 
     template <typename Func>
@@ -585,7 +547,7 @@ namespace kagome::parachain {
         const runtime::SessionInfo &session_info);
 
     static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-    findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
+    findAssignmentKey(const std::shared_ptr<crypto::KeyStore> &keystore,
                       const runtime::SessionInfo &config);
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
@@ -663,8 +625,9 @@ namespace kagome::parachain {
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        std::unordered_map<libp2p::peer::PeerId,
-                           std::deque<network::Assignment>> &&messages);
+        const approval::IndirectAssignmentCert &indirect_cert,
+        CandidateIndex candidate_index,
+        std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void send_assignments_batched(std::deque<network::Assignment> &&assignments,
                                   const libp2p::peer::PeerId &peer_id);
@@ -674,16 +637,16 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(
-        std::unordered_map<libp2p::peer::PeerId,
-                           std::deque<network::IndirectSignedApprovalVote>>
-            &&messages);
+        const network::IndirectSignedApprovalVote &vote,
+        std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,
                            const CandidateHash &candidate_hash,
                            Tick tick);
 
-    void clearCaches(const primitives::events::ChainEventParams &event);
+    void clearCaches(
+        const primitives::events::RemoveAfterFinalizationParams &event);
 
     void store_remote_view(const libp2p::peer::PeerId &peer_id,
                            const network::View &view);
@@ -709,20 +672,23 @@ namespace kagome::parachain {
       return as<StorePair<Hash, DistribBlockEntry>>(store_);
     }
 
-    ApprovingContextMap approving_context_map_;
-    std::shared_ptr<PoolHandler> approval_thread_handler_;
+    log::Logger logger_ =
+        log::createLogger("ApprovalDistribution", "parachain");
 
-    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
+    ApprovingContextMap approving_context_map_;
+    std::shared_ptr<PoolHandlerReady> approval_thread_handler_;
+
+    std::shared_ptr<PoolHandler> worker_pool_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
-    std::shared_ptr<crypto::CryptoStore> keystore_;
+    std::shared_ptr<crypto::KeyStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
     network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
           StorePair<CandidateHash, CandidateEntry>,
@@ -738,7 +704,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
@@ -763,9 +729,6 @@ namespace kagome::parachain {
     };
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
-
-    log::Logger logger_ =
-        log::createLogger("ApprovalDistribution", "parachain");
   };
 
 }  // namespace kagome::parachain

@@ -10,7 +10,7 @@
 #include <optional>
 #include <queue>
 
-#include "crypto/crypto_store.hpp"
+#include "crypto/key_store.hpp"
 #include "log/logger.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/types.hpp"
@@ -22,7 +22,7 @@ namespace kagome::crypto {
   class Secp256k1Provider;
   class BandersnatchProvider;
   class Hasher;
-  class CryptoStore;
+  class KeyStore;
   struct KeyType;
 }  // namespace kagome::crypto
 
@@ -42,7 +42,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<crypto::CryptoStore> crypto_store);
+        std::optional<std::shared_ptr<crypto::KeyStore>> key_store);
 
     void reset();
 
@@ -278,7 +278,8 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<const crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
-    std::shared_ptr<crypto::CryptoStore> crypto_store_;
+    // not needed in PVF workers
+    std::optional<std::shared_ptr<crypto::KeyStore>> key_store_;
     log::Logger logger_;
     std::optional<runtime::WasmSize> batch_verify_;
   };

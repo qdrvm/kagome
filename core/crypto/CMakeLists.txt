@@ -4,6 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(kagome_crypto common.cpp)
+target_link_libraries(kagome_crypto
+    OpenSSL::Crypto
+    logger
+    )
+kagome_install(kagome_crypto)
+
 add_library(hasher
     hasher/hasher_impl.cpp
 )
@@ -22,6 +29,7 @@ target_link_libraries(sr25519_types
     mp_utils
     blob
     schnorrkel_crust::schnorrkel_crust
+    kagome_crypto
 )
 kagome_install(sr25519_types)
 
@@ -43,6 +51,7 @@ target_link_libraries(ed25519_types
     blob
     scale::scale
     schnorrkel_crust::schnorrkel_crust
+    kagome_crypto
 )
 kagome_install(ed25519_types)
 
@@ -54,6 +63,7 @@ target_link_libraries(vrf_provider
     sr25519_types
     blob
     p2p::p2p_random_generator # generator from libp2p
+    kagome_crypto
 )
 kagome_install(vrf_provider)
 
@@ -92,6 +102,7 @@ target_link_libraries(ecdsa_provider
     hasher
     logger
     secp256k1_provider
+    kagome_crypto
 )
 kagome_install(ecdsa_provider)
 
@@ -134,7 +145,7 @@ kagome_install(pbkdf2_provider)
 
 add_subdirectory(bip39)
 add_subdirectory(blake2)
-add_subdirectory(crypto_store)
+add_subdirectory(key_store)
 add_subdirectory(keccak)
 add_subdirectory(sha)
 add_subdirectory(twox)

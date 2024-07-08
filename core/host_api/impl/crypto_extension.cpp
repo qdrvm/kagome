@@ -14,11 +14,11 @@
 #include <span>
 
 #include "crypto/bandersnatch_provider.hpp"
-#include "crypto/crypto_store.hpp"
-#include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/key_store.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/trace_macros.hpp"
@@ -66,14 +66,14 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store)
+      std::optional<std::shared_ptr<crypto::KeyStore>> key_store)
       : memory_provider_(std::move(memory_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         ecdsa_provider_(std::move(ecdsa_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
-        crypto_store_(std::move(crypto_store)),
+        key_store_(std::move(key_store)),
         logger_{log::createLogger("CryptoExtension", "crypto_extension")} {
     BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
@@ -81,8 +81,8 @@ namespace kagome::host_api {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(crypto_store_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+    BOOST_ASSERT(key_store_ == std::nullopt || *key_store_ != nullptr);
   }
 
   // ---------------------- hashing ----------------------
@@ -183,7 +183,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getEd25519PublicKeys(key_type);
+    auto public_keys = key_store_.value()->ed25519().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -207,13 +207,14 @@ namespace kagome::host_api {
     }
     auto &&seed_opt = seed_res.value();
 
-    outcome::result<crypto::Ed25519Keypair> kp_res{{}};
-    if (seed_opt.has_value()) {
-      kp_res =
-          crypto_store_->generateEd25519Keypair(key_type, seed_opt.value());
-    } else {
-      kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::Ed25519Keypair> kp_res = [&] {
+      if (seed_opt.has_value()) {
+        return key_store_.value()->ed25519().generateKeypair(key_type,
+                                                             seed_opt.value());
+      } else {
+        return key_store_.value()->ed25519().generateKeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate ed25519 key pair: {}", kp_res.error());
@@ -241,20 +242,21 @@ namespace kagome::host_api {
     if (!pk) {
       BOOST_UNREACHABLE_RETURN({});
     }
-    auto key_pair = crypto_store_->findEd25519Keypair(key_type, pk.value());
-    if (!key_pair) {
+    auto key_pair_opt =
+        key_store_.value()->ed25519().findKeypair(key_type, pk.value());
+    if (!key_pair_opt) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
       return getMemory().storeBuffer(error_result);
     }
 
-    auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
+    auto sign = ed25519_provider_->sign(key_pair_opt.value(), msg_buffer);
     if (!sign) {
       throw_with_error(
           logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
-        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
+        logger_, sign.value(), key_pair_opt.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return getMemory().storeBuffer(buffer);
   }
@@ -309,7 +311,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getSr25519PublicKeys(key_type);
+    auto public_keys = key_store_.value()->sr25519().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -333,14 +335,15 @@ namespace kagome::host_api {
       throw_with_error(logger_, "failed to decode seed");
     }
 
-    outcome::result<crypto::Sr25519Keypair> kp_res{{}};
-    auto bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
-      kp_res =
-          crypto_store_->generateSr25519Keypair(key_type, bip39_seed.value());
-    } else {
-      kp_res = crypto_store_->generateSr25519KeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::Sr25519Keypair> kp_res = [&]() {
+      auto bip39_seed = seed_res.value();
+      if (bip39_seed.has_value()) {
+        return key_store_.value()->sr25519().generateKeypair(
+            key_type, bip39_seed.value());
+      } else {
+        return key_store_.value()->sr25519().generateKeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate sr25519 key pair: {}", kp_res.error());
@@ -375,9 +378,11 @@ namespace kagome::host_api {
       // error is not possible, since we loaded correct number of bytes
       BOOST_UNREACHABLE_RETURN({});
     }
-    auto key_pair = crypto_store_->findSr25519Keypair(key_type, pk.value());
+    auto key_pair =
+        key_store_.value()->sr25519().findKeypair(key_type, pk.value());
     if (!key_pair) {
-      logger_->error("failed to find required key: {}", key_pair.error());
+      logger_->error(
+          "failed to find required key: {} {}", key_type, pk.value());
       return getMemory().storeBuffer(error_result);
     }
 
@@ -451,23 +456,11 @@ namespace kagome::host_api {
   }
 
   namespace {
-    template <typename T>
-    using failure_type =
-        decltype(outcome::result<std::decay_t<T>>(T{}).as_failure());
-
-    /**
-     * @brief converts outcome::failure_type to Secp256k1VerifyError error code
-     * @param failure outcome::result containing error
-     * @return error code
-     */
-    template <class T>
-    Secp256k1VerifyError convertFailureToError(const failure_type<T> &failure) {
-      const outcome::result<void> res = failure;
-      if (res == outcome::failure(Secp256k1ProviderError::INVALID_V_VALUE)) {
+    Secp256k1VerifyError convertFailureToError(const std::error_code &error) {
+      if (error == Secp256k1ProviderError::INVALID_V_VALUE) {
         return secp256k1::secp256k1_verify_error::kInvalidV;
       }
-      if (res
-          == outcome::failure(Secp256k1ProviderError::INVALID_R_OR_S_VALUE)) {
+      if (error == Secp256k1ProviderError::INVALID_R_OR_S_VALUE) {
         return secp256k1::secp256k1_verify_error::kInvalidRS;
       }
 
@@ -496,8 +489,7 @@ namespace kagome::host_api {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
 
-      auto error_code =
-          convertFailureToError<UncompressedPublicKey>(public_key.as_failure());
+      auto error_code = convertFailureToError(public_key.error());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
 
@@ -548,8 +540,7 @@ namespace kagome::host_api {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
 
-      auto error_code =
-          convertFailureToError<CompressedPublicKey>(public_key.as_failure());
+      auto error_code = convertFailureToError(public_key.error());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
       return getMemory().storeBuffer(error_result);
@@ -579,7 +570,7 @@ namespace kagome::host_api {
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
-    auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type);
+    auto public_keys = key_store_.value()->ecdsa().getPublicKeys(key_type);
     if (not public_keys) {
       throw_with_error(
           logger_, "error loading public keys: {}", public_keys.error());
@@ -606,7 +597,7 @@ namespace kagome::host_api {
 
     crypto::EcdsaPublicKey pk;
     std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
-    auto key_pair = crypto_store_->findEcdsaKeypair(key_type, pk);
+    auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
@@ -639,7 +630,7 @@ namespace kagome::host_api {
 
     crypto::EcdsaPublicKey pk;
     std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
-    auto key_pair = crypto_store_->findEcdsaKeypair(key_type, pk);
+    auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(std::nullopt)).value();
@@ -672,14 +663,15 @@ namespace kagome::host_api {
       throw_with_error(logger_, "failed to decode seed");
     }
 
-    outcome::result<crypto::EcdsaKeypair> kp_res{{}};
-    auto bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
-      kp_res =
-          crypto_store_->generateEcdsaKeypair(key_type, bip39_seed.value());
-    } else {
-      kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::EcdsaKeypair> kp_res = [&]() {
+      auto bip39_seed = seed_res.value();
+      if (bip39_seed.has_value()) {
+        return key_store_.value()->ecdsa().generateKeypair(key_type,
+                                                           bip39_seed.value());
+      } else {
+        return key_store_.value()->ecdsa().generateKeypairOnDisk(key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(
           logger_, "failed to generate ecdsa key pair: {}", kp_res.error());
@@ -790,14 +782,16 @@ namespace kagome::host_api {
       throw_with_error(logger_, "failed to decode seed");
     }
 
-    outcome::result<crypto::BandersnatchKeypair> kp_res{{}};
-    auto bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
-      kp_res = crypto_store_->generateBandersnatchKeypair(key_type,
-                                                          bip39_seed.value());
-    } else {
-      kp_res = crypto_store_->generateBandersnatchKeypairOnDisk(key_type);
-    }
+    outcome::result<crypto::BandersnatchKeypair> kp_res = [&]() {
+      auto bip39_seed = seed_res.value();
+      if (bip39_seed.has_value()) {
+        return key_store_.value()->bandersnatch().generateKeypair(
+            key_type, bip39_seed.value());
+      } else {
+        return key_store_.value()->bandersnatch().generateKeypairOnDisk(
+            key_type);
+      }
+    }();
     if (!kp_res) {
       throw_with_error(logger_,
                        "failed to generate bandersnatch key pair: {}",

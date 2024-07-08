@@ -20,8 +20,6 @@ namespace kagome::dispute {
    public:
     StorageImpl(std::shared_ptr<storage::SpacedStorage> storage);
 
-    std::optional<SessionIndex> load_earliest_session() override;
-
     outcome::result<std::optional<RecentDisputes>> load_recent_disputes()
         override;
 
@@ -34,16 +32,9 @@ namespace kagome::dispute {
 
     void write_recent_disputes(RecentDisputes recent_disputes) override;
 
-    outcome::result<std::optional<StoredWindow>> loadSessionsWindow() override;
-
-    outcome::result<void> saveSessionsWindow(
-        const StoredWindow &stored_window) override;
-
    private:
     std::shared_ptr<storage::SpacedStorage> storage_;
 
-    // `nullopt` means unchanged.
-    std::optional<SessionIndex> earliest_session_{};
     // `nullopt` means unchanged.
     std::optional<RecentDisputes> recent_disputes_{};
     // `nullopt` means deleted, missing means query inner.

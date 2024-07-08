@@ -27,7 +27,7 @@ namespace kagome::runtime {
 namespace kagome::runtime::wavm {
   static_assert(kMemoryPageSize == WAVM::IR::numBytesPerPage);
 
-  class MemoryImpl final : public kagome::runtime::Memory {
+  class MemoryImpl final : public kagome::runtime::MemoryHandle {
    public:
     MemoryImpl(WAVM::Runtime::Memory *memory, const MemoryConfig &config);
     MemoryImpl(const MemoryImpl &copy) = delete;
@@ -35,12 +35,11 @@ namespace kagome::runtime::wavm {
     MemoryImpl(MemoryImpl &&move) = delete;
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
 
-    WasmPointer allocate(WasmSize size) override;
-    void deallocate(WasmPointer ptr) override;
-
     WasmSize size() const override {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kMemoryPageSize;
     }
+
+    std::optional<WasmSize> pagesMax() const override;
 
     void resize(WasmSize new_size) override {
       /**
@@ -57,13 +56,7 @@ namespace kagome::runtime::wavm {
     outcome::result<BytesOut> view(WasmPointer ptr,
                                    WasmSize size) const override;
 
-    // for testing purposes
-    const MemoryAllocator &getAllocator() const {
-      return *allocator_;
-    }
-
    private:
-    std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;
     log::Logger logger_;
   };

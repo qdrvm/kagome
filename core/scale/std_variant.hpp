@@ -7,7 +7,7 @@
 
 #include <variant>
 
-#include <scale.hpp>
+#include <scale/scale.hpp>
 
 namespace scale {
 

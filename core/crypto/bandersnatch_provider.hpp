@@ -23,6 +23,11 @@ namespace kagome::crypto {
 
   class BandersnatchProvider {
    public:
+    using Keypair = BandersnatchKeypair;
+    using PublicKey = BandersnatchPublicKey;
+    using PrivateKey = BandersnatchSecretKey;
+    using Seed = BandersnatchSeed;
+
     using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~BandersnatchProvider() = default;
@@ -30,8 +35,8 @@ namespace kagome::crypto {
     /**
      * Generate random keypair from seed
      */
-    virtual BandersnatchKeypair generateKeypair(const BandersnatchSeed &seed,
-                                                Junctions junctions) const = 0;
+    virtual outcome::result<BandersnatchKeypair> generateKeypair(
+        const BandersnatchSeed &seed, Junctions junctions) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less

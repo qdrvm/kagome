@@ -34,10 +34,11 @@ namespace kagome::parachain {
 
 namespace kagome::runtime {
   class Executor;
-  class ModuleFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
+  class PvfPool;
+
   /// Signs pvf check statement for every new head.
   class PvfPrecheck : public std::enable_shared_from_this<PvfPrecheck> {
    public:
@@ -50,16 +51,16 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ValidatorSignerFactory> signer_factory,
         std::shared_ptr<runtime::ParachainHost> parachain_api,
-        std::shared_ptr<runtime::ModuleFactory> module_factory,
+        std::shared_ptr<PvfPool> pvf_pool,
         std::shared_ptr<runtime::Executor> executor,
-        std::shared_ptr<PvfThreadPool> pvf_thread_pool,
+        PvfThreadPool &pvf_thread_pool,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     /// Subscribes to new heads.
-    void start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                   chain_sub_engine);
+    void start();
 
    private:
     using BlockHash = primitives::BlockHash;
@@ -70,11 +71,11 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ValidatorSignerFactory> signer_factory_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
-    std::shared_ptr<runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<PvfPool> pvf_pool_;
     std::shared_ptr<runtime::Executor> executor_;
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;

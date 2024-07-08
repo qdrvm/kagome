@@ -61,6 +61,13 @@ namespace kagome::network {
                 (const PeerId &),
                 (override));
 
+    MOCK_METHOD(std::optional<std::reference_wrapper<const PeerState>>,
+                getPeerState,
+                (const PeerId &),
+                (const, override));
+
+    MOCK_METHOD(void, enumeratePeerState, (const PeersCallback &), (override));
+
     MOCK_METHOD(size_t, activePeersNumber, (), (const, override));
 
     MOCK_METHOD(void,
@@ -76,6 +83,11 @@ namespace kagome::network {
     MOCK_METHOD(std::optional<std::reference_wrapper<PeerState>>,
                 createDefaultPeerState,
                 (const PeerId &),
+                (override));
+
+    MOCK_METHOD(std::optional<PeerId>,
+                peerFinalized,
+                (BlockNumber, const PeerPredicate &),
                 (override));
   };
 

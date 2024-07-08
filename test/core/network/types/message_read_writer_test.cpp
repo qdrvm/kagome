@@ -30,7 +30,7 @@ struct AdapterWrapper {
   }
 
   template <typename T>
-  static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(
+  static outcome::result<std::vector<uint8_t>::const_iterator> read(
       T &out,
       const std::vector<uint8_t> &src,
       std::vector<uint8_t>::const_iterator from) {

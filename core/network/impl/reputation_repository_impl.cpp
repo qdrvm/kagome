@@ -16,9 +16,9 @@ namespace kagome::network {
 
   ReputationRepositoryImpl::ReputationRepositoryImpl(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<common::MainPoolHandler> main_thread,
+      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : main_thread_{std::move(main_thread)},
+      : main_thread_{main_thread_pool.handler(app_state_manager)},
         scheduler_{std::move(scheduler)},
         log_(log::createLogger("Reputation", "reputation")) {
     BOOST_ASSERT(scheduler_);
@@ -29,8 +29,7 @@ namespace kagome::network {
   void ReputationRepositoryImpl::start() {
     main_thread_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
-        self->tick_handler_ =
-            self->scheduler_->scheduleWithHandle([self] { self->tick(); }, 1s);
+        self->tick();
       }
     });
   }
@@ -137,7 +136,15 @@ namespace kagome::network {
         reputation_table_.erase(cit);
       }
     }
-    std::ignore = tick_handler_.reschedule(1s);
+    tick_handler_ = scheduler_->scheduleWithHandle(
+        [weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (not self) {
+            return;
+          }
+          self->tick();
+        },
+        1s);
   }
 
 }  // namespace kagome::network

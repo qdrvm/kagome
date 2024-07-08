@@ -17,7 +17,7 @@ namespace kagome::crypto {
   class BandersnatchProvider;
   class Secp256k1Provider;
   class Hasher;
-  class CryptoStore;
+  class KeyStore;
 }  // namespace kagome::crypto
 
 namespace kagome::offchain {
@@ -39,7 +39,7 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::CryptoStore> crypto_store,
+        std::shared_ptr<crypto::KeyStore> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
@@ -58,7 +58,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<crypto::CryptoStore> crypto_store_;
+    std::optional<std::shared_ptr<crypto::KeyStore>> key_store_;
     std::shared_ptr<offchain::OffchainPersistentStorage>
         offchain_persistent_storage_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;

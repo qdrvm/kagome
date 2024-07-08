@@ -36,6 +36,14 @@
             }
         },
         {
+            "name": "release-wasmedge",
+            "binaryDir": "cmake-build-release-wasmedge",
+            "inherits": "base-release",
+            "cacheVariables": {
+                "WASM_COMPILER": "WasmEdge"
+            }
+        },
+        {
             "name": "debug-wavm",
             "binaryDir": "cmake-build-debug-wavm",
             "inherits": "base-debug",

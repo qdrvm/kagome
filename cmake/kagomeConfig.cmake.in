@@ -13,7 +13,7 @@ find_dependency(erasure_coding_crust REQUIRED)
 find_dependency(schnorrkel_crust REQUIRED)
 find_dependency(zstd REQUIRED)
 find_dependency(libsecp256k1 REQUIRED)
-find_dependency(OpenSSL REQUIRED)
+find_dependency(OpenSSL CONFIG REQUIRED)
 find_dependency(RocksDB REQUIRED)
 find_dependency(scale REQUIRED)
 

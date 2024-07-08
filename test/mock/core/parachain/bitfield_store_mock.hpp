@@ -25,6 +25,8 @@ namespace kagome::parachain {
                 (const, override));
 
     MOCK_METHOD(void, remove, (const BlockHash &), (override));
+
+    MOCK_METHOD(void, printStoragesLoad, (), (override));
   };
 
 }  // namespace kagome::parachain

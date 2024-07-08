@@ -112,14 +112,25 @@ namespace kagome::runtime {
     outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) override;
 
+    outcome::result<std::vector<ValidatorIndex>> disabled_validators(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<std::optional<NodeFeatures>> node_features(
+        const primitives::BlockHash &block, SessionIndex index) override;
+
+    outcome::result<std::map<CoreIndex, std::vector<ParachainId>>> claim_queue(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<uint32_t> runtime_api_version(
+        const primitives::BlockHash &block) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);
 
     std::shared_ptr<Executor> executor_;
-    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
 
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     RuntimeApiLruBlock<std::vector<ParachainId>> active_parachains_{10};
     RuntimeApiLruBlockArg<ParachainId, std::optional<Buffer>> parachain_head_{
@@ -146,6 +157,7 @@ namespace kagome::runtime {
         ParachainId,
         std::map<ParachainId, std::vector<InboundHrmpMessage>>>
         inbound_hrmp_channels_contents_{10};
+    RuntimeApiLruBlock<std::vector<ValidatorIndex>> disabled_validators_{10};
   };
 
 }  // namespace kagome::runtime

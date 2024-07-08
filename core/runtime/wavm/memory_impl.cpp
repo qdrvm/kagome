@@ -15,20 +15,14 @@ namespace kagome::runtime::wavm {
 
   MemoryImpl::MemoryImpl(WAVM::Runtime::Memory *memory,
                          const MemoryConfig &config)
-      : allocator_{std::make_unique<MemoryAllocator>(*this, config)},
-        memory_{memory},
-        logger_{log::createLogger("WAVM Memory", "wavm")} {
+      : memory_{memory}, logger_{log::createLogger("WAVM Memory", "wavm")} {
     BOOST_ASSERT(memory_);
-    BOOST_ASSERT(allocator_);
     resize(kInitialMemorySize);
   }
 
-  WasmPointer MemoryImpl::allocate(WasmSize size) {
-    return allocator_->allocate(size);
-  }
-
-  void MemoryImpl::deallocate(WasmPointer ptr) {
-    return allocator_->deallocate(ptr);
+  std::optional<WasmSize> MemoryImpl::pagesMax() const {
+    auto max = WAVM::Runtime::getMemoryType(memory_).size.max;
+    return max != UINT64_MAX ? std::make_optional<WasmSize>(max) : std::nullopt;
   }
 
   outcome::result<BytesOut> MemoryImpl::view(WasmPointer ptr,

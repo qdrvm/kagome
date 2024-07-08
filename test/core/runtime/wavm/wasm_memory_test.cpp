@@ -18,6 +18,7 @@
 using kagome::common::literals::operator""_MB;
 using kagome::runtime::kDefaultHeapBase;
 using kagome::runtime::kInitialMemorySize;
+using kagome::runtime::Memory;
 using kagome::runtime::MemoryAllocator;
 using kagome::runtime::MemoryConfig;
 using kagome::runtime::roundUpAlign;
@@ -50,14 +51,18 @@ class WavmMemoryHeapTest : public ::testing::Test {
         WAVM::IR::FunctionType{});
     instance_ = intr_module->instantiate();
 
-    memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
-                                           MemoryConfig{kDefaultHeapBase, {}});
+    MemoryConfig config{kDefaultHeapBase, {}};
+    auto handle =
+        std::make_shared<MemoryImpl>(instance_->getExportedMemory(), config);
+    auto allocator =
+        std::make_unique<kagome::runtime::MemoryAllocatorImpl>(handle, config);
+    memory_ = std::make_unique<Memory>(handle, std::move(allocator));
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;
   static const uint32_t memory_page_limit_ = 512_MB;
 
-  std::unique_ptr<MemoryImpl> memory_;
+  std::unique_ptr<Memory> memory_;
   std::unique_ptr<IntrinsicModuleInstance> instance_;
 };
 

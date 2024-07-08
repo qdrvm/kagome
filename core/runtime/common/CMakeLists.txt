@@ -5,14 +5,9 @@
 #
 
 add_library(runtime_common
-    stack_limiter.cpp
     memory_error.cpp
     )
 target_link_libraries(runtime_common
-    wabt::wabt
-    blob
-    logger
-    uncompress_if_needed
     outcome
     )
 kagome_install(runtime_common)
@@ -26,14 +21,6 @@ target_link_libraries(storage_code_provider
     uncompress_if_needed
     )
 kagome_install(storage_code_provider)
-
-add_library(constant_code_provider
-    constant_code_provider.cpp
-    )
-target_link_libraries(constant_code_provider
-    uncompress_if_needed
-    )
-kagome_install(constant_code_provider)
 
 add_library(uncompress_if_needed
     uncompress_code_if_needed.cpp
@@ -76,6 +63,7 @@ add_library(module_repository
 target_link_libraries(module_repository
     outcome
     uncompress_if_needed
+    wasm_instrument
     blob
     executor
     runtime_common
@@ -90,6 +78,7 @@ add_library(executor
 target_link_libraries(executor
     logger
     uncompress_if_needed
+    wasm_instrument
     storage
     mp_utils
     runtime_common
@@ -109,5 +98,7 @@ add_library(core_api_factory core_api_factory_impl.cpp)
 target_link_libraries(core_api_factory
     core_api
     outcome
+    uncompress_if_needed
+    wasm_instrument
     )
 kagome_install(core_api_factory)

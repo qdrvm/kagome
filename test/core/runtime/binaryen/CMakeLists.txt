@@ -7,7 +7,6 @@
 add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
     filesystem
-    key_file_storage
     sr25519_provider
     ecdsa_provider
     ed25519_provider
@@ -15,7 +14,7 @@ target_link_libraries(binaryen_runtime_test INTERFACE
     bip39_provider
     secp256k1_provider
     hasher
-    crypto_store
+    key_store
     host_api
     host_api_factory
     core_api
@@ -52,10 +51,10 @@ target_link_libraries(block_builder_api_test
     logger_for_tests
     )
 
-addtest(parachain_test
+addtest(binaryen_parachain_test
     parachain_test.cpp
     )
-target_link_libraries(parachain_test
+target_link_libraries(binaryen_parachain_test
     binaryen_runtime_test
     parachain_host_api
     basic_code_provider
@@ -86,7 +85,6 @@ addtest(runtime_external_interface_test
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
     executor
-    constant_code_provider
     blob
     logger_for_tests
     )

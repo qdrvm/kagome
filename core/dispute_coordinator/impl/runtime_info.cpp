@@ -6,7 +6,7 @@
 
 #include "dispute_coordinator/impl/runtime_info.hpp"
 
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 

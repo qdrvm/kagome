@@ -21,8 +21,7 @@ function(external_project_link_libraries target prefix)
         log_configurator
         host_api_factory
         chain_spec
-        crypto_store
-        key_file_storage
+        key_store
         sr25519_provider
         ed25519_provider
         pbkdf2_provider

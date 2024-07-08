@@ -27,10 +27,6 @@ namespace kagome::storage::trie {
   class TrieSerializer;
 }  // namespace kagome::storage::trie
 
-namespace kagome::runtime {
-  class SingleModuleCache;
-}
-
 namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
@@ -50,11 +46,10 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
-        std::shared_ptr<SingleModuleCache> last_compiled_module,
         std::optional<std::shared_ptr<ModuleCache>> module_cache,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<std::shared_ptr<Module>, CompilationError> make(
+    CompilationOutcome<std::shared_ptr<Module>> make(
         common::BufferView code) const override;
 
    private:
@@ -63,7 +58,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
-    std::shared_ptr<SingleModuleCache> last_compiled_module_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };

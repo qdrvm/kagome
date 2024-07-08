@@ -68,8 +68,8 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::detail::DigestItemCommon;
-using kagome::primitives::events::BabeStateSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::CoreMock;
 using kagome::storage::trie::TrieStorageMock;
 using libp2p::basic::SchedulerMock;
@@ -143,6 +143,8 @@ class TimelineTest : public testing::Test {
     production_consensus = std::make_shared<ProductionConsensusMock>();
     ON_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillByDefault(Return(production_consensus));
+    ON_CALL(*consensus_selector, getProductionConsensusByHeader(_))
+        .WillByDefault(Return(production_consensus));
     ON_CALL(*production_consensus, getSlot(best_block_header))
         .WillByDefault(Return(1));
 
@@ -157,7 +159,7 @@ class TimelineTest : public testing::Test {
     scheduler = std::make_shared<SchedulerMock>();
     core_api = std::make_shared<CoreMock>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
-    state_sub_engine = std::make_shared<BabeStateSubscriptionEngine>();
+    state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
 
     timeline = std::make_shared<TimelineImpl>(
         app_config,
@@ -195,7 +197,7 @@ class TimelineTest : public testing::Test {
   std::shared_ptr<GrandpaMock> justification_observer;
   std::shared_ptr<SchedulerMock> scheduler;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
-  std::shared_ptr<BabeStateSubscriptionEngine> state_sub_engine;
+  std::shared_ptr<SyncStateSubscriptionEngine> state_sub_engine;
   std::shared_ptr<CoreMock> core_api;
 
   std::shared_ptr<TimelineImpl> timeline;
@@ -257,7 +259,7 @@ TEST_F(TimelineTest, SingleValidator) {
         .WillRepeatedly(Return(ValidatorStatus::SingleValidator));
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot = std::move(cb);
           return SchedulerMock::Handle{};
@@ -283,7 +285,7 @@ TEST_F(TimelineTest, SingleValidator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(
             Invoke([&](auto cb) { return SchedulerMock::Handle{}; })));
 
@@ -322,7 +324,7 @@ TEST_F(TimelineTest, Validator) {
     //  - don't process slot, because node is not synchronized
     EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
     //  - don't wait time to run slot, because node is not synchronized
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(0);
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, _)).Times(0);
 
     timeline->start();
 
@@ -347,7 +349,7 @@ TEST_F(TimelineTest, Validator) {
     //  - process slot won't start, because slot is not changed
     EXPECT_CALL(*production_consensus, processSlot(_, _)).Times(0);
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_2 = std::move(cb);
           return SchedulerMock::Handle{};
@@ -378,7 +380,7 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(SlotLeadershipError::NO_SLOT_LEADER));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_3 = std::move(cb);
           return SchedulerMock::Handle{};
@@ -404,7 +406,7 @@ TEST_F(TimelineTest, Validator) {
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
         .WillOnce(Return(outcome::success()));
     //  - start to wait for end of current slot
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+    EXPECT_CALL(*scheduler, scheduleImpl(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {
           on_run_slot_3 = std::move(cb);
           return SchedulerMock::Handle{};
@@ -418,4 +420,92 @@ TEST_F(TimelineTest, Validator) {
     Mock::VerifyAndClearExpectations(production_consensus.get());
     Mock::VerifyAndClearExpectations(scheduler.get());
   }
+}
+
+/**
+ * @given start timeline
+ * @when consensus returns we are not validator
+ * @then we has not synchronized and waiting announce or incoming stream
+ */
+TEST_F(TimelineTest, Equivocation) {
+  BlockHeader new_block{
+      10,                         // number
+      "block_#9"_hash256,         // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(10),            // digest
+      "block_#10_s10_a0"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(new_block)).WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(new_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(new_block);
+
+  BlockHeader another_slot_block{
+      10,                         // number
+      "block_#9_fork"_hash256,    // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(11),            // digest
+      "block_#10_s11_a0"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(another_slot_block))
+      .WillOnce(Return(11));
+  EXPECT_CALL(*production_consensus, getAuthority(another_slot_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(another_slot_block);
+
+  BlockHeader another_validator_block{
+      10,                         // number
+      "block_#9"_hash256,         // parent
+      {},                         // state_root
+      {},                         // extrinsic_root
+      make_digest(10),            // digest
+      "block_#10_s10_a1"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(another_validator_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(another_validator_block))
+      .WillOnce(Return(1));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(another_validator_block);
+
+  BlockHeader equivocating_block{
+      10,                            // number
+      "block_#9"_hash256,            // parent
+      {},                            // state_root
+      {},                            // extrinsic_root
+      make_digest(10),               // digest
+      "block_#10_s10_a0_e1"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(equivocating_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(equivocating_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus,
+              reportEquivocation(new_block.hash(), equivocating_block.hash()))
+      .WillOnce(Return(outcome::success()));
+  timeline->checkAndReportEquivocation(equivocating_block);
+
+  BlockHeader one_more_equivocating_block{
+      10,                            // number
+      "block_#9"_hash256,            // parent
+      {},                            // state_root
+      {},                            // extrinsic_root
+      make_digest(10),               // digest
+      "block_#10_s10_a0_e2"_hash256  // hash
+  };
+
+  EXPECT_CALL(*production_consensus, getSlot(one_more_equivocating_block))
+      .WillOnce(Return(10));
+  EXPECT_CALL(*production_consensus, getAuthority(one_more_equivocating_block))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*production_consensus, reportEquivocation(_, _)).Times(0);
+  timeline->checkAndReportEquivocation(one_more_equivocating_block);
 }

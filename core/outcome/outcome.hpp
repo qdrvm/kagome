@@ -6,10 +6,5 @@
 
 #pragma once
 
-#include <libp2p/outcome/outcome.hpp>
-
-namespace outcome {
-  using libp2p::outcome::failure;
-  using libp2p::outcome::result;
-  using libp2p::outcome::success;
-}  // namespace outcome
+#include <qtils/enum_error_code.hpp>
+#include <qtils/outcome.hpp>

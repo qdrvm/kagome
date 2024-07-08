@@ -21,6 +21,8 @@ using kagome::crypto::BandersnatchProvider;
 using kagome::crypto::BandersnatchProviderImpl;
 using kagome::crypto::BandersnatchSeed;
 using kagome::crypto::BoostRandomGenerator;
+using kagome::crypto::CSPRNG;
+using kagome::crypto::SecureBuffer;
 
 namespace vrf = kagome::crypto::bandersnatch::vrf;
 
@@ -35,21 +37,22 @@ struct BandersnatchTest : public ::testing::Test {
   }
 
   void SetUp() override {
+    random_generator = std::make_shared<BoostRandomGenerator>();
     bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
 
     message = "I am a message"_bytes;
   }
 
   auto generate() {
-    BandersnatchSeed seed;
-    csprng->fillRandomly(seed);
+    SecureBuffer<> seed_buf(BandersnatchSeed::size());
+    random_generator->fillRandomly(seed_buf);
+    auto seed = BandersnatchSeed::from(std::move(seed_buf)).value();
     return bandersnatch_provider->generateKeypair(seed, {});
   }
 
   std::span<const uint8_t> message;
 
-  std::shared_ptr<BoostRandomGenerator> csprng =
-      std::make_shared<BoostRandomGenerator>();
+  std::shared_ptr<CSPRNG> random_generator;
   std::shared_ptr<BandersnatchProvider> bandersnatch_provider;
 };
 
@@ -60,8 +63,8 @@ struct BandersnatchTest : public ::testing::Test {
  */
 TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    auto kp1 = generate();
-    auto kp2 = generate();
+    ASSERT_OUTCOME_SUCCESS(kp1, generate());
+    ASSERT_OUTCOME_SUCCESS(kp2, generate());
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -73,7 +76,7 @@ TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
  * @then
  */
 TEST_F(BandersnatchTest, PlainSignVerifySuccess) {
-  auto kp = generate();
+  ASSERT_OUTCOME_SUCCESS(kp, generate());
   ASSERT_OUTCOME_SUCCESS(signature, bandersnatch_provider->sign(kp, message));
   EXPECT_OUTCOME_SUCCESS(
       is_valid,
@@ -106,7 +109,9 @@ TEST_F(BandersnatchTest, VrfSignVerifySuccess) {
       // Buffer::fromString("input_three"),
   };
 
-  for (const BandersnatchKeypair &kp : {generate(), generate(), generate()}) {
+  for (auto i = 0; i < 3; ++i) {
+    ASSERT_OUTCOME_SUCCESS(kp, generate());
+
     SL_INFO(log(), "PUB={}", kp.public_key);
     for (auto &label : labels) {
       SL_INFO(log(), "  LABEL={}", Buffer(label).asString());

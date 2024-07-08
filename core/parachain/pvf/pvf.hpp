@@ -18,19 +18,20 @@ namespace kagome::parachain {
     using CandidateCommitments = network::CandidateCommitments;
     using PersistedValidationData = runtime::PersistedValidationData;
     using Result = std::pair<CandidateCommitments, PersistedValidationData>;
+    using Cb = std::function<void(outcome::result<Result>)>;
 
     virtual ~Pvf() = default;
 
     /// Execute pvf synchronously
-    virtual outcome::result<Result> pvfSync(
-        const CandidateReceipt &receipt,
-        const ParachainBlock &pov,
-        const runtime::PersistedValidationData &pvd) const = 0;
+    virtual void pvf(const CandidateReceipt &receipt,
+                     const ParachainBlock &pov,
+                     const runtime::PersistedValidationData &pvd,
+                     Cb cb) const = 0;
 
-    virtual outcome::result<Result> pvfValidate(
-        const PersistedValidationData &data,
-        const ParachainBlock &pov,
-        const CandidateReceipt &receipt,
-        const ParachainRuntime &code) const = 0;
+    virtual void pvfValidate(const PersistedValidationData &data,
+                             const ParachainBlock &pov,
+                             const CandidateReceipt &receipt,
+                             const ParachainRuntime &code,
+                             Cb cb) const = 0;
   };
 }  // namespace kagome::parachain

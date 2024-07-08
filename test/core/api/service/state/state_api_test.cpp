@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
@@ -309,7 +310,7 @@ namespace kagome::api {
 
     EXPECT_OUTCOME_ERROR(result,
                          subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+                         qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -327,7 +328,7 @@ namespace kagome::api {
 
     EXPECT_OUTCOME_ERROR(result,
                          subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+                         qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -341,11 +342,10 @@ namespace kagome::api {
         std::make_shared<api::state::request::SubscribeStorage>(state_api);
 
     jsonrpc::Request::Parameters params;
-    params.push_back(jsonrpc::Value::Array{std::string("0xtest_data")});
+    params.push_back(jsonrpc::Value::Array{std::string("0xtestdata")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         common::UnhexError::NON_HEX_INPUT);
+    EXPECT_OUTCOME_ERROR(
+        result, subscribe_storage->init(params), qtils::UnhexError::NON_HEX);
   }
 
   /**

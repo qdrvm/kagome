@@ -10,7 +10,7 @@
 
 #include <outcome/outcome.hpp>
 
-#include "crypto/crypto_store/key_type.hpp"
+#include "crypto/key_store/key_type.hpp"
 #include "primitives/common.hpp"
 #include "primitives/metadata.hpp"
 

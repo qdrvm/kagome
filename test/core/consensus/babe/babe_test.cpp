@@ -33,9 +33,12 @@
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
+#include "mock/core/offchain/offchain_worker_factory_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/parachain/backed_candidates_source.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
+#include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -49,17 +52,16 @@
 using kagome::TestThreadPool;
 using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
-using kagome::application::AppStateManagerMock;
+using kagome::application::StartApp;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
-using kagome::common::MainPoolHandler;
 using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
-using kagome::common::WorkerPoolHandler;
 using kagome::common::WorkerThreadPool;
+using kagome::consensus::AuthorityIndex;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -74,7 +76,6 @@ using kagome::consensus::ValidatorStatus;
 using kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::Authority;
 using kagome::consensus::babe::AuthorityId;
-using kagome::consensus::babe::AuthorityIndex;
 using kagome::consensus::babe::Babe;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeBlockValidator;
@@ -83,6 +84,8 @@ using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BabeLotteryMock;
 using kagome::consensus::babe::DigestError;
+using kagome::consensus::babe::EquivocationProof;
+using kagome::consensus::babe::OpaqueKeyOwnershipProof;
 using kagome::consensus::babe::Randomness;
 using kagome::consensus::babe::SlotLeadership;
 using kagome::consensus::babe::SlotType;
@@ -100,6 +103,8 @@ using kagome::crypto::VRFVerifyOutput;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::dispute::MultiDisputeStatementSet;
 using kagome::network::BlockAnnounceTransmitterMock;
+using kagome::offchain::OffchainWorkerFactoryMock;
+using kagome::offchain::OffchainWorkerPoolMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::parachain::BitfieldStoreMock;
 using kagome::primitives::Block;
@@ -113,6 +118,7 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::runtime::BabeApiMock;
 using kagome::runtime::OffchainWorkerApiMock;
 using kagome::storage::trie::calculateOrderedTrieHash;
 using kagome::storage::trie::StateVersion;
@@ -125,20 +131,12 @@ using testing::Return;
 
 using namespace std::chrono_literals;
 
-// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s,
-                           const detail::DigestItemCommon &dic) {
-    return s;
-  }
-}  // namespace kagome::primitives
-
-static Digest make_digest(SlotNumber slot) {
+static Digest make_digest(SlotNumber slot, AuthorityIndex authority_index = 0) {
   Digest digest;
 
   BabeBlockHeader babe_header{
       .slot_assignment_type = SlotType::SecondaryPlain,
-      .authority_index = 0,
+      .authority_index = authority_index,
       .slot_number = slot,
   };
   Buffer encoded_header{scale::encode(babe_header).value()};
@@ -189,13 +187,21 @@ class BabeTest : public testing::Test {
 
     // add initialization logic
     timings = {60ms, 2};
-    our_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
-    other_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
+
+    our_authority_index = 0;
+    other_authority_index = 1;
+    our_keypair = std::make_shared<Sr25519Keypair>(
+        generateSr25519Keypair(our_authority_index));
+    other_keypair = std::make_shared<Sr25519Keypair>(
+        generateSr25519Keypair(other_authority_index));
     babe_config = std::make_shared<BabeConfiguration>();
     babe_config->slot_duration = timings.slot_duration;
     babe_config->randomness.fill(0);
-    babe_config->authorities = {Authority{{our_keypair->public_key}, 1},
-                                Authority{{other_keypair->public_key}, 1}};
+    babe_config->authorities.resize(2);
+    babe_config->authorities[our_authority_index] =
+        Authority{{our_keypair->public_key}, 1};
+    babe_config->authorities[other_authority_index] =
+        Authority{{other_keypair->public_key}, 1};
     babe_config->leadership_rate = {1, 4};
     babe_config->epoch_length = timings.epoch_length;
 
@@ -204,7 +210,8 @@ class BabeTest : public testing::Test {
 
     session_keys = std::make_shared<SessionKeysMock>();
     ON_CALL(*session_keys, getBabeKeyPair(babe_config->authorities))
-        .WillByDefault(Return(std::make_pair(our_keypair, 1)));
+        .WillByDefault(
+            Return(std::make_pair(our_keypair, our_authority_index)));
 
     lottery = std::make_shared<BabeLotteryMock>();
 
@@ -236,27 +243,26 @@ class BabeTest : public testing::Test {
     backed_candidates_source_ =
         std::make_shared<kagome::parachain::BackedCandidatesSourceMock>();
 
+    babe_api = std::make_shared<BabeApiMock>();
+
     offchain_worker_api = std::make_shared<OffchainWorkerApiMock>();
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
     watchdog = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
 
-    app_state_manager =
-        std::make_shared<kagome::application::AppStateManagerMock>();
-
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
-    main_pool_handler =
-        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
-    main_pool_handler->start();
 
     worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
-    worker_pool_handler = std::make_shared<WorkerPoolHandler>(
-        app_state_manager, worker_thread_pool);
-    worker_pool_handler->start();
+
+    offchain_worker_factory = std::make_shared<OffchainWorkerFactoryMock>();
+    offchain_worker_pool = std::make_shared<OffchainWorkerPoolMock>();
+
+    StartApp app_state_manager;
 
     babe = std::make_shared<BabeWrapper>(
+        app_state_manager,
         app_config,
         clock,
         block_tree,
@@ -275,9 +281,14 @@ class BabeTest : public testing::Test {
         storage_sub_engine,
         chain_sub_engine,
         announce_transmitter,
+        babe_api,
         offchain_worker_api,
-        main_pool_handler,
-        worker_pool_handler);
+        offchain_worker_factory,
+        offchain_worker_pool,
+        *main_thread_pool,
+        *worker_thread_pool);
+
+    app_state_manager.start();
   }
 
   void TearDown() override {
@@ -303,17 +314,20 @@ class BabeTest : public testing::Test {
   std::shared_ptr<kagome::parachain::BackedCandidatesSourceMock>
       backed_candidates_source_;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
+  std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<AppStateManagerMock> app_state_manager;
+  std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory;
+  std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool;
   std::shared_ptr<Watchdog> watchdog;
   std::shared_ptr<MainThreadPool> main_thread_pool;
-  std::shared_ptr<MainPoolHandler> main_pool_handler;
   std::shared_ptr<WorkerThreadPool> worker_thread_pool;
-  std::shared_ptr<WorkerPoolHandler> worker_pool_handler;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
+  AuthorityIndex our_authority_index = 0;
   std::shared_ptr<Sr25519Keypair> our_keypair;
+
+  AuthorityIndex other_authority_index = 1;
   std::shared_ptr<Sr25519Keypair> other_keypair;
 
   static constexpr EpochNumber uninitialized_epoch =
@@ -372,6 +386,9 @@ class BabeTest : public testing::Test {
 };
 
 TEST_F(BabeTest, Setup) {
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillOnce(Return(std::vector<AuthorityIndex>{}));
+
   ASSERT_OUTCOME_ERROR(babe->getSlot(genesis_block_header),
                        DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
 
@@ -402,7 +419,31 @@ TEST_F(BabeTest, NonValidator) {
             ValidatorStatus::NonValidator);
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::NO_VALIDATOR);
+                       SlotLeadershipError::NON_VALIDATOR);
+}
+
+TEST_F(BabeTest, DisabledValidator) {
+  SlotNumber slot = new_block_slot;
+  EpochNumber epoch = 0;
+
+  EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
+  EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
+      .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{our_authority_index}));
+
+  EXPECT_CALL(*lottery, getEpoch())
+      .WillOnce(Return(uninitialized_epoch))
+      .WillRepeatedly(Return(epoch));
+  EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
+      .WillOnce(Return(true));
+
+  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
+            ValidatorStatus::DisabledValidator);
+
+  ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
+                       SlotLeadershipError::DISABLED_VALIDATOR);
 }
 
 TEST_F(BabeTest, NoSlotLeader) {
@@ -412,6 +453,9 @@ TEST_F(BabeTest, NoSlotLeader) {
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{}));
 
   EXPECT_CALL(*lottery, getEpoch())
       .WillOnce(Return(uninitialized_epoch))
@@ -436,13 +480,16 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
 
+  EXPECT_CALL(*babe_api, disabled_validators(_))
+      .WillRepeatedly(Return(std::vector<AuthorityIndex>{}));
+
   EXPECT_CALL(*lottery, getEpoch())
       .WillOnce(Return(uninitialized_epoch))
       .WillRepeatedly(Return(epoch));
   EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
       .WillOnce(Return(true));
   EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
-      .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));
+      .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));  // NOLINT
 
   EXPECT_CALL(*block_tree, getBlockHeader(best_block_info.hash))
       .WillOnce(Return(best_block_header));
@@ -464,4 +511,54 @@ TEST_F(BabeTest, SlotLeader) {
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
   latch.wait();
+}
+
+TEST_F(BabeTest, EquivocationReport) {
+  SlotNumber slot = 1;
+  AuthorityIndex authority_index = 1;
+  const AuthorityId &authority_id =
+      babe_config->authorities[authority_index].id;
+
+  BlockHeader first{
+      1,                                   // number
+      "parent"_hash256,                    // parent
+      {},                                  // state_root
+      {},                                  // extrinsic_root
+      make_digest(slot, authority_index),  // digest
+      "block_#1_first"_hash256             // hash
+  };
+  BlockHeader second{
+      1,                                   // number
+      "parent"_hash256,                    // parent
+      {},                                  // state_root
+      {},                                  // extrinsic_root
+      make_digest(slot, authority_index),  // digest
+      "block_#1_second"_hash256            // hash
+  };
+
+  OpaqueKeyOwnershipProof ownership_proof{Buffer{"ownership_proof"_bytes}};
+
+  EquivocationProof equivocation_proof{
+      .offender = authority_id,
+      .slot = slot,
+      .first_header = first,
+      .second_header = second,
+  };
+
+  ON_CALL(*block_tree, getBlockHeader(first.hash()))
+      .WillByDefault(Return(first));
+  ON_CALL(*block_tree, getBlockHeader(second.hash()))
+      .WillByDefault(Return(second));
+  ON_CALL(*slots_util, slotToEpoch(_, _))
+      .WillByDefault(Return(outcome::success(0)));
+  EXPECT_CALL(*babe_api, generate_key_ownership_proof(_, _, _))
+      .WillOnce(Return(outcome::success(ownership_proof)));
+
+  EXPECT_CALL(*babe_api,
+              submit_report_equivocation_unsigned_extrinsic(
+                  "parent"_hash256, equivocation_proof, ownership_proof))
+      .WillOnce(Return(outcome::success()));
+
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      babe->reportEquivocation(first.hash(), second.hash()));
 }

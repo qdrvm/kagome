@@ -26,7 +26,6 @@ namespace WAVM::Runtime {
 }
 
 namespace kagome::runtime {
-  class SingleModuleCache;
   class ModuleFactory;
 }  // namespace kagome::runtime
 

@@ -5,6 +5,7 @@
  */
 
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
+#include <memory>
 
 #include "runtime/common/memory_allocator.hpp"
 
@@ -40,7 +41,9 @@ namespace kagome::runtime::binaryen {
     auto rei = external_interface_.lock();
     BOOST_ASSERT(rei != nullptr);
     if (rei) {
-      memory_ = memory_factory_->make(rei->getMemory(), config);
+      std::shared_ptr handle = memory_factory_->make(rei->getMemory(), config);
+      memory_ = std::make_shared<Memory>(
+          handle, std::make_unique<MemoryAllocatorImpl>(handle, config));
       return outcome::success();
     }
     return Error::OUTDATED_EXTERNAL_INTERFACE;

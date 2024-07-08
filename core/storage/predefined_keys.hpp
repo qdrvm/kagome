@@ -14,6 +14,7 @@ namespace kagome::storage {
   using namespace common::literals;
 
   inline const common::Buffer kRuntimeCodeKey = ":code"_buf;
+  inline const common::Buffer kRuntimeHeappagesKey = ":heappages"_buf;
 
   inline const common::Buffer kExtrinsicIndexKey = ":extrinsic_index"_buf;
 
@@ -48,7 +49,8 @@ namespace kagome::storage {
   inline const common::Buffer kAuthorityManagerImplIndexerPrefix =
       ":kagome:AuthorityManagerImpl:Indexer:"_buf;
 
-  inline const common::Buffer kGrandpaVotesKey = ":kagome:Grandpa:votes"_buf;
+  inline const common::Buffer kGrandpaHistoricalVotesPrefix =
+      ":kagome:Grandpa:historical_votes:"_buf;
 
   inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
 

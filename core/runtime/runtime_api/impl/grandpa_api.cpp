@@ -27,4 +27,28 @@ namespace kagome::runtime {
     return executor_->call<AuthoritySetId>(ctx, "GrandpaApi_current_set_id");
   }
 
+  outcome::result<std::optional<consensus::grandpa::OpaqueKeyOwnershipProof>>
+  GrandpaApiImpl::generate_key_ownership_proof(
+      const primitives::BlockHash &block_hash,
+      consensus::SlotNumber slot,
+      consensus::grandpa::AuthorityId authority_id) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_
+        ->call<std::optional<consensus::grandpa::OpaqueKeyOwnershipProof>>(
+            ctx, "GrandpaApi_generate_key_ownership_proof", slot, authority_id);
+  }
+
+  outcome::result<void>
+  GrandpaApiImpl::submit_report_equivocation_unsigned_extrinsic(
+      const primitives::BlockHash &block_hash,
+      consensus::grandpa::EquivocationProof equivocation_proof,
+      consensus::grandpa::OpaqueKeyOwnershipProof key_owner_proof) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_->call<void>(
+        ctx,
+        "GrandpaApi_submit_report_equivocation_unsigned_extrinsic",
+        equivocation_proof,
+        key_owner_proof);
+  }
+
 }  // namespace kagome::runtime

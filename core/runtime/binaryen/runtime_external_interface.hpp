@@ -37,8 +37,11 @@ namespace kagome::runtime::binaryen {
   class RuntimeExternalInterface
       : public wasm::ModuleInstance::ExternalInterface {
     class Memory {
+      friend class RuntimeExternalInterface;
+
       using Mem = std::vector<char>;
       Mem memory;
+      std::optional<WasmSize> pages_max;
       template <typename T>
       static bool aligned(const char *address) {
         static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
@@ -49,7 +52,11 @@ namespace kagome::runtime::binaryen {
 
      public:
       Memory() = default;
-      void resize(size_t newSize) {
+      uint32_t pages() {
+        return memory.size() / ::wasm::Memory::kPageSize;
+      }
+      void pagesResize(size_t newPages) {
+        size_t newSize = newPages * ::wasm::Memory::kPageSize;
         // Ensure the smallest allocation is large enough that most allocators
         // will provide page-aligned storage. This hopefully allows the
         // interpreter's memory to be as aligned as the memory being simulated,
@@ -65,6 +72,9 @@ namespace kagome::runtime::binaryen {
       }
       auto getSize() const {
         return memory.size();
+      }
+      std::optional<WasmSize> pagesMax() const {
+        return pages_max;
       }
       template <typename T>
       void set(size_t address, T value) {
@@ -165,8 +175,12 @@ namespace kagome::runtime::binaryen {
       memory.set<std::array<uint8_t, 16>>(addr, value);
     }
 
-    void growMemory(wasm::Address /*oldSize*/, wasm::Address newSize) override {
-      memory.resize(newSize);
+    uint32_t memoryPages() override {
+      return memory.pages();
+    }
+
+    void memoryPagesGrow(uint32_t /*oldPages*/, uint32_t newPages) override {
+      memory.pagesResize(newPages);
     }
 
     [[noreturn]] void trap(const char *why) override {

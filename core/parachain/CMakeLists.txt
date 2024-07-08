@@ -4,6 +4,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(grid_tracker
+    backing/grid_tracker.cpp
+    )
+
+target_link_libraries(grid_tracker
+    fmt::fmt
+    scale::scale
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
+    )
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -12,6 +25,7 @@ add_library(validator_parachain
     availability/recovery/recovery_impl.cpp
     availability/store/store_impl.cpp
     backing/store_impl.cpp
+    pvf/pool.cpp
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
     pvf/module_precompiler.cpp
@@ -22,12 +36,14 @@ add_library(validator_parachain
     approval/approval_distribution_error.cpp
     approval/approval.cpp
     backing/store_impl.cpp
+    backing/cluster.cpp
     validator/impl/fragment_tree.cpp
     validator/backing_implicit_view.cpp
     )
 
 target_link_libraries(validator_parachain
-    crypto_store
+    grid_tracker
+    key_store
     dispute_coordinator
     module_repository
     network
@@ -39,8 +55,10 @@ target_link_libraries(validator_parachain
 
 add_library(kagome_pvf_worker
     pvf/kagome_pvf_worker.cpp
+    pvf/secure_mode_precheck.cpp
     )
 target_link_libraries(kagome_pvf_worker
+    PUBLIC
     fmt::fmt
     scale::scale
     soralog::fallback_configurator
@@ -68,3 +86,6 @@ target_link_libraries(kagome_pvf_worker
     p2p::p2p_asio_scheduler_backend
     )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
+endif()

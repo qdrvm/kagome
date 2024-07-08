@@ -20,11 +20,9 @@
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
 #include "dispute_coordinator/impl/dispute_thread_pool.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
-#include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/sending_dispute.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
@@ -35,6 +33,7 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
@@ -53,7 +52,7 @@ namespace kagome::dispute {
     constexpr auto disputesFinalityLagMetricName =
         "kagome_parachain_disputes_finality_lag";
 
-    inline common::Buffer getSignablePayload(
+    inline outcome::result<common::Buffer> getSignablePayload(
         const DisputeStatement &statement,
         const CandidateHash &candidate_hash,
         SessionIndex session) {
@@ -62,7 +61,7 @@ namespace kagome::dispute {
           [&](const ValidDisputeStatement &kind) {
             return visit_in_place(
                 kind,
-                [&](const Explicit &) {
+                [&](const Explicit &) -> outcome::result<std::vector<uint8_t>> {
                   std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
                   bool validity = true;
                   return scale::encode(
@@ -90,6 +89,30 @@ namespace kagome::dispute {
                   std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
                   return scale::encode(
                       std::tie(magic, candidate_hash, session));
+                },
+                [&](const ApprovalCheckingMultipleCandidates &candidates)
+                    -> outcome::result<std::vector<uint8_t>> {
+                  /// Returns Error if the candidate_hash is not included in the
+                  /// list of signed candidate from
+                  /// ApprovalCheckingMultipleCandidate.
+                  if (std::find(
+                          candidates.begin(), candidates.end(), candidate_hash)
+                      == candidates.end()) {
+                    return ApprovalCheckingMultipleCandidatesError::NotIncluded;
+                  }
+
+                  std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                  // Make this backwards compatible with `ApprovalVote` so if
+                  // we have just on the candidate signature will look the same.
+                  // This gives us the nice benefit that old nodes can still
+                  // check signatures when len is 1 and the new node can check
+                  // the signature coming from old nodes.
+                  if (candidates.size() == 1) {
+                    return scale::encode(
+                        std::tie(magic, candidates.front(), session));
+                  } else {
+                    return scale::encode(std::tie(magic, candidates, session));
+                  }
                 });
           },
           [&](const InvalidDisputeStatement &kind) {
@@ -100,8 +123,10 @@ namespace kagome::dispute {
                   std::tie(magic, validity, candidate_hash, session));
             });
           });
-      BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
-      return common::Buffer(std::move(res.value()));
+      if (res.has_value()) {
+        return common::Buffer(std::move(res.value()));
+      }
+      return res.as_failure();
     }
 
   }  // namespace
@@ -124,12 +149,13 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+      common::MainThreadPool &main_thread_pool,
+      DisputeThreadPool &dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline)
-      : app_state_manager_(std::move(app_state_manager)),
+      : log_(log::createLogger("DisputeCoordinator", "dispute")),
         system_clock_(system_clock),
         steady_clock_(steady_clock),
         session_keys_(std::move(session_keys)),
@@ -146,20 +172,17 @@ namespace kagome::dispute {
         authority_discovery_(std::move(authority_discovery)),
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
-        chain_sub_{peer_view_->intoChainEventsEngine()},
+        chain_sub_{std::move(chain_sub_engine)},
         timeline_(std::move(timeline)),
-        main_pool_handler_(std::move(main_pool_handler)),
-        dispute_thread_handler_{[&] {
-          BOOST_ASSERT(dispute_thread_pool != nullptr);
-          return dispute_thread_pool->handler();
-        }()},
+        main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
+        dispute_thread_handler_{poolHandlerReadyMake(
+            this, app_state_manager, dispute_thread_pool, log_)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                dispute_thread_pool->io_context()),
+                dispute_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
-        batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
+        batches_(std::make_unique<Batches>(log_, steady_clock_, hasher_)) {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
@@ -210,24 +233,19 @@ namespace kagome::dispute {
     metric_concluded_invalid_ = metrics_registry_->registerCounterMetric(
         disputeConcludedMetricName,
         {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
-
-    app_state_manager_->takeControl(*this);
   }
 
-  bool DisputeCoordinatorImpl::prepare() {
+  bool DisputeCoordinatorImpl::tryStart() {
     auto leaves = block_tree_->getLeaves();
     active_heads_.insert(leaves.begin(), leaves.end());
 
     // subscribe to leaves update
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
-    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
-                            network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
+    primitives::events::subscribe(
+        *my_view_sub_,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
           if (auto self = wptr.lock()) {
             self->on_active_leaves_update(event);
           }
@@ -244,36 +262,14 @@ namespace kagome::dispute {
     return true;
   }
 
-  bool DisputeCoordinatorImpl::start() {
-    dispute_thread_handler_->start();
-    return true;
-  }
-
-  void DisputeCoordinatorImpl::stop() {
-    dispute_thread_handler_->stop();
-  }
-
   void DisputeCoordinatorImpl::startup(const network::ExView &updated) {
     BOOST_ASSERT(not initialized_);
 
     scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_, hasher_);
 
-    auto rsw_res = RollingSessionWindowImpl::create(
-        storage_, block_tree_, api_, updated.new_head.hash(), log_);
-    if (rsw_res.has_error()) {
-      SL_ERROR(
-          log_, "Can't create rolling session window: {}", rsw_res.error());
-      return;
-    }
-    rolling_session_window_ = std::move(rsw_res.value());
-
     auto first_leaf = ActivatedLeaf{.hash = updated.new_head.hash(),
                                     .number = updated.new_head.number,
                                     .status = LeafStatus::Fresh};
-
-    // Prune obsolete disputes:
-    // db::v1::note_earliest_session( // FIXME Needed or not?
-    //     overlay_db, rolling_session_window.earliest_session())?;
 
     auto now = system_clock_.nowUint64();
 
@@ -304,6 +300,9 @@ namespace kagome::dispute {
             },
             [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
               return (Timestamp)at;
+            },
+            [](const Postponed &) -> std::optional<Timestamp> {
+              return std::nullopt;
             });
 
         auto dispute_is_inactive =
@@ -331,8 +330,8 @@ namespace kagome::dispute {
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L298
     for (auto &[session, candidate_hash, status] : active_disputes) {
-      auto env_opt = makeCandidateEnvironment(
-          *session_keys_, *rolling_session_window_, session);
+      auto env_opt =
+          makeCandidateEnvironment(*session_keys_, session, first_leaf.hash);
       if (not env_opt.has_value()) {
         continue;
       }
@@ -351,17 +350,33 @@ namespace kagome::dispute {
       }
       auto &candidate_votes = votes_res.value().value();
 
+      auto &relay_parent =
+          candidate_votes.candidate_receipt.descriptor.relay_parent;
+
+      auto disabled_validators_res = api_->disabled_validators(relay_parent);
+      if (disabled_validators_res.has_error()) {
+        SL_WARN(log_,
+                "Cannot import votes, without getting disabled validators: {}",
+                disabled_validators_res.error());
+        continue;
+      }
+      auto &disabled_validators = disabled_validators_res.value();
+
       auto vote_state = CandidateVoteState::create(
-          candidate_votes, env, system_clock_.nowUint64());
+          candidate_votes, env, disabled_validators, system_clock_.nowUint64());
 
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
       auto is_disputed = vote_state.dispute_status.has_value();
+      auto is_postponed =
+          is_disputed ? is_type<Postponed>(vote_state.dispute_status.value())
+                      : false;
       auto is_confirmed =
           is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
                       : false;
-      auto is_potential_spam =
-          is_disputed && !is_included && !is_backed && !is_confirmed;
+      auto is_potential_spam = is_disputed  //
+                           and not is_included and not is_backed
+                           and not is_confirmed and not is_postponed;
 
       if (is_potential_spam) {
         SL_TRACE(log_,
@@ -546,18 +561,6 @@ namespace kagome::dispute {
       return outcome::success();
     }
 
-    // Obtain the session info, for sake of `ValidatorId`s either from the
-    // rolling session window. Must be called _after_ `fn
-    // cache_session_info_for_head` which guarantees that the session info is
-    // available for the current session.
-    auto session_info_opt = rolling_session_window_->session_info(session);
-    if (not session_info_opt.has_value()) {
-      SL_WARN(log_,
-              "Could not retrieve session info from rolling session window");
-      return outcome::success();
-    }
-    auto &session_info = session_info_opt.value().get();
-
     // Scraped on-chain backing votes for the candidates with the new active
     // leaf as if we received them via gossip.
     for (auto &[candidate_receipt, backers] :
@@ -566,6 +569,11 @@ namespace kagome::dispute {
       auto &candidate_hash = candidate_receipt.hash(*hasher_);
 
       SL_TRACE(log_, "Importing backing votes from chain for candidate");
+
+      OUTCOME_TRY(session, api_->session_index_for_child(relay_parent));
+      OUTCOME_TRY(session_info_opt, api_->session_info(relay_parent, session));
+      BOOST_ASSERT(session_info_opt.has_value());
+      const auto &session_info = session_info_opt.value();
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
       for (auto &[validator_index, attestation] : backers) {
@@ -605,22 +613,32 @@ namespace kagome::dispute {
         DisputeStatement statement{valid_statement_kind};
 
         [[maybe_unused]] auto check_sig = [&]() -> bool {
-          auto payload = getSignablePayload(statement, candidate_hash, session);
+          auto payload_res =
+              getSignablePayload(statement, candidate_hash, session);
+          if (payload_res.has_error()) {
+            SL_CRITICAL(log_,
+                        "Scraped backing votes produces bad payload! {}",
+                        payload_res.error());
+            return false;
+          }
+          auto &payload = payload_res.value();
 
           auto validation_res = sr25519_crypto_provider_->verify(
               validator_signature, payload, validator_public);
 
           if (validation_res.has_error()) {
+            SL_CRITICAL(log_,
+                        "Cannot validate scraped backing votes signature! {}",
+                        validation_res.error());
             return false;
           }
           if (not validation_res.value()) {
+            SL_CRITICAL(log_, "Scraped backing votes had invalid signature!");
             return false;
           }
           return true;
         };
-
-        BOOST_ASSERT_MSG(check_sig(),
-                         "Scraped backing votes had invalid signature!");
+        BOOST_ASSERT(check_sig());
 
         Indexed<SignedDisputeStatement> signed_dispute_statement{
             {
@@ -652,7 +670,7 @@ namespace kagome::dispute {
     // assumed as verified. This will only be stored, gossiping it is not
     // necessary.
 
-    // First try to obtain all the backings which ultimately contain the
+    // First, try to obtain all the backings which ultimately contain the
     // candidate receipt which we need.
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L461
@@ -663,24 +681,26 @@ namespace kagome::dispute {
       SL_TRACE(log_, "Importing dispute votes from chain for candidate");
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
-      for (const auto &[_dispute_statement,
-                        _validator_index,
-                        _validator_signature] : dispute_statements) {
-        const auto &dispute_statement = _dispute_statement;
-        const auto &validator_index = _validator_index;
-        const auto &validator_signature = _validator_signature;
+      for (const auto &dispute_data : dispute_statements) {
+        const auto &dispute_statement = std::get<0>(dispute_data);
+        const auto &validator_index = std::get<1>(dispute_data);
+        const auto &validator_signature = std::get<2>(dispute_data);
         auto res = visit_in_place(
             dispute_statement,
             [&](const auto &statement_kind) -> outcome::result<void> {
-              auto session_info_opt =
-                  rolling_session_window_->session_info(dispute_session);
-              if (not session_info_opt.has_value()) {
+              auto session_info_opt_res = api_->session_info({}, session);
+              if (session_info_opt_res.has_error()) {
                 SL_WARN(log_,
-                        "Could not retrieve session info from rolling session "
-                        "window for recently concluded dispute");
+                        "Could not retrieve session info: {}",
+                        session_info_opt_res.error());
                 return outcome::success();
               }
-              auto &session_info = session_info_opt.value().get();
+              auto session_info_opt = session_info_opt_res.value();
+              if (not session_info_opt.has_value()) {
+                SL_WARN(log_, "Could not retrieve session info: not found");
+                return outcome::success();
+              }
+              auto session_info = std::move(session_info_opt.value());
 
               if (validator_index >= session_info.validators.size()) {
                 SL_ERROR(log_,
@@ -694,23 +714,35 @@ namespace kagome::dispute {
                   session_info.validators[validator_index];
 
               [[maybe_unused]] auto check_sig = [&] {
-                auto payload = getSignablePayload(
+                auto payload_res = getSignablePayload(
                     dispute_statement, dispute_candidate, dispute_session);
+                if (payload_res.has_error()) {
+                  SL_CRITICAL(log_,
+                              "Scraped dispute votes produces bad payload! {}",
+                              payload_res.error());
+                  return false;
+                }
+                auto &payload = payload_res.value();
 
                 auto validation_res = sr25519_crypto_provider_->verify(
                     validator_signature, payload, validator_public);
 
                 if (validation_res.has_error()) {
+                  SL_CRITICAL(
+                      log_,
+                      "Cannot validate scraped dispute votes signature! {}",
+                      validation_res.error());
                   return false;
                 }
                 if (not validation_res.value()) {
+                  SL_CRITICAL(log_,
+                              "Scraped dispute votes had invalid signature!");
                   return false;
                 }
+
                 return true;
               };
-
-              BOOST_ASSERT_MSG(check_sig(),
-                               "Scraped dispute votes had invalid signature!");
+              BOOST_ASSERT(check_sig());
 
               Indexed<SignedDisputeStatement> signed_dispute_statement{
                   {
@@ -761,35 +793,14 @@ namespace kagome::dispute {
     if (update.activated.has_value()) {
       auto &new_leaf = update.activated.value();
 
-      auto cache_res =
-          rolling_session_window_->cache_session_info_for_head(new_leaf.hash);
+      // Get session index of new leaf
+      OUTCOME_TRY(session_index, api_->session_index_for_child(new_leaf.hash));
 
-      if (cache_res.has_error()) {
-        SL_WARN(log_,
-                "Failed to update session cache for disputes: {}",
-                cache_res.error());
-      } else {
-        visit_in_place(
-            cache_res.value(),
-            [&](const SessionWindowAdvanced &advanced) {
-              auto window_end = advanced.new_window_end;
-              auto new_window_start = advanced.new_window_start;
-              error_.reset();
-              auto session = window_end;
-              if (highest_session_ < session) {
-                SL_TRACE(log_, "Observed new session.  Pruning");
-
-                highest_session_ = session;
-
-                // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L310
-                // db::v1::note_earliest_session( // FIXME
-                //    overlay_db, new_window_start)?;
-                spam_slots_->prune_old(new_window_start);
-              }
-
-              return;
-            },
-            [](const SessionWindowUnchanged &) {});
+      // If the latest session was updated, then prune spam slots
+      if (highest_session_ < session_index) {
+        highest_session_ = session_index;
+        static size_t kWindowSize = 6;
+        spam_slots_->prune_old(highest_session_ - kWindowSize);
       }
 
       // The `runtime-api` subsystem has an internal queue which serializes the
@@ -971,13 +982,20 @@ namespace kagome::dispute {
   std::optional<CandidateEnvironment>
   DisputeCoordinatorImpl::makeCandidateEnvironment(
       crypto::SessionKeys &session_keys,
-      RollingSessionWindow &rolling_session_window,
-      SessionIndex session) {
-    auto session_info_opt = rolling_session_window.session_info(session);
+      SessionIndex session,
+      primitives::BlockHash relay_parent) {
+    auto session_info_opt_res = api_->session_info(relay_parent, session);
+    if (session_info_opt_res.has_error()) {
+      SL_WARN(log_,
+              "Getting of session info was failed: {}",
+              session_info_opt_res.error());
+      return std::nullopt;
+    }
+    auto session_info_opt = session_info_opt_res.value();
     if (not session_info_opt.has_value()) {
       return std::nullopt;
     }
-    auto &session_info = session_info_opt.value().get();
+    auto session_info = std::move(session_info_opt.value());
 
     std::unordered_set<ValidatorIndex> controlled_indices;
     auto keypair = session_keys.getParaKeyPair(session_info.validators);
@@ -986,7 +1004,7 @@ namespace kagome::dispute {
     }
 
     return CandidateEnvironment{.session_index = session,
-                                .session = session_info,
+                                .session = std::move(session_info),
                                 .controlled_indices = controlled_indices};
   }
 
@@ -998,26 +1016,11 @@ namespace kagome::dispute {
 
     auto now = system_clock_.nowUint64();
 
-    if (not rolling_session_window_->contains(session)) {
-      // It is not valid to participate in an ancient dispute (spam?) or too new
-      return outcome::success(false);
-    }
-
     const auto &candidate_hash =
         is_type<CandidateReceipt>(candidate_receipt)
             ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
                   .hash(*hasher_)
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
-
-    auto env_opt = makeCandidateEnvironment(
-        *session_keys_, *rolling_session_window_, session);
-    if (not env_opt.has_value()) {
-      SL_DEBUG(log_,
-               "We are lacking a `SessionInfo` for handling import of "
-               "statements.");
-      return outcome::success(false);
-    }
-    auto &env = env_opt.value();
 
     // In case we are not provided with a candidate receipt we operate under
     // the assumption, that a previous vote which included a
@@ -1029,23 +1032,61 @@ namespace kagome::dispute {
     // blocks, and hence we do not have a `CandidateReceipt` available.
 
     CandidateVoteState old_state;
+    std::vector<ValidatorIndex> disabled_validators;
 
     OUTCOME_TRY(old_state_opt,
                 storage_->load_candidate_votes(session, candidate_hash));
-    if (old_state_opt.has_value()) {
-      old_state = CandidateVoteState::create(old_state_opt.value(), env, now);
-    } else {
+
+    primitives::BlockHash relay_parent{};
+
+    if (not old_state_opt.has_value()) {
       auto provided_opt = if_type<CandidateReceipt>(candidate_receipt);
       if (not provided_opt.has_value()) {
         SL_ERROR(log_,
                  "Cannot import votes, without `CandidateReceipt` available!");
         return outcome::success(false);
       }
+
+      relay_parent = provided_opt.value().get().descriptor.relay_parent;
+
       old_state = {
           .votes = {.candidate_receipt = provided_opt.value().get()},
           .own_vote = CannotVote{},
           .dispute_status = std::nullopt,
       };
+
+    } else {
+      relay_parent = old_state_opt->candidate_receipt.descriptor.relay_parent;
+    }
+
+    auto env_opt =
+        makeCandidateEnvironment(*session_keys_, session, relay_parent);
+    if (not env_opt.has_value()) {
+      SL_DEBUG(log_,
+               "We are lacking a `SessionInfo` for handling import of "
+               "statements.");
+      return outcome::success(false);
+    }
+    auto &env = env_opt.value();
+
+    auto disabled_validators_res = api_->disabled_validators(relay_parent);
+    if (disabled_validators_res.has_error()) {
+      SL_WARN(log_,
+              "Cannot import votes, without getting disabled validators: {}",
+              disabled_validators_res.error());
+      return outcome::success(false);
+    }
+    disabled_validators = std::move(disabled_validators_res.value());
+
+    auto is_disabled = [&disabled_validators =
+                            disabled_validators_res.value()](auto index) {
+      return std::binary_search(
+          disabled_validators.begin(), disabled_validators.end(), index);
+    };
+
+    if (old_state_opt.has_value()) {
+      old_state = CandidateVoteState::create(
+          old_state_opt.value(), env, disabled_validators, now);
     }
 
     SL_TRACE(log_, "Loaded votes");
@@ -1074,6 +1115,8 @@ namespace kagome::dispute {
 
     auto expected_candidate_hash = votes.candidate_receipt.hash(*hasher_);
 
+    std::vector<Indexed<SignedDisputeStatement>> postponed_statements;
+
     for (auto &vote : statements) {
       auto val_index = vote.ix;
       SignedDisputeStatement &statement = vote.payload;
@@ -1094,6 +1137,16 @@ namespace kagome::dispute {
         continue;
       }
 
+      auto is_disabled_validator = is_disabled(val_index);
+
+      // Postpone votes of disabled validators while any votes for candidate are
+      // not exist
+      if (is_disabled_validator and votes.valid.empty()
+          and votes.invalid.empty()) {
+        postponed_statements.emplace_back(std::move(vote));
+        continue;
+      }
+
       visit_in_place(
           statement.dispute_statement,
           [&](const ValidDisputeStatement &valid) {
@@ -1101,42 +1154,41 @@ namespace kagome::dispute {
                 val_index,
                 std::make_tuple(valid, statement.validator_signature));
             if (fresh) {
+              if (imported_valid_votes == 0) {
+                // Return postponed statements to process
+                std::move_backward(postponed_statements.begin(),
+                                   postponed_statements.end(),
+                                   statements.end());
+              }
               ++imported_valid_votes;
-              return true;
             }
-            auto &existing = std::get<0>(it->second);
-            return visit_in_place(
-                valid,
-                [&](const Explicit &) {
-                  return not is_type<Explicit>(existing);
-                },
-                [&](const BackingSeconded &) { return false; },
-                [&](const BackingValid &) { return false; },
-                [&](const ApprovalChecking &) {
-                  return not is_type<ApprovalChecking>(existing);
-                });
           },
           [&](const InvalidDisputeStatement &invalid) {
             auto [it, fresh] = votes.invalid.emplace(
                 val_index,
                 std::make_tuple(invalid, statement.validator_signature));
             if (fresh) {
-              ++imported_invalid_votes;
               new_invalid_voters.push_back(val_index);
-              return true;
+              if (imported_invalid_votes == 0) {
+                // Return postponed statements to process
+                std::move_backward(postponed_statements.begin(),
+                                   postponed_statements.end(),
+                                   statements.end());
+              }
+              ++imported_invalid_votes;
             }
-            return false;
           });
     }
 
-    CandidateVoteState _new_state = CandidateVoteState::create(votes, env, now);
-
-    ImportResult intermediate_result{old_state,
-                                     _new_state,
-                                     imported_invalid_votes,
-                                     imported_valid_votes,
-                                     0,
-                                     new_invalid_voters};
+    ImportResult intermediate_result{
+        std::move(old_state),
+        CandidateVoteState::create(
+            votes, env, disabled_validators, now),  // new_state
+        imported_invalid_votes,
+        imported_valid_votes,
+        0,
+        new_invalid_voters,
+    };
 
     // Handle approval vote import:
     //
@@ -1288,8 +1340,8 @@ namespace kagome::dispute {
           }
         }
 
-        import_result.new_state =
-            CandidateVoteState::create(std::move(_votes), env, now);
+        import_result.new_state = CandidateVoteState::create(
+            std::move(_votes), env, disabled_validators, now);
       }
     } else {
       SL_TRACE(log_, "Not requested approval signatures");
@@ -1306,11 +1358,15 @@ namespace kagome::dispute {
         is_type<CannotVote>(new_state.own_vote)
         or boost::relaxed_get<Voted>(new_state.own_vote).empty();
     auto is_disputed = new_state.dispute_status.has_value();
+    auto is_postponed = is_disputed
+                          ? is_type<Postponed>(new_state.dispute_status.value())
+                          : false;
     auto is_confirmed = is_disputed
                           ? is_type<Confirmed>(new_state.dispute_status.value())
                           : false;
-    auto is_potential_spam =
-        is_disputed && !is_included && !is_backed && !is_confirmed;
+    auto is_potential_spam = is_disputed  //
+                         and not is_included and not is_backed
+                         and not is_confirmed and not is_postponed;
 
     // We participate only in disputes which are not potential spam.
     auto allow_participation = not is_potential_spam;
@@ -1346,12 +1402,15 @@ namespace kagome::dispute {
     // Participate in dispute if we did not cast a vote before and actually
     // have keys to cast a local vote. Disputes should fall in one of the
     // categories below, otherwise we will refrain from participation:
-    // - `is_included` lands in prioritised queue
-    // - `is_confirmed` | `is_backed` lands in best effort queue
+    // - `is_included` lands in prioritized queue
+    // - `is_confirmed` | `is_backed` lands in the best effort queue
+    // We don't participate in disputes escalated by disabled validators only.
     // We don't participate in disputes on finalized candidates.
     // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:907
 
-    if (own_vote_missing && is_disputed && allow_participation) {
+    if (own_vote_missing                      //
+        and is_disputed and not is_postponed  //
+        and allow_participation) {
       auto priority = static_cast<ParticipationPriority>(is_included);
 
       auto &receipt = new_state.votes.candidate_receipt;
@@ -1373,7 +1432,7 @@ namespace kagome::dispute {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L947
     is_freshly_disputed = not import_result.old_state.dispute_status.has_value()
                       and import_result.new_state.dispute_status.has_value();
-    if (is_freshly_disputed) {
+    if (is_freshly_disputed and not is_postponed) {
       if (is_type<Voted>(new_state.own_vote)) {
         auto &own_votes = boost::relaxed_get<Voted>(new_state.own_vote);
 
@@ -1401,7 +1460,11 @@ namespace kagome::dispute {
                 sig,
                 session};
 
-            SL_TRACE(log_, "Sending out own approval vote");
+            SL_TRACE(
+                log_,
+                "Sending out own approval vote. session={}, candidate_hash={}",
+                session,
+                candidate_hash);
 
             auto dispute_message_res = make_dispute_message(
                 env.session, new_state.votes, statement, validator_index);
@@ -1435,13 +1498,21 @@ namespace kagome::dispute {
             std::make_tuple(session, candidate_hash), Active{});
 
         if (fresh) {
-          SL_INFO(log_, "New dispute initiated for candidate");
+          SL_INFO(log_,
+                  "New dispute initiated for candidate "
+                  "(session={}, candidate={})",
+                  session,
+                  candidate_hash);
         }
 
         // update status
         it->second = new_status;
 
-        SL_TRACE(log_, "Writing recent disputes with updates for candidate");
+        SL_TRACE(log_,
+                 "Writing recent disputes with updates for candidate "
+                 "(session={}, candidate={})",
+                 session,
+                 candidate_hash);
         storage_->write_recent_disputes(std::move(recent_disputes));
       }
     }
@@ -1548,20 +1619,20 @@ namespace kagome::dispute {
 
       DisputeStatement statement{statement_kind};
 
-      auto payload = getSignablePayload(
-          statement, our_vote.candidate_hash, our_vote.session_index);
+      OUTCOME_TRY(
+          payload,
+          getSignablePayload(
+              statement, our_vote.candidate_hash, our_vote.session_index));
 
-      auto validation_res = sr25519_crypto_provider_->verify(
-          validator_signature, payload, validator_public);
+      OUTCOME_TRY(is_valid,
+                  sr25519_crypto_provider_->verify(
+                      validator_signature, payload, validator_public));
 
-      if (validation_res.has_error()) {
-        return validation_res.as_failure();
-      }
-      if (not validation_res.value()) {
+      if (not is_valid) {
         return DisputeMessageCreationError::InvalidStoredStatement;
       }
 
-      // make other signed statement
+      // make another signed statement
 
       other_index = validator_index;
 
@@ -1679,8 +1750,15 @@ namespace kagome::dispute {
 
       auto &candidate_hash = vote_state.votes.candidate_receipt.hash(*hasher_);
 
-      auto payload = getSignablePayload(
+      auto payload_res = getSignablePayload(
           dispute_statement, candidate_hash, env.session_index);
+      if (payload_res.has_error()) {
+        SL_WARN(log_,
+                "Sending dispute vote produces bad payload! {}",
+                payload_res.error());
+        continue;
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           validator_signature, payload, validator_public);
@@ -1725,11 +1803,18 @@ namespace kagome::dispute {
       bool valid) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1102
 
-    SL_TRACE(log_, "Issuing local statement for candidate!");
+    SL_TRACE(log_,
+             "Issuing local statement for candidate! "
+             "session={}, candidate_hash={}, relay_parent={}",
+             session,
+             candidate_hash,
+             candidate_receipt.descriptor.relay_parent);
 
     // Load environment:
 
-    auto session_info_opt = rolling_session_window_->session_info(session);
+    OUTCOME_TRY(
+        session_info_opt,
+        api_->session_info(candidate_receipt.descriptor.relay_parent, session));
     if (not session_info_opt.has_value()) {
       SL_WARN(log_, "Missing info for session which has an active dispute");
       return outcome::success();
@@ -1737,7 +1822,7 @@ namespace kagome::dispute {
 
     CandidateEnvironment env{
         .session_index = session,
-        .session = session_info_opt.value().get(),
+        .session = std::move(session_info_opt.value()),
     };
 
     auto keypair = session_keys_->getParaKeyPair(env.session.validators);
@@ -1785,8 +1870,10 @@ namespace kagome::dispute {
           valid ? DisputeStatement{ValidDisputeStatement{Explicit{}}}
                 : DisputeStatement{InvalidDisputeStatement{Explicit{}}};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session);
+      BOOST_ASSERT(payload_res.has_value());
+      auto &payload = payload_res.value();
 
       OUTCOME_TRY(signature,
                   sr25519_crypto_provider_->sign(*keypair->first, payload));
@@ -1864,11 +1951,6 @@ namespace kagome::dispute {
       CbOutcome<OutputDisputes> &&cb) {
     REINVOKE(*dispute_thread_handler_, getRecentDisputes, std::move(cb));
 
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
-
     SL_TRACE(log_, "Loading recent disputes from db");
 
     auto recent_disputes_res = storage_->load_recent_disputes();
@@ -1898,11 +1980,6 @@ namespace kagome::dispute {
       CbOutcome<OutputDisputes> &&cb) {
     REINVOKE(*dispute_thread_handler_, getActiveDisputes, std::move(cb));
 
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
-
     SL_TRACE(log_, "DisputeCoordinatorMessage::ActiveDisputes");
 
     auto recent_disputes_res = storage_->load_recent_disputes();
@@ -1931,6 +2008,9 @@ namespace kagome::dispute {
           },
           [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
             return (Timestamp)at;
+          },
+          [](const Postponed &) -> std::optional<Timestamp> {
+            return std::nullopt;
           });
 
       auto dispute_is_inactive =
@@ -1949,11 +2029,6 @@ namespace kagome::dispute {
       const QueryCandidateVotes &query, CbOutcome<OutputCandidateVotes> &&cb) {
     REINVOKE(
         *dispute_thread_handler_, queryCandidateVotes, query, std::move(cb));
-
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::QueryCandidateVotes");
 
@@ -1989,9 +2064,12 @@ namespace kagome::dispute {
              std::move(candidate_receipt),
              valid);
 
-    // TODO ничего не возвращаем, вызывается из апрувала и партисипейшена
-
-    SL_TRACE(log_, "DisputeCoordinatorMessage::IssueLocalStatement");
+    SL_TRACE(log_,
+             "DisputeCoordinatorMessage::IssueLocalStatement. "
+             "session={}, candidate_hash={}, relay_parent={}",
+             session,
+             candidate_hash,
+             candidate_receipt.descriptor.relay_parent);
     auto res = issue_local_statement(
         candidate_hash, candidate_receipt, session, valid);
 
@@ -2009,11 +2087,6 @@ namespace kagome::dispute {
              base,
              std::move(block_descriptions),
              std::move(cb));
-
-    // Return error if session information is missing.
-    if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
-    }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::DetermineUndisputedChain");
 
@@ -2136,7 +2209,13 @@ namespace kagome::dispute {
       return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
                                  std::move(cb));
     }
-    queue.emplace_back(request, std::move(cb));
+    queue.emplace_back(request,
+                       [wp{weak_from_this()},
+                        cb{std::move(cb)}](outcome::result<void> res) mutable {
+                         if (auto self = wp.lock()) {
+                           self->sendDisputeResponse(res, std::move(cb));
+                         }
+                       });
 
     // We have at least one element to process - rate limit `timer` needs to
     // exist now:
@@ -2168,7 +2247,6 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
     if (rate_limit_timer_) {
-      rate_limit_timer_->cancel();
       rate_limit_timer_.reset();
     }
 
@@ -2190,8 +2268,8 @@ namespace kagome::dispute {
       BOOST_ASSERT_MSG(not queue.empty(),
                        "Invariant that queues are never empty is broken.");
 
-      auto &[msg, cb] = queue.front();
-      heads.emplace_back(peer_id, std::move(msg), std::move(cb));
+      auto &[request, cb] = queue.front();
+      heads.emplace_back(peer_id, std::move(request), std::move(cb));
       queue.pop_front();
 
       if (not queue.empty()) {
@@ -2245,8 +2323,12 @@ namespace kagome::dispute {
 
       DisputeStatement dispute_statement{kind};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session_index);
+      if (payload_res.has_error()) {
+        return payload_res.as_failure();
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           signature, payload, validator_public);
@@ -2281,8 +2363,12 @@ namespace kagome::dispute {
 
       DisputeStatement dispute_statement{kind};
 
-      auto payload =
+      auto payload_res =
           getSignablePayload(dispute_statement, candidate_hash, session_index);
+      if (payload_res.has_error()) {
+        return payload_res.as_failure();
+      }
+      auto &payload = payload_res.value();
 
       auto validation_res = sr25519_crypto_provider_->verify(
           signature, payload, validator_public);
@@ -2309,18 +2395,19 @@ namespace kagome::dispute {
     auto &valid_vote = checked_valid_vote;
     auto &invalid_vote = checked_invalid_vote;
 
+    // Find or create batch
     OUTCOME_TRY(found_batch,
                 batches_->find_batch(candidate_hash, candidate_receipt));
-    auto &[batch, just_created] = found_batch;
+    auto [batch, just_created] = std::move(found_batch);
 
     if (just_created) {
       // There was no entry yet - start import immediately:
 
-      SL_TRACE(log_,
-               "No batch yet - triggering immediate import (candidate={}, "
-               "peer={})",
-               candidate_hash,
-               peer);
+      SL_TRACE(
+          log_,
+          "No batch yet - triggering immediate import (candidate={}, peer={})",
+          candidate_hash,
+          peer);
 
       PreparedImport prepared_import{
           .candidate_receipt = batch->candidate_receipt,
@@ -2329,45 +2416,63 @@ namespace kagome::dispute {
       };
 
       start_import(std::move(prepared_import));
-    } else {
-      SL_TRACE(log_,
-               "Batch exists - batching request (candidate={})",
-               candidate_hash);
 
-      auto cb_opt =
-          batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
-
-      if (cb_opt.has_value()) {
-        // We don't expect honest peers to send redundant votes within a
-        // single batch, as the timeout for retry is much higher. Still we
-        // don't want to punish the node as it might not be the node's
-        // fault. Some other (malicious) node could have been faster sending
-        // the same votes in order to harm the reputation of that honest
-        // node. Given that we already have a rate limit, if a validator
-        // chooses to waste available rate with redundant votes - so be it.
-        // The actual dispute resolution is unaffected.
-        SL_DEBUG(log_,
-                 "Peer {} sent completely redundant votes within a single "
-                 "batch - that looks fishy!",
-                 peer);
-
-        // While we have seen duplicate votes, we cannot confirm as we don't
-        // know yet whether the batch is going to be confirmed, so we assume
-        // the worst. We don't want to push the pending response to the
-        // batch either as that would be unbounded, only limited by the rate
-        // limit.
-        (*cb_opt)(BatchError::RedundantMessage);
-
-      } else {  // FIXME testing code. must be removed
-        auto prepared_import =
-            batch->tick(steady_clock_.now() + Batch::kBatchCollectingInterval);
-        if (prepared_import.has_value()) {
-          start_import(std::move(prepared_import.value()));
-        }
-      }
+      return outcome::success();
     }
 
+    SL_TRACE(
+        log_, "Batch exists - batching request (candidate={})", candidate_hash);
+
+    auto cb_opt =
+        batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
+
+    // Returned value means duplicate
+    if (cb_opt.has_value()) {
+      // We don't expect honest peers to send redundant votes  within a  single
+      // batch, as the timeout for retry is much higher. Still we don't want to
+      // punish the node as it might not be the node's fault. Some other
+      // (malicious) node could have been faster sending the same votes in order
+      // to harm the reputation of that honest node. Given that we already have
+      // a rate limit, if a validator chooses to waste available rate with
+      // redundant votes - so be it. The actual dispute resolution is
+      // unaffected.
+
+      SL_DEBUG(log_,
+               "Peer {} sent completely redundant votes within a single batch "
+               "- that looks fishy!",
+               peer);
+
+      // While we have seen duplicate votes, we cannot confirm as we don't know
+      // yet whether the batch is going to be confirmed, so we assume the worst.
+      // We don't want to push the pending response to the batch either as that
+      // would be unbounded, only limited by the rate limit.
+
+      (*cb_opt)(BatchError::RedundantMessage);
+    }
+
+    check_batches();
+
     return outcome::success();
+  }
+
+  void DisputeCoordinatorImpl::check_batches() {
+    if (not batch_collecting_timer_.has_value()) {
+      batch_collecting_timer_ = scheduler_->scheduleWithHandle(
+          [wp{weak_from_this()}]() {
+            if (auto self = wp.lock()) {
+              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
+              self->batch_collecting_timer_.reset();
+              auto ready_prepared_imports = self->batches_->check_batches();
+              for (auto &prepared_import : ready_prepared_imports) {
+                self->start_import(std::move(prepared_import));
+              }
+              if (not self->batches_->empty()) {
+                self->check_batches();
+              }
+            }
+          },
+          Batch::kBatchCollectingInterval);
+    }
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/receiver/mod.rs#L422
@@ -2387,9 +2492,12 @@ namespace kagome::dispute {
     // auto &candidate_hash = signed_statement.candidate_hash;
 
     auto pending_confirmation =
-        [requesters(std::move(requesters))](outcome::result<void> res) {
-          for (auto &[peer, cb] : requesters) {
-            cb(res);
+        [wp{weak_from_this()},
+         requesters(std::move(requesters))](outcome::result<void> res) mutable {
+          if (auto self = wp.lock()) {
+            for (auto &[peer, cb] : requesters) {
+              self->sendDisputeResponse(res, std::move(cb));
+            }
           }
         };
 
@@ -2419,7 +2527,7 @@ namespace kagome::dispute {
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
         candidate_hash,
         std::make_unique<SendingDispute>(
-            authority_discovery_, protocol, request));
+            log_, main_pool_handler_, authority_discovery_, protocol, request));
 
     std::ignore =
         sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
@@ -2499,11 +2607,12 @@ namespace kagome::dispute {
       return true;
     }
 
-    SL_TRACE(log_,
-             "Fetched ParachainHost runtime api version for relay_parent {} is "
-             "{}; it isn't suitable version",
-             relay_parent,
-             parachain_host_api_version);
+    SL_TRACE(
+        log_,
+        "Fetched ParachainHost runtime api version for relay_parent {} is {}; "
+        "it isn't suitable version",
+        relay_parent,
+        parachain_host_api_version);
     return false;
   }
 

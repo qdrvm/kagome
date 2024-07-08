@@ -18,7 +18,7 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
@@ -29,7 +29,9 @@ namespace kagome::host_api {
         bandersnatch_provider_(std::move(bandersnatch_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
-        crypto_store_(std::move(crypto_store)),
+        // we do this instead of passing key_store as an optional right away
+        // because boost.di doesn't like optional<shared_ptr>
+        key_store_(key_store ? std::optional(key_store) : std::nullopt),
         offchain_persistent_storage_(std::move(offchain_persistent_storage)),
         offchain_worker_pool_(std::move(offchain_worker_pool)) {
     BOOST_ASSERT(ecdsa_provider_ != nullptr);
@@ -38,6 +40,7 @@ namespace kagome::host_api {
     BOOST_ASSERT(bandersnatch_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(key_store_ == std::nullopt || *key_store_ != nullptr);
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(
@@ -53,7 +56,7 @@ namespace kagome::host_api {
                                          ed25519_provider_,
                                          secp256k1_provider_,
                                          hasher_,
-                                         crypto_store_,
+                                         key_store_,
                                          offchain_persistent_storage_,
                                          offchain_worker_pool_);
   }

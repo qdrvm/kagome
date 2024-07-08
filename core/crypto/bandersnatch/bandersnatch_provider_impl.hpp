@@ -13,8 +13,8 @@ namespace kagome::crypto {
 
   class BandersnatchProviderImpl final : public BandersnatchProvider {
    public:
-    BandersnatchKeypair generateKeypair(const BandersnatchSeed &seed,
-                                        Junctions junctions) const override;
+    outcome::result<BandersnatchKeypair> generateKeypair(
+        const BandersnatchSeed &seed, Junctions junctions) const override;
 
     outcome::result<BandersnatchSignature> sign(
         const BandersnatchKeypair &keypair,

@@ -14,10 +14,12 @@ namespace kagome::consensus {
 
   enum class ValidatorStatus {
     NonValidator = 0,
-    InactiveValidator,
+    DisabledValidator,
     Validator,
     SingleValidator,
   };
+
+  using AuthorityIndex = uint32_t;
 
   /// Consensus responsible for choice slot leaders, block production, etc.
   class ProductionConsensus {
@@ -40,11 +42,23 @@ namespace kagome::consensus {
     virtual outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const = 0;
 
+    virtual outcome::result<AuthorityIndex> getAuthority(
+        const primitives::BlockHeader &header) const = 0;
+
     virtual outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &parent) = 0;
 
     virtual outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header) const = 0;
+
+    /// Submit the equivocation report based on two blocks of one validator
+    /// produced during a single slot
+    /// @arg first - hash of first equivocating block
+    /// @arg second - hash of second equivocating block
+    /// @return success or error
+    virtual outcome::result<void> reportEquivocation(
+        const primitives::BlockHash &first,
+        const primitives::BlockHash &second) const = 0;
 
    protected:
     /// Changes epoch

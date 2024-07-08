@@ -6,14 +6,17 @@
 
 #include "application/impl/kagome_application_impl.hpp"
 
+#include <soralog/macro.hpp>
 #include <thread>
 
 #include "application/app_state_manager.hpp"
 #include "application/impl/util.hpp"
+#include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "injector/application_injector.hpp"
 #include "metrics/metrics.hpp"
+#include "parachain/pvf/secure_mode_precheck.hpp"
 #include "telemetry/service.hpp"
 #include "utils/watchdog.hpp"
 
@@ -35,15 +38,16 @@ namespace kagome::application {
   }
 
   int KagomeApplicationImpl::chainInfo() {
-    auto mode = injector_.injectPrintChainInfoMode();
-    return mode->run();
+    return runMode(*injector_.injectPrintChainInfoMode());
+  }
+
+  int KagomeApplicationImpl::precompileWasm() {
+    return runMode(*injector_.injectPrecompileWasmMode());
   }
 
   int KagomeApplicationImpl::recovery() {
     logger_->info("Start in recovery mode with PID {}", getpid());
-
-    auto mode = injector_.injectRecoveryMode();
-    return mode->run();
+    return runMode(*injector_.injectRecoveryMode());
   }
 
   void KagomeApplicationImpl::run() {
@@ -56,6 +60,7 @@ namespace kagome::application {
 
     kagome::telemetry::setTelemetryService(injector_.injectTelemetryService());
 
+    injector_.kademliaRandomWalk();
     injector_.injectAddressPublisher();
     injector_.injectTimeline();
 
@@ -116,6 +121,28 @@ namespace kagome::application {
       metric_build_info->set(1);
     }
 
+#ifdef __linux__
+    if (!app_config_->disableSecureMode() && app_config_->usePvfSubprocess()
+        && app_config_->roles().flags.authority) {
+      auto res = parachain::runSecureModeCheckProcess(
+          *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
+      if (!res) {
+        SL_ERROR(logger_, "Secure mode check failed: {}", res.error());
+        exit(EXIT_FAILURE);
+      }
+      if (!res.assume_value().isTotallySupported()) {
+        SL_ERROR(logger_,
+                 "Secure mode is not supported completely. You can disable it "
+                 "using --insecure-validator-i-know-what-i-do.");
+        exit(EXIT_FAILURE);
+      }
+    }
+#else
+    SL_WARN(logger_,
+            "Secure validator mode is not implemented for the current "
+            "platform. Proceed at your own risk.");
+#endif
+
     app_state_manager->run();
 
     watchdog->stop();
@@ -123,4 +150,10 @@ namespace kagome::application {
     watchdog_thread.join();
   }
 
+  int KagomeApplicationImpl::runMode(Mode &mode) {
+    auto watchdog = injector_.injectWatchdog();
+    auto r = mode.run();
+    watchdog->stop();
+    return r;
+  }
 }  // namespace kagome::application
