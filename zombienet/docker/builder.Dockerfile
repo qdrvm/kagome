@@ -2,7 +2,7 @@ ARG POLKADOT_RELEASE_GLOBAL
 ARG POLKADOT_RELEASE_GLOBAL_NUMERIC
 ARG ZOMBIENET_RELEASE
 
-FROM node:18-bullseye-slim as zombie-builder
+FROM node:bookworm-slim as zombie-builder
 USER root
 
 RUN apt-get update && apt update && \

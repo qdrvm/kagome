@@ -81,8 +81,6 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    module->memory.initial = kDefaultHeappages;
-
     return std::make_shared<ModuleImpl>(
         std::move(module), module_factory, env_factory, code_hash);
   }

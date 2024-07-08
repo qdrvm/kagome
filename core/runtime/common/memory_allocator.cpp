@@ -67,7 +67,8 @@ namespace kagome::runtime {
         auto pages = sizeToPages(next_offset);
         if (pages > max_memory_pages_num_) {
           throw std::runtime_error{
-              "Memory resize failed, because maximum number of pages is reached."};
+              "Memory resize failed, because maximum number of pages is "
+              "reached."};
         }
         pages = std::max(pages, 2 * sizeToPages(memory_->size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);

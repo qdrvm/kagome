@@ -208,7 +208,8 @@ namespace kagome::parachain::grid {
           received[v].candidate_statement_filter(candidate_hash);
       if (!statement_filter) {
         throw std::runtime_error(
-            "unconfirmed is only populated by validators who have sent manifest");
+            "unconfirmed is only populated by validators who have sent "
+            "manifest");
       }
       c.manifest_received_from(v, *statement_filter);
     }

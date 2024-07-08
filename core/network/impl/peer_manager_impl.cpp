@@ -26,8 +26,11 @@
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
   constexpr const char *kPeersCountMetricName = "kagome_sub_libp2p_peers_count";
-  /// Reputation change for a node when we get disconnected from it.
+  /// Reputation value for a node when we get disconnected from it.
   static constexpr int32_t kDisconnectReputation = -256;
+  /// Reputation change for a node when we get disconnected from it.
+  static constexpr int32_t kMinReputationForInnerConnection = -128;
+  static constexpr int32_t kMinReputationForOuterConnection = -128;
 }  // namespace
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
@@ -309,7 +312,6 @@ namespace kagome::network {
 
     clearClosedPingingConnections();
 
-    // disconnect from peers with negative reputation
     using PriorityType = int32_t;
     using ItemType = std::pair<PriorityType, PeerId>;
 
@@ -324,6 +326,13 @@ namespace kagome::network {
         std::chrono::duration_cast<std::chrono::milliseconds>(peer_ttl).count();
 
     for (const auto &[peer_id, desc] : active_peers_) {
+      // Skip peer having immunity
+      if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
+        if (not it->second.can_be_disconnected()) {
+          continue;
+        }
+      }
+
       const uint64_t last_activity_ms =
           std::chrono::time_point_cast<std::chrono::milliseconds>(
               desc.time_point)
@@ -335,6 +344,7 @@ namespace kagome::network {
       [[maybe_unused]] bool activity_timeout =
           last_activity_ms + idle_ms < now_ms;
 
+      // disconnect from peers with negative reputation
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
       if (peer_reputation < kDisconnectReputation) {
         peers_list.push_back(
@@ -410,6 +420,18 @@ namespace kagome::network {
   void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
+      connecting_peers_.erase(peer_id);
+      return;
+    }
+
+    // Don't establish connection to bad (negative reputation) peers
+    const auto peer_reputation = reputation_repository_->reputation(peer_id);
+    if (peer_reputation < kMinReputationForOuterConnection) {
+      SL_DEBUG(log_,
+               "Attempt to establish connection to peer {} skipped: "
+               "peer has low ({}) reputation",
+               peer_id,
+               peer_reputation);
       connecting_peers_.erase(peer_id);
       return;
     }
@@ -790,6 +812,19 @@ namespace kagome::network {
         disconnectFromPeer(peer_id);
         return;
       }
+    }
+
+    // Don't accept connection from bad (negative reputation) peers
+    const auto peer_reputation = reputation_repository_->reputation(peer_id);
+    if (peer_reputation < kMinReputationForInnerConnection) {
+      SL_DEBUG(log_,
+               "New connection from peer {} was dropped: "
+               "peer has low ({}) reputation",
+               peer_id,
+               peer_reputation);
+      connecting_peers_.erase(peer_id);
+      disconnectFromPeer(peer_id);
+      return;
     }
 
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
