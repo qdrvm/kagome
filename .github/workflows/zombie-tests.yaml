@@ -72,12 +72,22 @@ jobs:
       - name: "Cache dependencies"
         if: env.package_exist == 'False'
         id: cache-restore
-        uses: actions/cache/restore@v4
+        uses: mansagroup/gcs-cache-action@v2
         with:
+          bucket: ci-cache-kagome
           path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-${{ env.short_commit_hash }}
+          key: ${{ github.job }}-${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ env.short_commit_hash }}
           restore-keys: |
-              ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-
+            ${{ github.job }}-${{ runner.os }}-${{ env.CACHE_VERSION }}-
+            
+#        if: env.package_exist == 'False'
+#        id: cache-restore
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: ${{ env.CACHE_PATH }}
+#          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-${{ env.short_commit_hash }}
+#          restore-keys: |
+#              ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-
 
       - name: "Build target"
         if: env.package_exist == 'False'
