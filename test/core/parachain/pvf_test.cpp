@@ -115,7 +115,6 @@ class PvfTest : public testing::Test {
         executor,
         module_factory_,
         ctx_factory,
-        std::make_shared<runtime::NoopWasmInstrumenter>(),
         pvf_thread,
         app_state_manager,
         app_config_);

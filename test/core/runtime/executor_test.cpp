@@ -131,8 +131,6 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(testing::Return(42));
     EXPECT_CALL(*module_repo_, getInstanceAt(blockchain_state, storage_state))
         .WillRepeatedly(testing::Return(module_instance));
-    EXPECT_CALL(*module_instance, resetMemory(_))
-        .WillOnce(Return(outcome::success()));
     if (type == CallType::Persistent) {
       return ctx_factory_->persistentAt(blockchain_state.hash);
     } else {

@@ -23,7 +23,6 @@ namespace kagome::runtime::binaryen {
         core_factory_{std::move(core_factory)},
         host_api_factory_{std::move(host_api_factory)} {
     BOOST_ASSERT(host_api_factory_);
-    BOOST_ASSERT(instrumenter_);
   }
 
   BinaryenInstanceEnvironment InstanceEnvironmentFactory::make() const {
