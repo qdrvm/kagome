@@ -7,25 +7,25 @@
 
 // clang-format off
 #define REGISTER_HOST_METHODS \
-    REGISTER_HOST_METHOD(void, ext_allocator_free_version_1, WasmPointer) \
-    REGISTER_HOST_METHOD(void, ext_crypto_start_batch_verify_version_1) \
-    REGISTER_HOST_METHOD(void, ext_default_child_storage_clear_version_1, WasmSpan, WasmSpan) \
-    REGISTER_HOST_METHOD(void, ext_default_child_storage_clear_prefix_version_1, WasmSpan, WasmSpan) \
+    REGISTER_HOST_METHOD(void   , ext_allocator_free_version_1, WasmPointer) \
+    REGISTER_HOST_METHOD(void   , ext_crypto_start_batch_verify_version_1) \
+    REGISTER_HOST_METHOD(void   , ext_default_child_storage_clear_version_1, WasmSpan, WasmSpan) \
+    REGISTER_HOST_METHOD(void   , ext_default_child_storage_clear_prefix_version_1, WasmSpan, WasmSpan) \
     REGISTER_HOST_METHOD(int64_t, ext_default_child_storage_clear_prefix_version_2, int64_t, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_default_child_storage_set_version_1, int64_t, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_default_child_storage_storage_kill_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_default_child_storage_set_version_1, int64_t, int64_t, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_default_child_storage_storage_kill_version_1, int64_t) \
     REGISTER_HOST_METHOD(int64_t, ext_default_child_storage_storage_kill_version_3, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_logging_log_version_1, int32_t, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_misc_print_hex_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_misc_print_num_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_misc_print_utf8_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_storage_append_version_1, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_storage_clear_prefix_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_storage_clear_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_storage_commit_transaction_version_1) \
-    REGISTER_HOST_METHOD(void, ext_storage_rollback_transaction_version_1) \
-    REGISTER_HOST_METHOD(void, ext_storage_set_version_1, int64_t, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_storage_start_transaction_version_1) \
+    REGISTER_HOST_METHOD(void   , ext_logging_log_version_1, int32_t, int64_t, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_misc_print_hex_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_misc_print_num_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_misc_print_utf8_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_storage_append_version_1, int64_t, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_storage_clear_prefix_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_storage_clear_version_1, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_storage_commit_transaction_version_1) \
+    REGISTER_HOST_METHOD(void   , ext_storage_rollback_transaction_version_1) \
+    REGISTER_HOST_METHOD(void   , ext_storage_set_version_1, int64_t, int64_t) \
+    REGISTER_HOST_METHOD(void   , ext_storage_start_transaction_version_1) \
     REGISTER_HOST_METHOD(int32_t, ext_allocator_malloc_version_1, int32_t) \
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ed25519_generate_version_1, int32_t, int64_t) \
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ed25519_verify_version_1, int32_t, int64_t, int32_t) \
@@ -94,5 +94,11 @@
     REGISTER_HOST_METHOD(void   , ext_offchain_set_authorized_nodes_version_1, int64_t, int32_t) \
     REGISTER_HOST_METHOD(void   , ext_offchain_index_set_version_1, int64_t, int64_t) \
     REGISTER_HOST_METHOD(void   , ext_offchain_index_clear_version_1, int64_t) \
-    REGISTER_HOST_METHOD(void, ext_panic_handler_abort_on_panic_version_1, int64_t)
+    REGISTER_HOST_METHOD(void   , ext_panic_handler_abort_on_panic_version_1, int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_final_exponentiation_version_1, int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_msm_g1_version_1, int64_t , int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_mul_projective_g1_version_1, int64_t , int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_mul_projective_g2_version_1, int64_t , int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_multi_miller_loop_version_1, int64_t , int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1, int64_t , int64_t)
 // clang-format on
