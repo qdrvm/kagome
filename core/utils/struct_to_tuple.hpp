@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STRUCT_TO_TUPLE_HPP
-#define KAGOME_STRUCT_TO_TUPLE_HPP
+#pragma once
 
 #include <deque>
 #include <map>
@@ -60,10 +59,8 @@
     return std::make_tuple(REPEATY_REF(ONES, p));                             \
   }
 
-#define TO_TUPLE1             \
-  TO_TUPLE_N(1) else {        \
-    return std::make_tuple(); \
-  }
+#define TO_TUPLE1 \
+  TO_TUPLE_N(1) else { return std::make_tuple(); }
 #define TO_TUPLE2 TO_TUPLE_N(2) else TO_TUPLE1
 #define TO_TUPLE3 TO_TUPLE_N(3) else TO_TUPLE2
 #define TO_TUPLE4 TO_TUPLE_N(4) else TO_TUPLE3
@@ -142,5 +139,3 @@ namespace kagome::utils {
 #undef TO_TUPLE7
 #undef TO_TUPLE8
 #undef TO_TUPLE9
-
-#endif  // KAGOME_STRUCT_TO_TUPLE_HPP

@@ -17,12 +17,13 @@ namespace kagome {
       std::is_standard_layout_v<std::remove_pointer_t<T>>;
 
   template <typename T>
-  concept ByteContainer = requires(T t, std::streampos pos) {
-    { t.data() } -> StandardLayoutPointer;
-    { t.size() } -> std::convertible_to<std::streamsize>;
-    { t.resize(pos) };
-    { t.clear() };
-  };
+  concept ByteContainer =  //
+      requires(T t, std::streampos pos) {
+        { t.data() } -> StandardLayoutPointer;
+        { t.size() } -> std::convertible_to<std::streamsize>;
+        { t.resize(pos) };
+        { t.clear() };
+      };
 
   template <ByteContainer Out>
   bool readFile(Out &out,
