@@ -36,6 +36,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
+#include "parachain/backing/grid.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -372,21 +373,94 @@ namespace kagome::parachain {
       std::unordered_map<ValidatorIndex, MessageState> messages{};
     };
 
+    /// Contains topology routing information for assignments and approvals.
+    struct ApprovalRouting {
+      grid::RequiredRouting required_routing;
+      bool local;
+      grid::RandomRouting random_routing;
+      std::vector<libp2p::peer::PeerId> peers_randomly_routed;
+
+      void mark_randomly_sent(const libp2p::peer::PeerId &peer) {
+        random_routing.inc_sent();
+        peers_randomly_routed.emplace_back(peer);
+      }
+    };
+
+    // This struct is responsible for tracking the full state of an assignment and grid routing
+    // information.
+    struct DistribApprovalEntry {
+      // The assignment certificate.
+      approval::IndirectAssignmentCertV2 assignment;
+
+      // The candidates claimed by the certificate. A mapping between bit index and candidate index.
+      scale::BitVec assignment_claimed_candidates;
+
+      // The approval signatures for each `CandidateIndex` claimed by the assignment certificate.
+      std::unordered_map<scale::BitVec, approval::IndirectSignedApprovalVoteV2> approvals;
+
+      // The validator index of the assignment signer.
+      ValidatorIndex validator_index;
+
+      // Information required for gossiping to other peers using the grid topology.
+      ApprovalRouting routing_info;
+
+      std::pair<approval::IndirectAssignmentCertV2, scale::BitVec> get_assignment() const {
+        return {assignment, assignment_claimed_candidates};
+      }
+
+      // Get all approvals for all candidates claimed by the assignment.
+      std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals() const {
+        std::vector<approval::IndirectSignedApprovalVoteV2> out;
+        out.reserve(approvals.size());
+        std::transform(approvals.begin(),
+                      approvals.end(),
+                      std::back_inserter(out),
+                      [](const auto it) { return it.second; });
+        return out;
+      }
+
+      // Create a `MessageSubject` to reference the assignment.
+      std::pair<approval::MessageSubject, approval::MessageKind> create_assignment_knowledge(const Hash &block_hash) const {
+        return {
+          std::make_tuple(block_hash, assignment_claimed_candidates, validator_index),
+          approval::MessageKind::Assignment
+        };
+      }
+
+    };
+
     /// Information about blocks in our current view as well as whether peers
     /// know of them.
     struct DistribBlockEntry {
+      struct ApprovalEntriesHash {
+        auto operator()(const std::pair<ValidatorIndex, scale::BitVec> &obj) const {
+          size_t value{0ull};
+          boost::hash_combine(value, obj.first);
+          boost::hash_range(value, obj.second.bits.begin(), obj.second.bits.end());
+          return value;
+        }
+      };
+
       /// A votes entry for each candidate indexed by [`CandidateIndex`].
       std::vector<DistribCandidateEntry> candidates{};
+
       /// Our knowledge of messages.
       approval::Knowledge knowledge{};
+
       /// Peers who we know are aware of this block and thus, the candidates
       /// within it. This maps to their knowledge of messages.
       std::unordered_map<libp2p::peer::PeerId, approval::PeerKnowledge>
           known_by{};
+
       /// The number of the block.
       primitives::BlockNumber number;
+
       /// The parent hash of the block.
       RelayHash parent_hash;
+
+      /// Approval entries for whole block. These also contain all approvals in the case of multiple
+      /// candidates being claimed by assignments.
+      std::unordered_map<std::pair<ValidatorIndex, scale::BitVec>, DistribApprovalEntry, ApprovalEntriesHash> approval_entries;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
@@ -677,7 +751,7 @@ std::optional<scale::BitVec> cores_to_candidate_indices(
                                   const libp2p::peer::PeerId &peer_id);
 
     void send_approvals_batched(
-        std::deque<network::IndirectSignedApprovalVote> &&approvals,
+        std::deque<approval::IndirectSignedApprovalVoteV2> &&approvals,
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(

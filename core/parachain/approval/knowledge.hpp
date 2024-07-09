@@ -82,6 +82,18 @@ namespace kagome::parachain::approval {
                   const MessageKind &kind) const {
       return sent.contains(message, kind) || received.contains(message, kind);
     }
+
+    // Generate the knowledge keys for querying if an approval is known by peer.
+    static std::pair<MessageSubject, MessageKind> generate_approval_key(const approval::IndirectSignedApprovalVoteV2 &approval) {
+      return {
+        std::make_tuple(
+          approval.payload.payload.block_hash,
+          approval.payload.payload.candidate_indices,
+          approval.payload.ix
+        ),
+        MessageKind::Approval,
+      };
+    }
   };
 
 }  // namespace kagome::parachain::approval

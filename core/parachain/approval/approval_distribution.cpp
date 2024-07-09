@@ -669,7 +669,7 @@ namespace kagome::parachain {
       }
     }
 
-    unify_with_peer(storedDistribBlockEntries(), peer_id, view);
+    unify_with_peer(storedDistribBlockEntries(), peer_id, view, false);
     peer_views_[peer_id] = std::move(view);
   }
 
@@ -1284,7 +1284,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                   network::View{
                       .heads_ = {h},
                       .finalized_number_ = finalized_block_number,
-                  });
+                  }, false);
             }
           }
         }
@@ -1695,7 +1695,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         storedBlockEntries().get(approval.payload.payload.block_hash));
 
     std::vector<std::pair<size_t, CandidateHash>> approved_candidates_info;
-    auto r = approval::iter_ones(approval.payload.payload.candidate_indices, [&](const auto candidate_index) {
+    auto r = approval::iter_ones(approval.payload.payload.candidate_indices, [&](const auto candidate_index) -> outcome::result<void> {
         if (candidate_index >= block_entry.candidates.size()) {
           SL_WARN(logger_, "Candidate index more than candidates array.(candidate index={})", candidate_index);
           return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
@@ -1819,11 +1819,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             peer_knowledge.contains(message_subject, message_kind)) {
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
-                     "Duplicate assignment. (peer id={}, block_hash={}, "
-                     "candidate index={}, validator index={})",
+                     "Duplicate assignment. (peer id={}, block_hash={}, validator index={})",
                      peer_id,
                      std::get<0>(message_subject),
-                     std::get<1>(message_subject),
                      std::get<2>(message_subject));
           }
           return;
@@ -1831,10 +1829,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       } else {
         SL_WARN(logger_,
                 "Assignment from a peer is out of view. (peer id={}, "
-                "block_hash={}, candidate index={}, validator index={})",
+                "block_hash={}, validator index={})",
                 peer_id,
                 std::get<0>(message_subject),
-                std::get<1>(message_subject),
                 std::get<2>(message_subject));
       }
 
@@ -1895,17 +1892,14 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       if (!entry.knowledge.insert(message_subject, message_kind)) {
         SL_WARN(logger_,
                 "Importing locally an already known assignment. "
-                "(block_hash={}, candidate index={}, validator index={})",
+                "(block_hash={}, validator index={})",
                 std::get<0>(message_subject),
-                std::get<1>(message_subject),
                 std::get<2>(message_subject));
         return;
       }
       SL_TRACE(logger_,
-               "Importing locally a new assignment. (block_hash={}, candidate "
-               "index={}, validator index={})",
+               "Importing locally a new assignment. (block_hash={}, validator index={})",
                std::get<0>(message_subject),
-               std::get<1>(message_subject),
                std::get<2>(message_subject));
     }
 
@@ -1971,11 +1965,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       if (!entry.knowledge.contains(message_subject,
                                     approval::MessageKind::Assignment)) {
         SL_TRACE(logger_,
-                 "Unknown approval assignment. (peer id={}, block hash={}, "
-                 "candidate={}, validator={})",
+                 "Unknown approval assignment. (peer id={}, block hash={}, validator={})",
                  peer_id,
                  std::get<0>(message_subject),
-                 std::get<1>(message_subject),
                  std::get<2>(message_subject));
         return;
       }
@@ -1986,11 +1978,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             peer_knowledge.contains(message_subject, message_kind)) {
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
-                     "Duplicate approval. (peer id={}, block_hash={}, "
-                     "candidate index={}, validator index={})",
+                     "Duplicate approval. (peer id={}, block_hash={}, validator index={})",
                      peer_id,
                      std::get<0>(message_subject),
-                     std::get<1>(message_subject),
                      std::get<2>(message_subject));
           }
           return;
@@ -1998,21 +1988,18 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       } else {
         SL_TRACE(logger_,
                  "Approval from a peer is out of view. (peer id={}, "
-                 "block_hash={}, candidate index={}, validator index={})",
+                 "block_hash={}, validator index={})",
                  peer_id,
                  std::get<0>(message_subject),
-                 std::get<1>(message_subject),
                  std::get<2>(message_subject));
       }
 
       /// if the approval is known to be valid, reward the peer
       if (entry.knowledge.contains(message_subject, message_kind)) {
         SL_TRACE(logger_,
-                 "Known approval. (peer id={}, block hash={}, "
-                 "candidate={}, validator={})",
+                 "Known approval. (peer id={}, block hash={}, validator={})",
                  peer_id,
                  std::get<0>(message_subject),
-                 std::get<1>(message_subject),
                  std::get<2>(message_subject));
 
         if (auto it = entry.known_by.find(peer_id);
@@ -2044,17 +2031,14 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         // again
         SL_WARN(logger_,
                 "Importing locally an already known approval. "
-                "(block_hash={}, candidate index={}, validator index={})",
+                "(block_hash={}, validator index={})",
                 std::get<0>(message_subject),
-                std::get<1>(message_subject),
                 std::get<2>(message_subject));
         return;
       }
       SL_TRACE(logger_,
-               "Importing locally a new approval. (block_hash={}, candidate "
-               "index={}, validator index={})",
+               "Importing locally a new approval. (block_hash={}, validator index={})",
                std::get<0>(message_subject),
-               std::get<1>(message_subject),
                std::get<2>(message_subject));
     }
 
@@ -2344,7 +2328,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                    : assignments.end();
 
       auto msg = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           network::vstaging::ApprovalDistributionMessage{network::vstaging::Assignments{
               .assignments = std::vector<network::vstaging::Assignment>(begin, end),
           }});
@@ -2355,7 +2339,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
   }
 
   void ApprovalDistribution::send_approvals_batched(
-      std::deque<network::IndirectSignedApprovalVote> &&approvals,
+      std::deque<approval::IndirectSignedApprovalVoteV2> &&approvals,
       const libp2p::peer::PeerId &peer_id) {
     REINVOKE(*main_pool_handler_,
              send_approvals_batched,
@@ -2391,10 +2375,10 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                    : approvals.end();
 
       auto msg = std::make_shared<
-          network::WireMessage<network::ValidatorProtocolMessage>>(
-          network::ApprovalDistributionMessage{network::Approvals{
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+          network::vstaging::ApprovalDistributionMessage{network::vstaging::Approvals{
               .approvals =
-                  std::vector<network::IndirectSignedApprovalVote>(begin, end),
+                  std::vector<approval::IndirectSignedApprovalVoteV2>(begin, end),
           }});
 
       se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
@@ -3007,69 +2991,39 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         }
 
         auto &peer_knowledge = entry.known_by[peer_id];
-        for (uint32_t candidate_index = 0;
-             candidate_index < entry.candidates.size();
-             ++candidate_index) {
-          auto &c = entry.candidates[candidate_index];
-          for (auto &[validator, message_state] : c.messages) {
-            auto message_subject{
-                std::make_tuple(block, candidate_index, validator)};
-            const auto &[ref_cert, opt_ref_approval_sig] = visit_in_place(
-                message_state.approval_state,
-                [](const DistribApprovalStateAssigned &cert)
-                    -> std::pair<
-                        std::reference_wrapper<const approval::AssignmentCertV2>,
-                        std::optional<
-                            std::reference_wrapper<const ValidatorSignature>>> {
-                  return std::make_pair(std::cref(cert), std::nullopt);
-                },
-                [](const DistribApprovalStateApproved &val)
-                    -> std::pair<
-                        std::reference_wrapper<const approval::AssignmentCertV2>,
-                        std::optional<
-                            std::reference_wrapper<const ValidatorSignature>>> {
-                  const auto &[cert, sig] = val;
-                  return std::make_pair(std::cref(cert), std::cref(sig));
-                });
+        for (auto &[_, approval_entry] : entry.approval_entries) {
+ 						[[maybe_unused]] const auto &required_routing = approval_entry.routing_info.required_routing;
+						[[maybe_unused]] auto &routing_info = approval_entry.routing_info;
 
-            if (!peer_knowledge.contains(message_subject,
-                                         approval::MessageKind::Assignment)) {
-              peer_knowledge.sent.insert(message_subject,
-                                         approval::MessageKind::Assignment);
+            auto peer_filter = [&](const libp2p::peer::PeerId &) {
+              /// TODO(iceseer): check topology
+              return true;
+            };
 
-              assignments_to_send.emplace_back(network::Assignment{
-                  .indirect_assignment_cert =
-                      approval::IndirectAssignmentCert{
-                          .block_hash = block,
-                          .validator = validator,
-                          .cert = ref_cert.get(),
-                      },
-                  .candidate_ix = candidate_index,
+						if (!peer_filter(peer_id)) {
+							continue;
+						}  
+
+            const auto assignment_message = approval_entry.get_assignment();
+            const auto  approval_messages = approval_entry.get_approvals();
+            const auto [assignment_knowledge, message_kind] = approval_entry.create_assignment_knowledge(block);
+
+            if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
+              peer_knowledge.sent.insert(assignment_knowledge, message_kind);
+              assignments_to_send.emplace_back(network::vstaging::Assignment {
+                .indirect_assignment_cert = assignment_message.first,
+                .candidate_bitfield = assignment_message.second,
               });
             }
 
-            if (opt_ref_approval_sig) {
-              if (!peer_knowledge.contains(message_subject,
-                                           approval::MessageKind::Approval)) {
-                peer_knowledge.sent.insert(message_subject,
-                                           approval::MessageKind::Approval);
+            for (const auto &approval_message : approval_messages) {
+              auto approval_knowledge = approval::PeerKnowledge::generate_approval_key(approval_message);
 
-                approvals_to_send.emplace_back(
-                    network::IndirectSignedApprovalVote{
-                        .payload =
-                            {
-                                .payload =
-                                    network::ApprovalVote{
-                                        .block_hash = block,
-                                        .candidate_index = candidate_index,
-                                    },
-                                .ix = validator,
-                            },
-                        .signature = opt_ref_approval_sig->get(),
-                    });
+              if (!peer_knowledge.contains(approval_knowledge.first, approval_knowledge.second)) {
+                approvals_to_send.emplace_back(approval_message);
+                peer_knowledge.sent.insert(approval_knowledge.first, approval_knowledge.second);
               }
             }
-          }
         }
 
         block = entry.parent_hash;

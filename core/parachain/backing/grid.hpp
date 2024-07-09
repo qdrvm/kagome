@@ -13,11 +13,21 @@
 #include <numeric>
 #include <unordered_set>
 #include <vector>
+#include <experimental/random>
 
 #include "crypto/chacha.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
 namespace kagome::parachain::grid {
+  /// The sample rate for randomly propagating messages. This
+/// reduces the left tail of the binomial distribution but also
+/// introduces a bias towards peers who we sample before others
+/// (i.e. those who get a block before others).
+constexpr size_t DEFAULT_RANDOM_SAMPLE_RATE = 25;
+
+/// The number of peers to randomly propagate messages to.
+constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
+
   /**
    * Numbers arranged into rectangular grid.
    * https://github.com/paritytech/polkadot-sdk/blob/2aaa9af3746b0cf671de9dc98fe2465c7ef59be2/polkadot/node/network/protocol/src/grid_topology.rs#L69-L149
@@ -109,6 +119,64 @@ namespace kagome::parachain::grid {
           f(i);
         }
       }
+    }
+  };
+
+  /// Routing mode
+  struct RequiredRouting {
+    enum  {
+      /// We don't know yet, because we're waiting for topology info
+      /// (race condition between learning about the first blocks in a new session
+      /// and getting the topology for that session)
+      PendingTopology,
+      /// Propagate to all peers of any kind.
+      All,
+      /// Propagate to all peers sharing either the X or Y dimension of the grid.
+      GridXY,
+      /// Propagate to all peers sharing the X dimension of the grid.
+      GridX,
+      /// Propagate to all peers sharing the Y dimension of the grid.
+      GridY,
+      /// No required propagation.
+      None
+    } value;
+
+    /// Whether the required routing set is definitely empty.
+    bool is_empty() const {
+      return value == PendingTopology || value == None;
+    }
+  };
+
+  /// A representation of routing based on sample
+  struct RandomRouting {
+    /// The number of peers to target.
+    size_t target;
+    /// The number of peers this has been sent to.
+    size_t sent;
+    /// Sampling rate
+    size_t sample_rate;
+
+    RandomRouting() 
+    : target(DEFAULT_RANDOM_CIRCULATION)
+    , sent(0)
+    , sample_rate(DEFAULT_RANDOM_SAMPLE_RATE) { }
+
+    /// Perform random sampling for a specific peer
+    /// Returns `true` for a lucky peer
+    bool sample(size_t n_peers_total) const {
+      if (n_peers_total == 0 || sent >= target) {
+        return false;
+      } else if (sample_rate > n_peers_total) {
+        return true;
+      } else {
+        size_t random_number = std::experimental::randint(size_t(1), n_peers_total);
+        return random_number <= sample_rate;
+      }
+    }
+
+  	/// Increase number of messages being sent
+    void inc_sent() {
+      sent += 1;
     }
   };
 
