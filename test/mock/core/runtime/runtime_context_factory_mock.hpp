@@ -17,8 +17,7 @@ namespace kagome::runtime {
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 fromBatch,
                 (std::shared_ptr<ModuleInstance> module_instance,
-                 std::shared_ptr<storage::trie::TrieBatch> batch,
-                 ContextParams params),
+                 std::shared_ptr<storage::trie::TrieBatch> batch),
                 (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
@@ -26,36 +25,32 @@ namespace kagome::runtime {
         (std::shared_ptr<ModuleInstance> module_instance,
          const storage::trie::RootHash &state,
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-             changes_tracker_opt,
-         ContextParams params),
+             changes_tracker_opt),
         (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
         persistentAt,
         (const primitives::BlockHash &block_hash,
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-             changes_tracker_opt,
-         ContextParams params),
+             changes_tracker_opt),
         (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeral,
                 (std::shared_ptr<ModuleInstance> module_instance,
-                 const storage::trie::RootHash &state,
-                 ContextParams params),
+                 const storage::trie::RootHash &state),
                 (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
-                (const primitives::BlockHash &block_hash, ContextParams params),
+                (const primitives::BlockHash &block_hash),
                 (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
                 (const primitives::BlockHash &block_hash,
-                 const storage::trie::RootHash &state,
-                 ContextParams params),
+                 const storage::trie::RootHash &state),
                 (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAtGenesis,
-                (ContextParams params),
+                (),
                 (const, override));
   };
 

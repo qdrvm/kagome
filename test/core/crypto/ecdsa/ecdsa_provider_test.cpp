@@ -126,11 +126,10 @@ TEST_F(EcdsaProviderTest, Junctions) {
 
 // https://github.com/paritytech/substrate/blob/6f0f5a92739b92199b3345fc4a716211c8a8b46f/primitives/core/src/ecdsa.rs#L551-L568
 TEST_F(EcdsaProviderTest, Compatible) {
-  auto seed =
-      EcdsaSeed::fromHex(
-          SecureCleanGuard{std::string(
-              "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")})
-          .value();
+  auto seed = EcdsaSeed::fromHex(SecureCleanGuard{std::string(
+                                     "9d61b19deffd5a60ba844af492ec2cc4"
+                                     "4449c5697b326919703bac031cae7f60")})
+                  .value();
   auto keys = ecdsa_provider_->generateKeypair(seed, {}).value();
   auto sig =
       EcdsaSignature::fromHex(

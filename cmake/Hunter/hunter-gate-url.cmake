@@ -1,5 +1,5 @@
 HunterGate(
   URL  https://github.com/qdrvm/hunter/archive/refs/heads/feature/schnorrkel_crust_update.zip
-  SHA1 0264a2b2c563afdbe51b162aeec1837762898001
+  SHA1 8159ebc9374b94ebe262aaeff64fd00f5ee30550
   LOCAL
 )

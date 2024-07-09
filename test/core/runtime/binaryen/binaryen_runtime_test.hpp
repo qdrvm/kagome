@@ -28,7 +28,7 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
 
     auto instance_env_factory =
         std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
-            trie_storage_, serializer_, host_api_factory_);
+            trie_storage_, serializer_, nullptr, host_api_factory_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(

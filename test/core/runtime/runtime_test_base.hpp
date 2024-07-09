@@ -14,6 +14,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -52,13 +53,15 @@
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
+using kagome::application::AppConfigurationMock;
+using kagome::runtime::RuntimeInstancesPoolImpl;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
 
 using namespace kagome;
 
-class RuntimeTestBase : public ::testing::Test {
+class RuntimeTestBaseImpl {
  public:
   using Buffer = common::Buffer;
   using Block = primitives::Block;
@@ -78,6 +81,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto ed25519_provider =
         std::make_shared<crypto::Ed25519ProviderImpl>(hasher_);
     auto secp256k1_provider = std::make_shared<crypto::Secp256k1ProviderImpl>();
+    auto elliptic_curves = std::make_shared<crypto::EllipticCurvesImpl>();
     auto pbkdf2_provider = std::make_shared<crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider =
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
@@ -113,6 +117,7 @@ class RuntimeTestBase : public ::testing::Test {
         ecdsa_provider,
         ed25519_provider,
         secp256k1_provider,
+        elliptic_curves,
         hasher_,
         key_store,
         offchain_storage_,
@@ -135,7 +140,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   virtual std::shared_ptr<runtime::ModuleFactory> createModuleFactory() = 0;
 
-  void SetUp() override {
+  void SetUpImpl() {
     initStorage();
     trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
     serializer_ = std::make_shared<storage::trie::TrieSerializerMock>();
@@ -167,14 +172,23 @@ class RuntimeTestBase : public ::testing::Test {
             std::make_shared<blockchain::BlockStorageMock>())
             .value();
 
-    auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-            module_factory, std::make_shared<runtime::InstrumentWasm>()),
-        hasher_,
-        upgrade_tracker,
-        trie_storage_,
+    auto wasm_cache_dir =
+        filesystem::temp_directory_path() / "runtime_test_base_cache";
+    std::filesystem::create_directories(wasm_cache_dir);
+    EXPECT_CALL(app_config_, runtimeCacheDirPath())
+        .WillOnce(Return(wasm_cache_dir));
+    instance_pool_ = std::make_shared<RuntimeInstancesPoolImpl>(
+        app_config_,
         module_factory,
-        wasm_provider_);
+        std::make_shared<runtime::InstrumentWasm>());
+    auto module_repo =
+        std::make_shared<runtime::ModuleRepositoryImpl>(instance_pool_,
+                                                        hasher_,
+                                                        header_repo_,
+                                                        upgrade_tracker,
+                                                        trie_storage_,
+                                                        module_factory,
+                                                        wasm_provider_);
 
     ctx_factory_ = std::make_shared<runtime::RuntimeContextFactoryImpl>(
         module_repo, header_repo_);
@@ -202,8 +216,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   template <typename BatchMock>
   void prepareStorageBatchExpectations(BatchMock &batch) {
-    ON_CALL(batch, tryGetMock(_))
-        .WillByDefault(testing::Return(common::Buffer{}));
+    ON_CALL(batch, tryGetMock(_)).WillByDefault(testing::Return(std::nullopt));
     ON_CALL(batch, put(_, _))
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(batch, remove(_))
@@ -253,6 +266,7 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
  protected:
+  AppConfigurationMock app_config_;
   std::shared_ptr<testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>
       header_repo_;
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;
@@ -265,4 +279,12 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
   std::shared_ptr<crypto::HasherImpl> hasher_;
   std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
+  std::shared_ptr<RuntimeInstancesPoolImpl> instance_pool_;
+};
+
+class RuntimeTestBase : public ::testing::Test, public RuntimeTestBaseImpl {
+ public:
+  void SetUp() override {
+    SetUpImpl();
+  }
 };

@@ -42,7 +42,7 @@
 
 namespace kagome {
   class PoolHandlerReady;
-}  // namespace kagome
+}
 
 namespace kagome::network {
 
@@ -204,6 +204,7 @@ namespace kagome::network {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
+    std::shared_ptr<network::PeerView> peer_view_;
 
     libp2p::event::Handle add_peer_handle_;
     libp2p::event::Handle peer_disconnected_handler_;
@@ -222,9 +223,6 @@ namespace kagome::network {
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *sync_peer_num_;
     metrics::Gauge *peers_count_metric_;
-
-    // parachain
-    std::shared_ptr<network::PeerView> peer_view_;
   };
 
 }  // namespace kagome::network

@@ -17,9 +17,6 @@ namespace kagome::runtime {
   static_assert(roundUpAlign(kDefaultHeapBase) == kDefaultHeapBase,
                 "Heap base must be aligned");
 
-  static_assert(kDefaultHeapBase < kInitialMemorySize,
-                "Heap base must be in memory");
-
   constexpr auto kPoisoned{"the allocator has been poisoned"};
 
   static uint64_t read_u64(const MemoryHandle &memory, WasmPointer ptr) {
@@ -67,7 +64,8 @@ namespace kagome::runtime {
         auto pages = sizeToPages(next_offset);
         if (pages > max_memory_pages_num_) {
           throw std::runtime_error{
-              "Memory resize failed, because maximum number of pages is reached."};
+              "Memory resize failed, because maximum number of pages is "
+              "reached."};
         }
         pages = std::max(pages, 2 * sizeToPages(memory_->size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);

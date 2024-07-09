@@ -87,8 +87,8 @@ TEST_F(SessionKeysTest, SessionKeys) {
   auto sr_priv =
       Sr25519SecretKey::fromHex(
           SecureCleanGuard{
-              "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
-              "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"s})
+              "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a"
+              "8b35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"s})
           .value();
 
   Ed25519Keypair ed_pair{ed_priv, ed_key};

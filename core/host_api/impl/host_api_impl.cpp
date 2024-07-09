@@ -19,10 +19,8 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/predefined_keys.hpp"
 
-#define FFI                                            \
-  Ffi ffi {                                            \
-    memory_provider_->getCurrentMemory().value().get() \
-  }
+#define FFI \
+  Ffi ffi { memory_provider_->getCurrentMemory().value().get() }
 
 namespace kagome::host_api {
   /**
@@ -78,6 +76,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<const crypto::EllipticCurves> elliptic_curves,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
@@ -98,11 +97,13 @@ namespace kagome::host_api {
                     std::move(secp256k1_provider),
                     hasher,
                     std::move(key_store)),
+        elliptic_curves_ext_(memory_provider_, std::move(elliptic_curves)),
         io_ext_(memory_provider_),
         memory_ext_(memory_provider_),
         misc_ext_{DEFAULT_CHAIN_ID,
                   hasher,
                   memory_provider_,
+                  storage_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, hasher),
         child_storage_ext_(storage_provider_, memory_provider_),
@@ -656,6 +657,58 @@ namespace kagome::host_api {
     auto msg = byte2str(
         memory_provider_->getCurrentMemory()->get().view(message).value());
     throw std::runtime_error{std::string{msg}};
+  }
+
+  // ---------------------------- Elliptic Curves ----------------------------
+
+  runtime::WasmSpan
+  HostApiImpl::ext_elliptic_curves_bls12_381_multi_miller_loop_version_1(
+      runtime::WasmSpan a, runtime::WasmSpan b) const {
+    return elliptic_curves_ext_
+        .ext_elliptic_curves_bls12_381_multi_miller_loop_version_1(a, b);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_elliptic_curves_bls12_381_final_exponentiation_version_1(
+      runtime::WasmSpan f) const {
+    return elliptic_curves_ext_
+        .ext_elliptic_curves_bls12_381_final_exponentiation_version_1(f);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_elliptic_curves_bls12_381_mul_projective_g1_version_1(
+      runtime::WasmSpan base, runtime::WasmSpan scalar) const {
+    return elliptic_curves_ext_
+        .ext_elliptic_curves_bls12_381_mul_projective_g1_version_1(base,
+                                                                   scalar);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_elliptic_curves_bls12_381_mul_projective_g2_version_1(
+      runtime::WasmSpan base, runtime::WasmSpan scalar) const {
+    return elliptic_curves_ext_
+        .ext_elliptic_curves_bls12_381_mul_projective_g2_version_1(base,
+                                                                   scalar);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_elliptic_curves_bls12_381_msm_g1_version_1(
+      runtime::WasmSpan bases, runtime::WasmSpan scalars) const {
+    return elliptic_curves_ext_.ext_elliptic_curves_bls12_381_msm_g1_version_1(
+        bases, scalars);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_elliptic_curves_bls12_381_msm_g2_version_1(
+      runtime::WasmSpan bases, runtime::WasmSpan scalars) const {
+    return elliptic_curves_ext_.ext_elliptic_curves_bls12_381_msm_g2_version_1(
+        bases, scalars);
+  }
+
+  runtime::WasmSpan HostApiImpl::
+      ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1(
+          runtime::WasmSpan base, runtime::WasmSpan scalar) const {
+    return elliptic_curves_ext_
+        .ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1(
+            base, scalar);
   }
 
 }  // namespace kagome::host_api

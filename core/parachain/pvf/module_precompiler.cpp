@@ -180,7 +180,7 @@ namespace kagome::parachain {
              hash);
     stats.total_code_size += code.size();
 
-    OUTCOME_TRY(pvf_pool_->pool()->precompile(hash, code, executor_params));
+    OUTCOME_TRY(pvf_pool_->precompile(hash, code, executor_params));
     SL_DEBUG(log_,
              "Instantiated runtime instance with code hash {} for parachain "
              "{}, {} left",

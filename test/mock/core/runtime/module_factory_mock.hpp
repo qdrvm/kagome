@@ -16,9 +16,17 @@ namespace kagome::runtime {
 
   class ModuleFactoryMock final : public ModuleFactory {
    public:
+    MOCK_METHOD(std::optional<std::string>,
+                compilerType,
+                (),
+                (const, override));
+    MOCK_METHOD((CompilationOutcome<void>),
+                compile,
+                (std::filesystem::path, BufferView),
+                (const, override));
     MOCK_METHOD((CompilationOutcome<std::shared_ptr<Module>>),
-                make,
-                (common::BufferView),
+                loadCompiled,
+                (std::filesystem::path),
                 (const, override));
   };
 }  // namespace kagome::runtime

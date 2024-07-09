@@ -32,7 +32,6 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
-#include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
@@ -2329,7 +2328,7 @@ namespace kagome::parachain {
       const approval::IndirectAssignmentCertV2 &indirect_cert,
       const scale::BitVec &candidate_indices,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
-    REINVOKE(*approval_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              runDistributeAssignment,
              indirect_cert,
              candidate_indices,
@@ -2452,10 +2451,8 @@ namespace kagome::parachain {
   void ApprovalDistribution::runDistributeApproval(
       const approval::IndirectSignedApprovalVoteV2 &vote,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
-    REINVOKE(*approval_thread_handler_,
-             runDistributeApproval,
-             vote,
-             std::move(peers));
+    REINVOKE(
+        *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
     SL_INFO(logger_,
             "Sending an approval to peers. (block={}, num peers={})",

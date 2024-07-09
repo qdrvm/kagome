@@ -6,6 +6,7 @@
 
 #include "runtime/common/runtime_instances_pool.hpp"
 
+#include "application/app_configuration.hpp"
 #include "common/monadic_utils.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
@@ -68,6 +69,10 @@ namespace kagome::runtime {
       return instance_->resetEnvironment();
     }
 
+    outcome::result<void> stateless() override {
+      return instance_->stateless();
+    }
+
    private:
     std::weak_ptr<RuntimeInstancesPoolImpl> pool_;
     common::Hash256 hash_;
@@ -76,10 +81,12 @@ namespace kagome::runtime {
   };
 
   RuntimeInstancesPoolImpl::RuntimeInstancesPoolImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<ModuleFactory> module_factory,
       std::shared_ptr<InstrumentWasm> instrument,
       size_t capacity)
-      : module_factory_{std::move(module_factory)},
+      : cache_dir_{app_config.runtimeCacheDirPath()},
+        module_factory_{std::move(module_factory)},
         instrument_{std::move(instrument)},
         pools_{capacity} {
     BOOST_ASSERT(module_factory_);
@@ -88,22 +95,52 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPoolImpl::instantiateFromCode(
       const CodeHash &code_hash,
-      common::BufferView code_zstd,
+      const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
-    OUTCOME_TRY(module, getModule(lock, code_hash, code_zstd, config));
+    OUTCOME_TRY(module, getModule(lock, code_hash, get_code, config));
     OUTCOME_TRY(instance, module.get().instantiate(lock));
     BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, config, std::move(instance));
   }
 
+  std::filesystem::path RuntimeInstancesPoolImpl::cachePath(
+      const CodeHash &code_hash,
+      const RuntimeContext::ContextParams &config) const {
+    std::string name;
+    auto to = std::back_inserter(name);
+    if (auto type = module_factory_->compilerType()) {
+      fmt::format_to(to, "{}_", *type);
+    } else {
+      name.append("wasm_");
+    }
+    fmt::format_to(to, "{}_s", code_hash.toHex());
+    if (auto &stack = config.memory_limits.max_stack_values_num) {
+      fmt::format_to(to, "{}", *stack);
+    }
+    if (auto v = boost::get<HeapAllocStrategyDynamic>(
+            &config.memory_limits.heap_alloc_strategy)) {
+      name.append("_d");
+      if (auto &max = v->maximum_pages) {
+        fmt::format_to(to, "{}", *max);
+      }
+    } else {
+      fmt::format_to(to,
+                     "_s{}",
+                     boost::get<HeapAllocStrategyStatic>(
+                         config.memory_limits.heap_alloc_strategy)
+                         .extra_pages);
+    }
+    return cache_dir_ / name;
+  }
+
   outcome::result<void> RuntimeInstancesPoolImpl::precompile(
       const CodeHash &code_hash,
-      common::BufferView code_zstd,
+      const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
-    OUTCOME_TRY(getModule(lock, code_hash, code_zstd, config));
+    OUTCOME_TRY(getModule(lock, code_hash, get_code, config));
     return outcome::success();
   }
 
@@ -112,14 +149,14 @@ namespace kagome::runtime {
   RuntimeInstancesPoolImpl::getModule(
       std::unique_lock<std::mutex> &lock,
       const CodeHash &code_hash,
-      common::BufferView code_zstd,
+      const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     Key key{code_hash, config};
     auto pool_opt = pools_.get(key);
 
     if (!pool_opt) {
       lock.unlock();
-      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd, config));
+      OUTCOME_TRY(module, tryCompileModule(code_hash, get_code, config));
       lock.lock();
       pool_opt = pools_.get(key);
       if (!pool_opt) {
@@ -133,7 +170,7 @@ namespace kagome::runtime {
   RuntimeInstancesPoolImpl::CompilationResult
   RuntimeInstancesPoolImpl::tryCompileModule(
       const CodeHash &code_hash,
-      common::BufferView code_zstd,
+      const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock l{compiling_modules_mtx_};
     Key key{code_hash, config};
@@ -149,30 +186,26 @@ namespace kagome::runtime {
     BOOST_ASSERT(is_inserted);
     BOOST_ASSERT(iter != compiling_modules_.end());
     l.unlock();
-
-    common::Buffer code;
-    std::optional<CompilationResult> res;
-    if (!uncompressCodeIfNeeded(code_zstd, code)) {
-      res = CompilationError{"Failed to uncompress code"};
-    } else {
-      auto instr_res = instrument_->instrument(code, config.memory_limits);
-      if (!instr_res) {
-        res = CompilationError{fmt::format("Failed to inject stack limiter: {}",
-                                           instr_res.error().msg)};
-      } else {
-        code = std::move(instr_res.value());
+    auto path = cachePath(code_hash, config);
+    auto res = [&]() -> CompilationResult {
+      std::error_code ec;
+      if (not std::filesystem::exists(path, ec)) {
+        if (ec) {
+          return ec;
+        }
+        OUTCOME_TRY(code_zstd, get_code());
+        OUTCOME_TRY(code, uncompressCodeIfNeeded(*code_zstd));
+        BOOST_OUTCOME_TRY(code,
+                          instrument_->instrument(code, config.memory_limits));
+        OUTCOME_TRY(module_factory_->compile(path, code));
       }
-      if (!res) {
-        res =
-            common::map_result(module_factory_->make(code), [](auto &&module) {
-              return std::shared_ptr<const Module>(module);
-            });
-      }
-    }
+      OUTCOME_TRY(module, module_factory_->loadCompiled(path));
+      return module;
+    }();
     l.lock();
     compiling_modules_.erase(iter);
-    promise.set_value(*res);
-    return *res;
+    promise.set_value(res);
+    return res;
   }
 
   void RuntimeInstancesPoolImpl::release(

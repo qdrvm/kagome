@@ -26,7 +26,7 @@ namespace WAVM::Runtime {
 }
 
 namespace kagome::runtime {
-  class ModuleFactory;
+  class CoreApiFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::wavm {
@@ -39,7 +39,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<const ModuleFactory> module_factory);
+        std::shared_ptr<CoreApiFactory> core_factory);
 
     enum class MemoryOrigin { EXTERNAL, INTERNAL };
     [[nodiscard]] InstanceEnvironment make(
@@ -51,7 +51,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<const ModuleFactory> module_factory_;
+    std::shared_ptr<CoreApiFactory> core_factory_;
   };
 
 }  // namespace kagome::runtime::wavm
