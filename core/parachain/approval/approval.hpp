@@ -82,13 +82,11 @@ namespace kagome::parachain::approval {
     crypto::VRFOutput vrf;
 
     static AssignmentCertV2 from(const AssignmentCert &src) {
-      return AssignmentCertV2 {
-        .kind = visit_in_place(
-          src.kind,
-          [](const auto &v) -> AssignmentCertKindV2 {
-            return v;
-          }),
-        .vrf = src.vrf,
+      return AssignmentCertV2{
+          .kind = visit_in_place(
+              src.kind,
+              [](const auto &v) -> AssignmentCertKindV2 { return v; }),
+          .vrf = src.vrf,
       };
     }
   };
@@ -118,10 +116,10 @@ namespace kagome::parachain::approval {
     AssignmentCertV2 cert;
 
     static IndirectAssignmentCertV2 from(const IndirectAssignmentCert &src) {
-      return IndirectAssignmentCertV2 {
-        .block_hash = src.block_hash,
-        .validator = src.validator,
-        .cert = AssignmentCertV2::from(src.cert),
+      return IndirectAssignmentCertV2{
+          .block_hash = src.block_hash,
+          .validator = src.validator,
+          .cert = AssignmentCertV2::from(src.cert),
       };
     }
   };
@@ -160,21 +158,23 @@ namespace kagome::parachain::approval {
       scale::BitVec v;
       v.bits.resize(value.candidate_index + 1);
       v.bits[value.candidate_index] = true;
-      return IndirectApprovalVoteV2 {
-        .block_hash = value.block_hash,
-        .candidate_indices = std::move(v),
+      return IndirectApprovalVoteV2{
+          .block_hash = value.block_hash,
+          .candidate_indices = std::move(v),
       };
     }
   };
   using IndirectSignedApprovalVoteV2 = IndexedAndSigned<IndirectApprovalVoteV2>;
 
-  inline IndirectSignedApprovalVoteV2 from(const IndirectSignedApprovalVote &value) {
-    return IndirectSignedApprovalVoteV2 {
-      .payload = {
-        .payload = IndirectApprovalVoteV2::from(value.payload.payload),
-        .ix = value.payload.ix,
-      },
-      .signature = value.signature,
+  inline IndirectSignedApprovalVoteV2 from(
+      const IndirectSignedApprovalVote &value) {
+    return IndirectSignedApprovalVoteV2{
+        .payload =
+            {
+                .payload = IndirectApprovalVoteV2::from(value.payload.payload),
+                .ix = value.payload.ix,
+            },
+        .signature = value.signature,
     };
   }
 

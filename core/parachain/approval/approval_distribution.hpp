@@ -32,11 +32,11 @@
 #include "parachain/approval/knowledge.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
+#include "parachain/backing/grid.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
-#include "parachain/backing/grid.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -303,7 +303,8 @@ namespace kagome::parachain {
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
         const CandidateIncludedList &leaving_cores,
-        bool enable_v2_assignments, log::Logger &logger);
+        bool enable_v2_assignments,
+        log::Logger &logger);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
@@ -386,57 +387,64 @@ namespace kagome::parachain {
       }
     };
 
-    // This struct is responsible for tracking the full state of an assignment and grid routing
-    // information.
+    // This struct is responsible for tracking the full state of an assignment
+    // and grid routing information.
     struct DistribApprovalEntry {
       // The assignment certificate.
       approval::IndirectAssignmentCertV2 assignment;
 
-      // The candidates claimed by the certificate. A mapping between bit index and candidate index.
+      // The candidates claimed by the certificate. A mapping between bit index
+      // and candidate index.
       scale::BitVec assignment_claimed_candidates;
 
-      // The approval signatures for each `CandidateIndex` claimed by the assignment certificate.
-      std::unordered_map<scale::BitVec, approval::IndirectSignedApprovalVoteV2> approvals;
+      // The approval signatures for each `CandidateIndex` claimed by the
+      // assignment certificate.
+      std::unordered_map<scale::BitVec, approval::IndirectSignedApprovalVoteV2>
+          approvals;
 
       // The validator index of the assignment signer.
       ValidatorIndex validator_index;
 
-      // Information required for gossiping to other peers using the grid topology.
+      // Information required for gossiping to other peers using the grid
+      // topology.
       ApprovalRouting routing_info;
 
-      std::pair<approval::IndirectAssignmentCertV2, scale::BitVec> get_assignment() const {
+      std::pair<approval::IndirectAssignmentCertV2, scale::BitVec>
+      get_assignment() const {
         return {assignment, assignment_claimed_candidates};
       }
 
       // Get all approvals for all candidates claimed by the assignment.
-      std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals() const {
+      std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals()
+          const {
         std::vector<approval::IndirectSignedApprovalVoteV2> out;
         out.reserve(approvals.size());
         std::transform(approvals.begin(),
-                      approvals.end(),
-                      std::back_inserter(out),
-                      [](const auto it) { return it.second; });
+                       approvals.end(),
+                       std::back_inserter(out),
+                       [](const auto it) { return it.second; });
         return out;
       }
 
       // Create a `MessageSubject` to reference the assignment.
-      std::pair<approval::MessageSubject, approval::MessageKind> create_assignment_knowledge(const Hash &block_hash) const {
-        return {
-          std::make_tuple(block_hash, assignment_claimed_candidates, validator_index),
-          approval::MessageKind::Assignment
-        };
+      std::pair<approval::MessageSubject, approval::MessageKind>
+      create_assignment_knowledge(const Hash &block_hash) const {
+        return {std::make_tuple(
+                    block_hash, assignment_claimed_candidates, validator_index),
+                approval::MessageKind::Assignment};
       }
-
     };
 
     /// Information about blocks in our current view as well as whether peers
     /// know of them.
     struct DistribBlockEntry {
       struct ApprovalEntriesHash {
-        auto operator()(const std::pair<ValidatorIndex, scale::BitVec> &obj) const {
+        auto operator()(
+            const std::pair<ValidatorIndex, scale::BitVec> &obj) const {
           size_t value{0ull};
           boost::hash_combine(value, obj.first);
-          boost::hash_range(value, obj.second.bits.begin(), obj.second.bits.end());
+          boost::hash_range(
+              value, obj.second.bits.begin(), obj.second.bits.end());
           return value;
         }
       };
@@ -458,9 +466,12 @@ namespace kagome::parachain {
       /// The parent hash of the block.
       RelayHash parent_hash;
 
-      /// Approval entries for whole block. These also contain all approvals in the case of multiple
-      /// candidates being claimed by assignments.
-      std::unordered_map<std::pair<ValidatorIndex, scale::BitVec>, DistribApprovalEntry, ApprovalEntriesHash> approval_entries;
+      /// Approval entries for whole block. These also contain all approvals in
+      /// the case of multiple candidates being claimed by assignments.
+      std::unordered_map<std::pair<ValidatorIndex, scale::BitVec>,
+                         DistribApprovalEntry,
+                         ApprovalEntriesHash>
+          approval_entries;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
@@ -484,8 +495,8 @@ namespace kagome::parachain {
       scale::BitVec approved_bitfield;
 
       // A list of assignments for which we already distributed the assignment.
-      // We use this to ensure we don't distribute multiple core assignments twice as we track
-      // individual wakeups for each core.
+      // We use this to ensure we don't distribute multiple core assignments
+      // twice as we track individual wakeups for each core.
       scale::BitVec distributed_assignments;
 
       std::vector<Hash> children;
@@ -524,17 +535,22 @@ namespace kagome::parachain {
       }
 
       /// Mark distributed assignment for many candidate indices.
-      /// Returns `true` if an assignment was already distributed for the `candidates`.
+      /// Returns `true` if an assignment was already distributed for the
+      /// `candidates`.
       bool mark_assignment_distributed(const scale::BitVec &bitfield) {
-        const auto total_one_bits = approval::count_ones(distributed_assignments);
-        const auto new_len = std::max(distributed_assignments.bits.size(), bitfield.bits.size());
+        const auto total_one_bits =
+            approval::count_ones(distributed_assignments);
+        const auto new_len =
+            std::max(distributed_assignments.bits.size(), bitfield.bits.size());
 
         distributed_assignments.bits.resize(new_len);
         for (size_t ix = 0; ix < bitfield.bits.size(); ++ix) {
-          distributed_assignments.bits[ix] = distributed_assignments.bits[ix] || bitfield.bits[ix];
+          distributed_assignments.bits[ix] =
+              distributed_assignments.bits[ix] || bitfield.bits[ix];
         }
 
-        const auto distributed = (total_one_bits == approval::count_ones(distributed_assignments));
+        const auto distributed =
+            (total_one_bits == approval::count_ones(distributed_assignments));
         return distributed;
       }
     };
@@ -614,22 +630,23 @@ namespace kagome::parachain {
         const MessageSource &source,
         const approval::IndirectSignedApprovalVoteV2 &vote);
 
-    // Returns the claimed core bitfield from the assignment cert, the candidate hash and a
-// `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot find the candidate hash
-// in the block entry which indicates a bug or corrupted storage.
-std::optional<scale::BitVec> get_assignment_core_indices(
-  const approval::AssignmentCertKindV2 &assignment,
-  const CandidateHash &candidate_hash,
-  const BlockEntry &block_entry
-);
+    // Returns the claimed core bitfield from the assignment cert, the candidate
+    // hash and a
+    // `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot
+    // find the candidate hash in the block entry which indicates a bug or
+    // corrupted storage.
+    std::optional<scale::BitVec> get_assignment_core_indices(
+        const approval::AssignmentCertKindV2 &assignment,
+        const CandidateHash &candidate_hash,
+        const BlockEntry &block_entry);
 
-std::optional<scale::BitVec> cores_to_candidate_indices(
-  const scale::BitVec &core_indices,
-  const BlockEntry &block_entry
-);
+    std::optional<scale::BitVec> cores_to_candidate_indices(
+        const scale::BitVec &core_indices, const BlockEntry &block_entry);
 
-    network::vstaging::Assignments sanitize_v1_assignments(const network::Assignments &assignments);
-    network::vstaging::Approvals sanitize_v1_approvals(const network::Approvals &approval);
+    network::vstaging::Assignments sanitize_v1_assignments(
+        const network::Assignments &assignments);
+    network::vstaging::Approvals sanitize_v1_approvals(
+        const network::Approvals &approval);
 
     template <typename Func>
     void handle_new_head(const primitives::BlockHash &head,
@@ -669,7 +686,7 @@ std::optional<scale::BitVec> cores_to_candidate_indices(
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
                          const libp2p::peer::PeerId &peer_id,
                          const network::View &view,
-      bool retry_known_blocks);
+                         bool retry_known_blocks);
 
     outcome::result<BlockImportedCandidates> processImportedBlock(
         primitives::BlockNumber block_number,
@@ -747,8 +764,9 @@ std::optional<scale::BitVec> cores_to_candidate_indices(
         const scale::BitVec &candidate_indices,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
-    void send_assignments_batched(std::deque<network::vstaging::Assignment> &&assignments,
-                                  const libp2p::peer::PeerId &peer_id);
+    void send_assignments_batched(
+        std::deque<network::vstaging::Assignment> &&assignments,
+        const libp2p::peer::PeerId &peer_id);
 
     void send_approvals_batched(
         std::deque<approval::IndirectSignedApprovalVoteV2> &&approvals,

@@ -10,23 +10,23 @@
 #include <boost/range/adaptor/indexed.hpp>
 #include <cmath>
 #include <cstdint>
+#include <experimental/random>
 #include <numeric>
 #include <unordered_set>
 #include <vector>
-#include <experimental/random>
 
 #include "crypto/chacha.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
 namespace kagome::parachain::grid {
   /// The sample rate for randomly propagating messages. This
-/// reduces the left tail of the binomial distribution but also
-/// introduces a bias towards peers who we sample before others
-/// (i.e. those who get a block before others).
-constexpr size_t DEFAULT_RANDOM_SAMPLE_RATE = 25;
+  /// reduces the left tail of the binomial distribution but also
+  /// introduces a bias towards peers who we sample before others
+  /// (i.e. those who get a block before others).
+  constexpr size_t DEFAULT_RANDOM_SAMPLE_RATE = 25;
 
-/// The number of peers to randomly propagate messages to.
-constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
+  /// The number of peers to randomly propagate messages to.
+  constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
 
   /**
    * Numbers arranged into rectangular grid.
@@ -124,14 +124,16 @@ constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
 
   /// Routing mode
   struct RequiredRouting {
-    enum  {
+    enum {
       /// We don't know yet, because we're waiting for topology info
-      /// (race condition between learning about the first blocks in a new session
+      /// (race condition between learning about the first blocks in a new
+      /// session
       /// and getting the topology for that session)
       PendingTopology,
       /// Propagate to all peers of any kind.
       All,
-      /// Propagate to all peers sharing either the X or Y dimension of the grid.
+      /// Propagate to all peers sharing either the X or Y dimension of the
+      /// grid.
       GridXY,
       /// Propagate to all peers sharing the X dimension of the grid.
       GridX,
@@ -156,10 +158,10 @@ constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
     /// Sampling rate
     size_t sample_rate;
 
-    RandomRouting() 
-    : target(DEFAULT_RANDOM_CIRCULATION)
-    , sent(0)
-    , sample_rate(DEFAULT_RANDOM_SAMPLE_RATE) { }
+    RandomRouting()
+        : target(DEFAULT_RANDOM_CIRCULATION),
+          sent(0),
+          sample_rate(DEFAULT_RANDOM_SAMPLE_RATE) {}
 
     /// Perform random sampling for a specific peer
     /// Returns `true` for a lucky peer
@@ -169,12 +171,13 @@ constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
       } else if (sample_rate > n_peers_total) {
         return true;
       } else {
-        size_t random_number = std::experimental::randint(size_t(1), n_peers_total);
+        size_t random_number =
+            std::experimental::randint(size_t(1), n_peers_total);
         return random_number <= sample_rate;
       }
     }
 
-  	/// Increase number of messages being sent
+    /// Increase number of messages being sent
     void inc_sent() {
       sent += 1;
     }

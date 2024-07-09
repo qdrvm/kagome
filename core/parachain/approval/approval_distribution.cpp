@@ -85,15 +85,15 @@ namespace {
   }
 
   void computeVrfModuloAssignments_v2(
-    std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
-        assignments_key,
-    const kagome::runtime::SessionInfo &config,
-    const RelayVRFStory &relay_vrf_story,
-    const std::vector<kagome::parachain::CoreIndex> &leaving_cores,
-    kagome::parachain::ValidatorIndex validator_index,
-    std::unordered_map<kagome::parachain::CoreIndex,
-                       kagome::parachain::ApprovalDistribution::OurAssignment>
-        &assignments) {
+      std::span<const uint8_t, kagome::crypto::constants::sr25519::KEYPAIR_SIZE>
+          assignments_key,
+      const kagome::runtime::SessionInfo &config,
+      const RelayVRFStory &relay_vrf_story,
+      const std::vector<kagome::parachain::CoreIndex> &leaving_cores,
+      kagome::parachain::ValidatorIndex validator_index,
+      std::unordered_map<kagome::parachain::CoreIndex,
+                         kagome::parachain::ApprovalDistribution::OurAssignment>
+          &assignments) {
     using namespace kagome::parachain;
     using namespace kagome;
 
@@ -103,54 +103,56 @@ namespace {
     uint64_t cores_out_sz;
     uint64_t cores_cap;
 
-    if (sr25519_relay_vrf_modulo_assignments_cert_v2(assignments_key.data(),
-                                                    config.relay_vrf_modulo_samples,
-                                                    config.n_cores,
-                                                    &relay_vrf_story,
-                                                    leaving_cores.data(),
-                                                    leaving_cores.size(),
-                                                    &cert_output,
-                                                    &cert_proof,
-                                                    &cores,
-                                                    &cores_out_sz,
-                                                    &cores_cap)) {
+    if (sr25519_relay_vrf_modulo_assignments_cert_v2(
+            assignments_key.data(),
+            config.relay_vrf_modulo_samples,
+            config.n_cores,
+            &relay_vrf_story,
+            leaving_cores.data(),
+            leaving_cores.size(),
+            &cert_output,
+            &cert_proof,
+            &cores,
+            &cores_out_sz,
+            &cores_cap)) {
       ::scale::BitVec assignment_bitfield;
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         const auto ci = cores[ix];
         if (ci >= assignment_bitfield.bits.size()) {
           assignment_bitfield.bits.resize(ci + 1);
         }
-        assignment_bitfield.bits[ci] = true;        
+        assignment_bitfield.bits[ci] = true;
       }
 
-         crypto::VRFPreOutput o;
-        std::copy_n(std::make_move_iterator(cert_output.data),
-                    crypto::constants::sr25519::vrf::OUTPUT_SIZE,
-                    o.begin());
+      crypto::VRFPreOutput o;
+      std::copy_n(std::make_move_iterator(cert_output.data),
+                  crypto::constants::sr25519::vrf::OUTPUT_SIZE,
+                  o.begin());
 
-        crypto::VRFProof p;
-        std::copy_n(std::make_move_iterator(cert_proof.data),
-                    crypto::constants::sr25519::vrf::PROOF_SIZE,
-                    p.begin());
+      crypto::VRFProof p;
+      std::copy_n(std::make_move_iterator(cert_proof.data),
+                  crypto::constants::sr25519::vrf::PROOF_SIZE,
+                  p.begin());
 
-        ApprovalDistribution::OurAssignment assignment{
-            .cert =
-                approval::AssignmentCertV2 {
-                    .kind = approval::RelayVRFModuloCompact {
-                      .core_bitfield = assignment_bitfield,
-                    },
-                    .vrf = crypto::VRFOutput{.output = o, .proof = p},
-                    },
-            .tranche = 0ul,
-            .validator_index = validator_index,
-            .triggered = false};
+      ApprovalDistribution::OurAssignment assignment{
+          .cert =
+              approval::AssignmentCertV2{
+                  .kind =
+                      approval::RelayVRFModuloCompact{
+                          .core_bitfield = assignment_bitfield,
+                      },
+                  .vrf = crypto::VRFOutput{.output = o, .proof = p},
+              },
+          .tranche = 0ul,
+          .validator_index = validator_index,
+          .triggered = false};
 
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         const auto core_index = cores[ix];
-  			assignments.emplace(core_index, assignment);
+        assignments.emplace(core_index, assignment);
       }
 
-	    sr25519_clear_assigned_cores_v2(cores, cores_out_sz, cores_cap);
+      sr25519_clear_assigned_cores_v2(cores, cores_out_sz, cores_cap);
     }
   }
 
@@ -198,8 +200,8 @@ namespace {
         assignments.emplace(
             core,
             ApprovalDistribution::OurAssignment{
-                .cert = approval::AssignmentCertV2::from(
-                    approval::AssignmentCert{
+                .cert =
+                    approval::AssignmentCertV2::from(approval::AssignmentCert{
                         .kind = approval::RelayVRFModulo{.sample = rvm_sample},
                         .vrf = crypto::VRFOutput{.output = o, .proof = p}}),
                 .tranche = 0ul,
@@ -461,13 +463,17 @@ namespace {
     const auto &validator_public = config.assignment_keys[validator_index];
     //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
-    if (kagome::parachain::approval::count_ones(claimed_core_indices) == 0 || kagome::parachain::approval::count_ones(claimed_core_indices) != backing_groups.size()) {
+    if (kagome::parachain::approval::count_ones(claimed_core_indices) == 0
+        || kagome::parachain::approval::count_ones(claimed_core_indices)
+               != backing_groups.size()) {
       return ApprovalDistributionError::CORE_INDEX_OUT_OF_BOUNDS;
     }
 
     // Check that the validator was not part of the backing group
     // and not already assigned.
-    for (size_t claimed_core = 0, b_i = 0; claimed_core < claimed_core_indices.bits.size(); ++claimed_core) {
+    for (size_t claimed_core = 0, b_i = 0;
+         claimed_core < claimed_core_indices.bits.size();
+         ++claimed_core) {
       if (!claimed_core_indices.bits[claimed_core]) {
         continue;
       }
@@ -492,7 +498,8 @@ namespace {
           return i;
         }
       }
-      throw std::runtime_error("Unexpected bitslice content. No `true` found, but expect.");
+      throw std::runtime_error(
+          "Unexpected bitslice content. No `true` found, but expect.");
     }();
 
     return visit_in_place(
@@ -734,8 +741,11 @@ namespace kagome::parachain {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
       SL_TRACE(logger,
-               "Not producing assignments because config is degenerate. (n_cores={}, assignments_keys={}, validators_groups={})",
-               config.n_cores, config.assignment_keys.size(), config.validator_groups.size());
+               "Not producing assignments because config is degenerate. "
+               "(n_cores={}, assignments_keys={}, validators_groups={})",
+               config.n_cores,
+               config.assignment_keys.size(),
+               config.validator_groups.size());
       return {};
     }
 
@@ -753,7 +763,10 @@ namespace kagome::parachain {
       }
     }
 
-    SL_TRACE(logger, "Assigning to candidates from different backing groups. (assignable_cores={})", lc.size());
+    SL_TRACE(logger,
+             "Assigning to candidates from different backing groups. "
+             "(assignable_cores={})",
+             lc.size());
 
     common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
     crypto::SecureCleanGuard g{keypair_buf};
@@ -777,50 +790,54 @@ namespace kagome::parachain {
     return assignments;
   }
 
-std::optional<scale::BitVec> ApprovalDistribution::get_assignment_core_indices(
-  const approval::AssignmentCertKindV2 &assignment,
-  const CandidateHash &candidate_hash,
-  const BlockEntry &block_entry
-) {
-  return visit_in_place(
-    assignment,
-    [&](const kagome::parachain::approval::RelayVRFModuloCompact &value) -> std::optional<scale::BitVec> {
-      return value.core_bitfield;
-    },
-    [&](const kagome::parachain::approval::RelayVRFModulo &value) -> std::optional<scale::BitVec> {
-      for (const auto &[core_index, h] : block_entry.candidates) {
-        if (candidate_hash == h) {
+  std::optional<scale::BitVec>
+  ApprovalDistribution::get_assignment_core_indices(
+      const approval::AssignmentCertKindV2 &assignment,
+      const CandidateHash &candidate_hash,
+      const BlockEntry &block_entry) {
+    return visit_in_place(
+        assignment,
+        [&](const kagome::parachain::approval::RelayVRFModuloCompact &value)
+            -> std::optional<scale::BitVec> { return value.core_bitfield; },
+        [&](const kagome::parachain::approval::RelayVRFModulo &value)
+            -> std::optional<scale::BitVec> {
+          for (const auto &[core_index, h] : block_entry.candidates) {
+            if (candidate_hash == h) {
+              scale::BitVec v;
+              v.bits.resize(core_index + 1);
+              v.bits[core_index] = true;
+              return v;
+            }
+          }
+          return std::nullopt;
+        },
+        [&](const kagome::parachain::approval::RelayVRFDelay &value)
+            -> std::optional<scale::BitVec> {
           scale::BitVec v;
-          v.bits.resize(core_index + 1);
-          v.bits[core_index] = true;
+          v.bits.resize(value.core_index + 1);
+          v.bits[value.core_index] = true;
           return v;
-        }
-      }
-      return std::nullopt;
-    },
-    [&](const kagome::parachain::approval::RelayVRFDelay &value) -> std::optional<scale::BitVec> {
-      scale::BitVec v;
-      v.bits.resize(value.core_index + 1);
-      v.bits[value.core_index] = true;
-      return v;
-    });
-}
+        });
+  }
 
-std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
-  const scale::BitVec &core_indices,
-  const BlockEntry &block_entry
-) {
+  std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
+      const scale::BitVec &core_indices, const BlockEntry &block_entry) {
     std::vector<uint32_t> candidate_indices;
-    std::ignore = approval::iter_ones(core_indices, [&](const auto claimed_core_index) -> outcome::result<void> {
-      for (uint32_t candidate_index = 0; candidate_index < block_entry.candidates.size(); ++candidate_index) {
-        const auto &[core_index, _] = block_entry.candidates[candidate_index];
-        if (core_index == claimed_core_index) {
-          candidate_indices.emplace_back(candidate_index);
+    std::ignore = approval::iter_ones(
+        core_indices,
+        [&](const auto claimed_core_index) -> outcome::result<void> {
+          for (uint32_t candidate_index = 0;
+               candidate_index < block_entry.candidates.size();
+               ++candidate_index) {
+            const auto &[core_index, _] =
+                block_entry.candidates[candidate_index];
+            if (core_index == claimed_core_index) {
+              candidate_indices.emplace_back(candidate_index);
+              return outcome::success();
+            }
+          }
           return outcome::success();
-        }
-      }
-      return outcome::success();
-    });
+        });
 
     scale::BitVec v;
     for (const auto candidate_index : candidate_indices) {
@@ -835,8 +852,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     }
 
     return v;
-}
-
+  }
 
   void ApprovalDistribution::imported_block_info(
       const primitives::BlockHash &block_hash,
@@ -873,20 +889,22 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
              block_hash,
              std::move(context));
 
-    for_ACU(block_hash, [this, block_hash, context{std::move(context)}](auto &acu) {
-      auto &&[included, session, babe_config] = std::move(context);
-      auto &&[session_index, session_info] = std::move(session);
-      auto &&[epoch_number, babe_block_header, authorities, randomness] =
-          std::move(babe_config);
+    for_ACU(
+        block_hash, [this, block_hash, context{std::move(context)}](auto &acu) {
+          auto &&[included, session, babe_config] = std::move(context);
+          auto &&[session_index, session_info] = std::move(session);
+          auto &&[epoch_number, babe_block_header, authorities, randomness] =
+              std::move(babe_config);
 
-      acu.second.included_candidates = std::move(included);
-      acu.second.babe_epoch = epoch_number;
-      acu.second.babe_block_header = std::move(babe_block_header);
-      acu.second.authorities = std::move(authorities);
-      acu.second.randomness = std::move(randomness);
+          acu.second.included_candidates = std::move(included);
+          acu.second.babe_epoch = epoch_number;
+          acu.second.babe_block_header = std::move(babe_block_header);
+          acu.second.authorities = std::move(authorities);
+          acu.second.randomness = std::move(randomness);
 
-      this->try_process_approving_context(acu, block_hash, session_index, session_info);
-    });
+          this->try_process_approving_context(
+              acu, block_hash, session_index, session_info);
+        });
   }
 
   template <typename Func>
@@ -920,9 +938,14 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     }
 
     bool enable_v2_assignments = false;
-    if (auto r = parachain_host_->node_features(block_hash, session_index); r.has_value()) {
-      if (r.value() && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2) {
-        enable_v2_assignments = r.value()->bits[runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2];
+    if (auto r = parachain_host_->node_features(block_hash, session_index);
+        r.has_value()) {
+      if (r.value()
+          && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::
+                     EnableAssignmentsV2) {
+        enable_v2_assignments =
+            r.value()->bits
+                [runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2];
       }
     }
 
@@ -939,8 +962,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       return;
     }
 
-    auto assignments = compute_assignments(
-        keystore_, session_info, relay_vrf, *ac.included_candidates, enable_v2_assignments, logger_);
+    auto assignments = compute_assignments(keystore_,
+                                           session_info,
+                                           relay_vrf,
+                                           *ac.included_candidates,
+                                           enable_v2_assignments,
+                                           logger_);
 
     /// TODO(iceseer): force approve impl
 
@@ -1284,7 +1311,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                   network::View{
                       .heads_ = {h},
                       .finalized_number_ = finalized_block_number,
-                  }, false);
+                  },
+                  false);
             }
           }
         }
@@ -1306,7 +1334,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                         assignment.indirect_assignment_cert,
                         assignment.candidate_bitfield);
                   },
-                  [&](const network::vstaging::IndirectSignedApprovalVoteV2 &approval) {
+                  [&](const network::vstaging::IndirectSignedApprovalVoteV2
+                          &approval) {
                     self->import_and_circulate_approval(i->first, approval);
                   });
             }
@@ -1411,63 +1440,63 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
-    auto on_recover_complete = [wself{weak_from_this()},
-                                hashed_candidate{hashed_candidate},
-                                block_hash,
-                                session_index,
-                                validator_index,
-                                relay_block_hash](
-                                   std::optional<
-                                       outcome::result<runtime::AvailableData>>
-                                       &&opt_result) mutable {
-      auto self = wself.lock();
-      if (!self) {
-        return;
-      }
+    auto on_recover_complete =
+        [wself{weak_from_this()},
+         hashed_candidate{hashed_candidate},
+         block_hash,
+         session_index,
+         validator_index,
+         relay_block_hash](
+            std::optional<outcome::result<runtime::AvailableData>>
+                &&opt_result) mutable {
+          auto self = wself.lock();
+          if (!self) {
+            return;
+          }
 
-      const auto &candidate_receipt = hashed_candidate.get();
-      if (!opt_result) {  // Unavailable
-        self->logger_->warn(
-            "No available parachain data.(session index={}, candidate "
-            "hash={}, relay block hash={})",
-            session_index,
-            hashed_candidate.getHash(),
-            relay_block_hash);
-        return;
-      }
+          const auto &candidate_receipt = hashed_candidate.get();
+          if (!opt_result) {  // Unavailable
+            self->logger_->warn(
+                "No available parachain data.(session index={}, candidate "
+                "hash={}, relay block hash={})",
+                session_index,
+                hashed_candidate.getHash(),
+                relay_block_hash);
+            return;
+          }
 
-      if (opt_result->has_error()) {
-        self->logger_->warn(
-            "Parachain data recovery failed.(error={}, session index={}, "
-            "candidate hash={}, relay block hash={})",
-            opt_result->error(),
-            session_index,
-            hashed_candidate.getHash(),
-            relay_block_hash);
-        self->dispute_coordinator_.get()->issueLocalStatement(
-            session_index,
-            hashed_candidate.getHash(),
-            hashed_candidate.get(),
-            false);
-        return;
-      }
-      auto &available_data = opt_result->value();
-      auto result = self->parachain_host_->validation_code_by_hash(
-          block_hash, candidate_receipt.descriptor.validation_code_hash);
-      if (result.has_error() || !result.value()) {
-        self->logger_->warn(
-            "Approval state is failed. Block hash {}, session index {}, "
-            "validator index {}, relay parent {}",
-            block_hash,
-            session_index,
-            validator_index,
-            candidate_receipt.descriptor.relay_parent);
-        return;  /// ApprovalState::failed
-      }
+          if (opt_result->has_error()) {
+            self->logger_->warn(
+                "Parachain data recovery failed.(error={}, session index={}, "
+                "candidate hash={}, relay block hash={})",
+                opt_result->error(),
+                session_index,
+                hashed_candidate.getHash(),
+                relay_block_hash);
+            self->dispute_coordinator_.get()->issueLocalStatement(
+                session_index,
+                hashed_candidate.getHash(),
+                hashed_candidate.get(),
+                false);
+            return;
+          }
+          auto &available_data = opt_result->value();
+          auto result = self->parachain_host_->validation_code_by_hash(
+              block_hash, candidate_receipt.descriptor.validation_code_hash);
+          if (result.has_error() || !result.value()) {
+            self->logger_->warn(
+                "Approval state is failed. Block hash {}, session index {}, "
+                "validator index {}, relay parent {}",
+                block_hash,
+                session_index,
+                validator_index,
+                candidate_receipt.descriptor.relay_parent);
+            return;  /// ApprovalState::failed
+          }
 
-      self->logger_->info(
-          "Make exhaustive validation. Candidate hash {}, validator index "
-          "{}, block hash {}",
+          self->logger_->info(
+              "Make exhaustive validation. Candidate hash {}, validator index "
+              "{}, block hash {}",
               hashed_candidate.getHash(),
               validator_index,
               block_hash);
@@ -1535,7 +1564,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
   ApprovalDistribution::AssignmentCheckResult
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCertV2 &assignment,
-        const scale::BitVec &candidate_indices) {
+      const scale::BitVec &candidate_indices) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto tick_now = ::tickNow();
 
@@ -1549,10 +1578,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
-      SL_WARN(logger_, "Assignment. Session info runtime request failed. (parent_hash={}, session_index={}, error={})",
-          block_entry.parent_hash,
-          block_entry.session,
-          session_info_res.error());
+      SL_WARN(logger_,
+              "Assignment. Session info runtime request failed. "
+              "(parent_hash={}, session_index={}, error={})",
+              block_entry.parent_hash,
+              block_entry.session,
+              session_info_res.error());
       return AssignmentCheckResult::Bad;
     }
 
@@ -1567,13 +1598,16 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     runtime::SessionInfo &session_info = *opt_session_info;
     const auto n_cores = size_t(session_info.n_cores);
 
-    // Early check the candidate bitfield and core bitfields lengths < `n_cores`.
-    // Core bitfield length is checked later in `check_assignment_cert`.
+    // Early check the candidate bitfield and core bitfields lengths <
+    // `n_cores`. Core bitfield length is checked later in
+    // `check_assignment_cert`.
     if (candidate_indices.bits.size() > n_cores) {
-      SL_TRACE(logger_, "Oversized bitfield. (validator={}, n_cores={}, candidate_bitfield_len={})",
-          assignment.validator,
-          n_cores,
-          candidate_indices.bits.size());
+      SL_TRACE(logger_,
+               "Oversized bitfield. (validator={}, n_cores={}, "
+               "candidate_bitfield_len={})",
+               assignment.validator,
+               n_cores,
+               candidate_indices.bits.size());
       return AssignmentCheckResult::Bad;
     }
 
@@ -1581,7 +1615,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     std::vector<CoreIndex> claimed_core_indices;
     std::vector<CandidateHash> assigned_candidate_hashes;
 
-    for (size_t candidate_index = 0; candidate_index < candidate_indices.bits.size(); ++candidate_index) {
+    for (size_t candidate_index = 0;
+         candidate_index < candidate_indices.bits.size();
+         ++candidate_index) {
       if (!candidate_indices.bits[candidate_index]) {
         continue;
       }
@@ -1609,81 +1645,82 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       return AssignmentCheckResult::Bad;
     }
 
-      scale::BitVec v;
-      for (const auto ci : claimed_core_indices) {
-        if (ci >= v.bits.size()) {
-          v.bits.resize(ci + 1);
-        }
-        v.bits[ci] = true;
+    scale::BitVec v;
+    for (const auto ci : claimed_core_indices) {
+      if (ci >= v.bits.size()) {
+        v.bits.resize(ci + 1);
       }
+      v.bits[ci] = true;
+    }
 
-      DelayTranche tranche;
-      if (auto res = checkAssignmentCert(v,
-                                         assignment.validator,
-                                         session_info,
-                                         block_entry.relay_vrf_story,
-                                         assignment.cert,
-                                         backing_groups);
-          res.has_value()) {
-        const auto current_tranche =
-            ::trancheNow(config_.slot_duration_millis, block_entry.slot);
-        const auto too_far_in_future =
-            current_tranche + DelayTranche(kTickTooFarInFuture);
-        if (res.value() >= too_far_in_future) {
-          return AssignmentCheckResult::TooFarInFuture;
-        }
-        tranche = res.value();
-      } else {
-        logger_->warn(
-            "Check assignment certificate failed.(error={})",
-            res.error());
-        return AssignmentCheckResult::Bad;
+    DelayTranche tranche;
+    if (auto res = checkAssignmentCert(v,
+                                       assignment.validator,
+                                       session_info,
+                                       block_entry.relay_vrf_story,
+                                       assignment.cert,
+                                       backing_groups);
+        res.has_value()) {
+      const auto current_tranche =
+          ::trancheNow(config_.slot_duration_millis, block_entry.slot);
+      const auto too_far_in_future =
+          current_tranche + DelayTranche(kTickTooFarInFuture);
+      if (res.value() >= too_far_in_future) {
+        return AssignmentCheckResult::TooFarInFuture;
       }
-
-      bool is_duplicate = true;
-      for (size_t candidate_index = 0, h_i = 0; candidate_index < candidate_indices.bits.size(); ++candidate_index) {
-        if (!candidate_indices.bits[candidate_index]) {
-          continue;
-        }
-        const auto assigned_candidate_hash = assigned_candidate_hashes[h_i++];
-        GET_OPT_VALUE_OR_EXIT(
-            candidate_entry,
-            AssignmentCheckResult::Bad,
-            storedCandidateEntries().get(assigned_candidate_hash));
-
-        GET_OPT_VALUE_OR_EXIT(
-            approval_entry,
-            AssignmentCheckResult::Bad,
-            candidate_entry.approval_entry(assignment.block_hash));
-
-        is_duplicate = is_duplicate && approval_entry.is_assigned(assignment.validator);
-        approval_entry.import_assignment(tranche, assignment.validator, tick_now);
-
-        if (auto result = approval_status(block_entry, candidate_entry); result) {
-          schedule_wakeup_action(result->first.get(),
-                                 block_entry.block_hash,
-                                 block_entry.block_number,
-                                 assigned_candidate_hash,
-                                 result->second.block_tick,
-                                 tick_now,
-                                 result->second.required_tranches);
-        }
-      }
-
-
-      if (is_duplicate) {
-        return AssignmentCheckResult::AcceptedDuplicate;
-      }  else if (approval::count_ones(candidate_indices) > 1) {
-        SL_TRACE(logger_,
-            "Imported assignment for multiple cores. (validator={})",
-            assignment.validator);
-        return AssignmentCheckResult::Accepted;
+      tranche = res.value();
     } else {
-        SL_TRACE(logger_,
-            "Imported assignment for a single core. (validator={})",
-            assignment.validator);
-        return AssignmentCheckResult::Accepted;
+      logger_->warn("Check assignment certificate failed.(error={})",
+                    res.error());
+      return AssignmentCheckResult::Bad;
+    }
+
+    bool is_duplicate = true;
+    for (size_t candidate_index = 0, h_i = 0;
+         candidate_index < candidate_indices.bits.size();
+         ++candidate_index) {
+      if (!candidate_indices.bits[candidate_index]) {
+        continue;
       }
+      const auto assigned_candidate_hash = assigned_candidate_hashes[h_i++];
+      GET_OPT_VALUE_OR_EXIT(
+          candidate_entry,
+          AssignmentCheckResult::Bad,
+          storedCandidateEntries().get(assigned_candidate_hash));
+
+      GET_OPT_VALUE_OR_EXIT(
+          approval_entry,
+          AssignmentCheckResult::Bad,
+          candidate_entry.approval_entry(assignment.block_hash));
+
+      is_duplicate =
+          is_duplicate && approval_entry.is_assigned(assignment.validator);
+      approval_entry.import_assignment(tranche, assignment.validator, tick_now);
+
+      if (auto result = approval_status(block_entry, candidate_entry); result) {
+        schedule_wakeup_action(result->first.get(),
+                               block_entry.block_hash,
+                               block_entry.block_number,
+                               assigned_candidate_hash,
+                               result->second.block_tick,
+                               tick_now,
+                               result->second.required_tranches);
+      }
+    }
+
+    if (is_duplicate) {
+      return AssignmentCheckResult::AcceptedDuplicate;
+    } else if (approval::count_ones(candidate_indices) > 1) {
+      SL_TRACE(logger_,
+               "Imported assignment for multiple cores. (validator={})",
+               assignment.validator);
+      return AssignmentCheckResult::Accepted;
+    } else {
+      SL_TRACE(logger_,
+               "Imported assignment for a single core. (validator={})",
+               assignment.validator);
+      return AssignmentCheckResult::Accepted;
+    }
   }
 
   ApprovalDistribution::ApprovalCheckResult
@@ -1695,15 +1732,21 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         storedBlockEntries().get(approval.payload.payload.block_hash));
 
     std::vector<std::pair<size_t, CandidateHash>> approved_candidates_info;
-    auto r = approval::iter_ones(approval.payload.payload.candidate_indices, [&](const auto candidate_index) -> outcome::result<void> {
-        if (candidate_index >= block_entry.candidates.size()) {
-          SL_WARN(logger_, "Candidate index more than candidates array.(candidate index={})", candidate_index);
-          return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
-        }
-        const auto &candidate = block_entry.candidates[candidate_index];
-        approved_candidates_info.emplace_back(candidate_index, candidate.second);
-        return outcome::success();
-    });
+    auto r = approval::iter_ones(
+        approval.payload.payload.candidate_indices,
+        [&](const auto candidate_index) -> outcome::result<void> {
+          if (candidate_index >= block_entry.candidates.size()) {
+            SL_WARN(logger_,
+                    "Candidate index more than candidates array.(candidate "
+                    "index={})",
+                    candidate_index);
+            return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
+          }
+          const auto &candidate = block_entry.candidates[candidate_index];
+          approved_candidates_info.emplace_back(candidate_index,
+                                                candidate.second);
+          return outcome::success();
+        });
 
     if (r.has_error()) {
       return ApprovalCheckResult::Bad;
@@ -1735,7 +1778,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     runtime::SessionInfo &session_info = *opt_session_info;
     const auto &pubkey = session_info.validators[approval.payload.ix];
 
-    for (const auto &[approval_candidate_index, approved_candidate_hash] : approved_candidates_info) {
+    for (const auto &[approval_candidate_index, approved_candidate_hash] :
+         approved_candidates_info) {
       GET_OPT_VALUE_OR_EXIT(
           candidate_entry,
           ApprovalCheckResult::Bad,
@@ -1807,8 +1851,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         validator_index);
 
     // Compute metadata on the assignment.
-    auto message_subject{
-        std::make_tuple(block_hash, claimed_candidate_indices, validator_index)};
+    auto message_subject{std::make_tuple(
+        block_hash, claimed_candidate_indices, validator_index)};
     auto message_kind{approval::MessageKind::Assignment};
 
     if (source) {
@@ -1819,7 +1863,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             peer_knowledge.contains(message_subject, message_kind)) {
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
-                     "Duplicate assignment. (peer id={}, block_hash={}, validator index={})",
+                     "Duplicate assignment. (peer id={}, block_hash={}, "
+                     "validator index={})",
                      peer_id,
                      std::get<0>(message_subject),
                      std::get<2>(message_subject));
@@ -1898,7 +1943,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         return;
       }
       SL_TRACE(logger_,
-               "Importing locally a new assignment. (block_hash={}, validator index={})",
+               "Importing locally a new assignment. (block_hash={}, validator "
+               "index={})",
                std::get<0>(message_subject),
                std::get<2>(message_subject));
     }
@@ -1965,7 +2011,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       if (!entry.knowledge.contains(message_subject,
                                     approval::MessageKind::Assignment)) {
         SL_TRACE(logger_,
-                 "Unknown approval assignment. (peer id={}, block hash={}, validator={})",
+                 "Unknown approval assignment. (peer id={}, block hash={}, "
+                 "validator={})",
                  peer_id,
                  std::get<0>(message_subject),
                  std::get<2>(message_subject));
@@ -1978,7 +2025,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             peer_knowledge.contains(message_subject, message_kind)) {
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
-                     "Duplicate approval. (peer id={}, block_hash={}, validator index={})",
+                     "Duplicate approval. (peer id={}, block_hash={}, "
+                     "validator index={})",
                      peer_id,
                      std::get<0>(message_subject),
                      std::get<2>(message_subject));
@@ -2037,7 +2085,8 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         return;
       }
       SL_TRACE(logger_,
-               "Importing locally a new approval. (block_hash={}, validator index={})",
+               "Importing locally a new approval. (block_hash={}, validator "
+               "index={})",
                std::get<0>(message_subject),
                std::get<2>(message_subject));
     }
@@ -2063,55 +2112,59 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
     }
   }
 
-  network::vstaging::Approvals ApprovalDistribution::sanitize_v1_approvals(const network::Approvals &approvals) {
+  network::vstaging::Approvals ApprovalDistribution::sanitize_v1_approvals(
+      const network::Approvals &approvals) {
     network::vstaging::Approvals sanitized_approvals;
     for (const auto &approval : approvals.approvals) {
       if (size_t(approval.payload.payload.candidate_index) > kMaxBitfieldSize) {
         SL_DEBUG(logger_,
-                 "Bad approval v1, invalid candidate index. (block_hash={}, candidate_index={})",
+                 "Bad approval v1, invalid candidate index. (block_hash={}, "
+                 "candidate_index={})",
                  approval.payload.payload.block_hash,
-                 approval.payload.payload.candidate_index
-                 );
+                 approval.payload.payload.candidate_index);
       } else {
-        sanitized_approvals.approvals.emplace_back(::kagome::parachain::approval::from(approval));
+        sanitized_approvals.approvals.emplace_back(
+            ::kagome::parachain::approval::from(approval));
       }
     }
     return sanitized_approvals;
   }
 
   network::vstaging::Assignments ApprovalDistribution::sanitize_v1_assignments(
-    const network::Assignments &assignments) {
+      const network::Assignments &assignments) {
     network::vstaging::Assignments sanitized_assignments;
     for (const auto &assignment : assignments.assignments) {
       const auto &cert = assignment.indirect_assignment_cert;
       const auto &candidate_index = assignment.candidate_ix;
 
       const auto cert_bitfield_bits = visit_in_place(
-        cert.cert.kind,
-        [](const approval::RelayVRFDelay &v) {
-          return size_t(v.core_index) + 1;
-        },
-        [&](const approval::RelayVRFModulo &v) {
-          return size_t(candidate_index) + 1;
-        });
+          cert.cert.kind,
+          [](const approval::RelayVRFDelay &v) {
+            return size_t(v.core_index) + 1;
+          },
+          [&](const approval::RelayVRFModulo &v) {
+            return size_t(candidate_index) + 1;
+          });
 
       const auto candidate_bitfield_bits = size_t(candidate_index) + 1;
-      if (cert_bitfield_bits > kMaxBitfieldSize || candidate_bitfield_bits > kMaxBitfieldSize) {
+      if (cert_bitfield_bits > kMaxBitfieldSize
+          || candidate_bitfield_bits > kMaxBitfieldSize) {
         SL_DEBUG(logger_,
-                 "Bad assignment v1, invalid candidate index. (block_hash={}, candidate_index={}, validator_index={})",
+                 "Bad assignment v1, invalid candidate index. (block_hash={}, "
+                 "candidate_index={}, validator_index={})",
                  cert.block_hash,
                  candidate_index,
-                 cert.validator
-                 );
+                 cert.validator);
       } else {
         scale::BitVec v;
         v.bits.resize(candidate_index + 1);
         v.bits[candidate_index] = true;
         sanitized_assignments.assignments.emplace_back(
             network::vstaging::Assignment{
-              .indirect_assignment_cert = approval::IndirectAssignmentCertV2::from(cert),
-              .candidate_bitfield = std::move(v),
-        });
+                .indirect_assignment_cert =
+                    approval::IndirectAssignmentCertV2::from(cert),
+                .candidate_bitfield = std::move(v),
+            });
       }
     }
     return sanitized_assignments;
@@ -2201,16 +2254,19 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       return;
     }
 
-    auto m = [&]() -> std::optional<std::reference_wrapper<const network::vstaging::ApprovalDistributionMessage>> {
-      auto m = if_type<const network::vstaging::ValidatorProtocolMessage>(message);
+    auto m = [&]() -> std::optional<std::reference_wrapper<
+                       const network::vstaging::ApprovalDistributionMessage>> {
+      auto m =
+          if_type<const network::vstaging::ValidatorProtocolMessage>(message);
       if (!m) {
-            SL_TRACE(logger_, "Received V1 message.(peer_id={})", peer_id);
-            return std::nullopt;
+        SL_TRACE(logger_, "Received V1 message.(peer_id={})", peer_id);
+        return std::nullopt;
       }
 
-      auto a = if_type<const network::vstaging::ApprovalDistributionMessage>(m->get());
+      auto a = if_type<const network::vstaging::ApprovalDistributionMessage>(
+          m->get());
       if (!a) {
-            return std::nullopt;
+        return std::nullopt;
       }
 
       return a;
@@ -2227,11 +2283,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             if (auto it = pending_known_.find(
                     assignment.indirect_assignment_cert.block_hash);
                 it != pending_known_.end()) {
-              SL_TRACE(logger_,
-                       "Pending assignment.(block hash={}, validator={}, peer={})",
-                       assignment.indirect_assignment_cert.block_hash,
-                       assignment.indirect_assignment_cert.validator,
-                       peer_id);
+              SL_TRACE(
+                  logger_,
+                  "Pending assignment.(block hash={}, validator={}, peer={})",
+                  assignment.indirect_assignment_cert.block_hash,
+                  assignment.indirect_assignment_cert.validator,
+                  peer_id);
               it->second.emplace_back(
                   std::make_pair(peer_id, PendingMessage{assignment}));
               continue;
@@ -2251,11 +2308,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
             if (auto it = pending_known_.find(
                     approval_vote.payload.payload.block_hash);
                 it != pending_known_.end()) {
-              SL_TRACE(logger_,
-                       "Pending approval.(block hash={}, validator={}, peer={})",
-                       approval_vote.payload.payload.block_hash,
-                       approval_vote.payload.ix,
-                       peer_id);
+              SL_TRACE(
+                  logger_,
+                  "Pending approval.(block hash={}, validator={}, peer={})",
+                  approval_vote.payload.payload.block_hash,
+                  approval_vote.payload.ix,
+                  peer_id);
               it->second.emplace_back(
                   std::make_pair(peer_id, PendingMessage{approval_vote}));
               continue;
@@ -2288,11 +2346,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         router_->getValidationProtocolVStaging(),
         std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{network::vstaging::Assignments{
-                .assignments = {network::vstaging::Assignment{
-                    .indirect_assignment_cert = indirect_cert,
-                    .candidate_bitfield = candidate_indices,
-                }}}}),
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Assignments{
+                    .assignments = {network::vstaging::Assignment{
+                        .indirect_assignment_cert = indirect_cert,
+                        .candidate_bitfield = candidate_indices,
+                    }}}}),
         [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
@@ -2329,9 +2388,11 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
 
       auto msg = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{network::vstaging::Assignments{
-              .assignments = std::vector<network::vstaging::Assignment>(begin, end),
-          }});
+          network::vstaging::ApprovalDistributionMessage{
+              network::vstaging::Assignments{
+                  .assignments =
+                      std::vector<network::vstaging::Assignment>(begin, end),
+              }});
 
       se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       assignments.erase(begin, end);
@@ -2376,10 +2437,12 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
 
       auto msg = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{network::vstaging::Approvals{
-              .approvals =
-                  std::vector<approval::IndirectSignedApprovalVoteV2>(begin, end),
-          }});
+          network::vstaging::ApprovalDistributionMessage{
+              network::vstaging::Approvals{
+                  .approvals =
+                      std::vector<approval::IndirectSignedApprovalVoteV2>(begin,
+                                                                          end),
+              }});
 
       se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       approvals.erase(begin, end);
@@ -2395,9 +2458,9 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
              std::move(peers));
 
     SL_INFO(logger_,
-        "Sending an approval to peers. (block={}, num peers={})",
-        vote.payload.payload.block_hash,
-        peers.size());
+            "Sending an approval to peers. (block={}, num peers={})",
+            vote.payload.payload.block_hash,
+            peers.size());
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
@@ -2406,9 +2469,10 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
         router_->getValidationProtocolVStaging(),
         std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{network::vstaging::Approvals{
-                .approvals = {vote},
-            }}),
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Approvals{
+                    .approvals = {vote},
+                }}),
         [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
@@ -2558,7 +2622,7 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
       SessionIndex session,
       const HashedCandidateReceipt &hashed_candidate,
       GroupIndex backing_group,
-        bool distribute_assignment) {
+      bool distribute_assignment) {
     /// TODO(iceseer): don't launch approval work if the node is syncing.
     const auto &block_hash = indirect_cert.block_hash;
     const auto validator_index = indirect_cert.validator;
@@ -2930,12 +2994,14 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                candidate_receipt.descriptor.para_id,
                block_hash);
 
-
-      if (auto claimed_core_indices = get_assignment_core_indices(indirect_cert.cert.kind, candidate_hash, block_entry)) {
-        if (auto claimed_candidate_indices = cores_to_candidate_indices(*claimed_core_indices, block_entry)) {
+      if (auto claimed_core_indices = get_assignment_core_indices(
+              indirect_cert.cert.kind, candidate_hash, block_entry)) {
+        if (auto claimed_candidate_indices = cores_to_candidate_indices(
+                *claimed_core_indices, block_entry)) {
           bool distribute_assignment;
           if (approval::count_ones(*claimed_candidate_indices) > 1) {
-            distribute_assignment = !block_entry.mark_assignment_distributed(*claimed_candidate_indices);
+            distribute_assignment = !block_entry.mark_assignment_distributed(
+                *claimed_candidate_indices);
           } else {
             distribute_assignment = true;
           }
@@ -2947,18 +3013,20 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
                             *claimed_candidate_indices,
                             block_entry.session,
                             candidate_entry.candidate,
-                            backing_group, distribute_assignment);
+                            backing_group,
+                            distribute_assignment);
 
         } else {
           SL_WARN(logger_,
-                   "Failed to create assignment bitfield. (block_hash={})",
-                   block_hash);
+                  "Failed to create assignment bitfield. (block_hash={})",
+                  block_hash);
         }
       } else {
         SL_WARN(logger_,
-                 "Cannot get assignment claimed core indices. (candidate_hash={}, block_hash={})",
-                 candidate_hash,
-                 block_hash);
+                "Cannot get assignment claimed core indices. "
+                "(candidate_hash={}, block_hash={})",
+                candidate_hash,
+                block_hash);
       }
     }
 
@@ -2992,38 +3060,44 @@ std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
 
         auto &peer_knowledge = entry.known_by[peer_id];
         for (auto &[_, approval_entry] : entry.approval_entries) {
- 						[[maybe_unused]] const auto &required_routing = approval_entry.routing_info.required_routing;
-						[[maybe_unused]] auto &routing_info = approval_entry.routing_info;
+          [[maybe_unused]] const auto &required_routing =
+              approval_entry.routing_info.required_routing;
+          [[maybe_unused]] auto &routing_info = approval_entry.routing_info;
 
-            auto peer_filter = [&](const libp2p::peer::PeerId &) {
-              /// TODO(iceseer): check topology
-              return true;
-            };
+          auto peer_filter = [&](const libp2p::peer::PeerId &) {
+            /// TODO(iceseer): check topology
+            return true;
+          };
 
-						if (!peer_filter(peer_id)) {
-							continue;
-						}  
+          if (!peer_filter(peer_id)) {
+            continue;
+          }
 
-            const auto assignment_message = approval_entry.get_assignment();
-            const auto  approval_messages = approval_entry.get_approvals();
-            const auto [assignment_knowledge, message_kind] = approval_entry.create_assignment_knowledge(block);
+          const auto assignment_message = approval_entry.get_assignment();
+          const auto approval_messages = approval_entry.get_approvals();
+          const auto [assignment_knowledge, message_kind] =
+              approval_entry.create_assignment_knowledge(block);
 
-            if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
-              peer_knowledge.sent.insert(assignment_knowledge, message_kind);
-              assignments_to_send.emplace_back(network::vstaging::Assignment {
+          if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
+            peer_knowledge.sent.insert(assignment_knowledge, message_kind);
+            assignments_to_send.emplace_back(network::vstaging::Assignment{
                 .indirect_assignment_cert = assignment_message.first,
                 .candidate_bitfield = assignment_message.second,
-              });
-            }
+            });
+          }
 
-            for (const auto &approval_message : approval_messages) {
-              auto approval_knowledge = approval::PeerKnowledge::generate_approval_key(approval_message);
+          for (const auto &approval_message : approval_messages) {
+            auto approval_knowledge =
+                approval::PeerKnowledge::generate_approval_key(
+                    approval_message);
 
-              if (!peer_knowledge.contains(approval_knowledge.first, approval_knowledge.second)) {
-                approvals_to_send.emplace_back(approval_message);
-                peer_knowledge.sent.insert(approval_knowledge.first, approval_knowledge.second);
-              }
+            if (!peer_knowledge.contains(approval_knowledge.first,
+                                         approval_knowledge.second)) {
+              approvals_to_send.emplace_back(approval_message);
+              peer_knowledge.sent.insert(approval_knowledge.first,
+                                         approval_knowledge.second);
             }
+          }
         }
 
         block = entry.parent_hash;

@@ -37,7 +37,8 @@ namespace kagome::network::vstaging {
   using BitfieldDistribution = network::BitfieldDistribution;
   using ViewUpdate = network::ViewUpdate;
 
-  using IndirectSignedApprovalVoteV2 = parachain::approval::IndirectSignedApprovalVoteV2;
+  using IndirectSignedApprovalVoteV2 =
+      parachain::approval::IndirectSignedApprovalVoteV2;
 
   struct Assignment {
     SCALE_TIE(2);

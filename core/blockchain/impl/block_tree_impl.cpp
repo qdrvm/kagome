@@ -388,7 +388,7 @@ namespace kagome::blockchain {
 
       std::vector<primitives::BlockHash> leaves;
       leaves.reserve(block_tree_leaves.size());
-      
+
       std::transform(block_tree_leaves.begin(),
                      block_tree_leaves.end(),
                      std::back_inserter(leaves),

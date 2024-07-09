@@ -22,7 +22,6 @@ struct std::hash<scale::BitVec> {
   }
 };
 
-
 namespace kagome::parachain::approval {
 
   enum struct MessageKind { Assignment, Approval };
@@ -31,8 +30,10 @@ namespace kagome::parachain::approval {
   struct MessageSubjectHash {
     auto operator()(const MessageSubject &obj) const {
       size_t value{0ull};
-      boost::hash_range(value, std::get<0>(obj).begin(), std::get<0>(obj).end());
-      boost::hash_range(value, std::get<1>(obj).bits.begin(), std::get<1>(obj).bits.end());
+      boost::hash_range(
+          value, std::get<0>(obj).begin(), std::get<0>(obj).end());
+      boost::hash_range(
+          value, std::get<1>(obj).bits.begin(), std::get<1>(obj).bits.end());
       boost::hash_combine(value, std::get<2>(obj));
       return value;
     }
@@ -84,14 +85,13 @@ namespace kagome::parachain::approval {
     }
 
     // Generate the knowledge keys for querying if an approval is known by peer.
-    static std::pair<MessageSubject, MessageKind> generate_approval_key(const approval::IndirectSignedApprovalVoteV2 &approval) {
+    static std::pair<MessageSubject, MessageKind> generate_approval_key(
+        const approval::IndirectSignedApprovalVoteV2 &approval) {
       return {
-        std::make_tuple(
-          approval.payload.payload.block_hash,
-          approval.payload.payload.candidate_indices,
-          approval.payload.ix
-        ),
-        MessageKind::Approval,
+          std::make_tuple(approval.payload.payload.block_hash,
+                          approval.payload.payload.candidate_indices,
+                          approval.payload.ix),
+          MessageKind::Approval,
       };
     }
   };

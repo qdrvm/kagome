@@ -358,7 +358,8 @@ namespace kagome::network {
    */
   using BitfieldDistributionMessage = boost::variant<BitfieldDistribution>;
 
-  using IndirectSignedApprovalVote = parachain::approval::IndirectSignedApprovalVote;
+  using IndirectSignedApprovalVote =
+      parachain::approval::IndirectSignedApprovalVote;
 
   struct Assignment {
     SCALE_TIE(2);
