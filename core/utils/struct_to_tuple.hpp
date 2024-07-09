@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STRUCT_TO_TUPLE_HPP
-#define KAGOME_STRUCT_TO_TUPLE_HPP
+#pragma once
 
 #include <deque>
 #include <map>
@@ -140,5 +139,3 @@ namespace kagome::utils {
 #undef TO_TUPLE7
 #undef TO_TUPLE8
 #undef TO_TUPLE9
-
-#endif  // KAGOME_STRUCT_TO_TUPLE_HPP

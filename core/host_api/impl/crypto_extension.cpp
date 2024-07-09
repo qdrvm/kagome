@@ -22,7 +22,6 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/trace_macros.hpp"
-#include "runtime/memory.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
@@ -81,6 +80,7 @@ namespace kagome::host_api {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(key_store_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(key_store_ == std::nullopt || *key_store_ != nullptr);
   }

@@ -119,7 +119,7 @@ kagome_install(ed25519_provider)
 
 add_library(secp256k1_provider
     secp256k1/secp256k1_provider_impl.cpp
-    )
+)
 target_link_libraries(secp256k1_provider
     PUBLIC
     OpenSSL::Crypto
@@ -142,6 +142,15 @@ target_link_libraries(pbkdf2_provider
     blob
 )
 kagome_install(pbkdf2_provider)
+
+add_library(elliptic_curves
+    elliptic_curves/elliptic_curves_impl.cpp
+)
+target_link_libraries(elliptic_curves
+    logger
+    arkworks_crust::arkworks_crust
+)
+kagome_install(elliptic_curves)
 
 add_subdirectory(bip39)
 add_subdirectory(blake2)

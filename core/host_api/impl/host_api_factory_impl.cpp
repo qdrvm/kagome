@@ -17,6 +17,7 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<crypto::EllipticCurves> elliptic_curves,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
@@ -28,6 +29,7 @@ namespace kagome::host_api {
         sr25519_provider_(std::move(sr25519_provider)),
         bandersnatch_provider_(std::move(bandersnatch_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
+        elliptic_curves_(std::move(elliptic_curves)),
         hasher_(std::move(hasher)),
         // we do this instead of passing key_store as an optional right away
         // because boost.di doesn't like optional<shared_ptr>
@@ -39,6 +41,7 @@ namespace kagome::host_api {
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(bandersnatch_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
+    BOOST_ASSERT(elliptic_curves_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(key_store_ == std::nullopt || *key_store_ != nullptr);
   }
@@ -55,6 +58,7 @@ namespace kagome::host_api {
                                          ecdsa_provider_,
                                          ed25519_provider_,
                                          secp256k1_provider_,
+                                         elliptic_curves_,
                                          hasher_,
                                          key_store_,
                                          offchain_persistent_storage_,

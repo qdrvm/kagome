@@ -10,6 +10,7 @@
 
 #include "host_api/impl/child_storage_extension.hpp"
 #include "host_api/impl/crypto_extension.hpp"
+#include "host_api/impl/elliptic_curves_extension.hpp"
 #include "host_api/impl/io_extension.hpp"
 #include "host_api/impl/memory_extension.hpp"
 #include "host_api/impl/misc_extension.hpp"
@@ -42,6 +43,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
+        std::shared_ptr<const crypto::EllipticCurves> elliptic_curves,
         std::shared_ptr<const crypto::Hasher> hasher,
         std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
@@ -368,6 +370,31 @@ namespace kagome::host_api {
     virtual void ext_panic_handler_abort_on_panic_version_1(
         runtime::WasmSpan message) override;
 
+    // ---------------------------- Elliptic Curves ----------------------------
+
+    runtime::WasmSpan ext_elliptic_curves_bls12_381_multi_miller_loop_version_1(
+        runtime::WasmSpan a, runtime::WasmSpan b) const override;
+
+    runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_final_exponentiation_version_1(
+        runtime::WasmSpan f) const override;
+
+    runtime::WasmSpan ext_elliptic_curves_bls12_381_mul_projective_g1_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const override;
+
+    runtime::WasmSpan ext_elliptic_curves_bls12_381_mul_projective_g2_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const override;
+
+    runtime::WasmSpan ext_elliptic_curves_bls12_381_msm_g1_version_1(
+        runtime::WasmSpan bases, runtime::WasmSpan scalars) const override;
+
+    runtime::WasmSpan ext_elliptic_curves_bls12_381_msm_g2_version_1(
+        runtime::WasmSpan bases, runtime::WasmSpan scalars) const override;
+
+    runtime::WasmSpan
+    ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const override;
+
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 
@@ -375,6 +402,7 @@ namespace kagome::host_api {
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
     CryptoExtension crypto_ext_;
+    EllipticCurvesExtension elliptic_curves_ext_;
     IOExtension io_ext_;
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;

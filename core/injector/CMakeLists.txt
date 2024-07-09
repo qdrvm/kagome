@@ -39,6 +39,7 @@ target_link_libraries(application_injector
     dispute_coordinator
     ecdsa_provider
     ed25519_provider
+    elliptic_curves
     executor
     fd_limit
     filesystem

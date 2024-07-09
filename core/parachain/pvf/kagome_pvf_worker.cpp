@@ -235,6 +235,18 @@ namespace kagome::parachain {
 
   outcome::result<std::shared_ptr<runtime::ModuleFactory>> createModuleFactory(
       const auto &injector, RuntimeEngine engine) {
+    // class Foo {
+    //  public:Foo(
+    //       crypto::EcdsaProvider&,
+    //       crypto::Secp256k1Provider&) {}
+    // };
+    //
+    // std::ignore = injector.template create<std::shared_ptr<Foo>>();
+    // std::ignore = injector.template create<
+    //     std::shared_ptr<crypto::EcdsaProvider>>();
+    // std::ignore = injector.template create<
+    //     std::shared_ptr<crypto::Secp256k1Provider>>();
+
     switch (engine) {
       case RuntimeEngine::kBinaryen:
         return injector.template create<

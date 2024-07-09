@@ -5,7 +5,6 @@
  */
 
 #include "injector/application_injector.hpp"
-#include "crypto/key_store.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -90,7 +89,9 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -877,6 +878,7 @@ namespace {
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
             di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
+            di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

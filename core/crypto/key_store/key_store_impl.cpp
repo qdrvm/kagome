@@ -35,8 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyStoreError, e) {
     case FAILED_TO_OPEN_FILE:
       return "Failed to open the key file";
     case INVALID_FILE_FORMAT:
-      return "The key file is not valid (should be a BIP39 phrase or a "
-             "hex-encoded seed)";
+      return "The key file is not valid "
+             "(should be a BIP39 phrase or a hex-encoded seed)";
   }
   return "Unknown KeyStoreError code";
 }
