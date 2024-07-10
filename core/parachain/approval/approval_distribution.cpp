@@ -789,6 +789,115 @@ namespace kagome::parachain {
     return assignments;
   }
 
+  ApprovalDistribution::DistribApprovalEntry &ApprovalDistribution::DistribBlockEntry::insert_approval_entry(
+          ApprovalDistribution::DistribApprovalEntry &&entry) {
+        std::ignore = approval::iter_ones(
+            entry.assignment_claimed_candidates,
+            [&](const auto claimed_candidate_index) -> outcome::result<void> {
+              if (claimed_candidate_index >= candidates.size()) {
+                throw std::runtime_error(
+                    fmt::format("Missing candidate entry on "
+                                "`import_and_circulate_assignment`. (hash={}, "
+                                "claimed_candidate_index={})",
+                                entry.assignment.block_hash,
+                                claimed_candidate_index));
+              }
+
+              auto &candidate_entry = candidates[claimed_candidate_index];
+              std::ignore = candidate_entry.assignments.emplace(
+                  entry.validator_index, entry.assignment_claimed_candidates);
+              return outcome::success();
+            });
+
+        auto [it, _] = approval_entries.emplace(
+            std::make_pair(entry.validator_index,
+                           entry.assignment_claimed_candidates),
+            entry);
+        return it->second;
+      }
+
+	bool ApprovalDistribution::DistribApprovalEntry::includes_approval_candidates(const IndirectSignedApprovalVoteV2 &approval) const {
+    return approval::iter_ones(getPayload(approval).candidate_indices, [](const auto candidate_index) -> outcome::result<void> {
+			if (candidate_index < assignment_claimed_candidates.bits.size() && assignment_claimed_candidates.bits[candidate_index]) {
+				return ApprovalDistributionError::BIT_FOUND;
+			}
+      return outcome::success();
+    }).has_error();
+	}
+
+	outcome::result<void> ApprovalDistribution::DistribApprovalEntry::note_approval(const IndirectSignedApprovalVoteV2 &approval_val) {
+    const auto &approval = getPayload(approval_val);
+		if (validator_index != approval.validator) {
+			return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
+		}
+
+		// We need at least one of the candidates in the approval to be in this assignment
+		if (!includes_approval_candidates(approval)) {
+      return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
+		}
+
+		if self.approvals.contains_key(&approval.candidate_indices) {
+			return Err(ApprovalEntryError::DuplicateApproval)
+		}
+
+		self.approvals.insert(approval.candidate_indices.clone(), approval.clone());
+		Ok(())
+	}
+
+
+
+  	outcome::result<std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>> 
+    ApprovalDistribution::DistribBlockEntry::note_approval(const approval::IndirectSignedApprovalVoteV2 &approval_value) {
+      const IndirectApprovalVoteV2 &approval = getPayload(approval_value);
+
+		std::optional<grid::RequiredRouting> required_routing;
+		std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed_to;
+
+		if (candidates.size() < approval.candidate_indices.size()) {
+			return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
+		}
+
+    std::unordered_set<scale::BitVec> covered_assignments_bitfields;
+    std::ignore = approval::iter_ones(approval.candidate_indices, [&](const auto candidate_index) -> outcome::result<void> {
+      if (candidate_index < candidates.size()) {
+        const auto &candidate_entry = candidates[candidate_index];
+        if (auto it = utils::get(candidate_entry.assignments, approval.validator)) {
+          covered_assignments_bitfields.insert((*it)->second);
+        }
+      }
+    });
+
+		for (const auto &assignment_bitfield : covered_assignments_bitfields) {
+      if (auto it = utils::get(approval_entries, std::make_pair(approval.validator, assignment_bitfield))) {
+        const auto &approval_entry = (*it)->second;
+        OUTCOME_TRY(approval_entry.note_approval(approval));
+
+				peers_randomly_routed_to
+					.extend(approval_entry.routing_info().peers_randomly_routed.iter());
+
+				if let Some(required_routing) = required_routing {
+					if required_routing != approval_entry.routing_info().required_routing {
+						// This shouldn't happen since the required routing is computed based on the
+						// validator_index, so two assignments from the same validators will have
+						// the same required routing.
+						return Err(ApprovalEntryError::AssignmentsFollowedDifferentPaths(
+							required_routing,
+							approval_entry.routing_info().required_routing,
+						))
+					}
+				} else {
+					required_routing = Some(approval_entry.routing_info().required_routing)
+				}
+      }
+		}
+
+		if let Some(required_routing) = required_routing {
+			Ok((required_routing, peers_randomly_routed_to))
+		} else {
+			Err(ApprovalEntryError::UnknownAssignment)
+		}
+	}
+
   std::optional<scale::BitVec>
   ApprovalDistribution::get_assignment_core_indices(
       const approval::AssignmentCertKindV2 &assignment,
@@ -1948,17 +2057,34 @@ namespace kagome::parachain {
                std::get<2>(message_subject));
     }
 
-    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
-      if (source && peer == source->get()) {
-        return false;
-      }
+    const auto local = !source.has_value();
+    auto &approval_entry = entry.insert_approval_entry(DistribApprovalEntry{
+        .assignment = assignment,
+        .assignment_claimed_candidates = claimed_candidate_indices,
+        .approvals = {},
+        .validator_index = assignment.validator,
+        .routing_info =
+            ApprovalRouting{
+                .required_routing =
+                    grid::RequiredRouting::GridXY,  /// TODO(iceseer): calculate
+                                                    /// based on grid
+                .local = local,
+                .random_routing = {},
+                .peers_randomly_routed = {},
+            },
+    });
 
-      const bool already_sent =
-          peer_kn.sent.contains(message_subject,
-                                approval::MessageKind::Assignment)
-          || peer_kn.sent.contains(message_subject,
-                                   approval::MessageKind::Approval);
-      return !already_sent;
+    const auto n_peers_total = peer_view_->peersCount();
+    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+      if (!source || peer != source->get()) {
+        const auto route_random =
+            approval_entry.routing_info.random_routing.sample(n_peers_total);
+        if (route_random) {
+          approval_entry.routing_info.mark_randomly_sent(peer);
+          return true;
+        }
+      }
+      return false;
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
@@ -2195,49 +2321,69 @@ namespace kagome::parachain {
 
     SignaturesForCandidate all_sigs;
     for (const auto &[hash, _] : entry.block_assignments) {
-      if (auto block_entry = storedBlockEntries().get(hash)) {
-        for (size_t candidate_index = 0ull;
-             candidate_index < block_entry->get().candidates.size();
-             ++candidate_index) {
-          const auto &[_core_index, c_hash] =
-              block_entry->get().candidates[candidate_index];
-          if (c_hash == candidate_hash) {
-            const auto index = candidate_index;
-            if (auto distrib_block_entry =
-                    storedDistribBlockEntries().get(hash)) {
-              if (index < distrib_block_entry->get().candidates.size()) {
-                const auto &candidate_entry =
-                    distrib_block_entry->get().candidates[index];
-                for (const auto &[validator_index, message_state] :
-                     candidate_entry.messages) {
-                  if (auto approval_state =
-                          if_type<const DistribApprovalStateApproved>(
-                              message_state.approval_state)) {
-                    const auto &[__, sig] = approval_state->get();
-                    all_sigs[validator_index] = sig;
-                  }
-                }
-              } else {
-                SL_DEBUG(logger_,
-                         "`getApprovalSignaturesForCandidate`: could not find "
-                         "candidate entry for given hash and index!. (hash={}, "
-                         "index={})",
-                         hash,
-                         index);
-              }
-            } else {
-              SL_DEBUG(logger_,
-                       "`getApprovalSignaturesForCandidate`: could not find "
-                       "block entry for given hash!. (hash={})",
-                       hash);
-            }
-          }
-        }
-      } else {
+      auto block_entry = storedBlockEntries().get(hash);
+      if (!block_entry) {
         SL_DEBUG(logger_,
                  "Block entry for assignment missing. (candidate={}, hash={})",
                  candidate_hash,
                  hash);
+        continue;
+      }
+
+      for (size_t candidate_index = 0ull;
+           candidate_index < block_entry->get().candidates.size();
+           ++candidate_index) {
+        const auto &[_core_index, c_hash] =
+            block_entry->get().candidates[candidate_index];
+        if (c_hash == candidate_hash) {
+          const auto index = candidate_index;
+          if (auto distrib_block_entry =
+                  storedDistribBlockEntries().get(hash)) {
+
+            let sigs = distrib_block_entry->get().approval_votes(index).into_iter().map(|approval| {
+              (
+                approval.validator,
+                (
+                  hash,
+                  approval
+                    .candidate_indices
+                    .iter_ones()
+                    .map(|val| val as CandidateIndex)
+                    .collect_vec(),
+                  approval.signature,
+                ),
+              )
+            });
+            all_sigs.extend(sigs);
+
+
+            if (index < distrib_block_entry->get().candidates.size()) {
+              const auto &candidate_entry =
+                  distrib_block_entry->get().candidates[index];
+              for (const auto &[validator_index, message_state] :
+                   candidate_entry.messages) {
+                if (auto approval_state =
+                        if_type<const DistribApprovalStateApproved>(
+                            message_state.approval_state)) {
+                  const auto &[__, sig] = approval_state->get();
+                  all_sigs[validator_index] = sig;
+                }
+              }
+            } else {
+              SL_DEBUG(logger_,
+                       "`getApprovalSignaturesForCandidate`: could not find "
+                       "candidate entry for given hash and index!. (hash={}, "
+                       "index={})",
+                       hash,
+                       index);
+            }
+          } else {
+            SL_DEBUG(logger_,
+                     "`getApprovalSignaturesForCandidate`: could not find "
+                     "block entry for given hash!. (hash={})",
+                     hash);
+          }
+        }
       }
     }
     callback(std::move(all_sigs));

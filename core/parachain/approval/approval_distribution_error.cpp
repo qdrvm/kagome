@@ -39,6 +39,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistributionError, e) {
       return "Invalid arguments";
     case E::VRF_VERIFY_AND_GET_TRANCHE:
       return "VRF verify and get tranche failed";
+    case E::BIT_FOUND:
+      return "bit found";
   }
   return "Unknown approval-distribution error";
 }

@@ -97,6 +97,18 @@ namespace kagome::parachain {
       std::vector<std::pair<ValidatorIndex, Tick>> assignments;
     };
 
+    using DistribApprovalEntryKey = std::pair<ValidatorIndex, scale::BitVec>;
+
+    struct ApprovalEntryHash {
+      size_t operator()(const DistribApprovalEntryKey &obj) const {
+        size_t value{0ull};
+        boost::hash_combine(value, obj.first);
+        boost::hash_range(
+            value, obj.second.bits.begin(), obj.second.bits.end());
+        return value;
+      }
+    };
+
     struct ApprovalEntry {
       SCALE_TIE(6);
       using MaybeCert = std::optional<
@@ -371,7 +383,10 @@ namespace kagome::parachain {
     /// for the same candidate, if it is included by multiple blocks - this is
     /// likely the case when there are forks.
     struct DistribCandidateEntry {
-      std::unordered_map<ValidatorIndex, MessageState> messages{};
+      /// The value represents part of the lookup key in `approval_entries` to
+      /// fetch the assignment
+      /// and existing votes.
+      std::unordered_map<ValidatorIndex, scale::BitVec> assignments;
     };
 
     /// Contains topology routing information for assignments and approvals.
@@ -409,10 +424,18 @@ namespace kagome::parachain {
       // topology.
       ApprovalRouting routing_info;
 
+     public:
       std::pair<approval::IndirectAssignmentCertV2, scale::BitVec>
       get_assignment() const {
         return {assignment, assignment_claimed_candidates};
       }
+
+      /// Records a new approval. Returns error if the claimed candidate is not found or we already
+	/// have received the approval.
+	outcome::result<void> note_approval(const IndirectSignedApprovalVoteV2 &approval);
+
+  /// Tells if this entry assignment covers at least one candidate in the approval
+	bool includes_approval_candidates(const IndirectSignedApprovalVoteV2 &approval_val) const;
 
       // Get all approvals for all candidates claimed by the assignment.
       std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals()
@@ -438,17 +461,6 @@ namespace kagome::parachain {
     /// Information about blocks in our current view as well as whether peers
     /// know of them.
     struct DistribBlockEntry {
-      struct ApprovalEntriesHash {
-        auto operator()(
-            const std::pair<ValidatorIndex, scale::BitVec> &obj) const {
-          size_t value{0ull};
-          boost::hash_combine(value, obj.first);
-          boost::hash_range(
-              value, obj.second.bits.begin(), obj.second.bits.end());
-          return value;
-        }
-      };
-
       /// A votes entry for each candidate indexed by [`CandidateIndex`].
       std::vector<DistribCandidateEntry> candidates{};
 
@@ -468,10 +480,53 @@ namespace kagome::parachain {
 
       /// Approval entries for whole block. These also contain all approvals in
       /// the case of multiple candidates being claimed by assignments.
-      std::unordered_map<std::pair<ValidatorIndex, scale::BitVec>,
+      std::unordered_map<DistribApprovalEntryKey,
                          DistribApprovalEntry,
-                         ApprovalEntriesHash>
+                         ApprovalEntryHash>
           approval_entries;
+
+     public:
+      DistribApprovalEntry &insert_approval_entry(DistribApprovalEntry &&entry);
+
+	// Saves the given approval in all ApprovalEntries that contain an assignment for any of the
+	// candidates in the approval.
+	//
+	// Returns the required routing needed for this approval and the lit of random peers the
+	// covering assignments were sent.
+	outcome::result<std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>> note_approval(const approval::IndirectSignedApprovalVoteV2 &approval);
+
+	/// Returns the list of approval votes covering this candidate
+	pub fn approval_votes(
+		&self,
+		candidate_index: CandidateIndex,
+	) -> Vec<IndirectSignedApprovalVoteV2> {
+		let result: Option<
+			HashMap<(ValidatorIndex, CandidateBitfield), IndirectSignedApprovalVoteV2>,
+		> = self.candidates.get(candidate_index as usize).map(|candidate_entry| {
+			candidate_entry
+				.assignments
+				.iter()
+				.filter_map(|(validator, assignment_bitfield)| {
+					self.approval_entries.get(&(*validator, assignment_bitfield.clone()))
+				})
+				.flat_map(|approval_entry| {
+					approval_entry
+						.approvals
+						.clone()
+						.into_iter()
+						.filter(|(approved_candidates, _)| {
+							approved_candidates.bit_at(candidate_index.as_bit_index())
+						})
+						.map(|(approved_candidates, vote)| {
+							((approval_entry.validator_index, approved_candidates), vote)
+						})
+				})
+				.collect()
+		});
+
+		result.map(|result| result.into_values().collect_vec()).unwrap_or_default()
+	}
+
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of

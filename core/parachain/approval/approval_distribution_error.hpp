@@ -25,6 +25,7 @@ namespace kagome::parachain {
     VRF_MODULO_CORE_INDEX_MISMATCH = 13,
     INVALID_ARGUMENTS = 14,
     CANDIDATE_INDEX_OUT_OF_BOUNDS = 15,
+    BIT_FOUND = 16,
   };
 }
 

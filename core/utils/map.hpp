@@ -23,6 +23,14 @@ namespace kagome::utils {
     return std::nullopt;
   }
 
+  template<typename C>
+  inline std::optional<C::const_iterator> get(const C &container, const C::key_type &key) {
+    if (auto it = container.find(key); it != container.end()) {
+      return it;
+    }
+    return std::nullopt;
+  }
+
   template <typename T>
   inline auto fromRefToOwn(
       const std::optional<std::reference_wrapper<T>> &opt_ref) {
