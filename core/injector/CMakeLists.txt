@@ -19,7 +19,6 @@ target_link_libraries(application_injector
     authority_discovery_api
     babe_api
     bandersnatch_provider
-    bandersnatch_types
     bandersnatch_vrf
     beefy_api
     binaryen_module_factory
