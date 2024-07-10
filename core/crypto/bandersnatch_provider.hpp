@@ -11,16 +11,6 @@
 
 namespace kagome::crypto {
 
-  /**
-   * sr25519 provider error codes
-   */
-  enum class BandersnatchProviderError {
-    SIGN_UNKNOWN_ERROR = 1,  // unknown error occured during call to `sign`
-                             // method of bound function
-    VERIFY_UNKNOWN_ERROR     // unknown error occured during call to `verify`
-                             // method of bound function
-  };
-
   class BandersnatchProvider {
    public:
     using Keypair = BandersnatchKeypair;
@@ -60,5 +50,3 @@ namespace kagome::crypto {
         const BandersnatchPublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, BandersnatchProviderError)

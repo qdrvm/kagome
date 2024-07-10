@@ -6,16 +6,53 @@
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 
+#include "crypto/hasher.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, BandersnatchProviderError, e) {
+  using E = kagome::crypto::BandersnatchProviderError;
+  switch (e) {
+    case E::SIGN_UNKNOWN_ERROR:
+      return "Internal error during bandersnatch signing";
+    case E::VERIFY_UNKNOWN_ERROR:
+      return "Internal error during bandersnatch signature verification";
+    case E::SOFT_JUNCTION_NOT_SUPPORTED:
+      return "Soft junction not supported for bandersnatch";
+  }
+  return "Unknown error (BandersnatchProviderError)";
+}
+
 namespace kagome::crypto {
+
+  BandersnatchProviderImpl::BandersnatchProviderImpl(
+      std::shared_ptr<Hasher> hasher)
+      : hasher_(std::move(hasher)) {
+    BOOST_ASSERT(hasher_);
+  }
 
   outcome::result<BandersnatchKeypair>
   BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
     std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
-    bandersnatch_keypair_from_seed(seed.unsafeBytes().data(), kp.data());
 
-    BOOST_ASSERT_MSG(junctions.empty(), "Junctions is not supported now");
+    if (junctions.empty()) {
+      bandersnatch_keypair_from_seed(seed.unsafeBytes().data(), kp.data());
+    } else {
+      BandersnatchSeed seed_with_junctions = seed;
+      for (auto &junction : junctions) {
+        if (not junction.hard) {
+          return BandersnatchProviderError::SOFT_JUNCTION_NOT_SUPPORTED;
+        }
+        auto hash = hasher_->blake2b_256(
+            scale::encode("bandersnatch-vrf-HDKD"_bytes,
+                          seed_with_junctions.unsafeBytes(),
+                          junction.cc)
+                .value());
+        seed_with_junctions = BandersnatchSeed::from(SecureCleanGuard(hash));
+      }
+      bandersnatch_keypair_from_seed(seed_with_junctions.unsafeBytes().data(),
+                                     kp.data());
+    }
 
     BandersnatchKeypair keypair{
         BandersnatchSecretKey::from(SecureCleanGuard{

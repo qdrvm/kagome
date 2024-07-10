@@ -72,7 +72,8 @@ struct AssignmentsTest : public test::BaseFS_Test {
     auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
-    auto bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
+    auto bandersnatch_provider =
+        std::make_shared<BandersnatchProviderImpl>(hasher);
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto bip39_provider =

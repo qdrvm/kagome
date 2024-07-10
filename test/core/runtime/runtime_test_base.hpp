@@ -79,7 +79,7 @@ class RuntimeTestBaseImpl {
     hasher_ = std::make_shared<crypto::HasherImpl>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderImpl>();
     auto bandersnatch_provider =
-        std::make_shared<crypto::BandersnatchProviderImpl>();
+        std::make_shared<crypto::BandersnatchProviderImpl>(hasher_);
     auto ecdsa_provider = std::make_shared<crypto::EcdsaProviderImpl>(hasher_);
     auto ed25519_provider =
         std::make_shared<crypto::Ed25519ProviderImpl>(hasher_);

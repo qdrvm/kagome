@@ -141,7 +141,7 @@ int main() {
   auto sr25519_provider =
       std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
   auto bandersnatch_provider =
-      std::make_shared<kagome::crypto::BandersnatchProviderImpl>();
+      std::make_shared<kagome::crypto::BandersnatchProviderImpl>(hasher);
   auto secp256k1_provider =
       std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
   auto pbkdf2_provider = std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();

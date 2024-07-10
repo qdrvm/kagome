@@ -6,17 +6,15 @@
 
 #pragma once
 
-#include <libp2p/common/types.hpp>
-
+#include <qtils/bytes.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/bandersnatch_types.hpp"
 
 namespace kagome::crypto::bandersnatch::vrf {
 
-  using libp2p::Bytes;
-  using libp2p::BytesIn;
-  using libp2p::BytesOut;
+  using qtils::Bytes;
+  using qtils::BytesIn;
 
   using VrfOutput = common::Blob<BANDERSNATCH_PREOUT_SIZE>;
   using RingSignature = common::Blob<BANDERSNATCH_RING_SIGNATURE_SIZE>;
@@ -100,7 +98,7 @@ namespace kagome::crypto::bandersnatch::vrf {
 
       s >> KZG;
 
-      ::bandersnatch_ring_vrf_context(KZG.data(), KZG.size());
+      x.ptr_ = ::bandersnatch_ring_vrf_context(KZG.data(), KZG.size());
       return s;
     }
 
@@ -143,8 +141,7 @@ namespace kagome::crypto::bandersnatch::vrf {
   concept VrfInputOrOutput =
       std::is_same_v<T, VrfInput> or std::is_same_v<T, VrfOutput>;
 
-  template <typename T>
-    requires VrfInputOrOutput<T>
+  template <VrfInputOrOutput T>
   using VrfIosVec = common::SLVector<T, MAX_VRF_IOS>;
 
   /// VRF signature.

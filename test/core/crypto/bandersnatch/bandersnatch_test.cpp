@@ -10,6 +10,7 @@
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bandersnatch/vrf.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -22,6 +23,8 @@ using kagome::crypto::BandersnatchProviderImpl;
 using kagome::crypto::BandersnatchSeed;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
+using kagome::crypto::Hasher;
+using kagome::crypto::HasherImpl;
 using kagome::crypto::SecureBuffer;
 
 namespace vrf = kagome::crypto::bandersnatch::vrf;
@@ -37,8 +40,9 @@ struct BandersnatchTest : public ::testing::Test {
   }
 
   void SetUp() override {
+    hasher = std::make_shared<HasherImpl>();
     random_generator = std::make_shared<BoostRandomGenerator>();
-    bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
+    bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>(hasher);
 
     message = "I am a message"_bytes;
   }
@@ -52,6 +56,7 @@ struct BandersnatchTest : public ::testing::Test {
 
   std::span<const uint8_t> message;
 
+  std::shared_ptr<Hasher> hasher;
   std::shared_ptr<CSPRNG> random_generator;
   std::shared_ptr<BandersnatchProvider> bandersnatch_provider;
 };

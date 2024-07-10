@@ -63,8 +63,8 @@ namespace kagome::crypto::bandersnatch::vrf {
     return bytes;
   }
 
-  VrfSignData vrf_sign_data(libp2p::BytesIn label,
-                            std::span<libp2p::BytesIn> data,
+  VrfSignData vrf_sign_data(qtils::BytesIn label,
+                            std::span<qtils::BytesIn> data,
                             std::span<VrfInput> inputs) {
     std::vector<const uint8_t *> data_ptrs;
     std::vector<size_t> data_sizes;
