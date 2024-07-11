@@ -816,7 +816,7 @@ namespace kagome::parachain {
         return it->second;
       }
 
-	bool ApprovalDistribution::DistribApprovalEntry::includes_approval_candidates(const IndirectSignedApprovalVoteV2 &approval) const {
+	bool ApprovalDistribution::DistribApprovalEntry::includes_approval_candidates(const approval::IndirectSignedApprovalVoteV2 &approval) const {
     return approval::iter_ones(getPayload(approval).candidate_indices, [](const auto candidate_index) -> outcome::result<void> {
 			if (candidate_index < assignment_claimed_candidates.bits.size() && assignment_claimed_candidates.bits[candidate_index]) {
 				return ApprovalDistributionError::BIT_FOUND;
@@ -825,26 +825,48 @@ namespace kagome::parachain {
     }).has_error();
 	}
 
-	outcome::result<void> ApprovalDistribution::DistribApprovalEntry::note_approval(const IndirectSignedApprovalVoteV2 &approval_val) {
+	outcome::result<void> ApprovalDistribution::DistribApprovalEntry::note_approval(const approval::IndirectSignedApprovalVoteV2 &approval_val) {
     const auto &approval = getPayload(approval_val);
 		if (validator_index != approval.validator) {
 			return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
 		}
 
-		// We need at least one of the candidates in the approval to be in this assignment
 		if (!includes_approval_candidates(approval)) {
       return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
 		}
 
-		if self.approvals.contains_key(&approval.candidate_indices) {
-			return Err(ApprovalEntryError::DuplicateApproval)
+		if (approvals.contains(approval.candidate_indices)) {
+			return ApprovalDistributionError::DUPLICATE_APPROVAL;
 		}
 
-		self.approvals.insert(approval.candidate_indices.clone(), approval.clone());
-		Ok(())
+		approvals.insert_or_assign(approval.candidate_indices, approval_val);
+		return outcome::success();
 	}
 
+	std::vector<approval::IndirectSignedApprovalVoteV2> ApprovalDistribution::DistribBlockEntry::approval_votes(CandidateIndex candidate_index) const {
+    std::unordered_map<DistribApprovalEntryKey, approval::IndirectSignedApprovalVoteV2> result;
+    if (auto candidate_entry = utils::get(candidates, candidate_index)) {
+      for (const auto &[validator, assignment_bitfield] : candidate_entry->assignments) {
+        if (auto approval_entry = utils::get(approval_entries, std::make_pair(validator, assignment_bitfield))) {
+          for (const auto &[approved_candidates, _] : approval_entry->approvals) {
+            if (candidate_index < approved_candidates.bits.size() && approved_candidates.bits[approved_candidates]) {
+              result[std::make_pair(approval_entry->validator_index, approved_candidates)] = vote;
+            }
+          }
+        }
+      }
+    }
 
+    std::vector<approval::IndirectSignedApprovalVoteV2> out;
+    out.reserve(result.size());
+
+    
+      std::transform(result.begin(),
+                     result.end(),
+                     std::back_inserter(out),
+                     [](const auto it) { return it.second; });
+      return out;
+	}
 
   	outcome::result<std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>> 
     ApprovalDistribution::DistribBlockEntry::note_approval(const approval::IndirectSignedApprovalVoteV2 &approval_value) {
@@ -872,30 +894,22 @@ namespace kagome::parachain {
         const auto &approval_entry = (*it)->second;
         OUTCOME_TRY(approval_entry.note_approval(approval));
 
-				peers_randomly_routed_to
-					.extend(approval_entry.routing_info().peers_randomly_routed.iter());
+				peers_randomly_routed_to.insert(approval_entry.routing_info.peers_randomly_routed.begin(), approval_entry.routing_info.peers_randomly_routed.end());
 
-				if let Some(required_routing) = required_routing {
-					if required_routing != approval_entry.routing_info().required_routing {
-						// This shouldn't happen since the required routing is computed based on the
-						// validator_index, so two assignments from the same validators will have
-						// the same required routing.
-						return Err(ApprovalEntryError::AssignmentsFollowedDifferentPaths(
-							required_routing,
-							approval_entry.routing_info().required_routing,
-						))
+				if (required_routing) {
+					if (*required_routing != approval_entry.routing_info.required_routing) {
+            return ApprovalDistributionError::ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH;
 					}
 				} else {
-					required_routing = Some(approval_entry.routing_info().required_routing)
+					required_routing = approval_entry.routing_info.required_routing;
 				}
       }
 		}
 
-		if let Some(required_routing) = required_routing {
-			Ok((required_routing, peers_randomly_routed_to))
-		} else {
-			Err(ApprovalEntryError::UnknownAssignment)
+		if (required_routing) {
+      return std::make_pair(*required_routing, std::move(peers_randomly_routed_to));
 		}
+		return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
 	}
 
   std::optional<scale::BitVec>

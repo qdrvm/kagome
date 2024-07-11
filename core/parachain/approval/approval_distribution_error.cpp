@@ -41,6 +41,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistributionError, e) {
       return "VRF verify and get tranche failed";
     case E::BIT_FOUND:
       return "bit found";
+      case E::DUPLICATE_APPROVAL:
+      return "Duplicate approval";
+      case E::ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH:
+      return "Assignments followed different path";
+      case E::UNKNOWN_ASSIGNMENT:
+      return "Unknown assignment";
   }
   return "Unknown approval-distribution error";
 }
