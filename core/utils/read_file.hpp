@@ -26,25 +26,22 @@ namespace kagome {
       };
 
   template <ByteContainer Out>
-  bool readFile(Out &out,
-                const std::filesystem::path &path,
-                std::error_code &ec) {
+  outcome::result<void> readFile(Out &out,
+                const std::filesystem::path &path) {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
     if (not file.good()) {
-      ec = std::error_code{errno, std::system_category()};
       out.clear();
-      return false;
+      return std::errc{errno};
     }
     out.resize(file.tellg());
     file.seekg(0);
     file.read(reinterpret_cast<char *>(out.data()), out.size());
     if (not file.good()) {
-      ec = std::error_code{errno, std::system_category()};
       out.clear();
-      return false;
+      return std::errc{errno};
     }
     ec = {};
-    return true;
+    return outcome::success();
   }
 
   template <ByteContainer Out>
