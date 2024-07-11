@@ -25,6 +25,10 @@ namespace kagome::network {
 
   struct ReqPovProtocolImpl;
 
+  /// Implementation of first implementation of
+  /// fetching chunk protocol aka 'req_chunk/1'
+  ///
+  /// In response index of systematic chunk is corresponding validator index.
   class FetchChunkProtocolObsolete final
       : public RequestResponseProtocol<FetchChunkRequest,
                                        FetchChunkResponseObsolete,

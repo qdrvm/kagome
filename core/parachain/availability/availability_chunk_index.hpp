@@ -18,6 +18,8 @@ namespace kagome::parachain {
   ///
   /// If the regular `recovery_threshold` is a power of two, then it returns the
   /// same value. Otherwise, it returns the next lower power of two.
+  ///
+  /// https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/erasure-coding/src/lib.rs#L120
   inline outcome::result<ChunkIndex> systematic_recovery_threshold(
       size_t n_validators) {
     auto threshold_res = ec_cpp::getRecoveryThreshold(n_validators);
