@@ -21,11 +21,10 @@ namespace {
   constexpr auto fullRecoveriesFinishedMetricName =
       "kagome_parachain_availability_recovery_recoveries_finished";
 
-  constexpr std::array<std::string_view, 4> strategy_types = {
+  const std::array<std::string, 4> strategy_types = {
       "full_from_backers", "systematic_chunks", "regular_chunks", "all"};
 
-  constexpr std::array<std::string_view, 3> results = {
-      "success", "failure", "invalid"};
+  const std::array<std::string, 3> results = {"success", "failure", "invalid"};
 
 #define incFullRecoveriesFinished(strategy, result)                         \
   do {                                                                      \
