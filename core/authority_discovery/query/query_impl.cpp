@@ -23,6 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
       return "Inconsistent peer id";
     case E::INVALID_SIGNATURE:
       return "Invalid signature";
+    case E::KADEMLIA_OUTDATED_VALUE:
+      return "Kademlia outdated value";
   }
   return "unknown error (authority_discovery::QueryImpl::Error)";
 }
@@ -41,7 +43,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
       std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller,
       libp2p::Host &host,
-      std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
+      LazySPtr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : block_tree_{std::move(block_tree)},
         authority_discovery_api_{std::move(authority_discovery_api)},
@@ -80,7 +82,7 @@ namespace kagome::authority_discovery {
     std::unique_lock lock{mutex_};
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()) {
-      return it->second;
+      return it->second.peer;
     }
     return std::nullopt;
   }
@@ -95,11 +97,52 @@ namespace kagome::authority_discovery {
     return std::nullopt;
   }
 
+  outcome::result<void> QueryImpl::validate(
+      const libp2p::protocol::kademlia::Key &key,
+      const libp2p::protocol::kademlia::Value &value) {
+    std::unique_lock lock{mutex_};
+    auto id = hashToAuth(key);
+    if (not id) {
+      lock.unlock();
+      return kademlia_validator_.validate(key, value);
+    }
+    auto r = add(*id, value);
+    if (not r) {
+      SL_DEBUG(log_, "Can't add: {}", r.error());
+    }
+    return r;
+  }
+
+  outcome::result<size_t> QueryImpl::select(
+      const libp2p::protocol::kademlia::Key &key,
+      const std::vector<libp2p::protocol::kademlia::Value> &values) {
+    std::unique_lock lock{mutex_};
+    auto id = hashToAuth(key);
+    if (not id) {
+      lock.unlock();
+      return kademlia_validator_.select(key, values);
+    }
+    auto it = auth_to_peer_cache_.find(*id);
+    if (it != auth_to_peer_cache_.end()) {
+      auto it_value = std::find(values.begin(), values.end(), it->second.raw);
+      if (it_value != values.end()) {
+        return it_value - values.begin();
+      }
+    }
+    return Error::KADEMLIA_OUTDATED_VALUE;
+  }
+
   outcome::result<void> QueryImpl::update() {
     std::unique_lock lock{mutex_};
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
+    for (auto &id : authorities) {
+      auto it = hash_to_auth_.find(id);
+      if (it == hash_to_auth_.end()) {
+        hash_to_auth_.emplace(crypto::sha256(id), id);
+      }
+    }
     OUTCOME_TRY(local_keys,
                 key_store_->sr25519().getPublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
@@ -132,6 +175,17 @@ namespace kagome::authority_discovery {
     return outcome::success();
   }
 
+  std::optional<primitives::AuthorityDiscoveryId> QueryImpl::hashToAuth(
+      BufferView key) const {
+    if (auto r = Hash256::fromSpan(key)) {
+      auto it = hash_to_auth_.find(r.value());
+      if (it != hash_to_auth_.end()) {
+        return it->second;
+      }
+    }
+    return std::nullopt;
+  }
+
   void QueryImpl::pop() {
     while (active_ < kMaxActiveRequests) {
       if (queue_.empty()) {
@@ -144,19 +198,11 @@ namespace kagome::authority_discovery {
       common::Buffer hash{crypto::sha256(authority)};
       scheduler_->schedule([=, this, wp{weak_from_this()}] {
         if (auto self = wp.lock()) {
-          std::ignore = kademlia_->getValue(
+          std::ignore = kademlia_.get()->getValue(
               hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
                 --active_;
                 pop();
-                if (res.has_error()) {
-                  SL_DEBUG(log_, "Kademlia can't get value: {}", res.error());
-                  return;
-                }
-                auto r = add(authority, std::move(res.value()));
-                if (not r) {
-                  SL_DEBUG(log_, "Can't add: {}", r.error());
-                }
               });
         }
       });
@@ -167,7 +213,12 @@ namespace kagome::authority_discovery {
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
     OUTCOME_TRY(signed_record_pb, _res);
-    ::authority_discovery::v2::SignedAuthorityRecord signed_record;
+    auto it = auth_to_peer_cache_.find(authority);
+    if (it != auth_to_peer_cache_.end()
+        and signed_record_pb == it->second.raw) {
+      return outcome::success();
+    }
+    ::authority_discovery_v3::SignedAuthorityRecord signed_record;
     if (not signed_record.ParseFromArray(signed_record_pb.data(),
                                          signed_record_pb.size())) {
       return Error::DECODE_ERROR;
@@ -185,12 +236,22 @@ namespace kagome::authority_discovery {
                 crypto::Sr25519Signature::fromSpan(
                     str2byte(signed_record.auth_signature())));
 
-    ::authority_discovery::v2::AuthorityRecord record;
+    ::authority_discovery_v3::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
       return Error::DECODE_ERROR;
     }
     if (record.addresses().empty()) {
       return Error::NO_ADDRESSES;
+    }
+    std::optional<Timestamp> time{};
+    if (record.has_creation_time()) {
+      OUTCOME_TRY(tmp,
+                  scale::decode<TimestampScale>(
+                      qtils::str2byte(record.creation_time().timestamp())));
+      time = *tmp;
+      if (it != auth_to_peer_cache_.end() and time <= it->second.time) {
+        return outcome::success();
+      }
     }
     libp2p::peer::PeerInfo peer{std::move(peer_id), {}};
     auto peer_id_str = peer.id.toBase58();
@@ -226,7 +287,9 @@ namespace kagome::authority_discovery {
         peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
-    auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
+    auth_to_peer_cache_.insert_or_assign(
+        authority,
+        Authority{std::move(signed_record_pb), time, std::move(peer)});
 
     return outcome::success();
   }

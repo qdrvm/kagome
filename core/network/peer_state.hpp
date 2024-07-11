@@ -96,7 +96,6 @@ namespace kagome::network {
       ++use_count;
     }
     void dec_use_count() {
-      BOOST_ASSERT(use_count > 0);
       --use_count;
     }
 
