@@ -10,10 +10,11 @@
 #include <wasmedge/wasmedge.h>
 #include <libp2p/common/final_action.hpp>
 
+#include "application/app_configuration.hpp"
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
+#include "log/formatters/filepath.hpp"
 #include "log/trace_macros.hpp"
-#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
@@ -22,6 +23,9 @@
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
+#include "utils/mkdirs.hpp"
+#include "utils/read_file.hpp"
+#include "utils/write_file.hpp"
 
 namespace kagome::runtime::wasm_edge {
   enum class Error {
@@ -94,6 +98,14 @@ namespace kagome::runtime::wasm_edge {
         return Error::INVALID_VALUE_TYPE;
     }
     BOOST_UNREACHABLE_RETURN({});
+  }
+
+  inline CompilationOutcome<ConfigureContext> configureCtx() {
+    ConfigureContext ctx{WasmEdge_ConfigureCreate()};
+    if (ctx.raw() == nullptr) {
+      return CompilationError{"WasmEdge_ConfigureCreate returned nullptr"};
+    }
+    return ctx;
   }
 
   class ModuleInstanceImpl : public ModuleInstance {
@@ -348,60 +360,55 @@ namespace kagome::runtime::wasm_edge {
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
+      std::shared_ptr<CoreApiFactory> core_factory,
       Config config)
       : hasher_{hasher},
         host_api_factory_{host_api_factory},
         storage_{storage},
         serializer_{serializer},
+        core_factory_{std::move(core_factory)},
         log_{log::createLogger("ModuleFactory", "runtime")},
         config_{config} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(host_api_factory_);
   }
 
-  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      common::BufferView code) const {
-    auto code_hash = hasher_->sha2_256(code);
+  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+    if (config_.exec == ExecType::Interpreted) {
+      return std::nullopt;
+    }
+    return "wasmedge";
+  }
 
-    ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
-    BOOST_ASSERT(configure_ctx.raw() != nullptr);  // no known reasons to fail
+  CompilationOutcome<void> ModuleFactoryImpl::compile(
+      std::filesystem::path path_compiled, BufferView code) const {
+    if (config_.exec == ExecType::Interpreted) {
+      OUTCOME_TRY(writeFileTmp(path_compiled, code));
+      return outcome::success();
+    }
+    OUTCOME_TRY(configure_ctx, configureCtx());
+    WasmEdge_ConfigureCompilerSetOptimizationLevel(
+        configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+    CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
+    SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
+    WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
+        compiler.raw(), code.data(), code.size(), path_compiled.c_str()));
+    SL_INFO(log_, "Compilation finished, saved at {}", path_compiled);
+    return outcome::success();
+  }
 
+  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
+      std::filesystem::path path_compiled) const {
+    Buffer code;
+    if (not readFile(code, path_compiled)) {
+      return CompilationError{"read file failed"};
+    }
+    auto code_hash = hasher_->blake2b_256(code);
+    OUTCOME_TRY(configure_ctx, configureCtx());
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
     WasmEdge_ASTModuleContext *module_ctx;
-
-    switch (config_.exec) {
-      case ExecType::Compiled: {
-        WasmEdge_ConfigureCompilerSetOptimizationLevel(
-            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
-        CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
-        std::string filename = fmt::format("{}/wasm_{}",
-                                           config_.compiled_module_dir.c_str(),
-                                           code_hash.toHex());
-        std::error_code ec;
-        if (!std::filesystem::create_directories(config_.compiled_module_dir,
-                                                 ec)
-            && ec) {
-          return CompilationError{fmt::format(
-              "Failed to create a dir for compiled modules: {}", ec)};
-        }
-        if (!std::filesystem::exists(filename)) {
-          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
-          WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
-              compiler.raw(), code.data(), code.size(), filename.c_str()));
-          SL_INFO(log_, "Compilation finished, saved at {}", filename);
-        }
-        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
-            loader_ctx.raw(), &module_ctx, filename.c_str()));
-        break;
-      }
-      case ExecType::Interpreted: {
-        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromBuffer(
-            loader_ctx.raw(), &module_ctx, code.data(), code.size()));
-        break;
-      }
-      default:
-        BOOST_UNREACHABLE_RETURN({});
-    }
+    WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
+        loader_ctx.raw(), &module_ctx, path_compiled.c_str()));
     ASTModuleContext module = module_ctx;
 
     ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
@@ -430,10 +437,8 @@ namespace kagome::runtime::wasm_edge {
       }
     }
 
-    auto core_api = std::make_shared<CoreApiFactoryImpl>(shared_from_this());
-
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
-        core_api, host_api_factory_, storage_, serializer_);
+        core_factory_, host_api_factory_, storage_, serializer_);
 
     return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
                                                       std::move(executor),

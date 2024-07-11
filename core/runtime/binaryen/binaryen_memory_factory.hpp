@@ -16,8 +16,7 @@ namespace kagome::runtime::binaryen {
     virtual ~BinaryenMemoryFactory() = default;
 
     virtual std::unique_ptr<MemoryImpl> make(
-        RuntimeExternalInterface::InternalMemory *memory,
-        const MemoryConfig &config) const;
+        RuntimeExternalInterface::InternalMemory *memory) const;
   };
 
 }  // namespace kagome::runtime::binaryen

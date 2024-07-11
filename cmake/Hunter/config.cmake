@@ -75,6 +75,13 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
 endif ()
 
 hunter_config(
+    arkworks_crust
+    URL  https://github.com/qdrvm/arkworks-crust/archive/843300a0ef85777761a4c1acc0acf158e986c6ca.tar.gz
+    SHA1 ec88913a9d2de264c5ce9f5bbe13d9ec7d135ce3
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
     libsecp256k1
     VERSION 0.4.1-qdrvm1
     CMAKE_ARGS

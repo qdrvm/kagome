@@ -46,7 +46,7 @@ requests = { memory = "2G", cpu = "1" }
   name = "two"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lreq_chunk_protocol=trace"]
+  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug", "-lreq_chunk_protocol=trace"]
 
 [[parachains]]
 id = 2000

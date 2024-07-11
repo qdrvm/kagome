@@ -29,6 +29,7 @@ add_library(validator_parachain
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
     pvf/module_precompiler.cpp
+    pvf/workers.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp

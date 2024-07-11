@@ -43,6 +43,7 @@
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "utils/mkdirs.hpp"
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
@@ -73,14 +74,7 @@ namespace kagome::parachain {
   // This should not be called in a multi-threaded context. `unshare(2)`:
   // "CLONE_NEWUSER requires that the calling process is not threaded."
   SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir) {
-    std::error_code ec;
-    std::filesystem::create_directories(worker_dir, ec);
-    if (ec) {
-      return SecureModeError{
-          fmt::format("Failed to create worker directory {}: {}",
-                      worker_dir.c_str(),
-                      ec.message())};
-    }
+    OUTCOME_TRY(mkdirs(worker_dir));
 
     EXPECT_NON_NEG(unshare, CLONE_NEWUSER | CLONE_NEWNS);
     EXPECT_NON_NEG(mount, nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
@@ -229,15 +223,14 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<PvfWorkerInput> decodeInput() {
+  template <typename T>
+  outcome::result<T> decodeInput() {
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
     OUTCOME_TRY(readStdin(length_bytes));
     OUTCOME_TRY(message_length, scale::decode<uint32_t>(length_bytes));
     std::vector<uint8_t> packed_message(message_length, 0);
     OUTCOME_TRY(readStdin(packed_message));
-    OUTCOME_TRY(pvf_worker_input,
-                scale::decode<PvfWorkerInput>(packed_message));
-    return pvf_worker_input;
+    return scale::decode<T>(packed_message);
   }
 
   outcome::result<std::shared_ptr<runtime::ModuleFactory>> createModuleFactory(
@@ -271,24 +264,49 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> pvf_worker_main_outcome() {
-    OUTCOME_TRY(input, decodeInput());
-    kagome::log::tuneLoggingSystem(input.log_params);
+    OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>());
+    kagome::log::tuneLoggingSystem(input_config.log_params);
 
-    SL_VERBOSE(logger, "Cache directory: {}", input.cache_dir);
+    SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
+    if (not std::filesystem::path{input_config.cache_dir}.is_absolute()) {
+      SL_ERROR(
+          logger, "cache dir must be absolute: {}", input_config.cache_dir);
+      return std::errc::invalid_argument;
+    }
 
+    std::function<outcome::result<std::filesystem::path>(
+        const std::filesystem::path &)>
+        chroot_path = [](const std::filesystem::path &path) { return path; };
 #ifdef __linux__
-    if (!input.force_disable_secure_mode) {
+    if (!input_config.force_disable_secure_mode) {
+      auto root = input_config.cache_dir;
+      if (root.ends_with("/")) {
+        root.pop_back();
+      }
+      chroot_path = [=](const std::filesystem::path &path)
+          -> outcome::result<std::filesystem::path> {
+        std::string_view s{path.native()};
+        if (s == root) {
+          return std::filesystem::path{"/"};
+        }
+        if (not s.starts_with(root)
+            or not s.substr(root.size()).starts_with("/")) {
+          SL_ERROR(logger, "path outside chroot: {}", s);
+          return std::errc::permission_denied;
+        }
+        return std::filesystem::path{s.substr(root.size())};
+      };
       SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
 
-      if (auto res = changeRoot(input.cache_dir); !res) {
+      if (auto res = changeRoot(root); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (change root): {}",
                  res.error());
         return std::errc::not_supported;
       }
-      input.cache_dir = "/";
 
-      if (auto res = enableLandlock(input.cache_dir); !res) {
+      OUTCOME_TRY(path, chroot_path(input_config.cache_dir));
+      if (auto res = enableLandlock(path); !res) {
         SL_ERROR(logger,
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
@@ -306,23 +324,32 @@ namespace kagome::parachain {
                  "Secure validator mode disabled in node configuration");
     }
 #endif
-    auto injector = pvf_worker_injector(input);
-    OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(
-                    *factory, input.runtime_code, input.runtime_params));
-    OUTCOME_TRY(result,
-                ctx.module_instance->callExportFunction(
-                    ctx, input.function, input.params));
-    OUTCOME_TRY(ctx.module_instance->resetEnvironment());
-    OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
-    std::cout.write((const char *)len.data(), len.size());
-    std::cout.write((const char *)result.data(), result.size());
-    std::cout.flush();
-
-    SL_DEBUG(logger, "Worker finished successfully");
-
-    return outcome::success();
+    auto injector = pvf_worker_injector(input_config);
+    OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
+    std::shared_ptr<runtime::ModuleInstance> instance;
+    while (true) {
+      OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
+      if (auto *code = std::get_if<PvfWorkerInputCode>(&input)) {
+        OUTCOME_TRY(path, chroot_path(*code));
+        OUTCOME_TRY(module, factory->loadCompiled(path));
+        BOOST_OUTCOME_TRY(instance, module->instantiate());
+        continue;
+      }
+      auto &input_args = std::get<PvfWorkerInputArgs>(input);
+      if (not instance) {
+        SL_ERROR(logger, "PvfWorkerInputCode expected");
+        return std::errc::invalid_argument;
+      }
+      OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
+      OUTCOME_TRY(
+          result,
+          instance->callExportFunction(ctx, "validate_block", input_args));
+      OUTCOME_TRY(instance->resetEnvironment());
+      OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
+      std::cout.write((const char *)len.data(), len.size());
+      std::cout.write((const char *)result.data(), result.size());
+      std::cout.flush();
+    }
   }
 
   int pvf_worker_main(int argc, const char **argv, const char **env) {
