@@ -789,68 +789,87 @@ namespace kagome::parachain {
     return assignments;
   }
 
-  ApprovalDistribution::DistribApprovalEntry &ApprovalDistribution::DistribBlockEntry::insert_approval_entry(
-          ApprovalDistribution::DistribApprovalEntry &&entry) {
-        std::ignore = approval::iter_ones(
-            entry.assignment_claimed_candidates,
-            [&](const auto claimed_candidate_index) -> outcome::result<void> {
-              if (claimed_candidate_index >= candidates.size()) {
-                throw std::runtime_error(
-                    fmt::format("Missing candidate entry on "
-                                "`import_and_circulate_assignment`. (hash={}, "
-                                "claimed_candidate_index={})",
-                                entry.assignment.block_hash,
-                                claimed_candidate_index));
-              }
+  ApprovalDistribution::DistribApprovalEntry &
+  ApprovalDistribution::DistribBlockEntry::insert_approval_entry(
+      ApprovalDistribution::DistribApprovalEntry &&entry) {
+    std::ignore = approval::iter_ones(
+        entry.assignment_claimed_candidates,
+        [&](const auto claimed_candidate_index) -> outcome::result<void> {
+          if (claimed_candidate_index >= candidates.size()) {
+            throw std::runtime_error(
+                fmt::format("Missing candidate entry on "
+                            "`import_and_circulate_assignment`. (hash={}, "
+                            "claimed_candidate_index={})",
+                            entry.assignment.block_hash,
+                            claimed_candidate_index));
+          }
 
-              auto &candidate_entry = candidates[claimed_candidate_index];
-              std::ignore = candidate_entry.assignments.emplace(
-                  entry.validator_index, entry.assignment_claimed_candidates);
-              return outcome::success();
-            });
+          auto &candidate_entry = candidates[claimed_candidate_index];
+          std::ignore = candidate_entry.assignments.emplace(
+              entry.validator_index, entry.assignment_claimed_candidates);
+          return outcome::success();
+        });
 
-        auto [it, _] = approval_entries.emplace(
-            std::make_pair(entry.validator_index,
-                           entry.assignment_claimed_candidates),
-            entry);
-        return it->second;
-      }
+    auto [it, _] = approval_entries.emplace(
+        std::make_pair(entry.validator_index,
+                       entry.assignment_claimed_candidates),
+        entry);
+    return it->second;
+  }
 
-	bool ApprovalDistribution::DistribApprovalEntry::includes_approval_candidates(const approval::IndirectSignedApprovalVoteV2 &approval) const {
-    return approval::iter_ones(getPayload(approval).candidate_indices, [&](const auto candidate_index) -> outcome::result<void> {
-			if (candidate_index < assignment_claimed_candidates.bits.size() && assignment_claimed_candidates.bits[candidate_index]) {
-				return ApprovalDistributionError::BIT_FOUND;
-			}
-      return outcome::success();
-    }).has_error();
-	}
+  bool ApprovalDistribution::DistribApprovalEntry::includes_approval_candidates(
+      const approval::IndirectSignedApprovalVoteV2 &approval) const {
+    return approval::iter_ones(
+               getPayload(approval).candidate_indices,
+               [&](const auto candidate_index) -> outcome::result<void> {
+                 if (candidate_index < assignment_claimed_candidates.bits.size()
+                     && assignment_claimed_candidates.bits[candidate_index]) {
+                   return ApprovalDistributionError::BIT_FOUND;
+                 }
+                 return outcome::success();
+               })
+        .has_error();
+  }
 
-	outcome::result<void> ApprovalDistribution::DistribApprovalEntry::note_approval(const approval::IndirectSignedApprovalVoteV2 &approval_val) {
+  outcome::result<void>
+  ApprovalDistribution::DistribApprovalEntry::note_approval(
+      const approval::IndirectSignedApprovalVoteV2 &approval_val) {
     const auto &approval = getPayload(approval_val);
-		if (validator_index != approval_val.payload.ix) {
-			return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
-		}
+    if (validator_index != approval_val.payload.ix) {
+      return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
+    }
 
-		if (!includes_approval_candidates(approval_val)) {
+    if (!includes_approval_candidates(approval_val)) {
       return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
-		}
+    }
 
-		if (approvals.contains(approval.candidate_indices)) {
-			return ApprovalDistributionError::DUPLICATE_APPROVAL;
-		}
+    if (approvals.contains(approval.candidate_indices)) {
+      return ApprovalDistributionError::DUPLICATE_APPROVAL;
+    }
 
-		approvals.insert_or_assign(approval.candidate_indices, approval_val);
-		return outcome::success();
-	}
+    approvals.insert_or_assign(approval.candidate_indices, approval_val);
+    return outcome::success();
+  }
 
-	std::vector<approval::IndirectSignedApprovalVoteV2> ApprovalDistribution::DistribBlockEntry::approval_votes(CandidateIndex candidate_index) const {
-    std::unordered_map<DistribApprovalEntryKey, approval::IndirectSignedApprovalVoteV2, ApprovalEntryHash> result;
+  std::vector<approval::IndirectSignedApprovalVoteV2>
+  ApprovalDistribution::DistribBlockEntry::approval_votes(
+      CandidateIndex candidate_index) const {
+    std::unordered_map<DistribApprovalEntryKey,
+                       approval::IndirectSignedApprovalVoteV2,
+                       ApprovalEntryHash>
+        result;
     if (auto candidate_entry = utils::get(candidates, candidate_index)) {
-      for (const auto &[validator, assignment_bitfield] : (*candidate_entry)->assignments) {
-        if (auto approval_entry = utils::get(approval_entries, std::make_pair(validator, assignment_bitfield))) {
-          for (const auto &[approved_candidates, vote] : (*approval_entry)->second.approvals) {
-            if (candidate_index < approved_candidates.bits.size() && approved_candidates.bits[candidate_index]) {
-              result[std::make_pair((*approval_entry)->second.validator_index, approved_candidates)] = vote;
+      for (const auto &[validator, assignment_bitfield] :
+           (*candidate_entry)->assignments) {
+        if (auto approval_entry =
+                utils::get(approval_entries,
+                           std::make_pair(validator, assignment_bitfield))) {
+          for (const auto &[approved_candidates, vote] :
+               (*approval_entry)->second.approvals) {
+            if (candidate_index < approved_candidates.bits.size()
+                && approved_candidates.bits[candidate_index]) {
+              result[std::make_pair((*approval_entry)->second.validator_index,
+                                    approved_candidates)] = vote;
             }
           }
         }
@@ -860,57 +879,69 @@ namespace kagome::parachain {
     std::vector<approval::IndirectSignedApprovalVoteV2> out;
     out.reserve(result.size());
 
-    
-      std::transform(result.begin(),
-                     result.end(),
-                     std::back_inserter(out),
-                     [](const auto it) { return it.second; });
-      return out;
-	}
+    std::transform(result.begin(),
+                   result.end(),
+                   std::back_inserter(out),
+                   [](const auto it) { return it.second; });
+    return out;
+  }
 
-  	outcome::result<std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>> 
-    ApprovalDistribution::DistribBlockEntry::note_approval(const approval::IndirectSignedApprovalVoteV2 &approval_value) {
-      const approval::IndirectApprovalVoteV2 &approval = getPayload(approval_value);
+  outcome::result<std::pair<grid::RequiredRouting,
+                            std::unordered_set<libp2p::peer::PeerId>>>
+  ApprovalDistribution::DistribBlockEntry::note_approval(
+      const approval::IndirectSignedApprovalVoteV2 &approval_value) {
+    const approval::IndirectApprovalVoteV2 &approval =
+        getPayload(approval_value);
 
-		std::optional<grid::RequiredRouting> required_routing;
-		std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed_to;
+    std::optional<grid::RequiredRouting> required_routing;
+    std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed_to;
 
-		if (candidates.size() < approval.candidate_indices.bits.size()) {
-			return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
-		}
+    if (candidates.size() < approval.candidate_indices.bits.size()) {
+      return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
+    }
 
     std::unordered_set<scale::BitVec> covered_assignments_bitfields;
-    std::ignore = approval::iter_ones(approval.candidate_indices, [&](const auto candidate_index) -> outcome::result<void> {
-      if (candidate_index < candidates.size()) {
-        const auto &candidate_entry = candidates[candidate_index];
-        if (auto it = utils::get(candidate_entry.assignments, approval_value.payload.ix)) {
-          covered_assignments_bitfields.insert((*it)->second);
-        }
-      }
-      return outcome::success();
-    });
+    std::ignore = approval::iter_ones(
+        approval.candidate_indices,
+        [&](const auto candidate_index) -> outcome::result<void> {
+          if (candidate_index < candidates.size()) {
+            const auto &candidate_entry = candidates[candidate_index];
+            if (auto it = utils::get(candidate_entry.assignments,
+                                     approval_value.payload.ix)) {
+              covered_assignments_bitfields.insert((*it)->second);
+            }
+          }
+          return outcome::success();
+        });
 
-		for (const auto &assignment_bitfield : covered_assignments_bitfields) {
-      if (auto it = utils::get(approval_entries, std::make_pair(approval_value.payload.ix, assignment_bitfield))) {
+    for (const auto &assignment_bitfield : covered_assignments_bitfields) {
+      if (auto it = utils::get(
+              approval_entries,
+              std::make_pair(approval_value.payload.ix, assignment_bitfield))) {
         auto &approval_entry = (*it)->second;
         OUTCOME_TRY(approval_entry.note_approval(approval_value));
 
-				peers_randomly_routed_to.insert(approval_entry.routing_info.peers_randomly_routed.begin(), approval_entry.routing_info.peers_randomly_routed.end());
-				if (required_routing) {
-					if (*required_routing != approval_entry.routing_info.required_routing) {
-            return ApprovalDistributionError::ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH;
-					}
-				} else {
-					required_routing = approval_entry.routing_info.required_routing;
-				}
+        peers_randomly_routed_to.insert(
+            approval_entry.routing_info.peers_randomly_routed.begin(),
+            approval_entry.routing_info.peers_randomly_routed.end());
+        if (required_routing) {
+          if (*required_routing
+              != approval_entry.routing_info.required_routing) {
+            return ApprovalDistributionError::
+                ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH;
+          }
+        } else {
+          required_routing = approval_entry.routing_info.required_routing;
+        }
       }
-		}
+    }
 
-		if (required_routing) {
-      return std::make_pair(*required_routing, std::move(peers_randomly_routed_to));
-		}
-		return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
-	}
+    if (required_routing) {
+      return std::make_pair(*required_routing,
+                            std::move(peers_randomly_routed_to));
+    }
+    return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
+  }
 
   std::optional<scale::BitVec>
   ApprovalDistribution::get_assignment_core_indices(
@@ -2362,14 +2393,18 @@ namespace kagome::parachain {
             continue;
           }
 
-          for (auto approval : distrib_block_entry->get().approval_votes(index)) {
+          for (auto approval :
+               distrib_block_entry->get().approval_votes(index)) {
             std::vector<CandidateIndex> ixs;
-            std::ignore = approval::iter_ones(getPayload(approval).candidate_indices, [&](const auto val) -> outcome::result<void> {
-              ixs.emplace_back(val);
-              return outcome::success();
-            });
+            std::ignore = approval::iter_ones(
+                getPayload(approval).candidate_indices,
+                [&](const auto val) -> outcome::result<void> {
+                  ixs.emplace_back(val);
+                  return outcome::success();
+                });
 
-            all_sigs[approval.payload.ix] = std::make_tuple(hash, std::move(ixs), approval.signature);
+            all_sigs[approval.payload.ix] =
+                std::make_tuple(hash, std::move(ixs), approval.signature);
           }
         }
       }

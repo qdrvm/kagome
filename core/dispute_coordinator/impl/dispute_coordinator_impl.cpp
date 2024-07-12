@@ -1261,12 +1261,14 @@ namespace kagome::dispute {
       // see:
       // {polkadot}/node/core/dispute-coordinator/src/initialized.rs:809
 
-      auto promise_res = std::promise<parachain::ApprovalDistribution::SignaturesForCandidate>();
+      auto promise_res = std::promise<
+          parachain::ApprovalDistribution::SignaturesForCandidate>();
       auto res_future = promise_res.get_future();
 
       approval_distribution_->getApprovalSignaturesForCandidate(
           candidate_hash,
-          [promise_res = std::ref(promise_res)](parachain::ApprovalDistribution::SignaturesForCandidate res) {
+          [promise_res = std::ref(promise_res)](
+              parachain::ApprovalDistribution::SignaturesForCandidate res) {
             promise_res.get().set_value(std::move(res));
           });
 

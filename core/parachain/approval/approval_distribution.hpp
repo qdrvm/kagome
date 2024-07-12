@@ -322,8 +322,9 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
 
-    using SignaturesForCandidate =
-        std::unordered_map<ValidatorIndex, std::tuple<Hash, std::vector<CandidateIndex>, ValidatorSignature>>;
+    using SignaturesForCandidate = std::unordered_map<
+        ValidatorIndex,
+        std::tuple<Hash, std::vector<CandidateIndex>, ValidatorSignature>>;
     using SignaturesForCandidateCallback =
         std::function<void(SignaturesForCandidate &&)>;
 
@@ -428,12 +429,15 @@ namespace kagome::parachain {
         return {assignment, assignment_claimed_candidates};
       }
 
-      /// Records a new approval. Returns error if the claimed candidate is not found or we already
-	/// have received the approval.
-	outcome::result<void> note_approval(const approval::IndirectSignedApprovalVoteV2 &approval);
+      /// Records a new approval. Returns error if the claimed candidate is not
+      /// found or we already have received the approval.
+      outcome::result<void> note_approval(
+          const approval::IndirectSignedApprovalVoteV2 &approval);
 
-  /// Tells if this entry assignment covers at least one candidate in the approval
-	bool includes_approval_candidates(const approval::IndirectSignedApprovalVoteV2 &approval_val) const;
+      /// Tells if this entry assignment covers at least one candidate in the
+      /// approval
+      bool includes_approval_candidates(
+          const approval::IndirectSignedApprovalVoteV2 &approval_val) const;
 
       // Get all approvals for all candidates claimed by the assignment.
       std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals()
@@ -486,15 +490,18 @@ namespace kagome::parachain {
      public:
       DistribApprovalEntry &insert_approval_entry(DistribApprovalEntry &&entry);
 
-	// Saves the given approval in all ApprovalEntries that contain an assignment for any of the
-	// candidates in the approval.
-	//
-	// Returns the required routing needed for this approval and the lit of random peers the
-	// covering assignments were sent.
-	outcome::result<std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>> note_approval(const approval::IndirectSignedApprovalVoteV2 &approval);
+      // Saves the given approval in all ApprovalEntries that contain an
+      // assignment for any of the candidates in the approval.
+      //
+      // Returns the required routing needed for this approval and the lit of
+      // random peers the covering assignments were sent.
+      outcome::result<std::pair<grid::RequiredRouting,
+                                std::unordered_set<libp2p::peer::PeerId>>>
+      note_approval(const approval::IndirectSignedApprovalVoteV2 &approval);
 
-	/// Returns the list of approval votes covering this candidate
-std::vector<approval::IndirectSignedApprovalVoteV2> approval_votes(CandidateIndex candidate_index) const;
+      /// Returns the list of approval votes covering this candidate
+      std::vector<approval::IndirectSignedApprovalVoteV2> approval_votes(
+          CandidateIndex candidate_index) const;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
