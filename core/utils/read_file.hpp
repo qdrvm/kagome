@@ -42,10 +42,4 @@ namespace kagome {
     }
     return outcome::success();
   }
-
-  template <ByteContainer Out>
-  bool readFile(Out &out, const std::filesystem::path &path) {
-    return readFile(out, path).has_value();
-  }
-
 }  // namespace kagome
