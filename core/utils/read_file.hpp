@@ -40,14 +40,12 @@ namespace kagome {
       out.clear();
       return std::errc{errno};
     }
-    ec = {};
     return outcome::success();
   }
 
   template <ByteContainer Out>
   bool readFile(Out &out, const std::filesystem::path &path) {
-    [[maybe_unused]] std::error_code ec;
-    return readFile(out, path, ec);
+    return readFile(out, path).has_value();
   }
 
 }  // namespace kagome
