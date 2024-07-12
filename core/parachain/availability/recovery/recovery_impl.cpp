@@ -65,6 +65,11 @@ namespace kagome::parachain {
         fullRecoveriesStartedMetricName, "Total number of started recoveries");
     full_recoveries_started_ = metrics_registry_->registerCounterMetric(
         fullRecoveriesStartedMetricName);
+    metrics_registry_->registerCounterFamily(
+        fullRecoveriesFinishedMetricName,
+        "Total number of recoveries that finished");
+    full_recoveries_started_ = metrics_registry_->registerCounterMetric(
+        fullRecoveriesFinishedMetricName);
 
     size_t i = 0;
     for (auto &strategy : strategy_types) {
