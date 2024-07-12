@@ -323,7 +323,7 @@ namespace kagome::parachain {
         const network::VersionedValidatorProtocolMessage &message);
 
     using SignaturesForCandidate =
-        std::unordered_map<ValidatorIndex, ValidatorSignature>;
+        std::unordered_map<ValidatorIndex, std::tuple<Hash, std::vector<CandidateIndex>, ValidatorSignature>>;
     using SignaturesForCandidateCallback =
         std::function<void(SignaturesForCandidate &&)>;
 
@@ -335,7 +335,6 @@ namespace kagome::parachain {
         const primitives::BlockInfo &min,
         const primitives::BlockInfo &max) const override;
 
-   private:
     struct ImportedBlockInfo {
       CandidateIncludedList included_candidates;
       SessionIndex session_index;
@@ -424,7 +423,6 @@ namespace kagome::parachain {
       // topology.
       ApprovalRouting routing_info;
 
-     public:
       std::pair<approval::IndirectAssignmentCertV2, scale::BitVec>
       get_assignment() const {
         return {assignment, assignment_claimed_candidates};

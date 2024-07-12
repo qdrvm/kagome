@@ -147,6 +147,10 @@ namespace kagome::parachain::grid {
     bool is_empty() const {
       return value == PendingTopology || value == None;
     }
+
+    bool operator==(const RequiredRouting &l) const {
+      return value == l.value;
+    }
   };
 
   /// A representation of routing based on sample

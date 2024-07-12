@@ -1261,14 +1261,12 @@ namespace kagome::dispute {
       // see:
       // {polkadot}/node/core/dispute-coordinator/src/initialized.rs:809
 
-      auto promise_res = std::promise<
-          std::unordered_map<ValidatorIndex, ValidatorSignature>>();
+      auto promise_res = std::promise<parachain::ApprovalDistribution::SignaturesForCandidate>();
       auto res_future = promise_res.get_future();
 
       approval_distribution_->getApprovalSignaturesForCandidate(
           candidate_hash,
-          [promise_res = std::ref(promise_res)](
-              std::unordered_map<ValidatorIndex, ValidatorSignature> res) {
+          [promise_res = std::ref(promise_res)](parachain::ApprovalDistribution::SignaturesForCandidate res) {
             promise_res.get().set_value(std::move(res));
           });
 
@@ -1289,7 +1287,8 @@ namespace kagome::dispute {
 
         auto _votes = std::move(import_result.new_state.votes);
 
-        for (auto &[index, signature] : approval_votes) {
+        for (auto &[index, signatures_data] : approval_votes) {
+          auto &[hash, candidates, signature] = signatures_data;
           // clang-format off
           BOOST_ASSERT_MSG(
               [&] {

@@ -31,12 +31,23 @@ namespace kagome::utils {
     return std::nullopt;
   }
 
+  template<typename C>
+  inline std::optional<typename C::iterator> get(C &container, const typename C::key_type &key) {
+    if (auto it = container.find(key); it != container.end()) {
+      return it;
+    }
+    return std::nullopt;
+  }
+
   template<typename T>
   inline auto get(const std::vector<T> &container, const size_t &index) {
+    using ItT = std::vector<T>::const_iterator;
     if (index >= container.size()) {
-      return std::nullopt;
+      return std::optional<ItT>{};
     }
-    return std::make_optional(std::advance(container.begin(), index));
+    auto it = container.begin();
+    std::advance(it, index);
+    return std::make_optional(it);
   }
 
   template <typename T>
