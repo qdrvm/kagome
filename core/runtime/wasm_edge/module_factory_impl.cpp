@@ -400,12 +400,11 @@ namespace kagome::runtime::wasm_edge {
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
       std::filesystem::path path_compiled) const {
     Buffer code;
-    std::error_code ec;
-    if (not readFile(code, path_compiled, ec)) {
+    if (auto res = readFile(code, path_compiled); !res) {
       return CompilationError{
           fmt::format("Failed to read compiled wasm module from '{}': {}",
                       path_compiled,
-                      ec.message())};
+                      res.error())};
     }
     auto code_hash = hasher_->blake2b_256(code);
     OUTCOME_TRY(configure_ctx, configureCtx());
