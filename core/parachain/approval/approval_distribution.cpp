@@ -780,6 +780,10 @@ namespace kagome::parachain {
              "(assignable_cores={})",
              lc.size());
 
+    if (lc.empty()) {
+      return {};
+    }
+
     common::Blob<crypto::constants::sr25519::KEYPAIR_SIZE> keypair_buf{};
     crypto::SecureCleanGuard g{keypair_buf};
     std::ranges::copy(assignments_key.secret_key.unsafeBytes(),
@@ -2468,6 +2472,10 @@ namespace kagome::parachain {
 
       return a;
     }();
+
+    if (!m) {
+      return;
+    }
 
     visit_in_place(
         m->get(),
