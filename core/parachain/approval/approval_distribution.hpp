@@ -531,6 +531,8 @@ namespace kagome::parachain {
 
       std::vector<Hash> children;
 
+      bool operator==(const BlockEntry &l) const;
+
       std::optional<CandidateIndex> candidateIxByHash(
           const CandidateHash &candidate_hash) {
         for (size_t ix = 0ul; ix < candidates.size(); ++ix) {

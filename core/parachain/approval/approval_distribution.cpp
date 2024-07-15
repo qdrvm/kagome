@@ -654,6 +654,19 @@ namespace kagome::parachain {
     return true;
   }
 
+  bool ApprovalDistribution::BlockEntry::operator==(const BlockEntry &l) const {
+        return block_hash == l.block_hash &&
+        parent_hash == l.parent_hash &&
+        block_number == l.block_number &&
+        session == l.session &&
+        slot == l.slot &&
+        candidates == l.candidates &&
+        approved_bitfield == l.approved_bitfield &&
+        distributed_assignments == l.distributed_assignments &&
+        children == l.children;
+      }
+
+
   void ApprovalDistribution::store_remote_view(
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
     REINVOKE(*approval_thread_handler_, store_remote_view, peer_id, view);
@@ -3087,7 +3100,7 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
-    auto opt_block_entry = storedBlockEntries().extract(block_hash);
+    auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
 
     if (!opt_block_entry || !opt_candidate_entry) {
@@ -3095,8 +3108,9 @@ namespace kagome::parachain {
       return;
     }
 
-    auto &block_entry = *opt_block_entry;
+    auto &block_entry = opt_block_entry->get();
     auto &candidate_entry = opt_candidate_entry->get();
+
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
             block_entry.parent_hash, block_entry.session);
@@ -3189,7 +3203,8 @@ namespace kagome::parachain {
             distribute_assignment = true;
           }
 
-          storedBlockEntries().set(block_hash, BlockEntry(block_entry));
+          BOOST_ASSERT(storedBlockEntries().get(block_hash)->get()
+                       == block_entry);
           runLaunchApproval(indirect_cert,
                             tranche,
                             block_hash,
