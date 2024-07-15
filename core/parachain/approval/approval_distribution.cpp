@@ -283,10 +283,10 @@ namespace {
     auto it = [&](uint32_t tranche)
         -> std::optional<kagome::parachain::approval::RequiredTranches> {
       auto s = *state;
-      auto const clock_drift = s.depth * no_show_duration;
-      auto const drifted_tick_now =
+      const auto clock_drift = s.depth * no_show_duration;
+      const auto drifted_tick_now =
           kagome::math::sat_sub_unsigned(tick_now, clock_drift);
-      auto const drifted_tranche_now =
+      const auto drifted_tranche_now =
           kagome::math::sat_sub_unsigned(drifted_tick_now, block_tick);
 
       if (tranche > drifted_tranche_now) {
@@ -302,9 +302,9 @@ namespace {
               tranches.begin(),
               tranches.end(),
               tranche,
-              [](auto const &te, auto const t) { return te.tranche < t; });
+              [](const auto &te, const auto t) { return te.tranche < t; });
           i != tranches.end() && i->tranche == tranche) {
-        for (auto const &[v_index, t] : i->assignments) {
+        for (const auto &[v_index, t] : i->assignments) {
           if (v_index < n_validators) {
             ++n_assignments;
           }
@@ -312,12 +312,12 @@ namespace {
               std::max(t,
                        last_assignment_tick ? *last_assignment_tick
                                             : kagome::parachain::Tick{0ull});
-          auto const no_show_at = kagome::math::sat_sub_unsigned(
+          const auto no_show_at = kagome::math::sat_sub_unsigned(
                                       std::max(t, block_tick), clock_drift)
                                 + no_show_duration;
           if (v_index < approvals.bits.size()) {
-            auto const has_approved = approvals.bits.at(v_index);
-            auto const is_no_show =
+            const auto has_approved = approvals.bits.at(v_index);
+            const auto is_no_show =
                 !has_approved && no_show_at <= drifted_tick_now;
             if (!is_no_show && !has_approved) {
               next_no_show = kagome::parachain::approval::min_or_some(
@@ -332,7 +332,7 @@ namespace {
 
       s = s.advance(
           n_assignments, no_shows, next_no_show, last_assignment_tick);
-      auto const output =
+      const auto output =
           s.output(tranche, needed_approvals, n_validators, no_show_duration);
 
       state = kagome::visit_in_place(
@@ -516,7 +516,7 @@ namespace {
         },
         [&](const parachain::approval::RelayVRFModulo &obj)
             -> outcome::result<kagome::network::DelayTranche> {
-          auto const sample = obj.sample;
+          const auto sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
             return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
           }
@@ -526,7 +526,7 @@ namespace {
         },
         [&](const parachain::approval::RelayVRFDelay &obj)
             -> outcome::result<kagome::network::DelayTranche> {
-          auto const core_index = obj.core_index;
+          const auto core_index = obj.core_index;
           if (parachain::approval::count_ones(claimed_core_indices) != 1) {
             return ApprovalDistributionError::INVALID_ARGUMENTS;
           }
@@ -577,7 +577,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-          this, app_state_manager, approval_thread_pool, logger_)},
+            this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
@@ -2263,12 +2263,28 @@ namespace kagome::parachain {
                std::get<2>(message_subject));
     }
 
+    std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>
+        nar;
+    if (auto res = entry.note_approval(vote); res.has_error()) {
+      SL_WARN(logger_,
+              "Possible bug: Vote import failed. (hash={}, validator_index={}, "
+              "error={})",
+              block_hash,
+              validator_index,
+              res.error());
+      return;
+    } else {
+      nar = std::move(res.value());
+    }
+    const auto &[required_routing, peers_randomly_routed_to] = nar;
+
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
       if (source && peer == source->get()) {
         return false;
       }
-      return peer_kn.sent.contains(message_subject,
-                                   approval::MessageKind::Assignment);
+
+      /// TODO(iceseer): topology
+      return peers_randomly_routed_to.contains(peer);
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
@@ -2447,7 +2463,7 @@ namespace kagome::parachain {
                    "Received assignments.(peer_id={}, count={})",
                    peer_id,
                    assignments.assignments.size());
-          for (auto const &assignment : assignments.assignments) {
+          for (const auto &assignment : assignments.assignments) {
             if (auto it = pending_known_.find(
                     assignment.indirect_assignment_cert.block_hash);
                 it != pending_known_.end()) {
@@ -2472,7 +2488,7 @@ namespace kagome::parachain {
                    "Received approvals.(peer_id={}, count={})",
                    peer_id,
                    approvals.approvals.size());
-          for (auto const &approval_vote : approvals.approvals) {
+          for (const auto &approval_vote : approvals.approvals) {
             if (auto it = pending_known_.find(
                     approval_vote.payload.payload.block_hash);
                 it != pending_known_.end()) {
@@ -2843,19 +2859,20 @@ namespace kagome::parachain {
             return std::nullopt;
           },
           [&tick_now](const approval::ExactRequiredTranche &e) {
-            auto filter = [](Tick const &t, Tick const &ref) {
+            auto filter = [](const Tick &t, const Tick &ref) {
               return ((t > ref) ? std::optional<Tick>{t}
                                 : std::optional<Tick>{});
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
-            for (auto const &t : approval_entry.tranches) {
+            for (const auto &t : approval_entry.tranches) {
               if (t.tranche > e.considered) {
                 next_announced = t.tranche;
                 break;
