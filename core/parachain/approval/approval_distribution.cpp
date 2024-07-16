@@ -655,17 +655,13 @@ namespace kagome::parachain {
   }
 
   bool ApprovalDistribution::BlockEntry::operator==(const BlockEntry &l) const {
-        return block_hash == l.block_hash &&
-        parent_hash == l.parent_hash &&
-        block_number == l.block_number &&
-        session == l.session &&
-        slot == l.slot &&
-        candidates == l.candidates &&
-        approved_bitfield == l.approved_bitfield &&
-        distributed_assignments == l.distributed_assignments &&
-        children == l.children;
-      }
-
+    return block_hash == l.block_hash && parent_hash == l.parent_hash
+        && block_number == l.block_number && session == l.session
+        && slot == l.slot && candidates == l.candidates
+        && approved_bitfield == l.approved_bitfield
+        && distributed_assignments == l.distributed_assignments
+        && children == l.children;
+  }
 
   void ApprovalDistribution::store_remote_view(
       const libp2p::peer::PeerId &peer_id, const network::View &view) {

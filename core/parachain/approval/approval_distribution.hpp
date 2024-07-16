@@ -189,10 +189,10 @@ namespace kagome::parachain {
               tranches.begin(),
               tranches.end(),
               tranche,
-              [](auto const &l, auto const &r) { return l.tranche < r; });
+              [](const auto &l, const auto &r) { return l.tranche < r; });
 
           if (it != tranches.end()) {
-            auto const pos = (size_t)std::distance(tranches.begin(), it);
+            const auto pos = (size_t)std::distance(tranches.begin(), it);
             if (it->tranche > tranche) {
               tranches.insert(it,
                               TrancheEntry{
@@ -233,8 +233,9 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(
-              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
+          : CandidateEntry(HashedCandidateReceipt{receipt},
+                           session_index,
+                           approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -266,7 +267,7 @@ namespace kagome::parachain {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;
           }
-          for (auto const &[h, ae] : block_assignments) {
+          for (const auto &[h, ae] : block_assignments) {
             auto it = c.block_assignments.find(h);
             if (it == c.block_assignments.end() || it->second != ae) {
               return false;
