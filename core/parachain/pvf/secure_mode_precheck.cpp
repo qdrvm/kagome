@@ -14,7 +14,6 @@
 #include <boost/process/v2/stdio.hpp>
 #include <filesystem>
 #include <iostream>
-#include <libp2p/common/asio_buffer.hpp>
 #include <libp2p/log/configurator.hpp>
 #include <qtils/bytestr.hpp>
 #include <scale/scale.hpp>
@@ -82,7 +81,7 @@ namespace kagome::parachain {
                                 process_v2::process_stdio{{}, pipe, {}}};
     Buffer output;
     boost::system::error_code ec;
-    boost::asio::read(pipe, libp2p::asioBuffer(output), ec);
+    boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);
 
     if (process.wait() != 0) {
       return SecureModeError{"Secure mode check failed"};

@@ -12,12 +12,11 @@
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
+#include <kagome/crypto/elliptic_curves/elliptic_curves_impl.hpp>
 #include <kagome/crypto/hasher/hasher_impl.hpp>
 #include <kagome/crypto/key_store/key_store_impl.hpp>
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <kagome/crypto/sr25519/sr25519_provider_impl.hpp>
-#include <kagome/filesystem/common.hpp>
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
@@ -32,14 +31,11 @@
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
 #include <kagome/runtime/module.hpp>
-#include <kagome/runtime/runtime_context.hpp>
 #include <kagome/runtime/wabt/instrument.hpp>
-#include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
 #include <kagome/storage/trie/impl/trie_storage_impl.hpp>
 #include <kagome/storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp>
-#include <kagome/storage/trie/serialization/polkadot_codec.hpp>
 #include <kagome/storage/trie/serialization/trie_serializer_impl.hpp>
 #include <kagome/storage/trie_pruner/impl/trie_pruner_impl.hpp>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
@@ -149,6 +145,8 @@ int main() {
   auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
       pbkdf2_provider, hasher);
 
+  auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
+
   auto key_store_dir = "/tmp/kagome_tmp_key_storage";
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt(key_store_dir).value();
@@ -182,6 +180,7 @@ int main() {
           ecdsa_provider,
           ed25519_provider,
           secp256k1_provider,
+          elliptic_curves,
           hasher,
           crypto_store,
           offchain_persistent_storage,
