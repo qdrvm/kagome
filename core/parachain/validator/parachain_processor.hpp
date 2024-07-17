@@ -394,6 +394,9 @@ namespace kagome::parachain {
       std::optional<ActiveValidatorState> active;
     };
 
+    using PeerUseCount = SafeObject<
+        std::unordered_map<primitives::AuthorityDiscoveryId, size_t>>;
+
     struct PerSessionState {
       PerSessionState(const PerSessionState &) = delete;
       PerSessionState &operator=(const PerSessionState &) = delete;
@@ -404,19 +407,19 @@ namespace kagome::parachain {
       SessionIndex session;
       runtime::SessionInfo session_info;
       Groups groups;
-      grid::Views grid_view;
+      std::optional<grid::Views> grid_view;
       std::optional<ValidatorIndex> our_index;
       std::optional<GroupIndex> our_group;
-
-      std::shared_ptr<network::PeerManager> pm;
-      std::shared_ptr<authority_discovery::Query> query_audi;
+      std::shared_ptr<PeerUseCount> peers;
 
       PerSessionState(SessionIndex _session,
                       const runtime::SessionInfo &_session_info,
                       Groups &&_groups,
                       grid::Views &&_grid_view,
-                      ValidatorIndex _our_index);
-      bool isUsed(const primitives::AuthorityDiscoveryId &audi) const;
+                      ValidatorIndex _our_index,
+                      std::shared_ptr<PeerUseCount> peers);
+      ~PerSessionState();
+      void updatePeers(bool add) const;
     };
 
     struct RelayParentState {
@@ -1130,8 +1133,8 @@ namespace kagome::parachain {
     primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
     primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
-    SafeObject<std::shared_ptr<RefCache<SessionIndex, PerSessionState>>>
-        per_session_;
+    std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
+    std::shared_ptr<PeerUseCount> peer_use_count_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 

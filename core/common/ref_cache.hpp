@@ -107,16 +107,6 @@ namespace kagome {
       return obj;
     }
 
-    void values(const auto &f) {
-      for (auto &p : items_) {
-        if (auto v = p.second.lock()) {
-          if (not f(v->value())) {
-            break;
-          }
-        }
-      }
-    }
-
    private:
     RefCache() = default;
 
