@@ -28,7 +28,7 @@ namespace kagome::host_api {
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const crypto::EllipticCurves> elliptic_curves)
       : logger_(log::createLogger("EllipticCurvesExtension",
-                                  "ecliptic_curves_extension")),
+                                  "elliptic_curves_extension")),
         memory_provider_(std::move(memory_provider)),
         elliptic_curves_(std::move(elliptic_curves)) {
     BOOST_ASSERT(memory_provider_ != nullptr);
