@@ -89,6 +89,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/key_store/session_keys.hpp"
@@ -874,6 +875,7 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
+            di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

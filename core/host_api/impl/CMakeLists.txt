@@ -28,6 +28,15 @@ target_link_libraries(crypto_extension
     )
 kagome_install(crypto_extension)
 
+add_library(elliptic_curves_extension
+    elliptic_curves_extension.cpp
+    )
+target_link_libraries(elliptic_curves_extension
+    logger
+    elliptic_curves
+    )
+kagome_install(elliptic_curves_extension)
+
 add_library(io_extension
     io_extension.cpp
     )
