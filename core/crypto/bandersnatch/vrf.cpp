@@ -109,6 +109,9 @@ namespace kagome::crypto::bandersnatch::vrf {
     ::bandersnatch_vrf_signature_encode(signature_ptr, buff.data());
 
     auto res = scale::decode<VrfSignature>(buff).value();
+
+    ::bandersnatch_vrf_signature_free(signature_ptr);
+
     return res;
   }
 
@@ -127,6 +130,8 @@ namespace kagome::crypto::bandersnatch::vrf {
     auto res = ::bandersnatch_vrf_verify(
         signature_ptr, sign_data.ptr, public_key.data());
 
+    ::bandersnatch_vrf_signature_free(signature_ptr);
+
     return res;
   }
 
@@ -143,6 +148,9 @@ namespace kagome::crypto::bandersnatch::vrf {
     ::bandersnatch_ring_vrf_signature_encode(ring_signature_ptr, buff.data());
 
     auto res = scale::decode<RingVrfSignature>(buff).value();
+
+    ::bandersnatch_ring_vrf_signature_free(ring_signature_ptr);
+
     return res;
   }
 
@@ -156,6 +164,9 @@ namespace kagome::crypto::bandersnatch::vrf {
 
     auto res = ::bandersnatch_ring_vrf_verify(
         signature_ptr, sign_data.ptr, ring_verifier.ptr);
+
+    ::bandersnatch_ring_vrf_signature_free(signature_ptr);
+
     return res;
   }
 
