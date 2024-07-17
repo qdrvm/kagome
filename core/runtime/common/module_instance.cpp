@@ -6,6 +6,8 @@
 
 #include "runtime/module_instance.hpp"
 
+#include <openssl/mem.h>
+
 #include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -58,6 +60,9 @@ namespace kagome::runtime {
           log,
           "__heap_base too low, allocations will overwrite wasm data segments");
     }
+
+    auto memory_size = memory.memory()->size();
+    OPENSSL_cleanse(memory.view(0, memory_size).value().data(), memory_size);
 
     forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);
