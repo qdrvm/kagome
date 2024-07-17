@@ -31,6 +31,7 @@
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/non_null_dangling.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
@@ -104,7 +105,7 @@ namespace {
                                                     rvm_sample,
                                                     config.n_cores,
                                                     &relay_vrf_story,
-                                                    lc.data(),
+                                                    nonNullDangling(lc),
                                                     lc.size(),
                                                     &cert_output,
                                                     &cert_proof,
