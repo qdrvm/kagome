@@ -43,7 +43,7 @@ namespace kagome::runtime {
         const primitives::BlockReflection &block,
         TrieChangesTrackerOpt changes_tracker) override;
 
-    outcome::result<std::unique_ptr<RuntimeContext>> initialize_block(
+    InitializeBlockResult initialize_block(
         const primitives::BlockHeader &header,
         TrieChangesTrackerOpt changes_tracker) override;
 

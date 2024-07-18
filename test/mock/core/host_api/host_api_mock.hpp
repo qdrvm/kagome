@@ -319,7 +319,12 @@ namespace kagome::host_api {
                  runtime::WasmPointer key),
                 (override));
 
-    // ----------------------------- memory api v1 -----------------------------
+    MOCK_METHOD(runtime::WasmPointer,
+                ext_crypto_bandersnatch_generate_version_1,
+                (runtime::WasmSize key_type, runtime::WasmSpan seed),
+                (override));
+
+    // ------------------------------ memory api -------------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
                 ext_allocator_malloc_version_1,

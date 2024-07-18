@@ -6,8 +6,14 @@
 
 #include "crypto/key_store/key_store_impl.hpp"
 
+#include <filesystem>
+#include <string_view>
+
 #include <gmock/gmock.h>
 
+#include "common/blob.hpp"
+#include "common/visitor.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -17,16 +23,9 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-
-#include <filesystem>
-#include <string_view>
-#include "testutil/outcome.hpp"
+#include "parachain/approval/approval_distribution.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
-
-#include "common/blob.hpp"
-#include "common/visitor.hpp"
-#include "parachain/approval/approval_distribution.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
@@ -73,6 +72,8 @@ struct AssignmentsTest : public test::BaseFS_Test {
     auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
+    auto bandersnatch_provider =
+        std::make_shared<BandersnatchProviderImpl>(hasher);
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto bip39_provider =
@@ -90,9 +91,17 @@ struct AssignmentsTest : public test::BaseFS_Test {
             csprng,
             key_file_storage),
         std::make_unique<KeySuiteStoreImpl<Ed25519Provider>>(
-            ed25519_provider, bip39_provider, csprng, key_file_storage),
+            ed25519_provider,  //
+            bip39_provider,
+            csprng,
+            key_file_storage),
         std::make_unique<KeySuiteStoreImpl<EcdsaProvider>>(
             std::move(ecdsa_provider),
+            bip39_provider,
+            csprng,
+            key_file_storage),
+        std::make_unique<KeySuiteStoreImpl<BandersnatchProvider>>(
+            std::move(bandersnatch_provider),
             bip39_provider,
             csprng,
             key_file_storage),

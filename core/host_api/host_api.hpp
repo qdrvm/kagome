@@ -484,6 +484,10 @@ namespace kagome::host_api {
         runtime::WasmPointer msg,
         runtime::WasmPointer pubkey_data) = 0;
 
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_crypto_bandersnatch_generate_version_1(runtime::WasmSize key_type,
+                                               runtime::WasmSpan seed) = 0;
+
     // ---------------------------- Misc extensions ----------------------------
 
     [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(

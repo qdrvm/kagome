@@ -59,6 +59,9 @@ find_package(schnorrkel_crust CONFIG REQUIRED)
 hunter_add_package(arkworks_crust)
 find_package(arkworks_crust CONFIG REQUIRED)
 
+hunter_add_package(bandersnatch_vrfs_crust)
+find_package(bandersnatch_vrfs_crust CONFIG REQUIRED)
+
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)
 
@@ -83,7 +86,7 @@ find_package(scale CONFIG REQUIRED)
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 
-  
+
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_add_package(wavm)
   find_package(LLVM CONFIG REQUIRED)

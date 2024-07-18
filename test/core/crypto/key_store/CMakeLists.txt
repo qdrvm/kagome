@@ -12,7 +12,7 @@ target_link_libraries(key_type_test
     )
 
 addtest(crypto_store_test
-    crypto_store_test.cpp
+    key_store_test.cpp
     )
 target_link_libraries(crypto_store_test
     key_store

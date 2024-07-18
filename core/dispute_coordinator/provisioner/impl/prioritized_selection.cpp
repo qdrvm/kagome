@@ -14,7 +14,6 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
 #include "dispute_coordinator/provisioner/impl/request_votes.hpp"
-#include "injector/application_injector.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "utils/tuple_hash.hpp"

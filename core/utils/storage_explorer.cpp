@@ -9,7 +9,6 @@
 #include "application/chain_spec.hpp"
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"

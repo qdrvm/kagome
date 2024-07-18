@@ -100,5 +100,6 @@
     REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_mul_projective_g1_version_1, int64_t , int64_t) \
     REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_mul_projective_g2_version_1, int64_t , int64_t) \
     REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_bls12_381_multi_miller_loop_version_1, int64_t , int64_t) \
-    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1, int64_t , int64_t)
+    REGISTER_HOST_METHOD(int64_t, ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1, int64_t , int64_t) \
+    REGISTER_HOST_METHOD(int32_t, ext_crypto_bandersnatch_generate_version_1, int32_t, int64_t)
 // clang-format on
