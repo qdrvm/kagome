@@ -134,7 +134,7 @@ namespace kagome::crypto {
       return data.view() == bytes;
     }
 
-    static constexpr size_t size() {
+    static consteval size_t size() {
       return Size;
     }
 

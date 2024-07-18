@@ -6,6 +6,7 @@
 
 #include "runtime/runtime_api/impl/sassafras_api.hpp"
 
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::runtime {
@@ -74,17 +75,28 @@ namespace kagome::runtime {
             ctx, "SassafrasApi_generate_key_ownership_proof", authority_id);
   }
 
-  outcome::result<bool>
+  outcome::result<void>
   SassafrasApiImpl::submit_report_equivocation_unsigned_extrinsic(
       const primitives::BlockHash &block,
       const consensus::sassafras::EquivocationProof &equivocation_proof,
       const consensus::sassafras::OpaqueKeyOwnershipProof &key_owner_proof) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return executor_->call<bool>(
+    return executor_->call<void>(
         ctx,
         "SassafrasApi_submit_report_equivocation_unsigned_extrinsic",
         equivocation_proof,
         key_owner_proof);
   }
 
+  outcome::result<std::vector<consensus::AuthorityIndex>>
+  SassafrasApiImpl::disabled_validators(const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    auto res = executor_->call<std::vector<consensus::AuthorityIndex>>(
+        ctx, "Sassafras_disabled_validators");
+    if (res.has_error()
+        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
+      return std::vector<consensus::AuthorityIndex>{};
+    }
+    return res;
+  }
 }  // namespace kagome::runtime

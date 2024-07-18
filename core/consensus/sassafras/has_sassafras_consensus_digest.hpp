@@ -18,7 +18,7 @@ namespace kagome::consensus::sassafras {
 
     HasSassafrasConsensusDigest(const primitives::BlockHeader &block) {
       for (auto &digest : block.digest) {
-        auto consensus = boost::get<primitives::Consensus>(&digest);
+        auto consensus = std::get_if<primitives::Consensus>(&digest);
         if (not consensus) {
           continue;
         }
@@ -34,11 +34,11 @@ namespace kagome::consensus::sassafras {
         }
         auto &decoded = decoded_res.value();
         auto sassafras =
-            boost::get<primitives::SassafrasDigest>(&decoded.digest);
+            std::get_if<primitives::SassafrasDigest>(&decoded.digest);
         if (not sassafras) {
           continue;
         }
-        if (auto item = boost::get<NextEpochDescriptor>(sassafras)) {
+        if (auto item = std::get_if<NextEpochDescriptor>(sassafras)) {
           descriptor = std::move(*item);
           continue;
         }

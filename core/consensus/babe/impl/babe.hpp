@@ -20,7 +20,7 @@
 
 namespace kagome {
   class PoolHandler;
-}  // namespace kagome
+}
 
 namespace kagome::application {
   class AppConfiguration;

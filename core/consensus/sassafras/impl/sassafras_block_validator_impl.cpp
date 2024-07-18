@@ -172,10 +172,10 @@ namespace kagome::consensus::sassafras {
     }
     auto revealed_key_vrf_output = claim.signature.outputs[1];
 
-    EphemeralSeed revealed_seed =
-        EphemeralSeed::fromSpan(make_revealed_key_seed(revealed_key_vrf_input,
-                                                       revealed_key_vrf_output))
-            .value();
+    auto tmp =
+        make_revealed_key_seed(revealed_key_vrf_input, revealed_key_vrf_output);
+    EphemeralSeed revealed_seed(
+        EphemeralSeed::from(crypto::SecureCleanGuard(tmp)));
     auto revealed_pair =
         ed25519_provider_->generateKeypair(revealed_seed, {}).value();
     if (ticket_body.revealed_public != revealed_pair.secret_key) {

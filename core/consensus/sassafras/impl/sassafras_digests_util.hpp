@@ -27,6 +27,9 @@ namespace kagome::consensus::sassafras {
 
   outcome::result<SlotNumber> getSlot(const primitives::BlockHeader &header);
 
+  outcome::result<AuthorityIndex> getAuthority(
+      const primitives::BlockHeader &header);
+
   outcome::result<SlotClaim> getSlotClaim(
       const primitives::BlockHeader &block_header);
 

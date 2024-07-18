@@ -12,6 +12,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/main_thread_pool.hpp"
@@ -40,6 +41,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
+#include "utils/pool_handler_ready_make.hpp"
 #include "utils/thread_pool.hpp"
 
 using namespace std::chrono_literals;
@@ -69,6 +71,7 @@ namespace {
 namespace kagome::consensus {
 
   ProductionConsensusBase::ProductionConsensusBase(
+      application::AppStateManager &app_state_manager,
       const application::AppConfiguration &app_config,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -87,8 +90,8 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
+      common::MainThreadPool &main_thread_pool,
+      common::WorkerThreadPool &worker_thread_pool)
       : log_(log::createLogger("Sassafras", "sassafras")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -106,8 +109,10 @@ namespace kagome::consensus {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_pool_handler_(std::move(main_pool_handler)),
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        main_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, main_thread_pool)},
+        worker_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, worker_thread_pool)},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(sassafras_config_repo_);
@@ -179,8 +184,8 @@ namespace kagome::consensus {
     }
     OUTCOME_TRY(epoch_number, slots_util_.get()->slotToEpoch(best_block, slot));
 
-    // If epoch changed, generate and submit their candidate tickets along with
-    // validity proofs to the blockchain
+    // If epoch changed, generate and submit their candidate tickets along
+    // with validity proofs to the blockchain
     if (lottery_->getEpoch() != epoch_number) {
       is_active_validator_ = lottery_->changeEpoch(epoch_number, best_block);
       metric_is_relaychain_validator_->set(is_active_validator_);
@@ -257,8 +262,8 @@ namespace kagome::consensus {
     //   return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
     // }
     //
-    // SL_ERROR(log_, "Error signing a block seal: {}", signature_res.error());
-    // return signature_res.as_failure();
+    // SL_ERROR(log_, "Error signing a block seal: {}",
+    // signature_res.error()); return signature_res.as_failure();
     return primitives::Seal{};
   }
 

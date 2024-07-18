@@ -9,8 +9,10 @@
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/main_thread_pool.hpp"
@@ -29,15 +31,17 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
+#include "offchain/offchain_worker_factory.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
-#include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
+#include "runtime/runtime_api/sassafras_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace {
   inline const auto kTimestampId =
@@ -64,6 +68,7 @@ namespace {
 namespace kagome::consensus::sassafras {
 
   Sassafras::Sassafras(
+      application::AppStateManager &app_state_manager,
       const application::AppConfiguration &app_config,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -76,15 +81,18 @@ namespace kagome::consensus::sassafras {
       std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<SassafrasBlockValidator> validator,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-      std::shared_ptr<parachain::BackingStore> backing_store,
+      std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
+      std::shared_ptr<runtime::SassafrasApi> sassafras_api,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
-      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
+      std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+      common::MainThreadPool &main_thread_pool,
+      common::WorkerThreadPool &worker_thread_pool)
       : log_(log::createLogger("Sassafras", "sassafras")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -97,15 +105,18 @@ namespace kagome::consensus::sassafras {
         bandersnatch_provider_(std::move(bandersnatch_provider)),
         validator_(std::move(validator)),
         bitfield_store_(std::move(bitfield_store)),
-        backing_store_(std::move(backing_store)),
+        candidates_source_(std::move(candidates_source)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         proposer_(std::move(proposer)),
         storage_sub_engine_(std::move(storage_sub_engine)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
+        sassafras_api_(std::move(sassafras_api)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_pool_handler_(std::move(main_pool_handler)),
-        worker_pool_handler_(std::move(worker_pool_handler)),
+        offchain_worker_factory_(std::move(offchain_worker_factory)),
+        offchain_worker_pool_(std::move(offchain_worker_pool)),
+        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
+        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -116,13 +127,16 @@ namespace kagome::consensus::sassafras {
     BOOST_ASSERT(bandersnatch_provider_);
     BOOST_ASSERT(validator_);
     BOOST_ASSERT(bitfield_store_);
-    BOOST_ASSERT(backing_store_);
+    BOOST_ASSERT(candidates_source_);
     BOOST_ASSERT(dispute_coordinator_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
+    BOOST_ASSERT(sassafras_api_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(offchain_worker_factory_);
+    BOOST_ASSERT(offchain_worker_pool_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
 
@@ -155,10 +169,28 @@ namespace kagome::consensus::sassafras {
     }
 
     const auto &authorities = config.value()->authorities;
-    if (session_keys_->getSassafrasKeyPair(authorities)) {
+    const auto &kp_opt = session_keys_->getSassafrasKeyPair(authorities);
+    if (kp_opt.has_value()) {
+      const auto &authority_index = kp_opt->second;
+
+      auto disabled_validators_res =
+          sassafras_api_->disabled_validators(block.hash);
+      if (disabled_validators_res.has_error()) {
+        SL_CRITICAL(
+            log_, "Can't obtain disabled validators list for block {}", block);
+      }
+      const auto &disabled_validators = disabled_validators_res.value();
+
+      if (std::binary_search(disabled_validators.begin(),
+                             disabled_validators.end(),
+                             authority_index)) {
+        return ValidatorStatus::DisabledValidator;
+      }
+
       if (authorities.size() > 1) {
         return ValidatorStatus::Validator;
       }
+
       return ValidatorStatus::SingleValidator;
     }
 
@@ -168,6 +200,11 @@ namespace kagome::consensus::sassafras {
   outcome::result<SlotNumber> Sassafras::getSlot(
       const primitives::BlockHeader &header) const {
     return sassafras::getSlot(header);
+  }
+
+  outcome::result<AuthorityIndex> Sassafras::getAuthority(
+      const primitives::BlockHeader &header) const {
+    return sassafras::getAuthority(header);
   }
 
   outcome::result<void> Sassafras::processSlot(
@@ -185,20 +222,23 @@ namespace kagome::consensus::sassafras {
     if (lottery_->getEpoch() != epoch) {
       is_active_validator_ = changeEpoch(epoch, best_block);
       metric_is_relaychain_validator_->set(is_active_validator_);
-      if (not is_active_validator_) {
-        if (is_validator_by_config_) {
-          SL_VERBOSE(log_,
-                     "Authority not known, skipping slot processing. "
-                     "Probably authority list has changed.");
-        }
+      if (not is_active_validator_ and is_validator_by_config_) {
+        SL_VERBOSE(log_,
+                   "Authority not known, skipping slot processing. "
+                   "Probably authority list has changed.");
       } else {
-        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
+        SL_VERBOSE(log_, "Node is validator in epoch {}", epoch);
       }
     }
 
     if (not is_active_validator_) {
       SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
       return SlotLeadershipError::NO_VALIDATOR;
+    }
+
+    auto validator_status = getValidatorStatus(best_block, epoch);
+    if (validator_status == ValidatorStatus::DisabledValidator) {
+      return SlotLeadershipError::DISABLED_VALIDATOR;
     }
 
     if (not checkSlotLeadership(best_block, slot)) {
@@ -225,6 +265,103 @@ namespace kagome::consensus::sassafras {
   outcome::result<void> Sassafras::validateHeader(
       const primitives::BlockHeader &block_header) const {
     return validator_->validateHeader(block_header);
+  }
+
+  outcome::result<void> Sassafras::reportEquivocation(
+      const primitives::BlockHash &first_hash,
+      const primitives::BlockHash &second_hash) const {
+    BOOST_ASSERT(first_hash != second_hash);
+
+    auto first_header_res = block_tree_->getBlockHeader(first_hash);
+    if (first_header_res.has_error()) {
+      SL_WARN(log_,
+              "Can't obtain equivocating header of block {}: {}",
+              first_hash,
+              first_header_res.error());
+      return first_header_res.as_failure();
+    }
+    auto &first_header = first_header_res.value();
+
+    auto second_header_res = block_tree_->getBlockHeader(second_hash);
+    if (second_header_res.has_error()) {
+      SL_WARN(log_,
+              "Can't obtain equivocating header of block {}: {}",
+              second_hash,
+              second_header_res.error());
+      return second_header_res.as_failure();
+    }
+    auto &second_header = second_header_res.value();
+
+    auto slot_res = getSlot(first_header);
+    BOOST_ASSERT(slot_res.has_value());
+    auto slot = slot_res.value();
+    BOOST_ASSERT_MSG(
+        [&] {
+          slot_res = getSlot(second_header);
+          return slot_res.has_value() and slot_res.value() == slot;
+        }(),
+        "Equivocating blocks must be block of one slot");
+
+    auto authority_index_res = getAuthority(first_header);
+    BOOST_ASSERT(authority_index_res.has_value());
+    auto authority_index = authority_index_res.value();
+    BOOST_ASSERT_MSG(
+        [&] {
+          authority_index_res = getAuthority(second_header);
+          return authority_index_res.has_value()
+             and authority_index_res.value() == authority_index;
+        }(),
+        "Equivocating blocks must be block of one authority");
+
+    auto parent = second_header.parentInfo().value();
+    auto epoch_res = slots_util_.get()->slotToEpoch(parent, slot);
+    if (epoch_res.has_error()) {
+      SL_WARN(log_, "Can't compute epoch by slot: {}", epoch_res.error());
+      return epoch_res.as_failure();
+    }
+    auto epoch = epoch_res.value();
+
+    auto config_res = config_repo_->config(parent, epoch);
+    if (config_res.has_error()) {
+      SL_WARN(log_, "Can't obtain config: {}", config_res.error());
+      return config_res.as_failure();
+    }
+    auto &config = config_res.value();
+
+    const auto &authorities = config->authorities;
+    const auto &authority = authorities[authority_index];
+
+    EquivocationProof equivocation_proof{
+        .offender = authority,
+        .slot = slot,
+        .first_header = std::move(first_header),
+        .second_header = std::move(second_header),
+    };
+
+    auto ownership_proof_res = sassafras_api_->generate_key_ownership_proof(
+        block_tree_->bestBlock().hash, equivocation_proof.offender);
+    if (ownership_proof_res.has_error()) {
+      SL_WARN(
+          log_, "Can't get ownership proof: {}", ownership_proof_res.error());
+      return ownership_proof_res.as_failure();
+    }
+    auto &ownership_proof_opt = ownership_proof_res.value();
+    if (not ownership_proof_opt.has_value()) {
+      SL_WARN(log_,
+              "Can't get ownership proof: runtime call returns none",
+              ownership_proof_res.error());
+      return ownership_proof_res.as_failure();  // FIXME;
+    }
+    auto &ownership_proof = ownership_proof_opt.value();
+
+    offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
+    ::libp2p::common::FinalAction remove(
+        [&] { offchain_worker_pool_->removeWorker(); });
+
+    return sassafras_api_->submit_report_equivocation_unsigned_extrinsic(
+        second_header.parent_hash,
+        std::move(equivocation_proof),
+        ownership_proof);
   }
 
   bool Sassafras::changeEpoch(EpochNumber epoch,
@@ -268,7 +405,7 @@ namespace kagome::consensus::sassafras {
     common::Buffer pre_runtime_data{std::move(encode_res.value())};
 
     return primitives::PreRuntime{
-        {primitives::kSassafrasEngineId, pre_runtime_data}};
+        {primitives::kSassafrasEngineId, std::move(pre_runtime_data)}};
   }
 
   outcome::result<primitives::Seal> Sassafras::makeSeal(
@@ -334,9 +471,13 @@ namespace kagome::consensus::sassafras {
       auto &relay_parent = parent_.hash;
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
+      SL_INFO(log_,
+              "Bitfields set for block.(count={}, relay_parent={})",
+              parachain_inherent_data.bitfields.size(),
+              relay_parent);
 
       parachain_inherent_data.backed_candidates =
-          backing_store_->get(relay_parent);
+          candidates_source_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                parachain_inherent_data.backed_candidates.size(),
@@ -369,15 +510,20 @@ namespace kagome::consensus::sassafras {
                pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    auto &pre_digest = pre_digest_res.value();
+    const auto &pre_digest = pre_digest_res.value();
 
-    auto propose = [self = shared_from_this(),
-                    inherent_data = std::move(inherent_data),
+    auto propose = [wp{weak_from_this()},
+                    inherent_data{std::move(inherent_data)},
                     now,
                     proposal_start,
-                    pre_digest = std::move(pre_digest),
+                    pre_digest{std::move(pre_digest)},
                     slot = slot_,
                     parent = parent_]() mutable {
+      auto self = wp.lock();
+      if (not self) {
+        return;
+      }
+
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
@@ -429,7 +575,7 @@ namespace kagome::consensus::sassafras {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        [&block]() {
+        ([&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               storage::trie::StateVersion::V0,
@@ -439,7 +585,7 @@ namespace kagome::consensus::sassafras {
               crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
-        }(),
+        }()),
         "Extrinsics root does not match extrinsics in the block");
 
     // seal the block

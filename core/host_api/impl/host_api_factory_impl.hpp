@@ -37,6 +37,7 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::EllipticCurves> elliptic_curves,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -56,6 +57,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<crypto::EllipticCurves> elliptic_curves_;
     std::shared_ptr<crypto::Hasher> hasher_;

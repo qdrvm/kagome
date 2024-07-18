@@ -78,11 +78,15 @@ namespace kagome::runtime {
     /// creation of the extrinsic fails.
     ///
     /// Only useful in an offchain context.
-    virtual outcome::result<bool> submit_report_equivocation_unsigned_extrinsic(
+    virtual outcome::result<void> submit_report_equivocation_unsigned_extrinsic(
         const primitives::BlockHash &block,
         const consensus::sassafras::EquivocationProof &equivocation_proof,
         const consensus::sassafras::OpaqueKeyOwnershipProof
             &key_owner_proof) = 0;
+
+    /// Returns a list of all disabled validators at the given block.
+    virtual outcome::result<std::vector<consensus::AuthorityIndex>>
+    disabled_validators(const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

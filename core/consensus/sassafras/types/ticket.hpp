@@ -20,7 +20,24 @@
 
 namespace kagome::consensus::sassafras {
 
-  using EphemeralSeed = crypto::Ed25519Seed;
+  class EphemeralSeed : public crypto::Ed25519Seed {
+    // TODO(xDimon): think about secure store this data
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const EphemeralSeed &x) {
+      return s << static_cast<const crypto::Ed25519Seed &>(x).unsafeBytes();
+    }
+
+    friend inline ::scale::ScaleDecoderStream &operator>>(
+        ::scale::ScaleDecoderStream &s, EphemeralSeed &x) {
+      std::array<uint8_t, crypto::Ed25519Seed::size()> buff;
+      s >> buff;
+      static_cast<crypto::Ed25519Seed &>(x) =
+          crypto::Ed25519Seed::from(crypto::SecureCleanGuard<uint8_t>(buff))
+              .value();
+      return s;
+    }
+  };
+
   using EphemeralPublic = crypto::Ed25519PublicKey;
   using EphemeralSignature = crypto::Ed25519Signature;
 

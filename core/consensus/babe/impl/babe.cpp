@@ -231,7 +231,7 @@ namespace kagome::consensus::babe {
 
     if (not is_active_validator_) {
       SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
-      return SlotLeadershipError::NON_VALIDATOR;
+      return SlotLeadershipError::NO_VALIDATOR;
     }
 
     auto validator_status = getValidatorStatus(best_block, epoch);
@@ -529,7 +529,7 @@ namespace kagome::consensus::babe {
                                    self->slots_util_.get()->slotFinishTime(slot)
                                        - self->timings_.slot_duration / 3,
                                    inherent_data,
-                                   {pre_digest},
+                                   {std::move(pre_digest)},
                                    changes_tracker);
       if (not res) {
         SL_ERROR(self->log_, "Cannot propose a block: {}", res.error());
@@ -555,6 +555,7 @@ namespace kagome::consensus::babe {
     };
 
     worker_pool_handler_->execute(std::move(propose));
+
     return outcome::success();
   }
 

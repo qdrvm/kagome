@@ -251,8 +251,11 @@ namespace kagome::consensus::sassafras {
 
       // erased key
 
-      crypto::Ed25519Seed erased_seed;
-      random_generator_->fillRandomly(erased_seed);
+      std::array<uint8_t, crypto::Ed25519Seed::size()> tmp;
+      random_generator_->fillRandomly(tmp);
+      EphemeralSeed erased_seed(
+          EphemeralSeed::from(crypto::SecureCleanGuard(tmp)));
+
       auto erased_keypair =
           ed25519_provider_->generateKeypair(erased_seed, {}).value();
 
@@ -263,8 +266,10 @@ namespace kagome::consensus::sassafras {
           vrf::vrf_output(secret_key, revealed_vrf_input);
       auto revealed_seed_bytes =
           make_revealed_key_seed(revealed_vrf_input, revealed_vrf_output);
-      auto revealed_seed =
-          crypto::Ed25519Seed::fromSpan(revealed_seed_bytes).value();
+
+      EphemeralSeed revealed_seed(
+          EphemeralSeed::from(crypto::SecureCleanGuard(revealed_seed_bytes)));
+
       auto revealed_keypair =
           ed25519_provider_->generateKeypair(revealed_seed, {}).value();
 

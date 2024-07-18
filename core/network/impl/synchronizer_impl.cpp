@@ -24,7 +24,6 @@
 #include "network/protocols/sync_protocol.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
-#include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"

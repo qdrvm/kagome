@@ -57,7 +57,7 @@ namespace kagome::runtime {
   BabeApiImpl::disabled_validators(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     auto res = executor_->call<std::vector<consensus::AuthorityIndex>>(
-        ctx, "ParachainHost_disabled_validators");
+        ctx, "BabeApi_disabled_validators");
     if (res.has_error()
         and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
       return std::vector<consensus::AuthorityIndex>{};

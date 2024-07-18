@@ -419,7 +419,7 @@ TEST_F(BabeTest, NonValidator) {
             ValidatorStatus::NonValidator);
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::NON_VALIDATOR);
+                       SlotLeadershipError::NO_VALIDATOR);
 }
 
 TEST_F(BabeTest, DisabledValidator) {

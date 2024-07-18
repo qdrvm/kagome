@@ -33,7 +33,10 @@ namespace {
             -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
           return expected_val;
         },
-        [](const auto &) { return std::nullopt; });
+        [](const auto &)
+            -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
+          return std::nullopt;
+        });
   }
 }  // namespace
 
@@ -41,6 +44,12 @@ namespace kagome::consensus::sassafras {
   outcome::result<SlotNumber> getSlot(const primitives::BlockHeader &header) {
     OUTCOME_TRY(slot_claim, getSlotClaim(header));
     return slot_claim.slot_number;
+  }
+
+  outcome::result<AuthorityIndex> getAuthority(
+      const primitives::BlockHeader &header) {
+    OUTCOME_TRY(slot_claim, getSlotClaim(header));
+    return slot_claim.authority_index;
   }
 
   outcome::result<SlotClaim> getSlotClaim(
