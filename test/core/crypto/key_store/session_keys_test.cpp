@@ -78,11 +78,10 @@ TEST_F(SessionKeysTest, SessionKeys) {
       .Times(1)
       .WillOnce(Return(ed_keys));
 
-  auto ed_priv =
-      Ed25519PrivateKey::fromHex(
-          SecureCleanGuard{"a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b1"
-                           "27ec35cd8325602dd47fd"s})
-          .value();
+  auto ed_priv = Ed25519PrivateKey::fromHex(
+                     SecureCleanGuard{"a4681403ba5b6a3f3bd0b0604ce439a7"
+                                      "8244c7d43b127ec35cd8325602dd47fd"s})
+                     .value();
 
   auto sr_priv =
       Sr25519SecretKey::fromHex(

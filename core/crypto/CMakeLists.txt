@@ -66,6 +66,22 @@ target_link_libraries(sr25519_provider
 )
 kagome_install(sr25519_provider)
 
+add_library(bandersnatch_provider
+    bandersnatch/bandersnatch_provider_impl.cpp
+)
+target_link_libraries(bandersnatch_provider
+    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
+)
+kagome_install(bandersnatch_provider)
+
+add_library(bandersnatch_vrf
+    bandersnatch/vrf.cpp
+)
+target_link_libraries(bandersnatch_vrf
+    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
+)
+kagome_install(bandersnatch_vrf)
+
 add_library(ecdsa_provider
     ecdsa/ecdsa_provider_impl.cpp
     ecdsa_types.cpp

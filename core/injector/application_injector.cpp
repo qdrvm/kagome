@@ -5,7 +5,6 @@
  */
 
 #include "injector/application_injector.hpp"
-#include "crypto/key_store.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -86,11 +85,13 @@
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -609,7 +610,7 @@ namespace {
                   injector.template create<sptr<application::ChainSpec>>();
               return crypto::KeyStore::Config{config.keystorePath(chain_spec->id())};
             }),
-            
+
             // inherit host injector
             libp2p::injector::makeHostInjector(
                 libp2p::injector::useWssPem(config->nodeWssPem()),
@@ -761,6 +762,7 @@ namespace {
             di::bind<crypto::KeySuiteStore<crypto::Sr25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Sr25519Provider>>(),
             di::bind<crypto::KeySuiteStore<crypto::Ed25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Ed25519Provider>>(),
             di::bind<crypto::KeySuiteStore<crypto::EcdsaProvider>>.template to<crypto::KeySuiteStoreImpl<crypto::EcdsaProvider>>(),
+            di::bind<crypto::KeySuiteStore<crypto::BandersnatchProvider>>.template to<crypto::KeySuiteStoreImpl<crypto::BandersnatchProvider>>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
             makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
@@ -876,6 +878,7 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
+            di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
             di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
             // user-defined overrides...

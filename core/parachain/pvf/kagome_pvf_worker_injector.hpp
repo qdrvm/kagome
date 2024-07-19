@@ -9,6 +9,7 @@
 #include <boost/di.hpp>
 
 #include "blockchain/block_header_repository.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -75,6 +76,7 @@ namespace kagome::parachain {
   using sptr = std::shared_ptr<T>;
   auto pvf_worker_injector(const PvfWorkerInputConfig &input) {
     namespace di = boost::di;
+    // clang-format off
     return di::make_injector(
         di::bind<crypto::Hasher>.to<crypto::HasherImpl>(),
         di::bind<crypto::EcdsaProvider>.to<crypto::EcdsaProviderImpl>(),
@@ -83,15 +85,36 @@ namespace kagome::parachain {
         di::bind<crypto::Bip39Provider>.to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
+        di::bind<crypto::BandersnatchProvider>.to<crypto::BandersnatchProviderImpl>(),
         di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
         bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
         di::bind<runtime::CoreApiFactory>.to<runtime::CoreApiFactoryImpl>(),
-        di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
+
+        // bound by lambda because direct binding is failing: ctor gives
+        // compilation error when EcdsaProvider and Secp256k1Provider in args
+        // together
+        bind_by_lambda<host_api::HostApiFactory>([](auto &injector) {
+          return std::make_shared<host_api::HostApiFactoryImpl>(
+              injector.template create<const host_api::OffchainExtensionConfig&>(),
+              injector.template create<std::shared_ptr<crypto::EcdsaProvider>>(),
+              injector.template create<std::shared_ptr<crypto::Ed25519Provider>>(),
+              injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+              injector.template create<std::shared_ptr<crypto::BandersnatchProvider>>(),
+              injector.template create<std::shared_ptr<crypto::Secp256k1Provider>>(),
+              injector.template create<std::shared_ptr<crypto::EllipticCurves>>(),
+              injector.template create<std::shared_ptr<crypto::Hasher>>(),
+              injector.template create<std::shared_ptr<crypto::KeyStore>>(),
+              injector.template create<std::shared_ptr<offchain::OffchainPersistentStorage>>(),
+              injector.template create<std::shared_ptr<offchain::OffchainWorkerPool>>()
+          );
+        }),
+
         di::bind<storage::trie::TrieStorage>.to<NullTrieStorage>(),
         bind_null<runtime::RuntimeInstancesPool>(),
         bind_null<storage::trie::TrieSerializer>()
+    // clang-format on
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
             ,
