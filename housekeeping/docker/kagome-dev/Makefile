@@ -3,6 +3,7 @@
 RUST_VERSION ?= 1.79.0
 # bookworm (Debian 12)
 MINIDEB_IMAGE ?= bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+KAGOME_PACKAGE_VERSION ?= 20.07.24-0fa54d1-Release
 
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= x86_64
@@ -83,13 +84,13 @@ kagome_dev_docker_build:
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $(pwd)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"${BUILD_TYPE}\" -DBACKWARD=OFF && \
+		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF && \
 		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
 		mkdir -p /tmp/kagome && \
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		./build_apt_package.sh \
-			\"$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}\" \
+			\"$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)\" \
 			$(PACKAGE_ARCHITECTURE) \
 			kagome-dev \
 			/tmp/kagome \
@@ -107,7 +108,7 @@ upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$${BUILD_TYPE}_$(PACKAGE_ARCHITECTURE).deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%d.%m.%y')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb
 	
 
 runtime_cache:
@@ -128,7 +129,7 @@ runtime_cache:
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome/zombienet && \
 		sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
-		install_packages kagome-dev && \
+		install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
 		./precompile.sh && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		mkdir -p /tmp/kagome_runtime && \

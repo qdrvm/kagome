@@ -1,24 +1,27 @@
 RUST_IMAGE=rust:1.79-slim-bookworm
 # bookworm (Debian 12)
 MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+SCCACHE_VERSION ?= 0.7.4
 
+# empty for local usage
 DOCKER_REGISTRY_PATH ?=
+
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
-SCCACHE_VERSION ?= 0.7.4
+
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
 
 #USE_GCP_SCCACHE ?= true
-SCCACHE_GCS_BUCKET ?= 
+SCCACHE_GCS_BUCKET ?=
 GOOGLE_APPLICATION_CREDENTIALS ?=
-PROJECT_ID ?= 
+PROJECT_ID ?=
 
 CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
-RESULT_BINARIES=./target/testnet/malus ./target/testnet/undying-collator ./target/testnet/adder-collator
+RESULT_BINARIES=./target/release/malus ./target/release/undying-collator ./target/release/adder-collator
 RESULT_BIN_NAMES=malus undying-collator adder-collator
 
-POLKADOT_BINARY_PACKAGE_VERSION ?= 
+POLKADOT_BINARY_PACKAGE_VERSION ?=
 KAGOME_PACKAGE_VERSION ?=
 
 export DOCKER_BUILDKIT=1
@@ -41,13 +44,14 @@ CUMULUS_RELEASE ?= v0.9.420
 POLKADOT_RELEASE ?= v0.9.42
 POLKADOT_RELEASE_GLOBAL ?= v0.9.42
 
-# run_test takes two arguments: 
+# run_test takes two arguments:
 # (1) docker image name
 # (2) test file path
 # COPY_LOGS_TO_HOST: boolean flag to determine whether to copy logs to host
 
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
+	START_TIME=$$(date +%s); \
 	echo "Running test in container $$CONTAINER_NAME with params \n image:$(1), test:$(2) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
 	TEST_PATH=$$(echo $(2) | xargs); \
 	docker run --name $$CONTAINER_NAME \
@@ -66,7 +70,13 @@ define run_test
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \
 	fi; \
+	END_TIME=$$(date +%s); \
+	DURATION=$$((END_TIME - START_TIME)); \
+	MINUTES=$$((DURATION / 60)); \
+	SECONDS=$$((DURATION % 60)); \
+	echo "Test duration: $$MINUTES min $$SECONDS sec"; \
 	echo "Test finished with exit code $$TEST_EXIT_CODE"; \
+	echo "Runtime cache directory content:"; \
 	exit $$TEST_EXIT_CODE
 endef
 
@@ -97,7 +107,7 @@ polkadot_builder_push:
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
 	else \
 		echo "One or more files are missing."; \
-	fi	
+	fi
 
 zombie_tester_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -159,7 +169,7 @@ polkadot_binary:
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
 			"cargo update $(CARGO_PACKETS) && \
-			cargo build --profile testnet $(CARGO_PACKETS) && \
+			cargo build --release $(CARGO_PACKETS) && \
 			cp $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
 		 	./build_apt_package.sh \
 		 		$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
