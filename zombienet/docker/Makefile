@@ -1,61 +1,59 @@
-RUST_IMAGE=rust:1.79-slim-bookworm
+# Shared Environment Variables
 # bookworm (Debian 12)
 MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
-SCCACHE_VERSION ?= 0.7.4
-
-# empty for local usage
+## DOCKER_REGISTRY_PATH empty for local usage
+GOOGLE_APPLICATION_CREDENTIALS ?=
 DOCKER_REGISTRY_PATH ?=
-
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
-ARTIFACTS_REPO ?= kagome-apt
-REGION ?= europe-north1
+# polkadot_builder Variables
+RUST_IMAGE=rust:1.79-slim-bookworm
+SCCACHE_VERSION ?= 0.7.4
 
-#USE_GCP_SCCACHE ?= true
+# polkadot_binary Variables
 SCCACHE_GCS_BUCKET ?=
-GOOGLE_APPLICATION_CREDENTIALS ?=
-PROJECT_ID ?=
-
 CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
 RESULT_BINARIES=./target/release/malus ./target/release/undying-collator ./target/release/adder-collator
 RESULT_BIN_NAMES=malus undying-collator adder-collator
+POLKADOT_BINARY_DEPENDENCIES=libstdc++6, zlib1g, libgcc-s1, libc6
 
+# upload_apt_package Variables
+ARTIFACTS_REPO ?= kagome-apt
+REGION ?= europe-north1
+
+# zombie_tester Variables
+PROJECT_ID ?=
 POLKADOT_BINARY_PACKAGE_VERSION ?=
+
+# copy_logs_to_host Variables
+# COPY_LOGS_TO_HOST: boolean flag to determine whether to copy logs to host
+COPY_LOGS_TO_HOST ?= true
+HOST_LOGS_PATH ?= /tmp/test_logs
+CONTAINER_NAME ?= zombienet-test
+
+# tests Variables
+ZOMBIE_TESTER_IMAGE ?= zombie_tester:latest
 KAGOME_PACKAGE_VERSION ?=
+WORKING_DIR := $(shell pwd)/../../../kagome
+DELETE_IMAGE_AFTER_TEST ?= true
+
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
 export BUILDKIT_PROGRESS=auto
 
-WORKING_DIR := $(shell pwd)/../../../kagome
-
-
-BRANCH_NAME ?= master
-KAGOME_IMAGE ?= qdrvm/kagome:latest
-ZOMBIE_TESTER_IMAGE ?= zombie_tester:latest
-ZOOMBIE_BUILDER_IMAGE ?= qdrvm/zombie-builder:testing
-CONTAINER_NAME ?= zombienet-test
-
-COPY_LOGS_TO_HOST ?= true
-HOST_LOGS_PATH ?= /tmp/test_logs
-
-CUMULUS_RELEASE ?= v0.9.420
-POLKADOT_RELEASE ?= v0.9.42
-POLKADOT_RELEASE_GLOBAL ?= v0.9.42
 
 # run_test takes two arguments:
 # (1) docker image name
 # (2) test file path
-# COPY_LOGS_TO_HOST: boolean flag to determine whether to copy logs to host
-
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
 	START_TIME=$$(date +%s); \
 	echo "Running test in container $$CONTAINER_NAME with params \n image:$(1), test:$(2) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
 	TEST_PATH=$$(echo $(2) | xargs); \
 	docker run --name $$CONTAINER_NAME \
-		--platform linux/amd64 \
+		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
 		-v $(WORKING_DIR):/home/nonroot/bin/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
@@ -77,6 +75,10 @@ define run_test
 	echo "Test duration: $$MINUTES min $$SECONDS sec"; \
 	echo "Test finished with exit code $$TEST_EXIT_CODE"; \
 	echo "Runtime cache directory content:"; \
+	if [ "$(DELETE_IMAGE_AFTER_TEST)" = "true" ]; then \
+		docker rm -f $$CONTAINER_NAME; \
+		echo "Container $$CONTAINER_NAME removed"; \
+	fi; \
 	exit $$TEST_EXIT_CODE
 endef
 
@@ -87,6 +89,7 @@ get_versions:
 	echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" >> commit_hash.txt
 
 polkadot_builder:
+	$(MAKE) get_versions
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker build --platform $(PLATFORM) \
@@ -105,36 +108,6 @@ polkadot_builder_push:
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
-	else \
-		echo "One or more files are missing."; \
-	fi
-
-zombie_tester_push:
-	if [ -f polkadot-sdk-versions.txt ]; then \
-		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
-		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:latest ; \
-	else \
-		echo "One or more files are missing."; \
-	fi
-
-zombie_tester:
-	if [ -f polkadot-sdk-versions.txt ]; then \
-  		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		PROJECT_ID=$(PROJECT_ID) \
-		docker build \
-			--platform $(PLATFORM) \
-			--no-cache \
-			-t $(DOCKER_REGISTRY_PATH)zombie_tester:latest \
-			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
-			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
-			-f zombie_tester.Dockerfile \
-			--build-arg PROJECT_ID=$$PROJECT_ID \
-			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
-			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
-			--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
@@ -177,7 +150,7 @@ polkadot_binary:
 		 		polkadot-binary \
 		 		/tmp/polkadot_binary \
 		 		'Polkadot binaries: $(RESULT_BIN_NAMES)' \
-		 		'libstdc++6, zlib1g, libgcc-s1, libc6' ; \
+		 		'$(POLKADOT_BINARY_DEPENDENCIES)' ; \
 		 		" || DOCKER_EXEC_RESULT=$$? ; \
 		if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 			echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -197,23 +170,35 @@ upload_apt_package:
 	gcloud artifacts versions delete $$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH --package=polkadot-binary --quiet || true ; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/polkadot-binary_$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$${SHORT_COMMIT_HASH}_$(ARCHITECTURE).deb
 
-
-polkadot_binary_temp:
+zombie_tester:
 	if [ -f polkadot-sdk-versions.txt ]; then \
+  		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		CARGO_PACKETS="-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator" \
-		DOCKER_BUILDKIT=0 docker build -t $(POLKADOT_BINARY_REPO)/polkadot_binary:$$POLKADOT_SDK_RELEASE -t $(POLKADOT_BINARY_REPO)/polkadot_binary:latest \
-		-f polkadot_builder.Dockerfile \
-		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
-		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL \
-		--build-arg POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC . ; \
+		PROJECT_ID=$(PROJECT_ID) \
+		docker build \
+			--platform $(PLATFORM) \
+			--no-cache \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:latest \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
+			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
+			-f zombie_tester.Dockerfile \
+			--build-arg PROJECT_ID=$$PROJECT_ID \
+			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
+			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
+			--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
 
+zombie_tester_push:
+	if [ -f polkadot-sdk-versions.txt ]; then \
+		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:latest ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
 
 copy_logs_to_host:
 	@CONTAINER_NAME=$(CONTAINER_NAME); \
@@ -222,7 +207,7 @@ copy_logs_to_host:
 	echo "Copying logs from container $$CONTAINER_NAME to host path $(HOST_LOGS_PATH)"; \
 	docker commit $$CONTAINER_NAME $$FINISHED_IMAGE_NAME; \
 	echo "Starting temporary container $$FINISHED_CONTAINER_NAME to copy logs"; \
-	docker run -d --name $$FINISHED_CONTAINER_NAME --platform linux/amd64 --entrypoint "/bin/bash" $$FINISHED_IMAGE_NAME -c "tail -f /dev/null"; \
+	docker run -d --name $$FINISHED_CONTAINER_NAME --platform $(PLATFORM) --entrypoint "/bin/bash" $$FINISHED_IMAGE_NAME -c "tail -f /dev/null"; \
 	mkdir -p $(HOST_LOGS_PATH); \
 	DIRS_TO_COPY=$$(docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "find /tmp/ -type d -name 'zombie-*'"); \
 	for DIR in $$DIRS_TO_COPY; do \
@@ -235,54 +220,6 @@ copy_logs_to_host:
 	docker stop $$FINISHED_CONTAINER_NAME; \
 	docker rm -f $$FINISHED_CONTAINER_NAME; \
 	docker rmi $$FINISHED_IMAGE_NAME
-
-
-
-
-fetch_and_run:
-	if [ -f polkadot-sdk-versions.txt ]; then \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
-		DOCKER_BUILDKIT=0 docker build -t $(POLKADOT_BINARY_REPO)/polkadot_builder:$$POLKADOT_SDK_RELEASE -t $(POLKADOT_BINARY_REPO)/polkadot_builder:latest \
-		-f polkadot_builder.Dockerfile \
-		--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
-		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL \
-		--build-arg POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC . ; \
-	else \
-		echo "One or more files are missing."; \
-	fi
-
-
-
-build_polkadot_binary:
-	IMAGE=$(POLKADOT_BINARY_REPO)/polkadot_builder:latest; \
-	CARGO_PACKETS="-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator" \
-	docker run --rm --platform linux/amd64 -v $(PWD):/workspace -w /workspace $$IMAGE cargo build --release $$CARGO_PACKETS
-
-
-
-builder:
-	DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=$(CUMULUS_RELEASE) --build-arg POLKADOT_RELEASE=$(POLKADOT_RELEASE) --build-arg POLKADOT_RELEASE_GLOBAL=$(POLKADOT_RELEASE_GLOBAL) .
-
-tester:
-	python3 version.py https://github.com/paritytech/polkadot-sdk && \
-	if [ -f polkadot-sdk-versions.txt ]; then \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		BRANCH_NAME="$(BRANCH_NAME)" \
-		KAGOME_IMAGE="$(KAGOME_IMAGE)" \
-		DOCKER_BUILDKIT=0 docker build --platform linux/amd64 --no-cache -t qdrvm/zombie-tester:latest -t zombie-tester:latest -f tester.Dockerfile \
-		--build-arg BRANCH_NAME=$$BRANCH_NAME \
-		--build-arg KAGOME_IMAGE=$$KAGOME_IMAGE \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
-	else \
-		echo "One or more files are missing."; \
-	fi
-
-tests:
-	docker run --platform linux/amd64 -it qdrvm/zombie-tester:latest bash
 
 test-polkadot-functional-0001-parachains-pvf:
 	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl")

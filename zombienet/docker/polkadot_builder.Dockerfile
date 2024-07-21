@@ -8,6 +8,8 @@ ARG RUST_IMAGE
 
 FROM ${RUST_IMAGE} AS polkadot-sdk-builder
 
+ARG AUTHOR
+ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Polkadot SDK builder image"
 
