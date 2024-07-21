@@ -69,7 +69,7 @@ jobs:
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
 
   build_kagome_runtime:
-    runs-on: ubuntu-latest
+    runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     steps:
       - name: Checkout repository
