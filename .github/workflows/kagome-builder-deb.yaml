@@ -16,6 +16,11 @@ on:
         required: false
         default: 'false'
         type: 'boolean'
+      runtime_cache_rebuild:
+        description: 'Rebuild Kagome Runtime Cache'
+        required: false
+        default: 'false'
+        type: 'boolean'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -85,13 +90,13 @@ jobs:
 
       - name: "Build Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev
-        # if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        if: github.event.inputs.runtime_cache_rebuild == 'true'
         run: make runtime_cache \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
 
       - name: "Push Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev
-        # if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        if: github.event.inputs.runtime_cache_rebuild == 'true'
         run: make upload_apt_package_runtime \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   

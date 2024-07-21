@@ -156,4 +156,9 @@ upload_apt_package_runtime:
 	echo "Runtime version: $$RUNTIME_VERSION"; \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
+	RUNTIME_PACKAGE_EXIST=$$(gcloud artifacts versions list --package=kagome-dev-runtime --format=json | jq -e ".[] | select(.name | endswith(\"${RUNTIME_VERSION}\"))" > /dev/null && echo "True" || echo "False"); \
+	if [ "$$RUNTIME_PACKAGE_EXIST" = "True" ]; then \
+		echo "Package with version $$RUNTIME_VERSION already exists"; \
+		gcloud artifacts versions delete $$RUNTIME_VERSION --package=kagome-dev-runtime --quiet; \
+	fi; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_$${RUNTIME_VERSION}_$(PACKAGE_ARCHITECTURE).deb
