@@ -106,6 +106,12 @@ RUN ./polkadot --version && \
     adder-collator --version && \
     undying-collator --version
 
+RUN ln -s /home/nonroot/bin/zombienet-linux-x64 /usr/local/bin/zombienet && \
+    ln -s /home/nonroot/bin/polkadot /usr/local/bin/polkadot && \
+    ln -s /home/nonroot/bin/polkadot-parachain /usr/local/bin/polkadot-parachain && \
+    ln -s /home/nonroot/bin/polkadot-execute-worker /usr/local/bin/polkadot-execute-worker && \
+    ln -s /home/nonroot/bin/polkadot-prepare-worker /usr/local/bin/polkadot-prepare-worker
+
 RUN install_packages  \
       curl  \
       gpg  \
