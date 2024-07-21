@@ -134,7 +134,7 @@ runtime_cache:
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome/zombienet && \
 		sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
-		install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) && \
+		install_packages kagome-dev && \
 		./precompile.sh && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		mkdir -p /tmp/kagome_runtime && \
