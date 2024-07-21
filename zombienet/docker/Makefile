@@ -215,7 +215,7 @@ copy_logs_to_host:
 	done; \
 	echo "Logs copied to $(HOST_LOGS_PATH)"; \
 	echo "Runtime cache directory content:"; \
-	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/"
+	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/" ; \
 	echo "Stop and removing container $$FINISHED_CONTAINER_NAME and image $$FINISHED_IMAGE_NAME"; \
 	docker stop $$FINISHED_CONTAINER_NAME; \
 	docker rm -f $$FINISHED_CONTAINER_NAME; \
