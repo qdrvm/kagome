@@ -156,7 +156,7 @@ runtime_cache:
 	docker stop $$CONTAINER_NAME
 
 upload_apt_package_runtime:
-	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py); \
+	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py)-$$(date +'%y.%m.%d'); \
 	echo "Runtime version: $$RUNTIME_VERSION"; \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
