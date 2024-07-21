@@ -1,6 +1,6 @@
 ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
-ARG BASE_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+ARG BASE_IMAGE
 ARG RUST_VERSION=1.79.0
 
 ARG PROJECT_ID
@@ -14,6 +14,8 @@ ARG ARCHITECTURE=x86_64
 
 FROM ${BASE_IMAGE} as zombie-tester
 
+ARG AUTHOR
+ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Zombienet image"
 

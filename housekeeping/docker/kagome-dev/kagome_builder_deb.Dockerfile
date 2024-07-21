@@ -6,9 +6,12 @@ ARG ARCHITECTURE=x86_64
 
 FROM ${BASE_IMAGE}
 
-SHELL ["/bin/bash", "-c"]
+ARG AUTHOR
+ENV AUTHOR=${AUTHOR}
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Kagome builder image"
 
-ENV KAGOME_IN_DOCKER=1
+SHELL ["/bin/bash", "-c"]
 
 RUN install_packages \
         build-essential \

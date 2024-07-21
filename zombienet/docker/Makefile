@@ -2,8 +2,8 @@
 # bookworm (Debian 12)
 MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
 ## DOCKER_REGISTRY_PATH empty for local usage
-GOOGLE_APPLICATION_CREDENTIALS ?=
 DOCKER_REGISTRY_PATH ?=
+GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
@@ -182,6 +182,7 @@ zombie_tester:
 			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
 			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 			-f zombie_tester.Dockerfile \
+			--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
 			--build-arg PROJECT_ID=$$PROJECT_ID \
 			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
 			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \

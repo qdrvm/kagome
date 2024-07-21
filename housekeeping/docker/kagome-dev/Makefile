@@ -1,34 +1,39 @@
-#RUST_IMAGE=rust:1.79-slim-bookworm
-
-RUST_VERSION ?= 1.79.0
+# Shared Environment Variables
 # bookworm (Debian 12)
 MINIDEB_IMAGE ?= bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
-KAGOME_PACKAGE_VERSION ?= 20.07.24-0fa54d1-Release
-
+## DOCKER_REGISTRY_PATH empty for local usage
+DOCKER_REGISTRY_PATH ?=
+GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= x86_64
 PACKAGE_ARCHITECTURE ?= amd64
 
-DOCKER_REGISTRY_PATH ?=
-ARTIFACTS_REPO ?= kagome-apt
-REGION ?= europe-north1
+# Debug, Release, RelWithDebInfo
+BUILD_TYPE ?= Release
 
+# Generated versions
 MINIDEB_HASH := $(subst bitnami/minideb@sha256:,,$(MINIDEB_IMAGE))
 MINIDEB_SHORT_HASH := $(shell echo $(MINIDEB_HASH) | cut -c1-7)
 MINIDEB_TAG = $(MINIDEB_SHORT_HASH)_rust-$(RUST_VERSION)
 
-DEPENDENCIES ?= libstdc++6, zlib1g, libgcc-s1, libc6, libtinfo6, libseccomp2, libatomic1
+# kagome_builder_deb Variables
+RUST_VERSION ?= 1.79.0
 
+# kagome_dev_docker_build Variables
+BUILD_DIR ?= build
+CACHE_DIR := $(shell pwd)/../../../../kagome/$(BUILD_DIR)/cache
+DEPENDENCIES ?= libstdc++6, zlib1g, libgcc-s1, libc6, libtinfo6, libseccomp2, libatomic1
 GITHUB_HUNTER_USERNAME ?=
 GITHUB_HUNTER_TOKEN ?=
 CTEST_OUTPUT_ON_FAILURE ?= 1
 
-# Debug, Release, RelWithDebInfo
-BUILD_TYPE ?= Release
+# kagome_runtime_cache Variables
+KAGOME_PACKAGE_VERSION ?=
 
-BUILD_DIR ?= build
-CACHE_DIR := $(shell pwd)/../../../../kagome/$(BUILD_DIR)/cache
-WORKING_DIR := $(shell pwd)/../../../../kagome
+# upload_apt_package Variables
+ARTIFACTS_REPO ?= kagome-apt
+REGION ?= europe-north1
+
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -53,6 +58,7 @@ kagome_builder_deb_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest
 
 kagome_dev_docker_build:
+	$(MAKE) get_versions
 	mkdir -p $(CACHE_DIR)/.cargo $(CACHE_DIR)/.hunter $(CACHE_DIR)/.cache/ccache $(CACHE_DIR)/.rustup ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
@@ -109,7 +115,6 @@ upload_apt_package:
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb
-	
 
 runtime_cache:
 	CONTAINER_NAME=kagome_dev_runtime_cache_$$(openssl rand -hex 6); \
@@ -149,7 +154,6 @@ runtime_cache:
 		exit $$DOCKER_EXEC_RESULT; \
 	fi; \
 	docker stop $$CONTAINER_NAME
-
 
 upload_apt_package_runtime:
 	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py); \
