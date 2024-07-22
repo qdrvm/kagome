@@ -184,6 +184,8 @@ namespace kagome::consensus::grandpa {
       MissingBlocks blocks;
     };
 
+    void startCurrentRound();
+
     void callbackCall(ApplyJustificationCb &&callback,
                       outcome::result<void> &&result);
     /**
@@ -197,9 +199,9 @@ namespace kagome::consensus::grandpa {
         RoundNumber round_number, std::optional<VoterSetId> voter_set_id);
 
     /**
-     * @return Get grandpa::MovableRoundState for the last completed round
+     * Make next round from last saved justification.
      */
-    outcome::result<MovableRoundState> getLastCompletedRound() const;
+    outcome::result<void> makeRoundAfterLastFinalized();
 
     /**
      * Initializes new round by provided round state and voter. Note that round

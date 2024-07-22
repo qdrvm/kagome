@@ -212,10 +212,8 @@ namespace kagome::consensus::grandpa {
     // Derive-Primary
     // see ctor
 
-    if (isPrimary_) {
+    if (isPrimary_ and previous_round_) {
       SL_DEBUG(logger_, "Node is primary proposer at round #{}", round_number_);
-
-      BOOST_ASSERT(previous_round_ != nullptr);
 
       // Broadcast Commit-message with previous round best final candidate
       //  (or last finalized otherwise)
@@ -392,10 +390,7 @@ namespace kagome::consensus::grandpa {
 
     const bool is_ready_to_end =
         finalized_.has_value()
-        and finalized_->number
-                >= (previous_round_
-                        ? previous_round_->bestFinalCandidate().number
-                        : last_finalized_block_.number);
+        and finalized_->number >= prevBestFinalCandidate().number;
 
     if (is_ready_to_end) {
       SL_DEBUG(logger_,
@@ -411,10 +406,7 @@ namespace kagome::consensus::grandpa {
     on_complete_handler_ = [&] {
       const bool is_ready_to_end =
           finalized_.has_value()
-          and finalized_->number
-                  >= (previous_round_
-                          ? previous_round_->bestFinalCandidate().number
-                          : last_finalized_block_.number);
+          and finalized_->number >= prevBestFinalCandidate().number;
 
       if (is_ready_to_end) {
         SL_DEBUG(logger_,
@@ -497,11 +489,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrevote() {
-    // Doing prevote is no longer actual
-    if (not previous_round_) {
-      return;
-    }
-
     // Don't change defined vote to avoid equivocation
     if (prevote_.has_value()) {
       sendPrevote(convertToPrevote(prevote_.value()));
@@ -509,11 +496,11 @@ namespace kagome::consensus::grandpa {
     }
 
     // spec: L <- Best-Final-Candidate(r-1)
-    const auto best_final_candicate = previous_round_->bestFinalCandidate();
+    const auto best_final_candidate = prevBestFinalCandidate();
 
     // spec: Bpv <- GRANDPA-GHOST(r)
     const auto best_chain =
-        env_->bestChainContaining(best_final_candicate.hash, voter_set_->id());
+        env_->bestChainContaining(best_final_candidate.hash, voter_set_->id());
     const auto best_prevote_candidate =
         best_chain.has_value() ? convertToBlockInfo(best_chain.value())
                                : last_finalized_block_;
@@ -526,7 +513,7 @@ namespace kagome::consensus::grandpa {
       const auto &primary = primary_vote_.value();
 
       if (best_prevote_candidate.number >= primary.number
-          and primary.number > best_final_candicate.number) {
+          and primary.number > best_final_candidate.number) {
         // spec: N <- Bprim
         prevote_ = primary;
       }
@@ -557,11 +544,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrecommit() {
-    // Doing precommit is no longer actual
-    if (not previous_round_) {
-      return;
-    }
-
     // Don't change defined vote to avoid equivocation
     if (precommit_.has_value()) {
       sendPrecommit(convertToPrecommit(precommit_.value()));
@@ -574,7 +556,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(prevote_ghost_.has_value());
     const auto &prevote_ghost = prevote_ghost_.value();
 
-    auto last_round_estimate = previous_round_->bestFinalCandidate();
+    auto last_round_estimate = prevBestFinalCandidate();
 
     // We should precommit if current state contains prevote, and it is
     // either equal to the last round estimate or is descendant of it
@@ -1223,8 +1205,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    auto current_best = previous_round_ ? previous_round_->bestFinalCandidate()
-                                        : last_finalized_block_;
+    auto current_best = prevBestFinalCandidate();
 
     auto possible_to_prevote = [this](const VoteWeight &weight) {
       return weight.total(VoteType::Prevote, prevote_equivocators_, *voter_set_)
@@ -1604,5 +1585,10 @@ namespace kagome::consensus::grandpa {
 
   VotingRound::Votes VotingRoundImpl::votes() const {
     return {prevotes_->getMessages(), precommits_->getMessages()};
+  }
+
+  BlockInfo VotingRoundImpl::prevBestFinalCandidate() const {
+    return previous_round_ ? previous_round_->bestFinalCandidate()
+                           : last_finalized_block_;
   }
 }  // namespace kagome::consensus::grandpa
