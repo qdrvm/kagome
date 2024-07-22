@@ -33,7 +33,7 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::WasmInstrumenter> instrument);
 
-    OptRef<const runtime::Module> getModule(
+    std::optional<std::shared_ptr<const runtime::Module>> getModule(
         const Hash256 &code_hash,
         const runtime::RuntimeContext::ContextParams &config) const;
 

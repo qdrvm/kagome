@@ -10,6 +10,8 @@
 #include <fstream>
 #include <system_error>
 
+#include <qtils/outcome.hpp>
+
 namespace kagome {
 
   template <typename T>
@@ -26,8 +28,7 @@ namespace kagome {
       };
 
   template <ByteContainer Out>
-  outcome::result<void> readFile(Out &out,
-                const std::filesystem::path &path) {
+  outcome::result<void> readFile(Out &out, const std::filesystem::path &path) {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
     if (not file.good()) {
       out.clear();

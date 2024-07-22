@@ -149,7 +149,6 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -164,7 +163,6 @@ namespace kagome::parachain {
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         pvf_pool_{std::move(pvf_pool)},
-        module_factory_{std::move(module_factory)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
@@ -182,7 +180,6 @@ namespace kagome::parachain {
     SL_INFO(log_,
             "pvf runtime engine {}",
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
-    BOOST_ASSERT(module_factory_ != nullptr);
   }
 
   PvfImpl::~PvfImpl() {
@@ -338,7 +335,7 @@ namespace kagome::parachain {
         return;
       }
       auto &wasm_module = module_opt.value();
-      CB_TRY(auto instance, wasm_module.instantiate());
+      CB_TRY(auto instance, wasm_module->instantiate());
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
       KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);

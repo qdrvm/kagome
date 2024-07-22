@@ -113,7 +113,6 @@ class PvfTest : public testing::Test {
         sr25519_provider,
         parachain_api,
         executor,
-        module_factory_,
         ctx_factory,
         pvf_thread,
         app_state_manager,

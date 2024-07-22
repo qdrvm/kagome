@@ -144,7 +144,8 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
-  OptRef<const Module> RuntimeInstancesPoolImpl::getModule(
+  std::optional<std::shared_ptr<const Module>>
+  RuntimeInstancesPoolImpl::getModule(
       const CodeHash &code_hash, const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
     Key key{code_hash, config};
@@ -152,7 +153,7 @@ namespace kagome::runtime {
     if (!pool_opt) {
       return std::nullopt;
     }
-    return *pool_opt->get().module;
+    return pool_opt->get().module;
   }
 
   outcome::result<

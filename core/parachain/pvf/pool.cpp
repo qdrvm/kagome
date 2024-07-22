@@ -68,7 +68,7 @@ namespace kagome::parachain {
         config);
   }
 
-  OptRef<const runtime::Module> PvfPool::getModule(
+  std::optional<std::shared_ptr<const runtime::Module>> PvfPool::getModule(
       const Hash256 &code_hash,
       const runtime::RuntimeContext::ContextParams &config) const {
     return pool_->getModule(code_hash, config);

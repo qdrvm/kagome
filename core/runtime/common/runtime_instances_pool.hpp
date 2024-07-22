@@ -63,8 +63,8 @@ namespace kagome::runtime {
         const GetCode &get_code,
         const RuntimeContext::ContextParams &config);
 
-    OptRef<const Module> getModule(const CodeHash &code_hash,
-                                   const RuntimeContext::ContextParams &config);
+    std::optional<std::shared_ptr<const Module>> getModule(
+        const CodeHash &code_hash, const RuntimeContext::ContextParams &config);
 
    private:
     using Key = std::tuple<common::Hash256, RuntimeContext::ContextParams>;
