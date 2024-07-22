@@ -73,14 +73,25 @@ namespace kagome::runtime {
     return execute_block_ref(block_ref, std::move(changes_tracker));
   }
 
-  outcome::result<std::unique_ptr<RuntimeContext>> CoreImpl::initialize_block(
+  Core::InitializeBlockResult CoreImpl::initialize_block(
       const primitives::BlockHeader &header,
       TrieChangesTrackerOpt changes_tracker) {
+    OUTCOME_TRY(version, this->version(header.parent_hash));
+    auto core_version = primitives::detail::coreVersionFromApis(version.apis);
     OUTCOME_TRY(ctx,
                 executor_->ctx().persistentAt(header.parent_hash,
                                               std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(ctx, "Core_initialize_block", header));
-    return std::make_unique<RuntimeContext>(std::move(ctx));
+    auto mode = ExtrinsicInclusionMode::AllExtrinsics;
+    auto call = [&]<typename T>() {
+      return executor_->call<T>(ctx, "Core_initialize_block", header);
+    };
+    if (core_version and core_version >= 5) {
+      BOOST_OUTCOME_TRY(mode, call.operator()<ExtrinsicInclusionMode>());
+    } else {
+      OUTCOME_TRY(call.operator()<void>());
+    }
+    return std::make_pair(std::make_unique<RuntimeContext>(std::move(ctx)),
+                          mode);
   }
 
 }  // namespace kagome::runtime

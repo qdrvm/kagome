@@ -55,12 +55,10 @@ namespace kagome::parachain {
       const Hash256 &code_hash,
       BufferView code_zstd,
       const runtime::RuntimeContext::ContextParams &config) const {
-    auto make_timer = [] { return metric_pvf_preparation_time().timer(); };
-    decltype(make_timer()) timer;
+    auto timer = metric_pvf_preparation_time().timer();
     return pool_->precompile(
         code_hash,
         [&]() mutable -> runtime::RuntimeCodeProvider::Result {
-          timer.emplace(make_timer().value());
           OUTCOME_TRY(code, runtime::uncompressCodeIfNeeded(code_zstd));
           metric_code_size.observe(code.size());
           return std::make_shared<Buffer>(code);

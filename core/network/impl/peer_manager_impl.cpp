@@ -14,6 +14,7 @@
 #include <libp2p/protocol/ping.hpp>
 
 #include "common/main_thread_pool.hpp"
+#include "network/can_disconnect.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
@@ -90,6 +91,7 @@ namespace kagome::network {
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ReputationRepository> reputation_repository,
+      LazySPtr<CanDisconnect> can_disconnect,
       std::shared_ptr<PeerView> peer_view)
       : log_{log::createLogger("PeerManager", "network")},
         host_(host),
@@ -107,6 +109,7 @@ namespace kagome::network {
         storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
+        can_disconnect_{std::move(can_disconnect)},
         peer_view_{std::move(peer_view)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
@@ -327,10 +330,8 @@ namespace kagome::network {
 
     for (const auto &[peer_id, desc] : active_peers_) {
       // Skip peer having immunity
-      if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-        if (not it->second.can_be_disconnected()) {
-          continue;
-        }
+      if (not can_disconnect_.get()->canDisconnect(peer_id)) {
+        continue;
       }
 
       const uint64_t last_activity_ms =

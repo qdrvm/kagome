@@ -30,9 +30,11 @@ using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Seed;
 
 struct Sr25519ProviderTest : public ::testing::Test {
-  void SetUp() override {
+  static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
 
+  void SetUp() override {
     random_generator = std::make_shared<BoostRandomGenerator>();
     sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
 

@@ -26,6 +26,9 @@ namespace kagome::authorship {
    public:
     virtual ~BlockBuilderFactory() = default;
 
+    using Result = outcome::result<
+        std::pair<std::unique_ptr<BlockBuilder>, ExtrinsicInclusionMode>>;
+
     /**
      * The make method prepares a BlockBuilder for creating a block on top of a
      * parent block and using provided digests. It also initializes the block
@@ -40,10 +43,9 @@ namespace kagome::authorship {
      * @return A unique pointer to a BlockBuilder, or an error if the
      * BlockBuilder could not be created.
      */
-    virtual outcome::result<std::unique_ptr<BlockBuilder>> make(
-        const primitives::BlockInfo &parent_block,
-        primitives::Digest inherent_digest,
-        TrieChangesTrackerOpt changes_tracker) const = 0;
+    virtual Result make(const primitives::BlockInfo &parent_block,
+                        primitives::Digest inherent_digest,
+                        TrieChangesTrackerOpt changes_tracker) const = 0;
   };
 
 }  // namespace kagome::authorship
