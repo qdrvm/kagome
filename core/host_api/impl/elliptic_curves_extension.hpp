@@ -20,7 +20,7 @@ namespace kagome::crypto {
 
 namespace kagome::host_api {
   /**
-   * Implements extension functions related to ecliptic curves
+   * Implements extension functions related to elliptic curves
    */
   class EllipticCurvesExtension {
    public:

@@ -13,6 +13,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
@@ -85,7 +86,7 @@ namespace kagome::parachain {
         di::bind<crypto::Pbkdf2Provider>.to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.to<crypto::Secp256k1ProviderImpl>(),
         di::bind<crypto::BandersnatchProvider>.to<crypto::BandersnatchProviderImpl>(),
-        bind_null<crypto::EllipticCurves>(),
+        di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
         bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),

@@ -183,8 +183,9 @@ namespace kagome::parachain {
       return;
     }
     worker.code = job.code;
+    auto code = PvfWorkerInput{job.code};
     worker.process->writeScale(
-        PvfWorkerInput{job.code},
+        code,
         [WEAK_SELF, job{std::move(job)}, worker, used{std::move(used)}](
             outcome::result<void> r) mutable {
           WEAK_LOCK(self);
