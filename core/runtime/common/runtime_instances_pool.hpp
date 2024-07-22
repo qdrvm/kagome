@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/optref.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 
 #include <boost/di.hpp>
@@ -53,7 +54,7 @@ namespace kagome::runtime {
                  const RuntimeContext::ContextParams &config,
                  std::shared_ptr<ModuleInstance> &&instance);
 
-    std::filesystem::path cachePath(
+    std::filesystem::path getCachePath(
         const CodeHash &code_hash,
         const RuntimeContext::ContextParams &config) const;
 
@@ -61,6 +62,9 @@ namespace kagome::runtime {
         const CodeHash &code_hash,
         const GetCode &get_code,
         const RuntimeContext::ContextParams &config);
+
+    OptRef<const Module> getModule(const CodeHash &code_hash,
+                                   const RuntimeContext::ContextParams &config);
 
    private:
     using Key = std::tuple<common::Hash256, RuntimeContext::ContextParams>;
@@ -72,7 +76,7 @@ namespace kagome::runtime {
           std::unique_lock<std::mutex> &lock);
     };
 
-    outcome::result<std::reference_wrapper<InstancePool>> getModule(
+    outcome::result<std::reference_wrapper<InstancePool>> getPool(
         std::unique_lock<std::mutex> &lock,
         const CodeHash &code_hash,
         const GetCode &get_code,

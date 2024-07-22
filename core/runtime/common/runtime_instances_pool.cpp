@@ -98,14 +98,14 @@ namespace kagome::runtime {
       const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
-    OUTCOME_TRY(module, getModule(lock, code_hash, get_code, config));
+    OUTCOME_TRY(module, getPool(lock, code_hash, get_code, config));
     OUTCOME_TRY(instance, module.get().instantiate(lock));
     BOOST_ASSERT(shared_from_this());
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, config, std::move(instance));
   }
 
-  std::filesystem::path RuntimeInstancesPoolImpl::cachePath(
+  std::filesystem::path RuntimeInstancesPoolImpl::getCachePath(
       const CodeHash &code_hash,
       const RuntimeContext::ContextParams &config) const {
     std::string name;
@@ -140,13 +140,24 @@ namespace kagome::runtime {
       const GetCode &get_code,
       const RuntimeContext::ContextParams &config) {
     std::unique_lock lock{pools_mtx_};
-    OUTCOME_TRY(getModule(lock, code_hash, get_code, config));
+    OUTCOME_TRY(getPool(lock, code_hash, get_code, config));
     return outcome::success();
+  }
+
+  OptRef<const Module> RuntimeInstancesPoolImpl::getModule(
+      const CodeHash &code_hash, const RuntimeContext::ContextParams &config) {
+    std::unique_lock lock{pools_mtx_};
+    Key key{code_hash, config};
+    auto pool_opt = pools_.get(key);
+    if (!pool_opt) {
+      return std::nullopt;
+    }
+    return *pool_opt->get().module;
   }
 
   outcome::result<
       std::reference_wrapper<RuntimeInstancesPoolImpl::InstancePool>>
-  RuntimeInstancesPoolImpl::getModule(
+  RuntimeInstancesPoolImpl::getPool(
       std::unique_lock<std::mutex> &lock,
       const CodeHash &code_hash,
       const GetCode &get_code,
@@ -186,7 +197,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(is_inserted);
     BOOST_ASSERT(iter != compiling_modules_.end());
     l.unlock();
-    auto path = cachePath(code_hash, config);
+    auto path = getCachePath(code_hash, config);
     auto res = [&]() -> CompilationResult {
       std::error_code ec;
       if (not std::filesystem::exists(path, ec)) {

@@ -328,25 +328,24 @@ namespace kagome::parachain {
       // Reusing instances for PVF calls doesn't work, runtime calls start to
       // crash on access out of memory bounds
       KAGOME_PROFILE_START_L(log_, single_process_runtime_instantitation);
-      auto res = module_factory_->loadCompiled(
-          pvf_pool_->pool()->cachePath(code_hash, executor_params));
-      if (!res) {
-        SL_WARN(log_,
-                "Failed to compile PVF code for parachain ID {}: {}",
-                receipt.descriptor.para_id,
-                res.error().message());
-        cb(PvfError::COMPILATION_ERROR);
+      auto module_opt = pvf_pool_->getModule(code_hash, executor_params);
+      if (!module_opt) {
+        SL_ERROR(log_,
+                 "Runtime module supposed to be precompiled for parachain ID "
+                 "{}, but it's not. This indicates a bug.",
+                 receipt.descriptor.para_id);
+        cb(PvfError::NO_CODE);
         return;
       }
-      auto &wasm_module = res.value();
-      CB_TRY(auto instance, wasm_module->instantiate());
+      auto &wasm_module = module_opt.value();
+      CB_TRY(auto instance, wasm_module.instantiate());
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
       KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        pvf_pool_->pool()->cachePath(code_hash, executor_params),
+        pvf_pool_->getCachePath(code_hash, executor_params),
         scale::encode(params).value(),
         [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
           if (r.has_error()) {
