@@ -6,7 +6,7 @@
 
 #include "runtime/module_instance.hpp"
 
-#include <openssl/mem.h>
+#include <cstring>
 
 #include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
@@ -62,7 +62,7 @@ namespace kagome::runtime {
     }
 
     auto memory_size = memory.memory()->size();
-    OPENSSL_cleanse(memory.view(0, memory_size).value().data(), memory_size);
+    memset(memory.view(0, memory_size).value().data(), 0, memory_size);
 
     forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);
