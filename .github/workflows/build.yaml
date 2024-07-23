@@ -4,11 +4,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-#name : New Build Pipeline
-#
-#on:
-#  workflow_dispatch: 
-#    
-#    
-#jobs:
-#  
+name: Manual Workflow Dispatch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Print template message
+        run: echo "This is a template for testing workflows in branches."
