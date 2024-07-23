@@ -28,7 +28,7 @@ add_library(sr25519_types
 target_link_libraries(sr25519_types
     mp_utils
     blob
-    schnorrkel_crust::schnorrkel_crust
+    schnorrkel::schnorrkel
     kagome_crypto
 )
 kagome_install(sr25519_types)
@@ -40,7 +40,7 @@ add_library(ed25519_types
 target_link_libraries(ed25519_types
     blob
     scale::scale
-    schnorrkel_crust::schnorrkel_crust
+    schnorrkel::schnorrkel
     kagome_crypto
 )
 kagome_install(ed25519_types)
@@ -70,7 +70,7 @@ add_library(bandersnatch_provider
     bandersnatch/bandersnatch_provider_impl.cpp
 )
 target_link_libraries(bandersnatch_provider
-    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
+    bandersnatch_vrfs::bandersnatch_vrfs
 )
 kagome_install(bandersnatch_provider)
 
@@ -78,7 +78,7 @@ add_library(bandersnatch_vrf
     bandersnatch/vrf.cpp
 )
 target_link_libraries(bandersnatch_vrf
-    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
+    bandersnatch_vrfs::bandersnatch_vrfs
 )
 kagome_install(bandersnatch_vrf)
 
@@ -101,7 +101,7 @@ target_link_libraries(ed25519_provider
     ed25519_types
     hasher
     logger
-    schnorrkel_crust::schnorrkel_crust
+    schnorrkel::schnorrkel
 )
 kagome_install(ed25519_provider)
 
@@ -136,7 +136,7 @@ add_library(elliptic_curves
 )
 target_link_libraries(elliptic_curves
     logger
-    arkworks_crust::arkworks_crust
+    arkworks::arkworks
 )
 kagome_install(elliptic_curves)
 
