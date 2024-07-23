@@ -310,7 +310,7 @@ jobs:
 
 
   Zombie-Tests:
-    runs-on: ubuntu-latest
+    runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
     strategy:
@@ -343,17 +343,17 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Create and enable swap
-        run: |
-          free -h
-          df -h
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo swapon --show
-          free -h
-          df -h
+#      - name: Create and enable swap
+#        run: |
+#          free -h
+#          df -h
+#          sudo fallocate -l 4G /swapfile
+#          sudo chmod 600 /swapfile
+#          sudo mkswap /swapfile
+#          sudo swapon /swapfile
+#          sudo swapon --show
+#          free -h
+#          df -h
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
