@@ -56,9 +56,10 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto in_memory_storage = std::make_shared<InMemorySpacedStorage>();
-  auto node_backend = std::make_shared<TrieStorageBackendImpl>(in_memory_storage);
-  auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory, codec, node_backend);
+  auto node_backend =
+      std::make_shared<TrieStorageBackendImpl>(in_memory_storage);
+  auto serializer =
+      std::make_shared<TrieSerializerImpl>(factory, codec, node_backend);
   auto storage_subscription_engine =
       std::make_shared<StorageSubscriptionEngine>();
   auto chain_subscription_engine = std::make_shared<ChainSubscriptionEngine>();

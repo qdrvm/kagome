@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 #include <optional>
 
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -25,6 +26,8 @@
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
+using kagome::crypto::BandersnatchProvider;
+using kagome::crypto::BandersnatchProviderImpl;
 using kagome::crypto::Bip39Provider;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
@@ -83,10 +86,13 @@ struct KeyStoreTest : public test::BaseFS_Test {
     auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
+    auto bandersnatch_provider =
+        std::make_shared<BandersnatchProviderImpl>(hasher);
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider =
         std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
+
     std::shared_ptr key_file_storage =
         kagome::crypto::KeyFileStorage::createAt(crypto_store_test_directory)
             .value();
@@ -101,6 +107,11 @@ struct KeyStoreTest : public test::BaseFS_Test {
             ed25519_provider, bip39_provider, csprng, key_file_storage),
         std::make_unique<KeySuiteStoreImpl<EcdsaProvider>>(
             std::move(ecdsa_provider),
+            bip39_provider,
+            csprng,
+            key_file_storage),
+        std::make_unique<KeySuiteStoreImpl<BandersnatchProvider>>(
+            std::move(bandersnatch_provider),
             bip39_provider,
             csprng,
             key_file_storage),

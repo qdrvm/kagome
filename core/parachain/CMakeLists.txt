@@ -81,6 +81,7 @@ target_link_libraries(kagome_pvf_worker
     ed25519_provider
     ecdsa_provider
     secp256k1_provider
+    bandersnatch_provider
     host_api_factory
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend

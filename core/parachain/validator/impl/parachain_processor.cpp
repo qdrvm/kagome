@@ -36,6 +36,7 @@
 #include "utils/map.hpp"
 #include "utils/pool_handler.hpp"
 #include "utils/profiler.hpp"
+#include "utils/weak_macro.hpp"
 
 #ifndef TRY_GET_OR_RET
 #define TRY_GET_OR_RET(name, op) \
@@ -175,6 +176,8 @@ namespace kagome::parachain {
         sync_state_observable_(std::move(sync_state_observable)),
         query_audi_{std::move(query_audi)},
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
+        peer_use_count_(
+            std::make_shared<decltype(peer_use_count_)::element_type>()),
         slots_util_(std::move(slots_util)),
         babe_config_repo_(std::move(babe_config_repo)),
         chain_sub_{std::move(chain_sub_engine)},
@@ -908,11 +911,8 @@ namespace kagome::parachain {
       tryOpenOutgoingValidationStream(
           peer->id,
           network::CollationVersion::VStaging,
-          [wptr{weak_from_this()}, peer_id{peer->id}](auto &&stream) {
-            TRY_GET_OR_RET(self, wptr.lock());
-            auto ps = self->pm_->getPeerState(peer_id);
-
-            ps->get().inc_use_count();
+          [WEAK_SELF, peer_id{peer->id}](auto &&stream) {
+            WEAK_LOCK(self);
             self->sendMyView(peer_id,
                              stream,
                              self->router_->getValidationProtocolVStaging());
@@ -926,48 +926,66 @@ namespace kagome::parachain {
       Groups &&_groups,
       grid::Views &&_grid_view,
       ValidatorIndex _our_index,
-      const std::shared_ptr<network::PeerManager> &_pm,
-      const std::shared_ptr<authority_discovery::Query> &_query_audi)
+      std::shared_ptr<PeerUseCount> peers)
       : session{_session},
         session_info{_session_info},
         groups{std::move(_groups)},
         grid_view{std::move(_grid_view)},
         our_index{_our_index},
-        pm{_pm},
-        query_audi{_query_audi} {}
-
-  ParachainProcessorImpl::PerSessionState::~PerSessionState() {
-    if (our_index && grid_view) {
-      if (auto our_group = groups.byValidatorIndex(*our_index)) {
-        BOOST_ASSERT(*our_group < session_info.validator_groups.size());
-        const auto &group = session_info.validator_groups[*our_group];
-
-        auto dec_use_count_for_peer = [&](ValidatorIndex vi) {
-          if (auto peer = query_audi->get(session_info.discovery_keys[vi])) {
-            auto ps = pm->getPeerState(peer->id);
-            BOOST_ASSERT(ps);
-            ps->get().dec_use_count();
-          }
-        };
-
-        /// update peers of our group
-        for (const auto vi : group) {
-          dec_use_count_for_peer(vi);
-        }
-
-        /// update peers in grid view
-        if (grid_view) {
-          BOOST_ASSERT(*our_group < grid_view->size());
-          const auto &view = (*grid_view)[*our_group];
-          for (const auto vi : view.sending) {
-            dec_use_count_for_peer(vi);
-          }
-          for (const auto vi : view.receiving) {
-            dec_use_count_for_peer(vi);
-          }
-        }
+        peers{std::move(peers)} {
+    if (our_index) {
+      our_group = groups.byValidatorIndex(*our_index);
+    }
+    if (our_group) {
+      BOOST_ASSERT(*our_group < session_info.validator_groups.size());
+      if (grid_view) {
+        BOOST_ASSERT(*our_group < grid_view->size());
       }
     }
+    updatePeers(true);
+  }
+
+  ParachainProcessorImpl::PerSessionState::~PerSessionState() {
+    updatePeers(false);
+  }
+
+  void ParachainProcessorImpl::PerSessionState::updatePeers(bool add) const {
+    if (not our_index or not our_group or not this->peers) {
+      return;
+    }
+    auto &peers = *this->peers;
+    SAFE_UNIQUE(peers) {
+      auto f = [&](ValidatorIndex i) {
+        auto &id = session_info.discovery_keys[i];
+        auto it = peers.find(id);
+        if (add) {
+          if (it == peers.end()) {
+            it = peers.emplace(id, 0).first;
+          }
+          ++it->second;
+        } else {
+          if (it == peers.end()) {
+            throw std::logic_error{"inconsistent PeerUseCount"};
+          }
+          --it->second;
+          if (it->second == 0) {
+            peers.erase(it);
+          }
+        }
+      };
+      for (auto &i : session_info.validator_groups[*our_group]) {
+        f(i);
+      }
+      if (grid_view) {
+        auto &view = grid_view->at(*our_group);
+        for (auto &i : view.sending) {
+          f(i);
+        }
+        for (auto &i : view.receiving) {
+          f(i);
+        }
+      }
+    };
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -1064,7 +1082,7 @@ namespace kagome::parachain {
                relay_parent);
     }
 
-    auto per_session_state = per_session_->get_or_insert(session_index, [&]() {
+    auto per_session_state = per_session_->get_or_insert(session_index, [&] {
       const auto validator_index{validator->validatorIndex()};
       SL_TRACE(
           logger_, "===> Grid build (validator_index={})", validator_index);
@@ -1080,8 +1098,7 @@ namespace kagome::parachain {
           Groups{session_info->validator_groups, minimum_backing_votes},
           std::move(grid_view),
           validator_index,
-          pm_,
-          query_audi_);
+          peer_use_count_);
     });
 
     if (auto our_group = per_session_state->value().groups.byValidatorIndex(
@@ -5759,4 +5776,14 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
+  bool ParachainProcessorImpl::canDisconnect(const libp2p::PeerId &peer) const {
+    auto audi = query_audi_->get(peer);
+    if (not audi) {
+      return true;
+    }
+    auto &peers = *peer_use_count_;
+    return SAFE_SHARED(peers) {
+      return peers.contains(*audi);
+    };
+  }
 }  // namespace kagome::parachain
