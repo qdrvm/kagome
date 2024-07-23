@@ -13,6 +13,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -46,6 +47,7 @@ namespace kagome::parachain {
     OUTPUTS,
     PERSISTED_DATA_HASH,
     NO_CODE,
+    COMPILATION_ERROR
   };
 }  // namespace kagome::parachain
 
