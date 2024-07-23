@@ -9,7 +9,6 @@
 #include <binaryen/shell-interface.h>
 
 #include <array>
-#include <cstring>  // for std::memset in gcc
 #include <memory>
 #include <optional>
 #include <unordered_map>

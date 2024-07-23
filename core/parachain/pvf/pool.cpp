@@ -44,12 +44,12 @@ namespace kagome::parachain {
 
   PvfPool::PvfPool(const application::AppConfiguration &app_config,
                    std::shared_ptr<runtime::ModuleFactory> module_factory,
-                   std::shared_ptr<runtime::InstrumentWasm> instrument)
+                   std::shared_ptr<runtime::WasmInstrumenter> instrument)
       : pool_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-          app_config,
-          std::move(module_factory),
-          std::move(instrument),
-          app_config.parachainRuntimeInstanceCacheSize())} {}
+            app_config,
+            std::move(module_factory),
+            std::move(instrument),
+            app_config.parachainRuntimeInstanceCacheSize())} {}
 
   outcome::result<void> PvfPool::precompile(
       const Hash256 &code_hash,
@@ -65,4 +65,17 @@ namespace kagome::parachain {
         },
         config);
   }
+
+  std::optional<std::shared_ptr<const runtime::Module>> PvfPool::getModule(
+      const Hash256 &code_hash,
+      const runtime::RuntimeContext::ContextParams &config) const {
+    return pool_->getModule(code_hash, config);
+  }
+
+  std::filesystem::path PvfPool::getCachePath(
+      const common::Hash256 &code_hash,
+      const runtime::RuntimeContext::ContextParams &config) const {
+    return pool_->getCachePath(code_hash, config);
+  }
+
 }  // namespace kagome::parachain

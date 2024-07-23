@@ -23,10 +23,10 @@
 
 using kagome::application::AppConfigurationMock;
 using kagome::common::Buffer;
-using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
+using kagome::runtime::NoopWasmInstrumenter;
 using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimeInstancesPoolImpl;
@@ -61,7 +61,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   auto pool = std::make_shared<RuntimeInstancesPoolImpl>(
       app_config,
       module_factory,
-      std::make_shared<DontInstrumentWasm>(),
+      std::make_shared<NoopWasmInstrumenter>(),
       POOL_SIZE);
 
   EXPECT_CALL(*module_factory, compilerType())

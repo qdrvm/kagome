@@ -9,6 +9,7 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/wabt/instrument.hpp"
 
 namespace kagome::runtime::binaryen {
 
