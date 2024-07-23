@@ -22,3 +22,4 @@ if __name__ == "__main__":
 
     version, sha = extract_version_and_sha(config_file_path, package_name)
     print(f"{version}-{sha}")
+    

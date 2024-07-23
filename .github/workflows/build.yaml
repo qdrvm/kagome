@@ -19,3 +19,4 @@ jobs:
 
       - name: Print template message
         run: echo "This is a template for testing workflows in branches."
+        
