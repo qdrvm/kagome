@@ -21,6 +21,14 @@ on:
         options:
           - 'true'
           - 'false'
+      build_type:
+        description: 'Build type for Zombie-Tests'
+        required: true
+        default: 'Release'
+        type: 'choice'
+        options:
+          - Release
+          - Debug
 
 env:
   BUILD_DIR: build
