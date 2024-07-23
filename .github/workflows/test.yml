@@ -12,6 +12,15 @@ on:
     tags: [ '*' ]
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_all_steps:
+        description: 'Run all steps'
+        required: true
+        default: 'false'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
 env:
   BUILD_DIR: build
@@ -56,8 +65,7 @@ jobs:
   Linux:
     if: ${{ 
       !(github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/' )) 
-    }}
+      startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
@@ -160,16 +168,14 @@ jobs:
         run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
       - if: ${{ 
           github.event_name != 'pull_request' || 
-          github.event.pull_request.head.repo.full_name == github.repository 
-        }}
+          github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
       - if: ${{ 
           github.event_name != 'pull_request' || 
-          github.event.pull_request.head.repo.full_name == github.repository 
-        }}
+          github.event.pull_request.head.repo.full_name == github.repository }}
         name: Sonar
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -181,8 +187,7 @@ jobs:
   Minideb:
     if: ${{ 
       !(github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/' )) 
-    }}
+      startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
@@ -212,8 +217,8 @@ jobs:
     if: ${{ 
       github.ref == 'refs/heads/master' || 
       startsWith( github.ref, 'refs/tags/') || 
-      contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }} 
-    }}
+      contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }} || 
+      github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false
       matrix:
