@@ -21,14 +21,6 @@ on:
         options:
           - 'true'
           - 'false'
-      build_type:
-        description: 'Build type for Zombie-Tests'
-        required: true
-        default: 'Release'
-        type: 'choice'
-        options:
-          - Release
-          - Debug
 
 env:
   BUILD_DIR: build
@@ -47,6 +39,7 @@ env:
     ~/.rustup
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   CACHE_PATH: ./build/cache
+  DEFAULT_BUILD_TYPE: Release
 
 
 jobs:
@@ -300,6 +293,11 @@ jobs:
           make upload_apt_package \
           BUILD_TYPE=${{ matrix.options.build_type }}
 
+      - name: "Cleaning cache"
+        if: env.package_exist == 'False'
+        run: |
+          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
+
       - name: "Always Save Cache"
         id: cache-save
         if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
@@ -378,7 +376,7 @@ jobs:
           ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
           REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
+          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ env.DEFAULT_BUILD_TYPE }}"
           echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
           echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
 
