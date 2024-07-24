@@ -20,7 +20,6 @@ using namespace kagome;
 
 using common::literals::operator""_MB;
 using runtime::kDefaultHeapBase;
-using runtime::kInitialMemorySize;
 using runtime::MemoryAllocator;
 using runtime::binaryen::MemoryImpl;
 
@@ -37,22 +36,13 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     rei_ =
         std::make_unique<runtime::binaryen::RuntimeExternalInterface>(host_api);
 
-    runtime::MemoryConfig config{kDefaultHeapBase, {}};
-    auto handle = std::make_shared<MemoryImpl>(rei_->getMemory(), config);
+    runtime::MemoryConfig config{kDefaultHeapBase};
+    auto handle = std::make_shared<MemoryImpl>(rei_->getMemory());
     auto allocator =
         std::make_unique<runtime::MemoryAllocatorImpl>(handle, config);
     allocator_ = allocator.get();
     memory_ = std::make_unique<runtime::Memory>(handle, std::move(allocator));
   }
-
-  void TearDown() override {
-    memory_.reset();
-    rei_.reset();
-  }
-
-  static constexpr uint32_t memory_size_ = kInitialMemorySize;
-  static constexpr uint32_t memory_page_limit_ =
-      512_MB / runtime::kMemoryPageSize;
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<runtime::Memory> memory_;
@@ -70,38 +60,6 @@ TEST_F(BinaryenMemoryHeapTest, Return0WhenSize0) {
 }
 
 /**
- * @given memory of size memory_size_
- * @when trying to allocate memory of size bigger than memory_size_ but less
- * than max memory size
- * @then -1 is not returned by allocate method indicating that memory was
- * allocated
- */
-TEST_F(BinaryenMemoryHeapTest, AllocatedMoreThanMemorySize) {
-  const auto allocated_memory = memory_size_ + 1;
-  ASSERT_NE(memory_->allocate(allocated_memory), -1);
-}
-
-/**
- * @given memory of size memory_size_ that is fully allocated
- * @when trying to allocate memory of size bigger than
- * (kMaxMemorySize-memory_size_)
- * @then -1 is not returned by allocate method indicating that memory was not
- * allocated
- */
-TEST_F(BinaryenMemoryHeapTest, AllocatedTooBigMemoryFailed) {
-  // fully allocate memory
-  auto ptr1 = memory_->allocate(memory_size_);
-  // check that ptr1 is not -1, thus memory was allocated
-  ASSERT_NE(ptr1, -1);
-
-  // The memory size that can be allocated is within interval (0, kMaxMemorySize
-  // - memory_size_]. Trying to allocate more
-  auto big_memory_size =
-      runtime::kMemoryPageSize * memory_page_limit_ - memory_size_ + 1;
-  EXPECT_ANY_THROW(memory_->allocate(big_memory_size));
-}
-
-/**
  * @given memory with allocated memory chunk
  * @when this memory is deallocated
  * @then the size of this memory chunk is returned
@@ -114,33 +72,6 @@ TEST_F(BinaryenMemoryHeapTest, DeallocateExisingMemoryChunk) {
   ASSERT_EQ(allocator_->getAllocatedChunkSize(ptr1),
             runtime::roundUpAlign(size1));
   memory_->deallocate(ptr1);
-}
-
-/**
- * @given memory with two memory chunk filling entire memory
- * @when first memory chunk of size size1 is deallocated @and new memory chunk
- * of the same size is trying to be allocated on that memory
- * @then it is allocated on the place of the first memory chunk
- */
-TEST_F(BinaryenMemoryHeapTest, AllocateAfterDeallocate) {
-  auto available_memory_size = kInitialMemorySize - kDefaultHeapBase;
-
-  // two memory sizes totalling to the total memory size
-  const size_t size1 = available_memory_size / 3 + 1;
-  const size_t size2 = available_memory_size / 3 + 1;
-
-  // allocate two memory chunks with total size equal to the memory size
-  auto pointer_of_first_allocation = memory_->allocate(size1);
-  memory_->allocate(size2);
-
-  // deallocate first memory chunk
-  memory_->deallocate(pointer_of_first_allocation);
-
-  // allocate new memory chunk
-  auto pointer_of_repeated_allocation = memory_->allocate(size1);
-  // expected that it will be allocated on the same place as the first memory
-  // chunk that was deallocated
-  ASSERT_EQ(pointer_of_first_allocation, pointer_of_repeated_allocation);
 }
 
 /**

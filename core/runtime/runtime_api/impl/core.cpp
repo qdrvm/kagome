@@ -10,29 +10,9 @@
 #include "log/logger.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module_instance.hpp"
-#include "runtime/runtime_properties_cache.hpp"
+#include "runtime/module_repository.hpp"
 
 namespace kagome::runtime {
-
-  outcome::result<primitives::Version> callCoreVersion(
-      const ModuleFactory &module_factory,
-      common::BufferView code,
-      const MemoryLimits &config,
-      const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache) {
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(
-                    module_factory, code, {config}));
-    return runtime_properties_cache->getVersion(
-        ctx.module_instance->getCodeHash(),
-        [&ctx]() -> outcome::result<primitives::Version> {
-          OUTCOME_TRY(
-              raw_res,
-              ctx.module_instance->callExportFunction(ctx, "Core_version", {}));
-          return ModuleInstance::decodedCall<primitives::Version>(
-              "Core_version", raw_res);
-        });
-  }
-
   RestrictedCoreImpl::RestrictedCoreImpl(RuntimeContext ctx)
       : ctx_{std::move(ctx)} {}
 
@@ -44,9 +24,11 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       std::shared_ptr<Executor> executor,
+      std::shared_ptr<ModuleRepository> module_repository,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker)
       : executor_{std::move(executor)},
+        module_repository_{std::move(module_repository)},
         header_repo_{std::move(header_repo)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)} {
     BOOST_ASSERT(executor_ != nullptr);
@@ -56,6 +38,10 @@ namespace kagome::runtime {
 
   outcome::result<primitives::Version> CoreImpl::version(
       const primitives::BlockHash &block) {
+    OUTCOME_TRY(version, module_repository_->embeddedVersion(block));
+    if (version) {
+      return *version;
+    }
     return version_.call(*header_repo_,
                          *runtime_upgrade_tracker_,
                          *executor_,
@@ -87,14 +73,25 @@ namespace kagome::runtime {
     return execute_block_ref(block_ref, std::move(changes_tracker));
   }
 
-  outcome::result<std::unique_ptr<RuntimeContext>> CoreImpl::initialize_block(
+  Core::InitializeBlockResult CoreImpl::initialize_block(
       const primitives::BlockHeader &header,
       TrieChangesTrackerOpt changes_tracker) {
+    OUTCOME_TRY(version, this->version(header.parent_hash));
+    auto core_version = primitives::detail::coreVersionFromApis(version.apis);
     OUTCOME_TRY(ctx,
                 executor_->ctx().persistentAt(header.parent_hash,
                                               std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(ctx, "Core_initialize_block", header));
-    return std::make_unique<RuntimeContext>(std::move(ctx));
+    auto mode = ExtrinsicInclusionMode::AllExtrinsics;
+    auto call = [&]<typename T>() {
+      return executor_->call<T>(ctx, "Core_initialize_block", header);
+    };
+    if (core_version and core_version >= 5) {
+      BOOST_OUTCOME_TRY(mode, call.operator()<ExtrinsicInclusionMode>());
+    } else {
+      OUTCOME_TRY(call.operator()<void>());
+    }
+    return std::make_pair(std::make_unique<RuntimeContext>(std::move(ctx)),
+                          mode);
   }
 
 }  // namespace kagome::runtime

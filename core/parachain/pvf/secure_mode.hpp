@@ -12,6 +12,10 @@
 
 namespace kagome::parachain {
   struct SecureModeError {
+    SecureModeError(std::string message) : message_{std::move(message)} {}
+
+    SecureModeError(const std::error_code &ec) : message_{ec.message()} {}
+
     std::string_view message() const {
       return message_;
     }

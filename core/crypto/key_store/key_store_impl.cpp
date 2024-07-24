@@ -35,7 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyStoreError, e) {
     case FAILED_TO_OPEN_FILE:
       return "Failed to open the key file";
     case INVALID_FILE_FORMAT:
-      return "The key file is not valid (should be a BIP39 phrase or a hex-encoded seed)";
+      return "The key file is not valid "
+             "(should be a BIP39 phrase or a hex-encoded seed)";
   }
   return "Unknown KeyStoreError code";
 }
@@ -58,22 +59,26 @@ namespace kagome::crypto {
     };
   }
 
-  KeyStore::KeyStore(std::unique_ptr<KeySuiteStore<Sr25519Provider>> sr25519,
-                     std::unique_ptr<KeySuiteStore<Ed25519Provider>> ed25519,
-                     std::unique_ptr<KeySuiteStore<EcdsaProvider>> ecdsa,
-                     std::shared_ptr<Ed25519Provider> ed25519_provider,
-                     std::shared_ptr<application::AppStateManager> app_manager,
-                     Config config)
+  KeyStore::KeyStore(
+      std::unique_ptr<KeySuiteStore<Sr25519Provider>> sr25519,
+      std::unique_ptr<KeySuiteStore<Ed25519Provider>> ed25519,
+      std::unique_ptr<KeySuiteStore<EcdsaProvider>> ecdsa,
+      std::unique_ptr<KeySuiteStore<BandersnatchProvider>> bandersnatch,
+      std::shared_ptr<Ed25519Provider> ed25519_provider,
+      std::shared_ptr<application::AppStateManager> app_manager,
+      Config config)
       : config_{std::move(config)},
         sr25519_{std::move(sr25519)},
         ed25519_{std::move(ed25519)},
         ecdsa_{std::move(ecdsa)},
+        bandersnatch_{std::move(bandersnatch)},
         ed25519_provider_{std::move(ed25519_provider)},
         app_manager_{std::move(app_manager)},
         logger_{log::createLogger("KeyStore", "crypto")} {
     BOOST_ASSERT(sr25519_);
     BOOST_ASSERT(ed25519_);
     BOOST_ASSERT(ecdsa_);
+    BOOST_ASSERT(bandersnatch_);
     BOOST_ASSERT(ed25519_provider_);
     BOOST_ASSERT(app_manager_);
     app_manager_->takeControl(*this);
@@ -151,6 +156,7 @@ namespace kagome::crypto {
         std::ignore = sr25519_->generateKeypair(key_type, content);
         std::ignore = ed25519_->generateKeypair(key_type, content);
         std::ignore = ecdsa_->generateKeypair(key_type, content);
+        std::ignore = bandersnatch_->generateKeypair(key_type, content);
       }
     }
     return outcome::success();

@@ -6,10 +6,11 @@
 
 #pragma once
 
+#include <filesystem>
+
+#include "common/buffer_view.hpp"
 #include "outcome/custom.hpp"
-#include "runtime/instance_environment.hpp"
 #include "runtime/types.hpp"
-#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
 
@@ -18,6 +19,9 @@ namespace kagome::runtime {
   struct CompilationError : std::runtime_error {
     CompilationError(const std::string &message)
         : std::runtime_error(message.c_str()) {}
+
+    CompilationError(const std::error_code &ec)
+        : CompilationError{ec.message()} {}
 
     std::string_view message() const {
       return what();
@@ -38,8 +42,25 @@ namespace kagome::runtime {
    public:
     virtual ~ModuleFactory() = default;
 
-    virtual CompilationOutcome<std::shared_ptr<Module>> make(
-        common::BufferView code) const = 0;
+    /**
+     * Used as part of filename to separate files of different incompatible
+     * compilers.
+     * `std::nullopt` means `path_compiled` stores raw WASM code for
+     * interpretation.
+     */
+    virtual std::optional<std::string> compilerType() const = 0;
+
+    /**
+     * Compile `wasm` code to `path_compiled`.
+     */
+    virtual CompilationOutcome<void> compile(
+        std::filesystem::path path_compiled, BufferView wasm) const = 0;
+
+    /**
+     * Load compiled code from `path_compiled`.
+     */
+    virtual CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
+        std::filesystem::path path_compiled) const = 0;
   };
 
 }  // namespace kagome::runtime

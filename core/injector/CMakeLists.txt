@@ -18,6 +18,8 @@ target_link_libraries(application_injector
     assets
     authority_discovery_api
     babe_api
+    bandersnatch_provider
+    bandersnatch_vrf
     beefy_api
     binaryen_module_factory
     binaryen_runtime_external_interface
@@ -36,6 +38,7 @@ target_link_libraries(application_injector
     dispute_coordinator
     ecdsa_provider
     ed25519_provider
+    elliptic_curves
     executor
     fd_limit
     filesystem

@@ -15,6 +15,7 @@
 #include "application/app_state_manager.hpp"
 #include "common/bytestr.hpp"
 #include "common/optref.hpp"
+#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/common.hpp"
 #include "crypto/ecdsa_provider.hpp"
@@ -48,11 +49,11 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyStoreError);
 namespace kagome::crypto {
   template <typename T>
   concept Suite = requires() {
-    typename T::Keypair;
-    typename T::PrivateKey;
-    typename T::PublicKey;
-    typename T::Seed;
-  };
+                    typename T::Keypair;
+                    typename T::PrivateKey;
+                    typename T::PublicKey;
+                    typename T::Seed;
+                  };
 
   template <Suite T>
   class KeySuiteStore {
@@ -123,6 +124,7 @@ namespace kagome::crypto {
     KeyStore(std::unique_ptr<KeySuiteStore<Sr25519Provider>> sr25519,
              std::unique_ptr<KeySuiteStore<Ed25519Provider>> ed25519,
              std::unique_ptr<KeySuiteStore<EcdsaProvider>> ecdsa,
+             std::unique_ptr<KeySuiteStore<BandersnatchProvider>> bandersnatch,
              std::shared_ptr<Ed25519Provider> ed25519_provider,
              std::shared_ptr<application::AppStateManager> app_manager,
              Config config);
@@ -141,6 +143,10 @@ namespace kagome::crypto {
       return *ecdsa_;
     }
 
+    KeySuiteStore<BandersnatchProvider> &bandersnatch() {
+      return *bandersnatch_;
+    }
+
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
         const std::filesystem::path &file_path) const;
 
@@ -157,6 +163,7 @@ namespace kagome::crypto {
     std::unique_ptr<KeySuiteStore<Sr25519Provider>> sr25519_;
     std::unique_ptr<KeySuiteStore<Ed25519Provider>> ed25519_;
     std::unique_ptr<KeySuiteStore<EcdsaProvider>> ecdsa_;
+    std::unique_ptr<KeySuiteStore<BandersnatchProvider>> bandersnatch_;
     std::shared_ptr<Ed25519Provider> ed25519_provider_;
     std::shared_ptr<application::AppStateManager> app_manager_;
     log::Logger logger_;

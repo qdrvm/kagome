@@ -29,6 +29,7 @@ add_library(validator_parachain
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
     pvf/module_precompiler.cpp
+    pvf/workers.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
@@ -80,6 +81,7 @@ target_link_libraries(kagome_pvf_worker
     ed25519_provider
     ecdsa_provider
     secp256k1_provider
+    bandersnatch_provider
     host_api_factory
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend

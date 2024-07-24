@@ -8,8 +8,6 @@
 
 #include <boost/assert.hpp>
 
-#include "log/logger.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -42,24 +40,14 @@ namespace kagome::runtime {
           OUTCOME_TRY(
               code,
               chain_spec_->fetchCodeSubstituteByBlockInfo(block_info.value()));
-          common::Buffer code2;
-          OUTCOME_TRY(uncompressCodeIfNeeded(code, code2));
-          return std::make_shared<common::Buffer>(std::move(code2));
+          return std::make_shared<common::Buffer>(std::move(code));
         }
       }
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
-      OUTCOME_TRY(code, setCodeFromBatch(*batch.get()));
+      OUTCOME_TRY(code, batch->get(storage::kRuntimeCodeKey));
       cached_code_ = std::make_shared<common::Buffer>(std::move(code));
       last_state_root_ = state;
     }
     return cached_code_;
-  }
-
-  outcome::result<common::Buffer> StorageCodeProvider::setCodeFromBatch(
-      const storage::trie::TrieBatch &batch) const {
-    OUTCOME_TRY(code, batch.get(storage::kRuntimeCodeKey));
-    common::Buffer uncompressed;
-    OUTCOME_TRY(uncompressCodeIfNeeded(code, uncompressed));
-    return uncompressed;
   }
 }  // namespace kagome::runtime

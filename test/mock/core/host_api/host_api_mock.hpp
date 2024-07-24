@@ -319,7 +319,12 @@ namespace kagome::host_api {
                  runtime::WasmPointer key),
                 (override));
 
-    // ----------------------------- memory api v1 -----------------------------
+    MOCK_METHOD(runtime::WasmPointer,
+                ext_crypto_bandersnatch_generate_version_1,
+                (runtime::WasmSize key_type, runtime::WasmSpan seed),
+                (override));
+
+    // ------------------------------ memory api -------------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
                 ext_allocator_malloc_version_1,
@@ -500,6 +505,44 @@ namespace kagome::host_api {
                 ext_panic_handler_abort_on_panic_version_1,
                 (runtime::WasmSpan),
                 (override));
+
+    // ---------------------------- Elliptic Curves ----------------------------
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_multi_miller_loop_version_1,
+                (runtime::WasmSpan a, runtime::WasmSpan b),
+                (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_final_exponentiation_version_1,
+                (runtime::WasmSpan f),
+                (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_mul_projective_g1_version_1,
+                (runtime::WasmSpan base, runtime::WasmSpan scalar),
+                (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_mul_projective_g2_version_1,
+                (runtime::WasmSpan base, runtime::WasmSpan scalar),
+                (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_msm_g1_version_1,
+                (runtime::WasmSpan bases, runtime::WasmSpan scalars),
+                (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_elliptic_curves_bls12_381_msm_g2_version_1,
+                (runtime::WasmSpan bases, runtime::WasmSpan scalars),
+                (const, override));
+
+    MOCK_METHOD(
+        runtime::WasmSpan,
+        ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1,
+        (runtime::WasmSpan base, runtime::WasmSpan scalar),
+        (const, override));
   };
 
 }  // namespace kagome::host_api

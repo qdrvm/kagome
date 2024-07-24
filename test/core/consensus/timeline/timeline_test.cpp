@@ -8,6 +8,7 @@
 
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 
+#include "common/main_thread_pool.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/babe/types/slot_type.hpp"
@@ -32,11 +33,13 @@
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::TestThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
+using kagome::common::MainThreadPool;
 using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -161,10 +164,12 @@ class TimelineTest : public testing::Test {
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
     state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
 
+    MainThreadPool main_thread{TestThreadPool{io}};
     timeline = std::make_shared<TimelineImpl>(
         app_config,
         app_state_manager,
         clock,
+        main_thread,
         slots_util,
         block_tree,
         consensus_selector,
@@ -182,6 +187,8 @@ class TimelineTest : public testing::Test {
         core_api);
   }
 
+  std::shared_ptr<boost::asio::io_context> io =
+      std::make_shared<boost::asio::io_context>();
   AppConfigurationMock app_config;
   std::shared_ptr<AppStateManagerMock> app_state_manager;
   SystemClockMock clock;
@@ -266,6 +273,8 @@ TEST_F(TimelineTest, SingleValidator) {
         })));
 
     timeline->start();
+
+    io->run_one();
 
     EXPECT_TRUE(timeline->wasSynchronized());
     EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);

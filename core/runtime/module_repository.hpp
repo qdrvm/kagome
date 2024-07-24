@@ -13,6 +13,7 @@
 #include "host_api/host_api.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
+#include "primitives/version.hpp"
 
 namespace kagome::runtime {
 
@@ -32,7 +33,8 @@ namespace kagome::runtime {
 
     /**
      * @brief Returns a module instance for runtime at the \arg block state,
-     * loading its code using the provided \arg code_provider
+     * loading its code using the provided \arg code_provider. The instance
+     * may be reused.
      * @param block info of the block at which the runtime code should be
      * extracted
      * @param state_hash of the block at which the runtime code should be
@@ -41,6 +43,12 @@ namespace kagome::runtime {
     virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         const primitives::BlockInfo &block,
         const storage::trie::RootHash &state_hash) = 0;
+
+    /**
+     * Return cached `readEmbeddedVersion` result.
+     */
+    virtual outcome::result<std::optional<primitives::Version>> embeddedVersion(
+        const primitives::BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::runtime

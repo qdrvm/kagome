@@ -59,11 +59,9 @@ namespace kagome::runtime {
   };
 
   struct MemoryConfig {
-    explicit MemoryConfig(uint32_t heap_base, MemoryLimits limits = {})
-        : heap_base{heap_base}, limits{std::move(limits)} {}
+    explicit MemoryConfig(uint32_t heap_base) : heap_base{heap_base} {}
 
     uint32_t heap_base;
-    MemoryLimits limits;
   };
 
   /**

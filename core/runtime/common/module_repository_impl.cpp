@@ -6,8 +6,10 @@
 
 #include "runtime/common/module_repository_impl.hpp"
 
+#include "blockchain/block_header_repository.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/heap_alloc_strategy_heappages.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -15,6 +17,7 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "runtime/wabt/version.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
@@ -24,12 +27,15 @@ namespace kagome::runtime {
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<RuntimeInstancesPool> runtime_instances_pool,
       std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<blockchain::BlockHeaderRepository>
+          block_header_repository,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<const ModuleFactory> module_factory,
       std::shared_ptr<const RuntimeCodeProvider> code_provider)
       : runtime_instances_pool_{std::move(runtime_instances_pool)},
         hasher_{std::move(hasher)},
+        block_header_repository_{std::move(block_header_repository)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         trie_storage_{std::move(trie_storage)},
         module_factory_{std::move(module_factory)},
@@ -45,6 +51,22 @@ namespace kagome::runtime {
   ModuleRepositoryImpl::getInstanceAt(
       const primitives::BlockInfo &block,
       const storage::trie::RootHash &storage_state) {
+    OUTCOME_TRY(item, codeAt(block, storage_state));
+    return runtime_instances_pool_->instantiateFromCode(
+        item.hash, [&] { return item.code; }, {item.config});
+  }
+
+  outcome::result<std::optional<primitives::Version>>
+  ModuleRepositoryImpl::embeddedVersion(
+      const primitives::BlockHash &block_hash) {
+    OUTCOME_TRY(header, block_header_repository_->getBlockHeader(block_hash));
+    OUTCOME_TRY(item, codeAt(header.blockInfo(), header.state_root));
+    return item.version;
+  }
+
+  outcome::result<ModuleRepositoryImpl::Item> ModuleRepositoryImpl::codeAt(
+      const primitives::BlockInfo &block,
+      const storage::trie::RootHash &storage_state) {
     KAGOME_PROFILE_START(code_retrieval)
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
@@ -55,12 +77,15 @@ namespace kagome::runtime {
       if (auto r = cache_.get(state)) {
         item = r->get();
       } else {
-        auto code = code_provider_->getCodeAt(state);
-        if (not code.has_value()) {
-          code = code_provider_->getCodeAt(storage_state);
+        auto code_res = code_provider_->getCodeAt(state);
+        if (not code_res) {
+          code_res = code_provider_->getCodeAt(storage_state);
         }
-        BOOST_OUTCOME_TRY(item.code, std::move(code));
-        item.hash = hasher_->blake2b_256(*item.code);
+        auto &code_zstd = *code_res.value();
+        item.hash = hasher_->blake2b_256(code_zstd);
+        OUTCOME_TRY(code, uncompressCodeIfNeeded(code_zstd));
+        item.code = std::make_shared<Buffer>(code);
+        BOOST_OUTCOME_TRY(item.version, readEmbeddedVersion(code));
         OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(storage_state));
         BOOST_OUTCOME_TRY(item.config.heap_alloc_strategy,
                           heapAllocStrategyHeappagesDefault(*batch));
@@ -68,11 +93,6 @@ namespace kagome::runtime {
       }
       return outcome::success();
     });
-    OUTCOME_TRY(runtime_instance,
-                runtime_instances_pool_->instantiateFromCode(
-                    item.hash, *item.code, {item.config}));
-    KAGOME_PROFILE_END(module_retrieval)
-
-    return runtime_instance;
+    return item;
   }
 }  // namespace kagome::runtime

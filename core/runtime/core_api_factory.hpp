@@ -7,21 +7,13 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
+#include "common/buffer_view.hpp"
 #include "outcome/outcome.hpp"
 
-namespace kagome::host_api {
-  class HostApiFactory;
-}
-
-namespace kagome::crypto {
-  class Hasher;
-}
-
 namespace kagome::runtime {
-
   class RestrictedCore;
+  class TrieStorageProvider;
 
   /**
    * A factory for Core API, used where an isolated runtime environment
@@ -32,8 +24,8 @@ namespace kagome::runtime {
     virtual ~CoreApiFactory() = default;
 
     [[nodiscard]] virtual outcome::result<std::unique_ptr<RestrictedCore>> make(
-        std::shared_ptr<const crypto::Hasher> hasher,
-        const std::vector<uint8_t> &runtime_code) const = 0;
+        BufferView code,
+        std::shared_ptr<TrieStorageProvider> storage_provider) const = 0;
   };
 
 }  // namespace kagome::runtime

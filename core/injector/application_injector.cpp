@@ -5,7 +5,6 @@
  */
 
 #include "injector/application_injector.hpp"
-#include "crypto/key_store.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -86,10 +85,13 @@
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/key_store.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -156,6 +158,7 @@
 #include "parachain/pvf/pool.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
+#include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -202,7 +205,6 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
-#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 
 #endif
@@ -390,26 +392,6 @@ namespace {
                       .template create<sptr<runtime::wavm::IntrinsicModule>>();
               return module->instantiate();
             }),
-        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
-                                                                &injector) {
-          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-              module_cache_opt;
-          auto &app_config =
-              injector.template create<const application::AppConfiguration &>();
-          module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-              injector.template create<sptr<crypto::Hasher>>(),
-              app_config.runtimeCacheDirPath());
-          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
-              injector
-                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
-              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-              injector.template create<sptr<host_api::HostApiFactory>>(),
-              injector.template create<sptr<storage::trie::TrieStorage>>(),
-              injector.template create<sptr<storage::trie::TrieSerializer>>(),
-              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              module_cache_opt,
-              injector.template create<sptr<crypto::Hasher>>());
-        }),
         di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
 #endif
         std::forward<decltype(args)>(args)...);
@@ -605,7 +587,6 @@ namespace {
                     Compile
             ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
             : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
-        config->runtimeCacheDirPath(),
     };
 #endif
 
@@ -629,7 +610,7 @@ namespace {
                   injector.template create<sptr<application::ChainSpec>>();
               return crypto::KeyStore::Config{config.keystorePath(chain_spec->id())};
             }),
-            
+
             // inherit host injector
             libp2p::injector::makeHostInjector(
                 libp2p::injector::useWssPem(config->nodeWssPem()),
@@ -727,12 +708,13 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-              auto module_factory = injector.template create<sptr<runtime::ModuleFactory>>();
               auto root_res =
                   injector::calculate_genesis_state(
                       injector
                           .template create<const application::ChainSpec &>(),
-                      *module_factory,
+                      injector
+                          .template create<const crypto::Hasher &>(),
+                      injector.template create<runtime::RuntimeInstancesPool&>(),
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
@@ -780,6 +762,7 @@ namespace {
             di::bind<crypto::KeySuiteStore<crypto::Sr25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Sr25519Provider>>(),
             di::bind<crypto::KeySuiteStore<crypto::Ed25519Provider>>.template to<crypto::KeySuiteStoreImpl<crypto::Ed25519Provider>>(),
             di::bind<crypto::KeySuiteStore<crypto::EcdsaProvider>>.template to<crypto::KeySuiteStoreImpl<crypto::EcdsaProvider>>(),
+            di::bind<crypto::KeySuiteStore<crypto::BandersnatchProvider>>.template to<crypto::KeySuiteStoreImpl<crypto::BandersnatchProvider>>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
             makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
@@ -794,6 +777,7 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
+            di::bind<network::CanDisconnect>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -894,6 +878,8 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
+            di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
+            di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

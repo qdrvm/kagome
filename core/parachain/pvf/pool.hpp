@@ -6,15 +6,20 @@
 
 #pragma once
 
+#include <filesystem>
 #include <memory>
+
+#include "common/optref.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
 }  // namespace kagome::application
 
 namespace kagome::runtime {
-  class InstrumentWasm;
+  class WasmInstrumenter;
   class ModuleFactory;
+  class Module;
   class RuntimeInstancesPoolImpl;
 }  // namespace kagome::runtime
 
@@ -26,11 +31,24 @@ namespace kagome::parachain {
    public:
     PvfPool(const application::AppConfiguration &app_config,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
-            std::shared_ptr<runtime::InstrumentWasm> instrument);
+            std::shared_ptr<runtime::WasmInstrumenter> instrument);
 
-    auto &pool() const {
-      return pool_;
-    }
+    std::optional<std::shared_ptr<const runtime::Module>> getModule(
+        const Hash256 &code_hash,
+        const runtime::RuntimeContext::ContextParams &config) const;
+
+    std::filesystem::path getCachePath(
+        const common::Hash256 &code_hash,
+        const runtime::RuntimeContext::ContextParams &config) const;
+
+    /**
+     * Measures `kagome_parachain_candidate_validation_code_size` and
+     * `kagome_pvf_preparation_time` metrics.
+     */
+    outcome::result<void> precompile(
+        const Hash256 &code_hash,
+        BufferView code_zstd,
+        const runtime::RuntimeContext::ContextParams &config) const;
 
    private:
     std::shared_ptr<runtime::RuntimeInstancesPoolImpl> pool_;

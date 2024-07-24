@@ -6,6 +6,9 @@
 
 #include <gtest/gtest.h>
 
+#include "gmock/gmock.h"
+#include "mock/core/runtime/memory_provider_mock.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
@@ -13,6 +16,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
@@ -26,6 +30,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/instance_environment.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -44,11 +49,11 @@ using kagome::parachain::PvfImpl;
 using kagome::parachain::PvfPool;
 using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
-using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::MemoryLimits;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
+using kagome::runtime::NoopWasmInstrumenter;
 namespace application = kagome::application;
 namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
@@ -100,11 +105,10 @@ class PvfTest : public testing::Test {
             .precompile_threads_num = 0,
         },
         nullptr,
-        nullptr,
         hasher_,
         std::make_shared<PvfPool>(*app_config_,
                                   module_factory_,
-                                  std::make_shared<DontInstrumentWasm>()),
+                                  std::make_shared<NoopWasmInstrumenter>()),
         block_tree,
         sr25519_provider,
         parachain_api,
@@ -119,23 +123,24 @@ class PvfTest : public testing::Test {
   auto mockModule(uint8_t code_i) {
     Buffer code{code_i};
     auto code_hash = hasher_->blake2b_256(code);
-    EXPECT_CALL(*module_factory_, make(MatchSpan(code)))
-        .WillRepeatedly([=, this] {
-          auto module = std::make_shared<ModuleMock>();
-          ON_CALL(*module, instantiate()).WillByDefault([=, this] {
-            auto instance = std::make_shared<ModuleInstanceMock>();
-            ON_CALL(*instance, callExportFunction(_, "validate_block", _))
-                .WillByDefault(
-                    Return(Buffer{scale::encode(ValidationResult{}).value()}));
-            ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
-            ON_CALL(*ctx_factory, ephemeral(_, _, _))
-                .WillByDefault(Invoke([instance]() {
-                  return runtime::RuntimeContext::create_TEST(instance);
-                }));
-            return instance;
-          });
-          return module;
-        });
+    EXPECT_CALL(*module_factory_, compilerType())
+        .WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code)))
+        .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=] {
+      auto module = std::make_shared<ModuleMock>();
+      ON_CALL(*module, instantiate()).WillByDefault([=] {
+        auto instance = std::make_shared<ModuleInstanceMock>();
+        ON_CALL(*instance, callExportFunction(_, "validate_block", _))
+            .WillByDefault(
+                Return(Buffer{scale::encode(ValidationResult{}).value()}));
+        ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
+        EXPECT_CALL(*instance, stateless())
+            .WillRepeatedly(Return(outcome::success()));
+        return instance;
+      });
+      return module;
+    });
     return [=, this](ParachainId para) {
       Pvf::PersistedValidationData pvd;
       pvd.max_pov_size = 1;
@@ -150,7 +155,7 @@ class PvfTest : public testing::Test {
           scale::encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
-        EXPECT_TRUE(r);
+        EXPECT_OUTCOME_TRUE_1(r);
       });
       pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
       io_->restart();
@@ -169,23 +174,6 @@ class PvfTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
 };
-
-TEST_F(PvfTest, InputEncodeDecode) {
-  kagome::parachain::PvfWorkerInput input{
-      .engine = kagome::parachain::RuntimeEngine::kWasmEdgeInterpreted,
-      .runtime_code = {1, 2, 3, 4},
-      .function = "test",
-      .params = {1, 2, 3, 4},
-      .runtime_params{.memory_limits = {}},
-      .cache_dir = "/tmp/kagome_pvf_test",
-      .log_params = {},
-  };
-  ASSERT_OUTCOME_SUCCESS(buf, scale::encode(input));
-  ASSERT_OUTCOME_SUCCESS(dec_input,
-                         scale::decode<kagome::parachain::PvfWorkerInput>(buf));
-
-  ASSERT_EQ(dec_input, input);
-}
 
 TEST_F(PvfTest, InstancesCached) {
   auto module1 = mockModule(1);

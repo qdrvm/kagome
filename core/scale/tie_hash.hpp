@@ -16,10 +16,8 @@ namespace scale {
   }
 }  // namespace scale
 
-#define SCALE_TIE_HASH_BOOST(type)        \
-  friend auto hash_value(const type &v) { \
-    return ::scale::tieHash(v);           \
-  }
+#define SCALE_TIE_HASH_BOOST(type) \
+  friend auto hash_value(const type &v) { return ::scale::tieHash(v); }
 
 #define SCALE_TIE_HASH_STD(type)                    \
   template <>                                       \

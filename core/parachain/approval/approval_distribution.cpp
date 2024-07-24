@@ -31,8 +31,8 @@
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/non_null_dangling.hpp"
 #include "utils/pool_handler_ready_make.hpp"
-#include "utils/weak_from_shared.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
@@ -105,7 +105,7 @@ namespace {
                                                     rvm_sample,
                                                     config.n_cores,
                                                     &relay_vrf_story,
-                                                    lc.data(),
+                                                    nonNullDangling(lc),
                                                     lc.size(),
                                                     &cert_output,
                                                     &cert_proof,
@@ -2067,7 +2067,7 @@ namespace kagome::parachain {
       const approval::IndirectAssignmentCert &indirect_cert,
       CandidateIndex candidate_index,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
-    REINVOKE(*approval_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              runDistributeAssignment,
              indirect_cert,
              candidate_index,
@@ -2187,10 +2187,8 @@ namespace kagome::parachain {
   void ApprovalDistribution::runDistributeApproval(
       const network::IndirectSignedApprovalVote &vote,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
-    REINVOKE(*approval_thread_handler_,
-             runDistributeApproval,
-             vote,
-             std::move(peers));
+    REINVOKE(
+        *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
     logger_->info(
         "Sending an approval to peers. (block={}, index={}, num peers={})",

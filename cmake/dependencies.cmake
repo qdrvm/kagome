@@ -53,8 +53,11 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(erasure_coding_crust)
 find_package(erasure_coding_crust CONFIG REQUIRED)
 
-hunter_add_package(schnorrkel_crust)
-find_package(schnorrkel_crust CONFIG REQUIRED)
+hunter_add_package(kagome-crates)
+
+find_package(schnorrkel CONFIG REQUIRED)
+find_package(arkworks CONFIG REQUIRED)
+find_package(bandersnatch_vrfs CONFIG REQUIRED)
 
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)
@@ -80,7 +83,7 @@ find_package(scale CONFIG REQUIRED)
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
 
-  
+
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_add_package(wavm)
   find_package(LLVM CONFIG REQUIRED)

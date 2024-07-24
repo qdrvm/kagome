@@ -8,8 +8,9 @@
 
 #include <filesystem>
 #include <fstream>
+#include <system_error>
 
-#include "common/buffer.hpp"
+#include <qtils/outcome.hpp>
 
 namespace kagome {
 
@@ -18,27 +19,28 @@ namespace kagome {
       std::is_standard_layout_v<std::remove_pointer_t<T>>;
 
   template <typename T>
-  concept ByteContainer = requires(T t, std::streampos pos) {
-    { t.data() } -> StandardLayoutPointer;
-    { t.size() } -> std::convertible_to<std::streamsize>;
-    { t.resize(pos) };
-    { t.clear() };
-  };
+  concept ByteContainer =  //
+      requires(T t, std::streampos pos) {
+        { t.data() } -> StandardLayoutPointer;
+        { t.size() } -> std::convertible_to<std::streamsize>;
+        { t.resize(pos) };
+        { t.clear() };
+      };
 
   template <ByteContainer Out>
-  bool readFile(Out &out, const std::filesystem::path &path) {
+  outcome::result<void> readFile(Out &out, const std::filesystem::path &path) {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
     if (not file.good()) {
       out.clear();
-      return false;
+      return std::errc{errno};
     }
     out.resize(file.tellg());
     file.seekg(0);
     file.read(reinterpret_cast<char *>(out.data()), out.size());
     if (not file.good()) {
       out.clear();
-      return false;
+      return std::errc{errno};
     }
-    return true;
+    return outcome::success();
   }
 }  // namespace kagome

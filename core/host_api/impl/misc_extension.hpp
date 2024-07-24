@@ -18,6 +18,7 @@
 namespace kagome::runtime {
   class CoreApiFactory;
   class MemoryProvider;
+  class TrieStorageProvider;
 }  // namespace kagome::runtime
 
 namespace kagome::crypto {
@@ -35,6 +36,7 @@ namespace kagome::host_api {
         uint64_t chain_id,
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<const runtime::CoreApiFactory> core_provider);
 
     ~MiscExtension() = default;
@@ -51,6 +53,7 @@ namespace kagome::host_api {
    private:
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
+    std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::CoreApiFactory> core_factory_;
     log::Logger logger_;
   };

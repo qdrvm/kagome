@@ -34,16 +34,17 @@ using ::testing::Return;
 
 namespace fs = kagome::filesystem;
 
-class CoreTest : public WavmRuntimeTest {
+class CoreTest : public ::testing::Test, public WavmRuntimeTest {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   void SetUp() override {
-    WavmRuntimeTest::SetUp();
+    SetUpImpl();
 
-    core_ = std::make_shared<CoreImpl>(executor_, header_repo_, nullptr);
+    core_ =
+        std::make_shared<CoreImpl>(executor_, nullptr, header_repo_, nullptr);
   }
 
  protected:

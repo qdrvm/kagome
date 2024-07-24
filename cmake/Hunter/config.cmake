@@ -75,6 +75,12 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
 endif ()
 
 hunter_config(
+    kagome-crates
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/1.0.0.tar.gz
+    SHA1 09dfbda4bab9c67f7384aa552291d23c6ad9e05c
+)
+
+hunter_config(
     libsecp256k1
     VERSION 0.4.1-qdrvm1
     CMAKE_ARGS
