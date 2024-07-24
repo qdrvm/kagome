@@ -31,6 +31,9 @@
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 
+#include "utils/mkdirs.hpp"
+#include "utils/write_file.hpp"
+
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
   if (tmp.has_error()) {        \
@@ -80,6 +83,8 @@ namespace kagome::parachain {
   using network::UpwardMessage;
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
+
+  std::optional<std::filesystem::path> pvf_dump_dir;
 
   metrics::HistogramTimer metric_pvf_execution_time{
       "kagome_pvf_execution_time",
@@ -180,6 +185,12 @@ namespace kagome::parachain {
     SL_INFO(log_,
             "pvf runtime engine {}",
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
+
+    if (auto dir = getenv("PVF_DUMP_DIR")) {
+      log_->warn("PVF_DUMP_DIR: creating dump dir {}", dir);
+      mkdirs(dir).value();
+      pvf_dump_dir = dir;
+    }
   }
 
   PvfImpl::~PvfImpl() {
@@ -218,6 +229,31 @@ namespace kagome::parachain {
              receipt,
              code_zstd,
              std::move(cb));
+
+    if (pvf_dump_dir) {
+      cb = [=, hasher_{hasher_}, log_{log_}, cb{std::move(cb)}](
+               outcome::result<Result> r) {
+        if (not r) {
+          auto code_path =
+              *pvf_dump_dir
+              / ("code-"
+                 + common::hex_lower(receipt.descriptor.validation_code_hash));
+          log_->warn("PVF_DUMP_DIR: writing code {} size {}",
+                     code_path.native(),
+                     code_zstd.size());
+          writeFileTmp(code_path, code_zstd).value();
+          auto path = *pvf_dump_dir
+                    / ("pvf-" + common::hex_lower(receipt.hash(*hasher_)));
+          auto dump = scale::encode(data, pov, receipt).value();
+          log_->warn("PVF_DUMP_DIR: writing pvf {} size {}",
+                     path.native(),
+                     dump.size());
+          writeFileTmp(path, dump).value();
+        }
+        cb(std::move(r));
+      };
+    }
+
     CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return cb(PvfError::POV_SIZE);
