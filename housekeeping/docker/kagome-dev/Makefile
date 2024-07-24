@@ -59,7 +59,11 @@ kagome_builder_deb_push:
 
 kagome_dev_docker_build:
 	$(MAKE) get_versions
-	mkdir -p $(CACHE_DIR)/.cargo $(CACHE_DIR)/.hunter $(CACHE_DIR)/.cache/ccache $(CACHE_DIR)/.rustup ; \
+	mkdir -p \
+		$(CACHE_DIR)/.cargo/git \
+		$(CACHE_DIR)/.cargo/registry \
+		$(CACHE_DIR)/.hunter \
+		$(CACHE_DIR)/.cache/ccache  ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
@@ -77,10 +81,10 @@ kagome_dev_docker_build:
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
-		-v $(CACHE_DIR)/.cargo:/root/.cargo \
+		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
+		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
-		-v $(CACHE_DIR)/.rustup:/root/.rustup \
 		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
@@ -89,7 +93,7 @@ kagome_dev_docker_build:
 		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
-		echo \"Building in $(pwd)\" && \
+		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF && \
 		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
 		mkdir -p /tmp/kagome && \
