@@ -32,6 +32,7 @@
 #include "scale/std_variant.hpp"
 
 #include "utils/mkdirs.hpp"
+#include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
@@ -85,6 +86,12 @@ namespace kagome::parachain {
   using runtime::PersistedValidationData;
 
   std::optional<std::filesystem::path> pvf_dump_dir;
+  auto pvfDumpCodePath(const std::filesystem::path &dir,
+                       const network::CandidateReceipt &receipt) {
+    return dir
+         / ("code-"
+            + common::hex_lower(receipt.descriptor.validation_code_hash));
+  }
 
   metrics::HistogramTimer metric_pvf_execution_time{
       "kagome_pvf_execution_time",
@@ -214,6 +221,42 @@ namespace kagome::parachain {
             }
           });
     }
+
+    if (auto s = getenv("PVF_REPLAY")) {
+      pvf_thread_handler_->start();
+      std::filesystem::path path{s};
+      Buffer dump;
+      log_->info("PVF_REPLAY: reading pvf {}", path.native());
+      readFile(dump, path).value();
+      auto [data, pov, receipt] =
+          scale::decode<std::tuple<PersistedValidationData,
+                                   ParachainBlock,
+                                   CandidateReceipt>>(dump)
+              .value();
+      log_->info("PVF_REPLAY: para_id {}, relay_parent {} {}",
+                 receipt.descriptor.para_id,
+                 data.relay_parent_number,
+                 common::hex_lower(receipt.descriptor.relay_parent));
+      if (not block_tree_->has(receipt.descriptor.relay_parent)) {
+        log_->error("PVF_REPLAY: block not found");
+        exit(0);
+      }
+      auto code_path = pvfDumpCodePath(path.parent_path(), receipt);
+      Buffer code;
+      log_->info("PVF_REPLAY: reading code {}", code_path.native());
+      readFile(code, code_path).value();
+      auto cb = [self{shared_from_this()}](outcome::result<Result> r) {
+        if (r) {
+          self->log_->info("PVF_REPLAY: pvfValidate ok");
+        } else {
+          self->log_->info("PVF_REPLAY: pvfValidate error: {}", r.error());
+        }
+        exit(0);
+      };
+      log_->info("PVF_REPLAY: pvfValidate");
+      pvfValidate(data, pov, receipt, code, cb);
+    }
+
     return true;
   }
 
@@ -234,10 +277,7 @@ namespace kagome::parachain {
       cb = [=, hasher_{hasher_}, log_{log_}, cb{std::move(cb)}](
                outcome::result<Result> r) {
         if (not r) {
-          auto code_path =
-              *pvf_dump_dir
-              / ("code-"
-                 + common::hex_lower(receipt.descriptor.validation_code_hash));
+          auto code_path = pvfDumpCodePath(*pvf_dump_dir, receipt);
           log_->warn("PVF_DUMP_DIR: writing code {} size {}",
                      code_path.native(),
                      code_zstd.size());
