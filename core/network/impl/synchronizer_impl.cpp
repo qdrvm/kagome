@@ -31,6 +31,12 @@
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
+#include "blockchain/block_storage.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
+namespace kagome::blockchain {
+  extern BlockStorage *block_storage;
+}
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
   switch (e) {
@@ -84,6 +90,11 @@ namespace {
 }  // namespace
 
 namespace kagome::network {
+  using blockchain::block_storage;
+  std::function<void()> sync_state;
+  bool sync_state_lock = false;
+  std::vector<PeerId> sync_state_peers;
+  std::function<std::optional<PeerId>()> sync_state_peer;
 
   SynchronizerImpl::SynchronizerImpl(
       const application::AppConfiguration &app_config,
@@ -142,6 +153,94 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager.takeControl(*this);
+
+    if (getenv("PVF_REPLAY")) {
+      sync_state = [] {};
+      return;
+    }
+
+    if (auto s = getenv("SYNC_STATE")) {
+      auto num = boost::lexical_cast<uint32_t>(s);
+      sync_state = [this, num] {
+        if (sync_state_lock) {
+          return;
+        }
+        sync_state_lock = true;
+        auto hash = block_tree_->getBlockHash(num).value();
+        if (not hash) {
+          auto tag = fmt::format("SYNC_STATE: fetch header {}", num);
+          log_->info("{}", tag);
+          BlocksRequest req{
+              BlockAttribute::HEADER, num, Direction::DESCENDING, 1};
+          auto peer = chooseJustificationPeer(num, req.fingerprint());
+          if (not peer) {
+            sync_state_lock = false;
+            log_->warn("{}: no peer", tag);
+            return;
+          }
+          fetch(*peer,
+                req,
+                "",
+                [this, num, tag](outcome::result<BlocksResponse> _r) {
+                  sync_state_lock = false;
+                  if (not _r) {
+                    log_->warn("{}: {}", tag, _r.error());
+                    return;
+                  }
+                  auto &r = _r.value().blocks;
+                  if (r.empty()) {
+                    log_->warn("{}: no blocks", tag);
+                    return;
+                  }
+                  if (not r[0].header) {
+                    log_->warn("{}: no header", tag);
+                    return;
+                  }
+                  auto &header = *r[0].header;
+                  if (header.number != num) {
+                    log_->warn("{}: wrong number", tag);
+                    return;
+                  }
+                  log_->info("{}: ok", tag);
+                  calculateBlockHash(header, *hasher_);
+                  block_storage->putBlockHeader(header).value();
+                  block_storage->assignNumberToHash(header.blockInfo()).value();
+                  sync_state();
+                });
+          return;
+        }
+        auto header = block_tree_->getBlockHeader(*hash).value();
+        if (not trie_node_db_->contains(header.state_root).value()) {
+          auto tag = fmt::format("SYNC_STATE: fetch state {}", num);
+          auto peer = sync_state_peer();
+          log_->info("{}", tag);
+          if (not peer) {
+            sync_state_lock = false;
+            log_->warn("{}: no peer", tag);
+            return;
+          }
+          syncState(*peer, header.blockInfo(), [](outcome::result<BlockInfo>) {
+            sync_state_lock = false;
+            sync_state();
+          });
+          return;
+        }
+        log_->info("SYNC_STATE: done {}", num);
+        exit(0);
+      };
+      sync_state_peer = [this]() -> std::optional<PeerId> {
+        if (sync_state_peers.empty()) {
+          peer_manager_->forEachPeer(
+              [](const PeerId &peer) { sync_state_peers.emplace_back(peer); });
+        }
+        if (sync_state_peers.empty()) {
+          return std::nullopt;
+        }
+        auto peer = sync_state_peers.back();
+        sync_state_peers.pop_back();
+        return peer;
+      };
+    }
   }
 
   /** @see AppStateManager::takeControl */
@@ -203,6 +302,11 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler,
       bool subscribe_to_block) {
+    if (sync_state) {
+      sync_state();
+      return true;
+    }
+
     auto best_block = block_tree_->bestBlock();
 
     // Provided block is equal our best one. Nothing needs to do.
@@ -316,6 +420,11 @@ namespace kagome::network {
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
+    if (sync_state) {
+      sync_state();
+      return true;
+    }
+
     const auto &block_info = header.blockInfo();
 
     // Block was applied before

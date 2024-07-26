@@ -32,6 +32,8 @@ namespace kagome::blockchain {
   using DatabaseError = kagome::storage::DatabaseError;
   using consensus::babe::isPrimary;
 
+  BlockStorage *block_storage;
+
   namespace {
     /// Function-helper for loading (and repair if it needed) of leaves
     outcome::result<std::set<primitives::BlockInfo>> loadLeaves(
@@ -129,6 +131,8 @@ namespace kagome::blockchain {
       common::MainThreadPool &main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
+
+    block_storage = storage.get();
 
     log::Logger log = log::createLogger("BlockTree", "block_tree");
 
