@@ -130,7 +130,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
   if(WERROR AND COMPILER_SUPPORTS_WERROR)
-    add_flag(-Werror)                # turn all warnings into errors
+    add_compile_options(-Werror)                # turn all warnings into errors
   else()
     # cmake-format: on
     if ((("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$")
