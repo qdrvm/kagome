@@ -101,6 +101,9 @@ include(cmake/functions.cmake)
 
 include(cmake/san.cmake)
 
+# check if compiler flags are supported
+check_cxx_compiler_flag("-Werror" COMPILER_SUPPORTS_WERROR)
+
 # setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # cmake-format: off
@@ -126,7 +129,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wno-format-nonliteral)   # prints way too many warnings from spdlog
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
-  if(WERROR)
+  if(WERROR AND COMPILER_SUPPORTS_WERROR)
     add_flag(-Werror)                # turn all warnings into errors
   else()
     # cmake-format: on
