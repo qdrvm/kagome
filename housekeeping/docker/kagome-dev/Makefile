@@ -26,6 +26,7 @@ DEPENDENCIES ?= libstdc++6, zlib1g, libgcc-s1, libc6, libtinfo6, libseccomp2, li
 GITHUB_HUNTER_USERNAME ?=
 GITHUB_HUNTER_TOKEN ?=
 CTEST_OUTPUT_ON_FAILURE ?= 1
+WERROR ?= OFF
 
 # kagome_runtime_cache Variables
 KAGOME_PACKAGE_VERSION ?=
@@ -94,7 +95,7 @@ kagome_dev_docker_build:
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF && \
+		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
 		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
 		mkdir -p /tmp/kagome && \
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \

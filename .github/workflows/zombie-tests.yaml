@@ -18,11 +18,20 @@ on:
           - Release
           - Debug
           - RelWithDebInfo
+      werror:
+        description: 'Enable -Werror'
+        required: true
+        default: 'OFF'
+        type: 'choice'
+        options:
+          - 'ON'
+          - 'OFF'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   BUILD_DIR: build
   CTEST_OUTPUT_ON_FAILURE: 1
+  CI: true
 
   CACHE_VERSION: v01
   CACHE_PATH: ./build/cache
@@ -85,7 +94,8 @@ jobs:
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
-          BUILD_TYPE=${{ github.event.inputs.build_type }}
+          BUILD_TYPE=${{ github.event.inputs.build_type }} \
+          WERROR=${{ github.event.inputs.werror }}
 
       - name: "Push Kagome APT Package"
         if: env.package_exist == 'False'
