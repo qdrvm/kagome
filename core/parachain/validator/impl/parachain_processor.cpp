@@ -1046,6 +1046,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(relay_parent, session_index));
     OUTCOME_TRY(randomness, getBabeRandomness(block_header));
+    OUTCOME_TRY(disabled_validators_, parachain_host_->disabled_validators(relay_parent));
     const auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
@@ -1214,6 +1215,13 @@ namespace kagome::parachain {
                                     seconding_limit,
                                     mode->max_candidate_depth);
 
+    std::unordered_set<ValidatorIndex> disabled_validators {disabled_validators_.begin(), disabled_validators_.end()};
+    if (!disabled_validators.empty()) {
+      SL_TRACE(logger_,
+                "Disabled validators detected. (relay parent={})",
+                relay_parent);
+    }
+
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
                "assigned_core={}, our index={}, relay "
@@ -1249,6 +1257,8 @@ namespace kagome::parachain {
         .issued_statements = {},
         .peers_advertised = {},
         .fallbacks = {},
+        .backed_hashes = {},
+        .disabled_validators = std::move(disabled_validators),
         .inject_core_index = inject_core_index,
     };
   }
@@ -1577,7 +1587,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       const RelayHash &relay_parent,
-      const ManifestSummary &manifest_summary,
+      ManifestSummary manifest_summary,
       ParachainId para_id,
       grid::ManifestKind manifest_kind) {
     auto peer_state = pm_->getPeerState(peer_id);
@@ -1633,8 +1643,16 @@ namespace kagome::parachain {
     auto group_index = manifest_summary.claimed_group_index;
     auto claimed_parent_hash = manifest_summary.claimed_parent_hash;
 
-    /// TODO(iceseer): do `disabled validators`
-    /// https://github.com/qdrvm/kagome/issues/2060
+    auto group = [&]() -> std::span<const ValidatorIndex> {
+      if (auto g = relay_parent_state->get().per_session_state->value().groups.get(group_index)) {
+        return *g;
+      }
+      return {};
+    }();
+
+    auto disabled_mask = relay_parent_state->get().disabled_bitmask(group);
+    manifest_summary.statement_knowledge.mask_seconded(disabled_mask);
+    manifest_summary.statement_knowledge.mask_valid(disabled_mask);
 
     BOOST_ASSERT(relay_parent_state->get().prospective_parachains_mode);
     const auto seconding_limit =
