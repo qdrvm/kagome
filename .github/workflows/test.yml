@@ -40,6 +40,7 @@ env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   CACHE_PATH: ./build/cache
   DEFAULT_BUILD_TYPE: Release
+  CI: true
 
 
 jobs:

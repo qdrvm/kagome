@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name : Kagome Builder | Debian (Bookworm)
+name: Kagome Builder | Debian (Bookworm)
 
 on:
   #  schedule:
