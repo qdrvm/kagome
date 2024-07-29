@@ -38,13 +38,6 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
-hunter_config(
-    bandersnatch_vrfs_crust
-    URL  https://github.com/qdrvm/bandersnatch-vrfs-crust/archive/refs/heads/draft2.tar.gz
-    SHA1 8d4512287ff7744b87f222faae768dbaa7f0c77a
-    KEEP_PACKAGE_SOURCES
-)
-
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       WasmEdge
@@ -82,10 +75,9 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
 endif ()
 
 hunter_config(
-    arkworks_crust
-    URL  https://github.com/qdrvm/arkworks-crust/archive/843300a0ef85777761a4c1acc0acf158e986c6ca.tar.gz
-    SHA1 ec88913a9d2de264c5ce9f5bbe13d9ec7d135ce3
-    KEEP_PACKAGE_SOURCES
+    kagome-crates
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/1.0.1.tar.gz
+    SHA1 e95bb84f34d0a20131222a40f004b597df4ccc13
 )
 
 hunter_config(
