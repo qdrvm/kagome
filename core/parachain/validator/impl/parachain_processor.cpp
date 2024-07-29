@@ -119,7 +119,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Not advertised";
     case E::WRONG_PARA:
       return "Wrong para id";
-      case E::THRESHOLD_LIMIT_REACHED:
+    case E::THRESHOLD_LIMIT_REACHED:
       return "Threshold reached";
   }
   return "Unknown parachain processor error";
@@ -1048,7 +1048,8 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(relay_parent, session_index));
     OUTCOME_TRY(randomness, getBabeRandomness(block_header));
-    OUTCOME_TRY(disabled_validators_, parachain_host_->disabled_validators(relay_parent));
+    OUTCOME_TRY(disabled_validators_,
+                parachain_host_->disabled_validators(relay_parent));
     const auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
@@ -1217,11 +1218,12 @@ namespace kagome::parachain {
                                     seconding_limit,
                                     mode->max_candidate_depth);
 
-    std::unordered_set<ValidatorIndex> disabled_validators {disabled_validators_.begin(), disabled_validators_.end()};
+    std::unordered_set<ValidatorIndex> disabled_validators{
+        disabled_validators_.begin(), disabled_validators_.end()};
     if (!disabled_validators.empty()) {
       SL_TRACE(logger_,
-                "Disabled validators detected. (relay parent={})",
-                relay_parent);
+               "Disabled validators detected. (relay parent={})",
+               relay_parent);
     }
 
     SL_VERBOSE(logger_,
@@ -1646,7 +1648,9 @@ namespace kagome::parachain {
     auto claimed_parent_hash = manifest_summary.claimed_parent_hash;
 
     auto group = [&]() -> std::span<const ValidatorIndex> {
-      if (auto g = relay_parent_state->get().per_session_state->value().groups.get(group_index)) {
+      if (auto g =
+              relay_parent_state->get().per_session_state->value().groups.get(
+                  group_index)) {
         return *g;
       }
       return {};
@@ -2186,11 +2190,12 @@ namespace kagome::parachain {
     const auto &session_info =
         parachain_state->get().per_session_state->value().session_info;
     if (parachain_state->get().is_disabled(stm.compact.payload.ix)) {
-      SL_TRACE(logger_,
-               "Ignoring a statement from disabled validator. (relay parent={}, "
-               "validator={})",
-               stm.relay_parent,
-               stm.compact.payload.ix);
+      SL_TRACE(
+          logger_,
+          "Ignoring a statement from disabled validator. (relay parent={}, "
+          "validator={})",
+          stm.relay_parent,
+          stm.compact.payload.ix);
       return;
     }
 
@@ -2535,16 +2540,20 @@ namespace kagome::parachain {
       }
     }
 
-		auto disabled_mask = relay_parent_state.disabled_bitmask(*group);
-    if (disabled_mask.bits.size() > unwanted_mask.seconded_in_group.bits.size()) {
+    auto disabled_mask = relay_parent_state.disabled_bitmask(*group);
+    if (disabled_mask.bits.size()
+        > unwanted_mask.seconded_in_group.bits.size()) {
       unwanted_mask.seconded_in_group.bits.resize(disabled_mask.bits.size());
     }
-    if (disabled_mask.bits.size() > unwanted_mask.validated_in_group.bits.size()) {
+    if (disabled_mask.bits.size()
+        > unwanted_mask.validated_in_group.bits.size()) {
       unwanted_mask.validated_in_group.bits.resize(disabled_mask.bits.size());
     }
     for (size_t i = 0; i < disabled_mask.bits.size(); ++i) {
-      unwanted_mask.seconded_in_group.bits[i] = unwanted_mask.seconded_in_group.bits[i] || disabled_mask.bits[i];
-      unwanted_mask.validated_in_group.bits[i] = unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
+      unwanted_mask.seconded_in_group.bits[i] =
+          unwanted_mask.seconded_in_group.bits[i] || disabled_mask.bits[i];
+      unwanted_mask.validated_in_group.bits[i] =
+          unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
     }
 
     auto backing_threshold = [&]() -> std::optional<size_t> {
@@ -3235,17 +3244,23 @@ namespace kagome::parachain {
         [&](const IndexedAndSigned<network::vstaging::CompactStatement>
                 &statement) { statements.emplace_back(statement); });
 
-	if (!is_cluster) {
-		auto threshold = std::get<1>(*groups.get_size_and_backing_threshold(confirmed->get().group_index()));
-    const auto seconded_and_sufficient = (sent_filter.has_seconded() && sent_filter.backing_validators() >= threshold);
-		if (!seconded_and_sufficient) {
-            SL_INFO(logger_,
-                     "Dropping a request from a grid peer because the backing threshold is no longer met. (relay_parent={}, candidate_hash={}, group_index={})",
-                     confirmed->get().relay_parent(),
-                     request.candidate_hash, confirmed->get().group_index());
-			return Error::THRESHOLD_LIMIT_REACHED;
-		}
-	}
+    if (!is_cluster) {
+      auto threshold = std::get<1>(*groups.get_size_and_backing_threshold(
+          confirmed->get().group_index()));
+      const auto seconded_and_sufficient =
+          (sent_filter.has_seconded()
+           && sent_filter.backing_validators() >= threshold);
+      if (!seconded_and_sufficient) {
+        SL_INFO(logger_,
+                "Dropping a request from a grid peer because the backing "
+                "threshold is no longer met. (relay_parent={}, "
+                "candidate_hash={}, group_index={})",
+                confirmed->get().relay_parent(),
+                request.candidate_hash,
+                confirmed->get().group_index());
+        return Error::THRESHOLD_LIMIT_REACHED;
+      }
+    }
 
     for (const auto &statement : statements) {
       if (is_cluster) {
@@ -3372,7 +3387,7 @@ namespace kagome::parachain {
                     .from_validator = statement.payload.ix,
                     .backing = {}};
 
-                auto const &[it, _] = fallbacks.insert(
+                const auto &[it, _] = fallbacks.insert(
                     std::make_pair(candidate_hash, std::move(attesting)));
                 return it->second;
               },
