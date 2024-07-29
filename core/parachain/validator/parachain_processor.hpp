@@ -132,7 +132,8 @@ namespace kagome::parachain {
       NO_PEER,
       ALREADY_REQUESTED,
       NOT_ADVERTISED,
-      WRONG_PARA
+      WRONG_PARA,
+      THRESHOLD_LIMIT_REACHED,
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -452,11 +453,15 @@ namespace kagome::parachain {
 
       bool inject_core_index;
 
+      	bool is_disabled(ValidatorIndex validator_index) const {
+		return disabled_validators.contains(validator_index);
+	}
+
         scale::BitVec disabled_bitmask(const std::span<const ValidatorIndex> &group) const {
             scale::BitVec v;
             v.bits.resize(group.size());
             for (size_t ix = 0; ix < group.size(); ++ix) {
-                v.bits[ix] = disabled_validators.contains(group[ix]);
+                v.bits[ix] = is_disabled(group[ix]);
             }
             return v;
         }

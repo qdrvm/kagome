@@ -119,6 +119,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Not advertised";
     case E::WRONG_PARA:
       return "Wrong para id";
+      case E::THRESHOLD_LIMIT_REACHED:
+      return "Threshold reached";
   }
   return "Unknown parachain processor error";
 }
@@ -2183,8 +2185,16 @@ namespace kagome::parachain {
 
     const auto &session_info =
         parachain_state->get().per_session_state->value().session_info;
-    CHECK_OR_RET(parachain_state->get().local_validator);
+    if (parachain_state->get().is_disabled(stm.compact.payload.ix)) {
+      SL_TRACE(logger_,
+               "Ignoring a statement from disabled validator. (relay parent={}, "
+               "validator={})",
+               stm.relay_parent,
+               stm.compact.payload.ix);
+      return;
+    }
 
+    CHECK_OR_RET(parachain_state->get().local_validator);
     auto &local_validator = *parachain_state->get().local_validator;
     auto originator_group =
         parachain_state->get()
@@ -2198,9 +2208,6 @@ namespace kagome::parachain {
                stm.compact.payload.ix);
       return;
     }
-
-    /// TODO(iceseer): do `disabled validators`
-    /// https://github.com/qdrvm/kagome/issues/2060
 
     auto &active = local_validator.active;
     auto cluster_sender_index = [&]() -> std::optional<ValidatorIndex> {
@@ -2528,9 +2535,17 @@ namespace kagome::parachain {
       }
     }
 
-    /// TODO(iceseer): do `disabled validators`
-    /// Add disabled validators to the unwanted mask.
-    /// https://github.com/qdrvm/kagome/issues/2060
+		auto disabled_mask = relay_parent_state.disabled_bitmask(*group);
+    if (disabled_mask.bits.size() > unwanted_mask.seconded_in_group.bits.size()) {
+      unwanted_mask.seconded_in_group.bits.resize(disabled_mask.bits.size());
+    }
+    if (disabled_mask.bits.size() > unwanted_mask.validated_in_group.bits.size()) {
+      unwanted_mask.validated_in_group.bits.resize(disabled_mask.bits.size());
+    }
+    for (size_t i = 0; i < disabled_mask.bits.size(); ++i) {
+      unwanted_mask.seconded_in_group.bits[i] = unwanted_mask.seconded_in_group.bits[i] || disabled_mask.bits[i];
+      unwanted_mask.validated_in_group.bits[i] = unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
+    }
 
     auto backing_threshold = [&]() -> std::optional<size_t> {
       auto bt = relay_parent_state.per_session_state->value()
@@ -3211,8 +3226,6 @@ namespace kagome::parachain {
     init_with_not(and_mask.seconded_in_group, request.mask.seconded_in_group);
     init_with_not(and_mask.validated_in_group, request.mask.validated_in_group);
 
-    /// TODO(iceseer): do `disabled validators` check
-    /// https://github.com/qdrvm/kagome/issues/2060
     std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
         statements;
     relay_parent_state.get().statement_store->groupStatements(
@@ -3221,6 +3234,18 @@ namespace kagome::parachain {
         and_mask,
         [&](const IndexedAndSigned<network::vstaging::CompactStatement>
                 &statement) { statements.emplace_back(statement); });
+
+	if (!is_cluster) {
+		auto threshold = std::get<1>(*groups.get_size_and_backing_threshold(confirmed->get().group_index()));
+    const auto seconded_and_sufficient = (sent_filter.has_seconded() && sent_filter.backing_validators() >= threshold);
+		if (!seconded_and_sufficient) {
+            SL_INFO(logger_,
+                     "Dropping a request from a grid peer because the backing threshold is no longer met. (relay_parent={}, candidate_hash={}, group_index={})",
+                     confirmed->get().relay_parent(),
+                     request.candidate_hash, confirmed->get().group_index());
+			return Error::THRESHOLD_LIMIT_REACHED;
+		}
+	}
 
     for (const auto &statement : statements) {
       if (is_cluster) {
