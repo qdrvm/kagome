@@ -3237,12 +3237,28 @@ namespace kagome::parachain {
 
     std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
         statements;
+    network::vstaging::StatementFilter sent_filter(group_size);
     relay_parent_state.get().statement_store->groupStatements(
         *group,
         request.candidate_hash,
         and_mask,
         [&](const IndexedAndSigned<network::vstaging::CompactStatement>
-                &statement) { statements.emplace_back(statement); });
+                &statement) {
+          for (size_t ix = 0; ix < group->size(); ++ix) {
+            if ((*group)[ix] == statement.payload.ix) {
+              visit_in_place(
+                  getPayload(statement).inner_value,
+                  [&](const network::vstaging::SecondedCandidateHash &) {
+                    sent_filter.seconded_in_group.bits[ix] = true;
+                  },
+                  [&](const network::vstaging::ValidCandidateHash &) {
+                    sent_filter.validated_in_group.bits[ix] = true;
+                  },
+                  [&](const auto &) {});
+            }
+          }
+          statements.emplace_back(statement);
+        });
 
     if (!is_cluster) {
       auto threshold = std::get<1>(*groups.get_size_and_backing_threshold(
