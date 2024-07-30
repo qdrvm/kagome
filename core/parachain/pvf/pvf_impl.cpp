@@ -383,7 +383,6 @@ namespace kagome::parachain {
                  "(check_validation_outputs)",
                  receipt.descriptor.relay_parent,
                  receipt.descriptor.para_id);
-      return PvfError::OUTPUTS;
     }
     return commitments;
   }
