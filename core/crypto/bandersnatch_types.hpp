@@ -9,7 +9,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <span>
 
-#include <bandersnatch_vrfs.h>
+#include <bandersnatch_vrfs/bandersnatch_vrfs.h>
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"
