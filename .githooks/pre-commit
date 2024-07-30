@@ -14,7 +14,7 @@ fi
 
 # check clang-format binary
 CLANG_FORMAT_ENABLED=1
-CLANG_FORMAT=$(which clang-format-15)
+CLANG_FORMAT=$(which clang-format-15 2>/dev/null)
 if [ -z "${CLANG_FORMAT}" ]; then
   CLANG_FORMAT=$(which clang-format)
   if [ -z "${CLANG_FORMAT}" ]; then

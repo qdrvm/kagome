@@ -33,7 +33,8 @@ namespace kagome::runtime {
 
     /**
      * @brief Returns a module instance for runtime at the \arg block state,
-     * loading its code using the provided \arg code_provider
+     * loading its code using the provided \arg code_provider. The instance
+     * may be reused.
      * @param block info of the block at which the runtime code should be
      * extracted
      * @param state_hash of the block at which the runtime code should be
