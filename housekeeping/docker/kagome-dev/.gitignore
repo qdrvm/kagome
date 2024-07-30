@@ -1,0 +1,10 @@
+*-versions.txt
+commit_hash.txt
+
+cumulus
+polkadot
+
+cargo/
+pkg/
+polkadot_binary/
+kagome_runtime/
