@@ -3,7 +3,7 @@ import re, sys, subprocess
 def list_all_tags_for_remote_git_repo(repo_url):
   result = subprocess.run([
     "git", "ls-remote", "--tags", repo_url
-  ], stdout=subprocess.PIPE, text=True)
+  ], stdout=subprocess.PIPE, text=True, timeout=60)
   output_lines = result.stdout.splitlines()
   tags = [
     line.split("refs/tags/")[-1] for line in output_lines

@@ -20,6 +20,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/impl/grandpa_thread_pool.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
@@ -133,52 +134,17 @@ namespace kagome::consensus::grandpa {
 
   bool GrandpaImpl::tryStart() {
     // Obtain last completed round
-    auto round_state_res = getLastCompletedRound();
+    auto round_state_res = makeRoundAfterLastFinalized();
     if (not round_state_res.has_value()) {
       logger_->critical(
           "Can't retrieve last round data: {}. Stopping grandpa execution",
           round_state_res.error());
       return false;
     }
-    auto &round_state = round_state_res.value();
 
     SL_DEBUG(logger_,
              "Grandpa will be started with round #{}",
-             round_state.round_number + 1);
-
-    auto authorities_res = authority_manager_->authorities(
-        round_state.last_finalized_block, false);
-    if (not authorities_res.has_value()) {
-      logger_->critical(
-          "Can't retrieve authorities for block {}. Stopping grandpa execution",
-          round_state.last_finalized_block);
-      return false;
-    }
-    auto &authority_set = authorities_res.value();
-
-    auto voters_res = VoterSet::make(*authority_set);
-    if (not voters_res) {
-      logger_->critical("Can't make voter set: {}. Stopping grandpa execution",
-                        voters_res.error());
-      return false;
-    }
-    auto &voters = voters_res.value();
-
-    current_round_ =
-        makeInitialRound(round_state, std::move(voters), *authority_set);
-    BOOST_ASSERT(current_round_ != nullptr);
-
-    if (not current_round_->finalizedBlock().has_value()) {
-      logger_->critical(
-          "Initial round must be finalized, but it is not. "
-          "Stopping grandpa execution");
-      return false;
-    }
-
-    // Timer to send neighbor message if round does not change long time (1 min)
-    setTimerFallback();
-
-    tryExecuteNextRound(current_round_);
+             current_round_->roundNumber());
 
     chain_sub_.onHead(
         [weak{weak_from_this()}](const primitives::BlockHeader &block) {
@@ -224,9 +190,6 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         round_state);
     applyHistoricalVotes(*new_round);
-
-    new_round->end();  // it is okay, because we do not want to actually execute
-                       // this round
     return new_round;
   }
 
@@ -312,36 +275,28 @@ namespace kagome::consensus::grandpa {
     return round == nullptr ? std::nullopt : std::make_optional(round);
   }
 
-  outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
-      const {
-    auto finalized_block = block_tree_->getLastFinalized();
-
-    if (finalized_block.number == 0) {
-      return MovableRoundState{.round_number = 0,
-                               .last_finalized_block = finalized_block,
-                               .votes = {},
-                               .finalized = {finalized_block}};
+  outcome::result<void> GrandpaImpl::makeRoundAfterLastFinalized() {
+    auto finalized = block_tree_->getLastFinalized();
+    auto authorities = authority_manager_->authorities(finalized, true);
+    if (not authorities) {
+      return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }
-
-    OUTCOME_TRY(encoded_justification,
-                block_tree_->getBlockJustification(finalized_block.hash));
-
-    OUTCOME_TRY(
-        grandpa_justification,
-        scale::decode<GrandpaJustification>(encoded_justification.data));
-
-    MovableRoundState round_state{
-        .round_number = grandpa_justification.round_number,
-        .last_finalized_block = grandpa_justification.block_info,
-        .votes = {},
-        .finalized = {grandpa_justification.block_info}};
-
-    std::transform(std::move_iterator(grandpa_justification.items.begin()),
-                   std::move_iterator(grandpa_justification.items.end()),
-                   std::back_inserter(round_state.votes),
-                   [](auto &&item) { return std::forward<VoteVariant>(item); });
-
-    return round_state;
+    OUTCOME_TRY(voters, VoterSet::make(**authorities));
+    MovableRoundState state{1, finalized, {}, std::nullopt};
+    if (finalized.number != 0) {
+      OUTCOME_TRY(raw_justification,
+                  block_tree_->getBlockJustification(finalized.hash));
+      OUTCOME_TRY(justification,
+                  scale::decode<GrandpaJustification>(raw_justification.data));
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(finalized.hash));
+      HasAuthoritySetChange digests{header};
+      if (not digests.scheduled) {
+        state.round_number = justification.round_number + 1;
+      }
+    }
+    current_round_ = makeInitialRound(state, voters, **authorities);
+    startCurrentRound();
+    return outcome::success();
   }
 
   void GrandpaImpl::tryExecuteNextRound(
@@ -358,7 +313,10 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(res.value() != nullptr);
     current_round_ = std::move(res.value());
+    startCurrentRound();
+  }
 
+  void GrandpaImpl::startCurrentRound() {
     setTimerFallback();
 
     // Truncate chain of rounds
@@ -777,6 +735,7 @@ namespace kagome::consensus::grandpa {
       auto &voters = voters_res.value();
 
       round = makeInitialRound(round_state, std::move(voters), *authority_set);
+      round->end();
     }
 
     GrandpaContext grandpa_context;
@@ -1305,6 +1264,8 @@ namespace kagome::consensus::grandpa {
 
         round =
             makeInitialRound(round_state, std::move(voters), *authority_set);
+        round->end();
+
         need_to_make_round_current = true;
         BOOST_ASSERT(round);
 
