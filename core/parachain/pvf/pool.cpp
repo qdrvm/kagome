@@ -44,27 +44,38 @@ namespace kagome::parachain {
 
   PvfPool::PvfPool(const application::AppConfiguration &app_config,
                    std::shared_ptr<runtime::ModuleFactory> module_factory,
-                   std::shared_ptr<runtime::InstrumentWasm> instrument)
+                   std::shared_ptr<runtime::WasmInstrumenter> instrument)
       : pool_{std::make_shared<runtime::RuntimeInstancesPoolImpl>(
-          app_config,
-          std::move(module_factory),
-          std::move(instrument),
-          app_config.parachainRuntimeInstanceCacheSize())} {}
+            app_config,
+            std::move(module_factory),
+            std::move(instrument),
+            app_config.parachainRuntimeInstanceCacheSize())} {}
 
   outcome::result<void> PvfPool::precompile(
       const Hash256 &code_hash,
       BufferView code_zstd,
       const runtime::RuntimeContext::ContextParams &config) const {
-    auto make_timer = [] { return metric_pvf_preparation_time().timer(); };
-    decltype(make_timer()) timer;
+    auto timer = metric_pvf_preparation_time().timer();
     return pool_->precompile(
         code_hash,
         [&]() mutable -> runtime::RuntimeCodeProvider::Result {
-          timer.emplace(make_timer().value());
           OUTCOME_TRY(code, runtime::uncompressCodeIfNeeded(code_zstd));
           metric_code_size.observe(code.size());
           return std::make_shared<Buffer>(code);
         },
         config);
   }
+
+  std::optional<std::shared_ptr<const runtime::Module>> PvfPool::getModule(
+      const Hash256 &code_hash,
+      const runtime::RuntimeContext::ContextParams &config) const {
+    return pool_->getModule(code_hash, config);
+  }
+
+  std::filesystem::path PvfPool::getCachePath(
+      const common::Hash256 &code_hash,
+      const runtime::RuntimeContext::ContextParams &config) const {
+    return pool_->getCachePath(code_hash, config);
+  }
+
 }  // namespace kagome::parachain

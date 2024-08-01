@@ -72,6 +72,7 @@ option(EMBEDDINGS "Embed developers assets" ON)
 option(PROFILING "Enable internal profiling instruments" OFF)
 option(BACKWARD "Enable stacktrace logging instruments" ON)
 option(CLEAR_OBJS "Clear object files" OFF)
+option(WERROR "Turn all warnings into errors" OFF)
 
 if (NOT ($ENV{CI}) OR NOT ($ENV{GITHUB_ACTIONS}))
   set(_EXTERNAL_PROJECT_DEFAULT ON)
@@ -125,6 +126,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wno-format-nonliteral)   # prints way too many warnings from spdlog
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
+  if(WERROR)
+    add_flag(-Werror)                # turn all warnings into errors
+  endif()
+
   # cmake-format: on
   if ((("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$")
       AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0"))
@@ -148,7 +153,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
     add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
     add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
-    add_flag(-Werror-switch)          # unhandled values in a switch statement
+    add_flag(-Werror-switch)           # unhandled values in a switch statement
     # cmake-format: on
   endif ()
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

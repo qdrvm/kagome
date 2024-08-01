@@ -51,10 +51,9 @@ namespace kagome::authorship {
      * @return A result containing a unique pointer to the new BlockBuilder
      * instance, or an error if the operation failed.
      */
-    outcome::result<std::unique_ptr<BlockBuilder>> make(
-        const kagome::primitives::BlockInfo &parent_block,
-        primitives::Digest inherent_digest,
-        TrieChangesTrackerOpt changes_tracker) const override;
+    Result make(const kagome::primitives::BlockInfo &parent_block,
+                primitives::Digest inherent_digest,
+                TrieChangesTrackerOpt changes_tracker) const override;
 
    private:
     std::shared_ptr<runtime::Core> r_core_;

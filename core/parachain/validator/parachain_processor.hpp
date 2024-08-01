@@ -22,6 +22,7 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
+#include "network/can_disconnect.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
@@ -99,6 +100,7 @@ namespace kagome::parachain {
 
   struct ParachainProcessorImpl
       : BackedCandidatesSource,
+        network::CanDisconnect,
         std::enable_shared_from_this<ParachainProcessorImpl> {
     enum class Error {
       RESPONSE_ALREADY_RECEIVED = 1,
@@ -267,6 +269,9 @@ namespace kagome::parachain {
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
 
+    // CanDisconnect
+    bool canDisconnect(const libp2p::PeerId &) const override;
+
     /**
      * @brief Fetches the Proof of Validity (PoV) for a given candidate.
      *
@@ -389,6 +394,9 @@ namespace kagome::parachain {
       std::optional<ActiveValidatorState> active;
     };
 
+    using PeerUseCount = SafeObject<
+        std::unordered_map<primitives::AuthorityDiscoveryId, size_t>>;
+
     struct PerSessionState {
       PerSessionState(const PerSessionState &) = delete;
       PerSessionState &operator=(const PerSessionState &) = delete;
@@ -401,19 +409,17 @@ namespace kagome::parachain {
       Groups groups;
       std::optional<grid::Views> grid_view;
       std::optional<ValidatorIndex> our_index;
+      std::optional<GroupIndex> our_group;
+      std::shared_ptr<PeerUseCount> peers;
 
-      std::shared_ptr<network::PeerManager> pm;
-      std::shared_ptr<authority_discovery::Query> query_audi;
-
-      PerSessionState(
-          SessionIndex _session,
-          const runtime::SessionInfo &_session_info,
-          Groups &&_groups,
-          grid::Views &&_grid_view,
-          ValidatorIndex _our_index,
-          const std::shared_ptr<network::PeerManager> &_pm,
-          const std::shared_ptr<authority_discovery::Query> &_query_audi);
+      PerSessionState(SessionIndex _session,
+                      const runtime::SessionInfo &_session_info,
+                      Groups &&_groups,
+                      grid::Views &&_grid_view,
+                      ValidatorIndex _our_index,
+                      std::shared_ptr<PeerUseCount> peers);
       ~PerSessionState();
+      void updatePeers(bool add) const;
     };
 
     struct RelayParentState {
@@ -1128,6 +1134,7 @@ namespace kagome::parachain {
     primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
+    std::shared_ptr<PeerUseCount> peer_use_count_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 

@@ -4,28 +4,218 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name : Zombie Builder
+name: Zombie Builder
 
 on:
-  schedule:
-    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
+#  schedule:
+#    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
+    inputs: 
+      polkadot_image_rebuild:
+        description: 'Rebuild the polkadot builder image'
+        required: false
+        default: 'false'
+        type: 'boolean'
+      polkadot_binaries_rebuild:
+        description: 'Rebuild the polkadot binaries'
+        required: false
+        default: 'true'
+        type: 'boolean'
+      zombie_tester_image_rebuild:
+        description: 'Rebuild the zombie tester image'
+        required: false
+        default: 'false'
+        type: 'boolean'
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  CACHE_VERSION: v001
+  CACHE_PATHS: ./zombienet/docker/cargo
 
 jobs:
-  build_and_push_zombie_builder:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
+  build_polkadot_builder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-    - uses: actions/checkout@v4
-    - name: build zombie-builder
-      working-directory: ./zombienet/docker
-      run: make builder_last
-    - uses: azure/docker-login@v2
-      with:
-        login-server: https://index.docker.io/v1/
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
-    - name: Push zombie-builder docker image
-      working-directory: ./zombienet/docker
-      run: make builder_push
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+          
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./zombienet/docker
+        run: make get_versions
+        
+      - name: "Check if image tag exists"
+        id: check-tag
+        working-directory: ./zombienet/docker
+        run: |
+          POLKADOT_VERSION=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}polkadot_builder:${POLKADOT_VERSION}
+          TAG_EXISTS=$(docker manifest inspect ${POLKADOT_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
+          echo "polkadot_builder_image=$POLKADOT_BUILDER_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: "Build Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
+        run: make polkadot_builder \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+        
+      - name: "Push Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
+        run: make polkadot_builder_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+  
+  
+  building_binaries:
+    runs-on: [ actions-runner-controller ]
+    needs: [build_polkadot_builder]
+    timeout-minutes: 120
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+          
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./zombienet/docker
+        run: make get_versions
+      
+      - name: "Setup package version if not rebuilding"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'false'
+        working-directory: ./zombienet/docker
+        run: |
+          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
+          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
+          gcloud config set artifacts/repository $ARTIFACTS_REPO
+          gcloud config set artifacts/location $REGION
+          POLKADOT_BINARY_PACKAGE_VERSION=$(gcloud artifacts versions list --package=polkadot-binary --format=json | \
+            jq -r 'sort_by(.createTime) | .[-1] | {version: (.name | split("/") | last), createTime: .createTime} | .version')
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" | tee -a variables.env
+      
+      - name: "Build target"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        working-directory: ./zombienet/docker
+        run: make polkadot_binary \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          SCCACHE_GCS_BUCKET=${{ secrets.SCCACHE_GCS_BUCKET }} \
+          
+      - name: "Push Polkadot APT Package"
+        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        working-directory: ./zombienet/docker
+        id: push_apt_package
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          POLKADOT_RELEASE_GLOBAL_NUMERIC=$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_BINARY_PACKAGE_VERSION="${POLKADOT_RELEASE_GLOBAL_NUMERIC}-${SHORT_COMMIT_HASH}"
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" | tee -a variables.env
+          make upload_apt_package
+        
+      - name: "Upload Variables Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: variables-artifact
+          path: ./zombienet/docker/variables.env
+          
+#      - name: Archive build outputs
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: build-output
+#          path: ./zombienet/docker/polkadot_binary/
+
+          
+  build_zombie_tester:
+    runs-on: ubuntu-latest
+    needs: [building_binaries]
+    timeout-minutes: 60
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Get Polkadot and Zombienet versions"
+        working-directory: ./zombienet/docker
+        run: make get_versions
+
+      - name: "Download Variables Artifact"
+        uses: actions/download-artifact@v4
+        with:
+          name: variables-artifact
+          path: .
+
+      - name: "Load Variables"
+        id: load-variables
+        run: |
+          source variables.env
+          echo "POLKADOT_BINARY_PACKAGE_VERSION=${POLKADOT_BINARY_PACKAGE_VERSION}" >> $GITHUB_ENV
+
+      - name: "Check if image tag exists"
+        id: check-tag
+        working-directory: ./zombienet/docker
+        run: |
+          ZOMBIENET_RELEASE=$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2)
+          POLKADOT_SDK_RELEASE=$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2)
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${POLKADOT_SDK_RELEASE}_${ZOMBIENET_RELEASE}
+          TAG_EXISTS=$(docker manifest inspect ${ZOMBIE_TESTER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
+          echo "zombie_tester_image=$ZOMBIE_TESTER_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: "Build Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.zombie_tester_image_rebuild == 'true'
+        run: make zombie_tester \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} \
+          PROJECT_ID=${{ secrets.GCP_PROJECT }} \
+          POLKADOT_BINARY_PACKAGE_VERSION="${POLKADOT_BINARY_PACKAGE_VERSION}"
+
+      - name: "Push Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || github.event.inputs.zombie_tester_image_rebuild == 'true'
+        run: make zombie_tester_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          

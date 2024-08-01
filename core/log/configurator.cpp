@@ -73,6 +73,7 @@ groups:
               - name: runtime_api
               - name: host_api
                 children:
+                  - name: elliptic_curves_extension
                   - name: memory_extension
                   - name: io_extension
                   - name: crypto_extension

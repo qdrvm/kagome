@@ -23,7 +23,7 @@ namespace kagome::authorship {
     BOOST_ASSERT(header_backend_ != nullptr);
   }
 
-  outcome::result<std::unique_ptr<BlockBuilder>> BlockBuilderFactoryImpl::make(
+  BlockBuilderFactory::Result BlockBuilderFactoryImpl::make(
       const kagome::primitives::BlockInfo &parent,
       primitives::Digest inherent_digest,
       TrieChangesTrackerOpt changes_tracker) const {
@@ -48,8 +48,10 @@ namespace kagome::authorship {
       logger_->error("Core_initialize_block failed: {}", res.error());
       return res.error();
     } else {
-      return std::make_unique<BlockBuilderImpl>(
-          header, std::move(res.value()), r_block_builder_);
+      auto &[ctx, mode] = res.value();
+      return std::make_pair(std::make_unique<BlockBuilderImpl>(
+                                header, std::move(ctx), r_block_builder_),
+                            mode);
     }
   }
 

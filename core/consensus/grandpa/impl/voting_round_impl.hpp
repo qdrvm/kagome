@@ -296,6 +296,8 @@ namespace kagome::consensus::grandpa {
     void sendPrecommit(const Precommit &precommit);
     void pending();
 
+    BlockInfo prevBestFinalCandidate() const;
+
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
     std::shared_ptr<VotingRound> previous_round_;

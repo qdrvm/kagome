@@ -47,8 +47,8 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
 
   auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
-  auto serializer = std::make_shared<TrieSerializerImpl>(
-      trie_factory, codec, node_backend);
+  auto serializer =
+      std::make_shared<TrieSerializerImpl>(trie_factory, codec, node_backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(*state_pruner,
           addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))

@@ -56,6 +56,7 @@ namespace kagome::crypto {
         : KeyStore{std::make_unique<KeySuiteStoreMock<Sr25519Provider>>(),
                    std::make_unique<KeySuiteStoreMock<Ed25519Provider>>(),
                    std::make_unique<KeySuiteStoreMock<EcdsaProvider>>(),
+                   std::make_unique<KeySuiteStoreMock<BandersnatchProvider>>(),
                    std::make_shared<Ed25519ProviderMock>(),
                    std::make_shared<application::AppStateManagerMock>(),
                    KeyStore::Config{{}}},
@@ -64,7 +65,9 @@ namespace kagome::crypto {
           ed25519_{dynamic_cast<KeySuiteStoreMock<Ed25519Provider> &>(
               KeyStore ::ed25519())},
           ecdsa_{dynamic_cast<KeySuiteStoreMock<EcdsaProvider> &>(
-              KeyStore ::ecdsa())} {}
+              KeyStore ::ecdsa())},
+          bandersnatch_{dynamic_cast<KeySuiteStoreMock<BandersnatchProvider> &>(
+              KeyStore ::bandersnatch())} {}
     ~KeyStoreMock() = default;
 
     KeySuiteStoreMock<Sr25519Provider> &sr25519() {
@@ -79,9 +82,14 @@ namespace kagome::crypto {
       return ecdsa_;
     }
 
+    KeySuiteStoreMock<BandersnatchProvider> &bandersnatch() {
+      return bandersnatch_;
+    }
+
    private:
     KeySuiteStoreMock<Sr25519Provider> &sr25519_;
     KeySuiteStoreMock<Ed25519Provider> &ed25519_;
     KeySuiteStoreMock<EcdsaProvider> &ecdsa_;
+    KeySuiteStoreMock<BandersnatchProvider> &bandersnatch_;
   };
 }  // namespace kagome::crypto

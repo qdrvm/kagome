@@ -35,7 +35,7 @@ namespace kagome::runtime {
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
     explicit CoreApiFactoryImpl(std::shared_ptr<crypto::Hasher> hasher,
-                                LazySPtr<RuntimeInstancesPool> module_factory);
+                                LazySPtr<RuntimeInstancesPool> instance_pool);
 
     outcome::result<std::unique_ptr<RestrictedCore>> make(
         BufferView code,
@@ -43,7 +43,7 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<crypto::Hasher> hasher_;
-    LazySPtr<RuntimeInstancesPool> module_factory_;
+    LazySPtr<RuntimeInstancesPool> instance_pool_;
   };
 
 }  // namespace kagome::runtime

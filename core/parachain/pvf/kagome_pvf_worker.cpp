@@ -12,6 +12,7 @@
 #include <string>
 #include <system_error>
 #include <vector>
+#include "runtime/wabt/instrument.hpp"
 
 #ifdef __linux__
 #include <linux/landlock.h>
@@ -235,6 +236,18 @@ namespace kagome::parachain {
 
   outcome::result<std::shared_ptr<runtime::ModuleFactory>> createModuleFactory(
       const auto &injector, RuntimeEngine engine) {
+    // class Foo {
+    //  public:Foo(
+    //       crypto::EcdsaProvider&,
+    //       crypto::Secp256k1Provider&) {}
+    // };
+    //
+    // std::ignore = injector.template create<std::shared_ptr<Foo>>();
+    // std::ignore = injector.template create<
+    //     std::shared_ptr<crypto::EcdsaProvider>>();
+    // std::ignore = injector.template create<
+    //     std::shared_ptr<crypto::Secp256k1Provider>>();
+
     switch (engine) {
       case RuntimeEngine::kBinaryen:
         return injector.template create<
@@ -326,20 +339,21 @@ namespace kagome::parachain {
 #endif
     auto injector = pvf_worker_injector(input_config);
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
-    std::shared_ptr<runtime::ModuleInstance> instance;
+    std::shared_ptr<runtime::Module> module;
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
       if (auto *code = std::get_if<PvfWorkerInputCode>(&input)) {
         OUTCOME_TRY(path, chroot_path(*code));
-        OUTCOME_TRY(module, factory->loadCompiled(path));
-        BOOST_OUTCOME_TRY(instance, module->instantiate());
+        BOOST_OUTCOME_TRY(module, factory->loadCompiled(path));
         continue;
       }
       auto &input_args = std::get<PvfWorkerInputArgs>(input);
-      if (not instance) {
+      if (not module) {
         SL_ERROR(logger, "PvfWorkerInputCode expected");
         return std::errc::invalid_argument;
       }
+      OUTCOME_TRY(instance, module->instantiate());
+
       OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
       OUTCOME_TRY(
           result,

@@ -209,6 +209,9 @@ namespace kagome::host_api {
         runtime::WasmPointer msg,
         runtime::WasmPointer key) override;
 
+    runtime::WasmPointer ext_crypto_bandersnatch_generate_version_1(
+        runtime::WasmSize key_type, runtime::WasmSpan seed) override;
+
     // ------------------------- Hashing extension/crypto ---------------
 
     runtime::WasmPointer ext_hashing_keccak_256_version_1(

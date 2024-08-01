@@ -30,9 +30,8 @@ namespace kagome::runtime {
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
-      LazySPtr<RuntimeInstancesPool> module_factory)
-      : hasher_{std::move(hasher)},
-        module_factory_{std::move(module_factory)} {}
+      LazySPtr<RuntimeInstancesPool> instance_pool)
+      : hasher_{std::move(hasher)}, instance_pool_{std::move(instance_pool)} {}
 
   outcome::result<std::unique_ptr<RestrictedCore>> CoreApiFactoryImpl::make(
       BufferView code_zstd,
@@ -43,7 +42,7 @@ namespace kagome::runtime {
     if (version) {
       return std::make_unique<GetVersion>(*version);
     }
-    if (not module_factory_.get()) {
+    if (not instance_pool_.get()) {
       return std::errc::not_supported;
     }
     MemoryLimits config;
@@ -51,7 +50,7 @@ namespace kagome::runtime {
                       heapAllocStrategyHeappagesDefault(
                           *storage_provider->getCurrentBatch()));
     OUTCOME_TRY(instance,
-                module_factory_.get()->instantiateFromCode(
+                instance_pool_.get()->instantiateFromCode(
                     code_hash,
                     [&] { return std::make_shared<Buffer>(code); },
                     {config}));

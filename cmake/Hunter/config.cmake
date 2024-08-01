@@ -75,10 +75,9 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
 endif ()
 
 hunter_config(
-    arkworks_crust
-    URL  https://github.com/qdrvm/arkworks-crust/archive/843300a0ef85777761a4c1acc0acf158e986c6ca.tar.gz
-    SHA1 ec88913a9d2de264c5ce9f5bbe13d9ec7d135ce3
-    KEEP_PACKAGE_SOURCES
+    kagome-crates
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/1.0.1.tar.gz
+    SHA1 e95bb84f34d0a20131222a40f004b597df4ccc13
 )
 
 hunter_config(

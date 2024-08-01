@@ -12,6 +12,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
+#include "log/profiling_logger.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
@@ -26,6 +27,7 @@
 #include "runtime/module.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "scale/std_variant.hpp"
 
@@ -44,7 +46,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
     case PvfError::PERSISTED_DATA_HASH:
-      return "Incorrect Perssted Data hash";
+      return "Incorrect Persisted Data hash";
     case PvfError::NO_CODE:
       return "No code";
     case PvfError::NO_PERSISTED_DATA:
@@ -63,6 +65,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
       return "Commitments hash mismatch";
     case PvfError::OUTPUTS:
       return "ValidationResult is invalid";
+    case PvfError::COMPILATION_ERROR:
+      return "PVF code failed to compile";
   }
   return "unknown error (kagome::parachain::PvfError)";
 }
@@ -318,15 +322,27 @@ namespace kagome::parachain {
     constexpr auto name = "validate_block";
     CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, executor_params));
     if (not app_configuration_->usePvfSubprocess()) {
-      CB_TRY(
-          auto instance,
-          pvf_pool_->pool()->instantiateFromCode(
-              code_hash, [&] { return PvfError::NO_CODE; }, executor_params));
-      CB_TRY(auto ctx, ctx_factory_->stateless(instance));
+      // Reusing instances for PVF calls doesn't work, runtime calls start to
+      // crash on access out of memory bounds
+      KAGOME_PROFILE_START_L(log_, single_process_runtime_instantitation);
+      auto module_opt = pvf_pool_->getModule(code_hash, executor_params);
+      if (!module_opt) {
+        SL_ERROR(log_,
+                 "Runtime module supposed to be precompiled for parachain ID "
+                 "{}, but it's not. This indicates a bug.",
+                 receipt.descriptor.para_id);
+        cb(PvfError::NO_CODE);
+        return;
+      }
+      auto &wasm_module = module_opt.value();
+      CB_TRY(auto instance, wasm_module->instantiate());
+      CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
+      KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
+      KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        pvf_pool_->pool()->cachePath(code_hash, executor_params),
+        pvf_pool_->getCachePath(code_hash, executor_params),
         scale::encode(params).value(),
         [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
           if (r.has_error()) {
@@ -355,19 +371,6 @@ namespace kagome::parachain {
         hasher_->blake2b_256(scale::encode(commitments).value());
     if (commitments_hash != receipt.commitments_hash) {
       return PvfError::COMMITMENTS_HASH;
-    }
-    OUTCOME_TRY(valid,
-                parachain_api_->check_validation_outputs(
-                    receipt.descriptor.relay_parent,
-                    receipt.descriptor.para_id,
-                    commitments));
-    if (!valid) {
-      SL_VERBOSE(log_,
-                 "fromOutputs relay_parent={} para_id={}: invalid "
-                 "(check_validation_outputs)",
-                 receipt.descriptor.relay_parent,
-                 receipt.descriptor.para_id);
-      return PvfError::OUTPUTS;
     }
     return commitments;
   }
