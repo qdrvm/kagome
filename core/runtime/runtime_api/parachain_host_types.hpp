@@ -53,6 +53,17 @@ namespace kagome::runtime {
       }
       return std::nullopt;
     }
+
+    std::vector<std::pair<ParachainId, CoreIndex>> iter_claims_at_depth(
+        size_t depth) const {
+      std::vector<std::pair<ParachainId, CoreIndex>> res;
+      for (const auto &[core_index, paras] : claimes) {
+        if (depth < paras.size()) {
+          res.emplace_back(paras[depth], core_index);
+        }
+      }
+      return res;
+    }
   };
 
   /// Information about a core which is currently occupied.
