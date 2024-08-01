@@ -62,13 +62,26 @@ namespace kagome::parachain {
     using ActiveMap = std::unordered_map<CandidateHash, Active>;
     using Lock = std::unique_lock<std::mutex>;
 
-    void back(const CandidateHash &candidate_hash);
-    void back(const CandidateHash &candidate_hash,
-              outcome::result<network::FetchAvailableDataResponse> _backed);
-    void chunk(const CandidateHash &candidate_hash);
-    void chunk(const CandidateHash &candidate_hash,
-               ChunkIndex index,
-               outcome::result<network::FetchChunkResponse> _chunk);
+    // Full recovery strategy
+    void full_recovery(const CandidateHash &candidate_hash);
+    void full_recovery_iteration(
+        const CandidateHash &candidate_hash,
+        outcome::result<network::FetchAvailableDataResponse> _backed);
+
+    // Systematic recovery strategy
+    void systematic_recovery(const CandidateHash &candidate_hash);
+    void systematic_recovery_iteration(
+        const CandidateHash &candidate_hash,
+        ChunkIndex index,
+        outcome::result<network::FetchChunkResponse> _chunk);
+
+    // Chunk recovery strategy
+    void chunk_recovery(const CandidateHash &candidate_hash);
+    void chunk_recovery_iteration(
+        const CandidateHash &candidate_hash,
+        ChunkIndex index,
+        outcome::result<network::FetchChunkResponse> _chunk);
+
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
     void done(Lock &lock,
