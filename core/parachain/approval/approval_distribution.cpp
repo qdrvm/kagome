@@ -101,7 +101,6 @@ namespace {
     VRFCProof cert_proof;
     uint32_t *cores;
     uint64_t cores_out_sz;
-    uint64_t cores_cap;
 
     if (sr25519_relay_vrf_modulo_assignments_cert_v2(
             assignments_key.data(),
@@ -113,8 +112,7 @@ namespace {
             &cert_output,
             &cert_proof,
             &cores,
-            &cores_out_sz,
-            &cores_cap)) {
+            &cores_out_sz)) {
       ::scale::BitVec assignment_bitfield;
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         const auto ci = cores[ix];
@@ -152,7 +150,7 @@ namespace {
         assignments.emplace(core_index, assignment);
       }
 
-      sr25519_clear_assigned_cores_v2(cores, cores_out_sz, cores_cap);
+      sr25519_clear_assigned_cores_v2(cores, cores_out_sz);
     }
   }
 
