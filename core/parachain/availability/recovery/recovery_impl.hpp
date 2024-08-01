@@ -10,22 +10,39 @@
 
 #include <mutex>
 #include <random>
+#include <set>
 #include <unordered_map>
 
-#include "authority_discovery/query/query.hpp"
-#include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
-#include "network/router.hpp"
-#include "parachain/availability/store/store.hpp"
-#include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome::application {
   class ChainSpec;
 }
 
+namespace kagome::authority_discovery {
+  class Query;
+}
+
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::network {
   class PeerManager;
+  class Router;
+}  // namespace kagome::network
+
+namespace kagome::parachain {
+  class AvailabilityStore;
+}
+
+namespace kagome::runtime {
+  class ParachainHost;
 }
 
 namespace kagome::parachain {
@@ -44,6 +61,7 @@ namespace kagome::parachain {
     void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
                  std::optional<GroupIndex> backing_group,
+                 std::optional<CoreIndex> core,
                  Cb cb) override;
 
     void remove(const CandidateHash &candidate) override;
@@ -51,24 +69,55 @@ namespace kagome::parachain {
    private:
     struct Active {
       storage::trie::RootHash erasure_encoding_root;
-      size_t chunks_total = 0;
-      size_t chunks_required = 0;
+      ChunkIndex chunks_total = 0;
+      ChunkIndex chunks_required = 0;
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
+      std::vector<ValidatorIndex> validators_of_group;
       std::vector<ValidatorIndex> order;
+      std::set<ValidatorIndex> queried;
+      bool systematic_chunk_failed = false;
       std::vector<network::ErasureChunk> chunks;
+      std::function<CoreIndex(ValidatorIndex)> val2chunk;
       size_t chunks_active = 0;
     };
     using ActiveMap = std::unordered_map<CandidateHash, Active>;
     using Lock = std::unique_lock<std::mutex>;
 
-    void back(const CandidateHash &candidate_hash);
-    void back(const CandidateHash &candidate_hash,
-              outcome::result<network::FetchAvailableDataResponse> _backed);
-    void chunk(const CandidateHash &candidate_hash);
-    void chunk(const CandidateHash &candidate_hash,
-               ChunkIndex index,
-               outcome::result<network::FetchChunkResponse> _chunk);
+    // Full from bakers recovery strategy
+    void full_from_bakers_recovery_prepare(const CandidateHash &candidate_hash);
+    void full_from_bakers_recovery(const CandidateHash &candidate_hash);
+
+    // Systematic recovery strategy
+    void systematic_chunks_recovery_prepare(
+        const CandidateHash &candidate_hash);
+    void systematic_chunks_recovery(const CandidateHash &candidate_hash);
+
+    // Chunk recovery strategy
+    void regular_chunks_recovery_prepare(const CandidateHash &candidate_hash);
+    void regular_chunks_recovery(const CandidateHash &candidate_hash);
+
+    // Fetch available data protocol communication
+    void send_fetch_available_data_request(
+        const libp2p::PeerId &response_res,
+        const CandidateHash &candidate_hash,
+        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void handle_fetch_available_data_response(
+        const CandidateHash &candidate_hash,
+        outcome::result<network::FetchAvailableDataResponse> response_res,
+        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
+
+    // Fetch chunk protocol communication
+    void send_fetch_chunk_request(
+        const libp2p::PeerId &peer_id,
+        const CandidateHash &candidate_hash,
+        ChunkIndex chunk_index,
+        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void handle_fetch_chunk_response(
+        const CandidateHash &candidate_hash,
+        outcome::result<network::FetchChunkResponse> response_res,
+        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
+
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
     void done(Lock &lock,

@@ -28,6 +28,7 @@ namespace kagome::parachain {
     virtual void recover(const HashedCandidateReceipt &hashed_receipt,
                          SessionIndex session_index,
                          std::optional<GroupIndex> backing_group,
+                         std::optional<CoreIndex> core,
                          Cb cb) = 0;
   };
 }  // namespace kagome::parachain

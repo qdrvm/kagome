@@ -619,7 +619,8 @@ namespace kagome::parachain {
 
     metrics_registry_->registerCounterFamily(
         kMetricNoShowsTotal,
-        "Number of assignments which became no-shows in the approval voting subsystem");
+        "Number of assignments which became no-shows in the approval voting "
+        "subsystem");
     metric_no_shows_total_ =
         metrics_registry_->registerCounterMetric(kMetricNoShowsTotal);
   }
@@ -1722,9 +1723,11 @@ namespace kagome::parachain {
                                   std::move(cb));
         };
 
+    CoreIndex core_index = -1;  // FIXME
     recovery_->recover(hashed_candidate,
                        session_index,
                        backing_group,
+                       core_index,
                        std::move(on_recover_complete));
   }
 
