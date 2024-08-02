@@ -14,6 +14,7 @@
 #include "parachain/availability/availability_chunk_index.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
+#include "parachain/availability/store/store.hpp"
 
 namespace {
   constexpr auto fullRecoveriesStartedMetricName =
@@ -93,6 +94,7 @@ namespace kagome::parachain {
   void RecoveryImpl::recover(const HashedCandidateReceipt &hashed_receipt,
                              SessionIndex session_index,
                              std::optional<GroupIndex> backing_group,
+                             CoreIndex core_index,
                              Cb cb) {
     std::unique_lock lock{mutex_};
     const auto &receipt = hashed_receipt.get();
@@ -133,6 +135,7 @@ namespace kagome::parachain {
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
     active.validators = session->discovery_keys;
+    active.core = core_index;
     if (backing_group) {
       active.order = session->validator_groups.at(*backing_group);
       std::shuffle(active.order.begin(), active.order.end(), random_);
@@ -166,12 +169,22 @@ namespace kagome::parachain {
       }
     }
 
+    std::optional<runtime::ParachainHost::NodeFeatures> node_features;
+
     // No known peer anymore to do full recovery
     // Refill request order basing chunks
     active.chunks = av_store_->getChunks(candidate_hash);
-    for (size_t i = 0; i < active.chunks_total; ++i) {
-      ValidatorIndex validator_index = i;
-      ChunkIndex chunk_index = val2chunk(validator_index);
+    for (size_t validator_index = 0; validator_index < active.chunks_total;
+         ++validator_index) {
+      // TODO think about replace it by func with once computed context
+      auto chunk_res = availability_chunk_index(node_features,
+                                                active.validators.size(),
+                                                active.core,
+                                                validator_index);
+      if (chunk_res.has_error()) {
+        continue;
+      }
+      auto chunk_index = chunk_res.value();
 
       if (std::find_if(
               active.chunks.begin(),
@@ -180,7 +193,7 @@ namespace kagome::parachain {
           != active.chunks.end()) {
         continue;
       }
-      active.order.emplace_back(i);
+      active.order.emplace_back(validator_index);
     }
     std::shuffle(active.order.begin(), active.order.end(), random_);
     lock.unlock();
@@ -208,7 +221,7 @@ namespace kagome::parachain {
   }
 
   void RecoveryImpl::systematic_recovery(const CandidateHash &candidate_hash) {
-    if constexpr (/* systematic unavailable */ false) {
+    if (availability_chunk_mapping_is_enabled()) {
       return chunk_recovery(candidate_hash);
     }
 
@@ -444,7 +457,8 @@ namespace kagome::parachain {
       cached_.emplace(it->first, result);
 
       if (result.has_value()) {
-        // incFullRecoveriesFinished("unknown", "success"); // TODO fix strategy
+        // incFullRecoveriesFinished("unknown", "success"); // TODO fix
+        // strategy
       }
     }
     auto node = active_.extract(it);

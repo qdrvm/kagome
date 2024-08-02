@@ -17,7 +17,6 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
-#include "parachain/availability/store/store.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome::application {
@@ -26,6 +25,10 @@ namespace kagome::application {
 
 namespace kagome::network {
   class PeerManager;
+}
+
+namespace kagome::parachain {
+  class AvailabilityStore;
 }
 
 namespace kagome::parachain {
@@ -44,6 +47,7 @@ namespace kagome::parachain {
     void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
                  std::optional<GroupIndex> backing_group,
+                 CoreIndex core,
                  Cb cb) override;
 
     void remove(const CandidateHash &candidate) override;
@@ -55,6 +59,7 @@ namespace kagome::parachain {
       size_t chunks_required = 0;
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
+      CoreIndex core;
       std::vector<ValidatorIndex> order;
       std::vector<network::ErasureChunk> chunks;
       size_t chunks_active = 0;
