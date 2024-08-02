@@ -441,6 +441,8 @@ namespace {
 }  // namespace
 
 namespace kagome::parachain {
+  constexpr auto kMetricNoShowsTotal =
+      "kagome_parachain_approvals_no_shows_total";
 
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
@@ -501,6 +503,12 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
+
+    metrics_registry_->registerCounterFamily(
+        kMetricNoShowsTotal,
+        "Number of assignments which became no-shows in the approval voting subsystem");
+    metric_no_shows_total_ =
+        metrics_registry_->registerCounterMetric(kMetricNoShowsTotal);
   }
 
   bool ApprovalDistribution::tryStart() {
@@ -2521,6 +2529,11 @@ namespace kagome::parachain {
         const auto was_block_approved = block_entry.is_fully_approved();
         block_entry.mark_approved_by_hash(candidate_hash);
         const auto is_block_approved = block_entry.is_fully_approved();
+
+        auto no_shows = known_no_shows(check);
+        if (no_shows != 0) {
+          metric_no_shows_total_->inc(no_shows);
+        }
 
         if (is_block_approved && !was_block_approved) {
           notifyApproved(block_hash);
