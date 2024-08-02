@@ -56,7 +56,6 @@ namespace kagome::network {
     LruSet<common::Hash256> known_grandpa_messages{
         kPeerStateMaxKnownGrandpaMessages,
     };
-    uint32_t use_count = 0;
 
     /// @brief parachain peer state
     std::optional<CollatingPeerState> collator_state = std::nullopt;
@@ -84,19 +83,6 @@ namespace kagome::network {
       view = new_view;
       implicit_view = next_implicit;
       return fresh_implicit;
-    }
-
-    /**
-     * Set of functions to manipulate in-parachain set of nodes.
-     */
-    bool can_be_disconnected() const {
-      return 0 == use_count;
-    }
-    void inc_use_count() {
-      ++use_count;
-    }
-    void dec_use_count() {
-      --use_count;
     }
 
     /// Whether we know that a peer knows a relay-parent. The peer knows the

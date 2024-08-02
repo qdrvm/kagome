@@ -25,6 +25,7 @@
 #include "clock/clock.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/hasher.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
@@ -45,6 +46,7 @@ namespace kagome {
 }
 
 namespace kagome::network {
+  class CanDisconnect;
 
   enum class PeerType { PEER_TYPE_IN = 0, PEER_TYPE_OUT };
 
@@ -76,6 +78,7 @@ namespace kagome::network {
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<ReputationRepository> reputation_repository,
+        LazySPtr<CanDisconnect> can_disconnect,
         std::shared_ptr<PeerView> peer_view);
 
     /** @see poolHandlerReadyMake */
@@ -204,6 +207,7 @@ namespace kagome::network {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
+    LazySPtr<CanDisconnect> can_disconnect_;
     std::shared_ptr<network::PeerView> peer_view_;
 
     libp2p::event::Handle add_peer_handle_;

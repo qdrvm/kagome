@@ -6,6 +6,9 @@
 
 #include <gtest/gtest.h>
 
+#include "gmock/gmock.h"
+#include "mock/core/runtime/memory_provider_mock.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
@@ -13,6 +16,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/instrument_wasm.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
@@ -26,6 +30,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/instance_environment.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -44,11 +49,11 @@ using kagome::parachain::PvfImpl;
 using kagome::parachain::PvfPool;
 using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
-using kagome::runtime::DontInstrumentWasm;
 using kagome::runtime::MemoryLimits;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
+using kagome::runtime::NoopWasmInstrumenter;
 namespace application = kagome::application;
 namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
@@ -103,7 +108,7 @@ class PvfTest : public testing::Test {
         hasher_,
         std::make_shared<PvfPool>(*app_config_,
                                   module_factory_,
-                                  std::make_shared<DontInstrumentWasm>()),
+                                  std::make_shared<NoopWasmInstrumenter>()),
         block_tree,
         sr25519_provider,
         parachain_api,
@@ -150,7 +155,7 @@ class PvfTest : public testing::Test {
           scale::encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
-        EXPECT_TRUE(r);
+        EXPECT_OUTCOME_TRUE_1(r);
       });
       pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
       io_->restart();

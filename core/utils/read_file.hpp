@@ -8,6 +8,9 @@
 
 #include <filesystem>
 #include <fstream>
+#include <system_error>
+
+#include <qtils/outcome.hpp>
 
 namespace kagome {
 
@@ -25,19 +28,19 @@ namespace kagome {
       };
 
   template <ByteContainer Out>
-  bool readFile(Out &out, const std::filesystem::path &path) {
+  outcome::result<void> readFile(Out &out, const std::filesystem::path &path) {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
     if (not file.good()) {
       out.clear();
-      return false;
+      return std::errc{errno};
     }
     out.resize(file.tellg());
     file.seekg(0);
     file.read(reinterpret_cast<char *>(out.data()), out.size());
     if (not file.good()) {
       out.clear();
-      return false;
+      return std::errc{errno};
     }
-    return true;
+    return outcome::success();
   }
 }  // namespace kagome

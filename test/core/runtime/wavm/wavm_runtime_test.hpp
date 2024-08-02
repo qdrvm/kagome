@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <memory>
 #include "core/runtime/runtime_test_base.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"

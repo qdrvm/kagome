@@ -35,8 +35,42 @@ namespace kagome::network::vstaging {
   using CollatorProtocolMessageCollationSeconded = network::Seconded;
   using BitfieldDistributionMessage = network::BitfieldDistributionMessage;
   using BitfieldDistribution = network::BitfieldDistribution;
-  using ApprovalDistributionMessage = network::ApprovalDistributionMessage;
   using ViewUpdate = network::ViewUpdate;
+
+  using IndirectSignedApprovalVoteV2 =
+      parachain::approval::IndirectSignedApprovalVoteV2;
+
+  struct Assignment {
+    SCALE_TIE(2);
+
+    kagome::parachain::approval::IndirectAssignmentCertV2
+        indirect_assignment_cert;
+    scale::BitVec candidate_bitfield;
+  };
+
+  struct Assignments {
+    SCALE_TIE(1);
+
+    std::vector<Assignment> assignments;  /// Assignments for candidates in
+                                          /// recent, unfinalized blocks.
+  };
+
+  struct Approvals {
+    SCALE_TIE(1);
+
+    std::vector<IndirectSignedApprovalVoteV2>
+        approvals;  /// Approvals for candidates in some recent, unfinalized
+                    /// block.
+  };
+
+  /// Network messages used by the approval distribution subsystem.
+  using ApprovalDistributionMessage = boost::variant<
+      /// Assignments for candidates in recent, unfinalized blocks.
+      ///
+      /// Actually checking the assignment may yield a different result.
+      Assignments,
+      /// Approvals for candidates in some recent, unfinalized block.
+      Approvals>;
 
   struct CollatorProtocolMessageAdvertiseCollation {
     SCALE_TIE(3);

@@ -6,6 +6,8 @@
 
 #include "runtime/module_instance.hpp"
 
+#include <cstring>
+
 #include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"

@@ -22,6 +22,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "log/logger.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -37,6 +38,11 @@ static auto assignments_directory =
 struct AssignmentsTest : public test::BaseFS_Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
+
+  static kagome::log::Logger &log() {
+    static auto logger = kagome::log::createLogger("test");
+    return logger;
   }
 
   AssignmentsTest() : BaseFS_Test(assignments_directory) {}
@@ -137,7 +143,7 @@ TEST_F(AssignmentsTest, succeeds_empty_for_0_cores) {
 
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores);
+          cs, si, vrf_story, leaving_cores, false, log());
 
   ASSERT_EQ(assignments.size(), 0ull);
 }
@@ -180,7 +186,7 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
            static_cast<kagome::parachain::GroupIndex>(1))};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores);
+          cs, si, vrf_story, leaving_cores, false, log());
 
   ASSERT_EQ(assignments.size(), 1ull);
 
@@ -251,7 +257,7 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
            (kagome::parachain::GroupIndex)0)};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores);
+          cs, si, vrf_story, leaving_cores, false, log());
 
   ASSERT_EQ(assignments.size(), 1ull);
 

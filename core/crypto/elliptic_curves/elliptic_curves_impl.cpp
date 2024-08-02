@@ -9,7 +9,7 @@
 #include "common/buffer.hpp"
 #include "common/buffer_view.hpp"
 
-#include <arkworks_crust.h>
+#include <arkworks/arkworks.h>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EllipticCurvesError, e) {
   using E = decltype(e);

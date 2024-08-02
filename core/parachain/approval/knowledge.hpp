@@ -14,16 +14,27 @@
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"
 
+template <>
+struct std::hash<scale::BitVec> {
+  auto operator()(const scale::BitVec &v) const {
+    auto s = ::scale::encode(v).value();
+    return boost::hash_range(s.begin(), s.end());
+  }
+};
+
 namespace kagome::parachain::approval {
 
   enum struct MessageKind { Assignment, Approval };
-  using MessageSubject = std::tuple<Hash, CandidateIndex, ValidatorIndex>;
+  using MessageSubject = std::tuple<Hash, scale::BitVec, ValidatorIndex>;
 
   struct MessageSubjectHash {
     auto operator()(const MessageSubject &obj) const {
       size_t value{0ull};
-      std::apply(
-          [&](const auto &...v) { (..., boost::hash_combine(value, v)); }, obj);
+      boost::hash_range(
+          value, std::get<0>(obj).begin(), std::get<0>(obj).end());
+      boost::hash_range(
+          value, std::get<1>(obj).bits.begin(), std::get<1>(obj).bits.end());
+      boost::hash_combine(value, std::get<2>(obj));
       return value;
     }
   };
@@ -71,6 +82,17 @@ namespace kagome::parachain::approval {
     bool contains(const MessageSubject &message,
                   const MessageKind &kind) const {
       return sent.contains(message, kind) || received.contains(message, kind);
+    }
+
+    // Generate the knowledge keys for querying if an approval is known by peer.
+    static std::pair<MessageSubject, MessageKind> generate_approval_key(
+        const approval::IndirectSignedApprovalVoteV2 &approval) {
+      return {
+          std::make_tuple(approval.payload.payload.block_hash,
+                          approval.payload.payload.candidate_indices,
+                          approval.payload.ix),
+          MessageKind::Approval,
+      };
     }
   };
 

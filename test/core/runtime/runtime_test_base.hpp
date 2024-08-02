@@ -193,7 +193,7 @@ class RuntimeTestBaseImpl {
     instance_pool_ = std::make_shared<RuntimeInstancesPoolImpl>(
         app_config_,
         module_factory,
-        std::make_shared<runtime::InstrumentWasm>());
+        std::make_shared<runtime::WasmInstrumenter>());
     auto module_repo =
         std::make_shared<runtime::ModuleRepositoryImpl>(instance_pool_,
                                                         hasher_,

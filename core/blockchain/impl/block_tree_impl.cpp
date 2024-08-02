@@ -387,6 +387,8 @@ namespace kagome::blockchain {
       block_tree_leaves.erase(block);
 
       std::vector<primitives::BlockHash> leaves;
+      leaves.reserve(block_tree_leaves.size());
+
       std::transform(block_tree_leaves.begin(),
                      block_tree_leaves.end(),
                      std::back_inserter(leaves),
@@ -423,18 +425,18 @@ namespace kagome::blockchain {
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
-          .header_repo_ = std::move(header_repo),
-          .storage_ = std::move(storage),
-          .state_pruner_ = std::move(state_pruner),
-          .tree_ = std::make_unique<CachedTree>(finalized),
-          .extrinsic_observer_ = std::move(extrinsic_observer),
-          .hasher_ = std::move(hasher),
-          .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
-          .justification_storage_policy_ =
-              std::move(justification_storage_policy),
-          .genesis_block_hash_ = {},
-          .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
-      }},
+            .header_repo_ = std::move(header_repo),
+            .storage_ = std::move(storage),
+            .state_pruner_ = std::move(state_pruner),
+            .tree_ = std::make_unique<CachedTree>(finalized),
+            .extrinsic_observer_ = std::move(extrinsic_observer),
+            .hasher_ = std::move(hasher),
+            .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
+            .justification_storage_policy_ =
+                std::move(justification_storage_policy),
+            .genesis_block_hash_ = {},
+            .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
+        }},
         main_pool_handler_{main_thread_pool.handlerStarted()} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);

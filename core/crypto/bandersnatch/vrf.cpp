@@ -6,6 +6,8 @@
 
 #include "crypto/bandersnatch/vrf.hpp"
 
+#include "utils/non_null_dangling.hpp"
+
 namespace kagome::crypto::bandersnatch::vrf {
 
   VrfInput vrf_input(BytesIn domain, BytesIn data) {
@@ -81,10 +83,10 @@ namespace kagome::crypto::bandersnatch::vrf {
 
     auto res = ::bandersnatch_vrf_sign_data(label.data(),
                                             label.size(),
-                                            data_ptrs.data(),
-                                            data_sizes.data(),
+                                            nonNullDangling(data_ptrs),
+                                            nonNullDangling(data_sizes),
                                             data.size(),
-                                            input_ptrs.data(),
+                                            nonNullDangling(input_ptrs),
                                             input_ptrs.size());
     return VrfSignData(res);
   }
