@@ -10,7 +10,8 @@
 #include <boost/range/adaptor/indexed.hpp>
 #include <cmath>
 #include <cstdint>
-#include <experimental/random>
+#include <cstdlib>
+#include <ctime>
 #include <numeric>
 #include <unordered_set>
 #include <vector>
@@ -175,8 +176,8 @@ namespace kagome::parachain::grid {
       } else if (sample_rate > n_peers_total) {
         return true;
       } else {
-        size_t random_number =
-            std::experimental::randint(size_t(1), n_peers_total);
+        std::srand(std::time(nullptr));
+        size_t random_number = (std::rand() % n_peers_total) + size_t(1);
         return random_number <= sample_rate;
       }
     }
