@@ -730,7 +730,7 @@ namespace kagome::parachain {
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
 
-    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::RegistryPtr metrics_registry_;
     metrics::Counter *metric_no_shows_total_;
   };
 

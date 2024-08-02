@@ -487,7 +487,8 @@ namespace kagome::parachain {
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 approval_thread_pool.io_context()),
-            libp2p::basic::Scheduler::Config{})} {
+            libp2p::basic::Scheduler::Config{})},
+        metrics_registry_{metrics::createRegistry()} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);
