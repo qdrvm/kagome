@@ -2289,15 +2289,15 @@ namespace kagome::parachain {
     } else {
       nar = std::move(res.value());
     }
-    const auto &[required_routing, peers_randomly_routed_to] = nar;
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+      const auto &[_, pr] = nar;
       if (source && peer == source->get()) {
         return false;
       }
 
       /// TODO(iceseer): topology
-      return peers_randomly_routed_to.contains(peer);
+      return pr.contains(peer);
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
