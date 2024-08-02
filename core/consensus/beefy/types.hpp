@@ -124,4 +124,10 @@ namespace kagome::consensus::beefy {
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;
 
   using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
+
+  struct DoubleVotingProof {
+    SCALE_TIE(2);
+
+    VoteMessage first, second;
+  };
 }  // namespace kagome::consensus::beefy
