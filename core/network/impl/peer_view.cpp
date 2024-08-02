@@ -77,22 +77,42 @@ namespace kagome::network {
     }
   }
 
+  size_t PeerView::peersCount() const {
+    return remote_view_.sharedAccess([](const auto &rv) { return rv.size(); });
+  }
+
   void PeerView::removePeer(const PeerId &peer_id) {
-    if (auto it = remote_view_.find(peer_id); it != remote_view_.end()) {
-      network::View old_view{std::move(it->second)};
-      remote_view_.erase(peer_id);
+    auto ref = remote_view_.exclusiveAccess(
+        [&](auto &rv) -> std::optional<network::View> {
+          if (auto it = rv.find(peer_id); it != rv.end()) {
+            network::View old_view{std::move(it->second)};
+            rv.erase(peer_id);
+            return old_view;
+          }
+          return std::nullopt;
+        });
+
+    if (ref) {
       remote_view_update_observable_->notify(
-          EventType::kPeerRemoved, peer_id, std::move(old_view));
+          EventType::kPeerRemoved, peer_id, std::move(*ref));
     }
   }
 
   void PeerView::updateRemoteView(const PeerId &peer_id, network::View &&view) {
-    auto it = remote_view_.find(peer_id);
-    if (it == remote_view_.end() || it->second != view) {
-      auto &ref = remote_view_[peer_id];
-      ref = std::move(view);
+    auto ref = remote_view_.exclusiveAccess(
+        [&](auto &rv) -> std::optional<network::View> {
+          auto it = rv.find(peer_id);
+          if (it == rv.end() || it->second != view) {
+            auto &ref = rv[peer_id];
+            ref = std::move(view);
+            return ref;
+          }
+          return std::nullopt;
+        });
+
+    if (ref) {
       remote_view_update_observable_->notify(
-          EventType::kViewUpdated, peer_id, ref);
+          EventType::kViewUpdated, peer_id, *ref);
     }
   }
 

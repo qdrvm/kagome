@@ -17,6 +17,7 @@ target_link_libraries(parachain_test
     log_configurator
     base_fs_test
     key_store
+    logger
     )
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
