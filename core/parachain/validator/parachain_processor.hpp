@@ -132,7 +132,8 @@ namespace kagome::parachain {
       NO_PEER,
       ALREADY_REQUESTED,
       NOT_ADVERTISED,
-      WRONG_PARA
+      WRONG_PARA,
+      THRESHOLD_LIMIT_REACHED,
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -447,9 +448,24 @@ namespace kagome::parachain {
       std::unordered_set<primitives::BlockHash> issued_statements;
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
-      std::unordered_set<CandidateHash> backed_hashes{};
+      std::unordered_set<CandidateHash> backed_hashes;
+      std::unordered_set<ValidatorIndex> disabled_validators;
 
       bool inject_core_index;
+
+      bool is_disabled(ValidatorIndex validator_index) const {
+        return disabled_validators.contains(validator_index);
+      }
+
+      scale::BitVec disabled_bitmask(
+          const std::span<const ValidatorIndex> &group) const {
+        scale::BitVec v;
+        v.bits.resize(group.size());
+        for (size_t ix = 0; ix < group.size(); ++ix) {
+          v.bits[ix] = is_disabled(group[ix]);
+        }
+        return v;
+      }
     };
 
     /**
@@ -658,7 +674,7 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent,
-        const ManifestSummary &manifest_summary,
+        ManifestSummary manifest_summary,
         ParachainId para_id,
         grid::ManifestKind manifest_kind);
     network::vstaging::StatementFilter local_knowledge_filter(
