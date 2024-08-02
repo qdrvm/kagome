@@ -898,6 +898,9 @@ namespace kagome::parachain {
     };
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
+
+    metrics::RegistryPtr metrics_registry_;
+    metrics::Counter *metric_no_shows_total_;
   };
 
 }  // namespace kagome::parachain
