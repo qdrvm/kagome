@@ -2125,8 +2125,9 @@ namespace kagome::parachain {
         .routing_info =
             ApprovalRouting{
                 .required_routing =
-                    grid::RequiredRouting::GridXY,  /// TODO(iceseer): calculate
-                                                    /// based on grid
+                    grid::RequiredRouting{
+                        .value = grid::RequiredRouting::
+                            GridXY},  /// TODO(iceseer): calculate based on grid
                 .local = local,
                 .random_routing = {},
                 .peers_randomly_routed = {},
