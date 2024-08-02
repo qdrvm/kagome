@@ -372,19 +372,6 @@ namespace kagome::parachain {
     if (commitments_hash != receipt.commitments_hash) {
       return PvfError::COMMITMENTS_HASH;
     }
-    OUTCOME_TRY(valid,
-                parachain_api_->check_validation_outputs(
-                    receipt.descriptor.relay_parent,
-                    receipt.descriptor.para_id,
-                    commitments));
-    if (!valid) {
-      SL_VERBOSE(log_,
-                 "fromOutputs relay_parent={} para_id={}: invalid "
-                 "(check_validation_outputs)",
-                 receipt.descriptor.relay_parent,
-                 receipt.descriptor.para_id);
-      return PvfError::OUTPUTS;
-    }
     return commitments;
   }
 }  // namespace kagome::parachain
