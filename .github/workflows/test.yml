@@ -231,6 +231,8 @@ jobs:
             build_type: "Debug"
           - name: "Self-hosted: Minideb: Build Release"
             build_type: "Release"
+          - name: "Self-hosted: Minideb: Build RelWithDebInfo"
+            build_type: "RelWithDebInfo"
     name: "${{ matrix.options.name }}"
 
     steps:
