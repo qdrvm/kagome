@@ -29,6 +29,7 @@ on:
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   BUILD_DIR: build
   CTEST_OUTPUT_ON_FAILURE: 1
   CI: true

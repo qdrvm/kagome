@@ -175,14 +175,14 @@ upload_apt_package_runtime:
 
 kagome_image_build:
 	$(MAKE) get_versions; \
-	COMMIT_HASH=$$(grep 'full_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
 	BUILD_TARGET=""; \
 	if [ "$(BUILD_TYPE)" = "Debug" ] || [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
 		BUILD_TARGET="--target debug"; \
 	fi; \
 	docker build --platform $(PLATFORM) \
-		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${COMMIT_HASH} \
+		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 		-f minideb.Dockerfile \
@@ -194,6 +194,6 @@ kagome_image_build:
 
 kagome_image_push:
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
-	COMMIT_HASH=$$(grep 'full_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${COMMIT_HASH} ; \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} ; \
 	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest
