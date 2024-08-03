@@ -8,7 +8,6 @@ ARG REGION=europe-north1
 ARG ARCHITECTURE=x86_64
 
 ARG KAGOME_PACKAGE_VERSION
-ARG KAGOME_RUNTIME_PACKAGE_VERSION
 
 FROM ${BASE_IMAGE} AS base
 
@@ -59,14 +58,12 @@ RUN sed -i 's|^\(\s*\)# *Service-Account-JSON ".*";|\1Service-Account-JSON "/roo
 RUN mkdir -p /root/.gcp
 
 ARG KAGOME_PACKAGE_VERSION
-ARG KAGOME_RUNTIME_PACKAGE_VERSION
 ENV KAGOME_PACKAGE_VERSION=${KAGOME_PACKAGE_VERSION}
-ENV KAGOME_RUNTIME_PACKAGE_VERSION=${KAGOME_RUNTIME_PACKAGE_VERSION}
 
 RUN --mount=type=secret,id=google_creds cat /run/secrets/google_creds > /root/.gcp/google_creds.json && \
       install_packages \
         kagome-dev=${KAGOME_PACKAGE_VERSION}  \
-        kagome-dev-runtime=${KAGOME_RUNTIME_PACKAGE_VERSION} && \
+        kagome-dev-runtime && \
         rm /root/.gcp/google_creds.json && sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
