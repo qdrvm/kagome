@@ -36,6 +36,9 @@ KAGOME_RUNTIME_PACKAGE_VERSION ?=
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
 
+# CI Variables
+IS_MAIN_OR_TAG ?= false
+GIT_REF_NAME ?=
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -196,4 +199,11 @@ kagome_image_push:
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} ; \
-	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest
+	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest ; \
+	if [ "$(IS_MAIN_OR_TAG)" = "true" ]; then \
+		if [ -n "$(GIT_REF_NAME)" ]; then \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} ; \
+			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} ; \
+		fi \
+	fi
