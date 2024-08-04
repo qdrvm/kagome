@@ -30,7 +30,7 @@ WERROR ?= OFF
 
 # kagome_runtime_cache and kagome_image_build Variables
 KAGOME_PACKAGE_VERSION ?=
-KAGOME_RUNTIME_PACKAGE_VERSION ?=
+#KAGOME_RUNTIME_PACKAGE_VERSION ?=
 
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
@@ -201,9 +201,14 @@ kagome_image_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} ; \
 	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest ; \
 	if [ "$(IS_MAIN_OR_TAG)" = "true" ]; then \
-		if [ -n "$(GIT_REF_NAME)" ]; then \
+		if [ "$(GIT_REF_NAME)" = "master" ]; then \
+			MAIN_TAG="$${SHORT_COMMIT_HASH}-master"; \
 			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
-			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} ; \
-			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} ; \
+			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}; \
+			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}; \
+		elif [ -n "$(GIT_REF_NAME)" ]; then \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}; \
+			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}; \
 		fi \
 	fi
