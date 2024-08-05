@@ -8,6 +8,7 @@
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 
+#include "authority_discovery/timestamp.hpp"
 #include "crypto/sha/sha256.hpp"
 
 #define _PB_SPAN(f) \
@@ -128,17 +129,23 @@ namespace kagome::authority_discovery {
       OUTCOME_TRY(address2, libp2p::multi::Multiaddress::create(s));
       addresses.emplace(std::move(address2));
     }
-    ::authority_discovery::v2::AuthorityRecord record;
+    ::authority_discovery_v3::AuthorityRecord record;
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
+    TimestampScale time{std::chrono::nanoseconds{
+        std::chrono::system_clock::now().time_since_epoch()}
+                            .count()};
+    PB_SPAN_SET(*record.mutable_creation_time(),
+                timestamp,
+                scale::encode(time).value());
 
     auto record_pb = pbEncodeVec(record);
     OUTCOME_TRY(signature, ed_crypto_provider_->sign(*libp2p_key_, record_pb));
     OUTCOME_TRY(auth_signature,
                 sr_crypto_provider_->sign(*audi_key, record_pb));
 
-    ::authority_discovery::v2::SignedAuthorityRecord signed_record;
+    ::authority_discovery_v3::SignedAuthorityRecord signed_record;
     PB_SPAN_SET(signed_record, auth_signature, auth_signature);
     PB_SPAN_SET(signed_record, record, record_pb);
     auto &ps = *signed_record.mutable_peer_signature();

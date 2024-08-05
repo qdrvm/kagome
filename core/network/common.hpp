@@ -32,7 +32,7 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kCollationProtocolVStaging{
       "/{}/collation/2"};
   const libp2p::peer::ProtocolName kValidationProtocolVStaging{
-      "/{}/validation/2"};
+      "/{}/validation/3"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
   const libp2p::peer::ProtocolName kReqCollationVStagingProtocol{
       "/{}/req_collation/2"};

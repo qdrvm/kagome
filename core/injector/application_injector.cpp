@@ -327,6 +327,7 @@ namespace {
         network::make_protocols("/{}/kad", genesis, chain_spec);
     kademlia_config.maxBucketSize = 1000;
     kademlia_config.randomWalk.enabled = false;
+    kademlia_config.valueLookupsQuorum = 4;
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
         std::move(kademlia_config));
@@ -855,6 +856,7 @@ namespace {
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
+            di::bind<libp2p::protocol::kademlia::Validator>.template to<authority_discovery::QueryImpl>()[boost::di::override],
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),

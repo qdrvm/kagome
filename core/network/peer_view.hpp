@@ -20,6 +20,7 @@
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
@@ -75,6 +76,8 @@ namespace kagome::network {
     bool prepare();
     void stop();
 
+    size_t peersCount() const;
+
     MyViewSubscriptionEnginePtr getMyViewObservable();
     PeerViewSubscriptionEnginePtr getRemoteViewObservable();
 
@@ -91,7 +94,7 @@ namespace kagome::network {
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
 
     std::optional<ExView> my_view_;
-    std::unordered_map<PeerId, View> remote_view_;
+    SafeObject<std::unordered_map<PeerId, View>> remote_view_;
     LazySPtr<blockchain::BlockTree> block_tree_;
   };
 
