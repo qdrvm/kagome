@@ -16,7 +16,7 @@ namespace kagome::parachain {
    public:
     virtual ~Fetch() = default;
 
-    virtual void fetch(ValidatorIndex chunk_index,
+    virtual void fetch(ChunkIndex chunk_index,
                        const runtime::OccupiedCore &core,
                        const runtime::SessionInfo &session) = 0;
   };
