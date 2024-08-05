@@ -165,6 +165,7 @@ namespace kagome::dispute {
         ctx->request.candidate_receipt,
         ctx->request.session,
         std::nullopt,
+        0,  // FIXME core index must be here
         [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
           if (auto self = wp.lock()) {
             if (not res_opt.has_value()) {

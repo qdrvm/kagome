@@ -129,12 +129,20 @@ namespace kagome::parachain {
       cb(_min.error());
       return;
     }
+    auto _node_features =
+        parachain_api_->node_features(block.hash, session_index);
+    if (_node_features.has_error()) {
+      lock.unlock();
+      cb(_node_features.error());
+      return;
+    }
     Active active;
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
     active.chunks_total = session->validators.size();
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
     active.validators = session->discovery_keys;
+    active.node_features = _node_features.value();
     active.core = core_index;
     if (backing_group) {
       active.order = session->validator_groups.at(*backing_group);
@@ -169,15 +177,13 @@ namespace kagome::parachain {
       }
     }
 
-    std::optional<runtime::ParachainHost::NodeFeatures> node_features;
-
     // No known peer anymore to do full recovery
     // Refill request order basing chunks
     active.chunks = av_store_->getChunks(candidate_hash);
     for (size_t validator_index = 0; validator_index < active.chunks_total;
          ++validator_index) {
       // TODO think about replace it by func with once computed context
-      auto chunk_res = availability_chunk_index(node_features,
+      auto chunk_res = availability_chunk_index(active.node_features,
                                                 active.validators.size(),
                                                 active.core,
                                                 validator_index);
@@ -221,16 +227,18 @@ namespace kagome::parachain {
   }
 
   void RecoveryImpl::systematic_recovery(const CandidateHash &candidate_hash) {
-    if (availability_chunk_mapping_is_enabled()) {
-      return chunk_recovery(candidate_hash);
-    }
-
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
       return;
     }
     auto &active = it->second;
+
+    // if chunk mapping is not enabled, systematic is not enabled
+    if (!availability_chunk_mapping_is_enabled(active.node_features)) {
+      return chunk_recovery(candidate_hash);
+    }
+
     if (active.chunks.size() >= active.chunks_required) {
       auto _data = fromChunks(active.validators.size(), active.chunks);
       if (_data) {

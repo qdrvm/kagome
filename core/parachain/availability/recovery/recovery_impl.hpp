@@ -60,6 +60,7 @@ namespace kagome::parachain {
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       CoreIndex core;
+      std::optional<runtime::ParachainHost::NodeFeatures> node_features;
       std::vector<ValidatorIndex> order;
       std::vector<network::ErasureChunk> chunks;
       size_t chunks_active = 0;
