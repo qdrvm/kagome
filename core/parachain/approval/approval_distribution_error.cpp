@@ -25,14 +25,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistributionError, e) {
       return "Validator index out of bounds";
     case E::CORE_INDEX_OUT_OF_BOUNDS:
       return "Core index out of bounds";
+    case E::CANDIDATE_INDEX_OUT_OF_BOUNDS:
+      return "Candidate index out of bounds";
     case E::IS_IN_BACKING_GROUP:
       return "Is in backing group";
     case E::SAMPLE_OUT_OF_BOUNDS:
       return "Sample is out of bounds";
     case E::VRF_DELAY_CORE_INDEX_MISMATCH:
       return "VRF delay core index mismatch";
+    case E::VRF_MODULO_CORE_INDEX_MISMATCH:
+      return "VRF modulo core index mismatch";
+    case E::INVALID_ARGUMENTS:
+      return "Invalid arguments";
     case E::VRF_VERIFY_AND_GET_TRANCHE:
       return "VRF verify and get tranche failed";
+    case E::BIT_FOUND:
+      return "bit found";
+    case E::DUPLICATE_APPROVAL:
+      return "Duplicate approval";
+    case E::ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH:
+      return "Assignments followed different path";
+    case E::UNKNOWN_ASSIGNMENT:
+      return "Unknown assignment";
   }
   return "Unknown approval-distribution error";
 }

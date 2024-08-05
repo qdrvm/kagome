@@ -72,6 +72,7 @@ namespace kagome::network {
         LazySPtr<ReqCollationProtocol> req_collation_protocol,
         LazySPtr<ReqPovProtocol> req_pov_protocol,
         LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
+        LazySPtr<FetchChunkProtocolObsolete> fetch_chunk_protocol_obsolete,
         LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
         LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
         LazySPtr<SendDisputeProtocol> send_dispute_protocol,
@@ -105,6 +106,8 @@ namespace kagome::network {
         const override;
     std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
     std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
+    std::shared_ptr<FetchChunkProtocolObsolete> getFetchChunkProtocolObsolete()
+        const override;
     std::shared_ptr<FetchAttestedCandidateProtocol>
     getFetchAttestedCandidateProtocol() const override;
     std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
@@ -155,6 +158,7 @@ namespace kagome::network {
     LazySPtr<ReqCollationProtocol> req_collation_protocol_;
     LazySPtr<ReqPovProtocol> req_pov_protocol_;
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;
+    LazySPtr<FetchChunkProtocolObsolete> fetch_chunk_protocol_obsolete_;
     LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
     LazySPtr<StatementFetchingProtocol> statement_fetching_protocol_;
 
