@@ -28,13 +28,17 @@ GITHUB_HUNTER_TOKEN ?=
 CTEST_OUTPUT_ON_FAILURE ?= 1
 WERROR ?= OFF
 
-# kagome_runtime_cache Variables
+# kagome_runtime_cache and kagome_image_build Variables
 KAGOME_PACKAGE_VERSION ?=
+#KAGOME_RUNTIME_PACKAGE_VERSION ?=
 
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
 
+# CI Variables
+IS_MAIN_OR_TAG ?= false
+GIT_REF_NAME ?=
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -171,3 +175,40 @@ upload_apt_package_runtime:
 		gcloud artifacts versions delete $$RUNTIME_VERSION --package=kagome-dev-runtime --quiet; \
 	fi; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_$${RUNTIME_VERSION}_$(PACKAGE_ARCHITECTURE).deb
+
+kagome_image_build:
+	$(MAKE) get_versions; \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
+	BUILD_TARGET=""; \
+	if [ "$(BUILD_TYPE)" = "Debug" ] || [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
+		BUILD_TARGET="--target debug"; \
+	fi; \
+	docker build --platform $(PLATFORM) \
+		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
+		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
+		-f minideb.Dockerfile \
+		--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
+		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
+		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
+		--build-arg PROJECT_ID=$(PROJECT_ID) \
+		$${BUILD_TARGET} .
+
+kagome_image_push:
+	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} ; \
+	docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest ; \
+	if [ "$(IS_MAIN_OR_TAG)" = "true" ]; then \
+		if [ "$(GIT_REF_NAME)" = "master" ]; then \
+			MAIN_TAG="$${SHORT_COMMIT_HASH}-master"; \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}; \
+			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}; \
+		elif [ -n "$(GIT_REF_NAME)" ]; then \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}; \
+			docker push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}; \
+		fi \
+	fi

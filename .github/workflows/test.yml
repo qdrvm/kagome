@@ -38,8 +38,11 @@ env:
     ~/.hunter
     ~/.rustup
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   CACHE_PATH: ./build/cache
   DEFAULT_BUILD_TYPE: Release
+  GIT_REF_NAME: ${{ github.ref_name }}
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
   CI: true
 
 
@@ -231,6 +234,8 @@ jobs:
             build_type: "Debug"
           - name: "Self-hosted: Minideb: Build Release"
             build_type: "Release"
+          - name: "Self-hosted: Minideb: Build RelWithDebInfo"
+            build_type: "RelWithDebInfo"
     name: "${{ matrix.options.name }}"
 
     steps:
@@ -295,6 +300,27 @@ jobs:
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
           make upload_apt_package \
           BUILD_TYPE=${{ matrix.options.build_type }}
+
+      - name: Set up Docker Buildx
+        if: env.package_exist == 'False'
+        uses: docker/setup-buildx-action@v3.6.1
+
+      - name: "Build Docker Image"
+        if: env.package_exist == 'False'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_image_build \
+          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          BUILD_TYPE=${{ matrix.options.build_type }}
+          
+      - name: "Push Docker Image"
+        if: env.package_exist == 'False'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_image_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          BUILD_TYPE=${{ matrix.options.build_type }} \
+          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
+          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
 
       - name: "Cleaning cache"
         if: env.package_exist == 'False'

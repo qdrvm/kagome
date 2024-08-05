@@ -8,7 +8,7 @@ PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
 # polkadot_builder Variables
-RUST_IMAGE=rust:1.79-slim-bookworm
+RUST_IMAGE=rust:1.80-slim-bookworm
 SCCACHE_VERSION ?= 0.7.4
 
 # polkadot_binary Variables
@@ -141,7 +141,7 @@ polkadot_binary:
 			$(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
-			"cargo update $(CARGO_PACKETS) && \
+			"cargo update && \
 			cargo build --release $(CARGO_PACKETS) && \
 			cp $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
 		 	./build_apt_package.sh \

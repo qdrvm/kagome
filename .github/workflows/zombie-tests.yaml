@@ -29,6 +29,7 @@ on:
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   BUILD_DIR: build
   CTEST_OUTPUT_ON_FAILURE: 1
   CI: true
@@ -103,6 +104,25 @@ jobs:
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
           make upload_apt_package \
+          BUILD_TYPE=${{ github.event.inputs.build_type }}
+
+      - name: Set up Docker Buildx
+        if: env.package_exist == 'False'
+        uses: docker/setup-buildx-action@v3.6.1
+
+      - name: "Build Docker Image"
+        if: env.package_exist == 'False'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_image_build \
+          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          BUILD_TYPE=${{ github.event.inputs.build_type }}
+
+      - name: "Push Docker Image"
+        if: env.package_exist == 'False'
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_image_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILD_TYPE=${{ github.event.inputs.build_type }}
 
       - name: "Always Save Cache"
