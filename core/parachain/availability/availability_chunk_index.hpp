@@ -46,7 +46,7 @@ namespace kagome::parachain {
   inline bool availability_chunk_mapping_is_enabled(
       std::optional<runtime::ParachainHost::NodeFeatures> node_features) {
     // none if node_features is not defined
-    [[unlikely]] if (node_features.has_value()) { return false; }
+    [[unlikely]] if (not node_features.has_value()) { return false; }
 
     const auto &features = node_features.value();
 
