@@ -138,8 +138,7 @@ namespace kagome::authority_discovery {
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     for (auto &id : authorities) {
-      auto it = hash_to_auth_.find(id);
-      if (it == hash_to_auth_.end()) {
+      if (not hash_to_auth_.contains(id)) {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
