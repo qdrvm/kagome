@@ -6,27 +6,86 @@
 
 #include "parachain/availability/recovery/recovery_impl.hpp"
 
+#include "application/chain_spec.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
+#include "network/peer_manager.hpp"
+#include "parachain/availability/availability_chunk_index.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
+
+namespace {
+  constexpr auto fullRecoveriesStartedMetricName =
+      "kagome_parachain_availability_recovery_recoveries_started";
+  constexpr auto fullRecoveriesFinishedMetricName =
+      "kagome_parachain_availability_recovery_recoveries_finished";
+
+  const std::array<std::string, 4> strategy_types = {
+      "full_from_backers", "systematic_chunks", "regular_chunks", "all"};
+
+  const std::array<std::string, 3> results = {"success", "failure", "invalid"};
+
+#define incFullRecoveriesFinished(strategy, result)                         \
+  do {                                                                      \
+    BOOST_ASSERT_MSG(                                                       \
+        std::find(strategy_types.begin(), strategy_types.end(), strategy)   \
+            != strategy_types.end(),                                        \
+        "Unknown strategy type");                                           \
+    BOOST_ASSERT_MSG(                                                       \
+        std::find(results.begin(), results.end(), result) != results.end(), \
+        "Unknown result type");                                             \
+    full_recoveries_finished_[strategy][result]->inc();                     \
+  } while (false)
+
+}  // namespace
 
 namespace kagome::parachain {
   constexpr size_t kParallelRequests = 50;
 
   RecoveryImpl::RecoveryImpl(
+      std::shared_ptr<application::ChainSpec> chain_spec,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<AvailabilityStore> av_store,
       std::shared_ptr<authority_discovery::Query> query_audi,
-      std::shared_ptr<network::Router> router)
-      : hasher_{std::move(hasher)},
+      std::shared_ptr<network::Router> router,
+      std::shared_ptr<network::PeerManager> pm)
+      : logger_{log::createLogger("Recovery", "parachain")},
+        hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
         parachain_api_{std::move(parachain_api)},
         av_store_{std::move(av_store)},
         query_audi_{std::move(query_audi)},
-        router_{std::move(router)} {}
+        router_{std::move(router)},
+        pm_{std::move(pm)} {
+    // Register metrics
+    metrics_registry_->registerCounterFamily(
+        fullRecoveriesStartedMetricName, "Total number of started recoveries");
+    full_recoveries_started_ = metrics_registry_->registerCounterMetric(
+        fullRecoveriesStartedMetricName);
+    metrics_registry_->registerCounterFamily(
+        fullRecoveriesFinishedMetricName,
+        "Total number of recoveries that finished");
+    full_recoveries_started_ = metrics_registry_->registerCounterMetric(
+        fullRecoveriesFinishedMetricName);
+
+    size_t i = 0;
+    for (auto &strategy : strategy_types) {
+      auto &metrics_for_strategy = full_recoveries_finished_[strategy];
+      for (auto &result : results) {
+        auto &metrics_for_result = metrics_for_strategy[result];
+        metrics_for_result = metrics_registry_->registerCounterMetric(
+            fullRecoveriesFinishedMetricName,
+            {{"result", std::string(result)},
+             {"strategy_type", std::string(strategy)},
+             {"chain", chain_spec->chainType()}});
+      }
+    }
+
+    BOOST_ASSERT(pm_);
+  }
 
   void RecoveryImpl::remove(const CandidateHash &candidate) {
     std::unique_lock lock{mutex_};
@@ -173,17 +232,84 @@ namespace kagome::parachain {
       auto peer = query_audi_->get(active.validators[index]);
       if (peer) {
         ++active.chunks_active;
-        router_->getFetchChunkProtocol()->doRequest(
-            peer->id,
-            {candidate_hash, index},
-            [=, weak{weak_from_this()}](
-                outcome::result<network::FetchChunkResponse> r) {
-              auto self = weak.lock();
-              if (not self) {
-                return;
-              }
-              self->chunk(candidate_hash, index, std::move(r));
-            });
+
+        const auto &peer_id = peer.value().id;
+        auto peer_state = [&]() {
+          auto res = pm_->getPeerState(peer_id);
+          if (!res) {
+            SL_TRACE(logger_, "From unknown peer {}", peer_id);
+            res = pm_->createDefaultPeerState(peer_id);
+          }
+          return res;
+        }();
+
+        auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+            network::ReqChunkVersion::V1_obsolete);
+
+        switch (req_chunk_version) {
+          case network::ReqChunkVersion::V2:
+            SL_DEBUG(logger_,
+                     "Sent request of chunk {} of candidate {} to peer {}",
+                     index,
+                     candidate_hash,
+                     peer_id);
+            router_->getFetchChunkProtocol()->doRequest(
+                peer->id,
+                {candidate_hash, index},
+                [=, this, chunk_index{index}, weak{weak_from_this()}](
+                    outcome::result<network::FetchChunkResponse> r) {
+                  if (auto self = weak.lock()) {
+                    if (r.has_value()) {
+                      SL_DEBUG(logger_,
+                               "Result of request chunk {} of candidate {} to "
+                               "peer {}: success",
+                               chunk_index,
+                               candidate_hash,
+                               peer_id);
+                    } else {
+                      SL_DEBUG(logger_,
+                               "Result of request chunk {} of candidate {} to "
+                               "peer {}: {}",
+                               chunk_index,
+                               candidate_hash,
+                               peer_id,
+                               r.error());
+                    }
+
+                    self->chunk(candidate_hash, index, std::move(r));
+                  }
+                });
+            break;
+          case network::ReqChunkVersion::V1_obsolete:
+            router_->getFetchChunkProtocolObsolete()->doRequest(
+                peer->id,
+                {candidate_hash, index},
+                [=, weak{weak_from_this()}](
+                    outcome::result<network::FetchChunkResponseObsolete> r) {
+                  if (auto self = weak.lock()) {
+                    if (r.has_value()) {
+                      auto response = visit_in_place(
+                          r.value(),
+                          [](const network::Empty &empty)
+                              -> network::FetchChunkResponse { return empty; },
+                          [&](const network::ChunkObsolete &chunk_obsolete)
+                              -> network::FetchChunkResponse {
+                            return network::Chunk{
+                                .data = std::move(chunk_obsolete.data),
+                                .chunk_index = index,
+                                .proof = std::move(chunk_obsolete.proof),
+                            };
+                          });
+                      self->chunk(candidate_hash, index, std::move(response));
+                    } else {
+                      self->chunk(candidate_hash, index, r.as_failure());
+                    }
+                  }
+                });
+            break;
+          default:
+            UNREACHABLE;
+        }
         return;
       }
     }
@@ -194,7 +320,7 @@ namespace kagome::parachain {
 
   void RecoveryImpl::chunk(
       const CandidateHash &candidate_hash,
-      ValidatorIndex index,
+      ChunkIndex index,
       outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
@@ -229,14 +355,20 @@ namespace kagome::parachain {
   void RecoveryImpl::done(
       Lock &lock,
       ActiveMap::iterator it,
-      const std::optional<outcome::result<AvailableData>> &result) {
-    if (result) {
-      cached_.emplace(it->first, *result);
+      const std::optional<outcome::result<AvailableData>> &result_op) {
+    if (result_op.has_value()) {
+      auto &result = result_op.value();
+
+      cached_.emplace(it->first, result);
+
+      if (result.has_value()) {
+        // incFullRecoveriesFinished("unknown", "success"); // TODO fix strategy
+      }
     }
     auto node = active_.extract(it);
     lock.unlock();
     for (auto &cb : node.mapped().cb) {
-      cb(result);
+      cb(result_op);
     }
   }
 }  // namespace kagome::parachain

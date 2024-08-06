@@ -25,26 +25,31 @@ namespace kagome::network {
 
   struct ReqPovProtocolImpl;
 
-  class FetchChunkProtocol final
+  /// Implementation of first implementation of
+  /// fetching chunk protocol aka 'req_chunk/1'
+  ///
+  /// In response index of systematic chunk is corresponding validator index.
+  class FetchChunkProtocolObsolete final
       : public RequestResponseProtocol<FetchChunkRequest,
-                                       FetchChunkResponse,
+                                       FetchChunkResponseObsolete,
                                        ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocol() = delete;
-    ~FetchChunkProtocol() override = default;
+    FetchChunkProtocolObsolete() = delete;
+    ~FetchChunkProtocolObsolete() override = default;
 
-    FetchChunkProtocol(libp2p::Host &host,
-                       const application::ChainSpec & /*chain_spec*/,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+    FetchChunkProtocolObsolete(
+        libp2p::Host &host,
+        const application::ChainSpec & /*chain_spec*/,
+        const blockchain::GenesisBlockHash &genesis_hash,
+        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
             FetchChunkRequest,
-            FetchChunkResponse,
+            FetchChunkResponseObsolete,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,
                                     host,
-                                    make_protocols(kFetchChunkProtocol,
+                                    make_protocols(kFetchChunkProtocolObsolete,
                                                    genesis_hash,
                                                    kProtocolPrefixPolkadot),
                                     log::createLogger(kFetchChunkProtocolName,
@@ -63,17 +68,19 @@ namespace kagome::network {
       if (res.has_error()) {
         base().logger()->error("Fetching chunk response failed.(error={})",
                                res.error());
-      } else {
-        visit_in_place(
-            res.value(),
-            [&](const network::Chunk &r) {
-              base().logger()->info("Fetching chunk response with data.");
-            },
-            [&](const auto &) {
-              base().logger()->info("Fetching chunk response empty.");
-            });
+        return res.as_failure();
       }
-      return res;
+
+      if (auto chunk = if_type<const network::Chunk>(res.value())) {
+        base().logger()->info("Fetching chunk response with data.");
+        return outcome::success(network::ChunkObsolete{
+            .data = std::move(chunk.value().get().data),
+            .proof = std::move(chunk.value().get().proof),
+        });
+      }
+
+      base().logger()->info("Fetching chunk response empty.");
+      return outcome::success(network::Empty{});
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -82,7 +89,7 @@ namespace kagome::network {
                              request.chunk_index);
     }
 
-    inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;
+    inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v1"s;
     std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
   };
 

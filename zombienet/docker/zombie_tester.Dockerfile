@@ -85,9 +85,9 @@ ARG POLKADOT_BINARY_PACKAGE_VERSION
 ENV POLKADOT_BINARY_PACKAGE_VERSION=$POLKADOT_BINARY_PACKAGE_VERSION
 
 RUN mkdir -p /root/.gcp
-RUN --mount=type=secret,id=google_creds cat /run/secrets/google_creds > /root/.gcp/google_creds.json && \
+RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages polkadot-binary=${POLKADOT_BINARY_PACKAGE_VERSION} && \
-      rm /root/.gcp/google_creds.json && sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
+      sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 # WARNING: Setup always returns 2, even when successful 
 RUN zombienet setup -y polkadot polkadot-parachain; \

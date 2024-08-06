@@ -657,7 +657,7 @@ namespace kagome::parachain::fragment {
     static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher,
                                  const Scope &scope,
                                  const CandidateStorage &storage) {
-      auto logger = log::createLogger("parachain", "fragment_tree");
+      auto logger = log::createLogger("FragmentTree", "parachain");
       SL_TRACE(logger,
                "Instantiating Fragment Tree. (relay parent={}, relay parent "
                "num={}, para id={}, ancestors={})",

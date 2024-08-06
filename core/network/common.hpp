@@ -37,7 +37,9 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kReqCollationVStagingProtocol{
       "/{}/req_collation/2"};
   const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
-  const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};
+  const libp2p::peer::ProtocolName kFetchChunkProtocolObsolete{
+      "/{}/req_chunk/1"};
+  const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/2"};
   const libp2p::peer::ProtocolName kFetchAvailableDataProtocol{
       "/{}/req_available_data/1"};
   const libp2p::peer::ProtocolName kFetchStatementProtocol{

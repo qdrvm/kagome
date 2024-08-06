@@ -68,7 +68,7 @@ namespace kagome::network {
     /// The erasure-encoded chunk of data belonging to the candidate block.
     common::Buffer chunk;
     /// The index of this erasure-encoded chunk of data.
-    ValidatorIndex index;
+    ChunkIndex index;
     /// Proof for this chunk's branch in the Merkle tree.
     ChunkProof proof;
   };
@@ -176,19 +176,38 @@ namespace kagome::network {
     SCALE_TIE(2);
 
     CandidateHash candidate;  /// parachain candidate hash
-    uint32_t chunk_index;     /// index of the chunk
+    ChunkIndex chunk_index;   /// index of the chunk
   };
 
   /**
    * Sent by nodes to the clients who issued a chunk fetching request.
+   * Version 1 (obsolete)
    */
-  struct Chunk {
+  struct ChunkObsolete {
     SCALE_TIE(2);
 
-    common::Buffer data;  /// chunk data
-    ChunkProof proof;     /// chunk proof
+    /// chunk data
+    common::Buffer data;
+    /// chunk proof
+    ChunkProof proof;
+  };
+  using FetchChunkResponseObsolete = boost::variant<ChunkObsolete, Empty>;
+
+  /**
+   * Sent by nodes to the clients who issued a chunk fetching request. Version 2
+   */
+  struct Chunk {
+    SCALE_TIE(3);
+
+    /// chunk data
+    common::Buffer data;
+    /// chunk index
+    ChunkIndex chunk_index;
+    /// chunk proof
+    ChunkProof proof;
   };
   using FetchChunkResponse = boost::variant<Chunk, Empty>;
+
   using FetchAvailableDataRequest = CandidateHash;
   using FetchAvailableDataResponse =
       boost::variant<runtime::AvailableData, Empty>;

@@ -244,9 +244,13 @@ struct BlockTreeTest : public testing::Test {
     return {hash, header};
   }
 
+  uint32_t state_nonce_ = 0;
   BlockHash addHeaderToRepository(const BlockHash &parent, BlockNumber number) {
+    Hash256 state;
+    memcpy(state.data(), &state_nonce_, sizeof(state_nonce_));
+    ++state_nonce_;
     return std::get<0>(addHeaderToRepositoryAndGet(
-        parent, number, {}, SlotType::SecondaryPlain));
+        parent, number, state, SlotType::SecondaryPlain));
   }
 
   BlockHash addHeaderToRepository(const BlockHash &parent,
@@ -788,6 +792,11 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
 
   ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
   ASSERT_EQ(best_info.hash, D2_hash);
+
+  // test grandpa best chain selection when target block is not on best chain
+  // https://github.com/paritytech/polkadot-sdk/pull/5153
+  // https://github.com/paritytech/polkadot-sdk/blob/776e95748901b50ff2833a7d27ea83fd91fbf9d1/substrate/client/consensus/grandpa/src/tests.rs#L1823-L1931
+  EXPECT_EQ(block_tree_->getBestContaining(C1_hash).value().hash, C1_hash);
 }
 
 /**
