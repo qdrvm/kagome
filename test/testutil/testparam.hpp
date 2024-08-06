@@ -22,5 +22,5 @@ namespace testutil {
                           bool should_fail,
                           T &&value) {
     return {buffer, should_fail, std::forward<T>(value)};
-  };
+  }
 }  // namespace testutil

@@ -120,7 +120,7 @@ namespace kagome::consensus {
       // TODO: Code for trying to select another consensus
     }
     BOOST_UNREACHABLE_RETURN({});
-  };
+  }
 
   std::shared_ptr<FinalityConsensus>
   ConsensusSelectorImpl::getFinalityConsensus(
@@ -139,6 +139,6 @@ namespace kagome::consensus {
       // TODO: Code for trying to select another consensus
     }
     BOOST_UNREACHABLE_RETURN({});
-  };
+  }
 
 }  // namespace kagome::consensus

@@ -12,7 +12,7 @@ namespace kagome::api::state::request {
 
   Call::Call(std::shared_ptr<StateApi> api) : api_(std::move(api)) {
     BOOST_ASSERT(api_);
-  };
+  }
 
   outcome::result<void> Call::init(const jsonrpc::Request::Parameters &params) {
     if (params.size() < 2 or params.size() > 3) {

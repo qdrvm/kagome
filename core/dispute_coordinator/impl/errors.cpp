@@ -45,7 +45,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeMessageCreationError, e) {
       return "Invalid statement combination";
   }
   return "unknown error (invalid DisputeMessageCreationError)";
-};
+}
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
                             DisputeMessageConstructingError,
@@ -73,7 +73,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
       return "The invalid statement had an invalid validator index";
   }
   return "unknown error (invalid DisputeMessageConstructingError)";
-};
+}
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeProcessingError, e) {
   using E = kagome::dispute::DisputeProcessingError;
@@ -84,7 +84,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeProcessingError, e) {
       return "Authority sent messages at a too high rate";
   }
   return "unknown error (invalid DisputeProcessingError)";
-};
+}
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
   using E = kagome::dispute::BatchError;
@@ -96,7 +96,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
       return "Received votes from peer have been completely redundant";
   }
   return "unknown error (invalid BatchError)";
-};
+}
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
                             ApprovalCheckingMultipleCandidatesError,
@@ -108,4 +108,4 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
              "candidate";
   }
   return "unknown error (invalid ApprovalCheckingMultipleCandidatesError)";
-};
+}

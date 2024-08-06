@@ -44,7 +44,7 @@ namespace kagome::api::state::request {
     explicit QueryStorage(std::shared_ptr<StateApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<std::vector<StateApi::StorageChangeSet>> execute()
         override {

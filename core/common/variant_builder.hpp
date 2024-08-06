@@ -82,7 +82,7 @@ namespace kagome::common {
       static_assert(dynamic_variant::is_boost_variant<Variant>::value);
       dynamic_variant::functors_vector_builder<Variant> builder = {&funcs_};
       boost::mpl::for_each<Types>(builder);
-    };
+    }
 
     /**
      * Initializes the referenced variant with default constructed instance of

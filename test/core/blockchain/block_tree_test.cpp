@@ -323,7 +323,7 @@ struct BlockTreeTest : public testing::Test {
     digest.emplace_back(Seal{{primitives::kBabeEngineId, encoded_seal}});
 
     return digest;
-  };
+  }
 
   const BlockInfo kGenesisBlockInfo{
       0ul, BlockHash::fromString("genesis_block___________________").value()};

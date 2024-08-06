@@ -20,7 +20,7 @@ namespace kagome::api::author::request {
    public:
     explicit HasKey(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));

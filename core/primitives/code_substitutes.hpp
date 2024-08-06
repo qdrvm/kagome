@@ -32,7 +32,7 @@ namespace kagome::primitives {
 
     bool contains(const primitives::BlockInfo &block_info) const {
       return count(block_info.number) != 0 || count(block_info.hash) != 0;
-    };
+    }
 
     bool contains(const primitives::BlockId &block_id) const {
       return count(block_id) != 0;
