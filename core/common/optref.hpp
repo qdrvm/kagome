@@ -54,15 +54,15 @@ namespace kagome {
       return *data;
     }
 
-    explicit operator bool() const noexcept {
+    explicit operator bool() const {
       return data != nullptr;
     }
 
-    bool operator!() const noexcept {
+    bool operator!() const {
       return data == nullptr;
     }
 
-    bool has_value() const noexcept {
+    bool has_value() const {
       return data != nullptr;
     }
 

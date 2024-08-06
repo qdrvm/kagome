@@ -29,11 +29,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
 }
 
 namespace kagome::common {
-  std::string hex_lower(BufferView bytes) noexcept {
+  std::string hex_lower(BufferView bytes) {
     return fmt::format("{:x}", std::span{bytes});
   }
 
-  std::string hex_lower_0x(BufferView bytes) noexcept {
+  std::string hex_lower_0x(BufferView bytes) {
     return fmt::format("{:0x}", std::span{bytes});
   }
 

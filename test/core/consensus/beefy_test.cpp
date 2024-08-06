@@ -74,12 +74,12 @@ using testing::_;
 using testing::Return;
 
 struct Timer : libp2p::basic::Scheduler {
-  std::chrono::milliseconds now() const noexcept override {
+  std::chrono::milliseconds now() const override {
     abort();
   }
   Handle scheduleImpl(Callback &&cb,
                       std::chrono::milliseconds,
-                      bool) noexcept override {
+                      bool) override {
     cb_.emplace(std::move(cb));
     return Handle{};
   }

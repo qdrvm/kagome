@@ -67,7 +67,7 @@ namespace kagome::runtime {
 
   outcome::result<bool> RuntimeUpgradeTrackerImpl::isStateInChain(
       const primitives::BlockInfo &state,
-      const primitives::BlockInfo &chain_end) const noexcept {
+      const primitives::BlockInfo &chain_end) const {
     // if the found state is finalized, it is guaranteed to not belong to a
     // different fork
     primitives::BlockInfo last_finalized;

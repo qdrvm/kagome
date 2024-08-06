@@ -32,7 +32,7 @@ namespace kagome::log {
     std::weak_ptr<soralog::LoggingSystem> logging_system_;
 
     std::shared_ptr<soralog::LoggingSystem>
-    ensure_logger_system_is_initialized() noexcept {
+    ensure_logger_system_is_initialized() {
       auto logging_system = logging_system_.lock();
       BOOST_ASSERT_MSG(
           logging_system,

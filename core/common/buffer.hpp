@@ -69,7 +69,7 @@ namespace kagome::common {
       return *this;
     }
 
-    SLBuffer &operator+=(const BufferView &view) noexcept {
+    SLBuffer &operator+=(const BufferView &view) {
       return put(view);
     }
 

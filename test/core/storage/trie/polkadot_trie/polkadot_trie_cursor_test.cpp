@@ -42,7 +42,7 @@ class PolkadotTrieCursorTest : public testing::Test {
 std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
     size_t keys_num,
     size_t max_key_length = 32,
-    size_t key_alphabet_size = 16) noexcept {
+    size_t key_alphabet_size = 16) {
   std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> res;
   auto trie = PolkadotTrieImpl::createEmpty();
   std::mt19937 eng(5489u);  // explicitly set default seed

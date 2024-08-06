@@ -23,11 +23,11 @@ namespace kagome::crypto::bandersnatch::vrf {
   struct VrfInput {
     VrfInput(const ::bandersnatch_VrfInput *ptr) : ptr(ptr) {}
     VrfInput(const VrfInput &) = delete;
-    VrfInput(VrfInput &&x) noexcept : ptr(x.ptr) {
+    VrfInput(VrfInput &&x) : ptr(x.ptr) {
       const_cast<const ::bandersnatch_VrfInput *&>(x.ptr) = nullptr;
     }
     VrfInput &operator=(const VrfInput &) = delete;
-    VrfInput &operator=(VrfInput &&x) noexcept = delete;
+    VrfInput &operator=(VrfInput &&x) = delete;
     ~VrfInput() {
       if (ptr) {
         ::bandersnatch_vrf_input_free(ptr);
@@ -39,11 +39,11 @@ namespace kagome::crypto::bandersnatch::vrf {
   struct VrfSignData {
     VrfSignData(const ::bandersnatch_VrfSignData *ptr) : ptr(ptr) {}
     VrfSignData(const VrfSignData &) = delete;
-    VrfSignData(VrfSignData &&x) noexcept : ptr(x.ptr) {
+    VrfSignData(VrfSignData &&x) : ptr(x.ptr) {
       const_cast<const ::bandersnatch_VrfSignData *&>(x.ptr) = nullptr;
     }
     VrfSignData &operator=(const VrfSignData &) = delete;
-    VrfSignData &operator=(VrfSignData &&x) noexcept = delete;
+    VrfSignData &operator=(VrfSignData &&x) = delete;
     ~VrfSignData() {
       if (ptr) {
         ::bandersnatch_vrf_sign_data_free(ptr);
@@ -55,11 +55,11 @@ namespace kagome::crypto::bandersnatch::vrf {
   struct RingProver {
     RingProver(const ::bandersnatch_RingProver *ptr) : ptr(ptr) {}
     RingProver(const RingProver &) = delete;
-    RingProver(RingProver &&x) noexcept : ptr(x.ptr) {
+    RingProver(RingProver &&x) : ptr(x.ptr) {
       const_cast<const ::bandersnatch_RingProver *&>(x.ptr) = nullptr;
     }
     RingProver &operator=(const RingProver &) = delete;
-    RingProver &operator=(RingProver &&x) noexcept = delete;
+    RingProver &operator=(RingProver &&x) = delete;
     ~RingProver() {
       if (ptr) {
         ::bandersnatch_ring_prover_free(ptr);
@@ -71,11 +71,11 @@ namespace kagome::crypto::bandersnatch::vrf {
   struct RingVerifier {
     RingVerifier(const ::bandersnatch_RingVerifier *ptr) : ptr(ptr) {}
     RingVerifier(const RingVerifier &) = delete;
-    RingVerifier(RingVerifier &&x) noexcept : ptr(x.ptr) {
+    RingVerifier(RingVerifier &&x) : ptr(x.ptr) {
       const_cast<const ::bandersnatch_RingVerifier *&>(x.ptr) = nullptr;
     }
     RingVerifier &operator=(const RingVerifier &) = delete;
-    RingVerifier &operator=(RingVerifier &&x) noexcept = delete;
+    RingVerifier &operator=(RingVerifier &&x) = delete;
     ~RingVerifier() {
       if (ptr) {
         ::bandersnatch_ring_verifier_free(ptr);

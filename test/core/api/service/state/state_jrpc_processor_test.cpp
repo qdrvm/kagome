@@ -34,7 +34,7 @@ using testing::Return;
 using testing::Truly;
 
 auto operator==(const std::span<const Buffer> lhs,
-                const std::span<const Buffer> rhs) noexcept {
+                const std::span<const Buffer> rhs) {
   return std::equal(
       lhs.begin(), lhs.end(), rhs.begin(), [](const auto &le, const auto &re) {
         return std::equal(le.begin(), le.end(), re.begin());

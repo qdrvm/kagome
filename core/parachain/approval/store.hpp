@@ -25,10 +25,10 @@ namespace kagome::parachain {
     StoreUnit() = default;
     ~StoreUnit() = default;
 
-    StoreUnit(StoreUnit &&) noexcept = default;
+    StoreUnit(StoreUnit &&) = default;
     StoreUnit(const StoreUnit &) = delete;
 
-    StoreUnit &operator=(StoreUnit &&) noexcept = default;
+    StoreUnit &operator=(StoreUnit &&) = default;
     StoreUnit &operator=(const StoreUnit &) = delete;
 
     std::optional<std::reference_wrapper<V>> get(const K &k) {

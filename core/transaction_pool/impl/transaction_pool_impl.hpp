@@ -96,7 +96,7 @@ namespace kagome::transaction_pool {
             tx{std::move(other.tx)} {}
 
       TxReadyState &operator=(const TxReadyState &) = delete;
-      TxReadyState &operator=(TxReadyState &&other) noexcept {
+      TxReadyState &operator=(TxReadyState &&other) {
         if (this != &other) {
           remains_required_txs_count = other.remains_required_txs_count;
           tx = std::move(other.tx);
