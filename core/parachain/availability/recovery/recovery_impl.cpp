@@ -134,7 +134,7 @@ namespace kagome::parachain {
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
-    active.validators = session->discovery_keys;
+    active.validators = session->validators;
     if (backing_group) {
       active.order = session->validator_groups.at(*backing_group);
       std::shuffle(active.order.begin(), active.order.end(), random_);
