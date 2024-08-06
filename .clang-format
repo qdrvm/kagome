@@ -22,7 +22,7 @@ QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'constexpr', 'const', 'volatile', 'type', 'restrict']
 ReferenceAlignment: Right
 ReflowComments: true
-RemoveSemicolon: true
+#RemoveSemicolon: true
 InsertNewlineAtEOF: true
 
 
