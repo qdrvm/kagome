@@ -60,7 +60,7 @@ namespace kagome::parachain {
   using PendingCollation = kagome::network::PendingCollation;
 
   struct PendingCollationHash {
-    size_t operator()(const PendingCollation &val) const noexcept {
+    size_t operator()(const PendingCollation &val) const {
       size_t r{0ull};
       boost::hash_combine(r, std::hash<RelayHash>()(val.relay_parent));
       boost::hash_combine(r, std::hash<network::ParachainId>()(val.para_id));

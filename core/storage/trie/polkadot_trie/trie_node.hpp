@@ -184,7 +184,7 @@ namespace kagome::storage::trie {
       Empty,                   // 0000 0000
     };
 
-    virtual bool isBranch() const noexcept = 0;
+    virtual bool isBranch() const = 0;
 
     const KeyNibbles &getKeyNibbles() const {
       return key_nibbles_;
@@ -239,7 +239,7 @@ namespace kagome::storage::trie {
       return kMaxChildren;
     }
 
-    virtual bool isBranch() const noexcept override {
+    virtual bool isBranch() const override {
       return true;
     }
 
@@ -259,7 +259,7 @@ namespace kagome::storage::trie {
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
-    virtual bool isBranch() const noexcept override {
+    virtual bool isBranch() const override {
       return false;
     }
 
