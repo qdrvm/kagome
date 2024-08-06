@@ -23,7 +23,7 @@ namespace kagome::api::payment::request {
    public:
     explicit QueryInfo(std::shared_ptr<PaymentApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
     execute() override {

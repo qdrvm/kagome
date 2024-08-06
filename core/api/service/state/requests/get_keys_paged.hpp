@@ -30,7 +30,7 @@ namespace kagome::api::state::request {
     explicit GetKeysPaged(std::shared_ptr<StateApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
     ~GetKeysPaged() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);

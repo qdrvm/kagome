@@ -17,7 +17,7 @@ namespace kagome::api::system::request {
     explicit AccountNextIndex(std::shared_ptr<SystemApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<primitives::AccountNonce> execute() override {
       return api_->getNonceFor(getParam<0>());
