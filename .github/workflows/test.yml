@@ -340,6 +340,10 @@ jobs:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
+    if: ${{
+      github.ref == 'refs/heads/master' ||
+      startsWith( github.ref, 'refs/tags/') ||
+      github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false
       matrix:
