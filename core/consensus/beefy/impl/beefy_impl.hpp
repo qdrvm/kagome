@@ -48,6 +48,11 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
+
 namespace kagome::runtime {
   class BeefyApi;
 }
@@ -63,21 +68,25 @@ namespace kagome::network {
   class BeefyImpl : public Beefy,
                     public std::enable_shared_from_this<BeefyImpl> {
    public:
-    BeefyImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
-              const application::ChainSpec &chain_spec,
-              std::shared_ptr<blockchain::BlockTree> block_tree,
-              std::shared_ptr<runtime::BeefyApi> beefy_api,
-              std::shared_ptr<crypto::EcdsaProvider> ecdsa,
-              std::shared_ptr<storage::SpacedStorage> db,
-              common::MainThreadPool &main_thread_pool,
-              BeefyThreadPool &beefy_thread_pool,
-              std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-              LazySPtr<consensus::Timeline> timeline,
-              std::shared_ptr<crypto::SessionKeys> session_keys,
-              LazySPtr<BeefyProtocol> beefy_protocol,
-              LazySPtr<consensus::beefy::FetchJustification>
-                  beefy_justification_protocol,
-              primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+    BeefyImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        const application::ChainSpec &chain_spec,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<runtime::BeefyApi> beefy_api,
+        std::shared_ptr<crypto::EcdsaProvider> ecdsa,
+        std::shared_ptr<storage::SpacedStorage> db,
+        common::MainThreadPool &main_thread_pool,
+        BeefyThreadPool &beefy_thread_pool,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        LazySPtr<consensus::Timeline> timeline,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
+        LazySPtr<BeefyProtocol> beefy_protocol,
+        LazySPtr<consensus::beefy::FetchJustification>
+            beefy_justification_protocol,
+        std::shared_ptr<offchain::OffchainWorkerFactory>
+            offchain_worker_factory,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     bool tryStart();
 
@@ -92,10 +101,21 @@ namespace kagome::network {
     void onMessage(consensus::beefy::BeefyGossipMessage message) override;
 
    private:
+    struct DoubleVoting {
+      consensus::beefy::VoteMessage first;
+      bool reported = false;
+    };
+    struct Round {
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L87
+      std::unordered_map<consensus::beefy::Commitment,
+                         consensus::beefy::SignedCommitment>
+          justifications;
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L88
+      std::unordered_map<size_t, DoubleVoting> double_voting;
+    };
     struct Session {
       consensus::beefy::ValidatorSet validators;
-      std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
-          rounds;
+      std::map<primitives::BlockNumber, Round> rounds;
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
@@ -119,6 +139,8 @@ namespace kagome::network {
     void metricValidatorSetId();
     void broadcast(consensus::beefy::BeefyGossipMessage message);
     void setTimer();
+    outcome::result<void> reportDoubleVoting(
+        const consensus::beefy::DoubleVotingProof &votes);
 
     log::Logger log_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -133,6 +155,8 @@ namespace kagome::network {
     LazySPtr<BeefyProtocol> beefy_protocol_;
     LazySPtr<consensus::beefy::FetchJustification>
         beefy_justification_protocol_;
+    std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
     primitives::BlockNumber min_delta_;
     primitives::events::ChainSub chain_sub_;
 
