@@ -51,6 +51,7 @@ namespace kagome::parachain {
    private:
     struct Active {
       storage::trie::RootHash erasure_encoding_root;
+      size_t chunks_total = 0;
       size_t chunks_required = 0;
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
