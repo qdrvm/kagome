@@ -136,6 +136,7 @@ namespace kagome::parachain {
       cb(_node_features.error());
       return;
     }
+
     Active active;
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
     active.chunks_total = session->validators.size();
@@ -218,7 +219,7 @@ namespace kagome::parachain {
     if (_backed) {
       if (auto data = boost::get<AvailableData>(&_backed.value())) {
         if (check(active, *data)) {
-          return done(lock, it, std::move(*data));
+          return done(lock, it, std::move(*data), Strategy::FullFromBackers);
         }
       }
     }
@@ -234,10 +235,26 @@ namespace kagome::parachain {
     }
     auto &active = it->second;
 
-    // if chunk mapping is not enabled, systematic is not enabled
+    // if chunk mapping is not enabled, systematic can't be enabled either
     if (!availability_chunk_mapping_is_enabled(active.node_features)) {
       return chunk_recovery(candidate_hash);
     }
+
+    auto st_res = systematic_recovery_threshold(active.validators.size());
+    if (st_res.has_error()) {
+      return chunk_recovery(candidate_hash);
+    }
+    auto systematic_threshold = st_res.value();
+
+    size_t systematic_chunk_count = [&] {
+      std::set<ChunkIndex> sci;
+      for (auto &chunk : active.chunks) {
+        if (chunk.index <= systematic_threshold) {
+          sci.emplace(chunk.index);
+        }
+      }
+      return sci.size();
+    }();
 
     if (active.chunks.size() >= active.chunks_required) {
       auto _data = fromChunks(active.validators.size(), active.chunks);
@@ -246,23 +263,24 @@ namespace kagome::parachain {
           _data = r.error();
         }
       }
-      return done(lock, it, _data);
+      return done(lock, it, _data, Strategy::SystematicChunks);
     }
     if (active.chunks.size() + active.chunks_active + active.order.size()
         < active.chunks_required) {
-      return done(lock, it, std::nullopt);
+      return done(lock, it, std::nullopt, Strategy::SystematicChunks);
     }
+
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());
     while (not active.order.empty() and active.chunks_active < max) {
-      auto index = active.order.back();
+      auto validator_index = active.order.back();
       active.order.pop_back();
-      auto peer = query_audi_->get(active.validators[index]);
+      auto peer = query_audi_->get(active.validators[validator_index]);
       if (peer) {
         ++active.chunks_active;
         router_->getFetchChunkProtocol()->doRequest(
             peer->id,
-            {candidate_hash, index},
+            {candidate_hash, validator_index},
             [=, weak{weak_from_this()}](
                 outcome::result<network::FetchChunkResponse> r) {
               auto self = weak.lock();
@@ -270,13 +288,13 @@ namespace kagome::parachain {
                 return;
               }
               self->chunk_recovery_iteration(
-                  candidate_hash, index, std::move(r));
+                  candidate_hash, validator_index, std::move(r));
             });
         return;
       }
     }
     if (active.chunks_active == 0) {
-      done(lock, it, std::nullopt);
+      done(lock, it, std::nullopt, Strategy::SystematicChunks);
     }
   }
 
@@ -318,18 +336,18 @@ namespace kagome::parachain {
           _data = r.error();
         }
       }
-      return done(lock, it, _data);
+      return done(lock, it, _data, Strategy::RegularChunks);
     }
     if (active.chunks.size() + active.chunks_active + active.order.size()
         < active.chunks_required) {
-      return done(lock, it, std::nullopt);
+      return done(lock, it, std::nullopt, Strategy::RegularChunks);
     }
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());
     while (not active.order.empty() and active.chunks_active < max) {
-      auto index = active.order.back();
+      auto validator_index = active.order.back();
       active.order.pop_back();
-      auto peer = query_audi_->get(active.validators[index]);
+      auto peer = query_audi_->get(active.validators[validator_index]);
       if (peer) {
         ++active.chunks_active;
 
@@ -347,16 +365,26 @@ namespace kagome::parachain {
             network::ReqChunkVersion::V1_obsolete);
 
         switch (req_chunk_version) {
-          case network::ReqChunkVersion::V2:
+          case network::ReqChunkVersion::V2: {
+            // TODO think about replace it by func with once computed context
+            auto chunk_res = availability_chunk_index(active.node_features,
+                                                      active.validators.size(),
+                                                      active.core,
+                                                      validator_index);
+            if (chunk_res.has_error()) {
+              continue;
+            }
+            auto chunk_index = chunk_res.value();
+
             SL_DEBUG(logger_,
                      "Sent request of chunk {} of candidate {} to peer {}",
-                     index,
+                     chunk_index,
                      candidate_hash,
                      peer_id);
             router_->getFetchChunkProtocol()->doRequest(
                 peer->id,
-                {candidate_hash, index},
-                [=, this, chunk_index{index}, weak{weak_from_this()}](
+                {candidate_hash, chunk_index},
+                [=, this, weak{weak_from_this()}](
                     outcome::result<network::FetchChunkResponse> r) {
                   if (auto self = weak.lock()) {
                     if (r.has_value()) {
@@ -377,14 +405,15 @@ namespace kagome::parachain {
                     }
 
                     self->chunk_recovery_iteration(
-                        candidate_hash, index, std::move(r));
+                        candidate_hash, chunk_index, std::move(r));
                   }
                 });
-            break;
-          case network::ReqChunkVersion::V1_obsolete:
+          } break;
+          case network::ReqChunkVersion::V1_obsolete: {
+            ChunkIndex chunk_index = validator_index;
             router_->getFetchChunkProtocolObsolete()->doRequest(
                 peer->id,
-                {candidate_hash, index},
+                {candidate_hash, chunk_index},
                 [=, weak{weak_from_this()}](
                     outcome::result<network::FetchChunkResponseObsolete> r) {
                   if (auto self = weak.lock()) {
@@ -397,19 +426,19 @@ namespace kagome::parachain {
                               -> network::FetchChunkResponse {
                             return network::Chunk{
                                 .data = std::move(chunk_obsolete.data),
-                                .chunk_index = index,
+                                .chunk_index = chunk_index,
                                 .proof = std::move(chunk_obsolete.proof),
                             };
                           });
                       self->chunk_recovery_iteration(
-                          candidate_hash, index, std::move(response));
+                          candidate_hash, chunk_index, std::move(response));
                     } else {
                       self->chunk_recovery_iteration(
-                          candidate_hash, index, r.as_failure());
+                          candidate_hash, chunk_index, r.as_failure());
                     }
                   }
                 });
-            break;
+          } break;
           default:
             UNREACHABLE;
         }
@@ -417,13 +446,13 @@ namespace kagome::parachain {
       }
     }
     if (active.chunks_active == 0) {
-      done(lock, it, std::nullopt);
+      done(lock, it, std::nullopt, Strategy::RegularChunks);
     }
   }
 
   void RecoveryImpl::chunk_recovery_iteration(
       const CandidateHash &candidate_hash,
-      ChunkIndex index,
+      ChunkIndex chunk_index,
       outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
@@ -435,7 +464,7 @@ namespace kagome::parachain {
     if (_chunk) {
       if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
         network::ErasureChunk chunk{
-            std::move(chunk2->data), index, std::move(chunk2->proof)};
+            std::move(chunk2->data), chunk_index, std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
           active.chunks.emplace_back(std::move(chunk));
         }
@@ -458,17 +487,34 @@ namespace kagome::parachain {
   void RecoveryImpl::done(
       Lock &lock,
       ActiveMap::iterator it,
-      const std::optional<outcome::result<AvailableData>> &result_op) {
+      const std::optional<outcome::result<AvailableData>> &result_op,
+      Strategy strategy) {
+    auto status = "failure";
+
     if (result_op.has_value()) {
       auto &result = result_op.value();
-
       cached_.emplace(it->first, result);
 
-      if (result.has_value()) {
-        // incFullRecoveriesFinished("unknown", "success"); // TODO fix
-        // strategy
+      if (result.has_error()) {
+        status = "invalid";
+      } else {
+        status = "success";
       }
     }
+
+    switch (strategy) {
+      case Strategy::FullFromBackers:
+        incFullRecoveriesFinished("full_from_backers", status);
+        break;
+      case Strategy::SystematicChunks:
+        incFullRecoveriesFinished("systematic_chunks", status);
+        break;
+      case Strategy::RegularChunks:
+        incFullRecoveriesFinished("regular_chunks", status);
+        break;
+    }
+    incFullRecoveriesFinished("all", status);
+
     auto node = active_.extract(it);
     lock.unlock();
     for (auto &cb : node.mapped().cb) {

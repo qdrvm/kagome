@@ -53,10 +53,16 @@ namespace kagome::parachain {
     void remove(const CandidateHash &candidate) override;
 
    private:
+    enum class Strategy {
+      FullFromBackers,
+      SystematicChunks,
+      RegularChunks,
+    };
+
     struct Active {
       storage::trie::RootHash erasure_encoding_root;
-      size_t chunks_total = 0;
-      size_t chunks_required = 0;
+      ChunkIndex chunks_total = 0;
+      ChunkIndex chunks_required = 0;
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       CoreIndex core;
@@ -85,14 +91,15 @@ namespace kagome::parachain {
     void chunk_recovery(const CandidateHash &candidate_hash);
     void chunk_recovery_iteration(
         const CandidateHash &candidate_hash,
-        ChunkIndex index,
+        ChunkIndex chunk_index,
         outcome::result<network::FetchChunkResponse> _chunk);
 
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
     void done(Lock &lock,
               ActiveMap::iterator it,
-              const std::optional<outcome::result<AvailableData>> &result);
+              const std::optional<outcome::result<AvailableData>> &result,
+              Strategy strategy);
 
     log::Logger logger_;
     std::shared_ptr<crypto::Hasher> hasher_;
