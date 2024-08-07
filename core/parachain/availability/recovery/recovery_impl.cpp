@@ -35,7 +35,7 @@ namespace {
     BOOST_ASSERT_MSG(                                                       \
         std::find(results.begin(), results.end(), result) != results.end(), \
         "Unknown result type");                                             \
-    full_recoveries_finished_[strategy][result]->inc();                     \
+    full_recoveries_finished_.at(strategy).at(result)->inc();               \
   } while (false)
 
 }  // namespace
@@ -68,10 +68,7 @@ namespace kagome::parachain {
     metrics_registry_->registerCounterFamily(
         fullRecoveriesFinishedMetricName,
         "Total number of recoveries that finished");
-    full_recoveries_started_ = metrics_registry_->registerCounterMetric(
-        fullRecoveriesFinishedMetricName);
 
-    size_t i = 0;
     for (auto &strategy : strategy_types) {
       auto &metrics_for_strategy = full_recoveries_finished_[strategy];
       for (auto &result : results) {
@@ -132,9 +129,10 @@ namespace kagome::parachain {
     }
     Active active;
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
+    active.chunks_total = session->validators.size();
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
-    active.validators = session->validators;
+    active.validators = session->discovery_keys;
     if (backing_group) {
       active.order = session->validator_groups.at(*backing_group);
       std::shuffle(active.order.begin(), active.order.end(), random_);
@@ -170,7 +168,7 @@ namespace kagome::parachain {
       }
     }
     active.chunks = av_store_->getChunks(candidate_hash);
-    for (size_t i = 0; i < active.validators.size(); ++i) {
+    for (size_t i = 0; i < active.chunks_total; ++i) {
       if (std::find_if(active.chunks.begin(),
                        active.chunks.end(),
                        [&](network::ErasureChunk &c) { return c.index == i; })
@@ -212,7 +210,7 @@ namespace kagome::parachain {
     }
     auto &active = it->second;
     if (active.chunks.size() >= active.chunks_required) {
-      auto _data = fromChunks(active.validators.size(), active.chunks);
+      auto _data = fromChunks(active.chunks_total, active.chunks);
       if (_data) {
         if (auto r = check(active, _data.value()); not r) {
           _data = r.error();
@@ -344,7 +342,7 @@ namespace kagome::parachain {
 
   outcome::result<void> RecoveryImpl::check(const Active &active,
                                             const AvailableData &data) {
-    OUTCOME_TRY(chunks, toChunks(active.validators.size(), data));
+    OUTCOME_TRY(chunks, toChunks(active.chunks_total, data));
     auto root = makeTrieProof(chunks);
     if (root != active.erasure_encoding_root) {
       return ErasureCodingRootError::MISMATCH;
