@@ -32,6 +32,7 @@
 #include "parachain/approval/knowledge.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
+#include "parachain/backing/grid.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
@@ -76,7 +77,7 @@ namespace kagome::parachain {
         public IApprovedAncestor {
     struct OurAssignment {
       SCALE_TIE(4);
-      approval::AssignmentCert cert;
+      approval::AssignmentCertV2 cert;
       uint32_t tranche;
       ValidatorIndex validator_index;
       bool triggered;  /// Whether the assignment has been triggered already.
@@ -96,10 +97,22 @@ namespace kagome::parachain {
       std::vector<std::pair<ValidatorIndex, Tick>> assignments;
     };
 
+    using DistribApprovalEntryKey = std::pair<ValidatorIndex, scale::BitVec>;
+
+    struct ApprovalEntryHash {
+      size_t operator()(const DistribApprovalEntryKey &obj) const {
+        size_t value{0ull};
+        boost::hash_combine(value, obj.first);
+        boost::hash_range(
+            value, obj.second.bits.begin(), obj.second.bits.end());
+        return value;
+      }
+    };
+
     struct ApprovalEntry {
       SCALE_TIE(6);
       using MaybeCert = std::optional<
-          std::tuple<std::reference_wrapper<const approval::AssignmentCert>,
+          std::tuple<std::reference_wrapper<const approval::AssignmentCertV2>,
                      ValidatorIndex,
                      DelayTranche>>;
 
@@ -161,7 +174,7 @@ namespace kagome::parachain {
         import_assignment(
             our_assignment->tranche, our_assignment->validator_index, tick_now);
         return std::make_tuple(
-            std::reference_wrapper<const approval::AssignmentCert>(
+            std::reference_wrapper<const approval::AssignmentCertV2>(
                 our_assignment->cert),
             our_assignment->validator_index,
             our_assignment->tranche);
@@ -176,10 +189,10 @@ namespace kagome::parachain {
               tranches.begin(),
               tranches.end(),
               tranche,
-              [](auto const &l, auto const &r) { return l.tranche < r; });
+              [](const auto &l, const auto &r) { return l.tranche < r; });
 
           if (it != tranches.end()) {
-            auto const pos = (size_t)std::distance(tranches.begin(), it);
+            const auto pos = (size_t)std::distance(tranches.begin(), it);
             if (it->tranche > tranche) {
               tranches.insert(it,
                               TrancheEntry{
@@ -220,8 +233,9 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(
-              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
+          : CandidateEntry(HashedCandidateReceipt{receipt},
+                           session_index,
+                           approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -253,7 +267,7 @@ namespace kagome::parachain {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;
           }
-          for (auto const &[h, ae] : block_assignments) {
+          for (const auto &[h, ae] : block_assignments) {
             auto it = c.block_assignments.find(h);
             if (it == c.block_assignments.end() || it->second != ae) {
               return false;
@@ -301,14 +315,17 @@ namespace kagome::parachain {
         const std::shared_ptr<crypto::KeyStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
-        const CandidateIncludedList &leaving_cores);
+        const CandidateIncludedList &leaving_cores,
+        bool enable_v2_assignments,
+        log::Logger &logger);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
 
-    using SignaturesForCandidate =
-        std::unordered_map<ValidatorIndex, ValidatorSignature>;
+    using SignaturesForCandidate = std::unordered_map<
+        ValidatorIndex,
+        std::tuple<Hash, std::vector<CandidateIndex>, ValidatorSignature>>;
     using SignaturesForCandidateCallback =
         std::function<void(SignaturesForCandidate &&)>;
 
@@ -320,7 +337,6 @@ namespace kagome::parachain {
         const primitives::BlockInfo &min,
         const primitives::BlockInfo &max) const override;
 
-   private:
     struct ImportedBlockInfo {
       CandidateIncludedList included_candidates;
       SessionIndex session_index;
@@ -348,9 +364,9 @@ namespace kagome::parachain {
       }
     };
 
-    using DistribApprovalStateAssigned = approval::AssignmentCert;
+    using DistribApprovalStateAssigned = approval::AssignmentCertV2;
     using DistribApprovalStateApproved =
-        std::pair<approval::AssignmentCert, ValidatorSignature>;
+        std::pair<approval::AssignmentCertV2, ValidatorSignature>;
     using DistribApprovalState = boost::variant<DistribApprovalStateAssigned,
                                                 DistribApprovalStateApproved>;
 
@@ -368,7 +384,81 @@ namespace kagome::parachain {
     /// for the same candidate, if it is included by multiple blocks - this is
     /// likely the case when there are forks.
     struct DistribCandidateEntry {
-      std::unordered_map<ValidatorIndex, MessageState> messages{};
+      /// The value represents part of the lookup key in `approval_entries` to
+      /// fetch the assignment
+      /// and existing votes.
+      std::unordered_map<ValidatorIndex, scale::BitVec> assignments;
+    };
+
+    /// Contains topology routing information for assignments and approvals.
+    struct ApprovalRouting {
+      grid::RequiredRouting required_routing;
+      bool local;
+      grid::RandomRouting random_routing;
+      std::vector<libp2p::peer::PeerId> peers_randomly_routed;
+
+      void mark_randomly_sent(const libp2p::peer::PeerId &peer) {
+        random_routing.inc_sent();
+        peers_randomly_routed.emplace_back(peer);
+      }
+    };
+
+    // This struct is responsible for tracking the full state of an assignment
+    // and grid routing information.
+    struct DistribApprovalEntry {
+      // The assignment certificate.
+      approval::IndirectAssignmentCertV2 assignment;
+
+      // The candidates claimed by the certificate. A mapping between bit index
+      // and candidate index.
+      scale::BitVec assignment_claimed_candidates;
+
+      // The approval signatures for each `CandidateIndex` claimed by the
+      // assignment certificate.
+      std::unordered_map<scale::BitVec, approval::IndirectSignedApprovalVoteV2>
+          approvals;
+
+      // The validator index of the assignment signer.
+      ValidatorIndex validator_index;
+
+      // Information required for gossiping to other peers using the grid
+      // topology.
+      ApprovalRouting routing_info;
+
+      std::pair<approval::IndirectAssignmentCertV2, scale::BitVec>
+      get_assignment() const {
+        return {assignment, assignment_claimed_candidates};
+      }
+
+      /// Records a new approval. Returns error if the claimed candidate is not
+      /// found or we already have received the approval.
+      outcome::result<void> note_approval(
+          const approval::IndirectSignedApprovalVoteV2 &approval);
+
+      /// Tells if this entry assignment covers at least one candidate in the
+      /// approval
+      bool includes_approval_candidates(
+          const approval::IndirectSignedApprovalVoteV2 &approval_val) const;
+
+      // Get all approvals for all candidates claimed by the assignment.
+      std::vector<approval::IndirectSignedApprovalVoteV2> get_approvals()
+          const {
+        std::vector<approval::IndirectSignedApprovalVoteV2> out;
+        out.reserve(approvals.size());
+        std::transform(approvals.begin(),
+                       approvals.end(),
+                       std::back_inserter(out),
+                       [](const auto it) { return it.second; });
+        return out;
+      }
+
+      // Create a `MessageSubject` to reference the assignment.
+      std::pair<approval::MessageSubject, approval::MessageKind>
+      create_assignment_knowledge(const Hash &block_hash) const {
+        return {std::make_tuple(
+                    block_hash, assignment_claimed_candidates, validator_index),
+                approval::MessageKind::Assignment};
+      }
     };
 
     /// Information about blocks in our current view as well as whether peers
@@ -376,16 +466,43 @@ namespace kagome::parachain {
     struct DistribBlockEntry {
       /// A votes entry for each candidate indexed by [`CandidateIndex`].
       std::vector<DistribCandidateEntry> candidates{};
+
       /// Our knowledge of messages.
       approval::Knowledge knowledge{};
+
       /// Peers who we know are aware of this block and thus, the candidates
       /// within it. This maps to their knowledge of messages.
       std::unordered_map<libp2p::peer::PeerId, approval::PeerKnowledge>
           known_by{};
+
       /// The number of the block.
       primitives::BlockNumber number;
+
       /// The parent hash of the block.
       RelayHash parent_hash;
+
+      /// Approval entries for whole block. These also contain all approvals in
+      /// the case of multiple candidates being claimed by assignments.
+      std::unordered_map<DistribApprovalEntryKey,
+                         DistribApprovalEntry,
+                         ApprovalEntryHash>
+          approval_entries;
+
+     public:
+      DistribApprovalEntry &insert_approval_entry(DistribApprovalEntry &&entry);
+
+      // Saves the given approval in all ApprovalEntries that contain an
+      // assignment for any of the candidates in the approval.
+      //
+      // Returns the required routing needed for this approval and the lit of
+      // random peers the covering assignments were sent.
+      outcome::result<std::pair<grid::RequiredRouting,
+                                std::unordered_set<libp2p::peer::PeerId>>>
+      note_approval(const approval::IndirectSignedApprovalVoteV2 &approval);
+
+      /// Returns the list of approval votes covering this candidate
+      std::vector<approval::IndirectSignedApprovalVoteV2> approval_votes(
+          CandidateIndex candidate_index) const;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
@@ -397,15 +514,25 @@ namespace kagome::parachain {
       SessionIndex session;
       consensus::SlotNumber slot;
       RelayVRFStory relay_vrf_story;
+
       // The candidates included as-of this block and the index of the core they
       // are leaving. Sorted ascending by core index.
       std::vector<std::pair<CoreIndex, CandidateHash>> candidates;
+
       // A bitfield where the i'th bit corresponds to the i'th candidate in
       // `candidates`. The i'th bit is `true` iff the candidate has been
       // approved in the context of this block. The block can be considered
       // approved if the bitfield has all bits set to `true`.
       scale::BitVec approved_bitfield;
+
+      // A list of assignments for which we already distributed the assignment.
+      // We use this to ensure we don't distribute multiple core assignments
+      // twice as we track individual wakeups for each core.
+      scale::BitVec distributed_assignments;
+
       std::vector<Hash> children;
+
+      bool operator==(const BlockEntry &l) const;
 
       std::optional<CandidateIndex> candidateIxByHash(
           const CandidateHash &candidate_hash) {
@@ -439,6 +566,26 @@ namespace kagome::parachain {
         }
         return false;
       }
+
+      /// Mark distributed assignment for many candidate indices.
+      /// Returns `true` if an assignment was already distributed for the
+      /// `candidates`.
+      bool mark_assignment_distributed(const scale::BitVec &bitfield) {
+        const auto total_one_bits =
+            approval::count_ones(distributed_assignments);
+        const auto new_len =
+            std::max(distributed_assignments.bits.size(), bitfield.bits.size());
+
+        distributed_assignments.bits.resize(new_len);
+        for (size_t ix = 0; ix < bitfield.bits.size(); ++ix) {
+          distributed_assignments.bits[ix] =
+              distributed_assignments.bits[ix] || bitfield.bits[ix];
+        }
+
+        const auto distributed =
+            (total_one_bits == approval::count_ones(distributed_assignments));
+        return distributed;
+      }
     };
 
     /// Information about a block and imported candidates.
@@ -452,8 +599,8 @@ namespace kagome::parachain {
     };
 
     using AssignmentOrApproval =
-        boost::variant<network::Assignment,
-                       network::IndirectSignedApprovalVote>;
+        boost::variant<network::vstaging::Assignment,
+                       network::vstaging::IndirectSignedApprovalVoteV2>;
     using PendingMessage = AssignmentOrApproval;
 
     using MessageSource =
@@ -504,17 +651,35 @@ namespace kagome::parachain {
                              const primitives::BlockHeader &block_header);
 
     AssignmentCheckResult check_and_import_assignment(
-        const approval::IndirectAssignmentCert &assignment,
-        CandidateIndex claimed_candidate_index);
+        const approval::IndirectAssignmentCertV2 &assignment,
+        const scale::BitVec &candidate_indices);
     ApprovalCheckResult check_and_import_approval(
-        const network::IndirectSignedApprovalVote &vote);
+        const approval::IndirectSignedApprovalVoteV2 &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
-        const approval::IndirectAssignmentCert &assignment,
-        CandidateIndex claimed_candidate_index);
+        const approval::IndirectAssignmentCertV2 &assignment,
+        const scale::BitVec &claimed_candidate_indices);
     void import_and_circulate_approval(
         const MessageSource &source,
-        const network::IndirectSignedApprovalVote &vote);
+        const approval::IndirectSignedApprovalVoteV2 &vote);
+
+    // Returns the claimed core bitfield from the assignment cert, the candidate
+    // hash and a
+    // `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot
+    // find the candidate hash in the block entry which indicates a bug or
+    // corrupted storage.
+    std::optional<scale::BitVec> get_assignment_core_indices(
+        const approval::AssignmentCertKindV2 &assignment,
+        const CandidateHash &candidate_hash,
+        const BlockEntry &block_entry);
+
+    std::optional<scale::BitVec> cores_to_candidate_indices(
+        const scale::BitVec &core_indices, const BlockEntry &block_entry);
+
+    network::vstaging::Assignments sanitize_v1_assignments(
+        const network::Assignments &assignments);
+    network::vstaging::Approvals sanitize_v1_approvals(
+        const network::Approvals &approval);
 
     template <typename Func>
     void handle_new_head(const primitives::BlockHash &head,
@@ -543,6 +708,7 @@ namespace kagome::parachain {
 
     void try_process_approving_context(
         ApprovingContextUnit &acu,
+        const primitives::BlockHash &block_hash,
         SessionIndex session_index,
         const runtime::SessionInfo &session_info);
 
@@ -552,7 +718,8 @@ namespace kagome::parachain {
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
                          const libp2p::peer::PeerId &peer_id,
-                         const network::View &view);
+                         const network::View &view,
+                         bool retry_known_blocks);
 
     outcome::result<BlockImportedCandidates> processImportedBlock(
         primitives::BlockNumber block_number,
@@ -586,13 +753,14 @@ namespace kagome::parachain {
                         const RelayHash &block_hash);
 
     void runLaunchApproval(
-        const approval::IndirectAssignmentCert &indirect_cert,
+        const approval::IndirectAssignmentCertV2 &indirect_cert,
         DelayTranche assignment_tranche,
         const RelayHash &relay_block_hash,
-        CandidateIndex candidate_index,
+        const scale::BitVec &claimed_candidate_indices,
         SessionIndex session,
         const HashedCandidateReceipt &hashed_candidate,
-        GroupIndex backing_group);
+        GroupIndex backing_group,
+        bool distribute_assignment);
 
     void runNewBlocks(approval::BlockApprovalMeta &&approval_meta,
                       primitives::BlockNumber finalized_block_number);
@@ -625,19 +793,20 @@ namespace kagome::parachain {
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        const approval::IndirectAssignmentCert &indirect_cert,
-        CandidateIndex candidate_index,
+        const approval::IndirectAssignmentCertV2 &indirect_cert,
+        const scale::BitVec &candidate_indices,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
-    void send_assignments_batched(std::deque<network::Assignment> &&assignments,
-                                  const libp2p::peer::PeerId &peer_id);
+    void send_assignments_batched(
+        std::deque<network::vstaging::Assignment> &&assignments,
+        const libp2p::peer::PeerId &peer_id);
 
     void send_approvals_batched(
-        std::deque<network::IndirectSignedApprovalVote> &&approvals,
+        std::deque<approval::IndirectSignedApprovalVoteV2> &&approvals,
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(
-        const network::IndirectSignedApprovalVote &vote,
+        const approval::IndirectSignedApprovalVoteV2 &vote,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
@@ -729,6 +898,9 @@ namespace kagome::parachain {
     };
     SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
         approvals_cache_;
+
+    metrics::RegistryPtr metrics_registry_;
+    metrics::Counter *metric_no_shows_total_;
   };
 
 }  // namespace kagome::parachain

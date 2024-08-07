@@ -7,7 +7,6 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include "crypto/sr25519_types.hpp"
-#include "utils/non_null_dangling.hpp"
 
 namespace kagome::crypto {
   outcome::result<Sr25519Keypair> Sr25519ProviderImpl::generateKeypair(
@@ -40,7 +39,7 @@ namespace kagome::crypto {
       sr25519_sign(signature.data(),
                    keypair.public_key.data(),
                    keypair.secret_key.unsafeBytes().data(),
-                   nonNullDangling(message),
+                   message.data(),
                    message.size());
     } catch (...) {
       return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
@@ -69,10 +68,8 @@ namespace kagome::crypto {
       const Sr25519PublicKey &public_key) const {
     bool result = false;
     try {
-      result = sr25519_verify(signature.data(),
-                              nonNullDangling(message),
-                              message.size(),
-                              public_key.data());
+      result = sr25519_verify(
+          signature.data(), message.data(), message.size(), public_key.data());
     } catch (...) {
       return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
     }

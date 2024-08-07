@@ -93,7 +93,7 @@ option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 # cmake-format: on
 
-set(RECOMMENDED_CLANG_FORMAT_VERSION 15)
+set(RECOMMENDED_CLANG_FORMAT_VERSION 16)
 
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)

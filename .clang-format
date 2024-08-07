@@ -22,8 +22,7 @@ QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'constexpr', 'const', 'volatile', 'type', 'restrict']
 ReferenceAlignment: Right
 ReflowComments: true
-# uncomment in clang-format-16
-#RemoveSemicolon: true
-#InsertNewlineAtEOF: true
+RemoveSemicolon: true
+InsertNewlineAtEOF: true
 
 

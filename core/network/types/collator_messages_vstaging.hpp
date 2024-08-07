@@ -35,8 +35,42 @@ namespace kagome::network::vstaging {
   using CollatorProtocolMessageCollationSeconded = network::Seconded;
   using BitfieldDistributionMessage = network::BitfieldDistributionMessage;
   using BitfieldDistribution = network::BitfieldDistribution;
-  using ApprovalDistributionMessage = network::ApprovalDistributionMessage;
   using ViewUpdate = network::ViewUpdate;
+
+  using IndirectSignedApprovalVoteV2 =
+      parachain::approval::IndirectSignedApprovalVoteV2;
+
+  struct Assignment {
+    SCALE_TIE(2);
+
+    kagome::parachain::approval::IndirectAssignmentCertV2
+        indirect_assignment_cert;
+    scale::BitVec candidate_bitfield;
+  };
+
+  struct Assignments {
+    SCALE_TIE(1);
+
+    std::vector<Assignment> assignments;  /// Assignments for candidates in
+                                          /// recent, unfinalized blocks.
+  };
+
+  struct Approvals {
+    SCALE_TIE(1);
+
+    std::vector<IndirectSignedApprovalVoteV2>
+        approvals;  /// Approvals for candidates in some recent, unfinalized
+                    /// block.
+  };
+
+  /// Network messages used by the approval distribution subsystem.
+  using ApprovalDistributionMessage = boost::variant<
+      /// Assignments for candidates in recent, unfinalized blocks.
+      ///
+      /// Actually checking the assignment may yield a different result.
+      Assignments,
+      /// Approvals for candidates in some recent, unfinalized block.
+      Approvals>;
 
   struct CollatorProtocolMessageAdvertiseCollation {
     SCALE_TIE(3);
@@ -353,11 +387,18 @@ namespace kagome::network::vstaging {
 
 namespace kagome::network {
 
-  enum CollationVersion {
+  enum class CollationVersion {
     /// The first version.
     V1 = 1,
     /// The staging version.
     VStaging = 2,
+  };
+
+  enum class ReqChunkVersion {
+    /// The first (obsolete) version.
+    V1_obsolete = 1,
+    /// The second version.
+    V2 = 2,
   };
 
   /// Candidate supplied with a para head it's built on top of.

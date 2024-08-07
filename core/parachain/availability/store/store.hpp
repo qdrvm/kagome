@@ -17,7 +17,7 @@ namespace kagome::parachain {
    public:
     using AvailableData = runtime::AvailableData;
     using CandidateHash = network::CandidateHash;
-    using ValidatorIndex = network::ValidatorIndex;
+    using ChunkIndex = network::ChunkIndex;
     using ErasureChunk = network::ErasureChunk;
     using ParachainBlock = network::ParachainBlock;
     using PersistedValidationData = runtime::PersistedValidationData;
@@ -26,14 +26,14 @@ namespace kagome::parachain {
 
     /// Has ErasureChunk
     virtual bool hasChunk(const CandidateHash &candidate_hash,
-                          ValidatorIndex index) const = 0;
+                          ChunkIndex index) const = 0;
     /// Has PoV
     virtual bool hasPov(const CandidateHash &candidate_hash) const = 0;
     /// Has PersistedValidationData
     virtual bool hasData(const CandidateHash &candidate_hash) const = 0;
     /// Get ErasureChunk
     virtual std::optional<ErasureChunk> getChunk(
-        const CandidateHash &candidate_hash, ValidatorIndex index) const = 0;
+        const CandidateHash &candidate_hash, ChunkIndex index) const = 0;
     /// Get PoV
     virtual std::optional<ParachainBlock> getPov(
         const CandidateHash &candidate_hash) const = 0;

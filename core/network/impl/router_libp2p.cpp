@@ -18,6 +18,7 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
+#include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
 #include "network/impl/protocols/send_dispute_protocol.hpp"
@@ -51,6 +52,7 @@ namespace kagome::network {
       LazySPtr<ReqCollationProtocol> req_collation_protocol,
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
+      LazySPtr<FetchChunkProtocolObsolete> fetch_chunk_protocol_obsolete,
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
       LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
       LazySPtr<SendDisputeProtocol> send_dispute_protocol,
@@ -79,6 +81,8 @@ namespace kagome::network {
         req_collation_protocol_(std::move(req_collation_protocol)),
         req_pov_protocol_(std::move(req_pov_protocol)),
         fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
+        fetch_chunk_protocol_obsolete_(
+            std::move(fetch_chunk_protocol_obsolete)),
         fetch_available_data_protocol_(
             std::move(fetch_available_data_protocol)),
         statement_fetching_protocol_(std::move(statement_fetching_protocol)),
@@ -133,6 +137,7 @@ namespace kagome::network {
     lazyStart(req_collation_protocol_);
     lazyStart(req_pov_protocol_);
     lazyStart(fetch_chunk_protocol_);
+    lazyStart(fetch_chunk_protocol_obsolete_);
     lazyStart(fetch_available_data_protocol_);
     lazyStart(statement_fetching_protocol_);
     lazyStart(send_dispute_protocol_);
@@ -266,6 +271,11 @@ namespace kagome::network {
   std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
       const {
     return fetch_chunk_protocol_.get();
+  }
+
+  std::shared_ptr<FetchChunkProtocolObsolete>
+  RouterLibp2p::getFetchChunkProtocolObsolete() const {
+    return fetch_chunk_protocol_obsolete_.get();
   }
 
   std::shared_ptr<FetchAttestedCandidateProtocol>

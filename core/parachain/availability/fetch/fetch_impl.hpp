@@ -11,9 +11,18 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "authority_discovery/query/query.hpp"
-#include "network/router.hpp"
-#include "parachain/availability/store/store.hpp"
+namespace kagome::authority_discovery {
+  class Query;
+}
+
+namespace kagome::network {
+  class PeerManager;
+  class Router;
+}  // namespace kagome::network
+
+namespace kagome::parachain {
+  class AvailabilityStore;
+}
 
 namespace kagome::parachain {
   class FetchImpl : public Fetch,
@@ -21,15 +30,16 @@ namespace kagome::parachain {
    public:
     FetchImpl(std::shared_ptr<AvailabilityStore> av_store,
               std::shared_ptr<authority_discovery::Query> query_audi,
-              std::shared_ptr<network::Router> router);
+              std::shared_ptr<network::Router> router,
+              std::shared_ptr<network::PeerManager> pm);
 
-    void fetch(ValidatorIndex chunk_index,
+    void fetch(ChunkIndex chunk_index,
                const runtime::OccupiedCore &core,
                const runtime::SessionInfo &session) override;
 
    private:
     struct Active {
-      ValidatorIndex chunk_index;
+      ChunkIndex chunk_index;
       RelayHash relay_parent;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       storage::trie::RootHash erasure_encoding_root;
@@ -42,6 +52,7 @@ namespace kagome::parachain {
     std::shared_ptr<AvailabilityStore> av_store_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> pm_;
 
     std::mutex mutex_;
     std::unordered_map<CandidateHash, Active> active_;

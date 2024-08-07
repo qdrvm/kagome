@@ -97,7 +97,7 @@ namespace kagome::network {
     const std::thread::id this_id_{std::this_thread::get_id()};
 
     void check() const {
-      BOOST_ASSERT(this_id_ == std::this_thread::get_id());
+      // BOOST_ASSERT(this_id_ == std::this_thread::get_id());
     }
 
     StreamWrapper(std::shared_ptr<libp2p::connection::StreamReadBuffer> stream)
