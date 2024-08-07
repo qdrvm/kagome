@@ -197,8 +197,8 @@ namespace kagome::network {
                 vote.commitment.validator_set_id,
                 vote.commitment.block_number,
                 common::hex_lower(vote.id));
-        if (auto key =
-                session_keys_->getBeefKeyPair(session.validators.validators)) {
+        auto key = session_keys_->getBeefKeyPair(session.validators.validators);
+        if (key and vote.id == key->first->public_key) {
           SL_WARN(log_, "won't report own double woting");
           return;
         }
