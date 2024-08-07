@@ -106,9 +106,11 @@ namespace kagome::network {
       bool reported = false;
     };
     struct Round {
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L87
       std::unordered_map<consensus::beefy::Commitment,
                          consensus::beefy::SignedCommitment>
           justifications;
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L88
       std::unordered_map<size_t, DoubleVoting> double_voting;
     };
     struct Session {
