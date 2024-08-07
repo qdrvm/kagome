@@ -211,6 +211,8 @@ struct BeefyTest : testing::Test {
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
+          nullptr,
+          nullptr,
           peer.chain_sub_);
       app_state_manager->start();
     }

@@ -22,6 +22,8 @@
 #include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "offchain/offchain_worker_factory.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/runtime_api/beefy.hpp"
 #include "storage/spaced_storage.hpp"
@@ -57,6 +59,8 @@ namespace kagome::network {
       LazySPtr<BeefyProtocol> beefy_protocol,
       LazySPtr<consensus::beefy::FetchJustification>
           beefy_justification_protocol,
+      std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
@@ -71,6 +75,8 @@ namespace kagome::network {
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
         beefy_justification_protocol_{std::move(beefy_justification_protocol)},
+        offchain_worker_factory_{std::move(offchain_worker_factory)},
+        offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -173,43 +179,63 @@ namespace kagome::network {
     }
     auto total = session.validators.validators.size();
     auto round = session.rounds.find(block_number);
-    if (round != session.rounds.end() and round->second.signatures[*index]) {
-      return;
+    if (round != session.rounds.end()) {
+      auto vote_it = round->second.double_voting.find(*index);
+      if (vote_it != round->second.double_voting.end()) {
+        if (vote_it->second.reported
+            or vote.commitment == vote_it->second.first.commitment) {
+          return;
+        }
+        if (not verify(*ecdsa_, vote)) {
+          SL_VERBOSE(log_, "wrong vote for block {}", block_number);
+          return;
+        }
+        vote_it->second.reported = true;
+        SL_WARN(log_,
+                "reportDoubleVoting set={} block={} voter={}",
+                vote.commitment.validator_set_id,
+                vote.commitment.block_number,
+                common::hex_lower(vote.id));
+        if (auto key =
+                session_keys_->getBeefKeyPair(session.validators.validators)) {
+          SL_WARN(log_, "won't report own double woting");
+          return;
+        }
+        auto r = reportDoubleVoting({vote_it->second.first, vote});
+        if (not r) {
+          SL_WARN(log_, "reportDoubleVoting: {}", r.error());
+        }
+        return;
+      }
     }
     if (not verify(*ecdsa_, vote)) {
       SL_VERBOSE(log_, "wrong vote for block {}", block_number);
       return;
     }
-    auto commitment_ok = false;
-    if (round != session.rounds.end()) {
-      commitment_ok = vote.commitment == round->second.commitment;
-    } else if (auto r = getCommitment(session.validators.id, block_number);
-               not r or not r.value()) {
-      return;
-    } else {
-      commitment_ok = vote.commitment == *r.value();
-    }
-    if (not commitment_ok) {
-      SL_WARN(log_, "unexpected commitment for block {}", block_number);
-      return;
-    }
     if (round == session.rounds.end()) {
-      round =
-          session.rounds
-              .emplace(block_number,
+      round = session.rounds.emplace(block_number, Round{}).first;
+    }
+    round->second.double_voting.emplace(*index, DoubleVoting{vote});
+    auto justification = round->second.justifications.find(vote.commitment);
+    if (justification == round->second.justifications.end()) {
+      justification =
+          round->second.justifications
+              .emplace(vote.commitment,
                        consensus::beefy::SignedCommitment{vote.commitment, {}})
               .first;
-      round->second.signatures.resize(total);
     }
-    round->second.signatures[*index] = vote.signature;
+    justification->second.signatures.resize(total);
+    justification->second.signatures[*index] = vote.signature;
     size_t count = 0;
-    for (auto &sig : round->second.signatures) {
+    for (auto &sig : justification->second.signatures) {
       if (sig) {
         ++count;
       }
     }
     if (count >= consensus::beefy::threshold(total)) {
-      std::ignore = apply(session.rounds.extract(round).mapped(), true);
+      auto justification2 = std::move(justification->second);
+      session.rounds.erase(round);
+      std::ignore = apply(std::move(justification2), true);
     } else if (broadcast) {
       this->broadcast(std::move(vote));
     }
@@ -548,5 +574,27 @@ namespace kagome::network {
       self->beefy_pool_handler_->execute(std::move(f));
     };
     timer_ = scheduler_->scheduleWithHandle(std::move(f), kRebroadcastAfter);
+  }
+
+  outcome::result<void> BeefyImpl::reportDoubleVoting(
+      const consensus::beefy::DoubleVotingProof &votes) {
+    OUTCOME_TRY(keys_block,
+                block_tree_->getBlockHash(votes.first.commitment.block_number));
+    if (not keys_block) {
+      return outcome::success();
+    }
+    OUTCOME_TRY(keys,
+                beefy_api_->generate_key_ownership_proof(
+                    *keys_block,
+                    votes.first.commitment.validator_set_id,
+                    votes.first.id));
+    if (not keys) {
+      return outcome::success();
+    }
+    offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
+    ::libp2p::common::FinalAction remove(
+        [&] { offchain_worker_pool_->removeWorker(); });
+    return beefy_api_->submit_report_double_voting_unsigned_extrinsic(
+        block_tree_->bestBlock().hash, votes, *keys);
   }
 }  // namespace kagome::network
