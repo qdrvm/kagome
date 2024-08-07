@@ -63,6 +63,19 @@ namespace kagome::parachain {
     EC_CPP_TRY(data, encoder.reconstruct(_chunks));
     return scale::decode<runtime::AvailableData>(data);
   }
+
+  inline outcome::result<runtime::AvailableData> fromSystematicChunks(
+      size_t validators, const std::vector<network::ErasureChunk> &chunks) {
+    EC_CPP_TRY(encoder, ec_cpp::create(validators));
+    std::vector<decltype(encoder)::Shard> _chunks;
+    _chunks.resize(chunks.size());
+    for (auto chunk : chunks) {
+      _chunks[chunk.index] = chunk.chunk;
+    }
+
+    EC_CPP_TRY(data, encoder.reconstruct_from_systematic(_chunks));
+    return scale::decode<runtime::AvailableData>(data);
+  }
 }  // namespace kagome::parachain
 
 #undef ERASURE_CODING_ERROR

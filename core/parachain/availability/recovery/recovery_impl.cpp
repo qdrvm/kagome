@@ -86,7 +86,7 @@ namespace kagome::parachain {
   }
 
   void RecoveryImpl::remove(const CandidateHash &candidate) {
-    std::unique_lock lock{mutex_};
+    Lock lock{mutex_};
     active_.erase(candidate);
     cached_.erase(candidate);
   }
@@ -94,9 +94,9 @@ namespace kagome::parachain {
   void RecoveryImpl::recover(const HashedCandidateReceipt &hashed_receipt,
                              SessionIndex session_index,
                              std::optional<GroupIndex> backing_group,
-                             CoreIndex core_index,
+                             std::optional<CoreIndex> core_index,
                              Cb cb) {
-    std::unique_lock lock{mutex_};
+    Lock lock{mutex_};
     const auto &receipt = hashed_receipt.get();
     const auto &candidate_hash = hashed_receipt.getHash();
     if (auto it = cached_.find(candidate_hash); it != cached_.end()) {
@@ -136,6 +136,8 @@ namespace kagome::parachain {
       cb(_node_features.error());
       return;
     }
+    auto chunk_mapping_is_enabled =
+        availability_chunk_mapping_is_enabled(_node_features.value());
 
     Active active;
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
@@ -143,56 +145,99 @@ namespace kagome::parachain {
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
     active.validators = session->discovery_keys;
-    active.node_features = _node_features.value();
-    active.core = core_index;
+    active.val2chunk = [chunk_mapping_is_enabled,
+                        n_validators{session->validators.size()},
+                        core_start_pos{core_index.value() * _min.value()}]  //
+        (ValidatorIndex validator_index) -> ChunkIndex {
+      if (chunk_mapping_is_enabled) {
+        return (core_start_pos + validator_index) % n_validators;
+      }
+      return validator_index;
+    };
+
+    std::vector<ValidatorIndex> validators_of_group;
+
     if (backing_group) {
-      active.order = session->validator_groups.at(*backing_group);
-      std::shuffle(active.order.begin(), active.order.end(), random_);
+      active.validators_of_group = session->validator_groups.at(*backing_group);
     }
     active_.emplace(candidate_hash, std::move(active));
+
     lock.unlock();
-    full_recovery(candidate_hash);
+
+    full_from_bakers_recovery_prepare(candidate_hash);
   }
 
-  void RecoveryImpl::full_recovery(const CandidateHash &candidate_hash) {
-    std::unique_lock lock{mutex_};
+  void RecoveryImpl::full_from_bakers_recovery_prepare(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
       return;
     }
     auto &active = it->second;
+
+    // Fill request order by validators of group
+    active.order = std::move(active.validators_of_group);
+    std::shuffle(active.order.begin(), active.order.end(), random_);
+
+    // Is it possible to full recover from bakers
+    auto is_possible_to_recovery_from_bakers = not active.order.empty();
+
+    if (is_possible_to_recovery_from_bakers) {
+      lock.unlock();
+      full_from_bakers_recovery(candidate_hash);
+    } else {
+      systematic_chunks_recovery_prepare(candidate_hash);
+    }
+  }
+
+  void RecoveryImpl::full_from_bakers_recovery(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
+    auto it = active_.find(candidate_hash);
+    if (it == active_.end()) {
+      return;
+    }
+    auto &active = it->second;
+
+    // Send requests
     while (not active.order.empty()) {
       auto peer = query_audi_->get(active.validators[active.order.back()]);
       active.order.pop_back();
       if (peer) {
-        router_->getFetchAvailableDataProtocol()->doRequest(
-            peer->id,
-            candidate_hash,
-            [=, weak{weak_from_this()}](
-                outcome::result<network::FetchAvailableDataResponse> r) {
-              if (auto self = weak.lock()) {
-                self->full_recovery_iteration(candidate_hash, std::move(r));
-              }
-            });
+        send_fetch_available_data_request(
+            peer->id, candidate_hash, &RecoveryImpl::full_from_bakers_recovery);
         return;
       }
     }
 
     // No known peer anymore to do full recovery
+    lock.unlock();
+
+    systematic_chunks_recovery_prepare(candidate_hash);
+  }
+
+  void RecoveryImpl::systematic_chunks_recovery_prepare(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
+    auto it = active_.find(candidate_hash);
+    if (it == active_.end()) {
+      return;
+    }
+    auto &active = it->second;
+
     // Refill request order basing chunks
     active.chunks = av_store_->getChunks(candidate_hash);
     for (size_t validator_index = 0; validator_index < active.chunks_total;
          ++validator_index) {
-      // TODO think about replace it by func with once computed context
-      auto chunk_res = availability_chunk_index(active.node_features,
-                                                active.validators.size(),
-                                                active.core,
-                                                validator_index);
-      if (chunk_res.has_error()) {
+      auto chunk_index = active.val2chunk(validator_index);
+
+      // Filter non systematic chunks
+      if (chunk_index > active.chunks_required) {
         continue;
       }
-      auto chunk_index = chunk_res.value();
 
+      // Filter existing
       if (std::find_if(
               active.chunks.begin(),
               active.chunks.end(),
@@ -203,61 +248,54 @@ namespace kagome::parachain {
       active.order.emplace_back(validator_index);
     }
     std::shuffle(active.order.begin(), active.order.end(), random_);
-    lock.unlock();
-    systematic_recovery(candidate_hash);
-  }
-
-  void RecoveryImpl::full_recovery_iteration(
-      const CandidateHash &candidate_hash,
-      outcome::result<network::FetchAvailableDataResponse> _backed) {
-    std::unique_lock lock{mutex_};
-    auto it = active_.find(candidate_hash);
-    if (it == active_.end()) {
-      return;
-    }
-    auto &active = it->second;
-    if (_backed) {
-      if (auto data = boost::get<AvailableData>(&_backed.value())) {
-        if (check(active, *data)) {
-          return done(lock, it, std::move(*data), Strategy::FullFromBackers);
-        }
-      }
-    }
-    lock.unlock();
-    full_recovery(candidate_hash);
-  }
-
-  void RecoveryImpl::systematic_recovery(const CandidateHash &candidate_hash) {
-    std::unique_lock lock{mutex_};
-    auto it = active_.find(candidate_hash);
-    if (it == active_.end()) {
-      return;
-    }
-    auto &active = it->second;
-
-    // if chunk mapping is not enabled, systematic can't be enabled either
-    if (!availability_chunk_mapping_is_enabled(active.node_features)) {
-      return chunk_recovery(candidate_hash);
-    }
-
-    auto st_res = systematic_recovery_threshold(active.validators.size());
-    if (st_res.has_error()) {
-      return chunk_recovery(candidate_hash);
-    }
-    auto systematic_threshold = st_res.value();
+    active.queried.clear();
 
     size_t systematic_chunk_count = [&] {
       std::set<ChunkIndex> sci;
       for (auto &chunk : active.chunks) {
-        if (chunk.index <= systematic_threshold) {
+        if (chunk.index <= active.chunks_required) {
           sci.emplace(chunk.index);
         }
       }
       return sci.size();
     }();
 
-    if (active.chunks.size() >= active.chunks_required) {
-      auto _data = fromChunks(active.validators.size(), active.chunks);
+    // Is it possible to collect all systematic chunks?
+    auto is_possible_to_collect_systematic_chunks =
+        systematic_chunk_count + active.chunks_active + active.order.size()
+        >= active.chunks_required;
+
+    if (is_possible_to_collect_systematic_chunks) {
+      lock.unlock();
+      systematic_chunks_recovery(candidate_hash);
+    } else {
+      regular_chunks_recovery_prepare(candidate_hash);
+    }
+  }
+
+  void RecoveryImpl::systematic_chunks_recovery(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
+    auto it = active_.find(candidate_hash);
+    if (it == active_.end()) {
+      return;
+    }
+    auto &active = it->second;
+
+    size_t systematic_chunk_count = [&] {
+      std::set<ChunkIndex> sci;
+      for (auto &chunk : active.chunks) {
+        if (chunk.index <= active.chunks_required) {
+          sci.emplace(chunk.index);
+        }
+      }
+      return sci.size();
+    }();
+
+    // All systematic chunks are collected
+    if (systematic_chunk_count >= active.chunks_required) {
+      auto _data =
+          fromSystematicChunks(active.validators.size(), active.chunks);
       if (_data) {
         if (auto r = check(active, _data.value()); not r) {
           _data = r.error();
@@ -265,70 +303,88 @@ namespace kagome::parachain {
       }
       return done(lock, it, _data, Strategy::SystematicChunks);
     }
-    if (active.chunks.size() + active.chunks_active + active.order.size()
-        < active.chunks_required) {
-      return done(lock, it, std::nullopt, Strategy::SystematicChunks);
-    }
 
+    // Send requests
     auto max = std::min(kParallelRequests,
-                        active.chunks_required - active.chunks.size());
+                        active.chunks_required - systematic_chunk_count);
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
       auto peer = query_audi_->get(active.validators[validator_index]);
       if (peer) {
         ++active.chunks_active;
-        router_->getFetchChunkProtocol()->doRequest(
+        active.queried.emplace(validator_index);
+        send_fetch_chunk_request(
             peer->id,
-            {candidate_hash, validator_index},
-            [=, weak{weak_from_this()}](
-                outcome::result<network::FetchChunkResponse> r) {
-              auto self = weak.lock();
-              if (not self) {
-                return;
-              }
-              self->chunk_recovery_iteration(
-                  candidate_hash, validator_index, std::move(r));
-            });
-        return;
+            candidate_hash,
+            active.val2chunk(validator_index),  // chunk_index
+            &RecoveryImpl::systematic_chunks_recovery);
       }
     }
-    if (active.chunks_active == 0) {
-      done(lock, it, std::nullopt, Strategy::SystematicChunks);
-    }
-  }
 
-  void RecoveryImpl::systematic_recovery_iteration(
-      const CandidateHash &candidate_hash,
-      ValidatorIndex index,
-      outcome::result<network::FetchChunkResponse> _chunk) {
-    std::unique_lock lock{mutex_};
-    auto it = active_.find(candidate_hash);
-    if (it == active_.end()) {
-      return;
-    }
-    auto &active = it->second;
-    --active.chunks_active;
-    if (_chunk) {
-      if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
-        network::ErasureChunk chunk{
-            std::move(chunk2->data), index, std::move(chunk2->proof)};
-        if (checkTrieProof(chunk, active.erasure_encoding_root)) {
-          active.chunks.emplace_back(std::move(chunk));
-        }
-      }
-    }
     lock.unlock();
-    chunk_recovery(candidate_hash);
+
+    // No active request anymore for systematic chunks recovery
+    if (active.chunks_active == 0) {
+      RecoveryImpl::regular_chunks_recovery_prepare(candidate_hash);
+    }
   }
 
-  void RecoveryImpl::chunk_recovery(const CandidateHash &candidate_hash) {
-    std::unique_lock lock{mutex_};
+  void RecoveryImpl::regular_chunks_recovery_prepare(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
       return;
     }
     auto &active = it->second;
+
+    // Refill request order by remaining validators
+    active.chunks = av_store_->getChunks(candidate_hash);
+    for (size_t validator_index = 0; validator_index < active.chunks_total;
+         ++validator_index) {
+      // Filter queried
+      if (active.queried.contains(validator_index)) {
+        continue;
+      }
+
+      // Filter existing
+      if (std::find_if(
+              active.chunks.begin(),
+              active.chunks.end(),
+              [chunk_index{active.val2chunk(validator_index)}](
+                  network::ErasureChunk &c) { return c.index == chunk_index; })
+          != active.chunks.end()) {
+        continue;
+      }
+
+      active.order.emplace_back(validator_index);
+    }
+    std::shuffle(active.order.begin(), active.order.end(), random_);
+
+    // Is it possible to collect enough chunks for recovery?
+    auto is_possible_to_collect_systematic_chunks =
+        active.chunks.size() + active.chunks_active + active.order.size()
+        >= active.chunks_required;
+
+    if (is_possible_to_collect_systematic_chunks) {
+      lock.unlock();
+      regular_chunks_recovery(candidate_hash);
+    } else {
+      return done(lock, it, std::nullopt, Strategy::RegularChunks);
+    }
+  }
+
+  void RecoveryImpl::regular_chunks_recovery(
+      const CandidateHash &candidate_hash) {
+    Lock lock{mutex_};
+    auto it = active_.find(candidate_hash);
+    if (it == active_.end()) {
+      return;
+    }
+    auto &active = it->second;
+
+    // The number of chunks is enough for regular chunk recovery
     if (active.chunks.size() >= active.chunks_required) {
       auto _data = fromChunks(active.chunks_total, active.chunks);
       if (_data) {
@@ -338,140 +394,189 @@ namespace kagome::parachain {
       }
       return done(lock, it, _data, Strategy::RegularChunks);
     }
-    if (active.chunks.size() + active.chunks_active + active.order.size()
-        < active.chunks_required) {
-      return done(lock, it, std::nullopt, Strategy::RegularChunks);
-    }
+
+    // Send requests
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
       auto peer = query_audi_->get(active.validators[validator_index]);
-      if (peer) {
+      if (peer.has_value()) {
         ++active.chunks_active;
-
-        const auto &peer_id = peer.value().id;
-        auto peer_state = [&]() {
-          auto res = pm_->getPeerState(peer_id);
-          if (!res) {
-            SL_TRACE(logger_, "From unknown peer {}", peer_id);
-            res = pm_->createDefaultPeerState(peer_id);
-          }
-          return res;
-        }();
-
-        auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-            network::ReqChunkVersion::V1_obsolete);
-
-        switch (req_chunk_version) {
-          case network::ReqChunkVersion::V2: {
-            // TODO think about replace it by func with once computed context
-            auto chunk_res = availability_chunk_index(active.node_features,
-                                                      active.validators.size(),
-                                                      active.core,
-                                                      validator_index);
-            if (chunk_res.has_error()) {
-              continue;
-            }
-            auto chunk_index = chunk_res.value();
-
-            SL_DEBUG(logger_,
-                     "Sent request of chunk {} of candidate {} to peer {}",
-                     chunk_index,
-                     candidate_hash,
-                     peer_id);
-            router_->getFetchChunkProtocol()->doRequest(
-                peer->id,
-                {candidate_hash, chunk_index},
-                [=, this, weak{weak_from_this()}](
-                    outcome::result<network::FetchChunkResponse> r) {
-                  if (auto self = weak.lock()) {
-                    if (r.has_value()) {
-                      SL_DEBUG(logger_,
-                               "Result of request chunk {} of candidate {} to "
-                               "peer {}: success",
-                               chunk_index,
-                               candidate_hash,
-                               peer_id);
-                    } else {
-                      SL_DEBUG(logger_,
-                               "Result of request chunk {} of candidate {} to "
-                               "peer {}: {}",
-                               chunk_index,
-                               candidate_hash,
-                               peer_id,
-                               r.error());
-                    }
-
-                    self->chunk_recovery_iteration(
-                        candidate_hash, chunk_index, std::move(r));
-                  }
-                });
-          } break;
-          case network::ReqChunkVersion::V1_obsolete: {
-            ChunkIndex chunk_index = validator_index;
-            router_->getFetchChunkProtocolObsolete()->doRequest(
-                peer->id,
-                {candidate_hash, chunk_index},
-                [=, weak{weak_from_this()}](
-                    outcome::result<network::FetchChunkResponseObsolete> r) {
-                  if (auto self = weak.lock()) {
-                    if (r.has_value()) {
-                      auto response = visit_in_place(
-                          r.value(),
-                          [](const network::Empty &empty)
-                              -> network::FetchChunkResponse { return empty; },
-                          [&](const network::ChunkObsolete &chunk_obsolete)
-                              -> network::FetchChunkResponse {
-                            return network::Chunk{
-                                .data = std::move(chunk_obsolete.data),
-                                .chunk_index = chunk_index,
-                                .proof = std::move(chunk_obsolete.proof),
-                            };
-                          });
-                      self->chunk_recovery_iteration(
-                          candidate_hash, chunk_index, std::move(response));
-                    } else {
-                      self->chunk_recovery_iteration(
-                          candidate_hash, chunk_index, r.as_failure());
-                    }
-                  }
-                });
-          } break;
-          default:
-            UNREACHABLE;
-        }
-        return;
+        active.queried.emplace(validator_index);
+        send_fetch_chunk_request(
+            peer->id,
+            candidate_hash,
+            active.val2chunk(validator_index),  // chunk_index
+            &RecoveryImpl::regular_chunks_recovery);
       }
     }
+
+    // No active request anymore for regular chunks recovery
     if (active.chunks_active == 0) {
       done(lock, it, std::nullopt, Strategy::RegularChunks);
     }
   }
 
-  void RecoveryImpl::chunk_recovery_iteration(
+  // Fetch available data protocol communication
+  void RecoveryImpl::send_fetch_available_data_request(
+      const libp2p::PeerId &peer_id,
+      const CandidateHash &candidate_hash,
+      void (RecoveryImpl::*cb)(const CandidateHash &)) {
+    router_->getFetchAvailableDataProtocol()->doRequest(
+        peer_id,
+        candidate_hash,
+        [=, weak{weak_from_this()}](
+            outcome::result<network::FetchAvailableDataResponse> response_res) {
+          if (auto self = weak.lock()) {
+            self->handle_fetch_available_data_response(
+                candidate_hash, std::move(response_res), cb);
+          }
+        });
+  }
+
+  void RecoveryImpl::handle_fetch_available_data_response(
+      const CandidateHash &candidate_hash,
+      outcome::result<network::FetchAvailableDataResponse> response_res,
+      void (RecoveryImpl::*next_iteration)(const CandidateHash &)) {
+    Lock lock{mutex_};
+    auto it = active_.find(candidate_hash);
+    if (it == active_.end()) {
+      return;
+    }
+
+    auto &active = it->second;
+
+    if (response_res) {
+      if (auto data = boost::get<AvailableData>(&response_res.value())) {
+        if (check(active, *data)) {
+          return done(lock, it, std::move(*data), Strategy::FullFromBackers);
+        }
+      }
+    }
+
+    lock.unlock();
+
+    (this->*next_iteration)(candidate_hash);
+  }
+
+  void RecoveryImpl::send_fetch_chunk_request(
+      const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       ChunkIndex chunk_index,
-      outcome::result<network::FetchChunkResponse> _chunk) {
-    std::unique_lock lock{mutex_};
+      void (RecoveryImpl::*cb)(const CandidateHash &)) {
+    auto peer_state = [&]() {
+      auto res = pm_->getPeerState(peer_id);
+      if (!res) {
+        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        res = pm_->createDefaultPeerState(peer_id);
+      }
+      return res;
+    }();
+
+    auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+        network::ReqChunkVersion::V1_obsolete);
+
+    switch (req_chunk_version) {
+      case network::ReqChunkVersion::V2: {
+        SL_DEBUG(logger_,
+                 "Sent request of chunk {} of candidate {} to peer {}",
+                 chunk_index,
+                 candidate_hash,
+                 peer_id);
+        router_->getFetchChunkProtocol()->doRequest(
+            peer_id,
+            {candidate_hash, chunk_index},
+            [=, this, weak{weak_from_this()}](
+                outcome::result<network::FetchChunkResponse> response_res) {
+              if (auto self = weak.lock()) {
+                if (response_res.has_value()) {
+                  SL_DEBUG(logger_,
+                           "Result of request chunk {} of candidate {} to "
+                           "peer {}: success",
+                           chunk_index,
+                           candidate_hash,
+                           peer_id);
+                } else {
+                  SL_DEBUG(logger_,
+                           "Result of request chunk {} of candidate {} to "
+                           "peer {}: {}",
+                           chunk_index,
+                           candidate_hash,
+                           peer_id,
+                           response_res.error());
+                }
+
+                self->handle_fetch_chunk_response(
+                    candidate_hash, std::move(response_res), cb);
+              }
+            });
+      } break;
+      case network::ReqChunkVersion::V1_obsolete: {
+        router_->getFetchChunkProtocolObsolete()->doRequest(
+            peer_id,
+            {candidate_hash, chunk_index},
+            [=, weak{weak_from_this()}](
+                outcome::result<network::FetchChunkResponseObsolete>
+                    response_res) {
+              if (auto self = weak.lock()) {
+                if (response_res.has_value()) {
+                  auto response = visit_in_place(
+                      response_res.value(),
+                      [](const network::Empty &empty)
+                          -> network::FetchChunkResponse { return empty; },
+                      [&](const network::ChunkObsolete &chunk_obsolete)
+                          -> network::FetchChunkResponse {
+                        return network::Chunk{
+                            .data = std::move(chunk_obsolete.data),
+                            .chunk_index = chunk_index,
+                            .proof = std::move(chunk_obsolete.proof),
+                        };
+                      });
+                  self->handle_fetch_chunk_response(
+                      candidate_hash, std::move(response), cb);
+                } else {
+                  self->handle_fetch_chunk_response(
+                      candidate_hash, response_res.as_failure(), cb);
+                }
+              }
+            });
+      } break;
+      default:
+        UNREACHABLE;
+    }
+  }
+
+  void RecoveryImpl::handle_fetch_chunk_response(
+      const CandidateHash &candidate_hash,
+      outcome::result<network::FetchChunkResponse> response_res,
+      void (RecoveryImpl::*next_iteration)(const CandidateHash &)) {
+    Lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
       return;
     }
     auto &active = it->second;
+
     --active.chunks_active;
-    if (_chunk) {
-      if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
-        network::ErasureChunk chunk{
-            std::move(chunk2->data), chunk_index, std::move(chunk2->proof)};
-        if (checkTrieProof(chunk, active.erasure_encoding_root)) {
-          active.chunks.emplace_back(std::move(chunk));
+
+    if (response_res.has_value()) {
+      if (auto chunk = boost::get<network::Chunk>(&response_res.value())) {
+        network::ErasureChunk erasure_chunk{
+            std::move(chunk->data),
+            chunk->chunk_index,
+            std::move(chunk->proof),
+        };
+        if (checkTrieProof(erasure_chunk, active.erasure_encoding_root)) {
+          active.chunks.emplace_back(std::move(erasure_chunk));
         }
       }
     }
+
     lock.unlock();
-    chunk_recovery(candidate_hash);
+
+    (this->*next_iteration)(candidate_hash);
   }
 
   outcome::result<void> RecoveryImpl::check(const Active &active,

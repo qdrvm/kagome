@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <random>
+#include <set>
 #include <unordered_map>
 
 #include "authority_discovery/query/query.hpp"
@@ -47,7 +48,7 @@ namespace kagome::parachain {
     void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
                  std::optional<GroupIndex> backing_group,
-                 CoreIndex core,
+                 std::optional<CoreIndex> core,
                  Cb cb) override;
 
     void remove(const CandidateHash &candidate) override;
@@ -65,34 +66,50 @@ namespace kagome::parachain {
       ChunkIndex chunks_required = 0;
       std::vector<Cb> cb;
       std::vector<primitives::AuthorityDiscoveryId> validators;
-      CoreIndex core;
-      std::optional<runtime::ParachainHost::NodeFeatures> node_features;
+      std::vector<ValidatorIndex> validators_of_group;
+      std::vector<ValidatorIndex> systematic_chunk_holders;
       std::vector<ValidatorIndex> order;
+      std::set<ValidatorIndex> queried;
       std::vector<network::ErasureChunk> chunks;
+      std::function<CoreIndex(ValidatorIndex)> val2chunk;
       size_t chunks_active = 0;
     };
     using ActiveMap = std::unordered_map<CandidateHash, Active>;
     using Lock = std::unique_lock<std::mutex>;
 
-    // Full recovery strategy
-    void full_recovery(const CandidateHash &candidate_hash);
-    void full_recovery_iteration(
-        const CandidateHash &candidate_hash,
-        outcome::result<network::FetchAvailableDataResponse> _backed);
+    // Full from bakers recovery strategy
+    void full_from_bakers_recovery_prepare(const CandidateHash &candidate_hash);
+    void full_from_bakers_recovery(const CandidateHash &candidate_hash);
 
     // Systematic recovery strategy
-    void systematic_recovery(const CandidateHash &candidate_hash);
-    void systematic_recovery_iteration(
-        const CandidateHash &candidate_hash,
-        ChunkIndex index,
-        outcome::result<network::FetchChunkResponse> _chunk);
+    void systematic_chunks_recovery_prepare(
+        const CandidateHash &candidate_hash);
+    void systematic_chunks_recovery(const CandidateHash &candidate_hash);
 
     // Chunk recovery strategy
-    void chunk_recovery(const CandidateHash &candidate_hash);
-    void chunk_recovery_iteration(
+    void regular_chunks_recovery_prepare(const CandidateHash &candidate_hash);
+    void regular_chunks_recovery(const CandidateHash &candidate_hash);
+
+    // Fetch available data protocol communication
+    void send_fetch_available_data_request(
+        const libp2p::PeerId &response_res,
+        const CandidateHash &candidate_hash,
+        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void handle_fetch_available_data_response(
+        const CandidateHash &candidate_hash,
+        outcome::result<network::FetchAvailableDataResponse> response_res,
+        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
+
+    // Fetch chunk protocol communication
+    void send_fetch_chunk_request(
+        const libp2p::PeerId &peer_id,
         const CandidateHash &candidate_hash,
         ChunkIndex chunk_index,
-        outcome::result<network::FetchChunkResponse> _chunk);
+        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void handle_fetch_chunk_response(
+        const CandidateHash &candidate_hash,
+        outcome::result<network::FetchChunkResponse> response_res,
+        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
 
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
