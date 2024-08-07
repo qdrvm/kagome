@@ -182,6 +182,7 @@ namespace kagome::network {
     if (round != session.rounds.end()) {
       auto vote_it = round->second.double_voting.find(*index);
       if (vote_it != round->second.double_voting.end()) {
+        // already voted or reported double voting
         if (vote_it->second.reported
             or vote.commitment == vote_it->second.first.commitment) {
           return;
