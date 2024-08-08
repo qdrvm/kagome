@@ -927,7 +927,7 @@ namespace kagome::parachain {
       const runtime::SessionInfo &_session_info,
       Groups &&_groups,
       grid::Views &&_grid_view,
-      ValidatorIndex _our_index,
+      std::optional<ValidatorIndex> _our_index,
       std::shared_ptr<PeerUseCount> peers)
       : session{_session},
         session_info{_session_info},
@@ -1054,7 +1054,6 @@ namespace kagome::parachain {
 
     if (!validator) {
       SL_TRACE(logger_, "Not a validator, or no para keys.");
-      return Error::KEY_NOT_PRESENT;
     }
     is_parachain_validator = true;
 
@@ -1086,15 +1085,19 @@ namespace kagome::parachain {
                relay_parent);
     }
 
-    auto per_session_state = per_session_->get_or_insert(session_index, [&] {
-      const auto validator_index{validator->validatorIndex()};
-      SL_TRACE(
-          logger_, "===> Grid build (validator_index={})", validator_index);
+    std::optional<ValidatorIndex> validator_index;
+    if (validator) {
+      validator_index = validator->validatorIndex();
+    }
 
-      grid::Views grid_view = grid::makeViews(
-          session_info->validator_groups,
-          grid::shuffle(session_info->validator_groups, randomness),
-          validator_index);
+    auto per_session_state = per_session_->get_or_insert(session_index, [&] {
+      grid::Views grid_view;
+      if (validator_index) {
+        grid_view = grid::makeViews(
+            session_info->validator_groups,
+            grid::shuffle(session_info->validator_groups, randomness),
+            *validator_index);
+      }
 
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
@@ -1105,23 +1108,26 @@ namespace kagome::parachain {
           peer_use_count_);
     });
 
-    if (auto our_group = per_session_state->value().groups.byValidatorIndex(
-            validator->validatorIndex())) {
-      /// update peers of our group
-      const auto &group = session_info->validator_groups[*our_group];
-      for (const auto vi : group) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
-      }
+    std::optional<network::GroupIndex> our_group;
+    if (validator_index) {
+      our_group = per_session_state->value().groups.byValidatorIndex(*validator_index);
+      if (our_group) {
+        /// update peers of our group
+        const auto &group = session_info->validator_groups[*our_group];
+        for (const auto vi : group) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
 
-      /// update peers in grid view
-      const auto &grid_view = *per_session_state->value().grid_view;
-      BOOST_ASSERT(*our_group < grid_view.size());
-      const auto &view = grid_view[*our_group];
-      for (const auto vi : view.sending) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
-      }
-      for (const auto vi : view.receiving) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
+        /// update peers in grid view
+        const auto &grid_view = *per_session_state->value().grid_view;
+        BOOST_ASSERT(*our_group < grid_view.size());
+        const auto &view = grid_view[*our_group];
+        for (const auto vi : view.sending) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
+        for (const auto vi : view.receiving) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
       }
     }
 
@@ -1164,7 +1170,7 @@ namespace kagome::parachain {
 
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
-        if (validator && g.contains(validator->validatorIndex())) {
+        if (validator_index && g.contains(*validator_index)) {
           assigned_para = core_para_id;
           assigned_core = core_index;
         }
@@ -1209,14 +1215,18 @@ namespace kagome::parachain {
     }();
 
     const auto seconding_limit = mode->max_candidate_depth + 1;
-    std::optional<LocalValidatorState> local_validator =
-        find_active_validator_state(validator->validatorIndex(),
+    auto local_validator = [&]() -> std::optional<LocalValidatorState> {
+      if (validator_index) {
+        return find_active_validator_state(*validator_index,
                                     per_session_state->value().groups,
                                     cores,
                                     group_rotation_info,
                                     maybe_claim_queue,
                                     seconding_limit,
                                     mode->max_candidate_depth);
+      }
+      return LocalValidatorState{};
+    }();
 
     std::unordered_set<ValidatorIndex> disabled_validators{
         disabled_validators_.begin(), disabled_validators_.end()};
@@ -1228,11 +1238,12 @@ namespace kagome::parachain {
 
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
-               "assigned_core={}, our index={}, relay "
+               "assigned_core={}, our index={}, our_group={}, relay "
                "parent={})",
                assigned_para,
                assigned_core,
-               validator->validatorIndex(),
+               validator_index,
+               our_group,
                relay_parent);
 
     return RelayParentState{
@@ -1241,9 +1252,8 @@ namespace kagome::parachain {
         .assigned_para = assigned_para,
         .validator_to_group = std::move(validator_to_group),
         .per_session_state = per_session_state,
-        .our_index = validator->validatorIndex(),
-        .our_group = per_session_state->value().groups.byValidatorIndex(
-            validator->validatorIndex()),
+        .our_index = validator_index,
+        .our_group = our_group,
         .collations = {},
         .table_context =
             TableContext{
@@ -5028,6 +5038,14 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
+    
+    auto p = scale::encode(data).value();
+    std::string s = fmt::format("stored data: ");
+    for (const auto m : p) {
+      s += fmt::format("{:x}, ", m);
+    }
+    logger_->trace("-->>>><<<<----- {}", s);
+
     av_store_->storeData(
         relay_parent, candidate_hash, std::move(chunks), pov, data);
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);

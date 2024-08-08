@@ -417,7 +417,7 @@ namespace kagome::parachain {
                       const runtime::SessionInfo &_session_info,
                       Groups &&_groups,
                       grid::Views &&_grid_view,
-                      ValidatorIndex _our_index,
+                      std::optional<ValidatorIndex> _our_index,
                       std::shared_ptr<PeerUseCount> peers);
       ~PerSessionState();
       void updatePeers(bool add) const;
