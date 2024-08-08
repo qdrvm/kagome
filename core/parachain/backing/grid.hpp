@@ -237,12 +237,8 @@ namespace kagome::parachain::grid {
   }
 
   inline std::vector<ValidatorIndex> shuffle(
-      const std::vector<std::vector<ValidatorIndex>> &groups,
+      size_t n,
       std::span<const uint8_t, 32> babe_randomness) {
-    size_t n = 0;
-    for (auto &group : groups) {
-      n += group.size();
-    }
     std::vector<ValidatorIndex> validators;
     validators.resize(n);
     std::iota(validators.begin(), validators.end(), 0);

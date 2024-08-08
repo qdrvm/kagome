@@ -65,4 +65,23 @@ namespace kagome::parachain {
         sr25519_provider_,
     };
   }
+
+  outcome::result<std::optional<ValidatorIndex>> ValidatorSignerFactory::getAuthorityValidatorIndex(const primitives::BlockHash &relay_parent) {
+    OUTCOME_TRY(session_index, parachain_api_->session_index_for_child(relay_parent));
+    OUTCOME_TRY(session_info, parachain_api_->session_info(relay_parent, session_index));
+
+    if (!session_info) {
+      return std::nullopt;
+    }
+
+    auto keys = session_keys_->getAudiKeyPair(session_info->discovery_keys);
+    if (keys != nullptr) {
+      for (ValidatorIndex i = 0; i < session_info->discovery_keys.size(); ++i) {
+        if (keys->public_key == session_info->discovery_keys[i]) {
+          return i;
+        }
+      }
+    }
+    return std::nullopt;
+  }
 }  // namespace kagome::parachain

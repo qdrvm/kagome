@@ -43,6 +43,10 @@ namespace kagome::network {
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType candidate_hash, std::shared_ptr<Stream>) override {
+      base().logger()->trace(
+          "-->>>><<<<----- Fetch available data .(candidate hash={})",
+          candidate_hash);
+
       if (auto r = av_store_->getPovAndData(candidate_hash)) {
         return std::move(*r);
       }
