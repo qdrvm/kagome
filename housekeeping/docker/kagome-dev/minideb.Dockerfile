@@ -62,8 +62,7 @@ ENV KAGOME_PACKAGE_VERSION=${KAGOME_PACKAGE_VERSION}
 
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages \
-        kagome-dev=${KAGOME_PACKAGE_VERSION}  \
-        kagome-dev-runtime && \
+        kagome-dev=${KAGOME_PACKAGE_VERSION} && \
         sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
