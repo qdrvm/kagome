@@ -4407,8 +4407,7 @@ namespace kagome::parachain {
     }
 
     if (!parachain_state->get().our_index) {
-      logger_->template warn(
-          "We are not validators or we have no validator index.");
+      logger_->warn("We are not validators or we have no validator index.");
       return std::nullopt;
     }
 
@@ -4531,7 +4530,7 @@ namespace kagome::parachain {
     logger_->info("Send my view.(peer={}, protocol={})",
                   peer_id,
                   protocol->protocolName());
-    pm_->getStreamEngine()->template send(
+    pm_->getStreamEngine()->send(
         peer_id,
         protocol,
         std::make_shared<

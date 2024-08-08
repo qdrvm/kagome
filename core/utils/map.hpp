@@ -60,7 +60,7 @@ namespace kagome::utils {
       val = opt_ref->get();
     }
     return val;
-  };
+  }
 
 }  // namespace kagome::utils
 

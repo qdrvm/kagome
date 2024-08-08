@@ -237,7 +237,7 @@ namespace {
 
   template <typename C>
   auto useConfig(C c) {
-    return boost::di::bind<std::decay_t<C>>().template to(
+    return boost::di::bind<std::decay_t<C>>().to(
         std::move(c))[boost::di::override];
   }
 

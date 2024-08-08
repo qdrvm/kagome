@@ -113,7 +113,7 @@ namespace kagome::parachain::approval {
          : l        ? *l
          : r        ? *r
                     : std::optional<Tick>{};
-  };
+  }
 
   inline auto max_or_some(const std::optional<Tick> &l,
                           const std::optional<Tick> &r) {
@@ -121,7 +121,7 @@ namespace kagome::parachain::approval {
          : l        ? *l
          : r        ? *r
                     : std::optional<Tick>{};
-  };
+  }
 
   // Determining the amount of tranches required for approval or which
   // assignments are pending involves moving through a series of states while

@@ -19,7 +19,7 @@ namespace kagome::api::author::request {
     explicit SubmitAndWatchExtrinsic(std::shared_ptr<AuthorApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<primitives::SubscriptionId> execute() override {
       auto ext_hex = getParam<0>();

@@ -26,8 +26,10 @@
     return !operator==(r);                                       \
   }
 
-#define SCALE_TIE_ONLY(...)                       \
-  auto as_tie() { return std::tie(__VA_ARGS__); } \
+#define SCALE_TIE_ONLY(...)       \
+  auto as_tie() {                 \
+    return std::tie(__VA_ARGS__); \
+  }                               \
   SCALE_TIE_EQ
 
 #define SCALE_TIE(N)                     \

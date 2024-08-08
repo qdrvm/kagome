@@ -149,7 +149,7 @@ static Digest make_digest(SlotNumber slot, AuthorityIndex authority_index = 0) {
       SealDigest{kagome::primitives::kBabeEngineId, encoded_seal});
 
   return digest;
-};
+}
 
 class BabeWrapper : public Babe {
  public:

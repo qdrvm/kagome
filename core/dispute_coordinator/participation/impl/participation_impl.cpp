@@ -161,10 +161,13 @@ namespace kagome::dispute {
     // available data
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L279
 
+    parachain::CoreIndex core_index = -1;  // FIXME
+
     recovery_->recover(
         ctx->request.candidate_receipt,
         ctx->request.session,
         std::nullopt,
+        core_index,
         [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
           if (auto self = wp.lock()) {
             if (not res_opt.has_value()) {

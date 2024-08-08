@@ -35,7 +35,7 @@ namespace kagome::crypto {
     }
 
     return pubkey_out;
-  };
+  }
 
   outcome::result<secp256k1::CompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyCompressed(
