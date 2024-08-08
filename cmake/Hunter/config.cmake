@@ -86,3 +86,12 @@ hunter_config(
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
+
+hunter_config(
+    libp2p
+    URL https://github.com/igor-egorov/cpp-libp2p/archive/refs/heads/fix/remove-noexcept.zip
+    SHA1 0eec497b498d4d3cbc932ade8643687235e0ae9f
+    CMAKE_ARGS
+      CMAKE_BUILD_TYPE=Debug
+    KEEP_PACKAGE_SOURCES
+)
