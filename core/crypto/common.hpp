@@ -26,7 +26,7 @@ namespace kagome::crypto {
     static_assert(!std::is_const_v<T>,
                   "Secure clean guard must have write access to the data");
 
-    explicit SecureCleanGuard(std::span<T, Size> data) noexcept : data{data} {}
+    explicit SecureCleanGuard(std::span<T, Size> data) : data{data} {}
 
     template <std::ranges::contiguous_range R>
       requires std::ranges::output_range<R, T>
@@ -34,7 +34,7 @@ namespace kagome::crypto {
 
     SecureCleanGuard(const SecureCleanGuard &) = delete;
     SecureCleanGuard &operator=(const SecureCleanGuard &) = delete;
-    SecureCleanGuard(SecureCleanGuard &&g) noexcept : data{g.data} {
+    SecureCleanGuard(SecureCleanGuard &&g) : data{g.data} {
       g.data = {};
     }
     SecureCleanGuard &operator=(SecureCleanGuard &&g) = delete;
@@ -92,7 +92,7 @@ namespace kagome::crypto {
       return reinterpret_cast<T *>(p);
     }
 
-    static void deallocate(pointer p, size_type) noexcept {
+    static void deallocate(pointer p, size_type) {
       OPENSSL_free(p);
     }
 
@@ -119,18 +119,18 @@ namespace kagome::crypto {
     PrivateKey(const PrivateKey &) = default;
     PrivateKey &operator=(const PrivateKey &) = default;
 
-    PrivateKey(PrivateKey &&key) noexcept = default;
+    PrivateKey(PrivateKey &&key) = default;
 
-    PrivateKey &operator=(PrivateKey &&key) noexcept = default;
+    PrivateKey &operator=(PrivateKey &&key) = default;
 
-    bool operator==(const PrivateKey &) const noexcept = default;
+    bool operator==(const PrivateKey &) const = default;
 
     template <typename OtherTag>
-    bool operator==(const PrivateKey<Size, OtherTag> &key) const noexcept {
+    bool operator==(const PrivateKey<Size, OtherTag> &key) const {
       return key == data.view();
     }
 
-    bool operator==(std::span<const uint8_t> bytes) const noexcept {
+    bool operator==(std::span<const uint8_t> bytes) const {
       return data.view() == bytes;
     }
 

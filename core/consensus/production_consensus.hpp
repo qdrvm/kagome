@@ -27,9 +27,9 @@ namespace kagome::consensus {
     ProductionConsensus() = default;
     virtual ~ProductionConsensus() = default;
 
-    ProductionConsensus(ProductionConsensus &&) noexcept = delete;
+    ProductionConsensus(ProductionConsensus &&) = delete;
     ProductionConsensus(const ProductionConsensus &) = delete;
-    ProductionConsensus &operator=(ProductionConsensus &&) noexcept = delete;
+    ProductionConsensus &operator=(ProductionConsensus &&) = delete;
     ProductionConsensus &operator=(const ProductionConsensus &) = delete;
 
     /// Return true if this consensus is used at start network

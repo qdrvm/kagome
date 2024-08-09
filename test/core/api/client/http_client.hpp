@@ -52,8 +52,8 @@ namespace test {
 
     HttpClient(const HttpClient &other) = delete;
     HttpClient &operator=(const HttpClient &other) = delete;
-    HttpClient(HttpClient &&other) noexcept = delete;
-    HttpClient &operator=(HttpClient &&other) noexcept = delete;
+    HttpClient(HttpClient &&other) = delete;
+    HttpClient &operator=(HttpClient &&other) = delete;
     ~HttpClient();
 
     /**

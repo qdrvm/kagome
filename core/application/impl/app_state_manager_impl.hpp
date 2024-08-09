@@ -23,12 +23,12 @@ namespace kagome::application {
    public:
     AppStateManagerImpl();
     AppStateManagerImpl(const AppStateManagerImpl &) = delete;
-    AppStateManagerImpl(AppStateManagerImpl &&) noexcept = delete;
+    AppStateManagerImpl(AppStateManagerImpl &&) = delete;
 
     ~AppStateManagerImpl() override;
 
     AppStateManagerImpl &operator=(const AppStateManagerImpl &) = delete;
-    AppStateManagerImpl &operator=(AppStateManagerImpl &&) noexcept = delete;
+    AppStateManagerImpl &operator=(AppStateManagerImpl &&) = delete;
 
     void atPrepare(OnPrepare &&cb) override;
     void atLaunch(OnLaunch &&cb) override;

@@ -26,7 +26,7 @@ struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
                            kagome::network::vstaging::CompactStatement>> {
   size_t operator()(const std::pair<kagome::parachain::ValidatorIndex,
                                     kagome::network::vstaging::CompactStatement>
-                        &value) const noexcept {
+                        &value) const {
     using Hash = kagome::parachain::Hash;
     using ValidatorIndex = kagome::parachain::ValidatorIndex;
 

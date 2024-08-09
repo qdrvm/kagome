@@ -35,8 +35,8 @@ namespace kagome::network {
     MessageReadWriter() = default;
     ~MessageReadWriter() = default;
 
-    MessageReadWriter(MessageReadWriter &&) noexcept = default;
-    MessageReadWriter &operator=(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter(MessageReadWriter &&) = default;
+    MessageReadWriter &operator=(MessageReadWriter &&) = default;
 
     MessageReadWriter(const MessageReadWriter &) = delete;
     MessageReadWriter &operator=(const MessageReadWriter &) = delete;
@@ -89,8 +89,8 @@ namespace kagome::network {
     MessageReadWriter() = default;
     ~MessageReadWriter() = default;
 
-    MessageReadWriter(MessageReadWriter &&) noexcept = default;
-    MessageReadWriter &operator=(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter(MessageReadWriter &&) = default;
+    MessageReadWriter &operator=(MessageReadWriter &&) = default;
 
     MessageReadWriter(const MessageReadWriter &) = delete;
     MessageReadWriter &operator=(const MessageReadWriter &) = delete;

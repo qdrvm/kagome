@@ -75,7 +75,7 @@ namespace kagome::runtime {
 
     outcome::result<bool> isStateInChain(
         const primitives::BlockInfo &state,
-        const primitives::BlockInfo &chain_end) const noexcept;
+        const primitives::BlockInfo &chain_end) const;
 
     outcome::result<std::optional<storage::trie::RootHash>> findProperFork(
         const primitives::BlockInfo &block,

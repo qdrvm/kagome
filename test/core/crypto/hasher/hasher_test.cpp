@@ -27,13 +27,13 @@ class HasherFixture : public testing::Test {
    * useful function for convenience
    */
   template <int size>
-  static Buffer blob2buffer(const kagome::common::Blob<size> &blob) noexcept {
+  static Buffer blob2buffer(const kagome::common::Blob<size> &blob) {
     Buffer out;
     out.put(blob);
     return out;
   }
 
-  static Buffer string2buffer(const std::string_view &view) noexcept {
+  static Buffer string2buffer(const std::string_view &view) {
     Buffer out;
     out.put(view);
     return out;

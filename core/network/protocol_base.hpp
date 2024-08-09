@@ -26,10 +26,10 @@ namespace kagome::network {
   class ProtocolBase {
    public:
     ProtocolBase() = default;
-    ProtocolBase(ProtocolBase &&) noexcept = delete;
+    ProtocolBase(ProtocolBase &&) = delete;
     ProtocolBase(const ProtocolBase &) = delete;
     virtual ~ProtocolBase() = default;
-    ProtocolBase &operator=(ProtocolBase &&) noexcept = delete;
+    ProtocolBase &operator=(ProtocolBase &&) = delete;
     ProtocolBase &operator=(const ProtocolBase &) = delete;
 
     virtual const ProtocolName &protocolName() const = 0;

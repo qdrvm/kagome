@@ -91,10 +91,10 @@ namespace kagome::storage::trie {
      public:
       explicit SearchState(const TrieNode &root) : current_{&root} {}
 
-      SearchState(SearchState &&state) noexcept
+      SearchState(SearchState &&state)
           : current_{state.current_}, path_{std::move(state.path_)} {}
 
-      SearchState &operator=(SearchState &&state) noexcept {
+      SearchState &operator=(SearchState &&state) {
         current_ = state.current_;
         path_ = std::move(state.path_);
         return *this;

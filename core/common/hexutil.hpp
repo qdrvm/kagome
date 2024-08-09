@@ -37,14 +37,14 @@ namespace kagome::common {
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_lower(BufferView bytes) noexcept;
+  std::string hex_lower(BufferView bytes);
 
   /**
    * @brief Converts bytes to hex representation with prefix 0x
    * @param array bytes
    * @return hexstring
    */
-  std::string hex_lower_0x(BufferView bytes) noexcept;
+  std::string hex_lower_0x(BufferView bytes);
 
   template <std::output_iterator<uint8_t> Iter>
   outcome::result<void> unhex_to(std::string_view hex, Iter out) {

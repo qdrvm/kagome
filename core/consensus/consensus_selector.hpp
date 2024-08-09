@@ -17,9 +17,9 @@ namespace kagome::consensus {
     ConsensusSelector() = default;
     virtual ~ConsensusSelector() = default;
 
-    ConsensusSelector(ConsensusSelector &&) noexcept = delete;
+    ConsensusSelector(ConsensusSelector &&) = delete;
     ConsensusSelector(const ConsensusSelector &) = delete;
-    ConsensusSelector &operator=(ConsensusSelector &&) noexcept = delete;
+    ConsensusSelector &operator=(ConsensusSelector &&) = delete;
     ConsensusSelector &operator=(const ConsensusSelector &) = delete;
 
     virtual std::shared_ptr<ProductionConsensus> getProductionConsensus(
