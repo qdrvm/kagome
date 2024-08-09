@@ -50,6 +50,7 @@
 #ifndef CHECK_OR_RET
 #define CHECK_OR_RET(op) \
   if (!(op)) {           \
+    SL_TRACE(logger_, "--++---> NO SUMMARY. EXIT."); \
     return;              \
   }
 #endif  // CHECK_OR_RET
@@ -927,7 +928,7 @@ namespace kagome::parachain {
       const runtime::SessionInfo &_session_info,
       Groups &&_groups,
       grid::Views &&_grid_view,
-      ValidatorIndex _our_index,
+      std::optional<ValidatorIndex> _our_index,
       std::shared_ptr<PeerUseCount> peers)
       : session{_session},
         session_info{_session_info},
@@ -1053,8 +1054,7 @@ namespace kagome::parachain {
     const auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
-      SL_TRACE(logger_, "Not a validator, or no para keys.");
-      return Error::KEY_NOT_PRESENT;
+      SL_TRACE(logger_, "Not a parachain validator, or no para keys.");
     }
     is_parachain_validator = true;
 
@@ -1086,15 +1086,22 @@ namespace kagome::parachain {
                relay_parent);
     }
 
-    auto per_session_state = per_session_->get_or_insert(session_index, [&] {
-      const auto validator_index{validator->validatorIndex()};
-      SL_TRACE(
-          logger_, "===> Grid build (validator_index={})", validator_index);
+    std::optional<ValidatorIndex> validator_index;
+    if (validator) {
+      validator_index = validator->validatorIndex();
+    }
 
+    OUTCOME_TRY(global_v_index, signer_factory_->getAuthorityValidatorIndex(relay_parent));
+    if (!global_v_index) {
+      SL_TRACE(logger_, "Not a validator, or no para keys.");
+      return Error::NOT_A_VALIDATOR;
+    }
+
+    auto per_session_state = per_session_->get_or_insert(session_index, [&] {
       grid::Views grid_view = grid::makeViews(
-          session_info->validator_groups,
-          grid::shuffle(session_info->validator_groups, randomness),
-          validator_index);
+            session_info->validator_groups,
+            grid::shuffle(session_info->discovery_keys.size(), randomness),
+            *global_v_index);
 
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
@@ -1105,23 +1112,27 @@ namespace kagome::parachain {
           peer_use_count_);
     });
 
-    if (auto our_group = per_session_state->value().groups.byValidatorIndex(
-            validator->validatorIndex())) {
-      /// update peers of our group
-      const auto &group = session_info->validator_groups[*our_group];
-      for (const auto vi : group) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
+    std::optional<network::GroupIndex> our_group;
+    if (validator_index) {
+      our_group = per_session_state->value().groups.byValidatorIndex(*validator_index);
+      if (our_group) {
+        /// update peers of our group
+        const auto &group = session_info->validator_groups[*our_group];
+        for (const auto vi : group) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
       }
-
       /// update peers in grid view
       const auto &grid_view = *per_session_state->value().grid_view;
-      BOOST_ASSERT(*our_group < grid_view.size());
-      const auto &view = grid_view[*our_group];
-      for (const auto vi : view.sending) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
-      }
-      for (const auto vi : view.receiving) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
+      SL_TRACE(logger_, "++>>> groups={}", grid_view.size());
+      for (const auto &view : grid_view) {
+        SL_TRACE(logger_, "++>>> group_size(s)={}, group_size(r)={}", view.sending.size(), view.receiving.size());
+        for (const auto vi : view.sending) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
+        for (const auto vi : view.receiving) {
+          spawn_and_update_peer(session_info->discovery_keys[vi]);
+        }
       }
     }
 
@@ -1164,7 +1175,7 @@ namespace kagome::parachain {
 
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
-        if (validator && g.contains(validator->validatorIndex())) {
+        if (validator_index && g.contains(*validator_index)) {
           assigned_para = core_para_id;
           assigned_core = core_index;
         }
@@ -1178,7 +1189,6 @@ namespace kagome::parachain {
          ++group_idx) {
       const auto &validator_group = validator_groups[group_idx];
       for (const auto v : validator_group.validators) {
-        SL_TRACE(logger_, "Bind {} -> {}", v, group_idx);
         validator_to_group[v] = group_idx;
       }
     }
@@ -1209,14 +1219,18 @@ namespace kagome::parachain {
     }();
 
     const auto seconding_limit = mode->max_candidate_depth + 1;
-    std::optional<LocalValidatorState> local_validator =
-        find_active_validator_state(validator->validatorIndex(),
+    auto local_validator = [&]() -> std::optional<LocalValidatorState> {
+      if (validator_index) {
+        return find_active_validator_state(*validator_index,
                                     per_session_state->value().groups,
                                     cores,
                                     group_rotation_info,
                                     maybe_claim_queue,
                                     seconding_limit,
                                     mode->max_candidate_depth);
+      }
+      return LocalValidatorState{};
+    }();
 
     std::unordered_set<ValidatorIndex> disabled_validators{
         disabled_validators_.begin(), disabled_validators_.end()};
@@ -1228,11 +1242,12 @@ namespace kagome::parachain {
 
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
-               "assigned_core={}, our index={}, relay "
+               "assigned_core={}, our index={}, our_group={}, relay "
                "parent={})",
                assigned_para,
                assigned_core,
-               validator->validatorIndex(),
+               validator_index,
+               our_group,
                relay_parent);
 
     return RelayParentState{
@@ -1241,9 +1256,8 @@ namespace kagome::parachain {
         .assigned_para = assigned_para,
         .validator_to_group = std::move(validator_to_group),
         .per_session_state = per_session_state,
-        .our_index = validator->validatorIndex(),
-        .our_group = per_session_state->value().groups.byValidatorIndex(
-            validator->validatorIndex()),
+        .our_index = validator_index,
+        .our_group = our_group,
         .collations = {},
         .table_context =
             TableContext{
@@ -1538,9 +1552,9 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
 
-    SL_TRACE(logger_,
-             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
-             bd->relay_parent);
+//    SL_TRACE(logger_,
+//             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
+//             bd->relay_parent);
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(bd->relay_parent));
 
     const auto &session_info =
@@ -1602,10 +1616,12 @@ namespace kagome::parachain {
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
+      SL_WARN(logger_, "--++---> {} 1", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().local_validator) {
+      SL_WARN(logger_, "--++---> {} 2", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1616,16 +1632,19 @@ namespace kagome::parachain {
 
     if (!expected_group
         || *expected_group != manifest_summary.claimed_group_index) {
+      SL_WARN(logger_, "--++---> {} 3", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().per_session_state->value().grid_view) {
+      SL_WARN(logger_, "--++---> {} 4", __PRETTY_FUNCTION__);
       return {};
     }
 
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
+      SL_WARN(logger_, "--++---> {} 5  (claimed_group_index={}, grid_view.size={})", __PRETTY_FUNCTION__, manifest_summary.claimed_group_index, grid_topology.size());
       return {};
     }
 
@@ -1641,6 +1660,7 @@ namespace kagome::parachain {
     }();
 
     if (!sender_index) {
+      SL_WARN(logger_, "--++---> {} 6", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1667,6 +1687,8 @@ namespace kagome::parachain {
         + 1;
 
     auto &local_validator = *relay_parent_state->get().local_validator;
+
+    SL_WARN(logger_, "--++---> Import manifest. (peer_id={}, relay_parent={}, candidate_hash={})", peer_id, relay_parent, candidate_hash);
     auto acknowledge_res = local_validator.grid_tracker.import_manifest(
         grid_topology,
         relay_parent_state->get().per_session_state->value().groups,
@@ -1943,7 +1965,7 @@ namespace kagome::parachain {
       const network::vstaging::BackedCandidateAcknowledgement
           &acknowledgement) {
     SL_TRACE(logger_,
-             "`BackedCandidateAcknowledgement`. (candidate_hash={})",
+             "--++---> `BackedCandidateAcknowledgement`. (candidate_hash={})",
              acknowledgement.candidate_hash);
     const auto &candidate_hash = acknowledgement.candidate_hash;
     SL_TRACE(logger_,
@@ -2018,7 +2040,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
     SL_TRACE(logger_,
-             "`BackedCandidateManifest`. (relay_parent={}, "
+             "--++---> `BackedCandidateManifest`. (relay_parent={}, "
              "candidate_hash={}, para_id={}, parent_head_data_hash={})",
              manifest.relay_parent,
              manifest.candidate_hash,
@@ -2174,7 +2196,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessageStatement &stm) {
     SL_TRACE(logger_,
-             "`StatementDistributionMessageStatement`. (relay_parent={}, "
+             "--++---> `StatementDistributionMessageStatement`. (relay_parent={}, "
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
@@ -3154,7 +3176,6 @@ namespace kagome::parachain {
       return Error::NOT_A_VALIDATOR;
     }
     BOOST_ASSERT(relay_parent_state.get().statement_store);
-    BOOST_ASSERT(relay_parent_state.get().our_index);
 
     const auto &session_info =
         relay_parent_state.get().per_session_state->value().session_info;
@@ -5028,6 +5049,14 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
+    
+    auto p = scale::encode(data).value();
+    std::string s = fmt::format("stored data: ");
+    for (const auto m : p) {
+      s += fmt::format("{:x}, ", m);
+    }
+    logger_->trace("-->>>><<<<----- {}", s);
+
     av_store_->storeData(
         relay_parent, candidate_hash, std::move(chunks), pov, data);
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);

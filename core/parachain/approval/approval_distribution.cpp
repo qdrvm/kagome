@@ -3127,6 +3127,14 @@ namespace kagome::parachain {
     auto &block_entry = opt_block_entry->get();
     auto &candidate_entry = opt_candidate_entry->get();
 
+
+    logger_->warn(
+        "-->>>><<<<----- Hashes: candidate_hash={}, Hashed={}, hash={}, ec={}",
+        candidate_hash,
+        candidate_entry.candidate.getHash(),
+        candidate_entry.candidate.get().hash(*hasher_),
+        candidate_entry.candidate.get().descriptor.erasure_encoding_root);
+
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
             block_entry.parent_hash, block_entry.session);

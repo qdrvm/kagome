@@ -97,10 +97,10 @@ namespace kagome::network {
     Hash commitments_hash;           /// Hash of candidate commitments
 
     const Hash &hash(const crypto::Hasher &hasher) const {
-      if (not hash_.has_value()) {
+//      if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
             ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
-      }
+//      }
       return hash_.value();
     }
 

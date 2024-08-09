@@ -15,10 +15,10 @@ namespace kagome::parachain {
 
   void BitfieldStoreImpl::putBitfield(const BlockHash &relay_parent,
                                       const SignedBitfield &bitfield) {
-    SL_TRACE(logger_,
-             "Put bitfields.(relay_parent={}, bitfields={})",
-             relay_parent,
-             bitfield);
+//    SL_TRACE(logger_,
+//             "Put bitfields.(relay_parent={}, bitfields={})",
+//             relay_parent,
+//             bitfield);
     bitfields_[relay_parent].push_back(bitfield);
   }
 
