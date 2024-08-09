@@ -74,6 +74,7 @@ namespace kagome::parachain {
         fullRecoveriesFinishedMetricName,
         "Total number of recoveries that finished");
 
+    BOOST_ASSERT(chain_spec != nullptr);
     for (auto &strategy : strategy_types) {
       auto &metrics_for_strategy = full_recoveries_finished_[strategy];
       for (auto &result : results) {
@@ -161,7 +162,7 @@ namespace kagome::parachain {
 
     std::vector<ValidatorIndex> validators_of_group;
 
-    if (backing_group) {
+    if (backing_group.has_value()) {
       active.validators_of_group = session->validator_groups.at(*backing_group);
     }
     active_.emplace(candidate_hash, std::move(active));
