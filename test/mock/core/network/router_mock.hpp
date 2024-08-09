@@ -82,6 +82,11 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<WarpProtocol>,
+                getWarpProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<StateProtocol>,
                 getStateProtocol,
                 (),
