@@ -1189,7 +1189,6 @@ namespace kagome::parachain {
          ++group_idx) {
       const auto &validator_group = validator_groups[group_idx];
       for (const auto v : validator_group.validators) {
-        SL_TRACE(logger_, "Bind {} -> {}", v, group_idx);
         validator_to_group[v] = group_idx;
       }
     }
@@ -1553,9 +1552,9 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
 
-    SL_TRACE(logger_,
-             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
-             bd->relay_parent);
+//    SL_TRACE(logger_,
+//             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
+//             bd->relay_parent);
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(bd->relay_parent));
 
     const auto &session_info =

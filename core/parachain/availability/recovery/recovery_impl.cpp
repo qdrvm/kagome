@@ -315,8 +315,6 @@ namespace kagome::parachain {
             UNREACHABLE;
         }
         return;
-      } else {
-        SL_TRACE(logger_, "-->>>><<<<----- No peer");
       }
     }
     if (active.chunks_active == 0) {
