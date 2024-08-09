@@ -12,9 +12,10 @@
 #include "network/warp/cache.hpp"
 
 namespace kagome::network {
-  class WarpProtocol : public RequestResponseProtocol<primitives::BlockHash,
-                                                      WarpSyncProof,
-                                                      ScaleMessageReadWriter> {
+  class WarpProtocol
+      : public RequestResponseProtocolImpl<primitives::BlockHash,
+                                           WarpSyncProof,
+                                           ScaleMessageReadWriter> {
     static constexpr auto kName = "WarpProtocol";
 
    public:

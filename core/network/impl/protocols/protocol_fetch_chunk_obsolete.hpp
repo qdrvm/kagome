@@ -30,21 +30,18 @@ namespace kagome::network {
   ///
   /// In response index of systematic chunk is corresponding validator index.
   class FetchChunkProtocolObsolete final
-      : public RequestResponseProtocol<FetchChunkRequest,
-                                       FetchChunkResponseObsolete,
-                                       ScaleMessageReadWriter>,
+      : public RequestResponseProtocolImpl<FetchChunkRequest,
+                                           FetchChunkResponseObsolete,
+                                           ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocolObsolete() = delete;
-    ~FetchChunkProtocolObsolete() override = default;
-
     FetchChunkProtocolObsolete(
         libp2p::Host &host,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainProcessorImpl> pp)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             FetchChunkRequest,
             FetchChunkResponseObsolete,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,

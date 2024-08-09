@@ -26,20 +26,17 @@ namespace kagome::network {
   struct ReqPovProtocolImpl;
 
   class FetchChunkProtocol final
-      : public RequestResponseProtocol<FetchChunkRequest,
-                                       FetchChunkResponse,
-                                       ScaleMessageReadWriter>,
+      : public RequestResponseProtocolImpl<FetchChunkRequest,
+                                           FetchChunkResponse,
+                                           ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocol() = delete;
-    ~FetchChunkProtocol() override = default;
-
     FetchChunkProtocol(libp2p::Host &host,
                        const application::ChainSpec & /*chain_spec*/,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             FetchChunkRequest,
             FetchChunkResponse,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,

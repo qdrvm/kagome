@@ -17,9 +17,9 @@
 
 namespace kagome::network {
   class FetchAvailableDataProtocol final
-      : public RequestResponseProtocol<FetchAvailableDataRequest,
-                                       FetchAvailableDataResponse,
-                                       ScaleMessageReadWriter> {
+      : public RequestResponseProtocolImpl<FetchAvailableDataRequest,
+                                           FetchAvailableDataResponse,
+                                           ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchAvailableDataProtocol";
 
@@ -28,7 +28,7 @@ namespace kagome::network {
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             FetchAvailableDataRequest,
             FetchAvailableDataResponse,
             ScaleMessageReadWriter>{kName,
@@ -55,9 +55,9 @@ namespace kagome::network {
   };
 
   class StatementFetchingProtocol final
-      : public RequestResponseProtocol<FetchStatementRequest,
-                                       FetchStatementResponse,
-                                       ScaleMessageReadWriter> {
+      : public RequestResponseProtocolImpl<FetchStatementRequest,
+                                           FetchStatementResponse,
+                                           ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchStatementProtocol";
 
@@ -66,7 +66,7 @@ namespace kagome::network {
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             FetchStatementRequest,
             FetchStatementResponse,
             ScaleMessageReadWriter>{kName,

@@ -27,25 +27,28 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
+  using DisputeRequest = DisputeMessage;
+  using DisputeResponse = boost::variant<kagome::Empty>;
 
-  class SendDisputeProtocol final
-      : public RequestResponseProtocol<DisputeMessage,
-                                       boost::variant<kagome::Empty>,
-                                       ScaleMessageReadWriter>,
+  class SendDisputeProtocol
+      : virtual public RequestResponseProtocol<DisputeRequest,
+                                               DisputeResponse> {};
+
+  class SendDisputeProtocolImpl final
+      : public SendDisputeProtocol,
+        public RequestResponseProtocolImpl<DisputeRequest,
+                                           DisputeResponse,
+                                           ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    SendDisputeProtocol() = delete;
-    ~SendDisputeProtocol() override = default;
-
-    SendDisputeProtocol(libp2p::Host &host,
-                        const blockchain::GenesisBlockHash &genesis_hash,
-                        std::shared_ptr<network::DisputeRequestObserver>
-                            dispute_request_observer)
-        : RequestResponseProtocol<
-            DisputeMessage,
-            boost::variant<kagome::Empty>,
+    SendDisputeProtocolImpl(libp2p::Host &host,
+                            const blockchain::GenesisBlockHash &genesis_hash,
+                            std::shared_ptr<network::DisputeRequestObserver>
+                                dispute_request_observer)
+        : RequestResponseProtocolImpl<
+            DisputeRequest,
+            DisputeResponse,
             ScaleMessageReadWriter>{kSendDisputeProtocolName,
                                     host,
                                     make_protocols(kSendDisputeProtocol,
@@ -73,8 +76,8 @@ namespace kagome::network {
           peer_id,
           std::move(request),
           [wp{weak_from_this()},
-           base = &SendDisputeProtocol::base,
-           write = &SendDisputeProtocol::writeResponse,
+           base = &SendDisputeProtocolImpl::base,
+           write = &SendDisputeProtocolImpl::writeResponse,
            stream = std::move(stream)](outcome::result<void> res) mutable {
             BOOST_ASSERT(stream);
 

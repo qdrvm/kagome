@@ -13,18 +13,30 @@
 
 namespace kagome::network {
 
+  template <typename Request, typename Response>
+  struct RequestResponseProtocol : virtual public ProtocolBase {
+    using RequestType = Request;
+    using ResponseType = Response;
+
+    virtual ~RequestResponseProtocol() = default;
+
+    virtual void doRequest(const PeerId &peer_id,
+                           RequestType request,
+                           std::function<void(outcome::result<ResponseType>)>
+                               &&response_handler) = 0;
+  };
+
   template <typename Request, typename Response, typename ReadWriter>
-  struct RequestResponseProtocol
-      : ProtocolBase,
+  struct RequestResponseProtocolImpl
+      : virtual protected ProtocolBase,
+        virtual public RequestResponseProtocol<Request, Response>,
         std::enable_shared_from_this<
-            RequestResponseProtocol<Request, Response, ReadWriter>> {
-    using RequestResponseProtocolType =
-        RequestResponseProtocol<Request, Response, ReadWriter>;
+            RequestResponseProtocolImpl<Request, Response, ReadWriter>> {
     using RequestType = Request;
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocol(
+    RequestResponseProtocolImpl(
         Protocol name,
         libp2p::Host &host,
         Protocols protocols,
@@ -32,7 +44,6 @@ namespace kagome::network {
         std::chrono::milliseconds timeout = std::chrono::seconds(1))
         : base_(std::move(name), host, std::move(protocols), std::move(logger)),
           timeout_(std::move(timeout)) {}
-    virtual ~RequestResponseProtocol() {}
 
     bool start() override {
       return base_.start(this->weak_from_this());
@@ -118,9 +129,6 @@ namespace kagome::network {
       base_.host().newStream(
           PeerInfo{peer_id, std::move(addresses_res.value())},
           base_.protocolIds(),
-          [wptr{this->weak_from_this()},
-           peer_id{peer_info.id},
-           cb{std::move(cb)}](auto &&stream_and_proto) mutable {
           [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
               auto &&stream_and_proto) mutable {
             if (!stream_and_proto.has_value()) {

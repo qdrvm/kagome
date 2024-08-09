@@ -22,7 +22,7 @@ namespace kagome::network {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
       std::shared_ptr<runtime::Executor> executor)
-      : RequestResponseProtocolType{
+      : RequestResponseProtocolImpl{
           kName,
           host,
           make_protocols(kLightProtocol, genesis, chain_spec),
