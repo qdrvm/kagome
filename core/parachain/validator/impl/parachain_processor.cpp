@@ -914,10 +914,9 @@ namespace kagome::parachain {
       tryOpenOutgoingValidationStream(
           peer->id,
           network::CollationVersion::VStaging,
-          [WEAK_SELF, peer_id{peer->id}](auto &&stream) {
+          [WEAK_SELF, peer_id{peer->id}]() {
             WEAK_LOCK(self);
             self->sendMyView(peer_id,
-                             stream,
                              self->router_->getValidationProtocolVStaging());
           });
     }
@@ -4506,10 +4505,11 @@ namespace kagome::parachain {
             stream_engine->addOutgoing(std::move(stream_result.value()),
                                        protocol);
 
-            std::forward<F>(callback)(std::move(stream));
+            std::forward<F>(callback)();
           });
       return true;
     }
+    std::forward<F>(callback)();
     return false;
   }
 
@@ -4546,7 +4546,6 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::sendMyView(
       const libp2p::peer::PeerId &peer_id,
-      const std::shared_ptr<network::Stream> &stream,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
     TRY_GET_OR_RET(my_view, peer_view_->getMyView());
     BOOST_ASSERT(protocol);
@@ -4576,14 +4575,13 @@ namespace kagome::parachain {
 
     peer_state->get().collation_version = version;
     if (tryOpenOutgoingCollatingStream(
-            peer_id, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
+            peer_id, [wptr{weak_from_this()}, peer_id, version]() {
               TRY_GET_OR_RET(self, wptr.lock());
               switch (version) {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
                       peer_id,
-                      stream,
                       self->router_->getCollationProtocolVStaging());
                 } break;
                 default: {
@@ -4613,14 +4611,13 @@ namespace kagome::parachain {
     if (tryOpenOutgoingValidationStream(
             peer_id,
             version,
-            [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
+            [wptr{weak_from_this()}, peer_id, version]() {
               TRY_GET_OR_RET(self, wptr.lock());
               switch (version) {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
                       peer_id,
-                      stream,
                       self->router_->getValidationProtocolVStaging());
                 } break;
                 default: {

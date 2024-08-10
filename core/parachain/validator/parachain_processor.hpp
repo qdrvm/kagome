@@ -1063,7 +1063,6 @@ namespace kagome::parachain {
         const CollatorId &collator_id,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
     void sendMyView(const libp2p::peer::PeerId &peer_id,
-                    const std::shared_ptr<network::Stream> &stream,
                     const std::shared_ptr<network::ProtocolBase> &protocol);
 
     bool isValidatingNode() const;
