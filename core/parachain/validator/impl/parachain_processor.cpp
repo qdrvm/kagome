@@ -1122,17 +1122,18 @@ namespace kagome::parachain {
           spawn_and_update_peer(session_info->discovery_keys[vi]);
         }
       }
-      /// update peers in grid view
-      const auto &grid_view = *per_session_state->value().grid_view;
-      SL_TRACE(logger_, "++>>> groups={}", grid_view.size());
-      for (const auto &view : grid_view) {
-        SL_TRACE(logger_, "++>>> group_size(s)={}, group_size(r)={}", view.sending.size(), view.receiving.size());
-        for (const auto vi : view.sending) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
-        for (const auto vi : view.receiving) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
+    }
+
+    /// update peers in grid view
+    const auto &grid_view = *per_session_state->value().grid_view;
+    SL_TRACE(logger_, "++>>> groups={}", grid_view.size());
+    for (const auto &view : grid_view) {
+      SL_TRACE(logger_, "++>>> group_size(s)={}, group_size(r)={}", view.sending.size(), view.receiving.size());
+      for (const auto vi : view.sending) {
+        spawn_and_update_peer(session_info->discovery_keys[vi]);
+      }
+      for (const auto vi : view.receiving) {
+        spawn_and_update_peer(session_info->discovery_keys[vi]);
       }
     }
 
