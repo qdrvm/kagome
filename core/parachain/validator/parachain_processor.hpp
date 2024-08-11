@@ -1032,7 +1032,7 @@ namespace kagome::parachain {
         const primitives::BlockHash &relay_parent,
         const network::HashedBlockHeader &block_header);
 
-    void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
+    void spawn_and_update_peer(std::unordered_set<primitives::AuthorityDiscoveryId> &cache, const primitives::AuthorityDiscoveryId &id);
 
     std::optional<ParachainProcessorImpl::LocalValidatorState>
     find_active_validator_state(

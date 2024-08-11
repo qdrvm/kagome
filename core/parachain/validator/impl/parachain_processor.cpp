@@ -908,8 +908,13 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  void ParachainProcessorImpl::spawn_and_update_peer(
+  void ParachainProcessorImpl::spawn_and_update_peer(std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
       const primitives::AuthorityDiscoveryId &id) {
+    if (cache.contains(id)) {
+      return;
+    }
+
+    cache.insert(id);
     if (auto peer = query_audi_->get(id)) {
       tryOpenOutgoingValidationStream(
           peer->id,
@@ -1097,10 +1102,18 @@ namespace kagome::parachain {
     }
 
     auto per_session_state = per_session_->get_or_insert(session_index, [&] {
-      grid::Views grid_view = grid::makeViews(
-            session_info->validator_groups,
-            grid::shuffle(session_info->discovery_keys.size(), randomness),
-            *global_v_index);
+      grid::Views grid_view;
+      if (validator_index) {
+        grid_view = grid::makeViews(
+          session_info->validator_groups,
+          grid::shuffle(session_info->validators.size(), randomness),
+          *validator_index);
+      } else {
+        grid_view = grid::makeViews(
+          session_info->validator_groups,
+          grid::shuffle(session_info->discovery_keys.size(), randomness),
+          *global_v_index);
+      }
 
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
@@ -1111,6 +1124,7 @@ namespace kagome::parachain {
           peer_use_count_);
     });
 
+    std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
     std::optional<network::GroupIndex> our_group;
     if (validator_index) {
       our_group = per_session_state->value().groups.byValidatorIndex(*validator_index);
@@ -1118,7 +1132,7 @@ namespace kagome::parachain {
         /// update peers of our group
         const auto &group = session_info->validator_groups[*our_group];
         for (const auto vi : group) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
+          spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
         }
       }
     }
@@ -1129,10 +1143,10 @@ namespace kagome::parachain {
     for (const auto &view : grid_view) {
       SL_TRACE(logger_, "++>>> group_size(s)={}, group_size(r)={}", view.sending.size(), view.receiving.size());
       for (const auto vi : view.sending) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
+        spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
       }
       for (const auto vi : view.receiving) {
-        spawn_and_update_peer(session_info->discovery_keys[vi]);
+        spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
       }
     }
 
