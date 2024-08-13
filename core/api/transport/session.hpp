@@ -14,6 +14,7 @@
 #include <boost/signals2/signal.hpp>
 
 #include "api/transport/rpc_io_context.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::api {
   enum struct SessionType {
@@ -69,6 +70,7 @@ namespace kagome::api {
      */
     void processRequest(std::string_view request,
                         std::shared_ptr<Session> session) {
+      SL_INFO(logger_, "Processing request: {}", request);
       on_request_(request, std::move(session));
     }
 
@@ -118,6 +120,7 @@ namespace kagome::api {
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback
     OnCloseHandler on_close_;
+    log::Logger logger_ = log::createLogger("Session");
   };
 
 }  // namespace kagome::api
