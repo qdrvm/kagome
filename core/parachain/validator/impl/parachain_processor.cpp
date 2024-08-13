@@ -561,6 +561,11 @@ namespace kagome::parachain {
           it != parachain_state->get().authority_lookup.end()) {
         ValidatorIndex vi = it->second;
 
+        SL_TRACE(logger_,
+                "Send pending cluster/grid messages. (peer={}. validator index={}, relay_parent={})",
+                peer_id,
+                vi,
+                relay_parent);
         send_pending_cluster_statements(
             relay_parent, peer_id, version, vi, parachain_state->get());
 
