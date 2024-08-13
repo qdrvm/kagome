@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include <boost/range/combine.hpp>
 #include <ranges>
+#include <iostream>
 
 #include "parachain/backing/grid.hpp"
 
@@ -16,308 +17,234 @@ using kagome::parachain::grid::shuffle;
 using kagome::parachain::grid::ValidatorIndex;
 using kagome::parachain::grid::Views;
 
-/**
- * update_gossip_topology
- * https://github.com/paritytech/polkadot-sdk/blob/943eb46ed54c2fcd9fab693b86ef59ce18c0f792/polkadot/node/network/gossip-support/src/lib.rs#L577-L633
- */
-TEST(GridTest, Shuffle) {
-  size_t count = 100;
-  auto randomness_hex =
-      "3e3af4adec1ce3f72cae15157c2373db5aa79f03c229b26d026569bcaf94b50d";
+TEST(GridTest, Views_CompareWithRef) {
+  uint8_t randomness[32] = { 0 };
+  //std::span babe_randomness (randomness);
+  std::vector<ValidatorIndex> shuffled = shuffle(1000, randomness);
 
-  std::vector<std::vector<ValidatorIndex>> groups;
-  groups.emplace_back(count);
-  auto randomness = kagome::common::Hash256::fromHex(randomness_hex).value();
-  auto indices = shuffle(groups, randomness);
-  std::vector<ValidatorIndex> expected{
-      48, 29, 17, 25, 16, 62, 97, 83, 89, 21, 42, 77, 93, 45, 84, 27, 91,
-      65, 79, 82, 11, 99, 92, 68, 41, 28, 59, 69, 6,  80, 72, 33, 78, 20,
-      96, 47, 86, 70, 94, 35, 2,  74, 26, 43, 4,  7,  44, 1,  5,  22, 53,
-      19, 73, 54, 14, 0,  57, 34, 81, 37, 85, 39, 76, 90, 55, 12, 71, 88,
-      60, 49, 8,  38, 50, 9,  23, 95, 13, 58, 56, 46, 3,  51, 61, 40, 87,
-      52, 36, 67, 75, 98, 66, 64, 63, 24, 18, 31, 10, 32, 15, 30,
-  };
-  EXPECT_EQ(indices, expected);
-}
+  { // compare shuffling
+    std::vector<ValidatorIndex> ref = {
+      ValidatorIndex(57), ValidatorIndex(808), ValidatorIndex(638), ValidatorIndex(496), ValidatorIndex(253), ValidatorIndex(700), ValidatorIndex(794), ValidatorIndex(995), ValidatorIndex(507), ValidatorIndex(387), ValidatorIndex(102), ValidatorIndex(909), ValidatorIndex(869), ValidatorIndex(934), ValidatorIndex(900), ValidatorIndex(80), ValidatorIndex(985), ValidatorIndex(538), ValidatorIndex(593), ValidatorIndex(100), ValidatorIndex(624), ValidatorIndex(782), ValidatorIndex(249), ValidatorIndex(825), ValidatorIndex(293), ValidatorIndex(815), ValidatorIndex(239), ValidatorIndex(650), ValidatorIndex(152), ValidatorIndex(834), ValidatorIndex(853), ValidatorIndex(787), ValidatorIndex(581), ValidatorIndex(970), ValidatorIndex(105), ValidatorIndex(216), ValidatorIndex(352), ValidatorIndex(184), ValidatorIndex(978), ValidatorIndex(417), ValidatorIndex(927), ValidatorIndex(148), ValidatorIndex(456), ValidatorIndex(227), ValidatorIndex(943), ValidatorIndex(392), ValidatorIndex(553), ValidatorIndex(407), ValidatorIndex(944), ValidatorIndex(551), ValidatorIndex(823), ValidatorIndex(182), ValidatorIndex(843), ValidatorIndex(187), ValidatorIndex(72), ValidatorIndex(605), ValidatorIndex(89), ValidatorIndex(139), ValidatorIndex(382), ValidatorIndex(550), ValidatorIndex(109), ValidatorIndex(535), ValidatorIndex(730), ValidatorIndex(174), ValidatorIndex(949), ValidatorIndex(121), ValidatorIndex(66), ValidatorIndex(312), ValidatorIndex(60), ValidatorIndex(703), ValidatorIndex(844), ValidatorIndex(797), ValidatorIndex(12), ValidatorIndex(955), ValidatorIndex(92), ValidatorIndex(185), ValidatorIndex(466), ValidatorIndex(917), ValidatorIndex(464), ValidatorIndex(567), ValidatorIndex(631), ValidatorIndex(465), ValidatorIndex(348), ValidatorIndex(104), ValidatorIndex(470), ValidatorIndex(188), ValidatorIndex(64), ValidatorIndex(612), ValidatorIndex(660), ValidatorIndex(845), ValidatorIndex(789), ValidatorIndex(52), ValidatorIndex(663), ValidatorIndex(573), ValidatorIndex(226), ValidatorIndex(760), ValidatorIndex(375), ValidatorIndex(225), ValidatorIndex(683), ValidatorIndex(409), ValidatorIndex(27), ValidatorIndex(826), ValidatorIndex(748), ValidatorIndex(667), ValidatorIndex(484), ValidatorIndex(875), ValidatorIndex(434), ValidatorIndex(958), ValidatorIndex(810), ValidatorIndex(130), ValidatorIndex(531), ValidatorIndex(261), ValidatorIndex(364), ValidatorIndex(347), ValidatorIndex(515), ValidatorIndex(669), ValidatorIndex(198), ValidatorIndex(31), ValidatorIndex(862), ValidatorIndex(635), ValidatorIndex(395), ValidatorIndex(85), ValidatorIndex(231), ValidatorIndex(108), ValidatorIndex(171), ValidatorIndex(435), ValidatorIndex(237), ValidatorIndex(303), ValidatorIndex(442), ValidatorIndex(84), ValidatorIndex(180), ValidatorIndex(732), ValidatorIndex(291), ValidatorIndex(623), ValidatorIndex(888), ValidatorIndex(868), ValidatorIndex(324), ValidatorIndex(309), ValidatorIndex(953), ValidatorIndex(22), ValidatorIndex(717), ValidatorIndex(277), ValidatorIndex(833), ValidatorIndex(211), ValidatorIndex(304), ValidatorIndex(563), ValidatorIndex(518), ValidatorIndex(791), ValidatorIndex(344), ValidatorIndex(54), ValidatorIndex(263), ValidatorIndex(146), ValidatorIndex(161), ValidatorIndex(954), ValidatorIndex(396), ValidatorIndex(799), ValidatorIndex(308), ValidatorIndex(290), ValidatorIndex(747), ValidatorIndex(272), ValidatorIndex(467), ValidatorIndex(124), ValidatorIndex(720), ValidatorIndex(916), ValidatorIndex(209), ValidatorIndex(939), ValidatorIndex(175), ValidatorIndex(273), ValidatorIndex(318), ValidatorIndex(229), ValidatorIndex(619), ValidatorIndex(733), ValidatorIndex(432), ValidatorIndex(222), ValidatorIndex(471), ValidatorIndex(42), ValidatorIndex(217), ValidatorIndex(412), ValidatorIndex(441), ValidatorIndex(368), ValidatorIndex(645), ValidatorIndex(932), ValidatorIndex(969), ValidatorIndex(35), ValidatorIndex(50), ValidatorIndex(555), ValidatorIndex(647), ValidatorIndex(137), ValidatorIndex(741), ValidatorIndex(579), ValidatorIndex(160), ValidatorIndex(753), ValidatorIndex(458), ValidatorIndex(421), ValidatorIndex(817), ValidatorIndex(883), ValidatorIndex(321), ValidatorIndex(655), ValidatorIndex(444), ValidatorIndex(686), ValidatorIndex(691), ValidatorIndex(306), ValidatorIndex(557), ValidatorIndex(613), ValidatorIndex(280), ValidatorIndex(766), ValidatorIndex(776), ValidatorIndex(608), ValidatorIndex(809), ValidatorIndex(564), ValidatorIndex(400), ValidatorIndex(734), ValidatorIndex(598), ValidatorIndex(913), ValidatorIndex(603), ValidatorIndex(478), ValidatorIndex(172), ValidatorIndex(659), ValidatorIndex(429), ValidatorIndex(126), ValidatorIndex(178), ValidatorIndex(673), ValidatorIndex(790), ValidatorIndex(831), ValidatorIndex(568), ValidatorIndex(223), ValidatorIndex(779), ValidatorIndex(698), ValidatorIndex(641), ValidatorIndex(143), ValidatorIndex(986), ValidatorIndex(163), ValidatorIndex(627), ValidatorIndex(850), ValidatorIndex(431), ValidatorIndex(578), ValidatorIndex(523), ValidatorIndex(761), ValidatorIndex(625), ValidatorIndex(213), ValidatorIndex(993), ValidatorIndex(957), ValidatorIndex(9), ValidatorIndex(250), ValidatorIndex(36), ValidatorIndex(48), ValidatorIndex(866), ValidatorIndex(86), ValidatorIndex(194), ValidatorIndex(692), ValidatorIndex(788), ValidatorIndex(666), ValidatorIndex(68), ValidatorIndex(709), ValidatorIndex(918), ValidatorIndex(43), ValidatorIndex(279), ValidatorIndex(335), ValidatorIndex(56), ValidatorIndex(166), ValidatorIndex(923), ValidatorIndex(502), ValidatorIndex(921), ValidatorIndex(982), ValidatorIndex(805), ValidatorIndex(511), ValidatorIndex(251), ValidatorIndex(778), ValidatorIndex(77), ValidatorIndex(584), ValidatorIndex(449), ValidatorIndex(585), ValidatorIndex(684), ValidatorIndex(129), ValidatorIndex(541), ValidatorIndex(242), ValidatorIndex(841), ValidatorIndex(158), ValidatorIndex(812), ValidatorIndex(607), ValidatorIndex(349), ValidatorIndex(785), ValidatorIndex(44), ValidatorIndex(96), ValidatorIndex(351), ValidatorIndex(485), ValidatorIndex(528), ValidatorIndex(752), ValidatorIndex(402), ValidatorIndex(644), ValidatorIndex(479), ValidatorIndex(897), ValidatorIndex(244), ValidatorIndex(20), ValidatorIndex(920), ValidatorIndex(597), ValidatorIndex(391), ValidatorIndex(87), ValidatorIndex(872), ValidatorIndex(99), ValidatorIndex(743), ValidatorIndex(236), ValidatorIndex(971), ValidatorIndex(202), ValidatorIndex(206), ValidatorIndex(342), ValidatorIndex(731), ValidatorIndex(235), ValidatorIndex(842), ValidatorIndex(796), ValidatorIndex(630), ValidatorIndex(486), ValidatorIndex(873), ValidatorIndex(336), ValidatorIndex(715), ValidatorIndex(176), ValidatorIndex(436), ValidatorIndex(616), ValidatorIndex(177), ValidatorIndex(813), ValidatorIndex(798), ValidatorIndex(736), ValidatorIndex(370), ValidatorIndex(649), ValidatorIndex(14), ValidatorIndex(448), ValidatorIndex(218), ValidatorIndex(142), ValidatorIndex(3), ValidatorIndex(256), ValidatorIndex(818), ValidatorIndex(679), ValidatorIndex(688), ValidatorIndex(136), ValidatorIndex(433), ValidatorIndex(532), ValidatorIndex(737), ValidatorIndex(247), ValidatorIndex(140), ValidatorIndex(30), ValidatorIndex(499), ValidatorIndex(40), ValidatorIndex(168), ValidatorIndex(215), ValidatorIndex(849), ValidatorIndex(984), ValidatorIndex(416), ValidatorIndex(816), ValidatorIndex(326), ValidatorIndex(618), ValidatorIndex(106), ValidatorIndex(589), ValidatorIndex(922), ValidatorIndex(147), ValidatorIndex(828), ValidatorIndex(807), ValidatorIndex(203), ValidatorIndex(257), ValidatorIndex(601), ValidatorIndex(315), ValidatorIndex(771), ValidatorIndex(7), ValidatorIndex(47), ValidatorIndex(569), ValidatorIndex(783), ValidatorIndex(895), ValidatorIndex(852), ValidatorIndex(708), ValidatorIndex(420), ValidatorIndex(620), ValidatorIndex(331), ValidatorIndex(153), ValidatorIndex(558), ValidatorIndex(267), ValidatorIndex(16), ValidatorIndex(905), ValidatorIndex(127), ValidatorIndex(15), ValidatorIndex(711), ValidatorIndex(460), ValidatorIndex(714), ValidatorIndex(884), ValidatorIndex(489), ValidatorIndex(23), ValidatorIndex(802), ValidatorIndex(67), ValidatorIndex(193), ValidatorIndex(512), ValidatorIndex(977), ValidatorIndex(468), ValidatorIndex(327), ValidatorIndex(150), ValidatorIndex(775), ValidatorIndex(179), ValidatorIndex(757), ValidatorIndex(246), ValidatorIndex(430), ValidatorIndex(123), ValidatorIndex(401), ValidatorIndex(480), ValidatorIndex(836), ValidatorIndex(83), ValidatorIndex(763), ValidatorIndex(814), ValidatorIndex(154), ValidatorIndex(997), ValidatorIndex(759), ValidatorIndex(501), ValidatorIndex(675), ValidatorIndex(399), ValidatorIndex(167), ValidatorIndex(668), ValidatorIndex(758), ValidatorIndex(482), ValidatorIndex(510), ValidatorIndex(345), ValidatorIndex(73), ValidatorIndex(297), ValidatorIndex(6), ValidatorIndex(159), ValidatorIndex(838), ValidatorIndex(360), ValidatorIndex(547), ValidatorIndex(90), ValidatorIndex(94), ValidatorIndex(854), ValidatorIndex(858), ValidatorIndex(865), ValidatorIndex(362), ValidatorIndex(337), ValidatorIndex(983), ValidatorIndex(710), ValidatorIndex(910), ValidatorIndex(719), ValidatorIndex(38), ValidatorIndex(947), ValidatorIndex(696), ValidatorIndex(192), ValidatorIndex(122), ValidatorIndex(637), ValidatorIndex(196), ValidatorIndex(670), ValidatorIndex(701), ValidatorIndex(960), ValidatorIndex(774), ValidatorIndex(427), ValidatorIndex(322), ValidatorIndex(576), ValidatorIndex(234), ValidatorIndex(938), ValidatorIndex(517), ValidatorIndex(652), ValidatorIndex(425), ValidatorIndex(994), ValidatorIndex(508), ValidatorIndex(120), ValidatorIndex(963), ValidatorIndex(200), ValidatorIndex(453), ValidatorIndex(543), ValidatorIndex(539), ValidatorIndex(191), ValidatorIndex(892), ValidatorIndex(339), ValidatorIndex(784), ValidatorIndex(141), ValidatorIndex(588), ValidatorIndex(288), ValidatorIndex(643), ValidatorIndex(475), ValidatorIndex(742), ValidatorIndex(325), ValidatorIndex(848), ValidatorIndex(751), ValidatorIndex(976), ValidatorIndex(678), ValidatorIndex(857), ValidatorIndex(76), ValidatorIndex(333), ValidatorIndex(205), ValidatorIndex(28), ValidatorIndex(0), ValidatorIndex(243), ValidatorIndex(600), ValidatorIndex(989), ValidatorIndex(914), ValidatorIndex(369), ValidatorIndex(822), ValidatorIndex(590), ValidatorIndex(987), ValidatorIndex(498), ValidatorIndex(979), ValidatorIndex(755), ValidatorIndex(879), ValidatorIndex(662), ValidatorIndex(266), ValidatorIndex(861), ValidatorIndex(294), ValidatorIndex(190), ValidatorIndex(907), ValidatorIndex(767), ValidatorIndex(562), ValidatorIndex(390), ValidatorIndex(350), ValidatorIndex(115), ValidatorIndex(548), ValidatorIndex(233), ValidatorIndex(504), ValidatorIndex(899), ValidatorIndex(245), ValidatorIndex(894), ValidatorIndex(811), ValidatorIndex(34), ValidatorIndex(756), ValidatorIndex(151), ValidatorIndex(519), ValidatorIndex(39), ValidatorIndex(423), ValidatorIndex(651), ValidatorIndex(365), ValidatorIndex(887), ValidatorIndex(377), ValidatorIndex(959), ValidatorIndex(8), ValidatorIndex(559), ValidatorIndex(113), ValidatorIndex(446), ValidatorIndex(906), ValidatorIndex(827), ValidatorIndex(542), ValidatorIndex(746), ValidatorIndex(403), ValidatorIndex(82), ValidatorIndex(545), ValidatorIndex(411), ValidatorIndex(699), ValidatorIndex(534), ValidatorIndex(220), ValidatorIndex(497), ValidatorIndex(622), ValidatorIndex(609), ValidatorIndex(37), ValidatorIndex(941), ValidatorIndex(469), ValidatorIndex(25), ValidatorIndex(29), ValidatorIndex(307), ValidatorIndex(722), ValidatorIndex(580), ValidatorIndex(437), ValidatorIndex(481), ValidatorIndex(575), ValidatorIndex(487), ValidatorIndex(95), ValidatorIndex(354), ValidatorIndex(55), ValidatorIndex(911), ValidatorIndex(702), ValidatorIndex(495), ValidatorIndex(951), ValidatorIndex(189), ValidatorIndex(356), ValidatorIndex(599), ValidatorIndex(473), ValidatorIndex(891), ValidatorIndex(138), ValidatorIndex(210), ValidatorIndex(614), ValidatorIndex(11), ValidatorIndex(112), ValidatorIndex(424), ValidatorIndex(59), ValidatorIndex(224), ValidatorIndex(586), ValidatorIndex(341), ValidatorIndex(561), ValidatorIndex(340), ValidatorIndex(186), ValidatorIndex(636), ValidatorIndex(890), ValidatorIndex(935), ValidatorIndex(606), ValidatorIndex(859), ValidatorIndex(81), ValidatorIndex(91), ValidatorIndex(764), ValidatorIndex(426), ValidatorIndex(656), ValidatorIndex(956), ValidatorIndex(964), ValidatorIndex(846), ValidatorIndex(509), ValidatorIndex(284), ValidatorIndex(860), ValidatorIndex(296), ValidatorIndex(819), ValidatorIndex(71), ValidatorIndex(610), ValidatorIndex(204), ValidatorIndex(707), ValidatorIndex(240), ValidatorIndex(672), ValidatorIndex(156), ValidatorIndex(1), ValidatorIndex(893), ValidatorIndex(51), ValidatorIndex(677), ValidatorIndex(632), ValidatorIndex(302), ValidatorIndex(221), ValidatorIndex(967), ValidatorIndex(450), ValidatorIndex(371), ValidatorIndex(17), ValidatorIndex(648), ValidatorIndex(786), ValidatorIndex(110), ValidatorIndex(46), ValidatorIndex(972), ValidatorIndex(981), ValidatorIndex(801), ValidatorIndex(111), ValidatorIndex(410), ValidatorIndex(275), ValidatorIndex(305), ValidatorIndex(334), ValidatorIndex(749), ValidatorIndex(24), ValidatorIndex(596), ValidatorIndex(946), ValidatorIndex(572), ValidatorIndex(693), ValidatorIndex(706), ValidatorIndex(570), ValidatorIndex(363), ValidatorIndex(694), ValidatorIndex(183), ValidatorIndex(948), ValidatorIndex(132), ValidatorIndex(768), ValidatorIndex(520), ValidatorIndex(781), ValidatorIndex(697), ValidatorIndex(58), ValidatorIndex(299), ValidatorIndex(359), ValidatorIndex(773), ValidatorIndex(996), ValidatorIndex(447), ValidatorIndex(472), ValidatorIndex(991), ValidatorIndex(942), ValidatorIndex(207), ValidatorIndex(560), ValidatorIndex(992), ValidatorIndex(440), ValidatorIndex(804), ValidatorIndex(181), ValidatorIndex(477), ValidatorIndex(780), ValidatorIndex(492), ValidatorIndex(463), ValidatorIndex(69), ValidatorIndex(330), ValidatorIndex(454), ValidatorIndex(968), ValidatorIndex(118), ValidatorIndex(832), ValidatorIndex(258), ValidatorIndex(493), ValidatorIndex(912), ValidatorIndex(837), ValidatorIndex(438), ValidatorIndex(889), ValidatorIndex(602), ValidatorIndex(998), ValidatorIndex(62), ValidatorIndex(999), ValidatorIndex(238), ValidatorIndex(374), ValidatorIndex(595), ValidatorIndex(685), ValidatorIndex(413), ValidatorIndex(929), ValidatorIndex(270), ValidatorIndex(165), ValidatorIndex(835), ValidatorIndex(945), ValidatorIndex(803), ValidatorIndex(332), ValidatorIndex(380), ValidatorIndex(4), ValidatorIndex(311), ValidatorIndex(574), ValidatorIndex(366), ValidatorIndex(505), ValidatorIndex(78), ValidatorIndex(232), ValidatorIndex(276), ValidatorIndex(604), ValidatorIndex(530), ValidatorIndex(285), ValidatorIndex(230), ValidatorIndex(952), ValidatorIndex(754), ValidatorIndex(806), ValidatorIndex(445), ValidatorIndex(289), ValidatorIndex(286), ValidatorIndex(729), ValidatorIndex(397), ValidatorIndex(199), ValidatorIndex(490), ValidatorIndex(415), ValidatorIndex(933), ValidatorIndex(727), ValidatorIndex(264), ValidatorIndex(980), ValidatorIndex(379), ValidatorIndex(721), ValidatorIndex(353), ValidatorIndex(931), ValidatorIndex(355), ValidatorIndex(908), ValidatorIndex(41), ValidatorIndex(874), ValidatorIndex(145), ValidatorIndex(65), ValidatorIndex(119), ValidatorIndex(880), ValidatorIndex(533), ValidatorIndex(170), ValidatorIndex(314), ValidatorIndex(839), ValidatorIndex(10), ValidatorIndex(626), ValidatorIndex(695), ValidatorIndex(611), ValidatorIndex(744), ValidatorIndex(765), ValidatorIndex(53), ValidatorIndex(546), ValidatorIndex(522), ValidatorIndex(26), ValidatorIndex(990), ValidatorIndex(97), ValidatorIndex(300), ValidatorIndex(902), ValidatorIndex(405), ValidatorIndex(63), ValidatorIndex(381), ValidatorIndex(219), ValidatorIndex(406), ValidatorIndex(863), ValidatorIndex(328), ValidatorIndex(459), ValidatorIndex(268), ValidatorIndex(565), ValidatorIndex(924), ValidatorIndex(262), ValidatorIndex(762), ValidatorIndex(298), ValidatorIndex(750), ValidatorIndex(793), ValidatorIndex(488), ValidatorIndex(870), ValidatorIndex(886), ValidatorIndex(301), ValidatorIndex(343), ValidatorIndex(389), ValidatorIndex(320), ValidatorIndex(877), ValidatorIndex(885), ValidatorIndex(821), ValidatorIndex(248), ValidatorIndex(571), ValidatorIndex(462), ValidatorIndex(738), ValidatorIndex(2), ValidatorIndex(633), ValidatorIndex(13), ValidatorIndex(878), ValidatorIndex(583), ValidatorIndex(582), ValidatorIndex(676), ValidatorIndex(851), ValidatorIndex(162), ValidatorIndex(107), ValidatorIndex(260), ValidatorIndex(418), ValidatorIndex(373), ValidatorIndex(516), ValidatorIndex(882), ValidatorIndex(975), ValidatorIndex(713), ValidatorIndex(98), ValidatorIndex(930), ValidatorIndex(228), ValidatorIndex(587), ValidatorIndex(739), ValidatorIndex(404), ValidatorIndex(443), ValidatorIndex(876), ValidatorIndex(313), ValidatorIndex(628), ValidatorIndex(966), ValidatorIndex(135), ValidatorIndex(117), ValidatorIndex(577), ValidatorIndex(871), ValidatorIndex(323), ValidatorIndex(640), ValidatorIndex(461), ValidatorIndex(265), ValidatorIndex(19), ValidatorIndex(388), ValidatorIndex(770), ValidatorIndex(155), ValidatorIndex(287), ValidatorIndex(642), ValidatorIndex(414), ValidatorIndex(661), ValidatorIndex(646), ValidatorIndex(452), ValidatorIndex(881), ValidatorIndex(5), ValidatorIndex(658), ValidatorIndex(712), ValidatorIndex(398), ValidatorIndex(212), ValidatorIndex(241), ValidatorIndex(474), ValidatorIndex(114), ValidatorIndex(594), ValidatorIndex(521), ValidatorIndex(317), ValidatorIndex(549), ValidatorIndex(940), ValidatorIndex(88), ValidatorIndex(384), ValidatorIndex(653), ValidatorIndex(346), ValidatorIndex(537), ValidatorIndex(428), ValidatorIndex(621), ValidatorIndex(134), ValidatorIndex(961), ValidatorIndex(847), ValidatorIndex(61), ValidatorIndex(726), ValidatorIndex(704), ValidatorIndex(274), ValidatorIndex(617), ValidatorIndex(974), ValidatorIndex(408), ValidatorIndex(21), ValidatorIndex(772), ValidatorIndex(74), ValidatorIndex(506), ValidatorIndex(385), ValidatorIndex(777), ValidatorIndex(654), ValidatorIndex(93), ValidatorIndex(422), ValidatorIndex(740), ValidatorIndex(936), ValidatorIndex(79), ValidatorIndex(271), ValidatorIndex(867), ValidatorIndex(169), ValidatorIndex(524), ValidatorIndex(503), ValidatorIndex(128), ValidatorIndex(830), ValidatorIndex(197), ValidatorIndex(49), ValidatorIndex(615), ValidatorIndex(901), ValidatorIndex(724), ValidatorIndex(316), ValidatorIndex(476), ValidatorIndex(255), ValidatorIndex(735), ValidatorIndex(101), ValidatorIndex(383), ValidatorIndex(357), ValidatorIndex(386), ValidatorIndex(829), ValidatorIndex(358), ValidatorIndex(566), ValidatorIndex(295), ValidatorIndex(310), ValidatorIndex(965), ValidatorIndex(526), ValidatorIndex(513), ValidatorIndex(157), ValidatorIndex(144), ValidatorIndex(292), ValidatorIndex(855), ValidatorIndex(283), ValidatorIndex(681), ValidatorIndex(195), ValidatorIndex(419), ValidatorIndex(903), ValidatorIndex(45), ValidatorIndex(928), ValidatorIndex(898), ValidatorIndex(457), ValidatorIndex(671), ValidatorIndex(133), ValidatorIndex(962), ValidatorIndex(915), ValidatorIndex(856), ValidatorIndex(329), ValidatorIndex(687), ValidatorIndex(536), ValidatorIndex(451), ValidatorIndex(367), ValidatorIndex(919), ValidatorIndex(514), ValidatorIndex(540), ValidatorIndex(792), ValidatorIndex(716), ValidatorIndex(394), ValidatorIndex(544), ValidatorIndex(705), ValidatorIndex(896), ValidatorIndex(795), ValidatorIndex(254), ValidatorIndex(439), ValidatorIndex(483), ValidatorIndex(820), ValidatorIndex(674), ValidatorIndex(500), ValidatorIndex(125), ValidatorIndex(361), ValidatorIndex(769), ValidatorIndex(372), ValidatorIndex(378), ValidatorIndex(131), ValidatorIndex(338), ValidatorIndex(840), ValidatorIndex(926), ValidatorIndex(629), ValidatorIndex(592), ValidatorIndex(723), ValidatorIndex(725), ValidatorIndex(950), ValidatorIndex(682), ValidatorIndex(904), ValidatorIndex(745), ValidatorIndex(689), ValidatorIndex(680), ValidatorIndex(728), ValidatorIndex(718), ValidatorIndex(75), ValidatorIndex(164), ValidatorIndex(591), ValidatorIndex(455), ValidatorIndex(973), ValidatorIndex(149), ValidatorIndex(800), ValidatorIndex(864), ValidatorIndex(527), ValidatorIndex(70), ValidatorIndex(259), ValidatorIndex(690), ValidatorIndex(269), ValidatorIndex(278), ValidatorIndex(657), ValidatorIndex(937), ValidatorIndex(491), ValidatorIndex(376), ValidatorIndex(634), ValidatorIndex(116), ValidatorIndex(525), ValidatorIndex(988), ValidatorIndex(552), ValidatorIndex(201), ValidatorIndex(925), ValidatorIndex(282), ValidatorIndex(32), ValidatorIndex(665), ValidatorIndex(664), ValidatorIndex(393), ValidatorIndex(556), ValidatorIndex(173), ValidatorIndex(18), ValidatorIndex(214), ValidatorIndex(639), ValidatorIndex(252), ValidatorIndex(103), ValidatorIndex(281), ValidatorIndex(529), ValidatorIndex(319), ValidatorIndex(824), ValidatorIndex(494), ValidatorIndex(208), ValidatorIndex(554), ValidatorIndex(33)
+    };
 
-/**
- * matrix_neighbors
- * https://github.com/paritytech/polkadot-sdk/blob/d5fe478e4fe2d62b0800888ae77b00ff0ba28b28/polkadot/node/network/protocol/src/grid_topology.rs#L155-L182
- */
-TEST(GridTest, Cross) {
-  std::vector<std::vector<size_t>> crosses{
-      {1, 2, 3, 6, 9},
-      {0, 2, 4, 7, 10},
-      {0, 1, 5, 8},
-      {0, 4, 5, 6, 9},
-      {1, 3, 5, 7, 10},
-      {2, 3, 4, 8},
-      {0, 3, 7, 8, 9},
-      {1, 4, 6, 8, 10},
-      {2, 5, 6, 7},
-      {0, 3, 6, 10},
-      {1, 4, 7, 9},
-  };
-  Grid grid{crosses.size()};
-  for (auto [i, expected] : boost::adaptors::index(crosses)) {
-    std::vector<size_t> cross;
-    grid.cross(i, [&](size_t x) { cross.emplace_back(x); });
-    std::sort(cross.begin(), cross.end());
-    EXPECT_EQ(cross, expected);
+    ASSERT_EQ(ref, shuffled);
   }
-}
 
-/**
- * build_session_topology
- * https://github.com/paritytech/polkadot-sdk/blob/943eb46ed54c2fcd9fab693b86ef59ce18c0f792/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L221
- */
-TEST(GridTest, Views) {
-  using GroupOf = std::vector<size_t>;
-  // all possible combinations
-  std::vector<std::vector<ValidatorIndex>> all_validators{
-      {0, 1, 2, 3},
-      {0, 1, 3, 2},
-      {0, 2, 3, 1},
-  };
-  std::vector<GroupOf> all_groups{
-      {0, 0, 0, 0},
-      {0, 1, 0, 0},
-      {0, 0, 0, 1},
-      {0, 1, 0, 1},
-      {0, 1, 1, 0},
-      {0, 1, 0, 2},
-      {0, 1, 2, 0},
-      {0, 1, 1, 1},
-      {0, 1, 1, 2},
-      {0, 1, 2, 1},
-      {0, 1, 2, 3},
-  };
-  using View2 = std::pair<std::set<ValidatorIndex>, std::set<ValidatorIndex>>;
-  std::vector<std::vector<std::vector<std::vector<View2>>>> expected4{
-      {
-          {
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-          },
-          {
-              {{{}, {1}}, {{1}, {2}}},
-              {{{0, 3}, {}}, {{}, {0, 3}}},
-              {{{}, {}}, {{0, 3}, {}}},
-              {{{}, {1}}, {{1}, {2}}},
-          },
-          {
-              {{{}, {}}, {{1, 2}, {}}},
-              {{{}, {3}}, {{3}, {0}}},
-              {{{}, {3}}, {{3}, {0}}},
-              {{{1, 2}, {}}, {{}, {1, 2}}},
-          },
-          {
-              {{{}, {1}}, {{1, 2}, {2}}},
-              {{{0, 3}, {3}}, {{}, {0}}},
-              {{{}, {3}}, {{0, 3}, {0}}},
-              {{{1, 2}, {1}}, {{}, {2}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1, 2}, {}}},
-              {{{0, 3}, {}}, {{}, {0, 3}}},
-              {{{0, 3}, {}}, {{}, {0, 3}}},
-              {{{}, {1, 2}}, {{1, 2}, {}}},
-          },
-          {
-              {{{}, {1}}, {{1}, {2}}, {{1, 2}, {}}},
-              {{{0, 3}, {3}}, {{}, {0, 3}}, {{3}, {0}}},
-              {{{}, {3}}, {{0, 3}, {}}, {{3}, {0}}},
-              {{{1, 2}, {1}}, {{1}, {2}}, {{}, {1, 2}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1}, {2}}, {{2}, {1}}},
-              {{{0, 3}, {}}, {{}, {0, 3}}, {{0, 3}, {}}},
-              {{{0, 3}, {}}, {{0, 3}, {}}, {{}, {0, 3}}},
-              {{{}, {1, 2}}, {{1}, {2}}, {{2}, {1}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1, 2}, {}}},
-              {{{0}, {3}}, {{}, {0}}},
-              {{{0}, {3}}, {{}, {0}}},
-              {{{1, 2}, {}}, {{}, {}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1, 2}, {}}, {{1, 2}, {}}},
-              {{{0}, {3}}, {{}, {0, 3}}, {{3}, {0}}},
-              {{{0}, {3}}, {{}, {0, 3}}, {{3}, {0}}},
-              {{{1, 2}, {}}, {{1, 2}, {}}, {{}, {1, 2}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1, 2}, {2}}, {{2}, {1}}},
-              {{{0}, {3}}, {{}, {0}}, {{0, 3}, {}}},
-              {{{0}, {3}}, {{0, 3}, {0}}, {{}, {0, 3}}},
-              {{{1, 2}, {}}, {{}, {2}}, {{2}, {1}}},
-          },
-          {
-              {{{}, {1, 2}}, {{1}, {2}}, {{2}, {1}}, {{1, 2}, {}}},
-              {{{0}, {3}}, {{}, {0, 3}}, {{0, 3}, {}}, {{3}, {0}}},
-              {{{0}, {3}}, {{0, 3}, {}}, {{}, {0, 3}}, {{3}, {0}}},
-              {{{1, 2}, {}}, {{1}, {2}}, {{2}, {1}}, {{}, {1, 2}}},
-          },
-      },
-      {
-          {
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-          },
-          {
-              {{{}, {1}}, {{1}, {3}}},
-              {{{0, 2}, {}}, {{}, {0, 2}}},
-              {{{}, {}}, {{0, 2}, {}}},
-              {{{}, {1}}, {{1}, {3}}},
-          },
-          {
-              {{{}, {3}}, {{3}, {1}}},
-              {{{}, {}}, {{0, 2}, {}}},
-              {{{0, 2}, {}}, {{}, {0, 2}}},
-              {{{}, {3}}, {{3}, {1}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1, 3}, {}}},
-              {{{0, 2}, {}}, {{}, {0, 2}}},
-              {{{0, 2}, {}}, {{}, {0, 2}}},
-              {{{}, {1, 3}}, {{1, 3}, {}}},
-          },
-          {
-              {{{}, {1}}, {{1, 3}, {3}}},
-              {{{0, 2}, {2}}, {{}, {0}}},
-              {{{}, {2}}, {{0, 2}, {0}}},
-              {{{1, 3}, {1}}, {{}, {3}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1}, {3}}, {{3}, {1}}},
-              {{{0, 2}, {}}, {{}, {0, 2}}, {{0, 2}, {}}},
-              {{{0, 2}, {}}, {{0, 2}, {}}, {{}, {0, 2}}},
-              {{{}, {1, 3}}, {{1}, {3}}, {{3}, {1}}},
-          },
-          {
-              {{{}, {1}}, {{1}, {3}}, {{1, 3}, {}}},
-              {{{0, 2}, {2}}, {{}, {0, 2}}, {{2}, {0}}},
-              {{{}, {2}}, {{0, 2}, {}}, {{2}, {0}}},
-              {{{1, 3}, {1}}, {{1}, {3}}, {{}, {1, 3}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1, 3}, {}}},
-              {{{0}, {2}}, {{}, {0}}},
-              {{{0}, {2}}, {{}, {0}}},
-              {{{1, 3}, {}}, {{}, {}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1, 3}, {3}}, {{3}, {1}}},
-              {{{0}, {2}}, {{}, {0}}, {{0, 2}, {}}},
-              {{{0}, {2}}, {{0, 2}, {0}}, {{}, {0, 2}}},
-              {{{1, 3}, {}}, {{}, {3}}, {{3}, {1}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1, 3}, {}}, {{1, 3}, {}}},
-              {{{0}, {2}}, {{}, {0, 2}}, {{2}, {0}}},
-              {{{0}, {2}}, {{}, {0, 2}}, {{2}, {0}}},
-              {{{1, 3}, {}}, {{1, 3}, {}}, {{}, {1, 3}}},
-          },
-          {
-              {{{}, {1, 3}}, {{1}, {3}}, {{1, 3}, {}}, {{3}, {1}}},
-              {{{0}, {2}}, {{}, {0, 2}}, {{2}, {0}}, {{0, 2}, {}}},
-              {{{0}, {2}}, {{0, 2}, {}}, {{2}, {0}}, {{}, {0, 2}}},
-              {{{1, 3}, {}}, {{1}, {3}}, {{}, {1, 3}}, {{3}, {1}}},
-          },
-      },
-      {
-          {
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-              {{{}, {}}},
-          },
-          {
-              {{{}, {}}, {{2, 3}, {}}},
-              {{{}, {1}}, {{1}, {0}}},
-              {{{}, {1}}, {{1}, {0}}},
-              {{{2, 3}, {}}, {{}, {2, 3}}},
-          },
-          {
-              {{{}, {3}}, {{3}, {2}}},
-              {{{}, {}}, {{0, 1}, {}}},
-              {{{0, 1}, {}}, {{}, {0, 1}}},
-              {{{}, {3}}, {{3}, {2}}},
-          },
-          {
-              {{{}, {3}}, {{2, 3}, {2}}},
-              {{{}, {1}}, {{0, 1}, {0}}},
-              {{{0, 1}, {1}}, {{}, {0}}},
-              {{{2, 3}, {3}}, {{}, {2}}},
-          },
-          {
-              {{{}, {2}}, {{2, 3}, {3}}},
-              {{{0, 1}, {1}}, {{}, {0}}},
-              {{{}, {1}}, {{0, 1}, {0}}},
-              {{{2, 3}, {2}}, {{}, {3}}},
-          },
-          {
-              {{{}, {3}}, {{2, 3}, {}}, {{3}, {2}}},
-              {{{}, {1}}, {{1}, {0}}, {{0, 1}, {}}},
-              {{{0, 1}, {1}}, {{1}, {0}}, {{}, {0, 1}}},
-              {{{2, 3}, {3}}, {{}, {2, 3}}, {{3}, {2}}},
-          },
-          {
-              {{{}, {2}}, {{2, 3}, {}}, {{2}, {3}}},
-              {{{0, 1}, {1}}, {{1}, {0}}, {{}, {0, 1}}},
-              {{{}, {1}}, {{1}, {0}}, {{0, 1}, {}}},
-              {{{2, 3}, {2}}, {{}, {2, 3}}, {{2}, {3}}},
-          },
-          {
-              {{{}, {2, 3}}, {{2, 3}, {}}},
-              {{{0}, {1}}, {{}, {0}}},
-              {{{0}, {1}}, {{}, {0}}},
-              {{{2, 3}, {}}, {{}, {}}},
-          },
-          {
-              {{{}, {2, 3}}, {{2, 3}, {3}}, {{3}, {2}}},
-              {{{0}, {1}}, {{}, {0}}, {{0, 1}, {}}},
-              {{{0}, {1}}, {{0, 1}, {0}}, {{}, {0, 1}}},
-              {{{2, 3}, {}}, {{}, {3}}, {{3}, {2}}},
-          },
-          {
-              {{{}, {2, 3}}, {{2, 3}, {2}}, {{2}, {3}}},
-              {{{0}, {1}}, {{0, 1}, {0}}, {{}, {0, 1}}},
-              {{{0}, {1}}, {{}, {0}}, {{0, 1}, {}}},
-              {{{2, 3}, {}}, {{}, {2}}, {{2}, {3}}},
-          },
-          {
-              {{{}, {2, 3}}, {{2, 3}, {}}, {{2}, {3}}, {{3}, {2}}},
-              {{{0}, {1}}, {{1}, {0}}, {{}, {0, 1}}, {{0, 1}, {}}},
-              {{{0}, {1}}, {{1}, {0}}, {{0, 1}, {}}, {{}, {0, 1}}},
-              {{{2, 3}, {}}, {{}, {2, 3}}, {{2}, {3}}, {{3}, {2}}},
-          },
-      },
-  };
-  for (auto [validators, expected3] :
-       boost::combine(all_validators, expected4)) {
-    for (auto [group_of, expected2] : boost::combine(all_groups, expected3)) {
-      std::vector<std::vector<ValidatorIndex>> groups;
-      groups.resize(std::ranges::max(group_of) + 1);
-      for (auto [i, group] : boost::adaptors::index(group_of)) {
-        groups.at(group).emplace_back(i);
-      }
-      for (auto [center, expected1] : boost::combine(validators, expected2)) {
-        auto views = makeViews(groups, validators, center);
-        std::vector<View2> views2;
-        for (auto &view : views) {
-          views2.emplace_back() = {
-              {view.receiving.begin(), view.receiving.end()},
-              {view.sending.begin(), view.sending.end()},
-          };
-        }
-        EXPECT_EQ(views2, expected1);
-      }
+  ValidatorIndex center = 779;
+  std::vector<std::vector<ValidatorIndex>> groups = {
+{ValidatorIndex(409), ValidatorIndex(202), ValidatorIndex(702)}, 
+{ValidatorIndex(8), ValidatorIndex(769), ValidatorIndex(627)}, 
+{ValidatorIndex(379), ValidatorIndex(10), ValidatorIndex(317)}, 
+{ValidatorIndex(914), ValidatorIndex(828), ValidatorIndex(749)}, 
+{ValidatorIndex(422), ValidatorIndex(315), ValidatorIndex(780)}, 
+{ValidatorIndex(799), ValidatorIndex(983), ValidatorIndex(741)}, 
+{ValidatorIndex(720), ValidatorIndex(524), ValidatorIndex(453)}, 
+{ValidatorIndex(696), ValidatorIndex(593), ValidatorIndex(490)}, 
+{ValidatorIndex(657), ValidatorIndex(708), ValidatorIndex(726)}, 
+{ValidatorIndex(715), ValidatorIndex(282), ValidatorIndex(516)}, 
+{ValidatorIndex(662), ValidatorIndex(383), ValidatorIndex(26)}, 
+{ValidatorIndex(874), ValidatorIndex(294), ValidatorIndex(32)}, 
+{ValidatorIndex(820), ValidatorIndex(427), ValidatorIndex(451)}, 
+{ValidatorIndex(599), ValidatorIndex(353), ValidatorIndex(600)}, 
+{ValidatorIndex(204), ValidatorIndex(429), ValidatorIndex(804)}, 
+{ValidatorIndex(400), ValidatorIndex(389), ValidatorIndex(501)}, 
+{ValidatorIndex(760), ValidatorIndex(677), ValidatorIndex(653)}, 
+{ValidatorIndex(447), ValidatorIndex(950), ValidatorIndex(859)}, 
+{ValidatorIndex(506), ValidatorIndex(634), ValidatorIndex(460)}, 
+{ValidatorIndex(933), ValidatorIndex(401), ValidatorIndex(381)}, 
+{ValidatorIndex(655), ValidatorIndex(608), ValidatorIndex(687)}, 
+{ValidatorIndex(523), ValidatorIndex(185), ValidatorIndex(448)}, 
+{ValidatorIndex(646), ValidatorIndex(96), ValidatorIndex(130)}, 
+{ValidatorIndex(77), ValidatorIndex(227), ValidatorIndex(97)}, 
+{ValidatorIndex(924), ValidatorIndex(478), ValidatorIndex(895)}, 
+{ValidatorIndex(830), ValidatorIndex(978), ValidatorIndex(398)}, 
+{ValidatorIndex(814), ValidatorIndex(666), ValidatorIndex(303)}, 
+{ValidatorIndex(503), ValidatorIndex(37), ValidatorIndex(539)}, 
+{ValidatorIndex(719), ValidatorIndex(175), ValidatorIndex(642)}, 
+{ValidatorIndex(942), ValidatorIndex(972), ValidatorIndex(373)}, 
+{ValidatorIndex(270), ValidatorIndex(98), ValidatorIndex(644)}, 
+{ValidatorIndex(206), ValidatorIndex(598), ValidatorIndex(256)}, 
+{ValidatorIndex(13), ValidatorIndex(225), ValidatorIndex(172)}, 
+{ValidatorIndex(938), ValidatorIndex(337), ValidatorIndex(479)}, 
+{ValidatorIndex(778), ValidatorIndex(162), ValidatorIndex(713)}, 
+{ValidatorIndex(123), ValidatorIndex(297), ValidatorIndex(155)}, 
+{ValidatorIndex(768), ValidatorIndex(241), ValidatorIndex(91)}, 
+{ValidatorIndex(300), ValidatorIndex(752), ValidatorIndex(684)}, 
+{ValidatorIndex(548), ValidatorIndex(48), ValidatorIndex(839)}, 
+{ValidatorIndex(466), ValidatorIndex(685), ValidatorIndex(650)}, 
+{ValidatorIndex(921), ValidatorIndex(360), ValidatorIndex(513)}, 
+{ValidatorIndex(135), ValidatorIndex(446), ValidatorIndex(304)}, 
+{ValidatorIndex(494), ValidatorIndex(231), ValidatorIndex(481)}, 
+{ValidatorIndex(789), ValidatorIndex(273), ValidatorIndex(606)}, 
+{ValidatorIndex(905), ValidatorIndex(637), ValidatorIndex(791)}, 
+{ValidatorIndex(857), ValidatorIndex(272), ValidatorIndex(291)}, 
+{ValidatorIndex(243), ValidatorIndex(896), ValidatorIndex(102)}, 
+{ValidatorIndex(290), ValidatorIndex(790), ValidatorIndex(968)}, 
+{ValidatorIndex(928), ValidatorIndex(899), ValidatorIndex(747)}, 
+{ValidatorIndex(386), ValidatorIndex(544), ValidatorIndex(321)}, 
+{ValidatorIndex(704), ValidatorIndex(14), ValidatorIndex(578)}, 
+{ValidatorIndex(929), ValidatorIndex(818), ValidatorIndex(835)}, 
+{ValidatorIndex(563), ValidatorIndex(438), ValidatorIndex(604)}, 
+{ValidatorIndex(323), ValidatorIndex(428), ValidatorIndex(553)}, 
+{ValidatorIndex(146), ValidatorIndex(993), ValidatorIndex(528)}, 
+{ValidatorIndex(660), ValidatorIndex(891), ValidatorIndex(34)}, 
+{ValidatorIndex(312), ValidatorIndex(295), ValidatorIndex(810)}, 
+{ValidatorIndex(292), ValidatorIndex(70), ValidatorIndex(960)}, 
+{ValidatorIndex(307), ValidatorIndex(961), ValidatorIndex(680)}, 
+{ValidatorIndex(979), ValidatorIndex(284), ValidatorIndex(124)}, 
+{ValidatorIndex(316), ValidatorIndex(812), ValidatorIndex(515)}, 
+{ValidatorIndex(603), ValidatorIndex(658), ValidatorIndex(306)}, 
+{ValidatorIndex(750), ValidatorIndex(274), ValidatorIndex(722)}, 
+{ValidatorIndex(84), ValidatorIndex(772), ValidatorIndex(989)}, 
+{ValidatorIndex(946), ValidatorIndex(361), ValidatorIndex(945)}, 
+{ValidatorIndex(187), ValidatorIndex(647), ValidatorIndex(80)}, 
+{ValidatorIndex(19), ValidatorIndex(956), ValidatorIndex(615)}, 
+{ValidatorIndex(4), ValidatorIndex(875), ValidatorIndex(682)}, 
+{ValidatorIndex(803), ValidatorIndex(711), ValidatorIndex(170)}, 
+{ValidatorIndex(385), ValidatorIndex(697), ValidatorIndex(832)}, 
+{ValidatorIndex(796), ValidatorIndex(437), ValidatorIndex(239)}, 
+{ValidatorIndex(107), ValidatorIndex(900), ValidatorIndex(901)}, 
+{ValidatorIndex(458), ValidatorIndex(922), ValidatorIndex(851)}, 
+{ValidatorIndex(852), ValidatorIndex(543), ValidatorIndex(58)}, 
+{ValidatorIndex(882), ValidatorIndex(939), ValidatorIndex(984)}, 
+{ValidatorIndex(331), ValidatorIndex(566), ValidatorIndex(786)}, 
+{ValidatorIndex(368), ValidatorIndex(605), ValidatorIndex(334)}, 
+{ValidatorIndex(171), ValidatorIndex(870), ValidatorIndex(483)}, 
+{ValidatorIndex(55), ValidatorIndex(923), ValidatorIndex(798)}, 
+{ValidatorIndex(12), ValidatorIndex(643), ValidatorIndex(106)}, 
+{ValidatorIndex(542), ValidatorIndex(177), ValidatorIndex(5)}, 
+{ValidatorIndex(309), ValidatorIndex(783), ValidatorIndex(349)}, 
+{ValidatorIndex(994), ValidatorIndex(302), ValidatorIndex(286)}, 
+{ValidatorIndex(976), ValidatorIndex(620), ValidatorIndex(325)}, 
+{ValidatorIndex(214), ValidatorIndex(779), ValidatorIndex(541)}, 
+{ValidatorIndex(415), ValidatorIndex(998), ValidatorIndex(22)}, 
+{ValidatorIndex(628), ValidatorIndex(675), ValidatorIndex(236)}, 
+{ValidatorIndex(831), ValidatorIndex(817), ValidatorIndex(136)}, 
+{ValidatorIndex(761), ValidatorIndex(868), ValidatorIndex(878)}, 
+{ValidatorIndex(474), ValidatorIndex(412), ValidatorIndex(482)}, 
+{ValidatorIndex(260), ValidatorIndex(850), ValidatorIndex(78)}, 
+{ValidatorIndex(739), ValidatorIndex(721), ValidatorIndex(377)}, 
+{ValidatorIndex(639), ValidatorIndex(664), ValidatorIndex(425)}, 
+{ValidatorIndex(168), ValidatorIndex(531), ValidatorIndex(640)}, 
+{ValidatorIndex(880), ValidatorIndex(340), ValidatorIndex(332)}, 
+{ValidatorIndex(949), ValidatorIndex(433), ValidatorIndex(884)}, 
+{ValidatorIndex(250), ValidatorIndex(630), ValidatorIndex(575)}, 
+{ValidatorIndex(536), ValidatorIndex(287), ValidatorIndex(537)}, 
+{ValidatorIndex(867), ValidatorIndex(265), ValidatorIndex(121)}, 
+{ValidatorIndex(461), ValidatorIndex(232), ValidatorIndex(535)}
+};
+
+  auto views = makeViews(groups, shuffled, center);
+  {
+    using GroupIndex = uint32_t;
+    using ViewMap = std::unordered_map<GroupIndex, kagome::parachain::grid::View>;
+    ViewMap ref =   {
+{GroupIndex(7), { .sending = {}, .receiving = {ValidatorIndex(578), ValidatorIndex(387), ValidatorIndex(4), ValidatorIndex(86), ValidatorIndex(960), ValidatorIndex(126)} }}, 
+{GroupIndex(42), { .sending = {}, .receiving = {ValidatorIndex(534), ValidatorIndex(866), ValidatorIndex(748), ValidatorIndex(993), ValidatorIndex(673)} }}, 
+{GroupIndex(22), { .sending = {}, .receiving = {ValidatorIndex(850), ValidatorIndex(673), ValidatorIndex(402), ValidatorIndex(748), ValidatorIndex(388)} }}, 
+{GroupIndex(52), { .sending = {}, .receiving = {ValidatorIndex(625), ValidatorIndex(431), ValidatorIndex(492), ValidatorIndex(623), ValidatorIndex(4)} }}, 
+{GroupIndex(38), { .sending = {ValidatorIndex(831), ValidatorIndex(960), ValidatorIndex(758), ValidatorIndex(213), ValidatorIndex(659), ValidatorIndex(901), ValidatorIndex(335), ValidatorIndex(163), ValidatorIndex(937), ValidatorIndex(143), ValidatorIndex(863), ValidatorIndex(866), ValidatorIndex(797), ValidatorIndex(673), ValidatorIndex(534), ValidatorIndex(431), ValidatorIndex(523), ValidatorIndex(623), ValidatorIndex(36), ValidatorIndex(676), ValidatorIndex(492), ValidatorIndex(961), ValidatorIndex(429), ValidatorIndex(976), ValidatorIndex(884), ValidatorIndex(86), ValidatorIndex(204), ValidatorIndex(946), ValidatorIndex(209), ValidatorIndex(131), ValidatorIndex(178), ValidatorIndex(126), ValidatorIndex(761), ValidatorIndex(641), ValidatorIndex(986), ValidatorIndex(250), ValidatorIndex(387), ValidatorIndex(671), ValidatorIndex(993), ValidatorIndex(388), ValidatorIndex(698), ValidatorIndex(223), ValidatorIndex(106), ValidatorIndex(614), ValidatorIndex(355), ValidatorIndex(813), ValidatorIndex(957), ValidatorIndex(627), ValidatorIndex(568), ValidatorIndex(790), ValidatorIndex(578), ValidatorIndex(9), ValidatorIndex(883), ValidatorIndex(748), ValidatorIndex(402), ValidatorIndex(850), ValidatorIndex(625), ValidatorIndex(4), ValidatorIndex(927)}, .receiving = {ValidatorIndex(761), ValidatorIndex(355), ValidatorIndex(548), ValidatorIndex(48)} }}, 
+{GroupIndex(45), { .sending = {}, .receiving = {ValidatorIndex(623), ValidatorIndex(209), ValidatorIndex(223), ValidatorIndex(976), ValidatorIndex(641), ValidatorIndex(673)} }}, 
+{GroupIndex(40), { .sending = {}, .receiving = {ValidatorIndex(758), ValidatorIndex(901), ValidatorIndex(250), ValidatorIndex(335), ValidatorIndex(163), ValidatorIndex(578)} }}, 
+{GroupIndex(8), { .sending = {}, .receiving = {ValidatorIndex(106), ValidatorIndex(961), ValidatorIndex(250), ValidatorIndex(937), ValidatorIndex(223), ValidatorIndex(143)} }}, 
+{GroupIndex(57), { .sending = {ValidatorIndex(431), ValidatorIndex(641), ValidatorIndex(178), ValidatorIndex(48), ValidatorIndex(143), ValidatorIndex(36), ValidatorIndex(86), ValidatorIndex(986), ValidatorIndex(659), ValidatorIndex(850), ValidatorIndex(761), ValidatorIndex(523), ValidatorIndex(9), ValidatorIndex(790), ValidatorIndex(698), ValidatorIndex(578), ValidatorIndex(429), ValidatorIndex(831), ValidatorIndex(250), ValidatorIndex(223), ValidatorIndex(126), ValidatorIndex(673), ValidatorIndex(163), ValidatorIndex(213), ValidatorIndex(866), ValidatorIndex(625), ValidatorIndex(627), ValidatorIndex(568), ValidatorIndex(957), ValidatorIndex(993)}, .receiving = {ValidatorIndex(960), ValidatorIndex(901), ValidatorIndex(937), ValidatorIndex(178), ValidatorIndex(866)} }}, 
+{GroupIndex(82), { .sending = {}, .receiving = {ValidatorIndex(523), ValidatorIndex(4), ValidatorIndex(960), ValidatorIndex(250), ValidatorIndex(204)} }}, 
+{GroupIndex(65), { .sending = {}, .receiving = {ValidatorIndex(927), ValidatorIndex(659), ValidatorIndex(213), ValidatorIndex(883), ValidatorIndex(387), ValidatorIndex(627)} }}, 
+{GroupIndex(84), { .sending = {ValidatorIndex(986), ValidatorIndex(671), ValidatorIndex(927), ValidatorIndex(866), ValidatorIndex(131), ValidatorIndex(946), ValidatorIndex(48), ValidatorIndex(761), ValidatorIndex(36), ValidatorIndex(213), ValidatorIndex(86), ValidatorIndex(863), ValidatorIndex(143), ValidatorIndex(976), ValidatorIndex(937), ValidatorIndex(578), ValidatorIndex(627), ValidatorIndex(548), ValidatorIndex(625), ValidatorIndex(204), ValidatorIndex(790), ValidatorIndex(641), ValidatorIndex(659), ValidatorIndex(623), ValidatorIndex(429), ValidatorIndex(884), ValidatorIndex(850), ValidatorIndex(431), ValidatorIndex(614), ValidatorIndex(178), ValidatorIndex(126), ValidatorIndex(4), ValidatorIndex(673), ValidatorIndex(797), ValidatorIndex(960), ValidatorIndex(223), ValidatorIndex(387), ValidatorIndex(523), ValidatorIndex(402), ValidatorIndex(534), ValidatorIndex(568), ValidatorIndex(9), ValidatorIndex(813), ValidatorIndex(957), ValidatorIndex(883), ValidatorIndex(492), ValidatorIndex(698), ValidatorIndex(993), ValidatorIndex(335), ValidatorIndex(388), ValidatorIndex(209), ValidatorIndex(748), ValidatorIndex(106), ValidatorIndex(831), ValidatorIndex(676), ValidatorIndex(758), ValidatorIndex(163), ValidatorIndex(250), ValidatorIndex(901), ValidatorIndex(355), ValidatorIndex(961)}, .receiving = {} }}, 
+{GroupIndex(71), { .sending = {ValidatorIndex(48), ValidatorIndex(673), ValidatorIndex(993), ValidatorIndex(178), ValidatorIndex(126), ValidatorIndex(625), ValidatorIndex(578), ValidatorIndex(698), ValidatorIndex(866), ValidatorIndex(36), ValidatorIndex(250), ValidatorIndex(850), ValidatorIndex(790), ValidatorIndex(429), ValidatorIndex(86), ValidatorIndex(163), ValidatorIndex(9), ValidatorIndex(431), ValidatorIndex(223), ValidatorIndex(143), ValidatorIndex(213), ValidatorIndex(957), ValidatorIndex(831), ValidatorIndex(568), ValidatorIndex(627), ValidatorIndex(986), ValidatorIndex(523), ValidatorIndex(641), ValidatorIndex(659), ValidatorIndex(761)}, .receiving = {ValidatorIndex(676), ValidatorIndex(901), ValidatorIndex(387), ValidatorIndex(143), ValidatorIndex(163)} }}, 
+{GroupIndex(41), { .sending = {}, .receiving = {ValidatorIndex(761), ValidatorIndex(86), ValidatorIndex(659), ValidatorIndex(623), ValidatorIndex(548), ValidatorIndex(388)} }}, 
+{GroupIndex(27), { .sending = {}, .receiving = {ValidatorIndex(901), ValidatorIndex(250), ValidatorIndex(178), ValidatorIndex(534), ValidatorIndex(163), ValidatorIndex(960)} }}, 
+{GroupIndex(11), { .sending = {}, .receiving = {ValidatorIndex(143), ValidatorIndex(937), ValidatorIndex(548), ValidatorIndex(761), ValidatorIndex(429), ValidatorIndex(355)} }}, 
+{GroupIndex(35), { .sending = {}, .receiving = {ValidatorIndex(884), ValidatorIndex(9), ValidatorIndex(758), ValidatorIndex(163), ValidatorIndex(388), ValidatorIndex(641)} }}, 
+{GroupIndex(95), { .sending = {ValidatorIndex(578), ValidatorIndex(429), ValidatorIndex(431), ValidatorIndex(213), ValidatorIndex(659), ValidatorIndex(86), ValidatorIndex(993), ValidatorIndex(866), ValidatorIndex(957), ValidatorIndex(986), ValidatorIndex(250), ValidatorIndex(223), ValidatorIndex(625), ValidatorIndex(673), ValidatorIndex(627), ValidatorIndex(178), ValidatorIndex(163), ValidatorIndex(568), ValidatorIndex(761), ValidatorIndex(698), ValidatorIndex(523), ValidatorIndex(831), ValidatorIndex(36), ValidatorIndex(143), ValidatorIndex(48), ValidatorIndex(850), ValidatorIndex(641), ValidatorIndex(126), ValidatorIndex(790), ValidatorIndex(9)}, .receiving = {ValidatorIndex(126), ValidatorIndex(797), ValidatorIndex(957), ValidatorIndex(884), ValidatorIndex(813)} }}, 
+{GroupIndex(99), { .sending = {}, .receiving = {ValidatorIndex(831), ValidatorIndex(86), ValidatorIndex(388), ValidatorIndex(627), ValidatorIndex(4), ValidatorIndex(927)} }}, 
+{GroupIndex(4), { .sending = {}, .receiving = {ValidatorIndex(961), ValidatorIndex(492), ValidatorIndex(106), ValidatorIndex(250), ValidatorIndex(223), ValidatorIndex(578)} }}, 
+{GroupIndex(83), { .sending = {ValidatorIndex(698), ValidatorIndex(178), ValidatorIndex(213), ValidatorIndex(223), ValidatorIndex(659), ValidatorIndex(578), ValidatorIndex(86), ValidatorIndex(36), ValidatorIndex(429), ValidatorIndex(831), ValidatorIndex(163), ValidatorIndex(625), ValidatorIndex(673), ValidatorIndex(866), ValidatorIndex(790), ValidatorIndex(48), ValidatorIndex(250), ValidatorIndex(957), ValidatorIndex(641), ValidatorIndex(761), ValidatorIndex(523), ValidatorIndex(568), ValidatorIndex(126), ValidatorIndex(143), ValidatorIndex(9), ValidatorIndex(431), ValidatorIndex(850), ValidatorIndex(993), ValidatorIndex(986), ValidatorIndex(627)}, .receiving = {ValidatorIndex(106), ValidatorIndex(976), ValidatorIndex(48), ValidatorIndex(831)} }}, 
+{GroupIndex(32), { .sending = {}, .receiving = {ValidatorIndex(673), ValidatorIndex(790), ValidatorIndex(676), ValidatorIndex(86), ValidatorIndex(883), ValidatorIndex(748)} }}, 
+{GroupIndex(87), { .sending = {ValidatorIndex(883), ValidatorIndex(623), ValidatorIndex(961), ValidatorIndex(548), ValidatorIndex(813), ValidatorIndex(131), ValidatorIndex(937), ValidatorIndex(4), ValidatorIndex(355), ValidatorIndex(884), ValidatorIndex(388), ValidatorIndex(748), ValidatorIndex(614), ValidatorIndex(927), ValidatorIndex(976), ValidatorIndex(676), ValidatorIndex(335), ValidatorIndex(946), ValidatorIndex(758), ValidatorIndex(797), ValidatorIndex(863), ValidatorIndex(106), ValidatorIndex(492), ValidatorIndex(387), ValidatorIndex(671), ValidatorIndex(204), ValidatorIndex(209), ValidatorIndex(402), ValidatorIndex(960), ValidatorIndex(534), ValidatorIndex(901)}, .receiving = {ValidatorIndex(831), ValidatorIndex(883), ValidatorIndex(993), ValidatorIndex(813), ValidatorIndex(223)} }}, 
+{GroupIndex(79), { .sending = {ValidatorIndex(431), ValidatorIndex(143), ValidatorIndex(957), ValidatorIndex(250), ValidatorIndex(213), ValidatorIndex(625), ValidatorIndex(578), ValidatorIndex(429), ValidatorIndex(163), ValidatorIndex(866), ValidatorIndex(9), ValidatorIndex(36), ValidatorIndex(126), ValidatorIndex(568), ValidatorIndex(993), ValidatorIndex(986), ValidatorIndex(627), ValidatorIndex(523), ValidatorIndex(178), ValidatorIndex(223), ValidatorIndex(698), ValidatorIndex(831), ValidatorIndex(659), ValidatorIndex(790), ValidatorIndex(48), ValidatorIndex(761), ValidatorIndex(86), ValidatorIndex(641), ValidatorIndex(850), ValidatorIndex(673)}, .receiving = {ValidatorIndex(797), ValidatorIndex(178), ValidatorIndex(106), ValidatorIndex(976), ValidatorIndex(698)} }}, 
+{GroupIndex(1), { .sending = {ValidatorIndex(797), ValidatorIndex(671), ValidatorIndex(106), ValidatorIndex(927), ValidatorIndex(901), ValidatorIndex(863), ValidatorIndex(884), ValidatorIndex(758), ValidatorIndex(355), ValidatorIndex(388), ValidatorIndex(387), ValidatorIndex(960), ValidatorIndex(131), ValidatorIndex(534), ValidatorIndex(335), ValidatorIndex(883), ValidatorIndex(961), ValidatorIndex(209), ValidatorIndex(676), ValidatorIndex(813), ValidatorIndex(4), ValidatorIndex(548), ValidatorIndex(402), ValidatorIndex(204), ValidatorIndex(623), ValidatorIndex(976), ValidatorIndex(614), ValidatorIndex(946), ValidatorIndex(492), ValidatorIndex(748), ValidatorIndex(937)}, .receiving = {ValidatorIndex(548), ValidatorIndex(627), ValidatorIndex(131), ValidatorIndex(36), ValidatorIndex(831)} }}, 
+{GroupIndex(20), { .sending = {}, .receiving = {ValidatorIndex(641), ValidatorIndex(625), ValidatorIndex(671), ValidatorIndex(627), ValidatorIndex(883)} }}, 
+{GroupIndex(6), { .sending = {}, .receiving = {ValidatorIndex(960), ValidatorIndex(126), ValidatorIndex(957), ValidatorIndex(209), ValidatorIndex(568), ValidatorIndex(901)} }}, 
+{GroupIndex(16), { .sending = {}, .receiving = {ValidatorIndex(961), ValidatorIndex(431), ValidatorIndex(178), ValidatorIndex(204), ValidatorIndex(126), ValidatorIndex(748)} }}, 
+{GroupIndex(12), { .sending = {}, .receiving = {ValidatorIndex(671), ValidatorIndex(131), ValidatorIndex(431), ValidatorIndex(960), ValidatorIndex(429), ValidatorIndex(641)} }}, 
+{GroupIndex(62), { .sending = {}, .receiving = {ValidatorIndex(863), ValidatorIndex(578), ValidatorIndex(761), ValidatorIndex(961), ValidatorIndex(163), ValidatorIndex(534)} }}, 
+{GroupIndex(56), { .sending = {}, .receiving = {ValidatorIndex(901), ValidatorIndex(213), ValidatorIndex(790), ValidatorIndex(748), ValidatorIndex(627), ValidatorIndex(797)} }}, 
+{GroupIndex(74), { .sending = {}, .receiving = {ValidatorIndex(106), ValidatorIndex(698), ValidatorIndex(209), ValidatorIndex(431), ValidatorIndex(673), ValidatorIndex(676)} }}, 
+{GroupIndex(76), { .sending = {}, .receiving = {ValidatorIndex(957), ValidatorIndex(946), ValidatorIndex(927), ValidatorIndex(209), ValidatorIndex(790)} }}, 
+{GroupIndex(39), { .sending = {}, .receiving = {ValidatorIndex(797), ValidatorIndex(492), ValidatorIndex(387), ValidatorIndex(86), ValidatorIndex(36), ValidatorIndex(163)} }}, 
+{GroupIndex(24), { .sending = {}, .receiving = {ValidatorIndex(163), ValidatorIndex(957), ValidatorIndex(863), ValidatorIndex(866), ValidatorIndex(883), ValidatorIndex(106)} }}, 
+{GroupIndex(68), { .sending = {}, .receiving = {ValidatorIndex(831), ValidatorIndex(884), ValidatorIndex(4), ValidatorIndex(355), ValidatorIndex(578)} }}, 
+{GroupIndex(0), { .sending = {}, .receiving = {ValidatorIndex(86), ValidatorIndex(957), ValidatorIndex(748), ValidatorIndex(534), ValidatorIndex(831), ValidatorIndex(402)} }}, 
+{GroupIndex(81), { .sending = {}, .receiving = {ValidatorIndex(986), ValidatorIndex(402), ValidatorIndex(993), ValidatorIndex(429), ValidatorIndex(623), ValidatorIndex(106)} }}, 
+{GroupIndex(73), { .sending = {}, .receiving = {ValidatorIndex(106), ValidatorIndex(9), ValidatorIndex(993), ValidatorIndex(960), ValidatorIndex(946)} }}, 
+{GroupIndex(75), { .sending = {}, .receiving = {ValidatorIndex(106), ValidatorIndex(250), ValidatorIndex(204), ValidatorIndex(866), ValidatorIndex(625), ValidatorIndex(901)} }}, 
+{GroupIndex(36), { .sending = {}, .receiving = {ValidatorIndex(523), ValidatorIndex(388), ValidatorIndex(946), ValidatorIndex(614), ValidatorIndex(957), ValidatorIndex(250)} }}, 
+{GroupIndex(34), { .sending = {}, .receiving = {ValidatorIndex(335), ValidatorIndex(641), ValidatorIndex(523), ValidatorIndex(676)} }}, 
+{GroupIndex(51), { .sending = {}, .receiving = {ValidatorIndex(761), ValidatorIndex(813), ValidatorIndex(4), ValidatorIndex(673), ValidatorIndex(429)} }}, 
+{GroupIndex(21), { .sending = {ValidatorIndex(671), ValidatorIndex(614), ValidatorIndex(131), ValidatorIndex(106), ValidatorIndex(355), ValidatorIndex(748), ValidatorIndex(492), ValidatorIndex(388), ValidatorIndex(676), ValidatorIndex(813), ValidatorIndex(946), ValidatorIndex(623), ValidatorIndex(883), ValidatorIndex(209), ValidatorIndex(387), ValidatorIndex(937), ValidatorIndex(335), ValidatorIndex(960), ValidatorIndex(534), ValidatorIndex(863), ValidatorIndex(927), ValidatorIndex(548), ValidatorIndex(204), ValidatorIndex(758), ValidatorIndex(976), ValidatorIndex(901), ValidatorIndex(961), ValidatorIndex(402), ValidatorIndex(797), ValidatorIndex(884), ValidatorIndex(4)}, .receiving = {ValidatorIndex(986), ValidatorIndex(797), ValidatorIndex(523), ValidatorIndex(813), ValidatorIndex(627)} }}, 
+{GroupIndex(47), { .sending = {ValidatorIndex(748), ValidatorIndex(4), ValidatorIndex(863), ValidatorIndex(758), ValidatorIndex(961), ValidatorIndex(209), ValidatorIndex(534), ValidatorIndex(927), ValidatorIndex(204), ValidatorIndex(106), ValidatorIndex(946), ValidatorIndex(813), ValidatorIndex(937), ValidatorIndex(797), ValidatorIndex(901), ValidatorIndex(976), ValidatorIndex(884), ValidatorIndex(614), ValidatorIndex(676), ValidatorIndex(548), ValidatorIndex(355), ValidatorIndex(131), ValidatorIndex(492), ValidatorIndex(960), ValidatorIndex(671), ValidatorIndex(402), ValidatorIndex(623), ValidatorIndex(883), ValidatorIndex(388), ValidatorIndex(387), ValidatorIndex(335)}, .receiving = {ValidatorIndex(126), ValidatorIndex(209), ValidatorIndex(790), ValidatorIndex(492), ValidatorIndex(163)} }}, 
+{GroupIndex(72), { .sending = {}, .receiving = {ValidatorIndex(831), ValidatorIndex(676), ValidatorIndex(883), ValidatorIndex(698), ValidatorIndex(106), ValidatorIndex(641)} }}, 
+{GroupIndex(91), { .sending = {}, .receiving = {ValidatorIndex(957), ValidatorIndex(831), ValidatorIndex(355), ValidatorIndex(676), ValidatorIndex(548), ValidatorIndex(9)} }}, 
+{GroupIndex(69), { .sending = {}, .receiving = {ValidatorIndex(213), ValidatorIndex(946), ValidatorIndex(961), ValidatorIndex(492), ValidatorIndex(850)} }}, 
+{GroupIndex(26), { .sending = {}, .receiving = {ValidatorIndex(659), ValidatorIndex(758), ValidatorIndex(335), ValidatorIndex(178), ValidatorIndex(623)} }}, 
+{GroupIndex(96), { .sending = {ValidatorIndex(106), ValidatorIndex(209), ValidatorIndex(614), ValidatorIndex(402), ValidatorIndex(813), ValidatorIndex(388), ValidatorIndex(946), ValidatorIndex(623), ValidatorIndex(976), ValidatorIndex(355), ValidatorIndex(387), ValidatorIndex(883), ValidatorIndex(937), ValidatorIndex(748), ValidatorIndex(534), ValidatorIndex(884), ValidatorIndex(901), ValidatorIndex(758), ValidatorIndex(961), ValidatorIndex(960), ValidatorIndex(797), ValidatorIndex(927), ValidatorIndex(548), ValidatorIndex(676), ValidatorIndex(671), ValidatorIndex(335), ValidatorIndex(863), ValidatorIndex(131), ValidatorIndex(4), ValidatorIndex(492), ValidatorIndex(204)}, .receiving = {ValidatorIndex(534), ValidatorIndex(813), ValidatorIndex(659), ValidatorIndex(250), ValidatorIndex(957)} }}, 
+{GroupIndex(61), { .sending = {}, .receiving = {ValidatorIndex(761), ValidatorIndex(627), ValidatorIndex(883), ValidatorIndex(48), ValidatorIndex(388)} }}, 
+{GroupIndex(10), { .sending = {}, .receiving = {ValidatorIndex(901), ValidatorIndex(86), ValidatorIndex(850), ValidatorIndex(976), ValidatorIndex(355), ValidatorIndex(866)} }}, 
+{GroupIndex(25), { .sending = {}, .receiving = {ValidatorIndex(790), ValidatorIndex(927), ValidatorIndex(388), ValidatorIndex(568), ValidatorIndex(213), ValidatorIndex(901)} }}, 
+{GroupIndex(48), { .sending = {}, .receiving = {ValidatorIndex(178), ValidatorIndex(831), ValidatorIndex(143), ValidatorIndex(671), ValidatorIndex(548), ValidatorIndex(209)} }}, 
+{GroupIndex(19), { .sending = {}, .receiving = {ValidatorIndex(863), ValidatorIndex(429), ValidatorIndex(884), ValidatorIndex(831), ValidatorIndex(250), ValidatorIndex(355)} }}, 
+{GroupIndex(55), { .sending = {}, .receiving = {ValidatorIndex(614), ValidatorIndex(831), ValidatorIndex(850), ValidatorIndex(797), ValidatorIndex(548), ValidatorIndex(250)} }}, 
+{GroupIndex(70), { .sending = {}, .receiving = {ValidatorIndex(534), ValidatorIndex(86), ValidatorIndex(387), ValidatorIndex(250), ValidatorIndex(213), ValidatorIndex(402)} }}, 
+{GroupIndex(94), { .sending = {}, .receiving = {ValidatorIndex(850), ValidatorIndex(4), ValidatorIndex(568), ValidatorIndex(355), ValidatorIndex(614), ValidatorIndex(578)} }}, 
+{GroupIndex(17), { .sending = {}, .receiving = {ValidatorIndex(48), ValidatorIndex(431), ValidatorIndex(946), ValidatorIndex(957), ValidatorIndex(131), ValidatorIndex(614)} }}, 
+{GroupIndex(53), { .sending = {}, .receiving = {ValidatorIndex(831), ValidatorIndex(627), ValidatorIndex(927), ValidatorIndex(673), ValidatorIndex(388), ValidatorIndex(961)} }}, 
+{GroupIndex(2), { .sending = {}, .receiving = {ValidatorIndex(866), ValidatorIndex(625), ValidatorIndex(355), ValidatorIndex(388), ValidatorIndex(790)} }}, 
+{GroupIndex(58), { .sending = {ValidatorIndex(790), ValidatorIndex(850), ValidatorIndex(761), ValidatorIndex(673), ValidatorIndex(223), ValidatorIndex(126), ValidatorIndex(578), ValidatorIndex(523), ValidatorIndex(250), ValidatorIndex(178), ValidatorIndex(986), ValidatorIndex(86), ValidatorIndex(641), ValidatorIndex(429), ValidatorIndex(993), ValidatorIndex(213), ValidatorIndex(143), ValidatorIndex(957), ValidatorIndex(866), ValidatorIndex(48), ValidatorIndex(163), ValidatorIndex(698), ValidatorIndex(831), ValidatorIndex(625), ValidatorIndex(431), ValidatorIndex(659), ValidatorIndex(36), ValidatorIndex(627), ValidatorIndex(568), ValidatorIndex(9)}, .receiving = {ValidatorIndex(961), ValidatorIndex(131), ValidatorIndex(534), ValidatorIndex(523), ValidatorIndex(213)} }}, 
+{GroupIndex(67), { .sending = {ValidatorIndex(831), ValidatorIndex(627), ValidatorIndex(223), ValidatorIndex(578), ValidatorIndex(36), ValidatorIndex(568), ValidatorIndex(698), ValidatorIndex(850), ValidatorIndex(48), ValidatorIndex(641), ValidatorIndex(523), ValidatorIndex(986), ValidatorIndex(625), ValidatorIndex(431), ValidatorIndex(673), ValidatorIndex(250), ValidatorIndex(866), ValidatorIndex(957), ValidatorIndex(9), ValidatorIndex(993), ValidatorIndex(143), ValidatorIndex(213), ValidatorIndex(86), ValidatorIndex(163), ValidatorIndex(126), ValidatorIndex(429), ValidatorIndex(178), ValidatorIndex(790), ValidatorIndex(659), ValidatorIndex(761)}, .receiving = {ValidatorIndex(131), ValidatorIndex(4), ValidatorIndex(143), ValidatorIndex(578), ValidatorIndex(748)} }}, 
+{GroupIndex(5), { .sending = {}, .receiving = {ValidatorIndex(659), ValidatorIndex(209), ValidatorIndex(36), ValidatorIndex(126), ValidatorIndex(883), ValidatorIndex(758)} }}, 
+{GroupIndex(28), { .sending = {}, .receiving = {ValidatorIndex(388), ValidatorIndex(986), ValidatorIndex(209), ValidatorIndex(641), ValidatorIndex(758), ValidatorIndex(86)} }}, 
+{GroupIndex(54), { .sending = {ValidatorIndex(884), ValidatorIndex(402), ValidatorIndex(937), ValidatorIndex(623), ValidatorIndex(209), ValidatorIndex(534), ValidatorIndex(863), ValidatorIndex(758), ValidatorIndex(797), ValidatorIndex(961), ValidatorIndex(106), ValidatorIndex(901), ValidatorIndex(355), ValidatorIndex(676), ValidatorIndex(671), ValidatorIndex(4), ValidatorIndex(335), ValidatorIndex(204), ValidatorIndex(548), ValidatorIndex(813), ValidatorIndex(748), ValidatorIndex(960), ValidatorIndex(388), ValidatorIndex(614), ValidatorIndex(927), ValidatorIndex(946), ValidatorIndex(492), ValidatorIndex(883), ValidatorIndex(976), ValidatorIndex(387), ValidatorIndex(131)}, .receiving = {ValidatorIndex(623), ValidatorIndex(402), ValidatorIndex(568), ValidatorIndex(993), ValidatorIndex(36)} }}, 
+{GroupIndex(29), { .sending = {}, .receiving = {ValidatorIndex(204), ValidatorIndex(866), ValidatorIndex(492), ValidatorIndex(676), ValidatorIndex(627), ValidatorIndex(659)} }}, 
+{GroupIndex(46), { .sending = {}, .receiving = {ValidatorIndex(671), ValidatorIndex(387), ValidatorIndex(431), ValidatorIndex(36), ValidatorIndex(698), ValidatorIndex(976)} }}, 
+{GroupIndex(59), { .sending = {}, .receiving = {ValidatorIndex(204), ValidatorIndex(976), ValidatorIndex(209), ValidatorIndex(178), ValidatorIndex(250), ValidatorIndex(831)} }}, 
+{GroupIndex(78), { .sending = {}, .receiving = {ValidatorIndex(813), ValidatorIndex(143), ValidatorIndex(698), ValidatorIndex(48), ValidatorIndex(534), ValidatorIndex(335)} }}, 
+{GroupIndex(66), { .sending = {}, .receiving = {ValidatorIndex(388), ValidatorIndex(614), ValidatorIndex(86), ValidatorIndex(223), ValidatorIndex(901)} }}, 
+{GroupIndex(49), { .sending = {}, .receiving = {ValidatorIndex(698), ValidatorIndex(671), ValidatorIndex(901), ValidatorIndex(578), ValidatorIndex(883), ValidatorIndex(9)} }}, 
+{GroupIndex(80), { .sending = {}, .receiving = {ValidatorIndex(523), ValidatorIndex(534), ValidatorIndex(126), ValidatorIndex(813), ValidatorIndex(223), ValidatorIndex(388)} }}, 
+{GroupIndex(33), { .sending = {}, .receiving = {ValidatorIndex(960), ValidatorIndex(402), ValidatorIndex(627), ValidatorIndex(250), ValidatorIndex(641), ValidatorIndex(758)} }}, 
+{GroupIndex(63), { .sending = {}, .receiving = {ValidatorIndex(790), ValidatorIndex(523), ValidatorIndex(961), ValidatorIndex(623), ValidatorIndex(976)} }}, 
+{GroupIndex(64), { .sending = {ValidatorIndex(673), ValidatorIndex(625), ValidatorIndex(986), ValidatorIndex(993), ValidatorIndex(126), ValidatorIndex(831), ValidatorIndex(627), ValidatorIndex(223), ValidatorIndex(850), ValidatorIndex(761), ValidatorIndex(790), ValidatorIndex(163), ValidatorIndex(213), ValidatorIndex(48), ValidatorIndex(36), ValidatorIndex(143), ValidatorIndex(578), ValidatorIndex(86), ValidatorIndex(178), ValidatorIndex(431), ValidatorIndex(568), ValidatorIndex(523), ValidatorIndex(250), ValidatorIndex(641), ValidatorIndex(659), ValidatorIndex(698), ValidatorIndex(957), ValidatorIndex(429), ValidatorIndex(866), ValidatorIndex(9)}, .receiving = {ValidatorIndex(131), ValidatorIndex(4), ValidatorIndex(946), ValidatorIndex(790)} }}, 
+{GroupIndex(14), { .sending = {ValidatorIndex(106), ValidatorIndex(126), ValidatorIndex(946), ValidatorIndex(143), ValidatorIndex(492), ValidatorIndex(578), ValidatorIndex(883), ValidatorIndex(986), ValidatorIndex(86), ValidatorIndex(223), ValidatorIndex(387), ValidatorIndex(641), ValidatorIndex(976), ValidatorIndex(178), ValidatorIndex(866), ValidatorIndex(131), ValidatorIndex(431), ValidatorIndex(937), ValidatorIndex(748), ValidatorIndex(355), ValidatorIndex(4), ValidatorIndex(568), ValidatorIndex(402), ValidatorIndex(863), ValidatorIndex(961), ValidatorIndex(659), ValidatorIndex(993), ValidatorIndex(790), ValidatorIndex(758), ValidatorIndex(48), ValidatorIndex(884), ValidatorIndex(209), ValidatorIndex(163), ValidatorIndex(614), ValidatorIndex(671), ValidatorIndex(213), ValidatorIndex(850), ValidatorIndex(625), ValidatorIndex(388), ValidatorIndex(534), ValidatorIndex(548), ValidatorIndex(960), ValidatorIndex(831), ValidatorIndex(901), ValidatorIndex(957), ValidatorIndex(335), ValidatorIndex(676), ValidatorIndex(623), ValidatorIndex(36), ValidatorIndex(698), ValidatorIndex(250), ValidatorIndex(797), ValidatorIndex(673), ValidatorIndex(523), ValidatorIndex(813), ValidatorIndex(9), ValidatorIndex(927), ValidatorIndex(761), ValidatorIndex(627)}, .receiving = {ValidatorIndex(204), ValidatorIndex(790), ValidatorIndex(429), ValidatorIndex(492)} }}, 
+{GroupIndex(15), { .sending = {}, .receiving = {ValidatorIndex(883), ValidatorIndex(9), ValidatorIndex(957), ValidatorIndex(673), ValidatorIndex(758), ValidatorIndex(863)} }}, 
+{GroupIndex(50), { .sending = {ValidatorIndex(883), ValidatorIndex(355), ValidatorIndex(813), ValidatorIndex(671), ValidatorIndex(387), ValidatorIndex(335), ValidatorIndex(614), ValidatorIndex(863), ValidatorIndex(960), ValidatorIndex(106), ValidatorIndex(927), ValidatorIndex(492), ValidatorIndex(748), ValidatorIndex(548), ValidatorIndex(758), ValidatorIndex(209), ValidatorIndex(131), ValidatorIndex(4), ValidatorIndex(534), ValidatorIndex(402), ValidatorIndex(976), ValidatorIndex(961), ValidatorIndex(946), ValidatorIndex(204), ValidatorIndex(901), ValidatorIndex(884), ValidatorIndex(388), ValidatorIndex(676), ValidatorIndex(937), ValidatorIndex(623), ValidatorIndex(797)}, .receiving = {ValidatorIndex(961), ValidatorIndex(163), ValidatorIndex(986), ValidatorIndex(578), ValidatorIndex(813)} }}, 
+{GroupIndex(37), { .sending = {}, .receiving = {ValidatorIndex(402), ValidatorIndex(126), ValidatorIndex(335), ValidatorIndex(223), ValidatorIndex(863), ValidatorIndex(957)} }}, 
+{GroupIndex(85), { .sending = {}, .receiving = {ValidatorIndex(355), ValidatorIndex(492), ValidatorIndex(957), ValidatorIndex(623), ValidatorIndex(627), ValidatorIndex(659)} }}, 
+{GroupIndex(90), { .sending = {ValidatorIndex(106), ValidatorIndex(623), ValidatorIndex(335), ValidatorIndex(884), ValidatorIndex(131), ValidatorIndex(813), ValidatorIndex(960), ValidatorIndex(209), ValidatorIndex(355), ValidatorIndex(614), ValidatorIndex(402), ValidatorIndex(748), ValidatorIndex(863), ValidatorIndex(976), ValidatorIndex(204), ValidatorIndex(883), ValidatorIndex(758), ValidatorIndex(901), ValidatorIndex(387), ValidatorIndex(388), ValidatorIndex(548), ValidatorIndex(671), ValidatorIndex(961), ValidatorIndex(676), ValidatorIndex(937), ValidatorIndex(946), ValidatorIndex(927), ValidatorIndex(4), ValidatorIndex(492), ValidatorIndex(534), ValidatorIndex(797)}, .receiving = {ValidatorIndex(986), ValidatorIndex(4), ValidatorIndex(163), ValidatorIndex(850), ValidatorIndex(676)} }}, 
+{GroupIndex(77), { .sending = {}, .receiving = {ValidatorIndex(863), ValidatorIndex(659), ValidatorIndex(623), ValidatorIndex(131), ValidatorIndex(625)} }}, 
+{GroupIndex(86), { .sending = {}, .receiving = {ValidatorIndex(790), ValidatorIndex(758), ValidatorIndex(676), ValidatorIndex(213), ValidatorIndex(402), ValidatorIndex(866)} }}, 
+{GroupIndex(92), { .sending = {}, .receiving = {ValidatorIndex(960), ValidatorIndex(213), ValidatorIndex(578), ValidatorIndex(937), ValidatorIndex(48)} }}, 
+{GroupIndex(23), { .sending = {}, .receiving = {ValidatorIndex(143), ValidatorIndex(863), ValidatorIndex(429), ValidatorIndex(335), ValidatorIndex(761), ValidatorIndex(927)} }}, 
+{GroupIndex(44), { .sending = {}, .receiving = {ValidatorIndex(960), ValidatorIndex(993), ValidatorIndex(790), ValidatorIndex(884), ValidatorIndex(178), ValidatorIndex(623)} }}, 
+{GroupIndex(93), { .sending = {}, .receiving = {ValidatorIndex(388), ValidatorIndex(106), ValidatorIndex(748), ValidatorIndex(429), ValidatorIndex(790), ValidatorIndex(431)} }}, 
+{GroupIndex(97), { .sending = {}, .receiving = {ValidatorIndex(388), ValidatorIndex(671), ValidatorIndex(143), ValidatorIndex(790), ValidatorIndex(961), ValidatorIndex(850)} }}, 
+{GroupIndex(31), { .sending = {}, .receiving = {ValidatorIndex(883), ValidatorIndex(523), ValidatorIndex(9), ValidatorIndex(402), ValidatorIndex(250), ValidatorIndex(813)} }}, 
+{GroupIndex(89), { .sending = {}, .receiving = {ValidatorIndex(758), ValidatorIndex(388), ValidatorIndex(9), ValidatorIndex(209), ValidatorIndex(213), ValidatorIndex(698)} }}, 
+{GroupIndex(98), { .sending = {}, .receiving = {ValidatorIndex(659), ValidatorIndex(901), ValidatorIndex(568), ValidatorIndex(388), ValidatorIndex(797), ValidatorIndex(178)} }}, 
+{GroupIndex(3), { .sending = {}, .receiving = {ValidatorIndex(761), ValidatorIndex(986), ValidatorIndex(831), ValidatorIndex(106), ValidatorIndex(946), ValidatorIndex(976)} }}, 
+{GroupIndex(13), { .sending = {}, .receiving = {ValidatorIndex(614), ValidatorIndex(355), ValidatorIndex(568), ValidatorIndex(673), ValidatorIndex(976), ValidatorIndex(578)} }}, 
+{GroupIndex(18), { .sending = {}, .receiving = {ValidatorIndex(625), ValidatorIndex(961), ValidatorIndex(884), ValidatorIndex(937), ValidatorIndex(143), ValidatorIndex(568)} }}, 
+{GroupIndex(43), { .sending = {}, .receiving = {ValidatorIndex(48), ValidatorIndex(614), ValidatorIndex(209), ValidatorIndex(797), ValidatorIndex(993), ValidatorIndex(143)} }}, 
+{GroupIndex(60), { .sending = {}, .receiving = {ValidatorIndex(641), ValidatorIndex(901), ValidatorIndex(86), ValidatorIndex(748), ValidatorIndex(335), ValidatorIndex(625)} }}, 
+{GroupIndex(30), { .sending = {}, .receiving = {ValidatorIndex(402), ValidatorIndex(698), ValidatorIndex(126), ValidatorIndex(4), ValidatorIndex(761), ValidatorIndex(676)} }}, 
+{GroupIndex(88), { .sending = {ValidatorIndex(960), ValidatorIndex(534), ValidatorIndex(548), ValidatorIndex(961), ValidatorIndex(335), ValidatorIndex(204), ValidatorIndex(388), ValidatorIndex(863), ValidatorIndex(492), ValidatorIndex(614), ValidatorIndex(671), ValidatorIndex(106), ValidatorIndex(131), ValidatorIndex(4), ValidatorIndex(623), ValidatorIndex(883), ValidatorIndex(676), ValidatorIndex(402), ValidatorIndex(946), ValidatorIndex(758), ValidatorIndex(813), ValidatorIndex(901), ValidatorIndex(748), ValidatorIndex(209), ValidatorIndex(797), ValidatorIndex(937), ValidatorIndex(355), ValidatorIndex(927), ValidatorIndex(387), ValidatorIndex(884), ValidatorIndex(976)}, .receiving = {ValidatorIndex(623), ValidatorIndex(831), ValidatorIndex(761), ValidatorIndex(641), ValidatorIndex(676)} }}, 
+{GroupIndex(9), { .sending = {}, .receiving = {ValidatorIndex(813), ValidatorIndex(523), ValidatorIndex(676), ValidatorIndex(850), ValidatorIndex(937), ValidatorIndex(673)} }}
+};
+
+    for (size_t i = 0; i < views.size(); ++i) {
+      auto it = ref.find(i);
+      ASSERT_TRUE(it != ref.end());
+      ASSERT_EQ(it->second, views[i]);
     }
   }
 }

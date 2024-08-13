@@ -4566,12 +4566,18 @@ namespace kagome::parachain {
     logger_->info("Send my view.(peer={}, protocol={})",
                   peer_id,
                   protocol->protocolName());
+
     pm_->getStreamEngine()->template send(
         peer_id,
         protocol,
         std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::ViewUpdate{.view = my_view->get().view}));
+            network::ViewUpdate{
+              .view = network::View {
+                          .heads_ = block_tree_->getLeaves(),
+                          .finalized_number_ = block_tree_->getLastFinalized().number,
+                        },
+            }));
   }
 
   void ParachainProcessorImpl::onIncomingCollationStream(
