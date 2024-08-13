@@ -924,6 +924,8 @@ namespace kagome::parachain {
             self->sendMyView(peer_id,
                              self->router_->getValidationProtocolVStaging());
           });
+    } else {
+      SL_TRACE(logger_, "No audi for {}.", id);
     }
   }
 
@@ -4553,7 +4555,6 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::sendMyView(
       const libp2p::peer::PeerId &peer_id,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
-    TRY_GET_OR_RET(my_view, peer_view_->getMyView());
     BOOST_ASSERT(protocol);
     logger_->info("Send my view.(peer={}, protocol={})",
                   peer_id,
