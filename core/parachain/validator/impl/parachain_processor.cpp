@@ -1102,18 +1102,10 @@ namespace kagome::parachain {
     }
 
     auto per_session_state = per_session_->get_or_insert(session_index, [&] {
-      grid::Views grid_view;
-      if (validator_index) {
-        grid_view = grid::makeViews(
-          session_info->validator_groups,
-          grid::shuffle(session_info->validators.size(), randomness),
-          *validator_index);
-      } else {
-        grid_view = grid::makeViews(
+      grid::Views grid_view = grid::makeViews(
           session_info->validator_groups,
           grid::shuffle(session_info->discovery_keys.size(), randomness),
           *global_v_index);
-      }
 
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
