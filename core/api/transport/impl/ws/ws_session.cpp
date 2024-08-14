@@ -13,6 +13,7 @@
 #include <boost/beast/http/string_body.hpp>
 #include <boost/config.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include "log/logger.hpp"
 
 namespace boost::beast {
   template <class NextLayer, class DynamicBuffer>
@@ -138,6 +139,7 @@ namespace kagome::api {
   }
 
   void WsSession::respond(std::string_view response) {
+    SL_INFO(logger_, "Responding: {}", response);
     post([self{shared_from_this()}, response{std::string{response}}] {
       if (not self->is_ws_) {
         self->sessionClose();
