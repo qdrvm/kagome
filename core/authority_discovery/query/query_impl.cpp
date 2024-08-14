@@ -108,7 +108,9 @@ namespace kagome::authority_discovery {
     }
     auto r = add(*id, value);
     if (not r) {
-      SL_DEBUG(log_, "Can't add: {}", r.error());
+      SL_WARN(log_, "Can't add: {}", r.error());
+    } else {
+      SL_INFO(log_, "Added or updated success: {}", *id);
     }
     return r;
   }
@@ -211,6 +213,7 @@ namespace kagome::authority_discovery {
   outcome::result<void> QueryImpl::add(
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
+    SL_INFO(log_, "-+-+> Add auth discovery id: {}", authority);
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -285,6 +288,7 @@ namespace kagome::authority_discovery {
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
         peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
 
+    SL_INFO(log_, "-+-+> Added key;{} peer:{}", authority, peer.id);
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(
         authority,
