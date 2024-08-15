@@ -134,30 +134,46 @@ namespace kagome::authority_discovery {
     return Error::KADEMLIA_OUTDATED_VALUE;
   }
 
-  outcome::result<void> QueryImpl::update() {
-    OUTCOME_TRY(
-        authorities,
-        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
-    return update(std::move(authorities));
+  outcome::result<void> QueryImpl::merge(std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>> &&authorities) {
+    {
+      std::unique_lock lock{mutex_};
+      if (authorities) {
+        authorities_.insert(authorities->begin(), authorities->end());
+      } else {
+        authorities_.clear();
+      }
+    }
+    return update();
   }
   
-  outcome::result<void> QueryImpl::update(std::vector<primitives::AuthorityDiscoveryId> &&authorities) {
+  outcome::result<void> QueryImpl::update() {
+    OUTCOME_TRY(
+        cur_authorities,
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     OUTCOME_TRY(local_keys,
                 key_store_->sr25519().getPublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
 
     std::unique_lock lock{mutex_};
+    std::unordered_set<primitives::AuthorityDiscoveryId> authorities = authorities_;
+    authorities.insert(cur_authorities.begin(), cur_authorities.end());
+
     for (auto &id : authorities) {
       if (not hash_to_auth_.contains(id)) {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
-    auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
+    auto has = [](const std::unordered_set<primitives::AuthorityDiscoveryId> &keys,
+                  const primitives::AuthorityDiscoveryId &key) {
+      return keys.contains(key);
+    };
+    auto has_in_vec = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
                   const primitives::AuthorityDiscoveryId &key) {
       return std::find(keys.begin(), keys.end(), key) != keys.end();
     };
+
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
-      return not has(local_keys, id);
+      return not has_in_vec(local_keys, id);
     });
     for (auto it = auth_to_peer_cache_.begin();
          it != auth_to_peer_cache_.end();) {
@@ -175,8 +191,11 @@ namespace kagome::authority_discovery {
         it = peer_to_auth_cache_.erase(it);
       }
     }
-    std::shuffle(authorities.begin(), authorities.end(), random_);
-    queue_ = std::move(authorities);
+
+    std::vector<primitives::AuthorityDiscoveryId> a {std::make_move_iterator(authorities.begin()), std::make_move_iterator(authorities.end())};
+    std::shuffle(a.begin(), a.end(), random_);
+    queue_ = std::move(a);
+
     pop();
     return outcome::success();
   }

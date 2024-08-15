@@ -1134,7 +1134,7 @@ namespace kagome::parachain {
         }
       }
 
-      std::ignore = query_audi_->update(std::vector<primitives::AuthorityDiscoveryId>{ peers.begin(), peers.end() });
+      std::ignore = query_audi_->merge(peers);
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
           *session_info,
