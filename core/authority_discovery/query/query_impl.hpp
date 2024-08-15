@@ -69,6 +69,7 @@ namespace kagome::authority_discovery {
         const std::vector<libp2p::protocol::kademlia::Value> &) override;
 
     outcome::result<void> update();
+    outcome::result<void> update(std::vector<primitives::AuthorityDiscoveryId> &&authorities) override;
 
    private:
     struct Authority {

@@ -135,18 +135,23 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> QueryImpl::update() {
-    std::unique_lock lock{mutex_};
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
+    return update(std::move(authorities));
+  }
+  
+  outcome::result<void> QueryImpl::update(std::vector<primitives::AuthorityDiscoveryId> &&authorities) {
+    OUTCOME_TRY(local_keys,
+                key_store_->sr25519().getPublicKeys(
+                    crypto::KeyTypes::AUTHORITY_DISCOVERY));
+
+    std::unique_lock lock{mutex_};
     for (auto &id : authorities) {
       if (not hash_to_auth_.contains(id)) {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
-    OUTCOME_TRY(local_keys,
-                key_store_->sr25519().getPublicKeys(
-                    crypto::KeyTypes::AUTHORITY_DISCOVERY));
     auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
                   const primitives::AuthorityDiscoveryId &key) {
       return std::find(keys.begin(), keys.end(), key) != keys.end();
