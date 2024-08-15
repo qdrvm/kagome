@@ -204,9 +204,11 @@ namespace kagome::authority_discovery {
       common::Buffer hash{crypto::sha256(authority)};
       scheduler_->schedule([=, this, wp{weak_from_this()}] {
         if (auto self = wp.lock()) {
+          SL_INFO(log_, "-+-+> Begin auth discovery id: {}", authority);
           std::ignore = kademlia_.get()->getValue(
               hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
+                SL_INFO(log_, "-+-+> Finished auth discovery id: {}", authority);
                 --active_;
                 pop();
               });
