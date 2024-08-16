@@ -181,21 +181,21 @@ class RecoveryTest : public testing::Test {
   PeerState peer_state;
 
   std::queue<std::tuple<
-      PeerInfo,
+      PeerId,
       CandidateHash,
       std::function<void(
           outcome::result<kagome::network::FetchAvailableDataResponse>)>>>
       fetch_available_data_requests;
 
   std::queue<std::tuple<  //
-      PeerInfo,
+      PeerId,
       kagome::network::FetchChunkRequest,
       std::function<void(
           outcome::result<kagome::network::FetchChunkResponse>)>>>
       fetch_chunk_requests;
 
   std::queue<std::tuple<
-      PeerInfo,
+      PeerId,
       kagome::network::FetchChunkRequest,
       std::function<void(
           outcome::result<kagome::network::FetchChunkResponseObsolete>)>>>
