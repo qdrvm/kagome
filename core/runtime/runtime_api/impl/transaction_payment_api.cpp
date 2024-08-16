@@ -16,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
   switch (err) {
     case E::TRANSACTION_PAYMENT_API_NOT_FOUND:
       return "Transaction payment runtime API is not found in the runtime";
+    case TransactionPaymentApiImpl::Error::API_BELOW_VERSION_2_NOT_SUPPORTED:
+      return "API below version 2 is not supported";
   }
   return "Unknown TransactionPaymentApiImpl error";
 }
@@ -32,7 +34,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(hasher_);
   }
 
-  outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+  outcome::result<primitives::RuntimeDispatchInfo<primitives::Weight>>
   TransactionPaymentApiImpl::query_info(const primitives::BlockHash &block,
                                         const primitives::Extrinsic &ext,
                                         uint32_t len) {
@@ -56,19 +58,18 @@ namespace kagome::runtime {
     auto api_version = res->second;
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     if (api_version < 2) {
-      return executor_
-          ->call<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
-              ctx, "TransactionPaymentApi_query_info", ext.data, len);
+      return Error::API_BELOW_VERSION_2_NOT_SUPPORTED;
     }
     OUTCOME_TRY(
         result,
         executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
             ctx, "TransactionPaymentApi_query_info", ext.data, len));
-    primitives::RuntimeDispatchInfo<primitives::OldWeight> old_format_result;
-    old_format_result.dispatch_class = result.dispatch_class;
-    old_format_result.partial_fee = result.partial_fee;
-    old_format_result.weight = result.weight.ref_time;
-    return old_format_result;
+    primitives::RuntimeDispatchInfo<primitives::Weight> weight_result;
+    weight_result.dispatch_class = result.dispatch_class;
+    weight_result.partial_fee = result.partial_fee;
+    weight_result.weight.ref_time = result.weight.ref_time;
+    weight_result.weight.proof_size = result.weight.proof_size;
+    return result;
   }
 
 }  // namespace kagome::runtime

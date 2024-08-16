@@ -58,7 +58,6 @@ namespace kagome::primitives {
   template <typename Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &stream, DispatchClass &dispatch_class) {
-    std::ignore = stream.nextByte();
     uint8_t dispatch_class_byte;
     stream >> dispatch_class_byte;
     dispatch_class = static_cast<DispatchClass>(dispatch_class_byte);
