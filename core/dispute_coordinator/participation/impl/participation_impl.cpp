@@ -9,6 +9,7 @@
 #include <future>
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/impl/runtime_info.hpp"
 #include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/queues.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
@@ -23,12 +24,14 @@ namespace kagome::dispute {
           block_header_repository,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ParachainHost> api,
+      std::shared_ptr<RuntimeInfo> runtime_info,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<PoolHandlerReady> dispute_thread_handler,
       std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),
+        runtime_info_(std::move(runtime_info)),
         recovery_(std::move(recovery)),
         pvf_(std::move(pvf)),
         dispute_thread_handler_(std::move(dispute_thread_handler)),
@@ -37,6 +40,7 @@ namespace kagome::dispute {
             block_header_repository_, std::move(hasher), api_)) {
     BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(runtime_info_ != nullptr);
     BOOST_ASSERT(recovery_ != nullptr);
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(dispute_thread_handler_ != nullptr);
@@ -137,8 +141,14 @@ namespace kagome::dispute {
 
   void ParticipationImpl::participate(ParticipationRequest request,
                                       primitives::BlockHash block_hash) {
-    auto ctx = std::make_shared<ParticipationContext>(
-        ParticipationContext{std::move(request), std::move(block_hash)});
+    auto info = runtime_info_->get_session_info_by_index(
+        request.candidate_receipt.descriptor.relay_parent, request.session);
+
+    auto ctx = std::make_shared<ParticipationContext>(ParticipationContext{
+        .request = std::move(request),
+        .block_hash = std::move(block_hash),
+        .group_index = info.has_value() ? info.value().validator_info.our_group
+                                        : std::nullopt});
 
     participate_stage1(
         ctx, [request, wp = dispute_coordinator_](ParticipationOutcome res) {
@@ -161,13 +171,11 @@ namespace kagome::dispute {
     // available data
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L279
 
-    parachain::CoreIndex core_index = -1;  // FIXME
-
     recovery_->recover(
         ctx->request.candidate_receipt,
         ctx->request.session,
-        std::nullopt,
-        core_index,
+        ctx->group_index,
+        std::nullopt,  // core_index
         [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
           if (auto self = wp.lock()) {
             if (not res_opt.has_value()) {

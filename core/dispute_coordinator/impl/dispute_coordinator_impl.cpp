@@ -181,7 +181,7 @@ namespace kagome::dispute {
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 dispute_thread_pool.io_context()),
             libp2p::basic::Scheduler::Config{})},
-        runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
+        runtime_info_(std::make_shared<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(log_, steady_clock_, hasher_)) {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -470,6 +470,7 @@ namespace kagome::dispute {
         std::make_shared<ParticipationImpl>(block_header_repository_,
                                             hasher_,
                                             api_,
+                                            runtime_info_,
                                             recovery_,
                                             pvf_,
                                             dispute_thread_handler_,
