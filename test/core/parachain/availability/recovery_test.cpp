@@ -140,15 +140,15 @@ class RecoveryTest : public testing::Test {
 
     auto &val_group_0 = session.validator_groups.emplace_back();
     for (size_t i = 0; i < n_validators; ++i) {
-      auto s = std::format("Validator#{:<{}}", i, ValidatorId::size() - 10);
+      auto s = fmt::format("Validator#{:<{}}", i, ValidatorId::size() - 10);
       ValidatorId validator_id =
           ValidatorId::fromSpan(Buffer::fromString(s)).value();
 
-      s = std::format("Authority#{:<{}}", i, AuthorityDiscoveryId::size() - 10);
+      s = fmt::format("Authority#{:<{}}", i, AuthorityDiscoveryId::size() - 10);
       AuthorityDiscoveryId audi_id =
           AuthorityDiscoveryId::fromSpan(Buffer::fromString(s)).value();
 
-      s = std::format("Peer#{}", i);
+      s = fmt::format("Peer#{}", i);
       PeerId peer_id = operator""_peerid(s.data(), s.size());
 
       session.validators.push_back(validator_id);
