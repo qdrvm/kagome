@@ -49,8 +49,6 @@ using kagome::runtime::AvailableData;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
 using kagome::runtime::SessionInfo;
-using HashedCandidateReceipt =
-    kagome::parachain::Recovery::HashedCandidateReceipt;
 
 using kagome::parachain::makeTrieProof;
 using kagome::parachain::toChunks;
