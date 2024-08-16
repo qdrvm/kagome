@@ -42,20 +42,13 @@ namespace kagome::network {
       return base_.protocolName();
     }
 
-    void doRequest(
-        const PeerId &peer_id,
-        RequestType request,
-        std::function<void(outcome::result<ResponseType>)> &&response_handler) {
-      doRequest({peer_id, {}}, std::move(request), std::move(response_handler));
-    }
-
-    void doRequest(
-        const PeerInfo &peer_info,
-        RequestType request,
-        std::function<void(outcome::result<ResponseType>)> &&response_handler) {
+    void doRequest(const PeerId &peer_id,
+                   Request request,
+                   std::function<void(outcome::result<Response>)>
+                       &&response_handler) override {
       onTxRequest(request);
       newOutgoingStream(
-          peer_info,
+          peer_id,
           [wptr{this->weak_from_this()},
            request{std::move(request)},
            response_handler{std::move(response_handler)}](auto &&res) mutable {
@@ -106,20 +99,30 @@ namespace kagome::network {
     }
 
     void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
       SL_TRACE(base_.logger(),
-               "Connect for {} stream with {}",
+               "New outgoing {} stream with {}",
                protocolName(),
-               peer_info.id);
+               peer_id);
+
+      auto addresses_res =
+          base_.host().getPeerRepository().getAddressRepository().getAddresses(
+              peer_id);
+      if (not addresses_res.has_value()) {
+        cb(addresses_res.as_failure());
+        return;
+      }
 
       base_.host().newStream(
-          peer_info,
+          PeerInfo{peer_id, std::move(addresses_res.value())},
           base_.protocolIds(),
           [wptr{this->weak_from_this()},
            peer_id{peer_info.id},
            cb{std::move(cb)}](auto &&stream_and_proto) mutable {
+          [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
+              auto &&stream_and_proto) mutable {
             if (!stream_and_proto.has_value()) {
               cb(stream_and_proto.as_failure());
               return;

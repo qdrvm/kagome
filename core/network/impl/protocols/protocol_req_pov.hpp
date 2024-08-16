@@ -45,11 +45,11 @@ namespace kagome::network {
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void request(const PeerInfo &peer_info,
+    void request(const PeerId &peer_id,
                  RequestPov,
                  std::function<void(outcome::result<ResponsePov>)>
                      &&response_handler) override;

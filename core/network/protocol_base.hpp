@@ -38,7 +38,7 @@ namespace kagome::network {
 
     virtual void onIncomingStream(std::shared_ptr<Stream> stream) = 0;
     virtual void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) = 0;
   };
 

@@ -92,7 +92,7 @@ namespace kagome::network {
   void ReqCollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {}
 
   void ReqCollationProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     BOOST_ASSERT_MSG(false, "Must not be called!");
   }

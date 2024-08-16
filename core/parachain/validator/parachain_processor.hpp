@@ -755,7 +755,7 @@ namespace kagome::parachain {
         ParachainId para_id);
 
     template <typename F>
-    void requestPoV(const libp2p::peer::PeerInfo &peer_info,
+    void requestPoV(const libp2p::peer::PeerId &peer_id,
                     const CandidateHash &candidate_hash,
                     F &&callback);
 

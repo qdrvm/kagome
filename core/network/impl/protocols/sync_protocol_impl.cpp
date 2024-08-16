@@ -154,17 +154,25 @@ namespace kagome::network {
   }
 
   void SyncProtocolImpl::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    SL_DEBUG(base_.logger(),
-             "Connect for {} stream with {}",
+    SL_TRACE(base_.logger(),
+             "New outgoing {} stream with {}",
              protocolName(),
-             peer_info.id);
+             peer_id);
+
+    auto addresses_res =
+        base_.host().getPeerRepository().getAddressRepository().getAddresses(
+            peer_id);
+    if (not addresses_res.has_value()) {
+      cb(addresses_res.as_failure());
+      return;
+    }
 
     base_.host().newStream(
-        peer_info.id,
+        PeerInfo{peer_id, std::move(addresses_res.value())},
         base_.protocolIds(),
-        [wp{weak_from_this()}, peer_id = peer_info.id, cb = std::move(cb)](
+        [wp{weak_from_this()}, peer_id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           network::streamReadBuffer(stream_res);
           auto self = wp.lock();
@@ -427,15 +435,7 @@ namespace kagome::network {
       const PeerId &peer_id,
       BlocksRequest block_request,
       std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {
-    auto addresses_res =
-        base_.host().getPeerRepository().getAddressRepository().getAddresses(
-            peer_id);
-    if (not addresses_res.has_value()) {
-      response_handler(addresses_res.as_failure());
-      return;
-    }
-
-    if (base_.logger()->level() >= log::Level::DEBUG) {
+    [[unlikely]] if (base_.logger()->level() >= log::Level::DEBUG) {
       std::string logmsg = "Requesting blocks: fields=";
 
       if (has(block_request.fields, BlockAttribute::HEADER)) {
@@ -469,7 +469,7 @@ namespace kagome::network {
     }
 
     newOutgoingStream(
-        {peer_id, addresses_res.value()},
+        peer_id,
         [wp{weak_from_this()},
          response_handler = std::move(response_handler),
          block_request = std::move(block_request)](auto &&stream_res) mutable {

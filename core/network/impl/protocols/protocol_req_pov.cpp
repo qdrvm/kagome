@@ -88,18 +88,18 @@ namespace kagome::network {
   }
 
   void ReqPovProtocol::newOutgoingStream(
-      const PeerInfo &,
+      const PeerId &,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
   void ReqPovProtocol::request(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       RequestPov request,
       std::function<void(outcome::result<ResponsePov>)> &&response_handler) {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->doRequest(
-        peer_info, std::move(request), std::move(response_handler));
+        peer_id, std::move(request), std::move(response_handler));
   }
 
 }  // namespace kagome::network

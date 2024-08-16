@@ -60,7 +60,7 @@ namespace kagome::network {
   }
 
   void BeefyProtocolImpl::newOutgoingStream(
-      const PeerInfo &peer,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto on_handshake =
         [cb = std::move(cb)](
@@ -76,7 +76,7 @@ namespace kagome::network {
           cb(std::move(stream));
         };
     notifications::connectAndHandshake(
-        weak_from_this(), base_, peer, roles_, std::move(on_handshake));
+        weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
   }
 
   void BeefyProtocolImpl::broadcast(

@@ -135,13 +135,13 @@ namespace kagome::network {
      * established.
      */
     void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
       SL_DEBUG(base_.logger(),
                "Connect for {} stream with {}",
                protocolName(),
-               peer_info.id);
+               peer_id);
 
       // This lambda function is called when a handshake is received.
       auto on_handshake =
@@ -158,7 +158,7 @@ namespace kagome::network {
           };
       notifications::connectAndHandshake(this->weak_from_this(),
                                          base_,
-                                         peer_info,
+                                         peer_id,
                                          roles_,
                                          std::move(on_handshake));
     }

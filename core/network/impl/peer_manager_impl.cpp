@@ -46,24 +46,25 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
 namespace {
 
   template <typename P, typename F>
-  bool openOutgoing(std::shared_ptr<kagome::network::StreamEngine> &se,
-                    const std::shared_ptr<P> &protocol,
-                    const kagome::network::PeerManager::PeerInfo &pi,
-                    F &&func) {
-    BOOST_ASSERT(se);
+  bool openOutgoing(
+      std::shared_ptr<kagome::network::StreamEngine> &stream_engine,
+      const std::shared_ptr<P> &protocol,
+      const kagome::network::PeerManager::PeerInfo &peer_info,
+      F &&func) {
+    BOOST_ASSERT(stream_engine);
     BOOST_ASSERT(protocol);
 
-    if (se->reserveOutgoing(pi.id, protocol)) {
+    if (stream_engine->reserveOutgoing(peer_info.id, protocol)) {
       protocol->newOutgoingStream(
-          pi,
-          [pid{pi.id},
+          peer_info.id,
+          [peer_id{peer_info.id},
            wptr_proto{std::weak_ptr<P>{protocol}},
-           wptr_se{std::weak_ptr<kagome::network::StreamEngine>{se}},
+           wptr_se{std::weak_ptr<kagome::network::StreamEngine>{stream_engine}},
            func{std::forward<F>(func)}](auto &&stream) mutable {
-            auto se = wptr_se.lock();
+            auto stream_engine = wptr_se.lock();
             auto proto = wptr_proto.lock();
-            if (se && proto) {
-              se->dropReserveOutgoing(pid, proto);
+            if (stream_engine && proto) {
+              stream_engine->dropReserveOutgoing(peer_id, proto);
             }
             std::forward<F>(func)(std::forward<decltype(stream)>(stream));
           });
