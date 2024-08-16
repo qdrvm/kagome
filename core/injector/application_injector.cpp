@@ -883,6 +883,11 @@ namespace {
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
             di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
             di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
+            di::bind<network::FetchChunkProtocol>.template to<network::FetchChunkProtocolImpl>(),
+            di::bind<network::FetchChunkProtocolObsolete>.template to<network::FetchChunkProtocolObsoleteImpl>(),
+            di::bind<network::FetchAvailableDataProtocol>.template to<network::FetchAvailableDataProtocolImpl>(),
+            di::bind<network::WarpProtocol>.template to<network::WarpProtocolImpl>(),
+            di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

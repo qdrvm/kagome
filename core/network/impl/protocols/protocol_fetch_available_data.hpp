@@ -16,14 +16,20 @@
 #include "parachain/backing/store.hpp"
 
 namespace kagome::network {
-  class FetchAvailableDataProtocol final
-      : public RequestResponseProtocolImpl<FetchAvailableDataRequest,
+
+  class FetchAvailableDataProtocol
+      : virtual public RequestResponseProtocol<FetchAvailableDataRequest,
+                                               FetchAvailableDataResponse> {};
+
+  class FetchAvailableDataProtocolImpl final
+      : public FetchAvailableDataProtocol,
+        public RequestResponseProtocolImpl<FetchAvailableDataRequest,
                                            FetchAvailableDataResponse,
                                            ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchAvailableDataProtocol";
 
-    FetchAvailableDataProtocol(
+    FetchAvailableDataProtocolImpl(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
