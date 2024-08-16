@@ -745,6 +745,7 @@ namespace kagome::parachain {
                          const HashedCandidateReceipt &hashed_receipt,
                          ValidatorIndex validator_index,
                          Hash block_hash,
+                         std::optional<CoreIndex> core,
                          GroupIndex backing_group);
 
     void issue_approval(const CandidateHash &candidate_hash,
@@ -759,6 +760,7 @@ namespace kagome::parachain {
         SessionIndex session,
         const HashedCandidateReceipt &hashed_candidate,
         GroupIndex backing_group,
+        std::optional<CoreIndex> core,
         bool distribute_assignment);
 
     void runNewBlocks(approval::BlockApprovalMeta &&approval_meta,
