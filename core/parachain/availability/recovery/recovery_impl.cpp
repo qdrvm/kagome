@@ -160,8 +160,6 @@ namespace kagome::parachain {
       return (start_pos + validator_index) % n_validators;
     };
 
-    std::vector<ValidatorIndex> validators_of_group;
-
     if (backing_group.has_value()) {
       active.validators_of_group = session->validator_groups.at(*backing_group);
     }
