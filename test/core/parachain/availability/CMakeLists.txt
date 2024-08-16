@@ -10,11 +10,5 @@ addtest(recovery_test
 
 target_link_libraries(recovery_test
     validator_parachain
-#    log_configurator
-#    base_fs_test
-#    key_store
-#    logger
     dummy_error
-#    p2p::p2p_random_generator
-#    Boost::boost
 )

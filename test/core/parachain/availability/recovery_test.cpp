@@ -21,7 +21,6 @@
 #include "parachain/availability/proof.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Buffer;
@@ -55,8 +54,6 @@ using HashedCandidateReceipt =
 
 using kagome::parachain::makeTrieProof;
 using kagome::parachain::toChunks;
-
-using testutil::DummyError;
 
 using libp2p::PeerId;
 using libp2p::peer::PeerInfo;
