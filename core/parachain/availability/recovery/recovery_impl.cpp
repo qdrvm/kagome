@@ -511,7 +511,7 @@ namespace kagome::parachain {
   void RecoveryImpl::send_fetch_available_data_request(
       const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
-      void (RecoveryImpl::*cb)(const CandidateHash &)) {
+      SelfCb next_iteration) {
     router_->getFetchAvailableDataProtocol()->doRequest(
         peer_id,
         candidate_hash,
@@ -533,7 +533,7 @@ namespace kagome::parachain {
                        peer_id);
             }
             self->handle_fetch_available_data_response(
-                candidate_hash, std::move(response_res), cb);
+                candidate_hash, std::move(response_res), next_iteration);
           }
         });
   }
@@ -541,7 +541,7 @@ namespace kagome::parachain {
   void RecoveryImpl::handle_fetch_available_data_response(
       const CandidateHash &candidate_hash,
       outcome::result<network::FetchAvailableDataResponse> response_res,
-      void (RecoveryImpl::*next_iteration)(const CandidateHash &)) {
+      SelfCb next_iteration) {
     Lock lock{mutex_};
 
     auto it = active_.find(candidate_hash);
@@ -572,7 +572,7 @@ namespace kagome::parachain {
       const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       ChunkIndex chunk_index,
-      void (RecoveryImpl::*cb)(const CandidateHash &)) {
+      SelfCb next_iteration) {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
@@ -616,7 +616,7 @@ namespace kagome::parachain {
                 }
 
                 self->handle_fetch_chunk_response(
-                    candidate_hash, std::move(response_res), cb);
+                    candidate_hash, std::move(response_res), next_iteration);
               }
             });
       } break;
@@ -642,10 +642,11 @@ namespace kagome::parachain {
                         };
                       });
                   self->handle_fetch_chunk_response(
-                      candidate_hash, std::move(response), cb);
+                      candidate_hash, std::move(response), next_iteration);
                 } else {
-                  self->handle_fetch_chunk_response(
-                      candidate_hash, response_res.as_failure(), cb);
+                  self->handle_fetch_chunk_response(candidate_hash,
+                                                    response_res.as_failure(),
+                                                    next_iteration);
                 }
               }
             });
@@ -658,7 +659,7 @@ namespace kagome::parachain {
   void RecoveryImpl::handle_fetch_chunk_response(
       const CandidateHash &candidate_hash,
       outcome::result<network::FetchChunkResponse> response_res,
-      void (RecoveryImpl::*next_iteration)(const CandidateHash &)) {
+      SelfCb next_iteration) {
     Lock lock{mutex_};
 
     auto it = active_.find(candidate_hash);

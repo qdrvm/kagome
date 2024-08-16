@@ -67,6 +67,8 @@ namespace kagome::parachain {
     void remove(const CandidateHash &candidate) override;
 
    private:
+    using SelfCb = void (RecoveryImpl::*)(const CandidateHash &);
+
     struct Active {
       storage::trie::RootHash erasure_encoding_root;
       ChunkIndex chunks_total = 0;
@@ -98,25 +100,23 @@ namespace kagome::parachain {
     void regular_chunks_recovery(const CandidateHash &candidate_hash);
 
     // Fetch available data protocol communication
-    void send_fetch_available_data_request(
-        const libp2p::PeerId &response_res,
-        const CandidateHash &candidate_hash,
-        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void send_fetch_available_data_request(const libp2p::PeerId &response_res,
+                                           const CandidateHash &candidate_hash,
+                                           SelfCb next_iteration);
     void handle_fetch_available_data_response(
         const CandidateHash &candidate_hash,
         outcome::result<network::FetchAvailableDataResponse> response_res,
-        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
+        SelfCb next_iteration);
 
     // Fetch chunk protocol communication
-    void send_fetch_chunk_request(
-        const libp2p::PeerId &peer_id,
-        const CandidateHash &candidate_hash,
-        ChunkIndex chunk_index,
-        void (RecoveryImpl::*cb)(const CandidateHash &));
+    void send_fetch_chunk_request(const libp2p::PeerId &peer_id,
+                                  const CandidateHash &candidate_hash,
+                                  ChunkIndex chunk_index,
+                                  SelfCb next_iteration);
     void handle_fetch_chunk_response(
         const CandidateHash &candidate_hash,
         outcome::result<network::FetchChunkResponse> response_res,
-        void (RecoveryImpl::*next_iteration)(const CandidateHash &));
+        SelfCb next_iteration);
 
     outcome::result<void> check(const Active &active,
                                 const AvailableData &data);
