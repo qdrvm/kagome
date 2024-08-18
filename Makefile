@@ -40,13 +40,13 @@ macos_build:
 	if [ "$(CI)" = "true" ]; then \
 		python3 -m venv ~/venv ; \
 		source ~/venv/bin/activate ; \
-		HUNTER_PYTHON_LOCATION=~/venv/bin/python3 ; \
+		export HUNTER_PYTHON_LOCATION=~/venv/bin/python3 ; \
     fi ; \
 	if [ "$(GITHUB_RUNNER)" = "true" ]; then \
 		git config --global --add safe.directory /__w/kagome/kagome ; \
 	fi ; \
-	SDKROOT=$$(xcrun --sdk macosx --show-sdk-path) ; \
-	CURL_SSL_BACKEND=SecureTransport ; \
+	export SDKROOT=$$(xcrun --sdk macosx --show-sdk-path) ; \
+	export CURL_SSL_BACKEND=SecureTransport ; \
 	cmake . -B"$(BUILD_DIR)" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DBACKWARD=$(BACKWARD) -DWERROR=$(WERROR) && \
 	cmake --build "$(BUILD_DIR)" --target $(BUILD_FINAL_TARGET) -- -j${BUILD_THREADS}
 
