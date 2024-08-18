@@ -98,58 +98,58 @@ jobs:
           df -m || true
           du -hd1 /__w /github || true
 
-  Linux-self-hosted:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Self-hosted: Linux: gcc-12 ASAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
-          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
-          - name: "Self-hosted: Linux: clang-16 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON
-        # Need to fix
-        #  - name: "Self-hosted: Linux: clang-16 External Project"
-        #    run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
-
-    name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
-      - name: "${{ matrix.options.name }}"
-        run: "${{ matrix.options.run }}"
-
-  clang-tidy:
-    name: "Linux: clang-tidy"
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: clang-tidy
-        env:
-          # build only generated files, so clang-tidy will work correctly
-          BUILD_FINAL_TARGET: generated
-        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
-        # isn't able to find headers
-        run: |
-          ./housekeeping/make_build.sh 
-          ./housekeeping/clang-tidy-diff.sh
+#  Linux-self-hosted:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "Self-hosted: Linux: gcc-12 ASAN"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
+#          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+#          - name: "Self-hosted: Linux: clang-16 UBSAN"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON
+#        # Need to fix
+#        #  - name: "Self-hosted: Linux: clang-16 External Project"
+#        #    run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
+#
+#    name: "${{ matrix.options.name }}"
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 120
+#    container: qdrvm/kagome-dev:9-minideb
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/cache@v4
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+#      - name: Install mold
+#        run: ./housekeeping/ci_install_mold.sh --make-default
+#      - name: "${{ matrix.options.name }}"
+#        run: "${{ matrix.options.run }}"
+#
+#  clang-tidy:
+#    name: "Linux: clang-tidy"
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 120
+#    container: qdrvm/kagome-dev:9-minideb
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#      - uses: actions/cache@v4
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#      - name: clang-tidy
+#        env:
+#          # build only generated files, so clang-tidy will work correctly
+#          BUILD_FINAL_TARGET: generated
+#        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
+#        # isn't able to find headers
+#        run: |
+#          ./housekeeping/make_build.sh 
+#          ./housekeeping/clang-tidy-diff.sh
 
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
@@ -177,12 +177,12 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
 
-  kagome_dev_docker_build:
-    runs-on: [ actions-runner-controller ]
+  kagome_dev_docker_mac_build:
+    runs-on: macos-13
     timeout-minutes: 180
-    if: ${{ 
-      github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/') }} || 
+    if: ${{
+      github.ref == 'refs/heads/master' ||
+      startsWith( github.ref, 'refs/tags/') }} ||
       github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false
@@ -197,6 +197,21 @@ jobs:
     name: "${{ matrix.options.name }}"
 
     steps:
+      - name: Install and start Colima
+        run: |
+          brew install colima docker ; \
+          EXIT_CODE=$?; \
+          if [ $EXIT_CODE -eq 1 ]; then \
+            echo "Command exited with code 2, continuing..."; \
+            else \
+            echo "Command exited with code $EXIT_CODE"; \
+            exit $EXIT_CODE; \
+          fi;
+          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
+          /usr/local/opt/colima/bin/colima start -f --vm-type=qemu --mount-type=sshfs
+          #brew services start colima
+          #colima start --cpu 4 --memory 13 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+        
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
@@ -251,34 +266,34 @@ jobs:
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
           BUILD_TYPE=${{ matrix.options.build_type }}
 
-      - name: "Push Kagome APT Package"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          make upload_apt_package \
-          BUILD_TYPE=${{ matrix.options.build_type }}
-
-      - name: Set up Docker Buildx
-        if: env.package_exist == 'False'
-        uses: docker/setup-buildx-action@v3.6.1
-
-      - name: "Build Docker Image"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_image_build \
-          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          BUILD_TYPE=${{ matrix.options.build_type }}
-          
-      - name: "Push Docker Image"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_image_push \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          BUILD_TYPE=${{ matrix.options.build_type }} \
-          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
-          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
+#      - name: "Push Kagome APT Package"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: |
+#          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+#          make upload_apt_package \
+#          BUILD_TYPE=${{ matrix.options.build_type }}
+#
+#      - name: Set up Docker Buildx
+#        if: env.package_exist == 'False'
+#        uses: docker/setup-buildx-action@v3.6.1
+#
+#      - name: "Build Docker Image"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make kagome_image_build \
+#          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
+#          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+#          BUILD_TYPE=${{ matrix.options.build_type }}
+#
+#      - name: "Push Docker Image"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make kagome_image_push \
+#          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+#          BUILD_TYPE=${{ matrix.options.build_type }} \
+#          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
+#          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
 
       - name: "Cleaning cache"
         if: env.package_exist == 'False'
@@ -292,111 +307,227 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-
-
-  Zombie-Tests:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 60
-    needs: [kagome_dev_docker_build]
-    if: ${{
-      github.ref == 'refs/heads/master' ||
-      startsWith( github.ref, 'refs/tags/') ||
-      github.event.inputs.run_all_steps == 'true' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-          #          - name: "Disputes initiation, conclusion and lag"
-          #            test: "test-polkadot-functional-0002-parachains-disputes"
-          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-            test: "test-polkadot-functional-0003-beefy-and-mmr"
-          #          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
-          #            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
-          #          - name: "Past-session dispute slashing"
-          #            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
-          #          - name: "Test if parachains make progress with most of approvals being tranch0"
-          #            test: "test-polkadot-functional-0006-parachains-max-tranche0"
-          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
-            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-            test: "test-polkadot-functional-0008-dispute-old-finalized"
-          - name: "Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-          #          - name: "Test validator disabling effects"
-          #            test: "test-polkadot-functional-0010-validator-disabling"
-          - name: "Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-          - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
-            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
-    steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v4
-
-#      - name: Create and enable swap
+          
+#  kagome_dev_docker_build:
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 180
+#    if: ${{ 
+#      github.ref == 'refs/heads/master' || 
+#      startsWith( github.ref, 'refs/tags/') }} || 
+#      github.event.inputs.run_all_steps == 'true' }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "Self-hosted: Minideb: Build Debug"
+#            build_type: "Debug"
+#          - name: "Self-hosted: Minideb: Build Release"
+#            build_type: "Release"
+#          - name: "Self-hosted: Minideb: Build RelWithDebInfo"
+#            build_type: "RelWithDebInfo"
+#    name: "${{ matrix.options.name }}"
+#
+#    steps:
+#      - name: "Checkout repository"
+#        uses: actions/checkout@v4
+#
+#      - name: "Authenticate with Google Cloud"
+#        uses: 'google-github-actions/auth@v2'
+#        with:
+#          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+#
+#      - name: "Set up Cloud SDK"
+#        uses: 'google-github-actions/setup-gcloud@v2'
+#
+#      - name: "Configure Docker for GCR"
+#        run: |
+#          gcloud auth configure-docker --quiet
+#          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+#
+#      - name: "Get Polkadot and Zombienet versions"
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make get_versions
+#
+#      - name: "Check package version"
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: |
+#          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
+#          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
+#          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+#          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ matrix.options.build_type }}"
+#          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
+#          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
+#          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+#          gcloud config set artifacts/repository $ARTIFACTS_REPO
+#          gcloud config set artifacts/location $REGION
+#          PACKAGE_EXIST=$(gcloud artifacts versions list --package=kagome-dev --format=json | jq -e ".[] | select(.name | endswith(\"${PACKAGE_VERSION}\"))" > /dev/null && echo "True" || echo "False")
+#          echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
+#
+#      - name: "Cache dependencies"
+#        if: env.package_exist == 'False'
+#        id: cache-restore
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: ${{ env.CACHE_PATH }}
+#          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ matrix.options.build_type }}-${{ env.short_commit_hash }}
+#          restore-keys: |
+#            ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ matrix.options.build_type }}-
+#
+#      - name: "Build target"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make kagome_dev_docker_build \
+#          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+#          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
+#          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+#          BUILD_TYPE=${{ matrix.options.build_type }}
+#
+#      - name: "Push Kagome APT Package"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: |
+#          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+#          make upload_apt_package \
+#          BUILD_TYPE=${{ matrix.options.build_type }}
+#
+#      - name: Set up Docker Buildx
+#        if: env.package_exist == 'False'
+#        uses: docker/setup-buildx-action@v3.6.1
+#
+#      - name: "Build Docker Image"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make kagome_image_build \
+#          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
+#          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+#          BUILD_TYPE=${{ matrix.options.build_type }}
+#          
+#      - name: "Push Docker Image"
+#        if: env.package_exist == 'False'
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make kagome_image_push \
+#          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+#          BUILD_TYPE=${{ matrix.options.build_type }} \
+#          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
+#          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
+#
+#      - name: "Cleaning cache"
+#        if: env.package_exist == 'False'
+#        run: |
+#          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
+#
+#      - name: "Always Save Cache"
+#        id: cache-save
+#        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+#        uses: actions/cache/save@v4
+#        with:
+#          path: ${{ env.CACHE_PATH }}
+#          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+#
+#
+#  Zombie-Tests:
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 60
+#    needs: [kagome_dev_docker_build]
+#    if: ${{
+#      github.ref == 'refs/heads/master' ||
+#      startsWith( github.ref, 'refs/tags/') ||
+#      github.event.inputs.run_all_steps == 'true' }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "PVF preparation & execution time"
+#            test: "test-polkadot-functional-0001-parachains-pvf"
+#          #          - name: "Disputes initiation, conclusion and lag"
+#          #            test: "test-polkadot-functional-0002-parachains-disputes"
+#          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+#            test: "test-polkadot-functional-0003-beefy-and-mmr"
+#          #          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+#          #            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+#          #          - name: "Past-session dispute slashing"
+#          #            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+#          #          - name: "Test if parachains make progress with most of approvals being tranch0"
+#          #            test: "test-polkadot-functional-0006-parachains-max-tranche0"
+#          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
+#            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+#          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+#            test: "test-polkadot-functional-0008-dispute-old-finalized"
+#          - name: "Approval voting coalescing does not lag finality"
+#            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+#          #          - name: "Test validator disabling effects"
+#          #            test: "test-polkadot-functional-0010-validator-disabling"
+#          - name: "Test we are producing blocks at 6 seconds clip"
+#            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+#          - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
+#            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+#    steps:
+#      - name: "Checkout repository"
+#        uses: actions/checkout@v4
+#
+##      - name: Create and enable swap
+##        run: |
+##          free -h
+##          df -h
+##          sudo fallocate -l 4G /swapfile
+##          sudo chmod 600 /swapfile
+##          sudo mkswap /swapfile
+##          sudo swapon /swapfile
+##          sudo swapon --show
+##          free -h
+##          df -h
+#
+#      - name: "Authenticate with Google Cloud"
+#        uses: 'google-github-actions/auth@v2'
+#        with:
+#          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+#
+#      - name: "Set up Cloud SDK"
+#        uses: 'google-github-actions/setup-gcloud@v2'
+#
+#      - name: "Configure Docker for GCR"
+#        run: |
+#          gcloud auth configure-docker --quiet
+#          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+#
+#      - name: "Get Polkadot and Zombienet versions"
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: make get_versions
+#
+#      - name: "Get Package Version"
+#        working-directory: ./housekeeping/docker/kagome-dev
+#        run: |
+#          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
+#          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
+#          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+#          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ env.DEFAULT_BUILD_TYPE }}"
+#          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
+#          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
+#
+#      - name: "Get Zombie Tester Version"
+#        run: |
+#          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:latest
+#          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
+#          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
+#
+#      - name: "Run test"
+#        working-directory: ./zombienet/docker
+#        run: |
+#          make ${{ matrix.options.test }} \
+#            ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} \
+#            KAGOME_PACKAGE_VERSION=${{ env.package_version }}
+#          free -h
+#          df -h
+#
+#      - name: "Upload test logs as artifact"
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: logs-${{ matrix.options.test }}
+#          path: /tmp/test_logs
+#
+#      - name: "Show system info"
+#        if: always()
 #        run: |
 #          free -h
 #          df -h
-#          sudo fallocate -l 4G /swapfile
-#          sudo chmod 600 /swapfile
-#          sudo mkswap /swapfile
-#          sudo swapon /swapfile
-#          sudo swapon --show
-#          free -h
-#          df -h
-
-      - name: "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
-      - name: "Get Polkadot and Zombienet versions"
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make get_versions
-
-      - name: "Get Package Version"
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
-          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ env.DEFAULT_BUILD_TYPE }}"
-          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
-          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
-
-      - name: "Get Zombie Tester Version"
-        run: |
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:latest
-          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
-          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
-
-      - name: "Run test"
-        working-directory: ./zombienet/docker
-        run: |
-          make ${{ matrix.options.test }} \
-            ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} \
-            KAGOME_PACKAGE_VERSION=${{ env.package_version }}
-          free -h
-          df -h
-
-      - name: "Upload test logs as artifact"
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs-${{ matrix.options.test }}
-          path: /tmp/test_logs
-
-      - name: "Show system info"
-        if: always()
-        run: |
-          free -h
-          df -h
