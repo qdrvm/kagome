@@ -50,22 +50,18 @@ jobs:
   MacOS:
     runs-on: macos-14
     timeout-minutes: 120
+    env:
+      GITHUB_RUNNER: true
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: install
-      run: ./housekeeping/macos/dependency.sh
-      env:
-        KAGOME_MAC_CI: 1
-    - name: build
-      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
-      env:
-        KAGOME_IN_DOCKER: 0
-        KAGOME_MAC_CI: 1
-        
+    - name: Install Dependencies
+      run: make macos_install_deps
+    - name: Build Kagome
+      run: make macos_build
         
   Linux:
     if: false # Need to fix
@@ -157,7 +153,7 @@ jobs:
 
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
-    name: "Self-hosted: Linux: gcc-12 coverage/sonar"
+    name: "Self-hosted: Linux: gcc-12 coverage"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
@@ -180,51 +176,13 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-      - if: ${{ 
-          github.event_name != 'pull_request' || 
-          github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: ${{ github.ref }}
-        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
-
-  Minideb:
-    if: ${{ 
-      !(github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/' )) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Minideb: Build Debug"
-            build-type: "Debug"
-          - name: "Minideb: Build Release"
-            build-type: "Release"
-    name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: "${{ matrix.options.name }}"
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
 
   kagome_dev_docker_build:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 180
     if: ${{ 
       github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/') || 
-      contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }} || 
+      startsWith( github.ref, 'refs/tags/') }} || 
       github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false

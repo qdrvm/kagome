@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# TODO(zak): #2185 / Need update or delete
+
 readonly DIR=$( cd $(dirname $0)/.. ; pwd -P )
 INDOCKER_IMAGE="${INDOCKER_IMAGE:?INDOCKER_IMAGE variable is not defined}"
 CI_ENV=$(env | awk -F= -v key='^(BRANCH_|BUILD_|HUDSON_|JENKINS_|JOB_|CHANGE_|TRAVIS_|GITHUB_)' '$1 ~ key {print "-e " $1}')
@@ -28,6 +30,5 @@ docker run -i --rm \
    -w /workdir \
    -e CTEST_OUTPUT_ON_FAILURE \
    -e CODECOV_TOKEN \
-   -e SONAR_TOKEN \
    $CI_ENV \
    soramitsu/kagome:local-dev

@@ -26,7 +26,7 @@ env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
 
 jobs:
-  build_polkadot_builder:
+  build_kagome_builder:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -56,13 +56,13 @@ jobs:
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
           echo "kagome_builder_deb=KAGOME_BUILDER_DEB_IMAGE" >> GITHUB_OUTPUT
 
-      - name: "Build Polkadot Builder"
+      - name: "Build Kagome Builder"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: make kagome_builder_deb \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
 
-      - name: "Push Polkadot Builder"
+      - name: "Push Kagome Builder"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: make kagome_builder_deb_push \

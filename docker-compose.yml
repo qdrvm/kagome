@@ -10,6 +10,7 @@ version: '3'
 # - docker-compose up -d
 # - docker-compose exec dev bash
 
+# TODO(zak): #2185 / need update
 services:
   dev:
     image: qdrvm/kagome-dev:minideb
