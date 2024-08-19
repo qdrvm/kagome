@@ -350,10 +350,15 @@ namespace kagome::parachain {
 
     if (not is_possible_to_collect_systematic_chunks) {
       active.systematic_chunk_failed = true;
-      SL_TRACE(logger_,
-               "Data recovery from systematic chunks is not possible. "
-               "(candidate={})",
-               candidate_hash);
+      SL_TRACE(
+          logger_,
+          "Data recovery from systematic chunks is not possible. "
+          "(candidate={} collected={} requested={} in-queue={} required={})",
+          candidate_hash,
+          systematic_chunk_count,
+          active.chunks_active,
+          active.order.size(),
+          active.chunks_required);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
       return regular_chunks_recovery_prepare(candidate_hash);
@@ -380,10 +385,15 @@ namespace kagome::parachain {
     // No active request anymore for systematic chunks recovery
     if (active.chunks_active == 0) {
       active.systematic_chunk_failed = true;
-      SL_TRACE(logger_,
-               "Data recovery from systematic chunks is not possible. "
-               "(candidate={})",
-               candidate_hash);
+      SL_TRACE(
+          logger_,
+          "Data recovery from systematic chunks is not possible. "
+          "(candidate={} collected={} requested={} in-queue={} required={})",
+          candidate_hash,
+          systematic_chunk_count,
+          active.chunks_active,
+          active.order.size(),
+          active.chunks_required);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
       return regular_chunks_recovery_prepare(candidate_hash);
@@ -483,10 +493,14 @@ namespace kagome::parachain {
       return regular_chunks_recovery(candidate_hash);
     }
 
-    SL_DEBUG(logger_,
+    SL_TRACE(logger_,
              "Data recovery from chunks is not possible. "
-             "(candidate={})",
-             candidate_hash);
+             "(candidate={} collected={} requested={} in-queue={} required={})",
+             candidate_hash,
+             active.chunks.size(),
+             active.chunks_active,
+             active.order.size(),
+             active.chunks_required);
     incFullRecoveriesFinished("regular_chunks", "failure");
     return done(lock, it, std::nullopt);
   }
@@ -542,10 +556,15 @@ namespace kagome::parachain {
         >= active.chunks_required;
 
     if (not is_possible_to_collect_required_chunks) {
-      SL_DEBUG(logger_,
-               "Data recovery from chunks is not possible. "
-               "(candidate={})",
-               candidate_hash);
+      SL_TRACE(
+          logger_,
+          "Data recovery from chunks is not possible. "
+          "(candidate={} collected={} requested={} in-queue={} required={})",
+          candidate_hash,
+          active.chunks.size(),
+          active.chunks_active,
+          active.order.size(),
+          active.chunks_required);
       incFullRecoveriesFinished("regular_chunks", "failure");
       return done(lock, it, std::nullopt);
     }
@@ -569,6 +588,16 @@ namespace kagome::parachain {
 
     // No active request anymore for regular chunks recovery
     if (active.chunks_active == 0) {
+      SL_TRACE(
+          logger_,
+          "Data recovery from chunks is not possible. "
+          "(candidate={} collected={} requested={} in-queue={} required={})",
+          candidate_hash,
+          active.chunks.size(),
+          active.chunks_active,
+          active.order.size(),
+          active.chunks_required);
+      incFullRecoveriesFinished("regular_chunks", "failure");
       return done(lock, it, std::nullopt);
     }
   }
