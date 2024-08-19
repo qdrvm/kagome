@@ -58,6 +58,8 @@ namespace kagome::parachain::fragment {
 
   struct CandidateEntry {
     CandidateHash candidate_hash;
+    Hash parent_head_data_hash;
+    Hash output_head_data_hash;
     RelayHash relay_parent;
     ProspectiveCandidate candidate;
     CandidateState state;

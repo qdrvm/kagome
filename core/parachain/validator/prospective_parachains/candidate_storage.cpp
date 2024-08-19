@@ -51,6 +51,8 @@ namespace kagome::parachain::fragment {
          CandidateEntry{
              .candidate_hash = candidate_hash,
              .relay_parent = candidate.descriptor.relay_parent,
+             .parent_head_data_hash = parent_head_hash,
+             .output_head_data_hash = output_head_hash,
              .candidate =
                  ProspectiveCandidate{
                      .commitments = candidate.commitments,
@@ -85,12 +87,12 @@ namespace kagome::parachain::fragment {
   }
 
   bool CandidateStorage::contains(const CandidateHash &candidate_hash) const {
-    return by_candidate_hash.find(candidate_hash) != by_candidate_hash.end();
+    return by_candidate_hash.contains(candidate_hash);
   }
 
   template <typename F>
-  void CandidateStorage::iterParaChildren(const Hash &parent_head_hash,
-                                          F &&func) const {
+  void CandidateStorage::possibleParaChildren(const Hash &parent_head_hash,
+                                              F &&func) const {
     if (auto it = by_parent_head.find(parent_head_hash);
         it != by_parent_head.end()) {
       for (const auto &h : it->second) {
@@ -127,17 +129,20 @@ namespace kagome::parachain::fragment {
   void CandidateStorage::removeCandidate(
       const CandidateHash &candidate_hash,
       const std::shared_ptr<crypto::Hasher> &hasher) {
-    if (auto it = by_candidate_hash.find(candidate_hash);
-        it != by_candidate_hash.end()) {
-      const auto parent_head_hash = hasher->blake2b_256(
-          it->second.candidate.persisted_validation_data.parent_head);
-      if (auto it_bph = by_parent_head.find(parent_head_hash);
-          it_bph != by_parent_head.end()) {
-        it_bph->second.erase(candidate_hash);
-        if (it_bph->second.empty()) {
-          by_parent_head.erase(it_bph);
+    auto do_remove = [&](HashMap<Hash, HashSet<CandidateHash>> &container,
+                         const Hash &target) {
+      if (auto it_ = container.find(target); it_ != container.end()) {
+        it_->second.erase(candidate_hash);
+        if (it_->second.empty()) {
+          container.erase(it_);
         }
       }
+    };
+
+    auto it = by_candidate_hash.find(candidate_hash);
+    if (it != by_candidate_hash.end()) {
+      do_remove(by_parent_head, it->second.parent_head_data_hash);
+      do_remove(by_output_head, it->second.output_head_data_hash);
       by_candidate_hash.erase(it);
     }
   }
@@ -152,37 +157,27 @@ namespace kagome::parachain::fragment {
       }
     }
 
-    for (auto it = by_parent_head.begin(); it != by_parent_head.end();) {
-      auto &[_, children] = *it;
-      for (auto it_c = children.begin(); it_c != children.end();) {
-        if (pred(*it_c)) {
-          ++it_c;
+    auto do_remove = [&](HashMap<Hash, HashSet<CandidateHash>> &container) {
+      auto it = container.begin();
+      for (; it != container.end();) {
+        auto &[_, c] = *it;
+        for (auto it_c = c.begin(); it_c != c.end();) {
+          if (pred(*it_c)) {
+            ++it_c;
+          } else {
+            it_c = c.erase(it_c);
+          }
+        }
+        if (c.empty()) {
+          it = container.erase(it);
         } else {
-          it_c = children.erase(it_c);
+          ++it;
         }
       }
-      if (children.empty()) {
-        it = by_parent_head.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    };
 
-    for (auto it = by_output_head.begin(); it != by_output_head.end();) {
-      auto &[_, candidates] = *it;
-      for (auto it_c = candidates.begin(); it_c != candidates.end();) {
-        if (pred(*it_c)) {
-          ++it_c;
-        } else {
-          it_c = candidates.erase(it_c);
-        }
-      }
-      if (candidates.empty()) {
-        it = by_output_head.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    do_remove(by_parent_head);
+    do_remove(by_output_head);
   }
 
   void CandidateStorage::markSeconded(const CandidateHash &candidate_hash) {
@@ -202,8 +197,9 @@ namespace kagome::parachain::fragment {
   }
 
   bool CandidateStorage::isBacked(const CandidateHash &candidate_hash) const {
-    return by_candidate_hash.count(candidate_hash) > 0
-        && by_candidate_hash.at(candidate_hash).state == CandidateState::Backed;
+    auto it = by_candidate_hash.find(candidate_hash);
+    return it != by_candidate_hash.end()
+        && it->second.state == CandidateState::Backed;
   }
 
   std::pair<size_t, size_t> CandidateStorage::len() const {
