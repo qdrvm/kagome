@@ -9,6 +9,7 @@
 #include <jsonrpc-lean/request.h>
 
 #include "api/service/author/author_api.hpp"
+#include "api/service/base_request.hpp"
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::api::author::request {

@@ -11,6 +11,8 @@
 #include <optional>
 #include <type_traits>
 
+#include <boost/type_traits.hpp>
+
 namespace kagome::utils {
 
   template <typename T, typename F>
