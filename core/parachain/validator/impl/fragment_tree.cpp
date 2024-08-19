@@ -99,7 +99,7 @@ namespace kagome::parachain::fragment {
                            crypto::Blake2b_StreamHasher<32>>
           &persisted_validation_data,
       const std::shared_ptr<crypto::Hasher> &hasher) {
-    if (by_candidate_hash.find(candidate_hash) != by_candidate_hash.end()) {
+    if (by_candidate_hash.contains(candidate_hash)) {
       return Error::CANDIDATE_ALREADY_KNOWN;
     }
 
