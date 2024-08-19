@@ -310,14 +310,31 @@ namespace kagome::parachain {
           fromSystematicChunks(active.validators.size(), active.chunks);
       [[unlikely]] if (data_res.has_error()) {
         active.systematic_chunk_failed = true;
+        SL_DEBUG(logger_,
+                 "Systematic data recovery error "
+                 "(candidate={}, erasure_root={}): {}",
+                 candidate_hash,
+                 active.erasure_encoding_root,
+                 data_res.error());
         incFullRecoveriesFinished("systematic_chunks", "invalid");
       } else {
         auto &data = data_res.value();
         auto res = check(active, data);
         [[unlikely]] if (res.has_error()) {
           active.systematic_chunk_failed = true;
+          SL_DEBUG(logger_,
+                   "Systematic data recovery error "
+                   "(candidate={}, erasure_root={}): {}",
+                   candidate_hash,
+                   active.erasure_encoding_root,
+                   res.error());
           incFullRecoveriesFinished("systematic_chunks", "invalid");
         } else {
+          SL_TRACE(logger_,
+                   "Data recovery from systematic chunks complete. "
+                   "(candidate={}, erasure_root={})",
+                   candidate_hash,
+                   active.erasure_encoding_root);
           incFullRecoveriesFinished("systematic_chunks", "success");
           return done(lock, it, data);
         }
@@ -333,6 +350,10 @@ namespace kagome::parachain {
 
     if (not is_possible_to_collect_systematic_chunks) {
       active.systematic_chunk_failed = true;
+      SL_TRACE(logger_,
+               "Data recovery from systematic chunks is not possible. "
+               "(candidate={})",
+               candidate_hash);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
       return regular_chunks_recovery_prepare(candidate_hash);
@@ -359,6 +380,10 @@ namespace kagome::parachain {
     // No active request anymore for systematic chunks recovery
     if (active.chunks_active == 0) {
       active.systematic_chunk_failed = true;
+      SL_TRACE(logger_,
+               "Data recovery from systematic chunks is not possible. "
+               "(candidate={})",
+               candidate_hash);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
       return regular_chunks_recovery_prepare(candidate_hash);
@@ -391,15 +416,32 @@ namespace kagome::parachain {
       auto data_res = fromChunks(active.chunks_total, active.chunks);
       [[unlikely]] if (data_res.has_error()) {
         active.systematic_chunk_failed = true;
+        SL_DEBUG(logger_,
+                 "Data recovery error "
+                 "(candidate={}, erasure_root={}): {}",
+                 candidate_hash,
+                 active.erasure_encoding_root,
+                 data_res.error());
         incFullRecoveriesFinished("regular_chunks", "invalid");
       } else {
         auto &data = data_res.value();
         auto res = check(active, data);
         [[unlikely]] if (res.has_error()) {
           active.systematic_chunk_failed = true;
+          SL_DEBUG(logger_,
+                   "Data recovery error "
+                   "(candidate={}, erasure_root={}): {}",
+                   candidate_hash,
+                   active.erasure_encoding_root,
+                   res.error());
           incFullRecoveriesFinished("regular_chunks", "invalid");
           data_res = res.as_failure();
         } else {
+          SL_TRACE(logger_,
+                   "Data recovery from chunks complete. "
+                   "(candidate={}, erasure_root={})",
+                   candidate_hash,
+                   active.erasure_encoding_root);
           incFullRecoveriesFinished("regular_chunks", "success");
         }
       }
@@ -441,6 +483,11 @@ namespace kagome::parachain {
       return regular_chunks_recovery(candidate_hash);
     }
 
+    SL_DEBUG(logger_,
+             "Data recovery from chunks is not possible. "
+             "(candidate={})",
+             candidate_hash);
+    incFullRecoveriesFinished("regular_chunks", "failure");
     return done(lock, it, std::nullopt);
   }
 
@@ -458,14 +505,31 @@ namespace kagome::parachain {
     if (active.chunks.size() >= active.chunks_required) {
       auto data_res = fromChunks(active.chunks_total, active.chunks);
       [[unlikely]] if (data_res.has_error()) {
+        SL_DEBUG(logger_,
+                 "Data recovery error "
+                 "(candidate={}, erasure_root={}): {}",
+                 candidate_hash,
+                 active.erasure_encoding_root,
+                 data_res.error());
         incFullRecoveriesFinished("regular_chunks", "invalid");
       } else {
         auto &data = data_res.value();
         auto res = check(active, data);
         [[unlikely]] if (res.has_error()) {
+          SL_DEBUG(logger_,
+                   "Data recovery error "
+                   "(candidate={}, erasure_root={}): {}",
+                   candidate_hash,
+                   active.erasure_encoding_root,
+                   res.error());
           incFullRecoveriesFinished("regular_chunks", "invalid");
           data_res = res.as_failure();
         } else {
+          SL_TRACE(logger_,
+                   "Data recovery from chunks complete. "
+                   "(candidate={}, erasure_root={})",
+                   candidate_hash,
+                   active.erasure_encoding_root);
           incFullRecoveriesFinished("regular_chunks", "success");
         }
       }
@@ -478,6 +542,10 @@ namespace kagome::parachain {
         >= active.chunks_required;
 
     if (not is_possible_to_collect_required_chunks) {
+      SL_DEBUG(logger_,
+               "Data recovery from chunks is not possible. "
+               "(candidate={})",
+               candidate_hash);
       incFullRecoveriesFinished("regular_chunks", "failure");
       return done(lock, it, std::nullopt);
     }
