@@ -145,8 +145,8 @@ namespace kagome::dispute {
         request.candidate_receipt.descriptor.relay_parent, request.session);
 
     auto ctx = std::make_shared<ParticipationContext>(ParticipationContext{
-        .request = std::move(request),
-        .block_hash = std::move(block_hash),
+        .request = request,
+        .block_hash = block_hash,
         .group_index = info.has_value() ? info.value().validator_info.our_group
                                         : std::nullopt});
 
