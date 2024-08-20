@@ -6,10 +6,10 @@
 
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
+#include <scale/scale.hpp>
+#include <scale/scale_decoder_stream.hpp>
 #include "crypto/blake2/blake2b.h"
 #include "log/logger.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_decoder_stream.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {

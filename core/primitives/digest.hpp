@@ -8,6 +8,7 @@
 
 #include <boost/variant.hpp>
 
+#include <scale/scale.hpp>
 #include "common/buffer.hpp"
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
@@ -17,7 +18,6 @@
 #include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
-#include "scale/scale.hpp"
 #include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
 

@@ -6,8 +6,7 @@
 #include "network/adapters/protobuf_state_request.hpp"
 
 #include <gmock/gmock.h>
-
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::ProtobufMessageAdapter;
 using kagome::network::StateRequest;
@@ -19,10 +18,9 @@ struct ProtobufStateRequestAdapterTest : public ::testing::Test {
   using AdapterType = ProtobufMessageAdapter<StateRequest>;
 
   void SetUp() {
-    EXPECT_OUTCOME_TRUE(
-        hash_from,
-        BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
-                           "c7d43b127ec35cd8325602dd47fd"));
+    auto hash_from =
+        EXPECT_OK(BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
+                                     "c7d43b127ec35cd8325602dd47fd"));
     request.hash = hash_from;
     request.start = {Buffer::fromString("bua"), Buffer::fromString("b")};
     request.no_proof = true;
@@ -43,7 +41,7 @@ TEST_F(ProtobufStateRequestAdapterTest, Serialization) {
 
   AdapterType::write(request, data, data.end());
   StateRequest r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  auto it_read = EXPECT_OK(AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
   ASSERT_EQ(r2.hash, request.hash);

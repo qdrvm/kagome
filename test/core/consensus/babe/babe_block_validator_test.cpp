@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -17,7 +18,6 @@
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "testutil/lazy.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 
@@ -213,7 +213,7 @@ TEST_F(BabeBlockValidatorTest, Success) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   auto validate_res = block_validator->validateHeader(valid_block_.header);
-  EXPECT_OUTCOME_TRUE_1(validate_res);
+  EXPECT_OK(validate_res);
 }
 
 /**
@@ -226,9 +226,8 @@ TEST_F(BabeBlockValidatorTest, LessDigestsThanNeeded) {
   authorities.emplace_back(authority);
 
   // for this test we can just not seal the block - it's the second digest
-  EXPECT_OUTCOME_FALSE(err,
-                       block_validator->validateHeader(valid_block_.header));
-  ASSERT_EQ(err, DigestError::REQUIRED_DIGESTS_NOT_FOUND);
+  EXPECT_EC(block_validator->validateHeader(valid_block_.header),
+            DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**
@@ -254,9 +253,8 @@ TEST_F(BabeBlockValidatorTest, NoBabeHeader) {
   authorities.emplace_back();
   authorities.emplace_back(Authority{pubkey, 42});
 
-  EXPECT_OUTCOME_FALSE(err,
-                       block_validator->validateHeader(valid_block_.header));
-  ASSERT_EQ(err, DigestError::REQUIRED_DIGESTS_NOT_FOUND);
+  EXPECT_EC(block_validator->validateHeader(valid_block_.header),
+            DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**
@@ -285,9 +283,8 @@ TEST_F(BabeBlockValidatorTest, SignatureVerificationFail) {
   EXPECT_CALL(*sr25519_provider, verify(_, _, _)).WillOnce(Return(false));
 
   // WHEN-THEN
-  EXPECT_OUTCOME_FALSE(err,
-                       block_validator->validateHeader(valid_block_.header));
-  ASSERT_EQ(err, ValidatingError::INVALID_SIGNATURE);
+  EXPECT_EC(block_validator->validateHeader(valid_block_.header),
+            ValidatingError::INVALID_SIGNATURE);
 }
 
 /**
@@ -320,9 +317,8 @@ TEST_F(BabeBlockValidatorTest, VRFFail) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(err,
-                       block_validator->validateHeader(valid_block_.header));
-  ASSERT_EQ(err, ValidatingError::INVALID_VRF);
+  EXPECT_EC(block_validator->validateHeader(valid_block_.header),
+            ValidatingError::INVALID_VRF);
 }
 
 /**
@@ -359,7 +355,6 @@ TEST_F(BabeBlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(err,
-                       block_validator->validateHeader(valid_block_.header));
-  ASSERT_EQ(err, ValidatingError::INVALID_VRF);
+  EXPECT_EC(block_validator->validateHeader(valid_block_.header),
+            ValidatingError::INVALID_VRF);
 }

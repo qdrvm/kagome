@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include <boost/algorithm/string/join.hpp>
 #include "common/blob.hpp"
@@ -13,7 +14,6 @@
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -53,14 +53,13 @@ struct Bip39EntropyTest : public ::testing::Test {
  * @then entropy and seed come up with predefined values
  */
 TEST_F(Bip39EntropyTest, DecodeSuccess) {
-  EXPECT_OUTCOME_TRUE(mnemonic, Mnemonic::parse(phrase));
+  auto mnemonic = EXPECT_OK(Mnemonic::parse(phrase));
   auto joined_words = boost::algorithm::join(*mnemonic.words(), " ");
   ASSERT_EQ(joined_words, phrase);
 
-  EXPECT_OUTCOME_TRUE(entropy,
-                      bip39_provider->calculateEntropy(*mnemonic.words()));
+  auto entropy = EXPECT_OK(bip39_provider->calculateEntropy(*mnemonic.words()));
   ASSERT_EQ(common::Buffer(entropy).toHex(), entropy_hex);
 
-  EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
+  auto seed = EXPECT_OK(bip39_provider->makeSeed(entropy, "Substrate"));
   ASSERT_EQ(seed, common::unhex(seed_hex).value());
 }

@@ -11,9 +11,9 @@
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include <scale/scale.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::offchain {
 

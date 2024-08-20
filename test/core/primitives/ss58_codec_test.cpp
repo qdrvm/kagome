@@ -5,10 +5,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "primitives/ss58_codec.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::crypto::HasherImpl;
 
@@ -23,7 +23,6 @@ class Ss58Codec : public testing::Test {
 };
 
 TEST_F(Ss58Codec, EncodeSs58) {
-  EXPECT_OUTCOME_SUCCESS(
-      decoded,
+  EXPECT_OK(
       decodeSs58("cnRbTBxzRs4zmzJiqWkuBLMGCkkcq3FidZMvsj7kPgCfvGSsY", hasher_));
 }

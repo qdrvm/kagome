@@ -13,6 +13,7 @@
 #include <boost/assert.hpp>
 #include <span>
 
+#include <scale/scale.hpp>
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -23,7 +24,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/scale.hpp"
 
 namespace {
   template <typename Format, typename... Args>

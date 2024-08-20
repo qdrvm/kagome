@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core_api_factory_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/heap_alloc_strategy_heappages.hpp"

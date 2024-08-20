@@ -17,7 +17,6 @@
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 

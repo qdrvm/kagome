@@ -7,6 +7,7 @@
 #ifndef KAGOME_KAGOME_SCALE_HPP
 #define KAGOME_KAGOME_SCALE_HPP
 
+#include <scale/encode_append.hpp>
 #include <span>
 #include <type_traits>
 #include "common/blob.hpp"
@@ -19,7 +20,6 @@
 #include "primitives/justification.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/big_fixed_integers.hpp"
-#include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 
 namespace kagome::scale {

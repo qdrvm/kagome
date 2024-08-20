@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 #include <qtils/unhex.hpp>
 
 #include "api/service/state/impl/state_api_impl.hpp"
@@ -25,7 +26,6 @@
 #include "runtime/runtime_context.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::ApiServiceMock;
 using kagome::api::StateApiMock;
@@ -109,13 +109,13 @@ namespace kagome::api {
         }));
 
     auto key = "a"_buf;
-    EXPECT_OUTCOME_TRUE(r, api_->getStorage(key.view()))
+    auto r = EXPECT_OK(api_->getStorage(key.view()));
     ASSERT_EQ(r.value(), "1"_buf);
 
     EXPECT_CALL(*block_header_repo_, getBlockHeader("B"_hash256))
         .WillOnce(testing::Return(makeBlockHeaderOfStateRoot("ABC"_hash256)));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt(key.view(), "B"_hash256));
+    auto r1 = EXPECT_OK(api_->getStorageAt(key.view(), "B"_hash256));
     ASSERT_EQ(r1.value(), "1"_buf);
   }
 
@@ -186,8 +186,8 @@ namespace kagome::api {
    * @then expected amount of keys from beginning of cursor are returned
    */
   TEST_F(GetKeysPagedTest, EmptyParamsTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged(std::nullopt, 2, std::nullopt, std::nullopt));
+    auto val = EXPECT_OK(
+        api_->getKeysPaged(std::nullopt, 2, std::nullopt, std::nullopt));
     ASSERT_THAT(val, ElementsAre("0102"_hex2buf, "0103"_hex2buf));
   }
 
@@ -197,8 +197,8 @@ namespace kagome::api {
    * @then expected amount of keys with provided prefix are returned
    */
   TEST_F(GetKeysPagedTest, NonEmptyPrefixTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("0607"_hex2buf, 3, std::nullopt, std::nullopt));
+    auto val = EXPECT_OK(
+        api_->getKeysPaged("0607"_hex2buf, 3, std::nullopt, std::nullopt));
     ASSERT_THAT(
         val, ElementsAre("0607"_hex2buf, "060708"_hex2buf, "06070801"_hex2buf));
   }
@@ -209,8 +209,8 @@ namespace kagome::api {
    * @then exepected amount of keys after provided prev_key are returned
    */
   TEST_F(GetKeysPagedTest, NonEmptyPrevKeyTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("06"_hex2buf, 3, "0607"_hex2buf, std::nullopt));
+    auto val = EXPECT_OK(
+        api_->getKeysPaged("06"_hex2buf, 3, "0607"_hex2buf, std::nullopt));
     ASSERT_THAT(
         val,
         ElementsAre("060708"_hex2buf, "06070801"_hex2buf, "06070802"_hex2buf));
@@ -224,8 +224,7 @@ namespace kagome::api {
    * returned
    */
   TEST_F(GetKeysPagedTest, PrefixBiggerThanPrevkey) {
-    EXPECT_OUTCOME_TRUE(
-        val,
+    auto val = EXPECT_OK(
         api_->getKeysPaged("060708"_hex2buf, 5, "06"_hex2buf, std::nullopt));
     ASSERT_THAT(val,
                 ElementsAre("060708"_hex2buf,
@@ -253,7 +252,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(test_version));
 
     {
-      EXPECT_OUTCOME_TRUE(result, api_->getRuntimeVersion(std::nullopt));
+      auto result = EXPECT_OK(api_->getRuntimeVersion(std::nullopt));
       ASSERT_EQ(result, test_version);
     }
 
@@ -262,7 +261,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(test_version));
 
     {
-      EXPECT_OUTCOME_TRUE(result, api_->getRuntimeVersion("T"_hash256));
+      auto result = EXPECT_OK(api_->getRuntimeVersion("T"_hash256));
       ASSERT_EQ(result, test_version);
     }
   }
@@ -290,8 +289,8 @@ namespace kagome::api {
         jsonrpc::Value::Array{std::string("0x") + keys[0].toHex(),
                               std::string("0x") + keys[1].toHex()});
 
-    EXPECT_OUTCOME_SUCCESS(r, subscribe_storage->init(params));
-    EXPECT_OUTCOME_TRUE(result, subscribe_storage->execute());
+    EXPECT_OK(subscribe_storage->init(params));
+    auto result = EXPECT_OK(subscribe_storage->execute());
     ASSERT_EQ(result, 55);
   }
 
@@ -308,9 +307,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("test_data")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         qtils::UnhexError::REQUIRED_0X);
+    EXPECT_EC(subscribe_storage->init(params), qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -326,9 +323,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("aa1122334455")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         qtils::UnhexError::REQUIRED_0X);
+    EXPECT_EC(subscribe_storage->init(params), qtils::UnhexError::REQUIRED_0X);
   }
 
   /**
@@ -344,8 +339,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("0xtestdata")});
 
-    EXPECT_OUTCOME_ERROR(
-        result, subscribe_storage->init(params), qtils::UnhexError::NON_HEX);
+    EXPECT_EC(subscribe_storage->init(params), qtils::UnhexError::NON_HEX);
   }
 
   /**
@@ -363,8 +357,8 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     EXPECT_CALL(*state_api, getMetadata()).WillOnce(testing::Return(data));
 
-    EXPECT_OUTCOME_SUCCESS(r, get_metadata->init(params));
-    EXPECT_OUTCOME_TRUE(result, get_metadata->execute());
+    EXPECT_OK(get_metadata->init(params));
+    auto result = EXPECT_OK(get_metadata->execute());
     ASSERT_EQ(result, data);
   }
 
@@ -410,7 +404,7 @@ namespace kagome::api {
           }));
     }
     // WHEN
-    EXPECT_OUTCOME_TRUE(changes, api_->queryStorage(keys, from, to))
+    auto changes = EXPECT_OK(api_->queryStorage(keys, from, to));
 
     // THEN
     auto current_block = block_range.begin();
@@ -435,9 +429,8 @@ namespace kagome::api {
         .WillOnce(Return(42));
     EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
-    EXPECT_OUTCOME_FALSE(
-        error, api_->queryStorage(std::vector({"some_key"_buf}), from, to));
-    ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
+    EXPECT_EC(api_->queryStorage(std::vector({"some_key"_buf}), from, to),
+              StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 
   /**
@@ -448,8 +441,8 @@ namespace kagome::api {
   TEST_F(StateApiTest, HitsKeyRangeLimits) {
     std::vector<common::Buffer> keys(StateApiImpl::kMaxKeySetSize + 1);
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
-    EXPECT_OUTCOME_FALSE(error, api_->queryStorage(keys, from, to));
-    ASSERT_EQ(error, StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
+    EXPECT_EC(api_->queryStorage(keys, from, to),
+              StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
   }
 
   /**
@@ -480,7 +473,7 @@ namespace kagome::api {
         }));
 
     // WHEN
-    EXPECT_OUTCOME_TRUE(changes, api_->queryStorageAt(keys, at))
+    auto changes = EXPECT_OK(api_->queryStorageAt(keys, at));
 
     // THEN
     ASSERT_EQ(changes.size(), 1);
@@ -503,7 +496,7 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, unsubscribeSessionFromIds(subscription_id))
         .WillOnce(Return(expected_return));
 
-    ASSERT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
+    auto result = EXPECT_OK(api_->unsubscribeStorage(subscription_id));
     ASSERT_EQ(expected_return, result);
   }
 
@@ -518,7 +511,7 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, subscribeRuntimeVersion())
         .WillOnce(Return(expected_return));
 
-    ASSERT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
+    auto result = EXPECT_OK(api_->subscribeRuntimeVersion());
     ASSERT_EQ(expected_return, result);
   }
 
@@ -534,9 +527,8 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, unsubscribeRuntimeVersion(subscription_id))
         .WillOnce(Return(expected_return));
 
-    EXPECT_OUTCOME_ERROR(result,
-                         api_->unsubscribeRuntimeVersion(subscription_id),
-                         expected_return);
+    EXPECT_EC(api_->unsubscribeRuntimeVersion(subscription_id),
+              expected_return);
   }
 
 }  // namespace kagome::api

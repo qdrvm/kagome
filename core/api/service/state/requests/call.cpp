@@ -6,7 +6,7 @@
 
 #include "api/service/state/requests/call.hpp"
 
-#include "scale/scale.hpp"
+#include <scale/scale.hpp>
 
 namespace kagome::api::state::request {
 

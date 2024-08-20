@@ -11,6 +11,7 @@
 #include <boost/system/error_code.hpp>
 #include <stdexcept>
 
+#include <scale/scale_decoder_stream.hpp>
 #include "api/service/api_service.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher.hpp"
@@ -20,7 +21,6 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/runtime_api/session_keys_api.hpp"
-#include "scale/scale_decoder_stream.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 

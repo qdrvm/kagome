@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "libp2p/crypto/random_generator/boost_generator.hpp"
+#include <libp2p/crypto/random_generator/boost_generator.hpp>
 
 namespace kagome::crypto {
 

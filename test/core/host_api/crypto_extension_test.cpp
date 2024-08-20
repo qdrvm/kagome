@@ -9,8 +9,9 @@
 #include <algorithm>
 
 #include <gtest/gtest.h>
-#include <span>
+#include <qtils/test/outcome.hpp>
 
+#include <scale/scale.hpp>
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -21,9 +22,7 @@
 #include "mock/core/crypto/key_store_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"
 
@@ -108,8 +107,8 @@ class CryptoExtensionTest : public ::testing::Test {
                                                     hasher_,
                                                     key_store_);
 
-    EXPECT_OUTCOME_TRUE(seed_tmp,
-                        kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
+    auto seed_tmp =
+        EXPECT_OK(kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
     std::copy_n(seed_tmp.begin(), Blob<32>::size(), seed.begin());
 
     // scale-encoded string
@@ -322,7 +321,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   random_generator_->fillRandomly(seed_buf);
   auto seed = Ed25519Seed::from(std::move(seed_buf)).value();
   auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
-  EXPECT_OUTCOME_TRUE(signature, ed25519_provider_->sign(keypair, input));
+  auto signature = EXPECT_OK(ed25519_provider_->sign(keypair, input));
 
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_verify_version_1(

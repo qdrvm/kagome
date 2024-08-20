@@ -4,19 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "babe_config_repository_impl.hpp"
+#include "consensus/babe/impl/babe_config_repository_impl.hpp"
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
-#include "babe.hpp"
-#include "babe_digests_util.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "consensus/babe/impl/babe.hpp"
+#include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
-#include "scale/scale.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"

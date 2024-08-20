@@ -5,13 +5,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
+#include <scale/scale.hpp>
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "primitives/event_types.hpp"
-#include "scale/scale.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
@@ -20,7 +21,6 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::api::Session;
@@ -73,10 +73,10 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
                             [](auto &) { return outcome::success(); }}),
       std::make_shared<TriePrunerMock>());
 
-  EXPECT_OUTCOME_TRUE_1(
+  EXPECT_OK(
       batch->put(":extrinsic_index"_buf, Buffer{scale::encode(42).value()}));
-  EXPECT_OUTCOME_TRUE_1(batch->put("abc"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->put("cde"_buf, "345"_buf));
+  EXPECT_OK(batch->put("abc"_buf, "123"_buf));
+  EXPECT_OK(batch->put("cde"_buf, "345"_buf));
 
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));

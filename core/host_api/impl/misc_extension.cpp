@@ -6,12 +6,12 @@
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include <scale/scale.hpp>
 #include "log/trace_macros.hpp"
 #include "primitives/version.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/runtime_api/core.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::host_api {
 

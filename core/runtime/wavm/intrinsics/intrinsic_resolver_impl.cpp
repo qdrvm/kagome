@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 
 #include <WAVM/IR/Operators.h>
 #include <WAVM/Inline/Serialization.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
 
-#include "intrinsic_module_instance.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 
 namespace kagome::runtime::wavm {
 

@@ -5,10 +5,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "consensus/grandpa/voter_set.hpp"
 #include "core/consensus/grandpa/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::consensus::grandpa::Id;
 using kagome::consensus::grandpa::VoterSet;
@@ -47,14 +47,13 @@ TEST_F(VoterSetTest, AddExistingVoters) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    EXPECT_OK(testee->insert(voter, weight));
   }
 
   for (auto &[voter, weight] : voters) {
     // WHEN+THEN
-    EXPECT_OUTCOME_ERROR(res,
-                         testee->insert(voter, weight),
-                         VoterSet::Error::VOTER_ALREADY_EXISTS);
+    EXPECT_EC(testee->insert(voter, weight),
+              VoterSet::Error::VOTER_ALREADY_EXISTS);
   }
 }
 
@@ -62,7 +61,7 @@ TEST_F(VoterSetTest, GetIndex) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    EXPECT_OK(testee->insert(voter, weight));
   }
 
   for (auto &[voter, weight] : voters) {
@@ -78,7 +77,7 @@ TEST_F(VoterSetTest, GetWeight) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    EXPECT_OK(testee->insert(voter, weight));
   }
 
   size_t index = 0;
@@ -92,8 +91,7 @@ TEST_F(VoterSetTest, GetWeight) {
     }
     {
       // WHEN+THEN.2
-      EXPECT_OUTCOME_SUCCESS(actual_weight_res, testee->voterWeight(index));
-      auto &actual_weight = actual_weight_res.value();
+      auto actual_weight = EXPECT_OK(testee->voterWeight(index));
       EXPECT_EQ(weight, actual_weight);
     }
     ++index;
@@ -105,9 +103,8 @@ TEST_F(VoterSetTest, GetWeight) {
   }
   {
     // WHEN+THEN.4
-    EXPECT_OUTCOME_ERROR(res,
-                         testee->voterWeight(voters.size()),
-                         VoterSet::Error::INDEX_OUTBOUND);
+    EXPECT_EC(testee->voterWeight(voters.size()),
+              VoterSet::Error::INDEX_OUTBOUND);
   }
 }
 
@@ -115,18 +112,17 @@ TEST_F(VoterSetTest, GetVoter) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    EXPECT_OK(testee->insert(voter, weight));
   }
 
   for (size_t index = 0; index < voters.size(); ++index) {
     // WHEN+THEN.1
-    EXPECT_OUTCOME_SUCCESS(voter, testee->voterId(index));
+    EXPECT_OK(testee->voterId(index));
   }
 
   {
     // WHEN+THEN.2
-    EXPECT_OUTCOME_ERROR(
-        res, testee->voterId(voters.size()), VoterSet::Error::INDEX_OUTBOUND);
+    EXPECT_EC(testee->voterId(voters.size()), VoterSet::Error::INDEX_OUTBOUND);
   }
 }
 
@@ -134,7 +130,7 @@ TEST_F(VoterSetTest, GetIndexAndWeight) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    EXPECT_OK(testee->insert(voter, weight));
   }
 
   size_t index = 0;

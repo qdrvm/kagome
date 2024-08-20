@@ -6,8 +6,7 @@
 #include "network/adapters/protobuf_block_request.hpp"
 
 #include <gmock/gmock.h>
-
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::BlockAttribute;
 using kagome::network::BlocksRequest;
@@ -25,10 +24,9 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
     request.direction = Direction::DESCENDING;
     request.fields = toBlockAttribute(0x19);
 
-    EXPECT_OUTCOME_TRUE(
-        hash_from,
-        BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
-                           "c7d43b127ec35cd8325602dd47fd"));
+    auto hash_from =
+        EXPECT_OK(BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
+                                     "c7d43b127ec35cd8325602dd47fd"));
     request.from = hash_from;
   }
 
@@ -47,7 +45,7 @@ TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
 
   AdapterType::write(request, data, data.end());
   BlocksRequest r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  auto it_read = EXPECT_OK(AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
   ASSERT_EQ(r2.max, request.max);

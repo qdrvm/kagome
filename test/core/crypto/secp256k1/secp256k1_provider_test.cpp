@@ -10,7 +10,7 @@
 #include "crypto/hasher/hasher_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
@@ -41,26 +41,24 @@ struct Secp256k1ProviderTest : public ::testing::Test {
 
   void SetUp() override {
     // message: "this is a message"
-    EXPECT_OUTCOME_TRUE(secp_message_vector,
-                        Buffer::fromHex("746869732069732061206d657373616765"));
+    auto secp_message_vector =
+        EXPECT_OK(Buffer::fromHex("746869732069732061206d657373616765"));
     secp_message_hash = hasher->blake2s_256(secp_message_vector);
 
-    EXPECT_OUTCOME_TRUE(
-        secp_public_key_expanded_bytes,
+    auto secp_public_key_expanded_bytes = EXPECT_OK(
         Buffer::fromHex("04f821bc128a43d9b0516969111e19a40bab417f45181d692d0519"
                         "a3b35573cb63178403d12eb41d7702913a70ebc1c64438002a1474"
                         "e1328276b7dcdacb511fc3"));
     secp_public_key_expanded =
         UncompressedPublicKey::fromSpan(secp_public_key_expanded_bytes).value();
 
-    EXPECT_OUTCOME_TRUE(secp_public_key_compressed_bytes,
-                        Buffer::fromHex("03f821bc128a43d9b0516969111e19a40bab41"
-                                        "7f45181d692d0519a3b35573cb63"));
+    auto secp_public_key_compressed_bytes =
+        EXPECT_OK(Buffer::fromHex("03f821bc128a43d9b0516969111e19a40bab41"
+                                  "7f45181d692d0519a3b35573cb63"));
     secp_public_key_compressed =
         CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes).value();
 
-    EXPECT_OUTCOME_TRUE(
-        secp_signature_bytes,
+    auto secp_signature_bytes = EXPECT_OK(
         Buffer::fromHex("ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee"
                         "7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce5183157"
                         "2cd54add248c4d023fcf01"));
@@ -77,10 +75,9 @@ struct Secp256k1ProviderTest : public ::testing::Test {
 TEST_F(Secp256k1ProviderTest, RecoverInvalidRecidFailure) {
   RSVSignature wrong_signature = secp_signature;
   *wrong_signature.rbegin() = 0xFF;
-  EXPECT_OUTCOME_ERROR(res,
-                       secp256K1_provider->recoverPublickeyUncompressed(
-                           wrong_signature, secp_message_hash, false),
-                       Secp256k1ProviderError::INVALID_V_VALUE);
+  EXPECT_EC(secp256K1_provider->recoverPublickeyUncompressed(
+                wrong_signature, secp_message_hash, false),
+            Secp256k1ProviderError::INVALID_V_VALUE);
 }
 
 /**
@@ -99,7 +96,7 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
     ASSERT_NE(res.value(), secp_public_key_expanded);
   } else {
     // otherwise the operation should result in failure
-    EXPECT_OUTCOME_ERROR(err, res, Secp256k1ProviderError::INVALID_SIGNATURE);
+    EXPECT_EC(res, Secp256k1ProviderError::INVALID_SIGNATURE);
   }
 }
 
@@ -109,9 +106,8 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
  * @then Recovery is successful, public key returned
  */
 TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
-  EXPECT_OUTCOME_TRUE(public_key,
-                      secp256K1_provider->recoverPublickeyUncompressed(
-                          secp_signature, secp_message_hash, false));
+  auto public_key = EXPECT_OK(secp256K1_provider->recoverPublickeyUncompressed(
+      secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_expanded);
 }
 
@@ -121,8 +117,7 @@ TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
  * @then Recovery is successful, public key is returned
  */
 TEST_F(Secp256k1ProviderTest, RecoverCompressedSuccess) {
-  EXPECT_OUTCOME_TRUE(public_key,
-                      secp256K1_provider->recoverPublickeyCompressed(
-                          secp_signature, secp_message_hash, false));
+  auto public_key = EXPECT_OK(secp256K1_provider->recoverPublickeyCompressed(
+      secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_compressed);
 }

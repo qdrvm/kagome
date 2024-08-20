@@ -7,6 +7,7 @@
 #include "runtime/common/storage_code_provider.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
@@ -15,7 +16,6 @@
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;  // NOLINT
@@ -69,8 +69,8 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
       std::make_shared<application::ChainSpecMock>());
 
   // when
-  EXPECT_OUTCOME_TRUE(obtained_state_code,
-                      wasm_provider->getCodeAt(first_state_root));
+  auto obtained_state_code =
+      EXPECT_OK(wasm_provider->getCodeAt(first_state_root));
 
   // then
   EXPECT_EQ(*obtained_state_code, state_code_);
@@ -111,8 +111,8 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenStorageUpdates) {
       }));
 
   // when
-  EXPECT_OUTCOME_TRUE(obtained_state_code,
-                      wasm_provider->getCodeAt(second_state_root));
+  auto obtained_state_code =
+      EXPECT_OK(wasm_provider->getCodeAt(second_state_root));
 
   // then
   ASSERT_EQ(*obtained_state_code, new_state_code);

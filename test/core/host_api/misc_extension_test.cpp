@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
+#include <scale/scale.hpp>
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_api_factory_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
-#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"

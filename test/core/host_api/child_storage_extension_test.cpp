@@ -10,19 +10,18 @@
 #include <optional>
 #include <scale/scale.hpp>
 
+#include <scale/encode_append.hpp>
 #include "common/monadic_utils.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/encode_append.hpp"
 #include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/types.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"

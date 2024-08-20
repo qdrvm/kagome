@@ -7,11 +7,11 @@
 #include "api/service/payment/impl/payment_api_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/transaction_payment_api_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::PaymentApi;
 using kagome::api::PaymentApiImpl;
@@ -61,8 +61,8 @@ TEST_F(PaymentApiTest, QueryInfo) {
               query_info(deepest_hash, extrinsic, len))
       .WillOnce(Return(expected_result));
 
-  ASSERT_OUTCOME_SUCCESS(result,
-                         payment_api_->queryInfo(extrinsic, len, std::nullopt));
+  auto result =
+      EXPECT_OK(payment_api_->queryInfo(extrinsic, len, std::nullopt));
   ASSERT_EQ(result, expected_result);
 }
 

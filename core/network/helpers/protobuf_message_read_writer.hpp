@@ -13,10 +13,10 @@
 #include <libp2p/basic/protobuf_message_read_writer.hpp>
 #include <outcome/outcome.hpp>
 
+#include <scale/scale.hpp>
 #include "network/adapters/protobuf.hpp"
 #include "network/adapters/uvar.hpp"
 #include "network/helpers/message_read_writer.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::network {
   /**

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "authority_manager_error.hpp"
+#include "consensus/grandpa/authority_manager_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa,
                             AuthorityManagerError,

@@ -12,11 +12,11 @@
 #include <boost/iterator_adaptors.hpp>
 #include <optional>
 #include <outcome/outcome.hpp>
+#include <scale/scale.hpp>
+#include <scale/scale_error.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/outcome_throw.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
 
 namespace kagome::primitives {
   /**

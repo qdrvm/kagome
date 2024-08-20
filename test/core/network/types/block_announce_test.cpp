@@ -5,12 +5,11 @@
  */
 #include "network/types/block_announce.hpp"
 
-#include <iostream>
-
 #include <gmock/gmock.h>
-#include "scale/scale.hpp"
+#include <qtils/test/outcome.hpp>
+
+#include <scale/scale.hpp>
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Buffer;
@@ -55,7 +54,7 @@ struct BlockAnnounceTest : public ::testing::Test {
  * @then decoded block announce matches initial one
  */
 TEST_F(BlockAnnounceTest, EncodeSuccess) {
-  ASSERT_OUTCOME_SUCCESS(buffer, encode(block_announce));
-  ASSERT_OUTCOME_SUCCESS(ba, decode<BlockAnnounce>(buffer));
+  auto buffer = EXPECT_OK(encode(block_announce));
+  auto ba = EXPECT_OK(decode<BlockAnnounce>(buffer));
   ASSERT_EQ(block_announce, ba);
 }

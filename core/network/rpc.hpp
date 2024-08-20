@@ -9,11 +9,11 @@
 #include <functional>
 #include <memory>
 
+#include <libp2p/basic/readwriter.hpp>
+#include <libp2p/host/host.hpp>
+#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/protocol.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/basic/readwriter.hpp"
-#include "libp2p/host/host.hpp"
-#include "libp2p/peer/peer_info.hpp"
-#include "libp2p/peer/protocol.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 

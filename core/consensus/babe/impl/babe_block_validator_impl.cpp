@@ -12,18 +12,18 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/impl/prepare_transcript.hpp"
+#include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
 #include "metrics/histogram_timer.hpp"
-#include "prepare_transcript.hpp"
 #include "primitives/inherent_data.hpp"
 #include "primitives/transcript.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
-#include "threshold_util.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BabeBlockValidatorImpl::ValidationError,

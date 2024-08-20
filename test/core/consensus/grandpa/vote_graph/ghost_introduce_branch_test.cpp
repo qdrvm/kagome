@@ -39,7 +39,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {9, "FC"_H}, "w5_a"_ID));
+    EXPECT_OK(graph->insert(vt, {9, "FC"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -88,7 +88,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {9, "ED"_H}, "w7_a"_ID));
+    EXPECT_OK(graph->insert(vt, {9, "ED"_H}, "w7_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -162,7 +162,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
   {  // introduce branch in the middle
     // do not expect that insert is calling getAncestry
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {5, "E"_H}, "w3_a"_ID));
+    EXPECT_OK(graph->insert(vt, {5, "E"_H}, "w3_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({

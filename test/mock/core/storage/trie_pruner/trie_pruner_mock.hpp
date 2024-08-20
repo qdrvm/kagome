@@ -8,7 +8,7 @@
 
 #include "storage/trie_pruner/trie_pruner.hpp"
 
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 
 namespace kagome::storage::trie_pruner {
 

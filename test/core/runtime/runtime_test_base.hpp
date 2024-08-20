@@ -51,7 +51,6 @@
 #include "runtime/wabt/instrument.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 using kagome::application::AppConfigurationMock;

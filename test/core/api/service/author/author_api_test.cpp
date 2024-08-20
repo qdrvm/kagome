@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <jsonrpc-lean/fault.h>
+#include <qtils/test/outcome.hpp>
 #include <type_traits>
 
 #include "common/blob.hpp"
@@ -32,7 +33,6 @@
 #include "subscription/subscription_engine.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
@@ -145,10 +145,9 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<KeyStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair(0);
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        key_store->saveKeyPair(KeyTypes::BABE,
-                               std::span(key_pair.public_key).first<32>(),
-                               std::array<uint8_t, 1>{1}));
+    EXPECT_OK(key_store->saveKeyPair(KeyTypes::BABE,
+                                     std::span(key_pair.public_key).first<32>(),
+                                     std::array<uint8_t, 1>{1}));
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
     keys = std::make_shared<SessionKeysImpl>(store, *config);
@@ -178,10 +177,9 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*transaction_pool,
               submitExtrinsic(TransactionSource::External, *extrinsic))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_SUCCESS(
-      hash,
+  auto hash = EXPECT_OK(
       author_api->submitExtrinsic(TransactionSource::External, *extrinsic));
-  ASSERT_EQ(hash.value(), Hash256{});
+  ASSERT_EQ(hash, Hash256{});
 }
 
 /**
@@ -194,8 +192,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
 TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*transaction_pool, submitExtrinsic(_, _))
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
-  EXPECT_OUTCOME_ERROR(
-      res,
+  EXPECT_EC(
       author_api->submitExtrinsic(TransactionSource::External, *extrinsic),
       DummyError::ERROR);
 }
@@ -210,10 +207,8 @@ MATCHER_P(eventsAreEqual, n, "") {
  * @then corresponing error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyUnsupported) {
-  EXPECT_OUTCOME_ERROR(
-      res,
-      author_api->insertKey(KeyType::fromString("unkn").value(), {}, {}),
-      KeyStoreError::UNSUPPORTED_KEY_TYPE);
+  EXPECT_EC(author_api->insertKey(KeyType::fromString("unkn").value(), {}, {}),
+            KeyStoreError::UNSUPPORTED_KEY_TYPE);
 }
 
 /**
@@ -226,10 +221,8 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
   Sr25519PublicKey public_key;
   EXPECT_CALL(store->sr25519(), generateKeypair(KeyTypes::BABE, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->insertKey(
-          KeyTypes::BABE, SecureBuffer<>{seed.unsafeBytes()}, public_key));
+  EXPECT_OK(author_api->insertKey(
+      KeyTypes::BABE, SecureBuffer<>{seed.unsafeBytes()}, public_key));
 }
 
 /**
@@ -243,11 +236,9 @@ TEST_F(AuthorApiTest, InsertKeyAudi) {
   EXPECT_CALL(store->sr25519(),
               generateKeypair(KeyTypes::AUTHORITY_DISCOVERY, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->insertKey(KeyTypes::AUTHORITY_DISCOVERY,
-                            SecureBuffer<>{seed.unsafeBytes()},
-                            public_key));
+  EXPECT_OK(author_api->insertKey(KeyTypes::AUTHORITY_DISCOVERY,
+                                  SecureBuffer<>{seed.unsafeBytes()},
+                                  public_key));
 }
 
 /**
@@ -260,10 +251,8 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
   Ed25519PublicKey public_key;
   EXPECT_CALL(store->ed25519(), generateKeypair(KeyTypes::GRANDPA, seed))
       .WillOnce(Return(Ed25519Keypair{{}, public_key}));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->insertKey(
-          KeyTypes::GRANDPA, SecureBuffer<>{seed.unsafeBytes()}, public_key));
+  EXPECT_OK(author_api->insertKey(
+      KeyTypes::GRANDPA, SecureBuffer<>{seed.unsafeBytes()}, public_key));
 }
 
 /**
@@ -274,8 +263,8 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
  */
 TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
   Buffer keys;
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -287,8 +276,8 @@ TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
 TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
   Buffer keys;
   keys.resize(31);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -300,8 +289,8 @@ TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
 TEST_F(AuthorApiTest, HasSessionKeysOverload) {
   Buffer keys;
   keys.resize(32 * 6 + 1);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -313,8 +302,8 @@ TEST_F(AuthorApiTest, HasSessionKeysOverload) {
 TEST_F(AuthorApiTest, HasSessionKeysNotEqualKeys) {
   Buffer keys;
   keys.resize(32 * 5 + 1);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -346,8 +335,8 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
   EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::AUTHORITY_DISCOVERY, _))
       .Times(1)
       .WillOnce(Return(OptRef(srOk)));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), true);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, true);
 }
 
 /**
@@ -362,8 +351,8 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
   EXPECT_CALL(store->ed25519(), findKeypair(KeyTypes::GRANDPA, _))
       .Times(1)
       .WillOnce(Return(edOk));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), true);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, true);
 }
 
 /**
@@ -382,8 +371,8 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
   EXPECT_CALL(store->sr25519(), findKeypair(_, _))
       .Times(1)
       .WillOnce(Return(srErr));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasSessionKeys(keys));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -392,11 +381,9 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
  * @then call succeeds, true result
  */
 TEST_F(AuthorApiTest, HasKeySuccess) {
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasKey(std::span(key_pair.public_key).first<32>(),
-                         KeyTypes::BABE));
-  EXPECT_EQ(res.value(), true);
+  auto res = EXPECT_OK(author_api->hasKey(
+      std::span(key_pair.public_key).first<32>(), KeyTypes::BABE));
+  EXPECT_EQ(res, true);
 }
 
 /**
@@ -405,8 +392,8 @@ TEST_F(AuthorApiTest, HasKeySuccess) {
  * @then call succeeds, false result
  */
 TEST_F(AuthorApiTest, HasKeyFail) {
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasKey({}, KeyTypes::BABE));
-  EXPECT_EQ(res.value(), false);
+  auto res = EXPECT_OK(author_api->hasKey({}, KeyTypes::BABE));
+  EXPECT_EQ(res, false);
 }
 
 /**
@@ -458,8 +445,7 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
       .WillOnce(Return(sub_id));
 
   // throws because api service is uninitialized
-  ASSERT_OUTCOME_SUCCESS(ret_sub_id,
-                         author_api->submitAndWatchExtrinsic(*extrinsic));
+  auto ret_sub_id = EXPECT_OK(author_api->submitAndWatchExtrinsic(*extrinsic));
   ASSERT_EQ(sub_id, ret_sub_id);
 }
 
@@ -473,7 +459,7 @@ TEST_F(AuthorApiTest, PendingExtrinsics) {
 
   EXPECT_CALL(*transaction_pool, getPendingTransactions(_));
 
-  ASSERT_OUTCOME_SUCCESS(actual_result, author_api->pendingExtrinsics());
+  auto actual_result = EXPECT_OK(author_api->pendingExtrinsics());
   ASSERT_EQ(expected_result, actual_result);
 }
 

@@ -5,15 +5,13 @@
  */
 
 #include <gtest/gtest.h>
-
-#include <span>
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Hash256;
@@ -87,9 +85,9 @@ TEST_F(Ed25519ProviderTest, GenerateKeysNotEqual) {
  */
 TEST_F(Ed25519ProviderTest, SignVerifySuccess) {
   auto kp = generate();
-  EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
-  EXPECT_OUTCOME_TRUE(
-      res, ed25519_provider->verify(signature, message_span, kp.public_key));
+  auto signature = EXPECT_OK(ed25519_provider->sign(kp, message_span));
+  auto res = EXPECT_OK(
+      ed25519_provider->verify(signature, message_span, kp.public_key));
   ASSERT_EQ(res, true);
 }
 
@@ -105,7 +103,7 @@ TEST_F(Ed25519ProviderTest, SignVerifySuccess) {
 TEST_F(Ed25519ProviderTest, SignWithInvalidKeyFails) {
   auto kp = generate();
   kp.public_key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(ed25519_provider->sign(kp, message_span));
+  EXPECT_HAS_ERROR(ed25519_provider->sign(kp, message_span));
 }
 
 /**
@@ -117,11 +115,10 @@ TEST_F(Ed25519ProviderTest, SignWithInvalidKeyFails) {
  */
 TEST_F(Ed25519ProviderTest, VerifyWrongKeyFail) {
   auto kp = generate();
-  EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
+  auto signature = EXPECT_OK(ed25519_provider->sign(kp, message_span));
   // generate another valid key pair and take public one
   auto kp1 = generate();
-  EXPECT_OUTCOME_TRUE(
-      ver_res,
+  auto ver_res = EXPECT_OK(
       ed25519_provider->verify(signature, message_span, kp1.public_key));
 
   ASSERT_FALSE(ver_res);
@@ -140,10 +137,10 @@ TEST_F(Ed25519ProviderTest, VerifyWrongKeyFail) {
  */
 TEST_F(Ed25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
   auto kp = generate();
-  EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
+  auto signature = EXPECT_OK(ed25519_provider->sign(kp, message_span));
   // make public key invalid
   kp.public_key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(
+  EXPECT_HAS_ERROR(
       ed25519_provider->verify(signature, message_span, kp.public_key));
 }
 
@@ -153,13 +150,12 @@ TEST_F(Ed25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
  * @then public and private keys come up with predefined values
  */
 TEST_F(Ed25519ProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(
-      seed, Ed25519Seed::fromHex(SecureCleanGuard(std::string(hex_seed))));
-  EXPECT_OUTCOME_TRUE(public_key, Ed25519PublicKey::fromHex(hex_public_key));
+  auto seed =
+      EXPECT_OK(Ed25519Seed::fromHex(SecureCleanGuard(std::string(hex_seed))));
+  auto public_key = EXPECT_OK(Ed25519PublicKey::fromHex(hex_public_key));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(
-      private_key,
+  auto private_key = EXPECT_OK(
       Ed25519PrivateKey::fromHex(SecureCleanGuard(std::string(hex_seed))));
 
   auto kp = ed25519_provider->generateKeypair(seed, {}).value();

@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include <scale/scale.hpp>
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 
 namespace testutil {
 

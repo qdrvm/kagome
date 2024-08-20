@@ -11,7 +11,6 @@
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::HostApiImpl;

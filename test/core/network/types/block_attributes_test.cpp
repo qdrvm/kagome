@@ -7,8 +7,9 @@
 #include "network/types/block_attributes.hpp"
 
 #include <gtest/gtest.h>
-#include "scale/scale.hpp"
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
+#include <scale/scale.hpp>
+
 #include "testutil/testparam.hpp"
 
 using kagome::network::BlockAttribute;
@@ -37,7 +38,7 @@ TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
     EXPECT_EC(decode<BlockAttribute>(encoded_value),
               scale::DecodeError::UNEXPECTED_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<BlockAttribute>(encoded_value));
+    auto val = EXPECT_OK(decode<BlockAttribute>(encoded_value));
     ASSERT_EQ(val, value);
   }
 }

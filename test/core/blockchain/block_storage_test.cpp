@@ -7,16 +7,16 @@
 #include "blockchain/impl/block_storage_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
+#include <scale/scale.hpp>
 #include "blockchain/block_storage_error.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockStorageError;
@@ -80,9 +80,8 @@ class BlockStorageTest : public testing::Test {
     EXPECT_CALL(*hasher, blake2b_256(_))
         .WillRepeatedly(Return(genesis_block_hash));
 
-    EXPECT_OUTCOME_TRUE(
-        new_block_storage,
-        BlockStorageImpl::create(root_hash, spaced_storage, hasher));
+    auto new_block_storage =
+        EXPECT_OK(BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 
     return new_block_storage;
   }
@@ -118,8 +117,7 @@ TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
   EXPECT_CALL(*empty_storage, put(_, _))
       .WillRepeatedly(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      BlockStorageImpl::create(root_hash, spaced_storage, hasher));
+  EXPECT_OK(BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
 /**
@@ -137,8 +135,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get header of block number 0 (genesis block)
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      BlockStorageImpl::create(root_hash, spaced_storage, hasher));
+  EXPECT_OK(BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
 /**
@@ -152,10 +149,8 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
   EXPECT_CALL(*(spaces[Space::kLookupKey]), tryGetMock(_))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 
-  EXPECT_OUTCOME_ERROR(
-      res,
-      BlockStorageImpl::create(root_hash, spaced_storage, hasher),
-      kagome::storage::DatabaseError::IO_ERROR);
+  EXPECT_EC(BlockStorageImpl::create(root_hash, spaced_storage, hasher),
+            kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
@@ -171,7 +166,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.parent_hash = genesis_block_hash;
   block.header.hash_opt = regular_block_hash;
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
+  EXPECT_OK(block_storage->putBlock(block));
 }
 
 /**
@@ -193,8 +188,8 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   EXPECT_CALL(*(spaces[Space::kBlockBody]), put(key.view(), _))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 
-  ASSERT_OUTCOME_ERROR(block_storage->putBlock(block),
-                       kagome::storage::DatabaseError::IO_ERROR);
+  EXPECT_EC(block_storage->putBlock(block),
+            kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
@@ -219,10 +214,10 @@ TEST_F(BlockStorageTest, Remove) {
   EXPECT_CALL(*(spaces[Space::kJustification]), remove(hash))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  EXPECT_OK(block_storage->removeBlock(genesis_block_hash));
 
   EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
       .WillOnce(Return(std::nullopt));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  EXPECT_OK(block_storage->removeBlock(genesis_block_hash));
 }

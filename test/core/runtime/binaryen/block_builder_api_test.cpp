@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
@@ -12,7 +13,6 @@
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
@@ -52,8 +52,8 @@ class BlockBuilderApiTest : public BinaryenRuntimeTest {
 TEST_F(BlockBuilderApiTest, CheckInherents) {
   prepareEphemeralStorageExpects();
   SCOPED_TRACE("CheckInherents");
-  EXPECT_OUTCOME_TRUE_1(builder_->check_inherents(
-      createBlock("block_42"_hash256, 42), InherentData{}))
+  EXPECT_OK(builder_->check_inherents(createBlock("block_42"_hash256, 42),
+                                      InherentData{}));
 }
 
 /**
@@ -68,8 +68,7 @@ TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   createBlock("block_hash_43"_hash256, 43);
   auto ctx =
       ctx_factory_->persistentAt("block_hash_43"_hash256, std::nullopt).value();
-  EXPECT_OUTCOME_FALSE_1(
-      builder_->apply_extrinsic(ctx, Extrinsic{Buffer{1, 2, 3}}));
+  EXPECT_HAS_ERROR(builder_->apply_extrinsic(ctx, Extrinsic{Buffer{1, 2, 3}}));
 }
 
 /**
@@ -78,8 +77,9 @@ TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed){
-    EXPECT_OUTCOME_FALSE_1(builder_->random_seed("block_hash"_hash256))}
+TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed) {
+  EXPECT_HAS_ERROR(builder_->random_seed("block_hash"_hash256));
+}
 
 /**
  * @given block builder
@@ -93,7 +93,7 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   createBlock("block_hash_44"_hash256, 44);
   auto ctx =
       ctx_factory_->persistentAt("block_hash_44"_hash256, std::nullopt).value();
-  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(ctx, InherentData{}));
+  EXPECT_HAS_ERROR(builder_->inherent_extrinsics(ctx, InherentData{}));
 }
 
 /**
@@ -107,5 +107,5 @@ TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
   createBlock("block_hash"_hash256, 42);
   auto ctx =
       ctx_factory_->persistentAt("block_hash"_hash256, std::nullopt).value();
-  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(ctx));
+  EXPECT_HAS_ERROR(builder_->finalize_block(ctx));
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "secure_mode_precheck.hpp"
+#include "parachain/pvf/secure_mode_precheck.hpp"
 
 #include <boost/asio/read.hpp>
 #include <boost/asio/readable_pipe.hpp>

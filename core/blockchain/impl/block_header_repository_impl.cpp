@@ -8,9 +8,9 @@
 
 #include <optional>
 
+#include <scale/scale.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
-#include "scale/scale.hpp"
 
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockNumber;

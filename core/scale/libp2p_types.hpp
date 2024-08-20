@@ -7,7 +7,7 @@
 #pragma once
 
 #include <libp2p/peer/peer_info.hpp>
-#include "scale/scale.hpp"
+#include <scale/scale.hpp>
 
 namespace scale {
 

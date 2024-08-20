@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
-#include "gmock/gmock.h"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
@@ -32,7 +33,6 @@
 #include "runtime/executor.hpp"
 #include "runtime/instance_environment.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::TestThreadPool;
@@ -155,7 +155,7 @@ class PvfTest : public testing::Test {
           scale::encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
-        EXPECT_OUTCOME_TRUE_1(r);
+        EXPECT_OK(r);
       });
       pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
       io_->restart();

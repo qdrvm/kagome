@@ -13,6 +13,7 @@
 #include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>
 
+#include <scale/scale.hpp>
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -31,7 +32,6 @@
 #include "parachain/availability/proof.hpp"
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
-#include "scale/scale.hpp"
 #include "utils/async_sequence.hpp"
 #include "utils/map.hpp"
 #include "utils/pool_handler.hpp"

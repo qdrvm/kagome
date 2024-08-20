@@ -6,9 +6,9 @@
 
 #include "api/service/payment/impl/payment_api_impl.hpp"
 
+#include <scale/types.hpp>
 #include "blockchain/block_tree.hpp"
 #include "runtime/runtime_api/transaction_payment_api.hpp"
-#include "scale/types.hpp"
 
 namespace kagome::api {
 

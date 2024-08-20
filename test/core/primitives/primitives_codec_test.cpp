@@ -5,6 +5,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+#include <scale/scale.hpp>
 
 #include "common/blob.hpp"
 #include "primitives/block.hpp"
@@ -14,8 +16,6 @@
 #include "primitives/inherent_data.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "scale/scale.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Blob;
@@ -100,8 +100,8 @@ class Primitives : public testing::Test {
  * @then decoded block is equal to predefined block
  */
 TEST_F(Primitives, EncodeBlockHeaderSuccess) {
-  EXPECT_OUTCOME_TRUE(val, encode(block_header_));
-  EXPECT_OUTCOME_TRUE(decoded_header, decode<BlockHeader>(val));
+  auto val = EXPECT_OK(encode(block_header_));
+  auto decoded_header = EXPECT_OK(decode<BlockHeader>(val));
   ASSERT_EQ(block_header_, decoded_header);
 }
 
@@ -111,8 +111,8 @@ TEST_F(Primitives, EncodeBlockHeaderSuccess) {
  * @then the same expected buffer obtained {12, 1, 2, 3}
  */
 TEST_F(Primitives, EncodeExtrinsicSuccess) {
-  EXPECT_OUTCOME_TRUE(val, encode(extrinsic_));
-  EXPECT_OUTCOME_TRUE(decoded_extrinsic, decode<Extrinsic>(val));
+  auto val = EXPECT_OK(encode(extrinsic_));
+  auto decoded_extrinsic = EXPECT_OK(decode<Extrinsic>(val));
   ASSERT_EQ(extrinsic_, decoded_extrinsic);
 }
 
@@ -122,8 +122,8 @@ TEST_F(Primitives, EncodeExtrinsicSuccess) {
  * @then expected result obtained
  */
 TEST_F(Primitives, EncodeBlockSuccess) {
-  EXPECT_OUTCOME_TRUE(res, encode(block_));
-  EXPECT_OUTCOME_TRUE(decoded_block, decode<Block>(res));
+  auto res = EXPECT_OK(encode(block_));
+  auto decoded_block = EXPECT_OK(decode<Block>(res));
   ASSERT_EQ(block_, decoded_block);
 }
 
@@ -135,8 +135,8 @@ TEST_F(Primitives, EncodeBlockSuccess) {
  * @then obtained result equal to predefined match
  */
 TEST_F(Primitives, EncodeVersionSuccess) {
-  EXPECT_OUTCOME_TRUE(val, encode(version_));
-  EXPECT_OUTCOME_TRUE(decoded_version, decode<Version>(val));
+  auto val = EXPECT_OK(encode(version_));
+  auto decoded_version = EXPECT_OK(decode<Version>(val));
   ASSERT_EQ(decoded_version, version_);
 }
 
@@ -148,8 +148,8 @@ TEST_F(Primitives, EncodeVersionSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeBlockIdHash256Success) {
-  EXPECT_OUTCOME_TRUE(val, encode(block_id_hash_))
-  EXPECT_OUTCOME_TRUE(decoded_block_id, decode<BlockId>(val));
+  auto val = EXPECT_OK(encode(block_id_hash_));
+  auto decoded_block_id = EXPECT_OK(decode<BlockId>(val));
   ASSERT_EQ(decoded_block_id, block_id_hash_);
 }
 
@@ -159,8 +159,8 @@ TEST_F(Primitives, EncodeBlockIdHash256Success) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
-  EXPECT_OUTCOME_TRUE(val, encode(block_id_number_))
-  EXPECT_OUTCOME_TRUE(decoded_block_id, decode<BlockId>(val));
+  auto val = EXPECT_OK(encode(block_id_number_));
+  auto decoded_block_id = EXPECT_OK(decode<BlockId>(val));
   ASSERT_EQ(decoded_block_id, block_id_number_);
 }
 
@@ -173,8 +173,8 @@ TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
  */
 TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
   InvalidTransaction invalid{InvalidTransaction::Call};
-  EXPECT_OUTCOME_TRUE(val, encode(invalid))
-  EXPECT_OUTCOME_TRUE(decoded_validity, decode<InvalidTransaction>(val));
+  auto val = EXPECT_OK(encode(invalid));
+  auto decoded_validity = EXPECT_OK(decode<InvalidTransaction>(val));
   ASSERT_EQ(decoded_validity, invalid);
 }
 
@@ -185,8 +185,8 @@ TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
  */
 TEST_F(Primitives, EncodeTransactionValidityUnknown) {
   UnknownTransaction unknown{UnknownTransaction::Kind::Custom, 42};
-  EXPECT_OUTCOME_TRUE(val, encode(unknown))
-  EXPECT_OUTCOME_TRUE(decoded_validity, decode<UnknownTransaction>(val));
+  auto val = EXPECT_OK(encode(unknown));
+  auto decoded_validity = EXPECT_OK(decode<UnknownTransaction>(val));
   ASSERT_EQ(decoded_validity, unknown);
 }
 
@@ -197,8 +197,8 @@ TEST_F(Primitives, EncodeTransactionValidityUnknown) {
  */
 TEST_F(Primitives, EncodeTransactionValiditySuccess) {
   ValidTransaction t = valid_transaction_;  // make it variant type
-  EXPECT_OUTCOME_TRUE(val, encode(t))
-  EXPECT_OUTCOME_TRUE(decoded_validity, decode<ValidTransaction>(val));
+  auto val = EXPECT_OK(encode(t));
+  auto decoded_validity = EXPECT_OK(decode<ValidTransaction>(val));
   ASSERT_EQ(decoded_validity, valid_transaction_);
 }
 
@@ -212,9 +212,9 @@ TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   id1.fill(1u);
   id2.fill(2u);
   std::vector<AuthorityId> original{id1, id2};
-  EXPECT_OUTCOME_TRUE(res, encode(original))
+  auto res = EXPECT_OK(encode(original));
 
-  EXPECT_OUTCOME_TRUE(decoded, decode<std::vector<AuthorityId>>(res))
+  auto decoded = EXPECT_OK(decode<std::vector<AuthorityId>>(res));
   ASSERT_EQ(original, decoded);
 }
 
@@ -225,19 +225,19 @@ TEST_F(Primitives, EncodeInherentSampleFromSubstrate) {
                              'e',  's',  't',  'i',    'n',  'h',  '1',  '\x10',
                              '\a', '\0', '\0', '\0'};
 
-  EXPECT_OUTCOME_TRUE(test_id1, InherentIdentifier::fromString("testinh0"));
+  auto test_id1 = EXPECT_OK(InherentIdentifier::fromString("testinh0"));
   std::vector<uint32_t> data1{1, 2, 3};
 
-  EXPECT_OUTCOME_TRUE(test_id2, InherentIdentifier::fromString("testinh1"));
+  auto test_id2 = EXPECT_OK(InherentIdentifier::fromString("testinh1"));
   uint32_t data2 = 7;
 
   auto encoded_buf = Buffer().put(encoded_str);
-  EXPECT_OUTCOME_TRUE(dec_data, decode<InherentData>(encoded_buf));
+  auto dec_data = EXPECT_OK(decode<InherentData>(encoded_buf));
 
-  EXPECT_OUTCOME_TRUE(dec_data1, dec_data.getData<decltype(data1)>(test_id1));
+  auto dec_data1 = EXPECT_OK(dec_data.getData<decltype(data1)>(test_id1));
   EXPECT_EQ(data1, dec_data1);
 
-  EXPECT_OUTCOME_TRUE(dec_data2, dec_data.getData<decltype(data2)>(test_id2));
+  auto dec_data2 = EXPECT_OK(dec_data.getData<decltype(data2)>(test_id2));
   EXPECT_EQ(data2, dec_data2);
 }
 
@@ -249,16 +249,16 @@ TEST_F(Primitives, EncodeInherentSampleFromSubstrate) {
 TEST_F(Primitives, EncodeInherentDataSuccess) {
   using array = std::array<uint8_t, 8u>;
   InherentData data;
-  EXPECT_OUTCOME_TRUE(id1, InherentIdentifier::fromString("testinh0"));
-  EXPECT_OUTCOME_TRUE(id2, InherentIdentifier::fromString("testinh1"));
+  auto id1 = EXPECT_OK(InherentIdentifier::fromString("testinh0"));
+  auto id2 = EXPECT_OK(InherentIdentifier::fromString("testinh1"));
   InherentIdentifier id3{array{3}};
   std::vector<uint32_t> data1{1, 2, 3};
   uint32_t data2 = 7;
   Buffer data3{1, 2, 3, 4};
-  EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, data1));
-  EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, data2));
-  EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, data3));
-  EXPECT_OUTCOME_FALSE_void(_, data.putData(id1, data2));
+  EXPECT_OK(data.putData(id1, data1));
+  EXPECT_OK(data.putData(id2, data2));
+  EXPECT_OK(data.putData(id3, data3));
+  EXPECT_HAS_ERROR(data.putData(id1, data2));
 
   ASSERT_EQ(data.getData<decltype(data1)>(id1).value(), data1);
   ASSERT_EQ(data.getData<decltype(data2)>(id2).value(), data2);
@@ -268,8 +268,8 @@ TEST_F(Primitives, EncodeInherentDataSuccess) {
   data.replaceData(id3, data4);
   ASSERT_EQ(data.getData<decltype(data4)>(id3).value(), data4);
 
-  EXPECT_OUTCOME_TRUE(enc_data, encode(data))
-  EXPECT_OUTCOME_TRUE(dec_data, decode<InherentData>(enc_data))
+  auto enc_data = EXPECT_OK(encode(data));
+  auto dec_data = EXPECT_OK(decode<InherentData>(enc_data));
 
   ASSERT_EQ(dec_data.getData<decltype(data1)>(id1).value(), data1);
 

@@ -6,6 +6,7 @@
 
 #include "runtime/executor.hpp"
 
+#include <scale/scale.hpp>
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
@@ -15,7 +16,6 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::runtime {

@@ -5,9 +5,11 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "blockchain/impl/block_tree_impl.hpp"
 
+#include <scale/scale.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "common/main_thread_pool.hpp"
@@ -22,9 +24,7 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
-#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -394,8 +394,7 @@ TEST_F(BlockTreeTest, GetBody) {
       .WillOnce(Return(finalized_block_body_));
 
   // THEN
-  ASSERT_OUTCOME_SUCCESS(body,
-                         block_tree_->getBlockBody(kFinalizedBlockInfo.hash))
+  auto body = EXPECT_OK(block_tree_->getBlockBody(kFinalizedBlockInfo.hash));
   ASSERT_EQ(body, finalized_block_body_);
 }
 
@@ -449,8 +448,7 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
   Block new_block{header, body};
 
   // WHEN-THEN
-  ASSERT_OUTCOME_ERROR(block_tree_->addBlock(new_block),
-                       BlockTreeError::NO_PARENT);
+  EXPECT_EC(block_tree_->addBlock(new_block), BlockTreeError::NO_PARENT);
 }
 
 /**
@@ -488,7 +486,7 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillOnce(Return(outcome::success(false)));
 
   // WHEN
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(hash, justification));
+  EXPECT_OK(block_tree_->finalize(hash, justification));
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
@@ -677,8 +675,8 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
 
   // WHEN
-  ASSERT_OUTCOME_SUCCESS(
-      chain, block_tree_->getBestChainFromBlock(kFinalizedBlockInfo.hash, 5));
+  auto chain = EXPECT_OK(
+      block_tree_->getBestChainFromBlock(kFinalizedBlockInfo.hash, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -711,8 +709,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   std::vector<BlockHash> expected_chain{hash2, hash1};
 
   // WHEN
-  ASSERT_OUTCOME_SUCCESS(chain,
-                         block_tree_->getDescendingChainToBlock(hash2, 5));
+  auto chain = EXPECT_OK(block_tree_->getDescendingChainToBlock(hash2, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -729,8 +726,8 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
       .WillRepeatedly(Return(BlockTreeError::EXISTING_BLOCK_NOT_FOUND));
 
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
-                       BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
+  EXPECT_EC(block_tree_->getBestContaining(target.hash),
+            BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -747,8 +744,8 @@ TEST_F(BlockTreeTest, GetBestChain_DiscardedBlock) {
   EXPECT_CALL(*header_repo_, getHashByNumber(target.number))
       .WillRepeatedly(Return(other.hash));
 
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
-                       BlockTreeError::BLOCK_ON_DEAD_END);
+  EXPECT_EC(block_tree_->getBestContaining(target.hash),
+            BlockTreeError::BLOCK_ON_DEAD_END);
 }
 
 /**
@@ -759,8 +756,7 @@ TEST_F(BlockTreeTest, GetBestChain_DiscardedBlock) {
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
   auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
-  ASSERT_OUTCOME_SUCCESS(best_info,
-                         block_tree_->getBestContaining(target_hash));
+  auto best_info = EXPECT_OK(block_tree_->getBestContaining(target_hash));
   ASSERT_EQ(best_info.hash, target_hash);
 }
 
@@ -790,7 +786,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   auto C2_hash = addHeaderToRepository(B_hash, 46);
   auto D2_hash = addHeaderToRepository(C2_hash, 47);
 
-  ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+  auto best_info = EXPECT_OK(block_tree_->getBestContaining(T_hash));
   ASSERT_EQ(best_info.hash, D2_hash);
 
   // test grandpa best chain selection when target block is not on best chain
@@ -854,7 +850,7 @@ TEST_F(BlockTreeTest, Reorganize) {
               shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
+  EXPECT_OK(block_tree_->finalize(C2_hash, {}));
 
   //   42   43  44  45   46   47
   //
@@ -882,7 +878,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   // remove old justification
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+  EXPECT_OK(block_tree_->finalize(b56, new_justification));
 }
 
 TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
@@ -900,7 +896,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+  EXPECT_OK(block_tree_->finalize(b56, new_justification));
 }
 
 /**
@@ -935,7 +931,7 @@ TEST_F(BlockTreeTest, GetBestBlock) {
   //                   C3 - D3 - E3 - F3
 
   {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    auto best_info = EXPECT_OK(block_tree_->getBestContaining(T_hash));
     ASSERT_EQ(best_info.hash, F3_hash);
   }
 
@@ -952,7 +948,7 @@ TEST_F(BlockTreeTest, GetBestBlock) {
   //                   C3 - D3 - E3 - F3
 
   {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    auto best_info = EXPECT_OK(block_tree_->getBestContaining(T_hash));
     ASSERT_EQ(best_info.hash, E2_hash);
   }
 
@@ -969,13 +965,13 @@ TEST_F(BlockTreeTest, GetBestBlock) {
   //                   C3 - D3 - E3 - F3 - G3**
 
   {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    auto best_info = EXPECT_OK(block_tree_->getBestContaining(T_hash));
     ASSERT_EQ(best_info.hash, G3_hash);
   }
 
   // ---------------------------------------------------------------------------
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsRevertedBlocks({E3_hash}));
+  EXPECT_OK(block_tree_->markAsRevertedBlocks({E3_hash}));
 
   //  42   43  44  45  46   47   48   49   50
   //
@@ -986,7 +982,7 @@ TEST_F(BlockTreeTest, GetBestBlock) {
   //                   C3 - D3 - E3 - F3 - G3**
 
   {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    auto best_info = EXPECT_OK(block_tree_->getBestContaining(T_hash));
     ASSERT_EQ(best_info.hash, E2_hash);
   }
 }

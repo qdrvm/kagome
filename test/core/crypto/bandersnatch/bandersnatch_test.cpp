@@ -5,14 +5,12 @@
  */
 
 #include <gtest/gtest.h>
-
-#include <span>
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bandersnatch/vrf.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Blob;
@@ -68,8 +66,8 @@ struct BandersnatchTest : public ::testing::Test {
  */
 TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    ASSERT_OUTCOME_SUCCESS(kp1, generate());
-    ASSERT_OUTCOME_SUCCESS(kp2, generate());
+    auto kp1 = EXPECT_OK(generate());
+    auto kp2 = EXPECT_OK(generate());
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -81,10 +79,9 @@ TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
  * @then
  */
 TEST_F(BandersnatchTest, PlainSignVerifySuccess) {
-  ASSERT_OUTCOME_SUCCESS(kp, generate());
-  ASSERT_OUTCOME_SUCCESS(signature, bandersnatch_provider->sign(kp, message));
-  EXPECT_OUTCOME_SUCCESS(
-      is_valid,
+  auto kp = EXPECT_OK(generate());
+  auto signature = EXPECT_OK(bandersnatch_provider->sign(kp, message));
+  auto is_valid = EXPECT_OK(
       bandersnatch_provider->verify(signature, message, kp.public_key));
   ASSERT_TRUE(is_valid);
 }
@@ -115,7 +112,7 @@ TEST_F(BandersnatchTest, VrfSignVerifySuccess) {
   };
 
   for (auto i = 0; i < 3; ++i) {
-    ASSERT_OUTCOME_SUCCESS(kp, generate());
+    auto kp = EXPECT_OK(generate());
 
     SL_INFO(log(), "PUB={}", kp.public_key);
     for (auto &label : labels) {

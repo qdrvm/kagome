@@ -7,9 +7,9 @@
 #include "network/types/block_direction.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 #include <scale/scale.hpp>
 
-#include "testutil/outcome.hpp"
 #include "testutil/testparam.hpp"
 
 using kagome::network::Direction;
@@ -35,7 +35,7 @@ TEST_P(DirectionTest, DecodeDirection) {
     EXPECT_EC(decode<Direction>(encoded_value),
               scale::DecodeError::INVALID_ENUM_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<Direction>(encoded_value));
+    auto val = EXPECT_OK(decode<Direction>(encoded_value));
     ASSERT_EQ(val, value);
   }
 }

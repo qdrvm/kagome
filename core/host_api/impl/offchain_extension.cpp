@@ -9,13 +9,13 @@
 #include <stdexcept>
 #include <thread>
 
+#include <scale/scale.hpp>
 #include "log/trace_macros.hpp"
 #include "offchain/offchain_worker.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::host_api {
 

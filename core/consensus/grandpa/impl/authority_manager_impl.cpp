@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "authority_manager_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"

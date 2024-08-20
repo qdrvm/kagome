@@ -6,9 +6,9 @@
 
 #pragma once
 
+#include <scale/bitvec.hpp>
 #include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
-#include "scale/bitvec.hpp"
 
 namespace kagome::runtime {
   class ParachainHost;

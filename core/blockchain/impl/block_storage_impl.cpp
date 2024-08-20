@@ -6,10 +6,10 @@
 
 #include "blockchain/impl/block_storage_impl.hpp"
 
+#include <scale/scale.hpp>
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/visitor.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::blockchain {
   using primitives::Block;

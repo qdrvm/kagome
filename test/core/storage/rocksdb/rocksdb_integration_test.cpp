@@ -10,11 +10,12 @@
 #include <exception>
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+
 #include "filesystem/common.hpp"
 
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
@@ -38,10 +39,10 @@ struct RocksDb_Integration_Test : public test::BaseRocksDB_Test {
  * @then {value} is correct
  */
 TEST_F(RocksDb_Integration_Test, Put_Get) {
-  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, BufferView{value_}));
-  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
+  EXPECT_OK(db_->put(key_, BufferView{value_}));
+  auto contains = EXPECT_OK(db_->contains(key_));
   EXPECT_TRUE(contains);
-  EXPECT_OUTCOME_TRUE(val, db_->get(key_));
+  auto val = EXPECT_OK(db_->get(key_));
   EXPECT_EQ(val, value_);
 }
 
@@ -51,9 +52,9 @@ TEST_F(RocksDb_Integration_Test, Put_Get) {
  * @then get "not found"
  */
 TEST_F(RocksDb_Integration_Test, Get_NonExistent) {
-  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
+  auto contains = EXPECT_OK(db_->contains(key_));
   EXPECT_FALSE(contains);
-  ASSERT_OUTCOME_SUCCESS_TRY(db_->remove(key_));
+  EXPECT_OK(db_->remove(key_));
   EXPECT_EC(db_->get(key_), DatabaseError::NOT_FOUND);
 }
 
@@ -71,21 +72,21 @@ TEST_F(RocksDb_Integration_Test, WriteBatch) {
   ASSERT_TRUE(batch);
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, BufferView{item}));
-    ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
+    EXPECT_OK(batch->put(item, BufferView{item}));
+    auto contains = EXPECT_OK(db_->contains(item));
     EXPECT_FALSE(contains);
   }
-  ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(toBeRemoved));
-  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
+  EXPECT_OK(batch->remove(toBeRemoved));
+  EXPECT_OK(batch->commit());
 
   for (const auto &item : expected) {
-    ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
+    auto contains = EXPECT_OK(db_->contains(item));
     EXPECT_TRUE(contains);
-    ASSERT_OUTCOME_SUCCESS(val, db_->get(item));
+    auto val = EXPECT_OK(db_->get(item));
     EXPECT_EQ(val, item);
   }
 
-  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(toBeRemoved));
+  auto contains = EXPECT_OK(db_->contains(toBeRemoved));
   EXPECT_FALSE(contains);
 }
 
@@ -103,14 +104,14 @@ TEST_F(RocksDb_Integration_Test, Iterator) {
   }
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, BufferView{item}));
+    EXPECT_OK(db_->put(item, BufferView{item}));
   }
 
   std::array<size_t, size> counter{};
 
   logger->warn("forward iteration");
   auto it = db_->cursor();
-  ASSERT_OUTCOME_SUCCESS_TRY(it->seekFirst());
+  EXPECT_OK(it->seekFirst());
   for (; it->isValid(); it->next().assume_value()) {
     auto k = it->key().value();
     auto v = it->value().value();

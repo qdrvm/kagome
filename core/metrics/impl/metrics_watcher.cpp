@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "metrics_watcher.hpp"
+#include "metrics/impl/metrics_watcher.hpp"
 
 #include "filesystem/common.hpp"
 

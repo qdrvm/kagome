@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include <boost/asio/io_context.hpp>
 
@@ -27,7 +28,6 @@
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Watchdog;
@@ -180,7 +180,7 @@ TEST_F(ChainTest, GetAncestry) {
   auto h4 = "040404"_hash256;
   EXPECT_CALL(*tree, getChainByBlocks(h1, h4))
       .WillOnce(Return(std::vector<Hash256>{h1, h2, h3, h4}));
-  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h4));
+  auto blocks = EXPECT_OK(chain->getAncestry(h1, h4));
   std::vector<Hash256> expected{h4, h3, h2, h1};
   ASSERT_EQ(blocks, expected);
 }
@@ -197,7 +197,7 @@ TEST_F(ChainTest, GetAncestryOfChild) {
 
   EXPECT_CALL(*tree, getChainByBlocks(h1, h2))
       .WillOnce(Return(std::vector<Hash256>{h1, h2}));
-  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h2));
+  auto blocks = EXPECT_OK(chain->getAncestry(h1, h2));
   std::vector<Hash256> expected{h2, h1};
   ASSERT_EQ(blocks, expected);
 }
@@ -211,7 +211,7 @@ TEST_F(ChainTest, GetAncestryOfItself) {
   auto h1 = "010101"_hash256;
 
   EXPECT_CALL(*tree, getChainByBlocks(_, _)).Times(0);
-  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h1));
+  auto blocks = EXPECT_OK(chain->getAncestry(h1, h1));
   std::vector<Hash256> expected{h1};
   ASSERT_EQ(blocks, expected);
 }
@@ -266,7 +266,7 @@ TEST_F(ChainTest, BestChainContaining) {
       .WillOnce(testing::Invoke(
           [&](auto base, auto, auto &&cb) { return cb(base); }));
 
-  ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2], std::nullopt));
+  auto r = EXPECT_OK(chain->bestChainContaining(h[2], std::nullopt));
 
   ASSERT_EQ(h[3], r.hash);
 }

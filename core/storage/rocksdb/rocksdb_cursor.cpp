@@ -6,7 +6,7 @@
 
 #include "storage/rocksdb/rocksdb_cursor.hpp"
 
-#include "rocksdb_util.hpp"
+#include "storage/rocksdb/rocksdb_util.hpp"
 
 namespace kagome::storage {
 

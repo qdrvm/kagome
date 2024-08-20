@@ -5,10 +5,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "api/service/base_request.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 struct BaseRequestTest : public ::testing::Test {
@@ -39,7 +39,7 @@ TEST_F(BaseRequestTest, Params_Int) {
   params.emplace_back(test_val);
 
   TestRequestInt32 tr;
-  ASSERT_OUTCOME_SUCCESS_TRY(tr.init(params));
+  EXPECT_OK(tr.init(params));
 
   ASSERT_EQ(tr.getParam<0>(), test_val);
 }
@@ -56,7 +56,7 @@ TEST_F(BaseRequestTest, Params_Str) {
   params.emplace_back(test_val);
 
   TestRequestStr tr;
-  ASSERT_OUTCOME_SUCCESS_TRY(tr.init(params));
+  EXPECT_OK(tr.init(params));
 
   ASSERT_EQ(tr.getParam<0>(), test_val);
 }
@@ -73,6 +73,6 @@ TEST_F(BaseRequestTest, Params_Invalid) {
   params.emplace_back(test_val);
 
   TestRequestInt32 tr;
-  auto init = [&] { ASSERT_OUTCOME_SUCCESS_TRY(tr.init(params)); };
+  auto init = [&] { EXPECT_OK(tr.init(params)); };
   EXPECT_THROW(init(), jsonrpc::InvalidParametersFault);
 }

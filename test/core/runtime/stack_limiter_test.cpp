@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include <wabt/binary-reader-ir.h>
 #include <wabt/binary-reader.h>
@@ -20,7 +21,6 @@
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wabt/stack_limiter.hpp"
 #include "runtime/wabt/util.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 static constexpr uint32_t ACTIVATION_FRAME_COST = 2;
@@ -86,11 +86,10 @@ void expectWasm(const wabt::Module &actual, std::string_view expected) {
 
 uint32_t compute_cost(std::string_view data) {
   auto module = fromWat(data);
-  EXPECT_OUTCOME_TRUE(cost,
-                      kagome::runtime::detail::compute_stack_cost(
-                          kagome::log::createLogger("StackLimiterTest"),
-                          *module->funcs[0],
-                          *module));
+  auto cost = EXPECT_OK(kagome::runtime::detail::compute_stack_cost(
+      kagome::log::createLogger("StackLimiterTest"),
+      *module->funcs[0],
+      *module));
   return cost;
 }
 
@@ -226,8 +225,7 @@ TEST_P(StackLimiterCompareTest, output_matches_expected) {
   auto fixture_wasm = wat_to_wasm(fixture_wat);
   auto expected_module = wat_to_module(expected_wat);
 
-  EXPECT_OUTCOME_TRUE(
-      result_wasm,
+  auto result_wasm = EXPECT_OK(
       kagome::runtime::instrumentWithStackLimiter(fixture_wasm, 1024));
 
   wabt::Module result_module;

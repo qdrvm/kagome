@@ -11,12 +11,12 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/range/adaptor/transformed.hpp>
+#include <qtils/test/outcome.hpp>
 
 #include "api/service/state/requests/query_storage.hpp"  // for makeValue
 #include "mock/core/api/jrpc/jrpc_server_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::JRpcServer;
 using kagome::api::JRpcServerMock;
@@ -173,7 +173,7 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 
   jsonrpc::Request::Parameters params{"0x01234567"};
   auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
-  EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
+  auto result_vec = EXPECT_OK(kagome::common::unhexWith0x(result_hex));
   ASSERT_EQ(expected_result.asVector(), result_vec);
 }
 
@@ -194,7 +194,7 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   jsonrpc::Request::Parameters params{"0x01234567",
                                       "0x" + ("010203"_hash256).toHex()};
   auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
-  EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
+  auto result_vec = EXPECT_OK(kagome::common::unhexWith0x(result_hex));
   ASSERT_EQ(expected_result.asVector(), result_vec);
 }
 

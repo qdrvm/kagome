@@ -9,6 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
@@ -28,7 +29,6 @@
 #include "runtime/runtime_context.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 #include "utils/watchdog.hpp"

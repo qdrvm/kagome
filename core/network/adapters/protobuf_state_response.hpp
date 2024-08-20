@@ -8,9 +8,9 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include <scale/scale.hpp>
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/state_response.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::network {
 

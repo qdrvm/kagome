@@ -7,9 +7,10 @@
 #include "authorship/impl/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
@@ -77,7 +78,7 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
 
   // when
   auto res = block_builder_->pushExtrinsic(xt);
-  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
+  auto block = EXPECT_OK(block_builder_->bake());
 
   // then
   ASSERT_FALSE(res);
@@ -102,7 +103,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   auto res = block_builder_->pushExtrinsic(xt);
   ASSERT_TRUE(res);
 
-  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
+  auto block = EXPECT_OK(block_builder_->bake());
 
   // then
   ASSERT_EQ(block.header, expected_header_);
@@ -128,7 +129,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
 
   // then
   ASSERT_FALSE(res);
-  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
+  auto block = EXPECT_OK(block_builder_->bake());
   ASSERT_EQ(block.header, expected_header_);
   ASSERT_THAT(block.body, IsEmpty());
 }

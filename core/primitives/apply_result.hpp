@@ -8,10 +8,10 @@
 
 #include <boost/variant.hpp>
 
+#include <scale/scale.hpp>
 #include "primitives/arithmetic_error.hpp"
 #include "primitives/token_error.hpp"
 #include "primitives/transaction_validity.hpp"
-#include "scale/scale.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::primitives {

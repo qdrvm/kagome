@@ -6,8 +6,7 @@
 #include "network/adapters/uvar.hpp"
 
 #include <gmock/gmock.h>
-
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::UVarMessageAdapter;
 
@@ -30,7 +29,7 @@ TEST_F(UVarAdapterTest, ZeroDataTest) {
   ASSERT_EQ(data.size() - std::distance(data.begin(), it), 1);
   ASSERT_EQ(*it, 0);
 
-  EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
+  auto it_read = EXPECT_OK(UVarMessageAdapter<Dummy>::read(d, data, it));
   ASSERT_EQ(it_read, data.end());
 }
 
@@ -49,7 +48,7 @@ TEST_F(UVarAdapterTest, DataSize_7f) {
   ASSERT_EQ(data.size() - std::distance(data.begin(), it), 0x80);
   ASSERT_EQ(*it, 0x7f);
 
-  EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
+  auto it_read = EXPECT_OK(UVarMessageAdapter<Dummy>::read(d, data, it));
   ASSERT_EQ(it_read.base() - data.begin().base(),
             (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }
@@ -70,7 +69,7 @@ TEST_F(UVarAdapterTest, DataSize_1) {
   ASSERT_EQ(data.size() - std::distance(data.begin(), it), 2);
   ASSERT_EQ(*it, 0x1);
 
-  EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
+  auto it_read = EXPECT_OK(UVarMessageAdapter<Dummy>::read(d, data, it));
   ASSERT_EQ(it_read.base() - data.begin().base(),
             (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }
@@ -92,7 +91,7 @@ TEST_F(UVarAdapterTest, DataSize_fd) {
   ASSERT_EQ(*it, 0xfd);
   ASSERT_EQ(*(it + 1), 0x1);
 
-  EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
+  auto it_read = EXPECT_OK(UVarMessageAdapter<Dummy>::read(d, data, it));
   ASSERT_EQ(it_read.base() - data.begin().base(),
             (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }

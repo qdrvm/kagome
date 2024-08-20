@@ -8,13 +8,14 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/transactions_transmitter_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -103,15 +104,15 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
                                makeTx("04"_hash256, {{4}}, {{3}}),
                                makeTx("05"_hash256, {{5}}, {{4}})};
 
-  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[0], txs[2]}));
+  EXPECT_OK(submit(*pool_.get(), {txs[0], txs[2]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[1]}));
+  EXPECT_OK(submit(*pool_.get(), {txs[1]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[3]}));
+  EXPECT_OK(submit(*pool_.get(), {txs[3]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 4);
 
@@ -143,15 +144,15 @@ TEST_F(TransactionPoolTest, CorrectRemoveTx) {
                                makeTx("02"_hash256, {{2}}, {{1}}),
                                makeTx("03"_hash256, {{3}}, {{2}})};
 
-  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[0], txs[2]}));
+  EXPECT_OK(submit(*pool_.get(), {txs[0], txs[2]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[1]}));
+  EXPECT_OK(submit(*pool_.get(), {txs[1]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-  EXPECT_OUTCOME_TRUE_1(pool_->removeOne("02"_hash256));
+  EXPECT_OK(pool_->removeOne("02"_hash256));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 

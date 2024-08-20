@@ -10,7 +10,7 @@
 // blake2b.c
 // A simple BLAKE2b Reference Implementation.
 
-#include "blake2b.h"
+#include "crypto/blake2/blake2b.h"
 
 namespace kagome::crypto {
 

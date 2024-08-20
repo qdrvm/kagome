@@ -5,11 +5,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+#include <scale/scale.hpp>
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
@@ -24,7 +25,6 @@
 #include "parachain/validator/signer.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "testutil/scale_test_comparator.hpp"
 
 using namespace kagome::primitives;
@@ -462,11 +462,10 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-            .new_head = {update.new_head},
-            .lost = update.lost,
-        }));
+    EXPECT_OK(prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {update.new_head},
+        .lost = update.lost,
+    }));
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
       return l.first < r.first;

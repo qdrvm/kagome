@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime_properties_cache_impl.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 
 namespace kagome::runtime {
 

@@ -32,12 +32,12 @@
 #include <libp2p/log/configurator.hpp>
 #include <soralog/macro.hpp>
 
+#include <scale/scale.hpp>
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
-#include "scale/scale.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/secure_mode.hpp"

@@ -15,8 +15,6 @@
 
 #include "parachain/pvf/secure_mode.hpp"
 
-#include "testutil/outcome.hpp"
-
 using namespace kagome::parachain;
 
 template <typename... Ts>
@@ -32,7 +30,7 @@ void test_syscall_works(int call, Ts... args) {
 template <typename... Ts>
 void test_syscall_fails(int call, Ts... args) {
   EXPECT_EXIT(([=]() {
-                EXPECT_OUTCOME_TRUE_1(enableSeccomp());
+                EXPECT_OK(enableSeccomp());
                 std::ignore = ::syscall(call, args...);
                 std::exit(0);
               }()),
@@ -67,7 +65,7 @@ TEST(SecureMode, ChangeRootWorks) {
                 auto dir = std::filesystem::temp_directory_path()
                          / "kagome_secure_mode_test/chroot";
                 std::filesystem::create_directories(dir);
-                ASSERT_OUTCOME_SUCCESS_TRY(changeRoot(dir));
+                EXPECT_OK(changeRoot(dir));
                 ASSERT_EQ(std::filesystem::current_path(), "/");
                 ASSERT_EQ(
                     std::distance(std::filesystem::directory_iterator{"/"},
@@ -127,6 +125,6 @@ TEST(SecureMode, DISABLED_LandlockWorks) {
   std::filesystem::create_directories(dir);
   std::filesystem::current_path(dir);
   accessFs(dir, true);
-  ASSERT_OUTCOME_SUCCESS_TRY(enableLandlock(dir));
+  EXPECT_OK(enableLandlock(dir));
   accessFs(dir, false);
 }

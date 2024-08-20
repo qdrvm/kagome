@@ -10,7 +10,7 @@
 // blake2s.c
 // A simple blake2s Reference Implementation.
 
-#include "blake2s.h"
+#include "crypto/blake2/blake2s.h"
 
 #include <cstdint>
 

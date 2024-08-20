@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include <scale/scale.hpp>
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::runtime {
 

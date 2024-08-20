@@ -12,6 +12,7 @@
 #include <boost/optional/optional_io.hpp>
 #include <libp2p/common/final_action.hpp>
 
+#include <scale/scale.hpp>
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
@@ -34,7 +35,6 @@
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "scale/scale.hpp"
 #include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {

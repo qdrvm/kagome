@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
@@ -19,7 +20,6 @@
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_context.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::ChildStateApiMock;
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -102,8 +102,8 @@ namespace kagome::api {
           return batch;
         }));
 
-    EXPECT_OUTCOME_SUCCESS(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
-    ASSERT_EQ(r.value().value(), "2"_buf);
+    auto r = EXPECT_OK(api_->getStorage("a"_buf, "b"_buf, std::nullopt));
+    ASSERT_EQ(*r, "2"_buf);
   }
 
   TEST_F(ChildStateApiTest, GetStorageAt) {
@@ -129,10 +129,8 @@ namespace kagome::api {
           return batch;
         }));
 
-    EXPECT_OUTCOME_TRUE(
-        r1,
-        api_->getStorage(
-            "c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
+    auto r1 = EXPECT_OK(api_->getStorage(
+        "c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
     ASSERT_EQ(r1.value(), "4"_buf);
   }
 
@@ -277,8 +275,8 @@ namespace kagome::api {
           return batch;
         }));
 
-    ASSERT_OUTCOME_SUCCESS(
-        size_opt, api_->getStorageSize(child_storage_key, key, block_hash_opt));
+    auto size_opt =
+        EXPECT_OK(api_->getStorageSize(child_storage_key, key, block_hash_opt));
     ASSERT_TRUE(size_opt.has_value());
     ASSERT_EQ(expected_result.size(), size_opt.value());
   }

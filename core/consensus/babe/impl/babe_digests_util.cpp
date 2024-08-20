@@ -6,7 +6,7 @@
 
 #include "consensus/babe/impl/babe_digests_util.hpp"
 
-#include "scale/scale.hpp"
+#include <scale/scale.hpp>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
   using E = kagome::consensus::babe::DigestError;

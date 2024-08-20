@@ -24,9 +24,9 @@
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
+#include "application/impl/chain_spec_impl.hpp"
 #include "assets/assets.hpp"
 #include "assets/embedded_chainspec.hpp"
-#include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"

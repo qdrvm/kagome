@@ -8,7 +8,7 @@
 
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
-#include "protocol_error.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 #include "utils/box.hpp"
 
 namespace kagome::network {

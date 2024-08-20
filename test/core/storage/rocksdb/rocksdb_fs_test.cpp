@@ -7,10 +7,11 @@
 #include "testutil/storage/base_fs_test.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+
 #include "filesystem/common.hpp"
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
@@ -47,7 +48,7 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE(db, RocksDb::create(getPathString(), options));
+  auto db = EXPECT_OK(RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
   kagome::filesystem::path p(getPathString());

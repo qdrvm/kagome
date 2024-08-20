@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <memory>
-
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
+
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace common;
@@ -29,8 +28,8 @@ struct NodeEncodingTest : public ::testing::TestWithParam<Case> {
 TEST_P(NodeEncodingTest, GetHeader) {
   auto [node, expected] = GetParam();
 
-  EXPECT_OUTCOME_TRUE(
-      actual, codec->encodeHeader(*node, storage::trie::StateVersion::V0));
+  auto actual =
+      EXPECT_OK(codec->encodeHeader(*node, storage::trie::StateVersion::V0));
   EXPECT_EQ(actual.toHex(), expected.toHex());
 }
 

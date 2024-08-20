@@ -11,6 +11,7 @@
 
 #include <fmt/std.h>
 
+#include <scale/encode_append.hpp>
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "common/outcome_throw.hpp"
@@ -23,7 +24,6 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"

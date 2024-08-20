@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include <scale/scale.hpp>
 #include "primitives/block_header.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::network {
 

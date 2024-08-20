@@ -10,9 +10,9 @@
 
 #include <jsonrpc-lean/request.h>
 
+#include <scale/scale.hpp>
 #include "blockchain/block_tree.hpp"
 #include "primitives/ss58_codec.hpp"
-#include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {

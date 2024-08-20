@@ -7,8 +7,8 @@
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <iostream>
 #include <latch>
+#include <qtils/test/outcome.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
@@ -29,7 +29,6 @@
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "utils/watchdog.hpp"
 
@@ -308,7 +307,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [&](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
+      [&](auto &&result) { EXPECT_OK(result); });
 
   latch.wait();
 }

@@ -7,6 +7,7 @@
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
@@ -14,7 +15,6 @@
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Hash256;
@@ -115,7 +115,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
 TEST_F(RuntimeUpgradeTrackerTest, NullBlockTree) {
   EXPECT_CALL(*header_repo_, getBlockHeader({block_42.hash}))
       .WillOnce(testing::Return(block_42_header));
-  EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
+  auto state = EXPECT_OK(tracker_->getLastCodeUpdateState(block_42));
   ASSERT_EQ(state, block_42_header.state_root);
 }
 
@@ -130,7 +130,7 @@ TEST_F(RuntimeUpgradeTrackerTest, EmptyUpdatesCache) {
 
   EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
       .WillOnce(testing::Return(block_42_header));
-  EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
+  auto state = EXPECT_OK(tracker_->getLastCodeUpdateState(block_42));
   ASSERT_EQ(state, block_42_header.state_root);
 }
 
@@ -144,12 +144,12 @@ TEST_F(RuntimeUpgradeTrackerTest, AutoUpgradeAfterEmpty) {
 
   EXPECT_CALL(*header_repo_, getBlockHeader(block_2.hash))
       .WillRepeatedly(testing::Return(block_2_header));
-  EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_2));
+  auto state = EXPECT_OK(tracker_->getLastCodeUpdateState(block_2));
   ASSERT_EQ(state, block_2_header.state_root);
 
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(testing::Return(block_42));
-  EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_42));
+  auto state42 = EXPECT_OK(tracker_->getLastCodeUpdateState(block_42));
   // picking 2 instead of 42 because that's the latest known upgrade
   ASSERT_EQ(state42, block_2_header.state_root);
 }
@@ -163,7 +163,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   EXPECT_CALL(*header_repo_, getBlockHeader(genesis_block.hash))
       .WillRepeatedly(testing::Return(genesis_block_header));
 
-  EXPECT_OUTCOME_TRUE(state1, tracker_->getLastCodeUpdateState(genesis_block));
+  auto state1 = EXPECT_OK(tracker_->getLastCodeUpdateState(genesis_block));
   ASSERT_EQ(state1, genesis_block_header.state_root);
 
   // then we upgrade in block #42
@@ -174,7 +174,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
       .WillRepeatedly(testing::Return(block_42_header));
 
-  EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_41));
+  auto state42 = EXPECT_OK(tracker_->getLastCodeUpdateState(block_41));
   ASSERT_EQ(state42, genesis_block_header.state_root);
   // during execution of 42 we upgrade the code
   sub_engine_->notify(
@@ -190,11 +190,11 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
       .WillRepeatedly(testing::Return(block_42_header));
 
-  EXPECT_OUTCOME_TRUE(state43, tracker_->getLastCodeUpdateState(block_42));
+  auto state43 = EXPECT_OK(tracker_->getLastCodeUpdateState(block_42));
   ASSERT_EQ(state43, block_42_header.state_root);
 
   // then block #44
-  EXPECT_OUTCOME_TRUE(state44, tracker_->getLastCodeUpdateState(block_43));
+  auto state44 = EXPECT_OK(tracker_->getLastCodeUpdateState(block_43));
   ASSERT_EQ(state44, block_42_header.state_root);
 }
 
@@ -231,7 +231,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
           .value();
   tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
 
-  EXPECT_OUTCOME_TRUE(state2, tracker_->getLastCodeUpdateState(block2));
+  auto state2 = EXPECT_OK(tracker_->getLastCodeUpdateState(block2));
   ASSERT_EQ(state2, block2_header.state_root);
 
   // reset tracker
@@ -242,7 +242,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
   tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
 
   auto block3 = makeBlockInfo(5203204);
-  EXPECT_OUTCOME_TRUE(state3, tracker_->getLastCodeUpdateState(block3));
+  auto state3 = EXPECT_OK(tracker_->getLastCodeUpdateState(block3));
   ASSERT_EQ(state3, block2_header.state_root);
 }
 
@@ -265,7 +265,7 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
 
   EXPECT_CALL(*header_repo_, getBlockHeader(block1.hash))
       .WillOnce(testing::Return(block1_header));
-  EXPECT_OUTCOME_TRUE_1(tracker_->getLastCodeUpdateState(block1));
+  EXPECT_OK(tracker_->getLastCodeUpdateState(block1));
 
   // @see https://polkadot.subscan.io/event?module=system&event=codeupdated
   auto block2 = makeBlockInfo(5661442);
@@ -276,11 +276,11 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
       kagome::primitives::events::ChainEventType::kNewRuntime,
       kagome::primitives::events::NewRuntimeEventParams{block2.hash});
 
-  EXPECT_OUTCOME_TRUE(state2, tracker_->getLastCodeUpdateState(block2));
+  auto state2 = EXPECT_OK(tracker_->getLastCodeUpdateState(block2));
   ASSERT_EQ(state2, block2_header.state_root);
 
   auto block3 = makeBlockInfo(5661443);
-  EXPECT_OUTCOME_TRUE(state3, tracker_->getLastCodeUpdateState(block3));
+  auto state3 = EXPECT_OK(tracker_->getLastCodeUpdateState(block3));
   ASSERT_EQ(state3, block2_header.state_root);
 }
 
@@ -310,8 +310,7 @@ TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
 
   EXPECT_CALL(*block_tree_, hasDirectChain(block_34f2.hash, block_35f1.hash))
       .WillOnce(testing::Return(false));
-  EXPECT_OUTCOME_TRUE(state_for_35f1,
-                      tracker_->getLastCodeUpdateState(block_35f1));
+  auto state_for_35f1 = EXPECT_OK(tracker_->getLastCodeUpdateState(block_35f1));
 
   // we have no information on upgrades, related to this block, so we fall back
   // to returning its state root
@@ -328,8 +327,8 @@ TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
       .WillOnce(testing::Return(false));
   EXPECT_CALL(*block_tree_, hasDirectChain(block_33f1.hash, block_35f1.hash))
       .WillOnce(testing::Return(true));
-  EXPECT_OUTCOME_TRUE(state_for_35f1_again,
-                      tracker_->getLastCodeUpdateState(block_35f1));
+  auto state_for_35f1_again =
+      EXPECT_OK(tracker_->getLastCodeUpdateState(block_35f1));
 
   // now we pick the runtime upgrade
   ASSERT_EQ(state_for_35f1_again, block_33f1_header.state_root);

@@ -6,9 +6,9 @@
 
 #pragma once
 
+#include <scale/scale.hpp>
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::crypto {
 

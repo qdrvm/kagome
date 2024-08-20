@@ -43,8 +43,8 @@ TEST_F(VoteGraphFixture, InsertBlockLessThanBaseTest) {
 
   // WHEN
 
-  ASSERT_OUTCOME_ERROR(graph->insert(vt, {1, "A"_H}, voter),
-                       VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE);
+  EXPECT_EC(graph->insert(vt, {1, "A"_H}, voter),
+            VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE);
 
   // THEN
 

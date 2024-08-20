@@ -8,11 +8,11 @@
 
 #include "api/service/base_request.hpp"
 
-#include "account_next_index.hpp"
+#include "api/service/system/requests/account_next_index.hpp"
+#include "api/service/system/requests/chain.hpp"
+#include "api/service/system/requests/chain_type.hpp"
+#include "api/service/system/requests/health.hpp"
 #include "api/service/system/system_api.hpp"
-#include "chain.hpp"
-#include "chain_type.hpp"
-#include "health.hpp"
 
 namespace kagome::api::system::request {
 

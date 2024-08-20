@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module_factory_impl.hpp"
+#include "runtime/wasm_edge/module_factory_impl.hpp"
 
 #include <filesystem>
 

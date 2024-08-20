@@ -12,7 +12,7 @@
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 #include <outcome/outcome.hpp>
 
-#include "scale/scale.hpp"
+#include <scale/scale.hpp>
 
 namespace kagome::network {
   /**

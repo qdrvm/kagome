@@ -28,7 +28,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
 
   expect_getAncestry(
       GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {3, "C"_H}, "w5_a"_ID));
+  EXPECT_OK(graph->insert(vt, {3, "C"_H}, "w5_a"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -62,7 +62,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   expect_getAncestry(GENESIS_HASH,
                      "E1"_H,
                      vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {5, "E1"_H}, "w5_b"_ID));
+  EXPECT_OK(graph->insert(vt, {5, "E1"_H}, "w5_b"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -108,7 +108,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       GENESIS_HASH,
       "F2"_H,
       vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F2"_H}, "w5_c"_ID));
+  EXPECT_OK(graph->insert(vt, {6, "F2"_H}, "w5_c"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -185,7 +185,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
 })");
 
   expect_getAncestry(GENESIS_HASH, "A"_H, vec("A"_H, GENESIS_HASH) /* empty */);
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {1, "A"_H}, "w5_a"_ID));
+  EXPECT_OK(graph->insert(vt, {1, "A"_H}, "w5_a"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -217,7 +217,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   expect_getAncestry(GENESIS_HASH,
                      "E1"_H,
                      vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {5, "E1"_H}, "w5_b"_ID));
+  EXPECT_OK(graph->insert(vt, {5, "E1"_H}, "w5_b"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -263,7 +263,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       GENESIS_HASH,
       "F2"_H,
       vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F2"_H}, "w5_c"_ID));
+  EXPECT_OK(graph->insert(vt, {6, "F2"_H}, "w5_c"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({

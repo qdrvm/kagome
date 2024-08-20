@@ -5,7 +5,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <memory>
+#include <qtils/test/outcome.hpp>
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
@@ -20,7 +20,6 @@
 #include "primitives/extrinsic.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::ApiService;
 using kagome::api::ApiServiceMock;
@@ -97,7 +96,7 @@ TEST_F(ChainApiTest, GetBlockHashNoParam) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, "D"_hash256)));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash());
+  auto r = EXPECT_OK(api->getBlockHash());
   ASSERT_EQ(r, "D"_hash256);
 }
 
@@ -111,7 +110,7 @@ TEST_F(ChainApiTest, GetBlockHashByNumber) {
   EXPECT_CALL(*header_repo, getHashByNumber(42))
       .WillOnce(Return("CDE"_hash256));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash(42));
+  auto r = EXPECT_OK(api->getBlockHash(42));
   ASSERT_EQ(r, "CDE"_hash256);
 }
 
@@ -124,7 +123,7 @@ TEST_F(ChainApiTest, GetBlockHashByHexNumber) {
   EXPECT_CALL(*header_repo, getHashByNumber(42))
       .WillOnce(Return("CDE"_hash256));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash("0x2a"));
+  auto r = EXPECT_OK(api->getBlockHash("0x2a"));
   ASSERT_EQ(r, "CDE"_hash256);
 }
 
@@ -139,8 +138,7 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
   EXPECT_CALL(*header_repo, getHashByNumber(200)).WillOnce(Return(hash3));
   std::vector<boost::variant<uint32_t, std::string>> request_data = {
       50, "0x64", 200};
-  EXPECT_OUTCOME_TRUE(
-      r,
+  auto r = EXPECT_OK(
       api->getBlockHash(std::vector<boost::variant<BlockNumber, std::string>>(
           {50, "0x64", 200})));
   ASSERT_EQ(r, std::vector<BlockHash>({hash1, hash2, hash3}));
@@ -155,7 +153,7 @@ TEST_F(ChainApiTest, GetHeader) {
   BlockHash a = hash1;
   EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
+  auto r = EXPECT_OK(api->getHeader(std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, *data.header);
 }
 
@@ -171,7 +169,7 @@ TEST_F(ChainApiTest, GetHeaderLats) {
 
   EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader());
+  auto r = EXPECT_OK(api->getHeader());
   ASSERT_EQ(r, *data.header);
 }
 
@@ -184,7 +182,7 @@ TEST_F(ChainApiTest, GetBlock) {
   BlockHash a = hash1;
   EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlock(std::string("0x") + hash1.toHex()));
+  auto r = EXPECT_OK(api->getBlock(std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, data);
 }
 
@@ -200,7 +198,7 @@ TEST_F(ChainApiTest, GetLastBlock) {
 
   EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlock());
+  auto r = EXPECT_OK(api->getBlock());
   ASSERT_EQ(r, data);
 }
 
@@ -218,8 +216,8 @@ TEST(StateApiTest, SubscribeStorage) {
   auto sub = std::make_shared<SubscribeFinalizedHeads>(p);
   jsonrpc::Request::Parameters params;
 
-  EXPECT_OUTCOME_SUCCESS(r, sub->init(params));
-  EXPECT_OUTCOME_TRUE(result, sub->execute());
+  EXPECT_OK(sub->init(params));
+  auto result = EXPECT_OK(sub->execute());
   ASSERT_EQ(result, 55);
 }
 
@@ -233,9 +231,9 @@ TEST_F(ChainApiTest, GetFinalizedHead) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo{10, expected_result}));
 
-  EXPECT_OUTCOME_SUCCESS(result, api->getFinalizedHead());
+  auto result = EXPECT_OK(api->getFinalizedHead());
   ASSERT_TRUE(std::equal(
-      expected_result.begin(), expected_result.end(), result.value().begin()));
+      expected_result.begin(), expected_result.end(), result.begin()));
 }
 
 /**
@@ -264,7 +262,7 @@ TEST_F(ChainApiTest, SubscribeNewHeads) {
   EXPECT_CALL(*api_service, subscribeNewHeads())
       .WillOnce(Return(expected_result));
 
-  ASSERT_OUTCOME_SUCCESS(actual_result, api->subscribeNewHeads());
+  auto actual_result = EXPECT_OK(api->subscribeNewHeads());
   ASSERT_EQ(expected_result, actual_result);
 }
 
@@ -280,6 +278,5 @@ TEST_F(ChainApiTest, UnsubscribeNewHeads) {
   EXPECT_CALL(*api_service, unsubscribeNewHeads(subscription_id))
       .WillOnce(Return(expected_return));
 
-  EXPECT_OUTCOME_ERROR(
-      result, api->unsubscribeNewHeads(subscription_id), expected_return);
+  EXPECT_EC(api->unsubscribeNewHeads(subscription_id), expected_return);
 }

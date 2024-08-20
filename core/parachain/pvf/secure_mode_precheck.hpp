@@ -8,9 +8,9 @@
 
 #include <boost/asio/io_context.hpp>
 #include <filesystem>
+#include <qtils/outcome.hpp>
 
 #include "parachain/pvf/secure_mode.hpp"
-#include "qtils/outcome.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::parachain {

@@ -7,9 +7,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 
 #include <gtest/gtest.h>
-
-#include <functional>
-#include <optional>
+#include <qtils/test/outcome.hpp>
 
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -20,7 +18,6 @@
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -108,9 +105,8 @@ TEST_F(SyncProtocolObserverTest, ProcessRequest) {
   });
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(response,
-                      sync_protocol_observer_->onBlocksRequest(received_request,
-                                                               peer_info_.id));
+  auto response = EXPECT_OK(sync_protocol_observer_->onBlocksRequest(
+      received_request, peer_info_.id));
 
   // THEN
   const auto &received_blocks = response.blocks;

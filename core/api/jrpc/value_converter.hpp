@@ -11,6 +11,7 @@
 #include <jsonrpc-lean/value.h>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <scale/scale.hpp>
 #include "api/service/state/state_api.hpp"
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
@@ -24,7 +25,6 @@
 #include "primitives/rpc_methods.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
 #include "primitives/version.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::api {
 

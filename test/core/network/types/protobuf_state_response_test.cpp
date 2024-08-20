@@ -6,9 +6,9 @@
 #include "network/adapters/protobuf_state_response.hpp"
 
 #include <gmock/gmock.h>
+#include <qtils/test/outcome.hpp>
 
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -42,7 +42,7 @@ TEST_F(ProtobufStateResponseAdapterTest, Serialization) {
 
   AdapterType::write(response, data, data.end());
   StateResponse r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  auto it_read = EXPECT_OK(AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
 }

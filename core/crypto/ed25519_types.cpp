@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "ed25519_types.hpp"
+#include "crypto/ed25519_types.hpp"
 
 namespace kagome::crypto {
   bool Ed25519Keypair::operator==(const Ed25519Keypair &other) const {

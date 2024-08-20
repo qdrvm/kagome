@@ -9,7 +9,7 @@
 #include <initializer_list>
 #include <unordered_set>
 
-#include "block_id.hpp"
+#include "primitives/block_id.hpp"
 
 namespace kagome::primitives {
 

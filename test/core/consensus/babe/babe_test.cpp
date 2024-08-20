@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include <latch>
 
@@ -44,7 +45,6 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 #include "utils/watchdog.hpp"
@@ -389,10 +389,10 @@ TEST_F(BabeTest, Setup) {
   EXPECT_CALL(*babe_api, disabled_validators(_))
       .WillOnce(Return(std::vector<AuthorityIndex>{}));
 
-  ASSERT_OUTCOME_ERROR(babe->getSlot(genesis_block_header),
-                       DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
+  EXPECT_EC(babe->getSlot(genesis_block_header),
+            DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
 
-  ASSERT_OUTCOME_SUCCESS(actual_slot, babe->getSlot(best_block_header));
+  auto actual_slot = EXPECT_OK(babe->getSlot(best_block_header));
   EXPECT_EQ(actual_slot, best_block_slot);
 
   EXPECT_EQ(babe->getValidatorStatus(best_block_info, 0),
@@ -418,8 +418,8 @@ TEST_F(BabeTest, NonValidator) {
   EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
             ValidatorStatus::NonValidator);
 
-  ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::NON_VALIDATOR);
+  EXPECT_EC(babe->processSlot(slot, best_block_info),
+            SlotLeadershipError::NON_VALIDATOR);
 }
 
 TEST_F(BabeTest, DisabledValidator) {
@@ -442,8 +442,8 @@ TEST_F(BabeTest, DisabledValidator) {
   EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
             ValidatorStatus::DisabledValidator);
 
-  ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::DISABLED_VALIDATOR);
+  EXPECT_EC(babe->processSlot(slot, best_block_info),
+            SlotLeadershipError::DISABLED_VALIDATOR);
 }
 
 TEST_F(BabeTest, NoSlotLeader) {
@@ -468,8 +468,8 @@ TEST_F(BabeTest, NoSlotLeader) {
   EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
             ValidatorStatus::Validator);
 
-  ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       SlotLeadershipError::NO_SLOT_LEADER);
+  EXPECT_EC(babe->processSlot(slot, best_block_info),
+            SlotLeadershipError::NO_SLOT_LEADER);
 }
 
 TEST_F(BabeTest, SlotLeader) {
@@ -508,7 +508,7 @@ TEST_F(BabeTest, SlotLeader) {
   std::latch latch(1);
   babe->on_proposed = [&] { latch.count_down(); };
 
-  ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
+  EXPECT_OK(babe->processSlot(slot, best_block_info));
 
   latch.wait();
 }
@@ -559,6 +559,5 @@ TEST_F(BabeTest, EquivocationReport) {
                   "parent"_hash256, equivocation_proof, ownership_proof))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      babe->reportEquivocation(first.hash(), second.hash()));
+  EXPECT_OK(babe->reportEquivocation(first.hash(), second.hash()));
 }

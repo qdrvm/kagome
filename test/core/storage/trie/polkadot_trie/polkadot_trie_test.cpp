@@ -5,12 +5,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/test/outcome.hpp>
 
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/polkadot_trie_printer.hpp"
 
@@ -61,19 +61,19 @@ const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
 
 void FillSmallTree(PolkadotTrie &trie) {
   for (auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(entry.first, BufferView{entry.second}));
+    EXPECT_OK(trie.put(entry.first, BufferView{entry.second}));
   }
 }
 
-#define ASSERT_OUTCOME_IS_TRUE(Expression)        \
-  {                                               \
-    ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
-    ASSERT_TRUE(result);                          \
+#define ASSERT_OUTCOME_IS_TRUE(Expression) \
+  {                                        \
+    auto result = EXPECT_OK((Expression)); \
+    ASSERT_TRUE(result);                   \
   }
-#define ASSERT_OUTCOME_IS_FALSE(Expression)       \
-  {                                               \
-    ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
-    ASSERT_FALSE(result);                         \
+#define ASSERT_OUTCOME_IS_FALSE(Expression) \
+  {                                         \
+    auto result = EXPECT_OK((Expression));  \
+    ASSERT_FALSE(result);                   \
   }
 
 /**
@@ -88,7 +88,7 @@ TEST_P(TrieTest, RunCommand) {
         break;
       case Command::GET: {
         if (command.value) {
-          ASSERT_OUTCOME_SUCCESS(val, trie->get(command.key));
+          auto val = EXPECT_OK(trie->get(command.key));
           ASSERT_EQ(val, command.value.value());
         } else {
           EXPECT_EC(trie->get(command.key),
@@ -97,12 +97,11 @@ TEST_P(TrieTest, RunCommand) {
         break;
       }
       case Command::PUT: {
-        ASSERT_OUTCOME_SUCCESS_TRY(
-            trie->put(command.key, BufferView{command.value.value()}));
+        EXPECT_OK(trie->put(command.key, BufferView{command.value.value()}));
         break;
       }
       case Command::REMOVE: {
-        ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(command.key));
+        EXPECT_OK(trie->remove(command.key));
         break;
       }
     }
@@ -266,18 +265,18 @@ TEST_F(TrieTest, Put) {
   FillSmallTree(*trie);
 
   for (auto &entry : data) {
-    ASSERT_OUTCOME_SUCCESS(res, trie->get(entry.first));
+    auto res = EXPECT_OK(trie->get(entry.first));
     ASSERT_EQ(res, entry.second);
   }
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put("102030"_hex2buf, "0a0b0c"_hex2buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put("102030"_hex2buf, "010203"_hex2buf));
-  ASSERT_OUTCOME_SUCCESS(v1, trie->get("102030"_hex2buf));
+  EXPECT_OK(trie->put("102030"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OK(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OK(trie->put("102030"_hex2buf, "010203"_hex2buf));
+  auto v1 = EXPECT_OK(trie->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
-  ASSERT_OUTCOME_SUCCESS(v2, trie->get("104050"_hex2buf));
+  auto v2 = EXPECT_OK(trie->get("104050"_hex2buf));
   ASSERT_EQ(v2, "0a0b0c"_hex2buf);
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put("1332"_hex2buf, ""_buf));
-  ASSERT_OUTCOME_SUCCESS(v3, trie->get("1332"_hex2buf));
+  EXPECT_OK(trie->put("1332"_hex2buf, ""_buf));
+  auto v3 = EXPECT_OK(trie->get("1332"_hex2buf));
   ASSERT_EQ(v3, ""_buf);
 }
 
@@ -290,7 +289,7 @@ TEST_F(TrieTest, Put) {
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
   for (auto i : {2, 3, 4}) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(data[i].first));
+    EXPECT_OK(trie->remove(data[i].first));
   }
 
   for (auto i : {2, 3, 4}) {
@@ -308,9 +307,8 @@ TEST_F(TrieTest, Remove) {
 TEST_F(TrieTest, Replace) {
   FillSmallTree(*trie);
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      trie->put(data[1].first, BufferView{data[3].second}));
-  ASSERT_OUTCOME_SUCCESS(res, trie->get(data[1].first));
+  EXPECT_OK(trie->put(data[1].first, BufferView{data[3].second}));
+  auto res = EXPECT_OK(trie->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
 
@@ -325,10 +323,9 @@ TEST_F(TrieTest, ClearPrefix) {
                                                  {"bat"_buf, "789"_buf},
                                                  {"batch"_buf, "0-="_buf}};
   for (auto &entry : data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->put(entry.first, BufferView{entry.second}));
+    EXPECT_OK(trie->put(entry.first, BufferView{entry.second}));
   }
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  EXPECT_OK(
       trie->clearPrefix("bar"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
       }));
@@ -337,17 +334,16 @@ TEST_F(TrieTest, ClearPrefix) {
   ASSERT_OUTCOME_IS_FALSE(trie->contains("bark"_buf));
   ASSERT_OUTCOME_IS_FALSE(trie->contains("barnacle"_buf));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  EXPECT_OK(
       trie->clearPrefix("batc"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
       }));
   ASSERT_OUTCOME_IS_TRUE(trie->contains("bat"_buf));
   ASSERT_OUTCOME_IS_FALSE(trie->contains("batch"_buf));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      trie->clearPrefix("b"_buf, std::nullopt, [](const auto &, auto &&) {
-        return outcome::success();
-      }));
+  EXPECT_OK(trie->clearPrefix("b"_buf, std::nullopt, [](const auto &, auto &&) {
+    return outcome::success();
+  }));
   ASSERT_OUTCOME_IS_FALSE(trie->contains("bat"_buf));
 }
 
@@ -397,9 +393,9 @@ size_t size(const PolkadotTrie::NodePtr &node) {
  */
 TEST_P(DeleteTest, DeleteData) {
   for (auto &entry : GetParam().data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry, "123"_buf));
+    EXPECT_OK(trie->put(entry, "123"_buf));
   }
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(GetParam().key));
+  EXPECT_OK(trie->remove(GetParam().key));
   ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 
@@ -445,14 +441,12 @@ class ClearPrefixTest : public testing::Test,
  */
 TEST_P(ClearPrefixTest, ManyCases) {
   for (const auto &entry : GetParam().data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry, "123"_buf));
+    EXPECT_OK(trie->put(entry, "123"_buf));
   }
-  ASSERT_OUTCOME_SUCCESS(
-      ret,
-      trie->clearPrefix(
-          GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
-            return outcome::success();
-          }));
+  auto ret = EXPECT_OK(trie->clearPrefix(
+      GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
+        return outcome::success();
+      }));
   EXPECT_EQ(ret, GetParam().ret);
   for (const auto &entry : GetParam().res) {
     ASSERT_OUTCOME_IS_TRUE(trie->contains(entry));
@@ -524,18 +518,17 @@ TEST_F(TrieTest, GetPath) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (const auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->put(entry.first, BufferView{entry.second}));
+    EXPECT_OK(trie->put(entry.first, BufferView{entry.second}));
   }
 
   std::vector<std::pair<const BranchNode *, uint8_t>> path;
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->forNodeInPath(
+  EXPECT_OK(trie->forNodeInPath(
       trie->getRoot(),
       KeyNibbles{"010203040506"_hex2buf},
       [&path](const auto &node, auto idx, auto &child) mutable {
         path.emplace_back(&node, idx);
         return outcome::success();
-      }))
+      }));
   auto root = trie->getRoot();
   auto node1 = trie->getNode(root, KeyNibbles{1, 2, 3, 4}).value();
   auto it = path.begin();
@@ -558,15 +551,14 @@ TEST_F(TrieTest, GetPathToInvalid) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (const auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->put(entry.first, BufferView{entry.second}));
+    EXPECT_OK(trie->put(entry.first, BufferView{entry.second}));
   }
-  EXPECT_OUTCOME_FALSE_1(
+  EXPECT_HAS_ERROR(
       trie->forNodeInPath(trie->getRoot(),
                           KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
                           [](auto &node, auto idx, auto &child) mutable {
                             return outcome::success();
-                          }))
+                          }));
 }
 
 /**
@@ -583,11 +575,9 @@ TEST_F(TrieTest, GetNodeReturnsNullptrWhenNotFound) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->put(entry.first, BufferView{entry.second}));
+    EXPECT_OK(trie->put(entry.first, BufferView{entry.second}));
   }
-  ASSERT_OUTCOME_SUCCESS(
-      res,
+  auto res = EXPECT_OK(
       trie->getNode(trie->getRoot(), KeyNibbles{"01020304050607"_hex2buf}));
   ASSERT_EQ(res, nullptr) << res->getValue().value->toHex();
 }
