@@ -407,8 +407,42 @@ namespace kagome::runtime::wasm_edge {
     OUTCOME_TRY(configure_ctx, configureCtx());
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
     WasmEdge_ASTModuleContext *module_ctx;
-    WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
-        loader_ctx.raw(), &module_ctx, path_compiled.c_str()));
+
+    switch (config_.exec) {
+      case ExecType::Compiled: {
+        WasmEdge_ConfigureCompilerSetOptimizationLevel(
+            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+
+        CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
+
+        auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
+        std::string filename = fmt::format(
+            "{}/{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+
+        std::error_code ec;
+        if (!std::filesystem::create_directories(versioned_cache_dir, ec)
+            && ec) {
+          return CompilationError{fmt::format(
+              "Failed to create a dir for compiled modules: {}", ec)};
+        }
+        if (!std::filesystem::exists(filename)) {
+          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
+          WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
+              compiler.raw(), code.data(), code.size(), filename.c_str()));
+          SL_INFO(log_, "Compilation finished, saved at {}", filename);
+        }
+        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
+            loader_ctx.raw(), &module_ctx, filename.c_str()));
+        break;
+      }
+      case ExecType::Interpreted: {
+        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromBuffer(
+            loader_ctx.raw(), &module_ctx, code.data(), code.size()));
+        break;
+      }
+      default:
+        BOOST_UNREACHABLE_RETURN({});
+    }
     ASTModuleContext module = module_ctx;
 
     ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());

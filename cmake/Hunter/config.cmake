@@ -48,7 +48,7 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       CMAKE_ARGS
           CMAKE_POSITION_INDEPENDENT_CODE=TRUE
   )
-  
+
   hunter_config(
       spdlog
       VERSION 1.12.0-p0
@@ -56,11 +56,15 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
           SPDLOG_BUILD_PIC=ON
           SPDLOG_FMT_EXTERNAL=ON
   )
-  
+
+  # hash or version, required later to separate WasmEdge 
+  # binary cache directories from different versions
+  set(WASMEDGE_ID 58aea400de9179ad3e314c7e84fd4da345b8a643)
+
   hunter_config(
       WasmEdge
       URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
-      SHA1 58aea400de9179ad3e314c7e84fd4da345b8a643
+      SHA1 ${WASMEDGE_ID}
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
