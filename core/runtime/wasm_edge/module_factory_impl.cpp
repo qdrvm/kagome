@@ -417,7 +417,7 @@ namespace kagome::runtime::wasm_edge {
 
         auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
         std::string filename = fmt::format(
-            "{}/{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+            "{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
 
         std::error_code ec;
         if (!std::filesystem::create_directories(versioned_cache_dir, ec)
