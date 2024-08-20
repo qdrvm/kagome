@@ -11,22 +11,25 @@
 #include "outcome/custom.hpp"
 
 namespace kagome::parachain {
-  struct SecureModeError {
-    SecureModeError(std::string message) : message_{std::move(message)} {}
+  struct SecureModeError : std::runtime_error {
+    SecureModeError(const std::string &message) : std::runtime_error(message) {}
 
-    SecureModeError(const std::error_code &ec) : message_{ec.message()} {}
+    SecureModeError(const std::error_code &ec)
+        : SecureModeError{ec.message()} {}
 
     std::string_view message() const {
-      return message_;
+      return what();
     }
-
-    std::string message_;
   };
   template <typename R>
   using SecureModeOutcome = CustomOutcome<R, SecureModeError>;
 
   inline auto format_as(const SecureModeError &e) {
     return e.message();
+  }
+
+  inline void outcome_throw_as_system_error_with_payload(SecureModeError e) {
+    throw e;
   }
 
   /// Changes the filessystem root directory for the current process to
