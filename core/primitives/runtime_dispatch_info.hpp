@@ -28,6 +28,10 @@ namespace kagome::primitives {
     scale::Compact<uint64_t> ref_time;
     // The weight of storage space used by proof of validity.
     scale::Compact<uint64_t> proof_size;
+
+    bool operator==(const Weight &other) const {
+      return ref_time == other.ref_time && proof_size == other.proof_size;
+    }
   };
 
   // for some reason encoded as variant in substrate, thus custom encode/decode
@@ -87,6 +91,11 @@ namespace kagome::primitives {
      * `SignedExtension`).
      */
     Balance partial_fee;
+
+    bool operator==(const RuntimeDispatchInfo &other) const {
+      return weight == other.weight && dispatch_class == other.dispatch_class
+          && partial_fee == other.partial_fee;
+    }
   };
 
 }  // namespace kagome::primitives
