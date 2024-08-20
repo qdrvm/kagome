@@ -10,10 +10,8 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/beast/core/bind_handler.hpp>
-#include <boost/beast/http/string_body.hpp>
 #include <boost/config.hpp>
 #include <libp2p/outcome/outcome.hpp>
-
 namespace boost::beast {
   template <class NextLayer, class DynamicBuffer>
   void teardown(role_type role,

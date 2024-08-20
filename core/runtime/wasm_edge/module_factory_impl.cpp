@@ -81,23 +81,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   inline CompilationOutcome<ConfigureContext> configureCtx() {
