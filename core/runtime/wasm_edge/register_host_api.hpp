@@ -17,7 +17,7 @@ namespace kagome::runtime::wasm_edge {
 
   template <typename T>
   WasmEdge_ValType get_wasm_type() = delete;
-  
+
   template <>
   WasmEdge_ValType get_wasm_type<int32_t>() {
     return WasmEdge_ValTypeGenI32();
@@ -195,7 +195,7 @@ namespace kagome::runtime::wasm_edge {
              "Attempt to call an unimplemented Host method '{}'",
              reinterpret_cast<const char *>(data));
     return WasmEdge_Result_Fail;
-  };
+  }
 
   void stub_host_method(WasmEdge_ModuleInstanceContext *module,
                         std::string_view name,

@@ -202,7 +202,7 @@ namespace kagome::api {
     sessionMake();
 
     asyncRead();
-  };
+  }
 
   void WsSession::onRead(boost::system::error_code ec,
                          std::size_t bytes_transferred) {
