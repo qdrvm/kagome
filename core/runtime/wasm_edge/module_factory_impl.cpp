@@ -386,99 +386,76 @@ namespace kagome::runtime::wasm_edge {
     OUTCOME_TRY(configure_ctx, configureCtx());
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
         configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
-    SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
-    WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
-        compiler.raw(), code.data(), code.size(), path_compiled.c_str()));
-    SL_INFO(log_, "Compilation finished, saved at {}", path_compiled);
-    return outcome::success();
-  }
 
-  CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
-    Buffer code;
-    if (auto res = readFile(code, path_compiled); !res) {
+    auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
+    std::string filename = fmt::format(
+        "{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+
+    std::error_code ec;
+    if (!std::filesystem::create_directories(versioned_cache_dir, ec) && ec) {
       return CompilationError{
-          fmt::format("Failed to read compiled wasm module from '{}': {}",
-                      path_compiled,
-                      res.error())};
+          fmt::format("Failed to create a dir for compiled modules: {}", ec)};
     }
-    auto code_hash = hasher_->blake2b_256(code);
-    OUTCOME_TRY(configure_ctx, configureCtx());
-    LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
-    WasmEdge_ASTModuleContext *module_ctx;
+    if (!std::filesystem::exists(filename)) {
+      SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
+      WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
+          compiler.raw(), code.data(), code.size(), filename.c_str()));
+      SL_INFO(log_, "Compilation finished, saved at {}", filename);
+      return outcome::success();
+    }
 
-    switch (config_.exec) {
-      case ExecType::Compiled: {
-        WasmEdge_ConfigureCompilerSetOptimizationLevel(
-            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+    CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
+        std::filesystem::path path_compiled) const {
+      Buffer code;
+      if (auto res = readFile(code, path_compiled); !res) {
+        return CompilationError{
+            fmt::format("Failed to read compiled wasm module from '{}': {}",
+                        path_compiled,
+                        res.error())};
+      }
+      auto code_hash = hasher_->blake2b_256(code);
+      OUTCOME_TRY(configure_ctx, configureCtx());
+      WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
+          loader_ctx.raw(), &module_ctx, path_compiled.c_str()));
+      ASTModuleContext module = module_ctx;
 
-        CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
+      ValidatorContext validator =
+          WasmEdge_ValidatorCreate(configure_ctx.raw());
+      WasmEdge_UNWRAP_COMPILE_ERR(
+          WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
 
-        auto versioned_cache_dir = config_.compiled_module_dir / WASMEDGE_ID;
-        std::string filename = fmt::format(
-            "{}/wasm_{}", versioned_cache_dir.c_str(), code_hash.toHex());
+      auto executor = std::make_shared<ExecutorContext>(
+          WasmEdge_ExecutorCreate(nullptr, nullptr));
 
-        std::error_code ec;
-        if (!std::filesystem::create_directories(versioned_cache_dir, ec)
-            && ec) {
-          return CompilationError{fmt::format(
-              "Failed to create a dir for compiled modules: {}", ec)};
+      uint32_t imports_num = WasmEdge_ASTModuleListImportsLength(module.raw());
+      std::vector<WasmEdge_ImportTypeContext *> imports;
+      imports.resize(imports_num);
+      WasmEdge_ASTModuleListImports(
+          module.raw(),
+          const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
+          imports_num);
+
+      const WasmEdge_MemoryTypeContext *import_memory_type{};
+      using namespace std::string_view_literals;
+      for (auto &import : imports) {
+        if (WasmEdge_StringIsEqual(
+                kMemoryName, WasmEdge_ImportTypeGetExternalName(import))) {
+          import_memory_type =
+              WasmEdge_ImportTypeGetMemoryType(module.raw(), import);
+          break;
         }
-        if (!std::filesystem::exists(filename)) {
-          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
-          WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
-              compiler.raw(), code.data(), code.size(), filename.c_str()));
-          SL_INFO(log_, "Compilation finished, saved at {}", filename);
-        }
-        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
-            loader_ctx.raw(), &module_ctx, filename.c_str()));
-        break;
       }
-      case ExecType::Interpreted: {
-        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromBuffer(
-            loader_ctx.raw(), &module_ctx, code.data(), code.size()));
-        break;
-      }
-      default:
-        BOOST_UNREACHABLE_RETURN({});
-    }
-    ASTModuleContext module = module_ctx;
 
-    ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
-    WasmEdge_UNWRAP_COMPILE_ERR(
-        WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
+      auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
+          core_factory_, host_api_factory_, storage_, serializer_);
 
-    auto executor = std::make_shared<ExecutorContext>(
-        WasmEdge_ExecutorCreate(nullptr, nullptr));
-
-    uint32_t imports_num = WasmEdge_ASTModuleListImportsLength(module.raw());
-    std::vector<WasmEdge_ImportTypeContext *> imports;
-    imports.resize(imports_num);
-    WasmEdge_ASTModuleListImports(
-        module.raw(),
-        const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
-        imports_num);
-
-    const WasmEdge_MemoryTypeContext *import_memory_type{};
-    using namespace std::string_view_literals;
-    for (auto &import : imports) {
-      if (WasmEdge_StringIsEqual(kMemoryName,
-                                 WasmEdge_ImportTypeGetExternalName(import))) {
-        import_memory_type =
-            WasmEdge_ImportTypeGetMemoryType(module.raw(), import);
-        break;
-      }
+      return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
+                                                        std::move(executor),
+                                                        env_factory,
+                                                        import_memory_type,
+                                                        code_hash}};
     }
 
-    auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
-        core_factory_, host_api_factory_, storage_, serializer_);
-
-    return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
-                                                      std::move(executor),
-                                                      env_factory,
-                                                      import_memory_type,
-                                                      code_hash}};
-  }
-
-}  // namespace kagome::runtime::wasm_edge
+  }  // namespace kagome::runtime::wasm_edge
