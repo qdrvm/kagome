@@ -71,7 +71,7 @@ namespace kagome::primitives {
   template <typename Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator<<(Stream &stream, DispatchClass dispatch_class) {
-    return stream << uint8_t{0} << dispatch_class;
+    return stream << dispatch_class;
   }
 
   struct Balance : public scale::Fixed<scale::uint128_t> {};
