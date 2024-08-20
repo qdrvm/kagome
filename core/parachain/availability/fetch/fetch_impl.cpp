@@ -129,9 +129,9 @@ namespace kagome::parachain {
                   if (r.has_value()) {
                     auto response = visit_in_place(
                         r.value(),
-                        [](const network::Empty &empty)
+                        [](network::Empty &empty)
                             -> network::FetchChunkResponse { return empty; },
-                        [&](const network::ChunkObsolete &chunk_obsolete)
+                        [&](network::ChunkObsolete &chunk_obsolete)
                             -> network::FetchChunkResponse {
                           return network::Chunk{
                               .data = std::move(chunk_obsolete.data),

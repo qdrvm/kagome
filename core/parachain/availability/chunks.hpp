@@ -69,7 +69,7 @@ namespace kagome::parachain {
     EC_CPP_TRY(encoder, ec_cpp::create(validators));
     std::vector<decltype(encoder)::Shard> _chunks;
     _chunks.resize(chunks.size());
-    for (auto chunk : chunks) {
+    for (auto &chunk : chunks) {
       _chunks[chunk.index] = chunk.chunk;
     }
 

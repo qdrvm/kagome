@@ -18,8 +18,6 @@ namespace kagome::network {
     using RequestType = Request;
     using ResponseType = Response;
 
-    virtual ~RequestResponseProtocol() = default;
-
     virtual void doRequest(const PeerId &peer_id,
                            RequestType request,
                            std::function<void(outcome::result<ResponseType>)>

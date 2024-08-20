@@ -31,16 +31,14 @@ namespace {
 
   const std::array<std::string, 3> results = {"success", "failure", "invalid"};
 
-#define incFullRecoveriesFinished(strategy, result)                         \
-  do {                                                                      \
-    BOOST_ASSERT_MSG(                                                       \
-        std::find(strategy_types.begin(), strategy_types.end(), strategy)   \
-            != strategy_types.end(),                                        \
-        "Unknown strategy type");                                           \
-    BOOST_ASSERT_MSG(                                                       \
-        std::find(results.begin(), results.end(), result) != results.end(), \
-        "Unknown result type");                                             \
-    full_recoveries_finished_.at(strategy).at(result)->inc();               \
+#define incFullRecoveriesFinished(strategy, result)                          \
+  do {                                                                       \
+    BOOST_ASSERT_MSG(                                                        \
+        std::ranges::find(strategy_types, strategy) != strategy_types.end(), \
+        "Unknown strategy type");                                            \
+    BOOST_ASSERT_MSG(std::ranges::find(results, result) != results.end(),    \
+                     "Unknown result type");                                 \
+    full_recoveries_finished_.at(strategy).at(result)->inc();                \
   } while (false)
 
 }  // namespace
@@ -243,9 +241,8 @@ namespace kagome::parachain {
       }
 
       // Filter existing
-      if (std::find_if(
-              active.chunks.begin(),
-              active.chunks.end(),
+      if (std::ranges::find_if(
+              active.chunks,
               [&](network::ErasureChunk &c) { return c.index == chunk_index; })
           != active.chunks.end()) {
         continue;
@@ -413,9 +410,9 @@ namespace kagome::parachain {
     // Update by existing chunks
     auto chunks = av_store_->getChunks(candidate_hash);
     for (auto &chunk : chunks) {
-      if (std::find_if(active.chunks.begin(),
-                       active.chunks.end(),
-                       [&](const auto &c) { return c.index == chunk.index; })
+      if (std::ranges::find_if(
+              active.chunks,
+              [&](const auto &c) { return c.index == chunk.index; })
           == active.chunks.end()) {
         active.chunks.emplace_back(std::move(chunk));
       }
@@ -468,12 +465,12 @@ namespace kagome::parachain {
 
       // Filter existing (only if mapping is not 1-to-1)
       if (active.val2chunk(0) != 0) {
-        if (std::find_if(active.chunks.begin(),
-                         active.chunks.end(),
-                         [chunk_index{active.val2chunk(validator_index)}](
-                             network::ErasureChunk &c) {
-                           return c.index == chunk_index;
-                         })
+        if (std::ranges::find_if(
+                active.chunks,
+                [chunk_index{active.val2chunk(validator_index)}](
+                    network::ErasureChunk &c) {
+                  return c.index == chunk_index;
+                })
             != active.chunks.end()) {
           continue;
         }
@@ -610,18 +607,18 @@ namespace kagome::parachain {
     router_->getFetchAvailableDataProtocol()->doRequest(
         peer_id,
         candidate_hash,
-        [=, this, weak{weak_from_this()}](
+        [weak{weak_from_this()}, candidate_hash, peer_id, next_iteration](
             outcome::result<network::FetchAvailableDataResponse> response_res) {
           if (auto self = weak.lock()) {
             if (response_res.has_error()) {
-              SL_TRACE(logger_,
+              SL_TRACE(self->logger_,
                        "Fetching available data for candidate {} from {} "
                        "returned error: {}",
                        candidate_hash,
                        peer_id,
                        response_res.error());
             } else if (boost::get<network::Empty>(&response_res.value())) {
-              SL_TRACE(logger_,
+              SL_TRACE(self->logger_,
                        "Fetching available data for candidate {} from {} "
                        "returned empty",
                        candidate_hash,
@@ -690,18 +687,22 @@ namespace kagome::parachain {
         router_->getFetchChunkProtocol()->doRequest(
             peer_id,
             {candidate_hash, chunk_index},
-            [=, this, weak{weak_from_this()}](
+            [weak{weak_from_this()},
+             candidate_hash,
+             chunk_index,
+             peer_id,
+             next_iteration](
                 outcome::result<network::FetchChunkResponse> response_res) {
               if (auto self = weak.lock()) {
                 if (response_res.has_value()) {
-                  SL_DEBUG(logger_,
+                  SL_DEBUG(self->logger_,
                            "Result of request chunk {} of candidate {} to "
                            "peer {}: success",
                            chunk_index,
                            candidate_hash,
                            peer_id);
                 } else {
-                  SL_DEBUG(logger_,
+                  SL_DEBUG(self->logger_,
                            "Result of request chunk {} of candidate {} to "
                            "peer {}: {}",
                            chunk_index,
@@ -726,9 +727,10 @@ namespace kagome::parachain {
                 if (response_res.has_value()) {
                   auto response = visit_in_place(
                       response_res.value(),
-                      [](const network::Empty &empty)
-                          -> network::FetchChunkResponse { return empty; },
-                      [&](const network::ChunkObsolete &chunk_obsolete)
+                      [](network::Empty &empty) -> network::FetchChunkResponse {
+                        return empty;
+                      },
+                      [&](network::ChunkObsolete &chunk_obsolete)
                           -> network::FetchChunkResponse {
                         return network::Chunk{
                             .data = std::move(chunk_obsolete.data),
@@ -768,9 +770,9 @@ namespace kagome::parachain {
     if (response_res.has_value()) {
       if (auto chunk = boost::get<network::Chunk>(&response_res.value())) {
         network::ErasureChunk erasure_chunk{
-            std::move(chunk->data),
-            chunk->chunk_index,
-            std::move(chunk->proof),
+            .chunk = std::move(chunk->data),
+            .index = chunk->chunk_index,
+            .proof = std::move(chunk->proof),
         };
         if (checkTrieProof(erasure_chunk, active.erasure_encoding_root)) {
           active.chunks.emplace_back(std::move(erasure_chunk));
