@@ -12,6 +12,7 @@
 #include <fstream>
 #include <ios>
 #include <libp2p/common/final_action.hpp>
+#include <qtils/test/outcome.hpp>
 
 #include "parachain/pvf/secure_mode.hpp"
 
