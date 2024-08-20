@@ -64,11 +64,7 @@ namespace kagome::runtime {
         result,
         executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
             ctx, "TransactionPaymentApi_query_info", ext.data, len));
-    primitives::RuntimeDispatchInfo<primitives::Weight> weight_result;
-    weight_result.dispatch_class = result.dispatch_class;
-    weight_result.partial_fee = result.partial_fee;
-    weight_result.weight.ref_time = result.weight.ref_time;
-    weight_result.weight.proof_size = result.weight.proof_size;
+   
     return result;
   }
 
