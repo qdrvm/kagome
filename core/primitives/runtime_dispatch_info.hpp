@@ -7,6 +7,8 @@
 #pragma once
 
 #include <scale/scale.hpp>
+#include <scale/tie.hpp>
+
 #include "common/unused.hpp"
 #include "scale/big_fixed_integers.hpp"
 
@@ -16,7 +18,9 @@ namespace kagome::primitives {
   using OldWeight = scale::Compact<uint64_t>;
 
   struct Weight {
+    // NOLINTBEGIN
     SCALE_TIE(2);
+    // NOLINTEND
     Weight() = default;
 
     explicit Weight(OldWeight w) : ref_time{w}, proof_size{0} {}
@@ -77,7 +81,7 @@ namespace kagome::primitives {
    */
   template <typename Weight>
   struct RuntimeDispatchInfo {
-    SCALE_TIE(3)
+    SCALE_TIE(3);  // NOLINT
 
     Weight weight;
     DispatchClass dispatch_class;
