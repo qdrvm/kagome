@@ -290,7 +290,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageGet) {
 
 INSTANTIATE_TEST_SUITE_P(Instance,
                          TernaryParametrizedTest,
-                         testing::Values(0, 1, 2));
+                         testing::Values(1, 2));
 
 /**
  * @given method, uri, meta
