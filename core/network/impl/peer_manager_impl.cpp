@@ -50,7 +50,7 @@ namespace {
       std::shared_ptr<kagome::network::StreamEngine> &stream_engine,
       const std::shared_ptr<P> &protocol,
       const kagome::network::PeerManager::PeerInfo &peer_info,
-      F &&func) {
+      F &&func) {  // NOLINT(cppcoreguidelines-missing-std-forward)
     BOOST_ASSERT(stream_engine);
     BOOST_ASSERT(protocol);
 

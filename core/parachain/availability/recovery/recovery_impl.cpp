@@ -33,15 +33,14 @@ namespace {
 
   // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define incFullRecoveriesFinished(strategy, result)                          \
-  /* NOLINTBEGIN(cppcoreguidelines-avoid-do-while) */                        \
-  do {                                                                       \
+  [&] {                                                                      \
     BOOST_ASSERT_MSG(                                                        \
         std::ranges::find(strategy_types, strategy) != strategy_types.end(), \
         "Unknown strategy type");                                            \
     BOOST_ASSERT_MSG(std::ranges::find(results, result) != results.end(),    \
                      "Unknown result type");                                 \
     full_recoveries_finished_.at(strategy).at(result)->inc();                \
-  } while (false) /* NOLINTEND */
+  }()
 
 }  // namespace
 
