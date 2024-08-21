@@ -15,7 +15,7 @@ namespace kagome::runtime {
   class TransactionPaymentApiMock : public TransactionPaymentApi {
    public:
     MOCK_METHOD(
-        outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>,
+        outcome::result<primitives::RuntimeDispatchInfo<primitives::Weight>>,
         query_info,
         (const primitives::BlockHash &block,
          const primitives::Extrinsic &ext,
