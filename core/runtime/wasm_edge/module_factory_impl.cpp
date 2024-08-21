@@ -387,7 +387,7 @@ namespace kagome::runtime::wasm_edge {
     std::error_code ec;
     std::filesystem::create_directories(path_compiled.parent_path(), ec);
     if (ec) {
-      return CompilationError{std::format(
+      return CompilationError{fmt::format(
           "Compiled module destination dir '{}' does not exist and cannot be "
           "created: {}",
           path_compiled.parent_path().string(),
