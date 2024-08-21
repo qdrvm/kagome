@@ -257,7 +257,8 @@ jobs:
 
       - name: "Build target"
         working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_dev_docker_build_tidy \
+        run:
+          make kagome_dev_docker_build_tidy \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }}

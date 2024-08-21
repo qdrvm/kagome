@@ -159,7 +159,7 @@ kagome_dev_docker_build_tidy:
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
 		cmake --build \"$(BUILD_DIR)\" --target generated -- -j${BUILD_THREADS} && \
-		cd /opt/kagome/ && ./housekeeping/clang-tidy-diff.sh \
+		cd /opt/kagome/ && export CI='true' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
