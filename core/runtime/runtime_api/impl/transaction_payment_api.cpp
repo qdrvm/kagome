@@ -16,7 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
   switch (err) {
     case E::TRANSACTION_PAYMENT_API_NOT_FOUND:
       return "Transaction payment runtime API is not found in the runtime";
-    case TransactionPaymentApiImpl::Error::API_BELOW_VERSION_2_NOT_SUPPORTED:
+    case E::API_BELOW_VERSION_2_NOT_SUPPORTED:
       return "API below version 2 is not supported";
   }
   return "Unknown TransactionPaymentApiImpl error";
