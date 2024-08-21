@@ -11,7 +11,7 @@
 #include <boost/asio/dispatch.hpp>
 #include <boost/beast/core/bind_handler.hpp>
 #include <boost/config.hpp>
-#include <libp2p/outcome/outcome.hpp>
+
 namespace boost::beast {
   template <class NextLayer, class DynamicBuffer>
   void teardown(role_type role,
@@ -136,6 +136,7 @@ namespace kagome::api {
   }
 
   void WsSession::respond(std::string_view response) {
+    SL_DEBUG(logger_, "Responding: {}", response);
     post([self{shared_from_this()}, response{std::string{response}}] {
       if (not self->is_ws_) {
         self->sessionClose();
