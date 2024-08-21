@@ -6,7 +6,7 @@
 #
 
 BUILD_DIR="${BUILD_DIR:-build}"
-CLANG_TIDY_BIN="${CLANG_TIDY_BIN:-clang-tidy-16}"
+CLANG_TIDY_BIN="${CLANG_TIDY_BIN:-clang-tidy}"
 
 cd $(dirname $0)/..
 # exclude WAVM because on CI clang-tidy is run on a WasmEdge build
