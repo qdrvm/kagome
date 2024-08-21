@@ -20,7 +20,7 @@ namespace kagome::api {
     BOOST_ASSERT(block_tree_);
   }
 
-  outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+  outcome::result<primitives::RuntimeDispatchInfo<primitives::Weight>>
   PaymentApiImpl::queryInfo(const primitives::Extrinsic &extrinsic,
                             uint32_t len,
                             OptionalHashRef at) const {

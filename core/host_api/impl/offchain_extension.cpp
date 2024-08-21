@@ -110,10 +110,6 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -137,10 +133,6 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -166,10 +158,6 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -208,10 +196,6 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
