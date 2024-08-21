@@ -82,7 +82,7 @@ hunter_config(
 
 hunter_config(
     libsecp256k1
-    VERSION 0.4.1-qdrvm1
+    VERSION 0.5.1
     CMAKE_ARGS
         SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
