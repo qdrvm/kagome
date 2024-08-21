@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "host_api/host_api.hpp"
+#include "log/logger.hpp"
 #include "runtime/common/register_host_api.hpp"
 
 namespace kagome::runtime::wasm_edge {
