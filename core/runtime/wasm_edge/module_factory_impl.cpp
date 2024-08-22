@@ -384,15 +384,6 @@ namespace kagome::runtime::wasm_edge {
       OUTCOME_TRY(writeFileTmp(path_compiled, code));
       return outcome::success();
     }
-    std::error_code ec;
-    std::filesystem::create_directories(path_compiled.parent_path(), ec);
-    if (ec) {
-      return CompilationError{fmt::format(
-          "Compiled module destination dir '{}' does not exist and cannot be "
-          "created: {}",
-          path_compiled.parent_path().string(),
-          ec.message())};
-    }
     OUTCOME_TRY(configure_ctx, configureCtx());
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
         configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
