@@ -1,0 +1,19 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_library(prospective_parachains
+    candidate_storage.cpp
+    )
+
+target_link_libraries(prospective_parachains
+    fmt::fmt
+    scale::scale
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
+    )
+

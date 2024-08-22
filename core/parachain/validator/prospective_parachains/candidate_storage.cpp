@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "parachain/prospective_parachains/candidate_storage.hpp"
+#include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
                             CandidateStorage::Error,
@@ -15,13 +15,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
       return "Candidate already known";
     case E::PERSISTED_VALIDATION_DATA_MISMATCH:
       return "Persisted validation data mismatch";
+    case E::ZERO_LENGTH_CYCLE:
+      return "Zero length zycle";
   }
   return "Unknown error";
 }
 
 namespace kagome::parachain::fragment {
 
-  outcome::result<void> CandidateStorage::addCandidate(
+  outcome::result<CandidateEntry> CandidateEntry::create_seconded(
       const CandidateHash &candidate_hash,
       const network::CommittedCandidateReceipt &candidate,
       const crypto::Hashed<const runtime::PersistedValidationData &,
@@ -29,43 +31,85 @@ namespace kagome::parachain::fragment {
                            crypto::Blake2b_StreamHasher<32>>
           &persisted_validation_data,
       const std::shared_ptr<crypto::Hasher> &hasher) {
+    return CandidateEntry::create(candidate_hash,
+                                  candidate,
+                                  persisted_validation_data,
+                                  CandidateState::Seconded,
+                                  hasher);
+  }
+
+  outcome::result<CandidateEntry> CandidateEntry::create(
+      const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &candidate,
+      const crypto::Hashed<const runtime::PersistedValidationData &,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>
+          &persisted_validation_data,
+      CandidateState state,
+      const std::shared_ptr<crypto::Hasher> &hasher) {
+    if (persisted_validation_data.getHash()
+        != candidate.descriptor.persisted_data_hash) {
+      return CandidateStorage::Error::PERSISTED_VALIDATION_DATA_MISMATCH;
+    }
+
+    const auto parent_head_data_hash =
+        hasher->blake2b_256(persisted_validation_data.get().parent_head);
+    const auto output_head_data_hash =
+        hasher->blake2b_256(candidate.commitments.para_head);
+
+    if (parent_head_data_hash == output_head_data_hash) {
+      return CandidateStorage::Error::ZERO_LENGTH_CYCLE;
+    }
+
+    return CandidateEntry{
+        .candidate_hash = candidate_hash,
+        .parent_head_data_hash = parent_head_data_hash,
+        .output_head_data_hash = output_head_data_hash,
+        .relay_parent = candidate.descriptor.relay_parent,
+        .candidate =
+            ProspectiveCandidate{
+                .commitments = candidate.commitments,
+                .persisted_validation_data = persisted_validation_data.get(),
+                .pov_hash = candidate.descriptor.pov_hash,
+                .validation_code_hash =
+                    candidate.descriptor.validation_code_hash},
+        .state = state,
+    };
+  }
+
+  outcome::result<void> CandidateStorage::add_candidate_entry(
+      CandidateEntry candidate) {
+    const auto candidate_hash = candidate.candidate_hash;
     if (by_candidate_hash.contains(candidate_hash)) {
       return Error::CANDIDATE_ALREADY_KNOWN;
     }
 
-    if (persisted_validation_data.getHash()
-        != candidate.descriptor.persisted_data_hash) {
-      return Error::PERSISTED_VALIDATION_DATA_MISMATCH;
-    }
+    by_parent_head[candidate.parent_head_data_hash].emplace(candidate_hash);
+    by_output_head[candidate.output_head_data_hash].emplace(candidate_hash);
+    by_candidate_hash.emplace(candidate_hash, std::move(candidate));
 
-    const auto parent_head_hash =
-        hasher->blake2b_256(persisted_validation_data.get().parent_head);
-    const auto output_head_hash =
-        hasher->blake2b_256(candidate.commitments.para_head);
-
-    by_parent_head[parent_head_hash].insert(candidate_hash);
-    by_output_head[output_head_hash].insert(candidate_hash);
-
-    by_candidate_hash.insert(
-        {candidate_hash,
-         CandidateEntry{
-             .candidate_hash = candidate_hash,
-             .relay_parent = candidate.descriptor.relay_parent,
-             .parent_head_data_hash = parent_head_hash,
-             .output_head_data_hash = output_head_hash,
-             .candidate =
-                 ProspectiveCandidate{
-                     .commitments = candidate.commitments,
-                     .collator = candidate.descriptor.collator_id,
-                     .collator_signature = candidate.descriptor.signature,
-                     .persisted_validation_data =
-                         persisted_validation_data.get(),
-                     .pov_hash = candidate.descriptor.pov_hash,
-                     .validation_code_hash =
-                         candidate.descriptor.validation_code_hash},
-             .state = CandidateState::Introduced,
-         }});
     return outcome::success();
+  }
+
+  outcome::result<void> CandidateStorage::add_pending_availability_candidate(
+      const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &candidate,
+      const crypto::Hashed<const runtime::PersistedValidationData &,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>
+          &persisted_validation_data,
+      const std::shared_ptr<crypto::Hasher> &hasher) {
+    OUTCOME_TRY(entry,
+                CandidateEntry::create(candidate_hash,
+                                       candidate,
+                                       persisted_validation_data,
+                                       CandidateState::Backed,
+                                       hasher));
+    return add_candidate_entry(std::move(entry));
+  }
+
+  bool CandidateStorage::contains(const CandidateHash &candidate_hash) const {
+    return by_candidate_hash.contains(candidate_hash);
   }
 
   Option<std::reference_wrapper<const CandidateEntry>> CandidateStorage::get(
@@ -77,35 +121,8 @@ namespace kagome::parachain::fragment {
     return std::nullopt;
   }
 
-  Option<Hash> CandidateStorage::relayParentByCandidateHash(
-      const CandidateHash &candidate_hash) const {
-    if (auto it = by_candidate_hash.find(candidate_hash);
-        it != by_candidate_hash.end()) {
-      return it->second.relay_parent;
-    }
-    return std::nullopt;
-  }
-
-  bool CandidateStorage::contains(const CandidateHash &candidate_hash) const {
-    return by_candidate_hash.contains(candidate_hash);
-  }
-
-  template <typename F>
-  void CandidateStorage::possibleParaChildren(const Hash &parent_head_hash,
-                                              F &&func) const {
-    if (auto it = by_parent_head.find(parent_head_hash);
-        it != by_parent_head.end()) {
-      for (const auto &h : it->second) {
-        if (auto c_it = by_candidate_hash.find(h);
-            c_it != by_candidate_hash.end()) {
-          std::forward<F>(func)(c_it->second);
-        }
-      }
-    }
-  }
-
   Option<std::reference_wrapper<const HeadData>>
-  CandidateStorage::headDataByHash(const Hash &hash) const {
+  CandidateStorage::head_data_by_hash(const Hash &hash) const {
     auto search = [&](const auto &container)
         -> Option<std::reference_wrapper<const CandidateEntry>> {
       if (auto it = container.find(hash); it != container.end()) {
@@ -126,7 +143,7 @@ namespace kagome::parachain::fragment {
     return std::nullopt;
   }
 
-  void CandidateStorage::removeCandidate(
+  void CandidateStorage::remove_candidate(
       const CandidateHash &candidate_hash,
       const std::shared_ptr<crypto::Hasher> &hasher) {
     auto do_remove = [&](HashMap<Hash, HashSet<CandidateHash>> &container,
@@ -189,7 +206,7 @@ namespace kagome::parachain::fragment {
     }
   }
 
-  void CandidateStorage::markBacked(const CandidateHash &candidate_hash) {
+  void CandidateStorage::mark_backed(const CandidateHash &candidate_hash) {
     if (auto it = by_candidate_hash.find(candidate_hash);
         it != by_candidate_hash.end()) {
       it->second.state = CandidateState::Backed;
@@ -202,8 +219,8 @@ namespace kagome::parachain::fragment {
         && it->second.state == CandidateState::Backed;
   }
 
-  std::pair<size_t, size_t> CandidateStorage::len() const {
-    return std::make_pair(by_parent_head.size(), by_candidate_hash.size());
+  size_t CandidateStorage::len() const {
+    return by_candidate_hash.size();
   }
 
 }  // namespace kagome::parachain::fragment

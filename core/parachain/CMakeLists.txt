@@ -38,7 +38,6 @@ add_library(validator_parachain
     approval/approval.cpp
     backing/store_impl.cpp
     backing/cluster.cpp
-    validator/impl/fragment_tree.cpp
     validator/backing_implicit_view.cpp
     )
 
@@ -90,3 +89,5 @@ target_link_libraries(kagome_pvf_worker
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
 endif()
+
+add_subdirectory(validator/prospective_parachains)

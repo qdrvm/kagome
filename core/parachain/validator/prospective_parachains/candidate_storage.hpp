@@ -6,19 +6,10 @@
 
 #pragma once
 
-#include <boost/variant.hpp>
-#include <map>
-#include <optional>
-#include <ranges>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-#include "outcome/outcome.hpp"
+#include "parachain/validator/prospective_parachains/common.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "log/logger.hpp"
-#include "network/types/collator_messages.hpp"
-#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
@@ -31,10 +22,6 @@ namespace kagome::parachain::fragment {
   struct ProspectiveCandidate {
     /// The commitments to the output of the execution.
     network::CandidateCommitments commitments;
-    /// The collator that created the candidate.
-    CollatorId collator;
-    /// The signature of the collator on the payload.
-    runtime::CollatorSignature collator_signature;
     /// The persisted validation data used to create the candidate.
     runtime::PersistedValidationData persisted_validation_data;
     /// The hash of the PoV.
@@ -56,6 +43,7 @@ namespace kagome::parachain::fragment {
     Backed,
   };
 
+  /// Representation of a candidate into the [`CandidateStorage`].
   struct CandidateEntry {
     CandidateHash candidate_hash;
     Hash parent_head_data_hash;
@@ -63,15 +51,8 @@ namespace kagome::parachain::fragment {
     RelayHash relay_parent;
     ProspectiveCandidate candidate;
     CandidateState state;
-  };
 
-  struct CandidateStorage {
-    enum class Error {
-      CANDIDATE_ALREADY_KNOWN,
-      PERSISTED_VALIDATION_DATA_MISMATCH,
-    };
-
-    outcome::result<void> addCandidate(
+    static outcome::result<CandidateEntry> create_seconded(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
         const crypto::Hashed<const runtime::PersistedValidationData &,
@@ -80,33 +61,73 @@ namespace kagome::parachain::fragment {
             &persisted_validation_data,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
-    Option<std::reference_wrapper<const CandidateEntry>> get(
-        const CandidateHash &candidate_hash) const;
+    static outcome::result<CandidateEntry> create(
+        const CandidateHash &candidate_hash,
+        const network::CommittedCandidateReceipt &candidate,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>>
+            &persisted_validation_data,
+        CandidateState state,
+        const std::shared_ptr<crypto::Hasher> &hasher);
+  };
 
-    Option<Hash> relayParentByCandidateHash(
-        const CandidateHash &candidate_hash) const;
+  struct CandidateStorage {
+    enum class Error {
+      CANDIDATE_ALREADY_KNOWN,
+      PERSISTED_VALIDATION_DATA_MISMATCH,
+      ZERO_LENGTH_CYCLE,
+    };
+
+    /// Introduce a new candidate entry.
+    outcome::result<void> add_candidate_entry(CandidateEntry candidate);
+    outcome::result<void> add_pending_availability_candidate(
+        const CandidateHash &candidate_hash,
+        const network::CommittedCandidateReceipt &candidate,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>>
+            &persisted_validation_data,
+        const std::shared_ptr<crypto::Hasher> &hasher);
 
     bool contains(const CandidateHash &candidate_hash) const;
 
+    /// Returns the backed candidates which have the given head data hash as
+    /// parent.
     template <typename F>
-    void iterParaChildren(const Hash &parent_head_hash, F &&func) const;
+    void possible_backed_para_children(const Hash &parent_head_hash,
+                                       F &&func) const {
+      if (auto it = by_parent_head.find(parent_head_hash);
+          it != by_parent_head.end()) {
+        for (const auto &h : it->second) {
+          if (auto c_it = by_candidate_hash.find(h);
+              c_it != by_candidate_hash.end()
+              && c_it->second.state == CandidateState::Backed) {
+            std::forward<F>(func)(c_it->second);
+          }
+        }
+      }
+    }
 
-    Option<std::reference_wrapper<const HeadData>> headDataByHash(
+    Option<std::reference_wrapper<const CandidateEntry>> get(
+        const CandidateHash &candidate_hash) const;
+
+    Option<std::reference_wrapper<const HeadData>> head_data_by_hash(
         const Hash &hash) const;
 
-    void removeCandidate(const CandidateHash &candidate_hash,
-                         const std::shared_ptr<crypto::Hasher> &hasher);
+    void remove_candidate(const CandidateHash &candidate_hash,
+                          const std::shared_ptr<crypto::Hasher> &hasher);
 
     template <typename F>
     void retain(F &&pred /*bool(CandidateHash)*/);
 
     void markSeconded(const CandidateHash &candidate_hash);
 
-    void markBacked(const CandidateHash &candidate_hash);
+    void mark_backed(const CandidateHash &candidate_hash);
 
     bool isBacked(const CandidateHash &candidate_hash) const;
 
-    std::pair<size_t, size_t> len() const;
+    size_t len() const;
 
    private:
     // Index from head data hash to candidate hashes with that head data as a
@@ -121,3 +142,5 @@ namespace kagome::parachain::fragment {
   };
 
 }  // namespace kagome::parachain::fragment
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, CandidateStorage::Error);

@@ -4,12 +4,25 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(candidate_storage_test
+    candidate_storage.cpp
+    )
+
+target_link_libraries(candidate_storage_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(parachain_test
     pvf_test.cpp
     assignments.cpp
     prospective_parachains.cpp
     cluster_test.cpp
     grid.cpp
+    candidate_storage.cpp
     )
 
 target_link_libraries(parachain_test
