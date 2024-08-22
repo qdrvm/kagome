@@ -10,7 +10,6 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/beast/core/bind_handler.hpp>
-#include <boost/beast/http/string_body.hpp>
 #include <boost/config.hpp>
 
 namespace boost::beast {

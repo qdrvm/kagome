@@ -6,4 +6,5 @@ target_link_libraries(runtime_wasm_edge
     zstd::libzstd_static
     WasmEdge::WasmEdge
     )
+target_compile_definitions(runtime_wasm_edge PRIVATE WASMEDGE_ID="${WASMEDGE_ID}")
 kagome_install(runtime_wasm_edge)
