@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "common/uri.hpp"
 
 namespace kagome::telemetry {

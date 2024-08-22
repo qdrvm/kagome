@@ -8,6 +8,7 @@
 
 #include "utils/non_copyable.hpp"
 
+#include <optional>
 #include <unordered_map>
 
 namespace kagome::parachain {

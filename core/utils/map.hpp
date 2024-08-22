@@ -11,7 +11,7 @@
 #include <optional>
 #include <type_traits>
 
-#include <boost/type_traits.hpp>
+#include <boost/utility/result_of.hpp>
 
 namespace kagome::utils {
 
