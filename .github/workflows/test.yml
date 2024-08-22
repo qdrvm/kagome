@@ -43,7 +43,6 @@ env:
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
-  CI: true
 
 
 jobs:
@@ -132,29 +131,6 @@ jobs:
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
 
-  clang-tidy:
-    name: "Linux: clang-tidy"
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: clang-tidy
-        env:
-          # build only generated files, so clang-tidy will work correctly
-          BUILD_FINAL_TARGET: generated
-        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
-        # isn't able to find headers
-        run: |
-          ./housekeeping/make_build.sh 
-          ./housekeeping/clang-tidy-diff.sh
-
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
@@ -221,7 +197,7 @@ jobs:
   kagome_dev_docker_build_tidy:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    name: "Linux: clang-tidy GCE"
+    name: "Linux: clang-tidy"
 
     steps:
       - name: "Checkout repository"
@@ -261,7 +237,8 @@ jobs:
           make kagome_dev_docker_build_tidy \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
-          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }}
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          CI="true"
 
       - name: "Cleaning cache"
         run: |
