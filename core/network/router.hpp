@@ -23,6 +23,7 @@ namespace kagome::network {
   class FetchAvailableDataProtocol;
   class StatementFetchingProtocol;
   class PropagateTransactionsProtocol;
+  class WarpProtocol;
   class StateProtocol;
   class SyncProtocol;
   class GrandpaProtocol;
@@ -31,6 +32,7 @@ namespace kagome::network {
   class CollationProtocolVStaging;
   class ValidationProtocolVStaging;
   class FetchAttestedCandidateProtocol;
+  using Ping = libp2p::protocol::Ping;
 }  // namespace kagome::network
 
 namespace kagome::network {
@@ -67,6 +69,7 @@ namespace kagome::network {
     getFetchStatementProtocol() const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const = 0;
+    virtual std::shared_ptr<WarpProtocol> getWarpProtocol() const = 0;
     virtual std::shared_ptr<StateProtocol> getStateProtocol() const = 0;
     virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;

@@ -140,8 +140,8 @@ namespace kagome::runtime::wasm_edge {
       }
 
     } catch (std::runtime_error &e) {
-      auto log = log::createLogger("HostApi", "runtime");
-      SL_ERROR(log, "Host API call failed with error: {}", e.what());
+      auto logger = log::createLogger("HostApi", "runtime");
+      SL_ERROR(logger, "Host API call failed with error: {}", e.what());
       return WasmEdge_Result_Fail;
     }
     return WasmEdge_Result_Success;

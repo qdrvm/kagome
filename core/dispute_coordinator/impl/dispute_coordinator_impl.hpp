@@ -336,7 +336,7 @@ namespace kagome::dispute {
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
-    std::unique_ptr<RuntimeInfo> runtime_info_;
+    std::shared_ptr<RuntimeInfo> runtime_info_;
 
     /// Currently active batches of imports per candidate.
     std::unique_ptr<Batches> batches_;

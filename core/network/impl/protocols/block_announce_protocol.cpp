@@ -110,14 +110,14 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     SL_DEBUG(base_.logger(),
              "Connect for {} stream with {}",
              protocolName(),
-             peer_info.id);
+             peer_id);
 
-    auto on_handshake = [peer_id = peer_info.id, cb = std::move(cb)](
+    auto on_handshake = [peer_id, cb = std::move(cb)](
                             std::shared_ptr<BlockAnnounceProtocol> self,
                             outcome::result<notifications::ConnectAndHandshake<
                                 BlockAnnounceHandshake>> r) mutable {
@@ -135,7 +135,7 @@ namespace kagome::network {
     };
     notifications::connectAndHandshake(weak_from_this(),
                                        base_,
-                                       peer_info,
+                                       peer_id,
                                        createHandshake(),
                                        std::move(on_handshake));
   }

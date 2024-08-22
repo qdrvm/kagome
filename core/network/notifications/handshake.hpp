@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "common/buffer_view.hpp"
+
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <scale/scale.hpp>

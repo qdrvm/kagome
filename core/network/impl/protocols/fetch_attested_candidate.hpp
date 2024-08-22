@@ -24,21 +24,18 @@
 namespace kagome::network {
 
   class FetchAttestedCandidateProtocol final
-      : public RequestResponseProtocol<vstaging::AttestedCandidateRequest,
-                                       vstaging::AttestedCandidateResponse,
-                                       ScaleMessageReadWriter>,
+      : public RequestResponseProtocolImpl<vstaging::AttestedCandidateRequest,
+                                           vstaging::AttestedCandidateResponse,
+                                           ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchAttestedCandidateProtocol() = delete;
-    ~FetchAttestedCandidateProtocol() override = default;
-
     FetchAttestedCandidateProtocol(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainProcessorImpl> pp)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             vstaging::AttestedCandidateRequest,
             vstaging::AttestedCandidateResponse,
             ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,

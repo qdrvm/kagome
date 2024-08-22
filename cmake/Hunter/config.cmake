@@ -77,8 +77,8 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       LLVM
       VERSION 12.0.1-p4
       CMAKE_ARGS
-      LLVM_ENABLE_PROJECTS=ir
-      KEEP_PACKAGE_SOURCES
+        LLVM_ENABLE_PROJECTS=ir
+        KEEP_PACKAGE_SOURCES
   )
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -91,7 +91,7 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       wavm
       VERSION 1.0.14
       CMAKE_ARGS
-      WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
+        WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -106,5 +106,14 @@ hunter_config(
     libsecp256k1
     VERSION 0.5.1
     CMAKE_ARGS
-        SECP256K1_ENABLE_MODULE_RECOVERY=ON
+      SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
+
+hunter_config(
+    erasure_coding_crust
+#    VERSION 0.0.8
+    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
+    SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    KEEP_PACKAGE_SOURCES
+)
+

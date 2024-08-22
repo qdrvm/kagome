@@ -151,7 +151,7 @@ Example:
     kagome-db-editor base-path/polkadot/db
 )");
   std::cout << help;
-};
+}
 
 outcome::result<std::unique_ptr<TrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
@@ -196,7 +196,7 @@ void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
 auto is_hash(const char *s) {
   return std::strlen(s) == common::Hash256::size() * 2 + 2
       && std::equal(s, s + 2, "0x");
-};
+}
 
 int db_editor_main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
@@ -247,16 +247,16 @@ int db_editor_main(int argc, const char **argv) {
         std::make_shared<TrieStorageBackendImpl>(storage));
 
     auto injector = di::make_injector(
-        di::bind<TrieSerializer>.template to([](const auto &injector) {
+        di::bind<TrieSerializer>.to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
               injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieStorageBackend>>());
         }),
-        di::bind<TrieStorageBackend>.template to(trie_node_tracker),
-        di::bind<storage::trie_pruner::TriePruner>.template to(
+        di::bind<TrieStorageBackend>.to(trie_node_tracker),
+        di::bind<storage::trie_pruner::TriePruner>.to(
             std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
-        di::bind<Codec>.template to([](const auto &injector) {
+        di::bind<Codec>.to([](const auto &injector) {
           return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
         }),
         di::bind<PolkadotTrieFactory>.to(factory),

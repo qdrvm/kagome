@@ -116,7 +116,7 @@ namespace kagome::network {
   }
 
   void PropagateTransactionsProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto on_handshake =
         [cb = std::move(cb)](
@@ -132,7 +132,7 @@ namespace kagome::network {
           cb(std::move(stream));
         };
     notifications::connectAndHandshake(
-        weak_from_this(), base_, peer_info, roles_, std::move(on_handshake));
+        weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
   }
 
   void PropagateTransactionsProtocol::propagateTransactions(

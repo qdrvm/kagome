@@ -176,7 +176,7 @@ namespace kagome::network {
       ProtocolDescr &descr) {
     if (descr.tryReserveOutgoing()) {
       protocol->newOutgoingStream(
-          PeerInfo{peer_id, {}},
+          peer_id,
           [wp(weak_from_this()), protocol, peer_id](auto &&stream_res) mutable {
             auto self = wp.lock();
             if (not self) {

@@ -6,8 +6,10 @@
 
 #pragma once
 
-#define WEAK_SELF \
-  weak_self { weak_from_this() }
+#define WEAK_SELF    \
+  weak_self {        \
+    weak_from_this() \
+  }
 
 #define WEAK_LOCK(name)           \
   auto name = weak_##name.lock(); \

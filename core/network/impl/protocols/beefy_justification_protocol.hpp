@@ -34,9 +34,9 @@ namespace kagome::network {
 
   class BeefyJustificationProtocol
       : public consensus::beefy::FetchJustification,
-        public RequestResponseProtocol<primitives::BlockNumber,
-                                       consensus::beefy::BeefyJustification,
-                                       ScaleMessageReadWriter> {
+        public RequestResponseProtocolImpl<primitives::BlockNumber,
+                                           consensus::beefy::BeefyJustification,
+                                           ScaleMessageReadWriter> {
     static constexpr auto kName = "BeefyJustificationProtocol";
 
    public:
