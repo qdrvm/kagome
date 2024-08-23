@@ -89,8 +89,7 @@ namespace {
   void wrong_usage() {
     std::cerr << "Wrong usage.\n"
                  "Available subcommands: storage-explorer db-editor benchmark\n"
-                 "Run with `--help' argument to print usage"
-              << std::endl;
+                 "Run with `--help' argument to print usage\n";
   }
 
 }  // namespace
@@ -103,6 +102,11 @@ int main(int argc, const char **argv, const char **env) {
   // Needed for zombienet
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
+
+  libp2p::common::FinalAction flush_std_streams_at_exit([] {
+    std::cout.flush();
+    std::cerr.flush();
+  });
 
   if (argc > 1) {
     std::string_view name{argv[1]};
@@ -122,7 +126,7 @@ int main(int argc, const char **argv, const char **env) {
 
   auto r = logging_system->configure();
   if (not r.message.empty()) {
-    (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
+    (r.has_error ? std::cerr : std::cout) << r.message << '\n';
   }
   if (r.has_error) {
     return EXIT_FAILURE;

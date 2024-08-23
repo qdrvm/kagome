@@ -195,8 +195,9 @@ void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
 }
 
 auto is_hash(const char *s) {
-  return std::strlen(s) == common::Hash256::size() * 2 + 2
-      && std::equal(s, s + 2, "0x");
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  return s[0] == '0' and s[1] == 'x'
+     and std::strlen(s) == common::Hash256::size();
 }
 
 int db_editor_main(int argc, const char **argv) {
@@ -204,7 +205,12 @@ int db_editor_main(int argc, const char **argv) {
   backward::SignalHandling sh;
 #endif
 
-  Command cmd;
+  libp2p::common::FinalAction flush_std_streams_at_exit([] {
+    std::cout.flush();
+    std::cerr.flush();
+  });
+
+  Command cmd;  // NOLINT(cppcoreguidelines-init-variables)
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
       or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
     cmd = COMPACT;

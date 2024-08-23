@@ -97,18 +97,21 @@ namespace kagome::log {
         std::cerr << "Can't read group";
       }
       if (not logging_system->getGroup(group_name)) {
-        std::cerr << "Unknown group: " << group_name << std::endl;
+        std::cerr << "Unknown group: " << group_name
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
 
       std::string level_string;
       if (not std::getline(iss2, level_string)) {
-        std::cerr << "Can't read level for group '" << group_name << "'";
+        std::cerr << "Can't read level for group '" << group_name << "'"
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
       auto res = str2lvl(level_string);
       if (not res.has_value()) {
-        std::cerr << "Invalid level: " << level_string << std::endl;
+        std::cerr << "Invalid level: " << level_string
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
       auto level = res.value();

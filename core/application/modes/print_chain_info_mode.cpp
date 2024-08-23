@@ -43,7 +43,8 @@ namespace kagome::application::mode {
     rapidjson::OStreamWrapper stream = std::cout;
     rapidjson::Writer writer(stream);
     document.Accept(writer);
-    std::cout << std::endl;
+    std::cout << '\n';
+    std::cout.flush();
 
     return EXIT_SUCCESS;
   }
