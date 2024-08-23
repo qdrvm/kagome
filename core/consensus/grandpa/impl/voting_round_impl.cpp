@@ -1055,7 +1055,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    bool can_start_next_round;
+    bool can_start_next_round;  // NOLINT(cppcoreguidelines-init-variables)
 
     // Start next round only when previous round estimate is finalized
     if (previous_round_) {

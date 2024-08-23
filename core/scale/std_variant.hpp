@@ -31,7 +31,7 @@ namespace scale {
   template <typename Stream, typename... Options>
     requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, std::variant<Options...> &variant) {
-    uint8_t index;
+    uint8_t index;  // NOLINT(cppcoreguidelines-init-variables)
     stream >> index;
     using Decoder = void (*)(Stream &stream, std::variant<Options...> &variant);
     constexpr Decoder decoders[]{

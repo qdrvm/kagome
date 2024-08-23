@@ -131,7 +131,7 @@ namespace kagome::primitives {
       /// The sending address is disabled or known to be invalid.
       BadSigner,
     };
-    Kind kind;
+    Kind kind{};
     uint8_t custom_value{};
 
     bool operator==(const InvalidTransaction &other) const {

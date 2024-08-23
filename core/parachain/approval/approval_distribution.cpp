@@ -98,8 +98,8 @@ namespace {
 
     VRFCOutput cert_output;
     VRFCProof cert_proof;
-    uint32_t *cores;
-    uint64_t cores_out_sz;
+    uint32_t *cores;        // NOLINT(cppcoreguidelines-init-variables)
+    uint64_t cores_out_sz;  // NOLINT(cppcoreguidelines-init-variables)
 
     if (sr25519_relay_vrf_modulo_assignments_cert_v2(
             assignments_key.data(),
@@ -1831,7 +1831,7 @@ namespace kagome::parachain {
       v.bits[ci] = true;
     }
 
-    DelayTranche tranche;
+    DelayTranche tranche;  // NOLINT(cppcoreguidelines-init-variables)
     if (auto res = checkAssignmentCert(v,
                                        assignment.validator,
                                        session_info,

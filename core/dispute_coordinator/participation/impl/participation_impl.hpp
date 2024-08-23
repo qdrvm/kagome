@@ -66,9 +66,9 @@ namespace kagome::dispute {
     struct ParticipationContext {
       ParticipationRequest request;
       primitives::BlockHash block_hash;
-      std::optional<runtime::AvailableData> available_data{};
-      std::optional<runtime::ValidationCode> validation_code{};
-      std::optional<runtime::GroupIndex> group_index{};
+      std::optional<runtime::AvailableData> available_data;
+      std::optional<runtime::ValidationCode> validation_code;
+      std::optional<runtime::GroupIndex> group_index;
     };
     using ParticipationContextPtr = std::shared_ptr<ParticipationContext>;
     using ParticipationCallback = std::function<void(ParticipationOutcome)>;

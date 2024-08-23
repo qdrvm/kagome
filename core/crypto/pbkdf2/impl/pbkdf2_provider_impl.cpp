@@ -18,6 +18,7 @@ namespace kagome::crypto {
     SecureBuffer<> out(key_length, 0);
     const auto *digest = EVP_sha512();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     int res = PKCS5_PBKDF2_HMAC(reinterpret_cast<const char *>(data.data()),
                                 data.size(),
                                 salt.data(),

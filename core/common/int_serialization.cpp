@@ -52,7 +52,7 @@ namespace kagome::common {
 
   uint64_t le_bytes_to_uint64(BufferView bytes) {
     BOOST_ASSERT(bytes.size() >= 8);
-    uint64_t number;
+    uint64_t number;  // NOLINT(cppcoreguidelines-init-variables)
     memcpy(&number, bytes.data(), 8);
     return le64toh(number);
   }
@@ -65,7 +65,7 @@ namespace kagome::common {
 
   uint64_t be_bytes_to_uint64(BufferView bytes) {
     BOOST_ASSERT(bytes.size() >= 8);
-    uint64_t number;
+    uint64_t number;  // NOLINT(cppcoreguidelines-init-variables)
     memcpy(&number, bytes.data(), 8);
     return be64toh(number);
   }
