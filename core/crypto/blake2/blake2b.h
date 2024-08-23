@@ -19,13 +19,15 @@
 namespace kagome::crypto {
 
   // state context
-  typedef struct {
+  // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+  using blake2b_ctx = struct {
     uint8_t b[128];  // input buffer
     uint64_t h[8];   // chained state
     uint64_t t[2];   // total number of bytes
     size_t c;        // pointer for b[]
     size_t outlen;   // digest size
-  } blake2b_ctx;
+  };
+  // NOLINTEND(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
   // Initialize the hashing context "ctx" with optional key "key".
   //      1 <= outlen <= 64 gives the digest size in bytes.

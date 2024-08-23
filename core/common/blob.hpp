@@ -120,8 +120,10 @@ namespace kagome::common {
     // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = true;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     using const_narref = const byte_t (&)[size_];
     using const_narptr = const byte_t (*)[size_];
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     /**
      * Initialize blob value
      */

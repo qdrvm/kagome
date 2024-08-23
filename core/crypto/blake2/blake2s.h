@@ -14,9 +14,10 @@
 
 namespace kagome::crypto {
 
-  typedef struct {
+  using blake2s_ctx = struct {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     unsigned char opaque[128];
-  } blake2s_ctx;
+  };
 
   /**
    * @brief Initialize hash context
