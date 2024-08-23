@@ -23,28 +23,28 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
+  class FetchChunkProtocolObsolete
+      : virtual public RequestResponseProtocol<FetchChunkRequest,
+                                               FetchChunkResponseObsolete> {};
 
   /// Implementation of first implementation of
   /// fetching chunk protocol aka 'req_chunk/1'
   ///
   /// In response index of systematic chunk is corresponding validator index.
-  class FetchChunkProtocolObsolete final
-      : public RequestResponseProtocol<FetchChunkRequest,
-                                       FetchChunkResponseObsolete,
-                                       ScaleMessageReadWriter>,
+  class FetchChunkProtocolObsoleteImpl final
+      : public FetchChunkProtocolObsolete,
+        public RequestResponseProtocolImpl<FetchChunkRequest,
+                                           FetchChunkResponseObsolete,
+                                           ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocolObsolete() = delete;
-    ~FetchChunkProtocolObsolete() override = default;
-
-    FetchChunkProtocolObsolete(
+    FetchChunkProtocolObsoleteImpl(
         libp2p::Host &host,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainProcessorImpl> pp)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             FetchChunkRequest,
             FetchChunkResponseObsolete,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,

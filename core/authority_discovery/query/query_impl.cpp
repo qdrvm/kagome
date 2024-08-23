@@ -283,7 +283,7 @@ namespace kagome::authority_discovery {
     }
 
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
-        peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
+        peer.id, peer.addresses, libp2p::peer::ttl::kDay);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(

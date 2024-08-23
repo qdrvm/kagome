@@ -18,6 +18,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wasm_edge/memory_impl.hpp"
@@ -81,23 +82,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   inline CompilationOutcome<ConfigureContext> configureCtx() {
@@ -377,7 +375,7 @@ namespace kagome::runtime::wasm_edge {
     if (config_.exec == ExecType::Interpreted) {
       return std::nullopt;
     }
-    return "wasmedge";
+    return std::string("wasmedge_") + WASMEDGE_ID;
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(

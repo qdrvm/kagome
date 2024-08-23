@@ -187,17 +187,17 @@ struct UnderControlObject {
   bool prepare() {
     tag = 1;
     return p();
-  };
+  }
 
   bool start() {
     tag = 2;
     return l();
-  };
+  }
 
   void stop() {
     tag = 3;
     s();
-  };
+  }
 };
 
 /**

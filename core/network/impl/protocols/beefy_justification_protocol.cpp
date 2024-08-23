@@ -15,12 +15,13 @@
 #include "network/peer_manager.hpp"
 
 namespace kagome::network {
+
   BeefyJustificationProtocol::BeefyJustificationProtocol(libp2p::Host &host,
                                                         const blockchain::GenesisBlockHash &genesis,
                                                         common::MainThreadPool &main_thread_pool,
                                                         std::shared_ptr<PeerManager> peer_manager,
                                                         std::shared_ptr<Beefy> beefy)
-     : RequestResponseProtocolType{
+     : RequestResponseProtocolImpl{
            kName,
            host,
            make_protocols(kBeefyJustificationProtocol, genesis),

@@ -43,7 +43,6 @@ env:
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
-  CI: true
 
 
 jobs:
@@ -128,29 +127,6 @@ jobs:
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
 
-  clang-tidy:
-    name: "Linux: clang-tidy"
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: clang-tidy
-        env:
-          # build only generated files, so clang-tidy will work correctly
-          BUILD_FINAL_TARGET: generated
-        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
-        # isn't able to find headers
-        run: |
-          ./housekeeping/make_build.sh 
-          ./housekeeping/clang-tidy-diff.sh
-
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage"
@@ -177,12 +153,64 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
 
-#  kagome_dev_docker_mac_build:
-#    runs-on: macos-13
-#    steps:
-#      - name: Setup Docker on macOS
-#        uses: douglascamata/setup-docker-macos-action@v1-alpha
-      
+  kagome_dev_docker_build_tidy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    name: "Linux: clang-tidy"
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Check version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+
+      - name: "Cache dependencies"
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-tidy-${{ env.short_commit_hash }}
+          restore-keys: |
+            ${{ github.job }}-${{ env.CACHE_VERSION }}-tidy-
+
+      - name: "Build target"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run:
+          make kagome_dev_docker_build_tidy \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          CI="true"
+
+      - name: "Cleaning cache"
+        run: |
+          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
+
+      - name: "Always Save Cache"
+        id: cache-save
+        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
   kagome_dev_docker_build:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 180

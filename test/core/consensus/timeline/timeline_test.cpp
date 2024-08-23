@@ -107,7 +107,7 @@ static Digest make_digest(SlotNumber slot) {
       SealDigest{kagome::primitives::kBabeEngineId, encoded_seal});
 
   return digest;
-};
+}
 
 class TimelineTest : public testing::Test {
  public:

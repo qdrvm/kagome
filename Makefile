@@ -56,12 +56,7 @@ macos_build:
 	export CURL_SSL_BACKEND=SecureTransport ; \
 	$(CMAKE_AND_BUILD)
 
-build_crates:
-ifeq ($(shell uname), Darwin)
-	export SDKROOT=$$(xcrun --sdk macosx --show-sdk-path) ; \
-endif
-	cmake . -B"$(BUILD_DIR)" -DCMAKE_INSTALL_PREFIX=install
-	cmake --build build
+
 
 docker: 
 	INDOCKER_IMAGE=qdrvm/kagome-dev:minideb BUILD_DIR=build BUILD_THREADS=$(shell expr $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ) ./housekeeping/indocker.sh ./housekeeping/make_build.sh

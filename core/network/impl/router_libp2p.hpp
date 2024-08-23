@@ -90,6 +90,7 @@ namespace kagome::network {
         const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
 
+    std::shared_ptr<WarpProtocol> getWarpProtocol() const override;
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<StateProtocol> getStateProtocol() const override;
 

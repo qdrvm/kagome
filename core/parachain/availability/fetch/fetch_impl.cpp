@@ -67,87 +67,89 @@ namespace kagome::parachain {
     while (not active.validators.empty()) {
       auto peer = query_audi_->get(active.validators.back());
       active.validators.pop_back();
-      if (peer) {
-        const auto &peer_id = peer.value().id;
 
-        auto peer_state = [&]() {
-          auto res = pm_->getPeerState(peer_id);
-          if (!res) {
-            SL_TRACE(log(), "From unknown peer {}", peer_id);
-            res = pm_->createDefaultPeerState(peer_id);
-          }
-          return res;
-        }();
-
-        auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-            network::ReqChunkVersion::V1_obsolete);
-
-        switch (req_chunk_version) {
-          case network::ReqChunkVersion::V2:
-            SL_DEBUG(log(),
-                     "Sent request of chunk {} of candidate {} to peer {}",
-                     active.chunk_index,
-                     candidate_hash,
-                     peer_id);
-            router_->getFetchChunkProtocol()->doRequest(
-                *peer,
-                {candidate_hash, active.chunk_index},
-                [=, chunk_index{active.chunk_index}, weak{weak_from_this()}](
-                    outcome::result<network::FetchChunkResponse> r) {
-                  if (auto self = weak.lock()) {
-                    if (r.has_value()) {
-                      SL_DEBUG(log(),
-                               "Result of request chunk {} of candidate {} to "
-                               "peer {}: success",
-                               chunk_index,
-                               candidate_hash,
-                               peer_id);
-                    } else {
-                      SL_DEBUG(log(),
-                               "Result of request chunk {} of candidate {} to "
-                               "peer {}: {}",
-                               chunk_index,
-                               candidate_hash,
-                               peer_id,
-                               r.error());
-                    }
-
-                    self->fetch(candidate_hash, std::move(r));
-                  }
-                });
-            break;
-          case network::ReqChunkVersion::V1_obsolete:
-            router_->getFetchChunkProtocolObsolete()->doRequest(
-                *peer,
-                {candidate_hash, active.chunk_index},
-                [=, weak{weak_from_this()}](
-                    outcome::result<network::FetchChunkResponseObsolete> r) {
-                  if (auto self = weak.lock()) {
-                    if (r.has_value()) {
-                      auto response = visit_in_place(
-                          r.value(),
-                          [](const network::Empty &empty)
-                              -> network::FetchChunkResponse { return empty; },
-                          [&](const network::ChunkObsolete &chunk_obsolete)
-                              -> network::FetchChunkResponse {
-                            return network::Chunk{
-                                .data = std::move(chunk_obsolete.data),
-                                .chunk_index = active.chunk_index,
-                                .proof = std::move(chunk_obsolete.proof),
-                            };
-                          });
-                      self->fetch(candidate_hash, std::move(response));
-                    } else {
-                      self->fetch(candidate_hash, r.as_failure());
-                    }
-                  }
-                });
-            break;
-          default:
-            UNREACHABLE;
-        }
-        return;
+      if (not peer.has_value()) {
+        continue;
       }
+      const auto &peer_id = peer.value().id;
+
+      auto peer_state = [&]() {
+        auto res = pm_->getPeerState(peer_id);
+        if (!res) {
+          SL_TRACE(log(), "From unknown peer {}", peer_id);
+          res = pm_->createDefaultPeerState(peer_id);
+        }
+        return res;
+      }();
+
+      auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+          network::ReqChunkVersion::V1_obsolete);
+
+      switch (req_chunk_version) {
+        case network::ReqChunkVersion::V2:
+          SL_DEBUG(log(),
+                   "Sent request of chunk {} of candidate {} to peer {}",
+                   active.chunk_index,
+                   candidate_hash,
+                   peer_id);
+          router_->getFetchChunkProtocol()->doRequest(
+              peer_id,
+              {candidate_hash, active.chunk_index},
+              [=, chunk_index{active.chunk_index}, weak{weak_from_this()}](
+                  outcome::result<network::FetchChunkResponse> r) {
+                if (auto self = weak.lock()) {
+                  if (r.has_value()) {
+                    SL_DEBUG(log(),
+                             "Result of request chunk {} of candidate {} to "
+                             "peer {}: success",
+                             chunk_index,
+                             candidate_hash,
+                             peer_id);
+                  } else {
+                    SL_DEBUG(log(),
+                             "Result of request chunk {} of candidate {} to "
+                             "peer {}: {}",
+                             chunk_index,
+                             candidate_hash,
+                             peer_id,
+                             r.error());
+                  }
+
+                  self->fetch(candidate_hash, std::move(r));
+                }
+              });
+          break;
+        case network::ReqChunkVersion::V1_obsolete:
+          router_->getFetchChunkProtocolObsolete()->doRequest(
+              peer_id,
+              {candidate_hash, active.chunk_index},
+              [=, weak{weak_from_this()}](
+                  outcome::result<network::FetchChunkResponseObsolete> r) {
+                if (auto self = weak.lock()) {
+                  if (r.has_value()) {
+                    auto response = visit_in_place(
+                        r.value(),
+                        [](network::Empty &empty)
+                            -> network::FetchChunkResponse { return empty; },
+                        [&](network::ChunkObsolete &chunk_obsolete)
+                            -> network::FetchChunkResponse {
+                          return network::Chunk{
+                              .data = std::move(chunk_obsolete.data),
+                              .chunk_index = active.chunk_index,
+                              .proof = std::move(chunk_obsolete.proof),
+                          };
+                        });
+                    self->fetch(candidate_hash, std::move(response));
+                  } else {
+                    self->fetch(candidate_hash, r.as_failure());
+                  }
+                }
+              });
+          break;
+        default:
+          UNREACHABLE;
+      }
+      return;
     }
     SL_WARN(log(),
             "candidate={} chunk={} not found",
