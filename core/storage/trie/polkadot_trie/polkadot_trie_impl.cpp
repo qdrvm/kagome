@@ -85,6 +85,7 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace {
+  // NOLINTNEXTLINE(google-build-using-namespace)
   using namespace kagome::storage::trie;
 
   uint32_t getCommonPrefixLength(const NibblesView &first,

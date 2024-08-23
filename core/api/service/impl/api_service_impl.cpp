@@ -55,7 +55,9 @@ namespace {
 }  // namespace
 
 namespace {
-  using namespace kagome::api;
+  using kagome::api::JRpcServer;
+  using kagome::api::makeValue;
+  using kagome::api::Session;
 
   /**
    * Method to format json-data event into json-string representation.

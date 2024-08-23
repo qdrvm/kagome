@@ -35,9 +35,8 @@
 #include "utils/profiler.hpp"
 
 namespace di = boost::di;
-using namespace std::chrono_literals;
-using namespace kagome;
-using namespace storage::trie;
+using namespace kagome;         // NOLINT(google-build-using-namespace)
+using namespace storage::trie;  // NOLINT(google-build-using-namespace)
 using common::BufferOrView;
 using common::BufferView;
 

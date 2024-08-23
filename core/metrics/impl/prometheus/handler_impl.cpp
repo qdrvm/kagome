@@ -12,10 +12,12 @@
 #include "utils/retain_if.hpp"
 #include "utils/wptr.hpp"
 
-using namespace prometheus;
+using prometheus::Collectable;
+using prometheus::MetricFamily;
+using prometheus::TextSerializer;
 
 std::vector<MetricFamily> CollectMetrics(
-    const std::vector<std::weak_ptr<prometheus::Collectable>> &collectables) {
+    const std::vector<std::weak_ptr<Collectable>> &collectables) {
   auto collected_metrics = std::vector<MetricFamily>{};
 
   for (auto &&wcollectable : collectables) {

@@ -18,7 +18,7 @@
 #include "utils/mkdirs.hpp"
 
 namespace kagome::storage {
-  namespace fs = filesystem;
+  namespace fs = std::filesystem;
 
   RocksDb::RocksDb() : logger_(log::createLogger("RocksDB", "storage")) {
     ro_.fill_cache = false;

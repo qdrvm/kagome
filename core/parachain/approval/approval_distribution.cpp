@@ -93,8 +93,8 @@ namespace {
       std::unordered_map<kagome::parachain::CoreIndex,
                          kagome::parachain::ApprovalDistribution::OurAssignment>
           &assignments) {
-    using namespace kagome::parachain;
-    using namespace kagome;
+    using namespace kagome::parachain;  // NOLINT(google-build-using-namespace)
+    using namespace kagome;             // NOLINT(google-build-using-namespace)
 
     VRFCOutput cert_output;
     VRFCProof cert_proof;
@@ -165,8 +165,8 @@ namespace {
       std::unordered_map<kagome::parachain::CoreIndex,
                          kagome::parachain::ApprovalDistribution::OurAssignment>
           &assignments) {
-    using namespace kagome::parachain;
-    using namespace kagome;
+    using namespace kagome::parachain;  // NOLINT(google-build-using-namespace)
+    using namespace kagome;             // NOLINT(google-build-using-namespace)
 
     VRFCOutput cert_output;
     VRFCProof cert_proof;
@@ -220,8 +220,8 @@ namespace {
       std::unordered_map<kagome::parachain::CoreIndex,
                          kagome::parachain::ApprovalDistribution::OurAssignment>
           &assignments) {
-    using namespace kagome::parachain;
-    using namespace kagome;
+    using namespace kagome::parachain;  // NOLINT(google-build-using-namespace)
+    using namespace kagome;             // NOLINT(google-build-using-namespace)
 
     VRFCOutput cert_output;
     VRFCProof cert_proof;
@@ -452,7 +452,7 @@ namespace {
       const RelayVRFStory &relay_vrf_story,
       const kagome::parachain::approval::AssignmentCertV2 &assignment,
       const std::vector<kagome::network::GroupIndex> &backing_groups) {
-    using namespace kagome;
+    using namespace kagome;  // NOLINT(google-build-using-namespace)
     using parachain::ApprovalDistributionError;
 
     if (validator_index >= config.assignment_keys.size()) {

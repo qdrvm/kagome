@@ -17,25 +17,23 @@
 #include "primitives/math.hpp"
 #include "scale/tie.hpp"
 
-namespace kagome::crypto {
-  namespace constants::bandersnatch {
-    /// Important constants to deal with bandersnatch
-    enum {  // NOLINT(performance-enum-size)
-      SEED_SIZE = BANDERSNATCH_SEED_SIZE,
-      SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
-      PUBLIC_SIZE = BANDERSNATCH_PUBLIC_KEY_SIZE,
-      KEYPAIR_SIZE = SECRET_SIZE + PUBLIC_SIZE,
-      SIGNATURE_SIZE = BANDERSNATCH_SIGNATURE_SIZE,
-      RING_SIGNATURE_SIZE = BANDERSNATCH_RING_SIGNATURE_SIZE,
-    };
+namespace kagome::crypto::constants::bandersnatch {
+  /// Important constants to deal with bandersnatch
+  enum {  // NOLINT(performance-enum-size)
+    SEED_SIZE = BANDERSNATCH_SEED_SIZE,
+    SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
+    PUBLIC_SIZE = BANDERSNATCH_PUBLIC_KEY_SIZE,
+    KEYPAIR_SIZE = SECRET_SIZE + PUBLIC_SIZE,
+    SIGNATURE_SIZE = BANDERSNATCH_SIGNATURE_SIZE,
+    RING_SIGNATURE_SIZE = BANDERSNATCH_RING_SIGNATURE_SIZE,
+  };
 
-    namespace vrf {
-      enum {  // NOLINT(performance-enum-size)
-        OUTPUT_SIZE = BANDERSNATCH_PREOUT_SIZE,
-      };
-    }
-  }  // namespace constants::bandersnatch
-}  // namespace kagome::crypto
+  namespace vrf {
+    enum {  // NOLINT(performance-enum-size)
+      OUTPUT_SIZE = BANDERSNATCH_PREOUT_SIZE,
+    };
+  }
+}  // namespace kagome::crypto::constants::bandersnatch
 
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            BandersnatchPublicKey,

@@ -482,7 +482,6 @@ class SearchChainCommand : public Command {
   void reportAuthorityUpdate(std::ostream &out,
                              BlockNumber digest_origin,
                              const GrandpaDigest &digest) const {
-    using namespace kagome::primitives;
     if (auto *scheduled_change = std::get_if<ScheduledChange>(&digest);
         scheduled_change) {
       out << "ScheduledChange at #" << digest_origin << " for ";
