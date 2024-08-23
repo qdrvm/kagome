@@ -149,7 +149,8 @@ namespace kagome::crypto {
 
     template <size_t OtherSize, typename OtherTag>
       requires(OtherSize >= Size)
-    static PrivateKey from(PrivateKey<OtherSize, OtherTag> &&other_key) {
+    static PrivateKey from(
+        std::add_rvalue_reference<PrivateKey<OtherSize, OtherTag>> other_key) {
       return PrivateKey{std::move(other_key.data)};
     }
 

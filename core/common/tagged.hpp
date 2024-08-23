@@ -34,6 +34,7 @@ namespace kagome {
 
     Tagged(T value) : Base(std::move(value)) {}
 
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     Tagged &operator=(T &&value) noexcept(
         not std::is_lvalue_reference_v<decltype(value)>) {
       if constexpr (std::is_scalar_v<T>) {

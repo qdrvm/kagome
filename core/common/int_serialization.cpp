@@ -15,7 +15,7 @@ namespace kagome::common {
     inline std::array<uint8_t, size> uint_to_le_bytes(uint &&i) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(i, res.begin(), 8, false);
+      export_bits(std::forward<uint>(i), res.begin(), 8, false);
       return res;
     }
 
@@ -23,7 +23,7 @@ namespace kagome::common {
     inline std::array<uint8_t, size> uint_to_be_bytes(uint &&i) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(i, res.rbegin(), 8, false);
+      export_bits(std::forward<uint>(i), res.rbegin(), 8, false);
       return res;
     }
 
