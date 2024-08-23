@@ -7,13 +7,11 @@
 #pragma once
 
 #include <qtils/cxx20/lexicographical_compare_three_way.hpp>
+#include <ranges>
 #include <span>
 
 #include "common/hexutil.hpp"
 #include "macro/endianness_utils.hpp"
-
-#include <ranges>
-#include <span>
 
 inline auto operator""_bytes(const char *s, std::size_t size) {
   return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
@@ -40,8 +38,8 @@ namespace kagome::common {
         : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
 
     template <typename T>
-    decltype(auto) operator=(T &&t) {
-      return span::operator=(std::forward<T>(t));
+    BufferView &operator=(T &&value) {
+      return (*this = std::forward<T>(value));
     }
 
     template <size_t count>
@@ -107,7 +105,8 @@ struct fmt::formatter<kagome::common::BufferView> {
   // Parses format specifications of the form ['s' | 'l'].
   constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
     // Parse the presentation format and store it in the formatter:
-    auto it = ctx.begin(), end = ctx.end();
+    auto it = ctx.begin();
+    auto end = ctx.end();
     if (it != end && (*it == 's' || *it == 'l')) {
       presentation = *it++;
     }
@@ -130,7 +129,7 @@ struct fmt::formatter<kagome::common::BufferView> {
 
     if (view.empty()) {
       static constexpr string_view message("<empty>");
-      return std::copy(std::begin(message), std::end(message), ctx.out());
+      return std::copy(message.begin(), message.end(), ctx.out());
     }
 
     if (presentation == 's' && view.size() > 5) {

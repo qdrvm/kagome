@@ -94,9 +94,9 @@ namespace kagome::offchain {
         : peer_id(std::move(peer_id)), address(std::move(address)) {}
 
     OpaqueNetworkState()
-        : peer_id(libp2p::peer::PeerId::fromPublicKey(
-                      libp2p::crypto::ProtobufKey{{}})
-                      .value()) {}
+        : peer_id(
+            libp2p::peer::PeerId::fromPublicKey(libp2p::crypto::ProtobufKey{{}})
+                .value()) {}
   };
 
   template <class Stream>

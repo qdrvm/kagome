@@ -236,7 +236,7 @@ namespace kagome::runtime {
                     frame.top_expr)) {
               auto &branch =
                   std::get<typename StackFrame::Branch>(frame.top_expr);
-              if (branch.curr_branch == true && !branch.expr->false_.empty()) {
+              if (branch.curr_branch and not branch.expr->false_.empty()) {
                 branch.curr_branch = false;
                 frame.current_expr = branch.expr->false_.begin();
                 break;

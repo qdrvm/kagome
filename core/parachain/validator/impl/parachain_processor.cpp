@@ -1901,14 +1901,12 @@ namespace kagome::parachain {
 
           switch (version) {
             case network::CollationVersion::VStaging: {
-              messages.emplace_back(network::VersionedValidatorProtocolMessage{
-                  network::vstaging::ValidatorProtocolMessage{
-                      network::vstaging::StatementDistributionMessage{
-                          network::vstaging::
-                              StatementDistributionMessageStatement{
-                                  .relay_parent = relay_parent,
-                                  .compact = statement,
-                              }}}});
+              messages.emplace_back(network::vstaging::ValidatorProtocolMessage{
+                  network::vstaging::StatementDistributionMessage{
+                      network::vstaging::StatementDistributionMessageStatement{
+                          .relay_parent = relay_parent,
+                          .compact = statement,
+                      }}});
             } break;
             default: {
               SL_ERROR(

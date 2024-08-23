@@ -33,7 +33,9 @@ namespace kagome::storage::trie {
     using ChildVisitor = std::function<outcome::result<void>(Visitee)>;
 
     static constexpr auto NoopChildVisitor =
-        [](Visitee) -> outcome::result<void> { return outcome::success(); };
+        [](const Visitee &) -> outcome::result<void> {
+      return outcome::success();
+    };
 
     virtual ~Codec() = default;
 
