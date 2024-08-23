@@ -85,6 +85,7 @@ namespace kagome::api {
       --level;
       if (level == 1) {
         const size_t end = stream.Tell();
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         std::string_view request(stream.begin_ + begin, end - begin);
         cb(request);
       }

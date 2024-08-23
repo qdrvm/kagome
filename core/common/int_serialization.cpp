@@ -46,6 +46,7 @@ namespace kagome::common {
 
   std::array<uint8_t, 8> uint64_to_le_bytes(uint64_t number) {
     std::array<uint8_t, 8> result{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     *reinterpret_cast<uint64_t *>(result.data()) = htole64(number);
     return result;
   }
@@ -59,6 +60,7 @@ namespace kagome::common {
 
   std::array<uint8_t, 8> uint64_to_be_bytes(uint64_t number) {
     std::array<uint8_t, 8> result{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     *reinterpret_cast<uint64_t *>(result.data()) = htobe64(number);
     return result;
   }

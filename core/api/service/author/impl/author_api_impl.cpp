@@ -125,14 +125,14 @@ namespace kagome::api {
     if (store_->ed25519().findKeypair(
             crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
-      unsigned count = 1;
+      auto it = crypto::polkadot_key_order.begin();
       while (stream.currentIndex() < keys.size()) {
         stream >> key;
         if (not store_->sr25519().findKeypair(
-                crypto::polkadot_key_order[count++],
-                crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
+                *it, crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
           return false;
         }
+        ++it;
       }
       return true;
     }

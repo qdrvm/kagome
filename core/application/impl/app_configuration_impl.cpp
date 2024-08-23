@@ -783,9 +783,11 @@ namespace kagome::application {
 
     using std::string_view_literals::operator""sv;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (argc > 0 && argv[0] == "benchmark"sv) {
       command = "benchmark";
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       if (argc > 1 && argv[1] == "block"sv) {
         subcommand = "block";
       } else {
@@ -796,7 +798,7 @@ namespace kagome::application {
     }
     if (subcommand) {
       argc--;
-      argv++;
+      argv++;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // clang-format off

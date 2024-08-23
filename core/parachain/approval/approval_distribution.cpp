@@ -114,6 +114,7 @@ namespace {
             &cores_out_sz)) {
       ::scale::BitVec assignment_bitfield;
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const auto ci = cores[ix];
         if (ci >= assignment_bitfield.bits.size()) {
           assignment_bitfield.bits.resize(ci + 1);
@@ -145,6 +146,7 @@ namespace {
           .triggered = false};
 
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const auto core_index = cores[ix];
         assignments.emplace(core_index, assignment);
       }

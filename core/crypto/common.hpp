@@ -88,7 +88,7 @@ namespace kagome::crypto {
       if (p == nullptr) {
         throw std::bad_alloc{};
       }
-
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return reinterpret_cast<T *>(p);
     }
 
@@ -191,9 +191,12 @@ namespace kagome::crypto {
     }
 
     static outcome::result<PrivateKey> fromHex(const SecureBuffer<> &hex) {
-      OUTCOME_TRY(bytes,
-                  common::unhex(std::string_view{
-                      reinterpret_cast<const char *>(hex.data()), hex.size()}));
+      OUTCOME_TRY(
+          bytes,
+          common::unhex(std::string_view{
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const char *>(hex.data()),
+              hex.size()}));
       return PrivateKey::from(SecureCleanGuard<uint8_t>{bytes});
     }
 

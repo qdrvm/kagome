@@ -25,6 +25,8 @@
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
@@ -54,7 +56,7 @@ namespace {
         std::make_shared<kagome::application::KagomeApplicationImpl>(*injector);
 
     if (configuration->subcommand().has_value()) {
-      switch (*configuration->subcommand()) {
+      switch (configuration->subcommand().value()) {
         using kagome::application::Subcommand;
         case Subcommand::ChainInfo:
           return app->chainInfo();
@@ -172,3 +174,5 @@ int main(int argc, const char **argv, const char **env) {
 
   return exit_code;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)

@@ -41,6 +41,8 @@ using namespace storage::trie;
 using common::BufferOrView;
 using common::BufferView;
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 struct TrieTracker : TrieStorageBackend {
   TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
       : inner{std::move(inner)} {}
@@ -480,3 +482,5 @@ int db_editor_main(int argc, const char **argv) {
 
   return 0;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)

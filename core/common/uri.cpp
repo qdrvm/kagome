@@ -71,6 +71,7 @@ namespace kagome::common {
 
     // Host
     const auto host_begin =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         schema_end + (std::string_view(schema_end, 3) == "://" ? 3 : 0);
     const auto host_end = std::find_if(host_begin, uri_end, [](auto ch) {
       return ch == ':' or ch == '/' or ch == '?' or ch == '#';
@@ -114,13 +115,17 @@ namespace kagome::common {
     result.Path.assign(path_begin, path_end);
 
     // Query
-    const auto query_begin = path_end + (*path_end == '?' ? 1 : 0);
+    const auto query_begin =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        path_end + (*path_end == '?' ? 1 : 0);
     const auto query_end = std::find(query_begin, uri_end, '#');
 
     result.Query.assign(query_begin, query_end);
 
     // Fragment
-    const auto fragment_begin = query_end + (*query_end == '#' ? 1 : 0);
+    const auto fragment_begin =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        query_end + (*query_end == '#' ? 1 : 0);
     const auto fragment_end = uri_end;
 
     result.Fragment.assign(fragment_begin, fragment_end);

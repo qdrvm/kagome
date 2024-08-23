@@ -14,6 +14,7 @@
 #include "macro/endianness_utils.hpp"
 
 inline auto operator""_bytes(const char *s, std::size_t size) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
 }
 
@@ -35,6 +36,7 @@ namespace kagome::common {
     template <typename T>
       requires std::is_integral_v<std::decay_t<T>> and (sizeof(T) == 1)
     BufferView(std::span<T> other)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
 
     template <typename T>
@@ -65,7 +67,7 @@ namespace kagome::common {
     }
 
     std::string_view toStringView() const {
-      // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return {reinterpret_cast<const char *>(data()), size()};
     }
 
