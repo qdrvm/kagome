@@ -114,7 +114,7 @@ namespace kagome::network {
         peer_manager_(std::move(peer_manager)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
-        timeline_{std::move(timeline)},
+        timeline_{timeline},
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
@@ -288,7 +288,7 @@ namespace kagome::network {
               auto &block_in_queue = it->second;
               block_in_queue.peers.emplace(peer_id);
               if (handler) {
-                handler(std::move(block_info));
+                handler(block_info);
               }
               return;
             }

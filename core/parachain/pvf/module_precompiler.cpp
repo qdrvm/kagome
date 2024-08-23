@@ -26,9 +26,9 @@ namespace kagome::parachain {
       std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_{config},
-        parachain_api_{parachain_api},
+        parachain_api_{std::move(parachain_api)},
         pvf_pool_{std::move(pvf_pool)},
-        hasher_{hasher} {
+        hasher_{std::move(hasher)} {
     if (getThreadsNum() > std::thread::hardware_concurrency() - 1) {
       SL_WARN(
           log_,

@@ -443,7 +443,7 @@ namespace kagome::network {
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
-    (*shared_msg) = GrandpaMessage(std::move(catch_up_request));
+    (*shared_msg) = GrandpaMessage(catch_up_request);
 
     stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
   }

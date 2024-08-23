@@ -924,13 +924,13 @@ namespace kagome::parachain {
 
   ParachainProcessorImpl::PerSessionState::PerSessionState(
       SessionIndex _session,
-      const runtime::SessionInfo &_session_info,
+      runtime::SessionInfo _session_info,
       Groups &&_groups,
       grid::Views &&_grid_view,
       ValidatorIndex _our_index,
       std::shared_ptr<PeerUseCount> peers)
       : session{_session},
-        session_info{_session_info},
+        session_info{std::move(_session_info)},
         groups{std::move(_groups)},
         grid_view{std::move(_grid_view)},
         our_index{_our_index},

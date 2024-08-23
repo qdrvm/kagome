@@ -65,11 +65,11 @@ namespace kagome::storage::trie_pruner {
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<const application::AppConfiguration> config)
-      : node_storage_{node_storage},
-        serializer_{serializer},
-        codec_{codec},
-        storage_{storage},
-        hasher_{hasher},
+      : node_storage_{std::move(node_storage)},
+        serializer_{std::move(serializer)},
+        codec_{std::move(codec)},
+        storage_{std::move(storage)},
+        hasher_{std::move(hasher)},
         pruning_depth_{config->statePruningDepth()},
         thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(node_storage_ != nullptr);
@@ -113,7 +113,7 @@ namespace kagome::storage::trie_pruner {
   class Encoder {
    public:
     explicit Encoder(const trie::Codec &codec, log::Logger logger)
-        : codec{codec}, logger{logger} {}
+        : codec{codec}, logger{std::move(logger)} {}
 
     ~Encoder() {
       SL_DEBUG(logger, "Encode called {} times", encode_called);

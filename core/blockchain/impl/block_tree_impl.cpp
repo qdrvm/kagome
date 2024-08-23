@@ -437,7 +437,9 @@ namespace kagome::blockchain {
           .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
-        main_pool_handler_{main_thread_pool.handlerStarted()} {
+        chain_events_engine_{std::move(chain_events_engine)},
+        main_pool_handler_{main_thread_pool.handlerStarted()},
+        extrinsic_events_engine_{std::move(extrinsic_events_engine)} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);
@@ -478,10 +480,7 @@ namespace kagome::blockchain {
       }
     });
 
-    chain_events_engine_ = std::move(chain_events_engine);
     BOOST_ASSERT(chain_events_engine_ != nullptr);
-
-    extrinsic_events_engine_ = std::move(extrinsic_events_engine);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
   }
 

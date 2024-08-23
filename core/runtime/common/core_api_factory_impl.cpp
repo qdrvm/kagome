@@ -18,7 +18,7 @@ namespace kagome::runtime {
   using primitives::Version;
   class GetVersion : public RestrictedCore {
    public:
-    GetVersion(const Version &version) : version_{version} {}
+    GetVersion(Version version) : version_{std::move(version)} {}
 
     outcome::result<Version> version() {
       return version_;

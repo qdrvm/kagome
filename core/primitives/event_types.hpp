@@ -51,7 +51,7 @@ namespace kagome::primitives::events {
   struct RemoveAfterFinalizationParams {
     struct HeaderInfo {
       primitives::BlockHash hash;
-      primitives::BlockNumber number;
+      primitives::BlockNumber number{};
     };
     std::vector<HeaderInfo> removed;
     primitives::BlockNumber finalized;
@@ -160,7 +160,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
-          Params{BroadcastEventParams{.peers = std::move(peers)}}};
+          Params{BroadcastEventParams{.peers = peers}}};
     }
 
     static ExtrinsicLifecycleEvent InBlock(SubscribedExtrinsicId id,
@@ -168,7 +168,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::IN_BLOCK,
-          Params{InBlockEventParams{.block = std::move(block)}}};
+          Params{InBlockEventParams{.block = block}}};
     }
 
     static ExtrinsicLifecycleEvent Retracted(SubscribedExtrinsicId id,
@@ -176,8 +176,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::RETRACTED,
-          Params{RetractedEventParams{.retracted_block =
-                                          std::move(retracted_block)}}};
+          Params{RetractedEventParams{.retracted_block = retracted_block}}};
     }
 
     static ExtrinsicLifecycleEvent FinalityTimeout(SubscribedExtrinsicId id,
@@ -185,7 +184,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::FINALITY_TIMEOUT,
-          Params{FinalizedEventParams{.block = std::move(block)}}};
+          Params{FinalizedEventParams{.block = block}}};
     }
 
     static ExtrinsicLifecycleEvent Finalized(SubscribedExtrinsicId id,
@@ -193,7 +192,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::FINALIZED,
-          Params{FinalizedEventParams{.block = std::move(block)}}};
+          Params{FinalizedEventParams{.block = block}}};
     }
 
     static ExtrinsicLifecycleEvent Usurped(SubscribedExtrinsicId id,
@@ -201,8 +200,7 @@ namespace kagome::primitives::events {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::USURPED,
-          Params{UsurpedEventParams{.transaction_hash =
-                                        std::move(transaction_hash)}}};
+          Params{UsurpedEventParams{.transaction_hash = transaction_hash}}};
     }
 
     static ExtrinsicLifecycleEvent Dropped(SubscribedExtrinsicId id) {

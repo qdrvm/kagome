@@ -71,10 +71,10 @@ namespace kagome::network {
         beefy_pool_handler_{poolHandlerReadyMake(
             this, app_state_manager, beefy_thread_pool, log_)},
         scheduler_{std::move(scheduler)},
-        timeline_{std::move(timeline)},
+        timeline_{timeline},
         session_keys_{std::move(session_keys)},
-        beefy_protocol_{std::move(beefy_protocol)},
-        beefy_justification_protocol_{std::move(beefy_justification_protocol)},
+        beefy_protocol_{beefy_protocol},
+        beefy_justification_protocol_{beefy_justification_protocol},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},

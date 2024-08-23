@@ -36,7 +36,7 @@ namespace kagome::consensus::grandpa {
     AuthoritySet() = default;
 
     AuthoritySet(AuthoritySetId id, Authorities authorities)
-        : id{id}, authorities{authorities} {}
+        : id{id}, authorities{std::move(authorities)} {}
 
     AuthoritySetId id{};
     Authorities authorities;

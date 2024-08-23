@@ -18,7 +18,7 @@ namespace kagome::storage {
 
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override {
-      entries[key.toHex()] = value.intoBuffer();
+      entries[key.toHex()] = std::move(value).intoBuffer();
       return outcome::success();
     }
 

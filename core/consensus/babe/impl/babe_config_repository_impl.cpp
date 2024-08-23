@@ -71,11 +71,11 @@ namespace kagome::consensus::babe {
             block_tree_,
         },
         header_repo_(std::move(header_repo)),
-        consensus_selector_(std::move(consensus_selector)),
+        consensus_selector_(consensus_selector),
         babe_api_(std::move(babe_api)),
         trie_storage_(std::move(trie_storage)),
         chain_sub_{chain_events_engine},
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);

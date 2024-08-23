@@ -40,7 +40,7 @@ namespace kagome::network {
         RequestPov request, std::shared_ptr<Stream> /*stream*/) override {
       BOOST_ASSERT(observer_);
       base().logger()->info("Received PoV request(candidate hash={})", request);
-      auto response = observer_->OnPovRequest(std::move(request));
+      auto response = observer_->OnPovRequest(request);
       if (response.has_error()) {
         base().logger()->warn(
             "Our PoV response has error.(candidate hash={}, error={})",

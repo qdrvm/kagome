@@ -117,10 +117,10 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<ModuleInstanceContext> host_instance,
         InstanceEnvironment env,
         const common::Hash256 &code_hash)
-        : module_{module},
+        : module_{std::move(module)},
           instance_{std::move(instance_ctx)},
-          host_instance_{host_instance},
-          executor_{executor},
+          host_instance_{std::move(host_instance)},
+          executor_{std::move(executor)},
           env_{std::move(env)},
           code_hash_{code_hash} {
       BOOST_ASSERT(module_ != nullptr);
@@ -235,10 +235,10 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer)
-        : core_factory_{core_factory},
-          host_api_factory_{host_api_factory},
-          storage_{storage},
-          serializer_{serializer} {}
+        : core_factory_{std::move(core_factory)},
+          host_api_factory_{std::move(host_api_factory)},
+          storage_{std::move(storage)},
+          serializer_{std::move(serializer)} {}
 
     InstanceEnvironment make(std::shared_ptr<MemoryProvider> memory_provider) {
       auto storage_provider =
@@ -362,10 +362,10 @@ namespace kagome::runtime::wasm_edge {
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<CoreApiFactory> core_factory,
       Config config)
-      : hasher_{hasher},
-        host_api_factory_{host_api_factory},
-        storage_{storage},
-        serializer_{serializer},
+      : hasher_{std::move(hasher)},
+        host_api_factory_{std::move(host_api_factory)},
+        storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         core_factory_{std::move(core_factory)},
         log_{log::createLogger("ModuleFactory", "runtime")},
         config_{config} {
@@ -446,11 +446,11 @@ namespace kagome::runtime::wasm_edge {
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
         core_factory_, host_api_factory_, storage_, serializer_);
 
-    return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
-                                                      std::move(executor),
-                                                      env_factory,
-                                                      import_memory_type,
-                                                      code_hash}};
+    return std::make_shared<ModuleImpl>(std::move(module),
+                                        std::move(executor),
+                                        std::move(env_factory),
+                                        import_memory_type,
+                                        code_hash);
   }
 
 }  // namespace kagome::runtime::wasm_edge

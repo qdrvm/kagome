@@ -100,7 +100,7 @@ namespace kagome::consensus::grandpa {
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
-        timeline_{std::move(timeline)},
+        timeline_{timeline},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},

@@ -107,10 +107,10 @@ namespace kagome::benchmark {
       std::shared_ptr<runtime::ModuleRepository> module_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage)
       : logger_{log::createLogger("BlockExecutionBenchmark", "benchmark")},
-        core_api_{core_api},
-        block_tree_{block_tree},
-        module_repo_{module_repo},
-        trie_storage_{trie_storage} {
+        core_api_{std::move(core_api)},
+        block_tree_{std::move(block_tree)},
+        module_repo_{std::move(module_repo)},
+        trie_storage_{std::move(trie_storage)} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);

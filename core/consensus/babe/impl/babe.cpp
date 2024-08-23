@@ -96,7 +96,7 @@ namespace kagome::consensus::babe {
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         config_repo_(std::move(config_repo)),
         timings_(timings),
         session_keys_(std::move(session_keys)),
@@ -504,7 +504,7 @@ namespace kagome::consensus::babe {
                pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    const auto &pre_digest = pre_digest_res.value();
+    auto &pre_digest = pre_digest_res.value();
 
     auto propose = [wp{weak_from_this()},
                     inherent_data{std::move(inherent_data)},

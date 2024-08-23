@@ -264,7 +264,7 @@ namespace kagome::network {
           logmsg += fmt::format(", max {}", block_request.max.value());
         }
 
-        self->base_.logger()->verbose(std::move(logmsg));
+        self->base_.logger()->verbose(logmsg);
       }
 
       auto block_response_res = self->sync_observer_->onBlocksRequest(
@@ -465,7 +465,7 @@ namespace kagome::network {
         logmsg += fmt::format(", max {}", block_request.max.value());
       }
 
-      base_.logger()->debug(std::move(logmsg));
+      base_.logger()->debug(logmsg);
     }
 
     newOutgoingStream(

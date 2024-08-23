@@ -55,12 +55,17 @@ namespace kagome::telemetry {
      */
     TelemetryConnectionImpl(
         std::shared_ptr<boost::asio::io_context> io_context,
-        const TelemetryEndpoint &endpoint,
+        TelemetryEndpoint endpoint,
         OnConnectedCallback callback,
         std::shared_ptr<MessagePool> message_pool,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
     TelemetryConnectionImpl(const TelemetryConnectionImpl &) = delete;
-    TelemetryConnectionImpl(TelemetryConnectionImpl &&) = delete;
+    TelemetryConnectionImpl(TelemetryConnectionImpl &&) noexcept = delete;
+    TelemetryConnectionImpl &operator=(const TelemetryConnectionImpl &) =
+        delete;
+    TelemetryConnectionImpl &operator=(TelemetryConnectionImpl &&) noexcept =
+        delete;
+    ~TelemetryConnectionImpl() = default;
 
     /// Initiate connection process
     void connect() override;

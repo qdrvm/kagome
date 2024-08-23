@@ -54,7 +54,7 @@ namespace kagome::runtime {
     static outcome::result<Result> decodedCall(
         [[maybe_unused]] std::string_view method_name,
         outcome::result<common::Buffer> &&result) {
-      OUTCOME_TRY(value, result);
+      OUTCOME_TRY(value, std::move(result));
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

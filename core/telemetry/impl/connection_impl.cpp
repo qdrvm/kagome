@@ -16,12 +16,12 @@ namespace kagome::telemetry {
 
   TelemetryConnectionImpl::TelemetryConnectionImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
-      const TelemetryEndpoint &endpoint,
+      TelemetryEndpoint endpoint,
       OnConnectedCallback callback,
       std::shared_ptr<MessagePool> message_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{std::move(io_context)},
-        endpoint_{endpoint},
+        endpoint_{std::move(endpoint)},
         callback_{std::move(callback)},
         message_pool_{std::move(message_pool)},
         scheduler_{std::move(scheduler)},
