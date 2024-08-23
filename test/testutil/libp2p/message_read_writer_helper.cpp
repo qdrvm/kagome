@@ -10,7 +10,7 @@
 #include "libp2p/multi/uvarint.hpp"
 
 ACTION_P(PutBytes, bytes) {  // NOLINT
-  std::copy(bytes.begin(), bytes.end(), arg0.begin());
+  std::ranges::copy(bytes, arg0.begin());
   arg2(bytes.size());
 }
 

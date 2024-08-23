@@ -314,9 +314,8 @@ namespace kagome::storage::trie {
     for (const auto &node_idx : search_state.getPath()) {
       const auto &node = node_idx.parent;
       auto idx = node_idx.child_idx;
-      std::copy(node.getKeyNibbles().begin(),
-                node.getKeyNibbles().end(),
-                std::back_inserter<Buffer>(key_nibbles));
+      std::ranges::copy(node.getKeyNibbles(),
+                        std::back_inserter<Buffer>(key_nibbles));
       key_nibbles.putUint8(idx);
     }
     key_nibbles.put(search_state.getCurrent().getKeyNibbles());

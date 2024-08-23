@@ -444,10 +444,9 @@ namespace kagome::parachain {
           const {
         std::vector<approval::IndirectSignedApprovalVoteV2> out;
         out.reserve(approvals.size());
-        std::transform(approvals.begin(),
-                       approvals.end(),
-                       std::back_inserter(out),
-                       [](const auto it) { return it.second; });
+        std::ranges::transform(approvals,
+                               std::back_inserter(out),
+                               [](const auto it) { return it.second; });
         return out;
       }
 

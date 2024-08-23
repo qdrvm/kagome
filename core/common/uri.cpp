@@ -61,7 +61,7 @@ namespace kagome::common {
     }
     result.Schema.assign(schema_begin, schema_end);
 
-    if (std::find_if_not(
+    if (std::ranges::find_if_not(
             schema_begin, schema_end, [](auto ch) { return std::isalpha(ch); })
         != schema_end) {
       if (not result.error_.has_value()) {
@@ -73,11 +73,12 @@ namespace kagome::common {
     const auto host_begin =
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         schema_end + (std::string_view(schema_end, 3) == "://" ? 3 : 0);
-    const auto host_end = std::find_if(host_begin, uri_end, [](auto ch) {
-      return ch == ':' or ch == '/' or ch == '?' or ch == '#';
-    });
+    const auto host_end =
+        std::ranges::find_if(host_begin, uri_end, [](auto ch) {
+          return ch == ':' or ch == '/' or ch == '?' or ch == '#';
+        });
     result.Host.assign(host_begin, host_end);
-    if (std::find_if_not(
+    if (std::ranges::find_if_not(
             host_begin,
             host_end,
             [](auto ch) { return std::isalnum(ch) or ch == '.' or ch == '-'; })
@@ -93,10 +94,14 @@ namespace kagome::common {
     const auto port_end = std::find_if(port_begin, uri_end, [](auto ch) {
       return ch == '/' or ch == '?' or ch == '#';
     });
+    const auto port_end =
+        std::ranges::find_if(port_begin, uri_end, [](auto ch) {
+          return ch == '/' or ch == '?' or ch == '#';
+        });
 
     result.Port.assign(port_begin, port_end);
 
-    if (std::find_if_not(
+    if (std::ranges::find_if_not(
             port_begin, port_end, [](auto ch) { return std::isdigit(ch); })
             != port_end
         or (result.Port.empty() and *host_end == ':') or (result.Port == "0")
@@ -109,7 +114,7 @@ namespace kagome::common {
 
     // Path
     const auto path_begin = port_end;
-    const auto path_end = std::find_if(
+    const auto path_end = std::ranges::find_if(
         path_begin, uri_end, [](auto ch) { return ch == '?' or ch == '#'; });
 
     result.Path.assign(path_begin, path_end);

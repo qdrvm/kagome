@@ -43,7 +43,7 @@ namespace kagome::crypto::bip39 {
     if (raw.size() > result.size()) {
       result = hasher.blake2b_256(raw);
     } else {
-      std::copy(raw.begin(), raw.end(), result.begin());
+      std::ranges::copy(raw, result.begin());
     }
     return RawJunction{hard, result};
   }

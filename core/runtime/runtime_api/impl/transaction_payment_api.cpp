@@ -52,6 +52,10 @@ namespace kagome::runtime {
                               return api_version.first
                                   == c_transaction_payment_api_hash;
                             });
+    auto res =
+        std::ranges::find_if(runtime_version.apis, [&](auto &api_version) {
+          return api_version.first == c_transaction_payment_api_hash;
+        });
     if (res == runtime_version.apis.end()) {
       return Error::TRANSACTION_PAYMENT_API_NOT_FOUND;
     }
@@ -64,7 +68,7 @@ namespace kagome::runtime {
         result,
         executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
             ctx, "TransactionPaymentApi_query_info", ext.data, len));
-   
+
     return result;
   }
 

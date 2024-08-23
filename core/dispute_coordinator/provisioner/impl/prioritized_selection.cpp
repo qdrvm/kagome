@@ -297,7 +297,7 @@ namespace kagome::dispute {
       bool concluded_onchain = false;
       for (const auto &bits : {dispute_state.validators_for.bits,
                                dispute_state.validators_against.bits}) {
-        if (std::count(bits.begin(), bits.end(), true) >= supermajority) {
+        if (std::ranges::count(bits, true) >= supermajority) {
           concluded_onchain = true;
           break;
         }

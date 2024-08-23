@@ -118,9 +118,9 @@ namespace kagome::parachain {
     std::vector<ParachainId> relevant_paras;
     relevant_paras.reserve(min_relay_parents_raw.size());
 
-    for (size_t i = 0; i < min_relay_parents_raw.size(); ++i) {
-      min_min = std::min(min_relay_parents_raw[i].second, min_min);
-      relevant_paras.emplace_back(min_relay_parents_raw[i].first);
+    for (auto &min_relay_parent : min_relay_parents_raw) {
+      min_min = std::min(min_relay_parent.second, min_min);
+      relevant_paras.emplace_back(min_relay_parent.first);
     }
 
     const size_t expected_ancestry_len =

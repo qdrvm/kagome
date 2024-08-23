@@ -109,7 +109,7 @@ namespace kagome::consensus::grandpa {
     }
 
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    std::reverse(chain.begin(), chain.end());
+    std::ranges::reverse(chain);
     return chain;
   }
 

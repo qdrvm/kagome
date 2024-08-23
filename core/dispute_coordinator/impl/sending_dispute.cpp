@@ -38,13 +38,11 @@ namespace kagome::dispute {
     // Note this will also contain all authorities for which sending failed
     // previously:
     std::vector<primitives::AuthorityDiscoveryId> add_authorities;
-    std::for_each(new_authorities.begin(),
-                  new_authorities.end(),
-                  [&](const auto &authority) {
-                    if (not deliveries_.contains(authority)) {
-                      add_authorities.emplace_back(authority);
-                    }
-                  });
+    std::ranges::for_each(new_authorities, [&](const auto &authority) {
+      if (not deliveries_.contains(authority)) {
+        add_authorities.emplace_back(authority);
+      }
+    });
 
     // Get rid of dead/irrelevant tasks/statuses:
     SL_TRACE(logger_, "Cleaning up deliveries");

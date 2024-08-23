@@ -155,10 +155,8 @@ namespace kagome::api {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);
-    BOOST_ASSERT(
-        std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
-          return listener != nullptr;
-        }));
+    BOOST_ASSERT(std::ranges::all_of(
+        listeners_, [](auto &listener) { return listener != nullptr; }));
     BOOST_ASSERT(server_);
     for (auto &processor : processors) {
       BOOST_ASSERT(processor != nullptr);

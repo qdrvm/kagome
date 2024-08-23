@@ -193,10 +193,9 @@ namespace kagome::runtime {
           if (auto self = wptr.lock()) {
             std::vector<primitives::BlockHash> removed;
             removed.reserve(event.removed.size());
-            std::transform(event.removed.begin(),
-                           event.removed.end(),
-                           std::back_inserter(removed),
-                           [](const auto &bi) { return bi.hash; });
+            std::ranges::transform(event.removed,
+                                   std::back_inserter(removed),
+                                   [](const auto &bi) { return bi.hash; });
             self->clearCaches(removed);
           }
         });

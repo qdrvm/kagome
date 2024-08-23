@@ -79,11 +79,11 @@ namespace kagome::storage {
       return status_as_error(res);
     }
     for (auto &family : existing_families) {
-      if (std::find_if(column_family_descriptors.begin(),
-                       column_family_descriptors.end(),
-                       [&family](rocksdb::ColumnFamilyDescriptor &desc) {
-                         return desc.name == family;
-                       })
+      if (std::ranges::find_if(
+              column_family_descriptors,
+              [&family](rocksdb::ColumnFamilyDescriptor &desc) {
+                return desc.name == family;
+              })
           == column_family_descriptors.end()) {
         column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
             family, configureColumn(other_spaces_cache_size)});
@@ -114,12 +114,11 @@ namespace kagome::storage {
       return spaces_[space];
     }
     auto space_name = spaceName(space);
-    auto column =
-        std::find_if(column_family_handles_.begin(),
-                     column_family_handles_.end(),
-                     [&space_name](const ColumnFamilyHandlePtr &handle) {
-                       return handle->GetName() == space_name;
-                     });
+    auto column = std::ranges::find_if(
+        column_family_handles_,
+        [&space_name](const ColumnFamilyHandlePtr &handle) {
+          return handle->GetName() == space_name;
+        });
     if (column_family_handles_.end() == column) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
@@ -131,12 +130,11 @@ namespace kagome::storage {
 
   void RocksDb::dropColumn(kagome::storage::Space space) {
     auto space_name = spaceName(space);
-    auto column_it =
-        std::find_if(column_family_handles_.begin(),
-                     column_family_handles_.end(),
-                     [&space_name](const ColumnFamilyHandlePtr &handle) {
-                       return handle->GetName() == space_name;
-                     });
+    auto column_it = std::ranges::find_if(
+        column_family_handles_,
+        [&space_name](const ColumnFamilyHandlePtr &handle) {
+          return handle->GetName() == space_name;
+        });
     if (column_family_handles_.end() == column_it) {
       throw DatabaseError::INVALID_ARGUMENT;
     }

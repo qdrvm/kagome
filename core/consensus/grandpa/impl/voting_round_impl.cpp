@@ -1281,6 +1281,7 @@ namespace kagome::consensus::grandpa {
     const auto tolerated_equivocations = voter_set_->totalWeight() - threshold_;
 
     // get total weight of all equivocators
+    // NOLINTNEXTLINE(boost-use-ranges)
     const auto current_equivocations = std::accumulate(
         precommit_equivocators_.begin(),
         precommit_equivocators_.end(),
@@ -1411,15 +1412,14 @@ namespace kagome::consensus::grandpa {
 
     auto precommits = precommits_->getMessages();
     round_state.votes.reserve(round_state.votes.size() + precommits.size());
-    std::move(precommits.begin(),
-              precommits.end(),
-              std::back_inserter(round_state.votes));
+    std::ranges::move(precommits, std::back_inserter(round_state.votes));
 
     return round_state;
   }
 
   std::vector<SignedPrevote> VotingRoundImpl::getPrevoteJustification(
       const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const {
+    // NOLINTNEXTLINE(boost-use-ranges)
     auto result = std::accumulate(
         votes.begin(),
         votes.end(),
@@ -1460,6 +1460,7 @@ namespace kagome::consensus::grandpa {
     VoteWeight::Weight weight = 0;
 
     // Collect equivocations first (until threshold is reached)
+    // NOLINTNEXTLINE(boost-use-ranges)
     result = std::accumulate(
         votes.begin(),
         votes.end(),
@@ -1493,6 +1494,7 @@ namespace kagome::consensus::grandpa {
         });
 
     // Then collect valid precommits (until threshold is reached)
+    // NOLINTNEXTLINE(boost-use-ranges)
     result = std::accumulate(
         votes.begin(),
         votes.end(),

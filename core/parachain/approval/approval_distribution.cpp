@@ -298,11 +298,11 @@ namespace {
       size_t no_shows = 0ull;
       std::optional<uint64_t> next_no_show{};
 
-      if (auto i = std::lower_bound(
-              tranches.begin(),
-              tranches.end(),
+      if (auto i = std::ranges::lower_bound(
+              tranches,
               tranche,
-              [](const auto &te, const auto t) { return te.tranche < t; });
+              std::less<>(),
+              &kagome::parachain::ApprovalDistribution::TrancheEntry::tranche);
           i != tranches.end() && i->tranche == tranche) {
         for (const auto &[v_index, t] : i->assignments) {
           if (v_index < n_validators) {
@@ -902,10 +902,9 @@ namespace kagome::parachain {
     std::vector<approval::IndirectSignedApprovalVoteV2> out;
     out.reserve(result.size());
 
-    std::transform(result.begin(),
-                   result.end(),
-                   std::back_inserter(out),
-                   [](const auto it) { return it.second; });
+    std::ranges::transform(result, std::back_inserter(out), [](const auto it) {
+      return it.second;
+    });
     return out;
   }
 
@@ -1503,18 +1502,18 @@ namespace kagome::parachain {
             SL_TRACE(self->logger_,
                      "Processing pending assignment/approvals.(count={})",
                      it->second.size());
-            for (auto i = it->second.begin(); i != it->second.end(); ++i) {
+            for (auto &item : it->second) {
               visit_in_place(
-                  i->second,
+                  item.second,
                   [&](const network::vstaging::Assignment &assignment) {
                     self->import_and_circulate_assignment(
-                        i->first,
+                        item.first,
                         assignment.indirect_assignment_cert,
                         assignment.candidate_bitfield);
                   },
                   [&](const network::vstaging::IndirectSignedApprovalVoteV2
                           &approval) {
-                    self->import_and_circulate_approval(i->first, approval);
+                    self->import_and_circulate_approval(item.first, approval);
                   });
             }
             it = self->pending_known_.erase(it);
@@ -3377,7 +3376,7 @@ namespace kagome::parachain {
     auto &chain = chain_res.value();
     BOOST_ASSERT(not chain.empty() and chain[0] == max.hash);
     BOOST_ASSERT(chain.size() == count);
-    std::reverse(chain.begin(), chain.end());
+    std::ranges::reverse(chain);
     BOOST_ASSERT(chain[0] != min.hash);
     primitives::BlockInfo result = min;
     for (auto &hash : chain) {

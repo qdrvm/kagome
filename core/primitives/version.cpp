@@ -22,7 +22,7 @@ namespace {
 namespace kagome::primitives::detail {
 
   std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis) {
-    auto result = std::find_if(apis.begin(), apis.end(), [](auto &api) {
+    auto result = std::ranges::find_if(apis, [](auto &api) {
       static auto api_id =
           kHasher->blake2b_64(common::Buffer::fromString("Core"));
       return api.first == api_id;

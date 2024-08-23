@@ -359,9 +359,9 @@ namespace kagome::network {
       }
     }
 
-    std::sort(peers_list.begin(),
-              peers_list.end(),
-              [](const auto &l, const auto &r) { return r.first < l.first; });
+    std::ranges::sort(peers_list, [](const auto &l, const auto &r) {
+      return r.first < l.first;
+    });
 
     for (; !peers_list.empty()
            && (peers_list.size() > hard_limit
@@ -697,12 +697,12 @@ namespace kagome::network {
                 // And remove from queue
                 if (auto piq_it = self->peers_in_queue_.find(peer_id);
                     piq_it != self->peers_in_queue_.end()) {
-                  auto qtc_it =
-                      std::find_if(self->queue_to_connect_.cbegin(),
-                                   self->queue_to_connect_.cend(),
-                                   [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item;
-                                   });
+                  auto qtc_it = std::ranges::find_if(
+                      self->queue_to_connect_.cbegin(),
+                      self->queue_to_connect_.cend(),
+                      [&peer_id = peer_id](const auto &item) {
+                        return peer_id == item;
+                      });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
                   BOOST_ASSERT(self->queue_to_connect_.size()
@@ -976,22 +976,22 @@ namespace kagome::network {
   }
 
   size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
-    return std::count_if(active_peers_.begin(),
-                         active_peers_.end(),
-                         [&](const decltype(active_peers_)::value_type &x) {
-                           if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
-                             return in_out == PeerType::PEER_TYPE_OUT;
-                           }
-                           if (in_out == PeerType::PEER_TYPE_OUT) {
-                             return false;
-                           }
-                           auto it = peer_states_.find(x.first);
-                           if (it == peer_states_.end()) {
-                             return false;
-                           }
-                           auto &roles = it->second.roles.flags;
-                           return (in_light ? roles.light : roles.full) == 1;
-                         });
+    return std::ranges::count_if(
+        active_peers_, [&](const decltype(active_peers_)::value_type &x) {
+          if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
+            return in_out == PeerType::PEER_TYPE_OUT;
+          }
+          if (in_out == PeerType::PEER_TYPE_OUT) {
+            return false;
+          }
+          auto it = peer_states_.find(x.first);
+          if (it == peer_states_.end()) {
+            return false;
+          }
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+          const auto &roles = it->second.roles.flags;
+          return (in_light ? roles.light : roles.full) == 1;
+        });
   }
 
   std::optional<PeerId> PeerManagerImpl::peerFinalized(

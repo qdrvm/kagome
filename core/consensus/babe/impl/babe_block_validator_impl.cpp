@@ -156,9 +156,8 @@ namespace kagome::consensus::babe {
                     block_header.blockInfo());
       }
 
-      if (std::binary_search(disabled_validators.begin(),
-                             disabled_validators.end(),
-                             babe_header.authority_index)) {
+      if (std::ranges::binary_search(disabled_validators,
+                                     babe_header.authority_index)) {
         SL_VERBOSE(log_,
                    "Block {} is invalid because produced by disabled validator",
                    block_header.blockInfo());

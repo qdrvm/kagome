@@ -1386,8 +1386,7 @@ namespace kagome::consensus::grandpa {
              vote,
              set_index);
     auto &[votes, dirty] = historicalVotes(set, round);
-    if (std::find(votes.seen.begin(), votes.seen.end(), vote)
-        != votes.seen.end()) {
+    if (std::ranges::find(votes.seen, vote) != votes.seen.end()) {
       return;
     }
     if (set_index) {

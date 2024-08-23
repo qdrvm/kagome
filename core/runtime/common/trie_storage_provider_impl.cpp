@@ -74,11 +74,9 @@ namespace kagome::runtime {
   outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
   TrieStorageProviderImpl::findChildBatchAt(
       const common::Buffer &root_path) const {
-    for (auto transaction_it = transaction_stack_.rbegin();
-         transaction_it != transaction_stack_.rend();
-         transaction_it++) {
-      if (auto it = transaction_it->child_batches.find(root_path);
-          it != transaction_it->child_batches.end()) {
+    for (auto &transaction : transaction_stack_) {
+      if (auto it = transaction.child_batches.find(root_path);
+          it != transaction.child_batches.end()) {
         return it->second;
       }
     }

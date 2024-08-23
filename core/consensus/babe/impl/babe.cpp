@@ -181,9 +181,7 @@ namespace kagome::consensus::babe {
       }
       const auto &disabled_validators = disabled_validators_res.value();
 
-      if (std::binary_search(disabled_validators.begin(),
-                             disabled_validators.end(),
-                             authority_index)) {
+      if (std::ranges::binary_search(disabled_validators, authority_index)) {
         return ValidatorStatus::DisabledValidator;
       }
 

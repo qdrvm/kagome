@@ -2420,11 +2420,9 @@ namespace kagome::parachain {
                relay_parent_state.per_session_state->value().groups,
                originator,
                compact_statement)) {
-        const auto can_use_grid =
-            !cluster_relevant
-            || std::find(
-                   all_cluster_targets.begin(), all_cluster_targets.end(), v)
-                   == all_cluster_targets.end();
+        const auto can_use_grid = !cluster_relevant
+                               || std::ranges::find(all_cluster_targets, v)
+                                      == all_cluster_targets.end();
         if (!can_use_grid) {
           continue;
         }
@@ -4018,9 +4016,9 @@ namespace kagome::parachain {
         return std::nullopt;
       }
     }
-    std::sort(vote_positions.begin(),
-              vote_positions.end(),
-              [](const auto &l, const auto &r) { return l.second < r.second; });
+    std::ranges::sort(vote_positions, [](const auto &l, const auto &r) {
+      return l.second < r.second;
+    });
 
     std::vector<network::ValidityAttestation> validity_votes;
     validity_votes.reserve(vote_positions.size());
@@ -5441,9 +5439,8 @@ namespace kagome::parachain {
         const auto allowed_parents_for_para =
             implicit_view.knownAllowedRelayParentsUnder(head,
                                                         {candidate_para.get()});
-        if (std::find(allowed_parents_for_para.begin(),
-                      allowed_parents_for_para.end(),
-                      candidate_relay_parent.get())
+        if (std::ranges::find(allowed_parents_for_para,
+                              candidate_relay_parent.get())
             == allowed_parents_for_para.end()) {
           continue;
         }

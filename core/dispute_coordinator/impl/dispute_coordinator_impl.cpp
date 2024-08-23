@@ -95,8 +95,7 @@ namespace kagome::dispute {
                   /// Returns Error if the candidate_hash is not included in the
                   /// list of signed candidate from
                   /// ApprovalCheckingMultipleCandidate.
-                  if (std::find(
-                          candidates.begin(), candidates.end(), candidate_hash)
+                  if (std::ranges::find(candidates, candidate_hash)
                       == candidates.end()) {
                     return ApprovalCheckingMultipleCandidatesError::NotIncluded;
                   }
@@ -880,12 +879,10 @@ namespace kagome::dispute {
     }
 
     /// Make active sessions correspond to currently active heads.
-    auto sessions_updated =
-        std::equal(active_sessions_.begin(),
-                   active_sessions_.end(),
-                   new_sessions.begin(),
-                   new_sessions.end(),
-                   [](auto it1, auto it2) { return it1.first == it2.first; });
+    auto sessions_updated = std::ranges::equal(
+        active_sessions_, new_sessions, [](auto it1, auto it2) {
+          return it1.first == it2.first;
+        });
 
     // Update in any case, so we use current heads for queries:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L304
@@ -919,11 +916,9 @@ namespace kagome::dispute {
     /// Handle new active disputes response.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
     std::unordered_set<CandidateHash> candidates;
-    std::for_each(active_disputes.begin(),
-                  active_disputes.end(),
-                  [&](const auto &active_dispute) {
-                    candidates.emplace(std::get<1>(active_dispute));
-                  });
+    std::ranges::for_each(active_disputes, [&](const auto &active_dispute) {
+      candidates.emplace(std::get<1>(active_dispute));
+    });
 
     // Cleanup obsolete senders
     sending_disputes_.remove_if([&](const auto &x) {
@@ -1158,9 +1153,8 @@ namespace kagome::dispute {
             if (fresh) {
               if (imported_valid_votes == 0) {
                 // Return postponed statements to process
-                std::move_backward(postponed_statements.begin(),
-                                   postponed_statements.end(),
-                                   statements.end());
+                std::ranges::move_backward(postponed_statements,
+                                           statements.end());
               }
               ++imported_valid_votes;
             }
@@ -1173,9 +1167,8 @@ namespace kagome::dispute {
               new_invalid_voters.push_back(val_index);
               if (imported_invalid_votes == 0) {
                 // Return postponed statements to process
-                std::move_backward(postponed_statements.begin(),
-                                   postponed_statements.end(),
-                                   statements.end());
+                std::ranges::move_backward(postponed_statements,
+                                           statements.end());
               }
               ++imported_invalid_votes;
             }
@@ -1533,10 +1526,10 @@ namespace kagome::dispute {
       if (blocks_including.size() > 0) {
         std::vector<primitives::BlockHash> to_revert;
         to_revert.reserve(blocks_including.size());
-        std::transform(blocks_including.begin(),
-                       blocks_including.end(),
-                       std::back_inserter(to_revert),
-                       [](auto &block_info) { return block_info.hash; });
+        std::ranges::transform(
+            blocks_including,
+            std::back_inserter(to_revert),
+            [](auto &block_info) { return block_info.hash; });
         std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
         SL_DEBUG(
             log_, "Would be reverted up to {} blocks", blocks_including.size());
@@ -1969,9 +1962,8 @@ namespace kagome::dispute {
 
     OutputDisputes output;
     output.reserve(recent_disputes.size());
-    std::transform(
-        recent_disputes.begin(),
-        recent_disputes.end(),
+    std::ranges::transform(
+        recent_disputes,
         std::back_inserter(output),
         [](const auto &p)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
@@ -2165,10 +2157,8 @@ namespace kagome::dispute {
     last = {base_number, base_hash};
 
     for (const auto &description : descriptions) {
-      auto has_disputed_candidate = std::any_of(
-          description.candidates.begin(),
-          description.candidates.end(),
-          [&](const auto &candidate_hash) {
+      auto has_disputed_candidate = std::ranges::any_of(
+          description.candidates, [&](const auto &candidate_hash) {
             return is_possibly_invalid(description.session, candidate_hash);
           });
       if (has_disputed_candidate) {
@@ -2589,7 +2579,7 @@ namespace kagome::dispute {
     [[maybe_unused]] static const common::Hash64 parachain_host_api_hash =
         hasher_->blake2b_64(common::Buffer::fromString("ParachainHost"));
 
-    auto it = std::find_if(apis.begin(), apis.end(), [](auto &api_version) {
+    auto it = std::ranges::find_if(apis, [](auto &api_version) {
       return api_version.first == parachain_host_api_hash;
     });
     if (it == apis.end()) {

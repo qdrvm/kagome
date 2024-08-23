@@ -596,7 +596,7 @@ namespace kagome::host_api {
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
 
     crypto::EcdsaPublicKey pk;
-    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    std::ranges::copy(public_buffer, pk.begin());
     auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
@@ -629,7 +629,7 @@ namespace kagome::host_api {
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
 
     crypto::EcdsaPublicKey pk;
-    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    std::ranges::copy(public_buffer, pk.begin());
     auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
@@ -638,7 +638,7 @@ namespace kagome::host_api {
     }
 
     crypto::EcdsaPrehashedMessage digest;
-    std::copy(msg_buffer.begin(), msg_buffer.end(), digest.begin());
+    std::ranges::copy(msg_buffer, digest.begin());
     auto sign =
         ecdsa_provider_->signPrehashed(digest, key_pair.value().secret_key);
     if (!sign) {

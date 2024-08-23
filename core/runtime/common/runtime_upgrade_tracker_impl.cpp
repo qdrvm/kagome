@@ -6,6 +6,8 @@
 
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 
+#include <boost/range/algorithm.hpp>
+
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
@@ -132,13 +134,12 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
     auto block_number = block.number;
-    auto latest_upgrade =
-        std::upper_bound(runtime_upgrades_.begin(),
-                         runtime_upgrades_.end(),
-                         block_number,
-                         [](auto block_number, const auto &upgrade_data) {
-                           return block_number < upgrade_data.block.number;
-                         });
+    auto latest_upgrade = boost::range::upper_bound(
+        runtime_upgrades_,
+        block_number,
+        [](auto block_number, const auto &upgrade_data) {
+          return block_number < upgrade_data.block.number;
+        });
     KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
 
     if (latest_upgrade == runtime_upgrades_.begin()) {
@@ -176,9 +177,8 @@ namespace kagome::runtime {
   outcome::result<primitives::BlockInfo>
   RuntimeUpgradeTrackerImpl::getLastCodeUpdateBlockInfo(
       const storage::trie::RootHash &state) const {
-    auto it = std::find_if(
-        runtime_upgrades_.begin(),
-        runtime_upgrades_.end(),
+    auto it = std::ranges::find_if(
+        runtime_upgrades_,
         [&state](const auto &item) { return state == item.state; });
     if (it != runtime_upgrades_.end()) {
       return it->block;
@@ -223,21 +223,20 @@ namespace kagome::runtime {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
     primitives::BlockInfo block_info{header.number, hash};
 
-    bool is_new_upgrade = std::find_if(runtime_upgrades_.begin(),
-                                       runtime_upgrades_.end(),
-                                       [&](const RuntimeUpgradeData &rud) {
-                                         return rud.block == block_info;
-                                       })
-                       == runtime_upgrades_.end();
+    bool is_new_upgrade =
+        std::ranges::find_if(runtime_upgrades_,
+                             [&](const RuntimeUpgradeData &rud) {
+                               return rud.block == block_info;
+                             })
+        == runtime_upgrades_.end();
 
     if (is_new_upgrade) {
       runtime_upgrades_.emplace_back(block_info, std::move(header.state_root));
 
-      std::sort(runtime_upgrades_.begin(),
-                runtime_upgrades_.end(),
-                [](const auto &lhs, const auto &rhs) {
-                  return lhs.block.number < rhs.block.number;
-                });
+      std::ranges::sort(runtime_upgrades_,
+                        [](const auto &lhs, const auto &rhs) {
+                          return lhs.block.number < rhs.block.number;
+                        });
       save();
       return std::make_pair(header.state_root, true);
     }

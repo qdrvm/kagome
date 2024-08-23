@@ -389,10 +389,9 @@ namespace kagome::blockchain {
       std::vector<primitives::BlockHash> leaves;
       leaves.reserve(block_tree_leaves.size());
 
-      std::transform(block_tree_leaves.begin(),
-                     block_tree_leaves.end(),
-                     std::back_inserter(leaves),
-                     [](const auto it) { return it.hash; });
+      std::ranges::transform(block_tree_leaves,
+                             std::back_inserter(leaves),
+                             [](const auto it) { return it.hash; });
       if (auto res = storage->setBlockTreeLeaves(leaves); res.has_error()) {
         SL_CRITICAL(
             log, "Can't save updated block tree leaves: {}", res.error());
@@ -1032,7 +1031,7 @@ namespace kagome::blockchain {
       if (chain.back() != block) {
         return std::vector{block};
       }
-      std::reverse(chain.begin(), chain.end());
+      std::ranges::reverse(chain);
       return chain;
     });
   }
@@ -1106,7 +1105,7 @@ namespace kagome::blockchain {
           if (chain.back() != ancestor) {
             return BlockTreeError::BLOCK_ON_DEAD_END;
           }
-          std::reverse(chain.begin(), chain.end());
+          std::ranges::reverse(chain);
           return chain;
         });
   }

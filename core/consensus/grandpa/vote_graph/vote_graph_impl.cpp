@@ -153,12 +153,12 @@ namespace kagome::consensus::grandpa {
 
     // Find first (best) ancestor among those presented in the entries,
     // and take corresponding entry
-    auto ancestry_it = std::find_if(ancestry.begin() + 1,
-                                    ancestry.end(),
-                                    [this, &entry_it](auto &ancestor) {
-                                      return entry_it = entries_.find(ancestor),
-                                             entry_it != entries_.end();
-                                    });
+    auto ancestry_it = std::ranges::find_if(
+        ancestry.begin() + 1,
+        ancestry.end(),
+        [this, &entry_it](auto &ancestor) {
+          return entry_it = entries_.find(ancestor), entry_it != entries_.end();
+        });
     BOOST_ASSERT_MSG(ancestry_it != ancestry.end(),
                      "at least one entry presents ancestor of appending block");
 

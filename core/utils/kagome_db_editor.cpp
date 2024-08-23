@@ -342,8 +342,8 @@ int db_editor_main(int argc, const char **argv) {
                last_finalized_block,
                last_finalized_block_state_root);
 
-    for (auto it = to_remove.rbegin(); it != to_remove.rend(); ++it) {
-      check(block_storage->removeBlock(it->hash)).value();
+    for (auto &block : std::ranges::reverse_view(to_remove)) {
+      check(block_storage->removeBlock(block.hash)).value();
     }
 
     SL_TRACE(log, "Save {} as single leaf", last_finalized_block);

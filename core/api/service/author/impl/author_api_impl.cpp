@@ -63,8 +63,7 @@ namespace kagome::api {
   outcome::result<void> AuthorApiImpl::insertKey(crypto::KeyType key_type_id,
                                                  crypto::SecureBuffer<> seed,
                                                  const BufferView &public_key) {
-    if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
-        == kKeyTypes.end()) {
+    if (std::ranges::find(kKeyTypes, key_type_id) == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
         types.append(type.toString());

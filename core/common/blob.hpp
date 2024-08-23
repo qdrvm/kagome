@@ -171,7 +171,7 @@ namespace kagome::common {
       }
 
       Blob<size_> b;
-      std::copy(data.begin(), data.end(), b.begin());
+      std::ranges::copy(data, b.begin());
 
       return b;
     }
@@ -208,7 +208,7 @@ namespace kagome::common {
       }
 
       Blob<size_> blob;
-      std::copy(span.begin(), span.end(), blob.begin());
+      std::ranges::copy(span, blob.begin());
       return blob;
     }
   };

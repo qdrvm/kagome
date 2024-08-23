@@ -152,7 +152,7 @@ namespace kagome::parachain {
 
   void PvfWorkers::findFree(Job &&job) {
     auto it =
-        std::find_if(free_.begin(), free_.end(), [&](const Worker &worker) {
+        std::ranges::find_if(free_, [&](const Worker &worker) {
           return worker.code_path == job.code_path;
         });
     if (it == free_.end()) {

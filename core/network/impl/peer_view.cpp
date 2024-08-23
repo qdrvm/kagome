@@ -58,7 +58,7 @@ namespace kagome::network {
 
   void PeerView::updateMyView(network::ExView &&view) {
     BOOST_ASSERT(my_view_update_observable_);
-    std::sort(view.view.heads_.begin(), view.view.heads_.end());
+    std::ranges::sort(view.view.heads_);
     if (!my_view_ || my_view_->view != view.view
         || my_view_->new_head != view.new_head) {
       if (my_view_) {

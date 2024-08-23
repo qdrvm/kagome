@@ -124,7 +124,7 @@ namespace kagome::authority_discovery {
     }
     auto it = auth_to_peer_cache_.find(*id);
     if (it != auth_to_peer_cache_.end()) {
-      auto it_value = std::find(values.begin(), values.end(), it->second.raw);
+      auto it_value = std::ranges::find(values, it->second.raw);
       if (it_value != values.end()) {
         return it_value - values.begin();
       }
@@ -147,7 +147,7 @@ namespace kagome::authority_discovery {
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
     auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
                   const primitives::AuthorityDiscoveryId &key) {
-      return std::find(keys.begin(), keys.end(), key) != keys.end();
+      return std::ranges::find(keys, key) != keys.end();
     };
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return not has(local_keys, id);

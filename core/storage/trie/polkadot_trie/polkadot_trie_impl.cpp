@@ -89,8 +89,7 @@ namespace {
 
   uint32_t getCommonPrefixLength(const NibblesView &first,
                                  const NibblesView &second) {
-    auto &&[it, _] =
-        std::mismatch(first.begin(), first.end(), second.begin(), second.end());
+    auto &&[it, _] = std::ranges::mismatch(first, second);
     return it - first.begin();
   }
 

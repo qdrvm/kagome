@@ -62,9 +62,8 @@ namespace kagome::crypto {
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
     SecureCleanGuard g{keypair_bytes};
     std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_bytes.begin());
-    std::copy(keypair.public_key.begin(),
-              keypair.public_key.end(),
-              keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
+    std::ranges::copy(keypair.public_key,
+                      keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
     if (res != ED25519_RESULT_OK) {

@@ -19,14 +19,12 @@ namespace kagome::consensus {
         finality_consensuses_(std::move(finality_consensuses)) {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(not production_consensuses_.empty());
-    BOOST_ASSERT(std::all_of(
-        production_consensuses_.begin(),
-        production_consensuses_.end(),
+    BOOST_ASSERT(std::ranges::all_of(
+        production_consensuses_,
         [](const auto &consensus) { return consensus != nullptr; }));
     BOOST_ASSERT(not finality_consensuses_.empty());
-    BOOST_ASSERT(std::all_of(
-        finality_consensuses_.begin(),
-        finality_consensuses_.end(),
+    BOOST_ASSERT(std::ranges::all_of(
+        finality_consensuses_,
         [](const auto &consensus) { return consensus != nullptr; }));
   }
 
@@ -39,8 +37,7 @@ namespace kagome::consensus {
     }
 
     [[unlikely]] if (parent_block.number == 0) {
-      for (size_t i = 0; i < production_consensuses_.size(); ++i) {
-        const auto &consensus = production_consensuses_[i];
+      for (const auto &consensus : production_consensuses_) {
         if (consensus->isGenesisConsensus()) {
           return pc_cache_.put(parent_block, consensus);
         }
@@ -79,8 +76,7 @@ namespace kagome::consensus {
     }
 
     [[unlikely]] if (header.number == 0) {
-      for (size_t i = 0; i < production_consensuses_.size(); ++i) {
-        const auto &consensus = production_consensuses_[i];
+      for (const auto &consensus : production_consensuses_) {
         if (consensus->isGenesisConsensus()) {
           return consensus;
         }
