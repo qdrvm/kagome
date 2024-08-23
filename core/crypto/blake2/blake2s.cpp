@@ -118,9 +118,7 @@ namespace kagome::crypto {
   void blake2s_update(blake2s_ctx *ctx_opaque, const void *in, size_t inlen) {
     blake2s_ctx_full *ctx = (blake2s_ctx_full *)ctx_opaque->opaque;
 
-    size_t i;
-
-    for (i = 0; i < inlen; i++) {
+    for (size_t i = 0; i < inlen; ++i) {
       if (ctx->c == 64) {          // buffer full ?
         ctx->t[0] += ctx->c;       // add counters
         if (ctx->t[0] < ctx->c) {  // carry overflow ?

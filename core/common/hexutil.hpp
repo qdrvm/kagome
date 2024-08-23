@@ -112,14 +112,14 @@ namespace kagome::common {
     }
 
     T result{0u};
-    for (auto b : bytes) {
+    for (auto byte : bytes) {
       // check if `multiply by 10` will cause overflow
       if constexpr (sizeof(T) > 1) {
         result <<= 8u;
       } else {
         result = 0;
       }
-      result += b;
+      result += byte;
     }
 
     return result;
