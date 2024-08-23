@@ -24,6 +24,7 @@ namespace kagome::common {
 
    public:
     BufferOrView() = default;
+    ~BufferOrView() = default;
 
     BufferOrView(const BufferView &view) : variant{view} {}
 

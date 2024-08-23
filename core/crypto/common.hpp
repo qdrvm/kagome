@@ -115,6 +115,7 @@ namespace kagome::crypto {
 
    public:
     PrivateKey() : data(Size, 0) {}
+    ~PrivateKey() = default;
 
     PrivateKey(const PrivateKey &) = default;
     PrivateKey &operator=(const PrivateKey &) = default;
