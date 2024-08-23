@@ -100,8 +100,8 @@ namespace kagome::primitives {
     const BlockHash hash;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
     return s << bhr.parent_hash << CompactInteger(bhr.number) << bhr.state_root
              << bhr.extrinsics_root << bhr.digest;
@@ -114,8 +114,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
     return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
              << bh.extrinsics_root << bh.digest;
@@ -128,8 +128,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     CompactInteger number_compact;
     s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root

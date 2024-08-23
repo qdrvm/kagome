@@ -93,8 +93,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const InherentData &v) {
     const auto &data = v.data;
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
@@ -113,8 +113,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, InherentData &v) {
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
     s >> vec;

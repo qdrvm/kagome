@@ -59,8 +59,8 @@ namespace kagome::primitives {
     Mandatory
   };
 
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, DispatchClass &dispatch_class) {
     uint8_t dispatch_class_byte;
     stream >> dispatch_class_byte;
@@ -68,8 +68,8 @@ namespace kagome::primitives {
     return stream;
   }
 
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &stream, DispatchClass dispatch_class) {
     return stream << dispatch_class;
   }

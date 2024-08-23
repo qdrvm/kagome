@@ -37,12 +37,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
 
 namespace kagome::storage::trie_pruner {
 
-  template <typename F,
-            std::enable_if_t<std::is_invocable_r_v<outcome::result<void>,
-                                                   F,
-                                                   common::BufferView,
-                                                   const trie::RootHash &>,
-                             bool> = true>
+  template <typename F>
+    requires std::is_invocable_r_v<outcome::result<void>,
+                                   F,
+                                   common::BufferView,
+                                   const trie::RootHash &>
   outcome::result<void> forEachChildTrie(const trie::PolkadotTrie &parent,
                                          const F &f) {
     auto child_tries = parent.trieCursor();

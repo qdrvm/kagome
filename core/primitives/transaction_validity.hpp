@@ -140,8 +140,8 @@ namespace kagome::primitives {
     }
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const InvalidTransaction &v) {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
@@ -153,8 +153,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, InvalidTransaction &v) {
     uint8_t value = 0u;
     s >> value;
@@ -193,8 +193,8 @@ namespace kagome::primitives {
     uint8_t custom_value{};
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const UnknownTransaction &v) {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
@@ -206,8 +206,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, UnknownTransaction &v) {
     uint8_t value = 0u;
     s >> value;

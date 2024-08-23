@@ -100,7 +100,8 @@ namespace kagome::common {
    * @param value source hex string
    * @return unhexed value
    */
-  template <class T, typename = std::enable_if<std::is_unsigned_v<T>>>
+  template <class T>
+    requires std::is_unsigned_v<T>
   outcome::result<T> unhexNumber(std::string_view value) {
     std::vector<uint8_t> bytes;
     OUTCOME_TRY(bts, common::unhexWith0x(value));

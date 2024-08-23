@@ -99,8 +99,8 @@ namespace kagome::offchain {
                       .value()) {}
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
     s << v.peer_id.toVector();
 
@@ -113,8 +113,8 @@ namespace kagome::offchain {
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, OpaqueNetworkState &v) {
     common::Buffer buff;
 
