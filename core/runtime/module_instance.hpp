@@ -34,7 +34,7 @@ namespace kagome::runtime {
    */
   class ModuleInstance {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       ABSENT_HEAP_BASE = 1,
       HEAP_BASE_TOO_LOW,
       INVALID_CALL_RESULT,

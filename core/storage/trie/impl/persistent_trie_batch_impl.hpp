@@ -25,7 +25,7 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl final : public TrieBatchBase {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       NO_TRIE = 1,
     };
 

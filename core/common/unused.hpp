@@ -13,7 +13,7 @@
 
 namespace kagome {
 
-  enum UnusedError {
+  enum UnusedError : uint8_t {
     AttemptToEncodeUnused = 1,
     AttemptToDecodeUnused,
   };

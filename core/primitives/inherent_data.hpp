@@ -22,7 +22,7 @@ namespace kagome::primitives {
   /**
    * @brief inherent data encode/decode error codes
    */
-  enum class InherentDataError {
+  enum class InherentDataError : uint8_t {
     IDENTIFIER_ALREADY_EXISTS = 1,
     IDENTIFIER_DOES_NOT_EXIST
   };

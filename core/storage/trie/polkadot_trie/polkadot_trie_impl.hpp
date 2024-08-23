@@ -18,7 +18,9 @@ namespace kagome::storage::trie {
 
   class PolkadotTrieImpl final : public PolkadotTrie {
    public:
-    enum class Error { INVALID_NODE_TYPE = 1 };
+    enum class Error : uint8_t {
+      INVALID_NODE_TYPE = 1,
+    };
 
     PolkadotTrieImpl(PolkadotTrieImpl &&);
     PolkadotTrieImpl &operator=(PolkadotTrieImpl &&);

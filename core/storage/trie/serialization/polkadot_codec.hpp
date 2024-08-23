@@ -24,7 +24,7 @@ namespace kagome::storage::trie {
     using Buffer = common::Buffer;
     using BufferView = common::BufferView;
 
-    enum class Error {
+    enum class Error : uint8_t {
       SUCCESS = 0,
       TOO_MANY_NIBBLES,   ///< number of nibbles in key is >= 2**16
       UNKNOWN_NODE_TYPE,  ///< node type is unknown

@@ -14,7 +14,7 @@
 
 namespace kagome::crypto::bip39 {
 
-  enum class Bip39EntropyError {
+  enum class Bip39EntropyError : uint8_t {
     WRONG_WORDS_COUNT = 1,
     STORAGE_NOT_COMPLETE,
     STORAGE_IS_FULL,

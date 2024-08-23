@@ -100,7 +100,7 @@ namespace kagome::common {
   /**
    * Error codes for exceptions that may occur during blob initialization
    */
-  enum class BlobError { INCORRECT_LENGTH = 1 };
+  enum class BlobError : uint8_t { INCORRECT_LENGTH = 1 };
 
   using byte_t = uint8_t;
 

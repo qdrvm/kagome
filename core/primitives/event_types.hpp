@@ -34,7 +34,7 @@ namespace kagome::primitives::events {
   template <typename T>
   using ref_t = std::reference_wrapper<const T>;
 
-  enum struct ChainEventType : uint32_t {
+  enum struct ChainEventType : uint8_t {
     kNewHeads = 1,
     kFinalizedHeads = 2,
     kAllHeads = 3,
@@ -43,7 +43,7 @@ namespace kagome::primitives::events {
     kDeactivateAfterFinalization = 6,
   };
 
-  enum struct SyncStateEventType : uint32_t { kSyncState = 1 };
+  enum struct SyncStateEventType : uint8_t { kSyncState = 1 };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
@@ -89,7 +89,7 @@ namespace kagome::primitives::events {
    * - "invalid" - Transaction is no longer valid in the
    *    current state.
    */
-  enum class ExtrinsicEventType {
+  enum class ExtrinsicEventType : uint8_t {
     FUTURE,
     READY,
     BROADCAST,

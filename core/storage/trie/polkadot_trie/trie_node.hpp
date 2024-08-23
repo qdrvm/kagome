@@ -174,7 +174,7 @@ namespace kagome::storage::trie {
     TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
-    enum class Type {
+    enum class Type : uint8_t {
       Special,                 // -
       Leaf,                    // 01
       BranchEmptyValue,        // 10

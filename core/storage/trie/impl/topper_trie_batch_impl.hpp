@@ -17,7 +17,7 @@ namespace kagome::storage::trie {
       : public TrieBatch,
         public std::enable_shared_from_this<TopperTrieBatchImpl> {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       PARENT_EXPIRED = 1,
       CHILD_BATCH_NOT_SUPPORTED,
       COMMIT_NOT_SUPPORTED,

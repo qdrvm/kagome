@@ -2376,7 +2376,7 @@ namespace kagome::parachain {
     const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
 
     CHECK_OR_RET(relay_parent_state.local_validator);
-    enum DirectTargetKind {
+    enum DirectTargetKind : uint8_t {
       Cluster,
       Grid,
     };

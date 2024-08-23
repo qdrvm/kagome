@@ -328,7 +328,11 @@ class SearchChainCommand : public Command {
     BOOST_ASSERT(hasher != nullptr);
   }
 
-  enum class Target { Justification, AuthorityUpdate, LastBlock };
+  enum class Target : uint8_t {
+    Justification,
+    AuthorityUpdate,
+    LastBlock,
+  };
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 4);

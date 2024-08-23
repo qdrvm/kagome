@@ -47,7 +47,7 @@ namespace kagome::storage::trie_pruner {
 
   class TriePrunerImpl final : public TriePruner {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       LAST_PRUNED_BLOCK_IS_LAST_FINALIZED = 1,
     };
 

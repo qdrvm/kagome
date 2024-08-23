@@ -17,7 +17,7 @@ namespace kagome::telemetry {
    *
    * https://github.com/paritytech/substrate/blob/42b2d623d058197aebc3c737fb44fbbf278a85b4/primitives/consensus/common/src/lib.rs#L64
    */
-  enum class BlockOrigin {
+  enum class BlockOrigin : uint8_t {
     /// Genesis block built into the client.
     kGenesis,
 

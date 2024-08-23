@@ -13,7 +13,7 @@ namespace kagome::runtime {
    * @brief RuntimeExecutionError enum provides error codes for storage
    * transactions mechanism
    */
-  enum class RuntimeExecutionError {  // 0 is reserved for success
+  enum class RuntimeExecutionError : uint8_t {  // 0 is reserved for success
     NO_TRANSACTIONS_WERE_STARTED = 1,
     EXPORT_FUNCTION_NOT_FOUND
   };

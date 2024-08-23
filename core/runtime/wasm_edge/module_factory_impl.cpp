@@ -31,7 +31,7 @@ static_assert(std::string_view{WASMEDGE_ID}.size() == 40,
               "WASMEDGE_ID should be set to WasmEdge repository SHA1 hash");
 
 namespace kagome::runtime::wasm_edge {
-  enum class Error {
+  enum class Error : uint8_t {
     INVALID_VALUE_TYPE = 1,
 
   };

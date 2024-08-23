@@ -28,8 +28,10 @@ typedef struct sha3_context_ {
                            * words (e.g. 16 for Keccak 512) */
 } sha3_context;
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum SHA3_FLAGS { SHA3_FLAGS_NONE = 0, SHA3_FLAGS_KECCAK = 1 };
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum SHA3_RETURN { SHA3_RETURN_OK = 0, SHA3_RETURN_BAD_PARAMS = 1 };
 typedef enum SHA3_RETURN sha3_return_t;
 

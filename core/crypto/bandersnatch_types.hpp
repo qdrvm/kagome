@@ -20,7 +20,7 @@
 namespace kagome::crypto {
   namespace constants::bandersnatch {
     /// Important constants to deal with bandersnatch
-    enum {
+    enum {  // NOLINT(performance-enum-size)
       SEED_SIZE = BANDERSNATCH_SEED_SIZE,
       SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
       PUBLIC_SIZE = BANDERSNATCH_PUBLIC_KEY_SIZE,
@@ -30,7 +30,7 @@ namespace kagome::crypto {
     };
 
     namespace vrf {
-      enum {
+      enum {  // NOLINT(performance-enum-size)
         OUTPUT_SIZE = BANDERSNATCH_PREOUT_SIZE,
       };
     }

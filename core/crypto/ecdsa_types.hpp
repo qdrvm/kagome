@@ -11,7 +11,7 @@
 
 namespace kagome::crypto {
   namespace constants::ecdsa {
-    enum {
+    enum {  // NOLINT(performance-enum-size)
       PRIVKEY_SIZE = 32,
       PUBKEY_SIZE = secp256k1::constants::kCompressedPublicKeySize,
       SIGNATURE_SIZE = secp256k1::constants::kCompactSignatureSize,
