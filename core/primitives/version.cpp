@@ -15,7 +15,7 @@ namespace {
 
   // We break DI principle here since we need to use hasher in decode scale
   // operator overload and we cannot inject it there
-  static std::unique_ptr<kagome::crypto::Hasher> kHasher =
+  static const std::unique_ptr<kagome::crypto::Hasher> kHasher =
       std::make_unique<kagome::crypto::HasherImpl>();
 }  // namespace
 

@@ -39,7 +39,9 @@ namespace {
     std::optional<kagome::api::Session::SessionId> fetchSessionId() {
       return bound_session_id_;
     }
-  } threaded_info;
+  }
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  threaded_info;
 
   template <typename Func>
   auto withThisSession(Func &&f) {
@@ -114,6 +116,8 @@ namespace {
 }  // namespace
 
 namespace kagome::api {
+
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(api_service);
 
   const std::string kRpcEventRuntimeVersion = "state_runtimeVersion";

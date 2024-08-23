@@ -61,6 +61,7 @@ namespace kagome::crypto {
   template <size_t N>
   SecureCleanGuard(common::Blob<N> &&) -> SecureCleanGuard<uint8_t, N>;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   inline std::once_flag secure_heap_init_flag{};
 
   // TODO(turuslan): #2129 secure allocator

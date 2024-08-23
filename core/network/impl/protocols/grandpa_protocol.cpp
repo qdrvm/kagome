@@ -17,6 +17,8 @@
 #include "network/types/roles.hpp"
 
 namespace kagome::network {
+
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(GrandpaProtocol);
 
   GrandpaProtocol::GrandpaProtocol(

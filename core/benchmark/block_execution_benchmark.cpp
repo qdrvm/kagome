@@ -223,7 +223,7 @@ namespace kagome::benchmark {
   using ConsumedWeight = PerDispatchClass<primitives::Weight>;
 
   // Hard-coded key for System::BlockWeight.
-  auto BLOCK_WEIGHT_KEY =
+  static const auto BLOCK_WEIGHT_KEY =
       "26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"_hex2buf;
 
   constexpr uint64_t WEIGHT_REF_TIME_PER_NANOS = 1000;

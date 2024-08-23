@@ -52,7 +52,7 @@ namespace kagome::runtime::wasm_edge {
 
   static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
-  class WasmEdgeErrCategory final : public std::error_category {
+  static const class final : public std::error_category {
    public:
     const char *name() const noexcept override {
       return "WasmEdge";
@@ -62,9 +62,7 @@ namespace kagome::runtime::wasm_edge {
       auto res = WasmEdge_ResultGen(WasmEdge_ErrCategory_WASM, code);
       return WasmEdge_ResultGetMessage(res);
     }
-  };
-
-  WasmEdgeErrCategory wasm_edge_err_category;
+  } wasm_edge_err_category;
 
   std::error_code make_error_code(WasmEdge_Result res) {
     BOOST_ASSERT(WasmEdge_ResultGetCategory(res) == WasmEdge_ErrCategory_WASM);

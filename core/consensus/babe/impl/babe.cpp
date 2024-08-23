@@ -58,6 +58,7 @@ namespace {
   constexpr const char *kIsRelayChainValidator =
       "kagome_node_is_active_validator";
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   kagome::metrics::HistogramTimer metric_block_proposal_time{
       "kagome_proposer_block_constructed",
       "Time taken to construct new block",

@@ -107,7 +107,7 @@ inline auto check(T &&res) {
 }
 
 namespace {
-  std::string embedded_config(R"(
+  static const std::string embedded_config(R"(
 # ----------------
 sinks:
   - name: console

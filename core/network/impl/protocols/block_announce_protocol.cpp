@@ -15,6 +15,7 @@
 
 namespace kagome::network {
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(BlockAnnounceProtocol);
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(

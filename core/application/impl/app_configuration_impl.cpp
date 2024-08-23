@@ -164,12 +164,14 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+  static constexpr std::array<std::string_view, 2> execution_methods{
+      "Interpreted", "Compiled"};
 
-  std::string execution_methods_str =
+  static const std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
 
-  std::array<std::string_view, 1 + KAGOME_WASM_COMPILER_WASM_EDGE>
+  static constexpr std::array<std::string_view,
+                              1 + KAGOME_WASM_COMPILER_WASM_EDGE>
       interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     "WasmEdge",
@@ -177,7 +179,7 @@ namespace {
         "Binaryen"
   };
 
-  std::string interpreters_str =
+  static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>

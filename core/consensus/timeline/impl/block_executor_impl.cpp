@@ -24,11 +24,14 @@
 
 namespace kagome::consensus {
 
-  metrics::HistogramTimer metric_block_execution_time{
-      "kagome_block_verification_and_import_time",
-      "Time taken to verify and import blocks",
-      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-  };
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::HistogramTimer metric_block_execution_time{
+        "kagome_block_verification_and_import_time",
+        "Time taken to verify and import blocks",
+        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+    };
+  }  // namespace
 
   BlockExecutorImpl::BlockExecutorImpl(
       application::AppStateManager &app_state_manager,

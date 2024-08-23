@@ -9,6 +9,7 @@
 namespace kagome::log {
 
   namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::string embedded_config(R"(
 # ----------------
 sinks:
@@ -125,7 +126,7 @@ groups:
           - name: debug
 # ----------------
   )");
-  }
+  }  // namespace
 
   Configurator::Configurator(std::shared_ptr<PrevConfigurator> previous)
       : ConfiguratorFromYAML(std::move(previous), embedded_config) {}

@@ -35,14 +35,18 @@
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
 
-  metrics::GaugeHelper metric_validator_set_id{
-      "kagome_beefy_validator_set_id",
-      "Current BEEFY active validator set id.",
-  };
-  metrics::GaugeHelper metric_finalized{
-      "kagome_beefy_best_block",
-      "Best block finalized by BEEFY",
-  };
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::GaugeHelper metric_validator_set_id{
+        "kagome_beefy_validator_set_id",
+        "Current BEEFY active validator set id.",
+    };
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::GaugeHelper metric_finalized{
+        "kagome_beefy_best_block",
+        "Best block finalized by BEEFY",
+    };
+  }  // namespace
 
   BeefyImpl::BeefyImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,

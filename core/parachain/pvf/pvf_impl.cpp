@@ -81,6 +81,7 @@ namespace kagome::parachain {
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   metrics::HistogramTimer metric_pvf_execution_time{
       "kagome_pvf_execution_time",
       "Time spent in executing PVFs",

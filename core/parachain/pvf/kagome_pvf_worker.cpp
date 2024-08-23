@@ -60,7 +60,10 @@
   }
 
 namespace kagome::parachain {
-  static kagome::log::Logger logger;
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    static kagome::log::Logger logger;
+  }  // namespace
 
   bool checkEnvVarsEmpty(const char **env) {
     return env != nullptr;
