@@ -9,6 +9,7 @@ add_subdirectory(protobuf)
 add_library(address_publisher
     publisher/address_publisher.cpp
     query/query_impl.cpp
+    query/rust_kad.cpp
     )
 target_link_libraries(address_publisher
     authority_discovery_proto

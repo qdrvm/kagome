@@ -29,7 +29,7 @@ namespace kagome::network {
           addresses_by_peer_id;
 
       for (auto &address :
-           boost::join(chain_spec.bootNodes(), app_config.bootNodes())) {
+           boost::range::join(chain_spec.bootNodes(), app_config.bootNodes())) {
         auto peer_id_base58_opt = address.getPeerId();
         if (peer_id_base58_opt) {
           auto peer_id_res =
