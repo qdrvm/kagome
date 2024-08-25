@@ -3,7 +3,7 @@
 MINIDEB_IMAGE ?= bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
-DOCKERHUB_REGISTRY_PATH ?= qdrvm/kagome-ci-test
+DOCKERHUB_REGISTRY_PATH ?= qdrvm/kagome
 GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= x86_64
@@ -272,10 +272,17 @@ kagome_image_push_dockerhub:
 			MAIN_TAG="$${SHORT_COMMIT_HASH}-master"; \
 			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
 			$(DOCKERHUB_REGISTRY_PATH):$${MAIN_TAG}; \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKERHUB_REGISTRY_PATH):master; \
 			docker push $(DOCKERHUB_REGISTRY_PATH):$${MAIN_TAG}; \
+			docker push $(DOCKERHUB_REGISTRY_PATH):master; \
 		elif [ -n "$(GIT_REF_NAME)" ]; then \
 			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
 			$(DOCKERHUB_REGISTRY_PATH):$${GIT_REF_NAME}; \
+			docker tag $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+			$(DOCKERHUB_REGISTRY_PATH):latest; \
 			docker push $(DOCKERHUB_REGISTRY_PATH):$${GIT_REF_NAME}; \
+			docker push $(DOCKERHUB_REGISTRY_PATH):latest; \
 		fi \
 	fi
+	
