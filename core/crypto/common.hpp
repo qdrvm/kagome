@@ -34,7 +34,7 @@ namespace kagome::crypto {
 
     SecureCleanGuard(const SecureCleanGuard &) = delete;
     SecureCleanGuard &operator=(const SecureCleanGuard &) = delete;
-    SecureCleanGuard(SecureCleanGuard &&g) : data{g.data} {
+    SecureCleanGuard(SecureCleanGuard &&g) noexcept : data{g.data} {
       g.data = {};
     }
     SecureCleanGuard &operator=(SecureCleanGuard &&g) = delete;

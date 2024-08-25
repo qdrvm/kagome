@@ -239,7 +239,7 @@ namespace kagome::storage::trie {
       return kMaxChildren;
     }
 
-    virtual bool isBranch() const override {
+    bool isBranch() const override {
       return true;
     }
 
@@ -259,7 +259,7 @@ namespace kagome::storage::trie {
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
-    virtual bool isBranch() const override {
+    bool isBranch() const override {
       return false;
     }
 

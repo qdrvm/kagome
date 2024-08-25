@@ -11,6 +11,8 @@
 #include "primitives/event_types.hpp"
 #include "primitives/transaction.hpp"
 
+#include "log/logger.hpp"
+
 namespace kagome::subscription {
 
   class ExtrinsicEventKeyRepository {

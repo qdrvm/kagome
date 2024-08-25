@@ -31,7 +31,7 @@ namespace kagome::runtime {
           host_api(std::move(host_api)),
           on_destruction(std::move(on_destruction)) {}
 
-    InstanceEnvironment(InstanceEnvironment &&e)
+    InstanceEnvironment(InstanceEnvironment &&e) noexcept
         : memory_provider(std::move(e.memory_provider)),
           storage_provider(std::move(e.storage_provider)),
           host_api(std::move(e.host_api)),

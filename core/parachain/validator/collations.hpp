@@ -14,6 +14,7 @@
 #include "crypto/type_hasher.hpp"
 #include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 

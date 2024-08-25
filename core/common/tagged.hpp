@@ -34,7 +34,8 @@ namespace kagome {
 
     Tagged(T value) : Base(std::move(value)) {}
 
-    Tagged &operator=(T &&value) {
+    Tagged &operator=(T &&value) noexcept(
+        not std::is_lvalue_reference_v<decltype(value)>) {
       if constexpr (std::is_scalar_v<T>) {
         this->Wrapper<T>::value = std::forward<T>(value);
       } else {
