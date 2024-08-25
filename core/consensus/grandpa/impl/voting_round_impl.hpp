@@ -167,7 +167,7 @@ namespace kagome::consensus::grandpa {
      */
     std::shared_ptr<VotingRound> getPreviousRound() const override {
       return previous_round_;
-    };
+    }
 
     /**
      * Removes previous round to limit chain of rounds
@@ -226,7 +226,7 @@ namespace kagome::consensus::grandpa {
      */
     const std::optional<BlockInfo> &finalizedBlock() const override {
       return finalized_;
-    };
+    }
 
     /**
      * @return state containing round number, last finalized block, votes, and

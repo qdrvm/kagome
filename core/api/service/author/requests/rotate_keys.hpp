@@ -18,7 +18,7 @@ namespace kagome::api::author::request {
    public:
     explicit RotateKeys(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<Return> execute() override {
       return api_->rotateKeys();

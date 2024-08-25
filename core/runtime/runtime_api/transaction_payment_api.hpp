@@ -18,7 +18,7 @@ namespace kagome::runtime {
     virtual ~TransactionPaymentApi() = default;
 
     virtual outcome::result<
-        primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+        primitives::RuntimeDispatchInfo<primitives::Weight>>
     query_info(const primitives::BlockHash &block,
                const primitives::Extrinsic &ext,
                uint32_t len) = 0;

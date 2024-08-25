@@ -9,6 +9,7 @@
 #include <jsonrpc-lean/request.h>
 
 #include "api/service/author/author_api.hpp"
+#include "api/service/base_request.hpp"
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::api::author::request {
@@ -19,7 +20,7 @@ namespace kagome::api::author::request {
     explicit SubmitExtrinsic(std::shared_ptr<AuthorApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
 
     outcome::result<common::Hash256> execute() override {
       auto ext_hex = getParam<0>();

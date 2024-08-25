@@ -421,7 +421,7 @@ namespace kagome::consensus {
             }
           }
         });
-  };
+  }
 
   bool TimelineImpl::updateSlot(TimePoint now) {
     best_block_ = block_tree_->bestBlock();

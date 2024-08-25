@@ -69,7 +69,7 @@ namespace kagome::network {
 
       boost::hash_combine(result, std::hash<VoterSetId>()(voter_set_id));
       return result;
-    };
+    }
   };
 
   struct CatchUpResponse {

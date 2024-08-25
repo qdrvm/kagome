@@ -37,9 +37,9 @@ namespace kagome::network {
    * https://github.com/paritytech/substrate/tree/master/client/network/light
    */
   class LightProtocol
-      : public RequestResponseProtocol<LightProtocolRequest,
-                                       LightProtocolResponse,
-                                       ProtobufMessageReadWriter> {
+      : public RequestResponseProtocolImpl<LightProtocolRequest,
+                                           LightProtocolResponse,
+                                           ProtobufMessageReadWriter> {
     static constexpr auto kName = "LightProtocol";
 
    public:

@@ -32,7 +32,7 @@ namespace kagome::api::rpc::request {
 
     explicit Methods(std::shared_ptr<RpcApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
     ~Methods() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);

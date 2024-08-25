@@ -34,7 +34,7 @@ namespace kagome::parachain {
 
     static SecureModeSupport none() {
       return {false, false, false};
-    };
+    }
 
     bool isTotallySupported() const {
       return chroot && landlock && seccomp;

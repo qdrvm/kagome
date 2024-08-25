@@ -24,7 +24,7 @@ namespace kagome::api {
                    std::shared_ptr<const blockchain::BlockTree> block_tree);
     ~PaymentApiImpl() override = default;
 
-    outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+    outcome::result<primitives::RuntimeDispatchInfo<primitives::Weight>>
     queryInfo(const primitives::Extrinsic &extrinsic,
               uint32_t len,
               OptionalHashRef at) const override;

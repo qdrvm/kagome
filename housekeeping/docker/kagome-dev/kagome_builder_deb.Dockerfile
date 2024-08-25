@@ -4,6 +4,9 @@ ARG BASE_IMAGE
 ARG RUST_VERSION
 ARG ARCHITECTURE=x86_64
 
+ARG DEBIAN_VERSION=bookworm
+ARG LLVM_VERSION=19
+
 FROM ${BASE_IMAGE}
 
 ARG AUTHOR
@@ -13,11 +16,28 @@ LABEL org.opencontainers.image.description="Kagome builder image"
 
 SHELL ["/bin/bash", "-c"]
 
+ARG DEBIAN_VERSION
+ENV DEBIAN_VERSION=${DEBIAN_VERSION}
+ARG LLVM_VERSION
+ENV LLVM_VERSION=${LLVM_VERSION}
+
+RUN install_packages \
+        apt-transport-https \
+        ca-certificates \
+        gnupg \
+        wget
+
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
+        tee -a /etc/apt/sources.list.d/llvm.list
+
 RUN install_packages \
         build-essential \
         ccache \
-        clang-format-16 \
-        clang-tidy-16 \
+        clang-format-${LLVM_VERSION} \
+        clang-tidy-${LLVM_VERSION} \
+        libclang-rt-${LLVM_VERSION}-dev \
+        llvm-${LLVM_VERSION}-dev \
         curl \
         dpkg-dev \
         g++-12 \
@@ -28,11 +48,9 @@ RUN install_packages \
         gpg \
         gpg-agent \
         lcov \
-        libclang-rt-16-dev \
         libgmp10 \
         libnsl-dev \
         libseccomp-dev \
-        llvm-16-dev \
         make \
         mold \
         nano \
@@ -42,7 +60,6 @@ RUN install_packages \
         software-properties-common \
         unzip \
         vim \
-        wget \
         zlib1g-dev
 
 ARG RUST_VERSION
@@ -59,8 +76,8 @@ RUN /venv/bin/pip install --no-cache-dir cmake==3.25 scikit-build requests gitpy
 
 ENV HUNTER_PYTHON_LOCATION=/venv/bin/python3
 
-ENV LLVM_ROOT=/usr/lib/llvm-16
-ENV LLVM_DIR=/usr/lib/llvm-16/lib/cmake/llvm/
+ENV LLVM_ROOT=/usr/lib/llvm-${LLVM_VERSION}
+ENV LLVM_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-12
 ENV CXX=g++-12
@@ -68,10 +85,10 @@ ENV CXX=g++-12
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
     \
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-16         50 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-16       50 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-16/bin/clang-16  50 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-16            50 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-${LLVM_VERSION}                      50 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${LLVM_VERSION}                    50 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-${LLVM_VERSION}/bin/clang-${LLVM_VERSION}  50 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50 && \
     \
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \

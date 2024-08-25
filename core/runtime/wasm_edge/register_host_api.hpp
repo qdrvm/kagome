@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "host_api/host_api.hpp"
+#include "log/logger.hpp"
 #include "runtime/common/register_host_api.hpp"
 
 namespace kagome::runtime::wasm_edge {
@@ -20,32 +21,32 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<int32_t>() {
-    return WasmEdge_ValType_I32;
+    return WasmEdge_ValTypeGenI32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<uint32_t>() {
-    return WasmEdge_ValType_I32;
+    return WasmEdge_ValTypeGenI32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<int64_t>() {
-    return WasmEdge_ValType_I64;
+    return WasmEdge_ValTypeGenI64();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<uint64_t>() {
-    return WasmEdge_ValType_I64;
+    return WasmEdge_ValTypeGenI64();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<float>() {
-    return WasmEdge_ValType_F32;
+    return WasmEdge_ValTypeGenF32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<double>() {
-    return WasmEdge_ValType_F64;
+    return WasmEdge_ValTypeGenF64();
   }
 
   template <typename T>
@@ -139,8 +140,8 @@ namespace kagome::runtime::wasm_edge {
       }
 
     } catch (std::runtime_error &e) {
-      auto log = log::createLogger("HostApi", "runtime");
-      SL_ERROR(log, "Host API call failed with error: {}", e.what());
+      auto logger = log::createLogger("HostApi", "runtime");
+      SL_ERROR(logger, "Host API call failed with error: {}", e.what());
       return WasmEdge_Result_Fail;
     }
     return WasmEdge_Result_Success;
@@ -195,7 +196,7 @@ namespace kagome::runtime::wasm_edge {
              "Attempt to call an unimplemented Host method '{}'",
              reinterpret_cast<const char *>(data));
     return WasmEdge_Result_Fail;
-  };
+  }
 
   void stub_host_method(WasmEdge_ModuleInstanceContext *module,
                         std::string_view name,

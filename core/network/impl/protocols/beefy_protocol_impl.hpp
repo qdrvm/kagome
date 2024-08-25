@@ -39,7 +39,7 @@ namespace kagome::network {
     const std::string &protocolName() const override;
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
-        const PeerInfo &peer,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 

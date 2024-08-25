@@ -78,7 +78,7 @@ namespace kagome::dispute {
 
     TimePoint next_tick_time() const {
       return next_tick_time_;
-    };
+    }
 
     /// Cache of `CandidateHash` (candidate_receipt.hash()).
     CandidateHash candidate_hash;

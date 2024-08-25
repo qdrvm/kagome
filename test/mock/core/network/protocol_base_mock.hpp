@@ -23,16 +23,16 @@ namespace kagome::network {
     MOCK_METHOD(
         void,
         newOutgoingStream,
-        (const PeerInfo &,
+        (const PeerId &,
          const std::function<void(outcome::result<std::shared_ptr<Stream>>)>
              &));
 
     void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&handler)
         override {
       const auto h = std::move(handler);
-      newOutgoingStream(peer_info, h);
+      newOutgoingStream(peer_id, h);
     }
   };
 

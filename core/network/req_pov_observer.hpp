@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "network/types/collator_messages.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {

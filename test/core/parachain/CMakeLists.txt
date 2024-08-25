@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(availability)
+
 addtest(parachain_test
     pvf_test.cpp
     assignments.cpp

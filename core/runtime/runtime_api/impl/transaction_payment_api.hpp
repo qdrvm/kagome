@@ -19,13 +19,15 @@ namespace kagome::runtime {
     enum class Error {
       // Transaction payment runtime API is not found in the runtime
       TRANSACTION_PAYMENT_API_NOT_FOUND = 1,
+      // API below version 2 is not supported (needed for query_info)
+      API_BELOW_VERSION_2_NOT_SUPPORTED = 2,
     };
 
     explicit TransactionPaymentApiImpl(std::shared_ptr<Executor> executor,
                                        std::shared_ptr<Core> core_api,
                                        std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+    outcome::result<primitives::RuntimeDispatchInfo<primitives::Weight>>
     query_info(const primitives::BlockHash &block,
                const primitives::Extrinsic &ext,
                uint32_t len) override;

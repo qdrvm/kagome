@@ -8,6 +8,7 @@
 
 #include "utils/non_copyable.hpp"
 
+#include <optional>
 #include <unordered_map>
 
 namespace kagome::parachain {
@@ -68,7 +69,7 @@ namespace kagome::parachain {
 
     std::reference_wrapper<V> set(const K &k, V &&v) {
       assert(store_.size() < kDebugHardLimit);
-      return store_.template insert_or_assign(k, std::move(v)).first->second;
+      return store_.insert_or_assign(k, std::move(v)).first->second;
     }
 
    private:

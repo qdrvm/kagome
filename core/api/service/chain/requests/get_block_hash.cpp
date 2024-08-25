@@ -89,6 +89,6 @@ namespace kagome::api::chain::request {
 
           return results;
         });
-  };
+  }
 
 }  // namespace kagome::api::chain::request
