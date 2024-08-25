@@ -5,8 +5,11 @@ def extract_version_and_sha(config_file_path, package_name):
     with open(config_file_path, 'r') as file:
         content = file.read()
 
-    version_pattern = re.compile(r'hunter_config\(\s*' + re.escape(package_name) + r'\s*.*?URL\s+.*?/tags/([^\s/]+)\.zip', re.DOTALL)
-    sha_pattern = re.compile(r'hunter_config\(\s*' + re.escape(package_name) + r'\s*.*?SHA1\s+(\w+)', re.DOTALL)
+    version_pattern = re.compile(
+        r'hunter_config\(\s*' + re.escape(package_name) + r'\s*.*?URL\s+.*?/refs/heads/[^/]+/([\d\.]+)\.zip',
+        re.DOTALL
+    )
+    sha_pattern = re.compile(r'set\(\s*WASMEDGE_ID\s+(\w+)\)', re.DOTALL)
 
     version_match = version_pattern.search(content)
     sha_match = sha_pattern.search(content)
