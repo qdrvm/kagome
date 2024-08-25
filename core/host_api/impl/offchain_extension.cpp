@@ -106,7 +106,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
@@ -129,7 +130,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
@@ -154,7 +156,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
@@ -192,7 +195,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
