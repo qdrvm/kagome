@@ -27,7 +27,7 @@ namespace kagome::runtime::binaryen {
         storage_{std::move(storage)},
         hasher_(std::move(hasher)) {}
 
-  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+  std::optional<std::string_view> ModuleFactoryImpl::compilerType() const {
     return std::nullopt;
   }
 

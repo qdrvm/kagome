@@ -24,9 +24,11 @@
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
-#include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
+
+static_assert(std::string_view{WASMEDGE_ID}.size() == 40,
+              "WASMEDGE_ID should be set to WasmEdge repository SHA1 hash");
 
 namespace kagome::runtime::wasm_edge {
   enum class Error {
@@ -371,11 +373,14 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+  std::optional<std::string_view> ModuleFactoryImpl::compilerType() const {
     if (config_.exec == ExecType::Interpreted) {
       return std::nullopt;
     }
-    return std::string("wasmedge_") + WASMEDGE_ID;
+    // version changes rarely, don't need the whole hash
+    static std::string versioned_str =
+        std::format("wasmedge_{}", std::string_view{WASMEDGE_ID}.substr(0, 12));
+    return versioned_str;
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
