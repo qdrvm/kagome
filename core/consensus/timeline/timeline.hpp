@@ -19,9 +19,9 @@ namespace kagome::consensus {
     Timeline() = default;
     virtual ~Timeline() = default;
 
-    Timeline(Timeline &&) noexcept = delete;
+    Timeline(Timeline &&) = delete;
     Timeline(const Timeline &) = delete;
-    Timeline &operator=(Timeline &&) noexcept = delete;
+    Timeline &operator=(Timeline &&) = delete;
     Timeline &operator=(const Timeline &) = delete;
 
     /**

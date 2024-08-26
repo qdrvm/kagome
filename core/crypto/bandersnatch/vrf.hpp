@@ -27,7 +27,7 @@ namespace kagome::crypto::bandersnatch::vrf {
       const_cast<const ::bandersnatch_VrfInput *&>(x.ptr) = nullptr;
     }
     VrfInput &operator=(const VrfInput &) = delete;
-    VrfInput &operator=(VrfInput &&x) noexcept = delete;
+    VrfInput &operator=(VrfInput &&x) = delete;
     ~VrfInput() {
       if (ptr) {
         ::bandersnatch_vrf_input_free(ptr);
@@ -43,7 +43,7 @@ namespace kagome::crypto::bandersnatch::vrf {
       const_cast<const ::bandersnatch_VrfSignData *&>(x.ptr) = nullptr;
     }
     VrfSignData &operator=(const VrfSignData &) = delete;
-    VrfSignData &operator=(VrfSignData &&x) noexcept = delete;
+    VrfSignData &operator=(VrfSignData &&x) = delete;
     ~VrfSignData() {
       if (ptr) {
         ::bandersnatch_vrf_sign_data_free(ptr);
@@ -59,7 +59,7 @@ namespace kagome::crypto::bandersnatch::vrf {
       const_cast<const ::bandersnatch_RingProver *&>(x.ptr) = nullptr;
     }
     RingProver &operator=(const RingProver &) = delete;
-    RingProver &operator=(RingProver &&x) noexcept = delete;
+    RingProver &operator=(RingProver &&x) = delete;
     ~RingProver() {
       if (ptr) {
         ::bandersnatch_ring_prover_free(ptr);
@@ -75,7 +75,7 @@ namespace kagome::crypto::bandersnatch::vrf {
       const_cast<const ::bandersnatch_RingVerifier *&>(x.ptr) = nullptr;
     }
     RingVerifier &operator=(const RingVerifier &) = delete;
-    RingVerifier &operator=(RingVerifier &&x) noexcept = delete;
+    RingVerifier &operator=(RingVerifier &&x) = delete;
     ~RingVerifier() {
       if (ptr) {
         ::bandersnatch_ring_verifier_free(ptr);

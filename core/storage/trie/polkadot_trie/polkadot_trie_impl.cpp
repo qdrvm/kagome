@@ -29,7 +29,7 @@ namespace kagome::storage::trie {
    public:
     OpaqueNodeStorage(PolkadotTrie::NodeRetrieveFunction node_retriever,
                       PolkadotTrie::ValueRetrieveFunction value_retriever,
-                      std::shared_ptr<TrieNode> root) noexcept
+                      std::shared_ptr<TrieNode> root)
         : retrieve_node_{std::move(node_retriever)},
           retrieve_value_{std::move(value_retriever)},
           root_{std::move(root)} {}

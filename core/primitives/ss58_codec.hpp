@@ -26,11 +26,11 @@ namespace kagome::primitives {
    * verified in the process.
    */
   outcome::result<AccountId> decodeSs58(std::string_view account_address,
-                                        const crypto::Hasher &hasher) noexcept;
+                                        const crypto::Hasher &hasher);
 
   std::string encodeSs58(uint8_t account_type,
                          const AccountId &id,
-                         const crypto::Hasher &hasher) noexcept;
+                         const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
 

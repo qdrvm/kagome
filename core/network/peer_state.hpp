@@ -157,7 +157,7 @@ namespace kagome::network {
 template <>
 struct std::hash<kagome::network::FetchedCollation> {
   size_t operator()(
-      const kagome::network::FetchedCollation &value) const noexcept {
+      const kagome::network::FetchedCollation &value) const {
     using CollatorId = kagome::parachain::CollatorId;
     using CandidateHash = kagome::parachain::CandidateHash;
     using RelayHash = kagome::parachain::RelayHash;
