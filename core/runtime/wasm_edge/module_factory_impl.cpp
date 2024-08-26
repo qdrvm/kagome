@@ -379,7 +379,7 @@ namespace kagome::runtime::wasm_edge {
     }
     // version changes rarely, don't need the whole hash
     static std::string versioned_str =
-        std::format("wasmedge_{}", std::string_view{WASMEDGE_ID}.substr(0, 12));
+        fmt::format("wasmedge_{}", std::string_view{WASMEDGE_ID}.substr(0, 12));
     return versioned_str;
   }
 
