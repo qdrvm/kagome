@@ -147,14 +147,14 @@ namespace kagome::common {
     /**
      * Converts current blob to std::string
      */
-    std::string toString() const noexcept {
+    std::string toString() const {
       return std::string{this->begin(), this->end()};
     }
 
     /**
      * Converts current blob to hex string.
      */
-    std::string toHex() const noexcept {
+    std::string toHex() const {
       return hex_lower({this->begin(), this->end()});
     }
 

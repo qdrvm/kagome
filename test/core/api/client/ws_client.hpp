@@ -54,8 +54,8 @@ namespace test {
 
     WsClient(const WsClient &other) = delete;
     WsClient &operator=(const WsClient &other) = delete;
-    WsClient(WsClient &&other) noexcept = delete;
-    WsClient &operator=(WsClient &&other) noexcept = delete;
+    WsClient(WsClient &&other) = delete;
+    WsClient &operator=(WsClient &&other) = delete;
     ~WsClient();
 
     /**

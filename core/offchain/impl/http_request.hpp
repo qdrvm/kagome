@@ -24,7 +24,7 @@ namespace kagome::offchain {
 
   class HttpRequest final : public std::enable_shared_from_this<HttpRequest> {
    public:
-    HttpRequest(HttpRequest &&) noexcept = delete;
+    HttpRequest(HttpRequest &&) = delete;
     HttpRequest(const HttpRequest &) = delete;
 
     HttpRequest(RequestId id);

@@ -29,7 +29,7 @@ namespace kagome::network {
 
   struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
-    explicit GrandpaVote(VoteMessage &&vm) noexcept
+    explicit GrandpaVote(VoteMessage &&vm)
         : VoteMessage(std::move(vm)){};
   };
 
