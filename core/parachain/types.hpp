@@ -103,10 +103,10 @@ namespace kagome::network {
   struct OutboundHorizontal {
     SCALE_TIE(2);
 
-  /// The para that will get this message in its downward message queue.
+    /// The para that will get this message in its downward message queue.
     parachain::ParachainId recipient;
 
-  /// The message payload.
+    /// The message payload.
     common::Buffer data;
   };
 
@@ -329,7 +329,8 @@ namespace kagome::parachain::fragment {
     outcome::result<Constraints> apply_modifications(
         const ConstraintModifications &modifications) const;
 
-    outcome::result<void> check_modifications(const ConstraintModifications &modifications) const;
+    outcome::result<void> check_modifications(
+        const ConstraintModifications &modifications) const;
   };
 
   struct BackingState {

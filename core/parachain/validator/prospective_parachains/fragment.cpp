@@ -14,7 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment, Fragment::Error, e) {
   using E = decltype(e);
   switch (e) {
     case E::HRMP_MESSAGE_DESCENDING_OR_DUPLICATE:
-      return COMPONENT_NAME ": Horizontal message has descending order or duplicate";
+      return COMPONENT_NAME
+          ": Horizontal message has descending order or duplicate";
     case E::PERSISTED_VALIDATION_DATA_MISMATCH:
       return COMPONENT_NAME ": persisted validation data mismatch";
     case E::VALIDATION_CODE_MISMATCH:

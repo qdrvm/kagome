@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "parachain/validator/prospective_parachains/common.hpp"
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
+#include "parachain/validator/prospective_parachains/common.hpp"
 
 namespace kagome::parachain::fragment {
 

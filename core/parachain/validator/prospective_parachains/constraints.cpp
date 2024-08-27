@@ -135,4 +135,4 @@ namespace kagome::parachain::fragment {
     return new_constraint;
   }
 
-}
+}  // namespace kagome::parachain::fragment

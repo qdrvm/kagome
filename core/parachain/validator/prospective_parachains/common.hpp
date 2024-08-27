@@ -7,9 +7,9 @@
 #include <vector>
 #include "outcome/outcome.hpp"
 
-#include "parachain/types.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/types.hpp"
 
 namespace kagome::parachain::fragment {
 
@@ -34,4 +34,4 @@ namespace kagome::parachain::fragment {
   using CandidateCommitments = network::CandidateCommitments;
   using PersistedValidationData = runtime::PersistedValidationData;
 
-}
+}  // namespace kagome::parachain::fragment
