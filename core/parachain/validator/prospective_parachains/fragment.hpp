@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
+#include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 
 namespace kagome::parachain::fragment {
 
@@ -44,19 +44,19 @@ namespace kagome::parachain::fragment {
     ConstraintModifications modifications;
 
     /// Access the relay parent information.
-    const RelayChainBlockInfo &relay_parent() const;
+    const RelayChainBlockInfo &get_relay_parent() const;
 
     /// Modifications to constraints based on the outputs of the candidate.
     const ConstraintModifications &constraint_modifications() const;
 
     /// Access the operating constraints
-    const Constraints &operating_constraints() const;
+    const Constraints &get_operating_constraints() const;
 
     /// Access the underlying prospective candidate.
-    const ProspectiveCandidate &candidate() const;
+    const ProspectiveCandidate &get_candidate() const;
 
     /// Get a cheap ref-counted copy of the underlying prospective candidate.
-    std::shared_ptr<const ProspectiveCandidate> candidate_clone() const;
+    std::shared_ptr<const ProspectiveCandidate> get_candidate_clone() const;
 
     static outcome::result<Fragment> create(
         const RelayChainBlockInfo &relay_parent,

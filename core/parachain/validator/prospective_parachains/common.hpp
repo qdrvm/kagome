@@ -7,6 +7,7 @@
 #include <vector>
 #include "outcome/outcome.hpp"
 
+#include "parachain/types.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 
@@ -29,5 +30,8 @@ namespace kagome::parachain::fragment {
   using NodePointerRoot = network::Empty;
   using NodePointerStorage = size_t;
   using NodePointer = boost::variant<NodePointerRoot, NodePointerStorage>;
+
+  using CandidateCommitments = network::CandidateCommitments;
+  using PersistedValidationData = runtime::PersistedValidationData;
 
 }

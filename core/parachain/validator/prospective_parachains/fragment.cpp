@@ -14,25 +14,25 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment, Fragment::Error, e) {
   using E = decltype(e);
   switch (e) {
     case E::HRMP_MESSAGE_DESCENDING_OR_DUPLICATE:
-      return COMPONENT_NAME ## ": Horizontal message has descending order or duplicate";
+      return COMPONENT_NAME ": Horizontal message has descending order or duplicate";
     case E::PERSISTED_VALIDATION_DATA_MISMATCH:
-      return COMPONENT_NAME##": persisted validation data mismatch";
+      return COMPONENT_NAME ": persisted validation data mismatch";
     case E::VALIDATION_CODE_MISMATCH:
-      return COMPONENT_NAME##": validation code mismatch by hash";
+      return COMPONENT_NAME ": validation code mismatch by hash";
     case E::RELAY_PARENT_TOO_OLD:
-      return COMPONENT_NAME##": relay parent too old";
+      return COMPONENT_NAME ": relay parent too old";
     case E::CODE_UPGRADE_RESTRICTED:
-      return COMPONENT_NAME##": code upgrade restricted";
+      return COMPONENT_NAME ": code upgrade restricted";
     case E::CODE_SIZE_TOO_LARGE:
-      return COMPONENT_NAME##": code size too large";
+      return COMPONENT_NAME ": code size too large";
     case E::DMP_ADVANCEMENT_RULE:
-      return COMPONENT_NAME##": dmp advancement rule";
+      return COMPONENT_NAME ": dmp advancement rule";
     case E::HRMP_MESSAGES_PER_CANDIDATE_OVERFLOW:
-      return COMPONENT_NAME##": hrmp messages per candidate overflow";
+      return COMPONENT_NAME ": hrmp messages per candidate overflow";
     case E::UMP_MESSAGES_PER_CANDIDATE_OVERFLOW:
-      return COMPONENT_NAME##": ump messages per candidate overflow";
+      return COMPONENT_NAME ": ump messages per candidate overflow";
   }
-  return COMPONENT_NAME##": unknown error";
+  return COMPONENT_NAME ": unknown error";
 }
 
 namespace kagome::parachain::fragment {
@@ -91,10 +91,10 @@ namespace kagome::parachain::fragment {
       return Fragment::Error::UMP_MESSAGES_PER_CANDIDATE_OVERFLOW;
     }
 
-    return constraints.checkModifications(modifications);
+    return constraints.check_modifications(modifications);
   }
 
-  const RelayChainBlockInfo &Fragment::relay_parent() const {
+  const RelayChainBlockInfo &Fragment::get_relay_parent() const {
     return relay_parent;
   }
 
@@ -177,15 +177,16 @@ namespace kagome::parachain::fragment {
     return modifications;
   }
 
-  const Constraints &Fragment::operating_constraints() const {
+  const Constraints &Fragment::get_operating_constraints() const {
     return operating_constraints;
   }
 
-  const ProspectiveCandidate &Fragment::candidate() const {
-    return candidate;
+  const ProspectiveCandidate &Fragment::get_candidate() const {
+    BOOST_ASSERT_MSG(candidate != nullptr, "Candidate is null");
+    return *candidate;
   }
 
-  std::shared_ptr<const ProspectiveCandidate> Fragment::candidate_clone()
+  std::shared_ptr<const ProspectiveCandidate> Fragment::get_candidate_clone()
       const {
     return candidate;
   }

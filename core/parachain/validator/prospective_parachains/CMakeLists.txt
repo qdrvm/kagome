@@ -6,6 +6,8 @@
 
 add_library(prospective_parachains
     candidate_storage.cpp
+    fragment.cpp
+    constraints.cpp
     )
 
 target_link_libraries(prospective_parachains

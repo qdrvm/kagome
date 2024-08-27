@@ -34,9 +34,6 @@ namespace kagome::parachain::fragment {
   ///
   /// Candidates aren't even considered until they've at least been seconded.
   enum CandidateState {
-    /// The candidate has been introduced in a spam-protected way but
-    /// is not necessarily backed.
-    Introduced,
     /// The candidate has been seconded.
     Seconded,
     /// The candidate has been completely backed by the group.
