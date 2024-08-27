@@ -92,6 +92,11 @@ message StateResponse {
 	bytes proof = 2;
 }
 
+message StateResponseCompressed {
+	// compressed zstd-stream data representing StateResponse
+	bytes payload = 1;
+}
+
 // A key value state.
 message KeyValueStateEntry {
 	// Root of for this level, empty length bytes
