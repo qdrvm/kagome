@@ -14,6 +14,7 @@
 #include "crypto/type_hasher.hpp"
 #include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
@@ -60,7 +61,7 @@ namespace kagome::parachain {
   using PendingCollation = kagome::network::PendingCollation;
 
   struct PendingCollationHash {
-    size_t operator()(const PendingCollation &val) const noexcept {
+    size_t operator()(const PendingCollation &val) const {
       size_t r{0ull};
       boost::hash_combine(r, std::hash<RelayHash>()(val.relay_parent));
       boost::hash_combine(r, std::hash<network::ParachainId>()(val.para_id));

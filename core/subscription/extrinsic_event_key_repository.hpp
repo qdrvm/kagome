@@ -11,6 +11,8 @@
 #include "primitives/event_types.hpp"
 #include "primitives/transaction.hpp"
 
+#include "log/logger.hpp"
+
 namespace kagome::subscription {
 
   class ExtrinsicEventKeyRepository {
@@ -20,7 +22,7 @@ namespace kagome::subscription {
     ExtrinsicEventKeyRepository()
         : logger_{log::createLogger("ExtrinsicEventKeyRepo", "transactions")} {}
 
-    ExtrinsicKey add(const primitives::Transaction::Hash &hash) noexcept {
+    ExtrinsicKey add(const primitives::Transaction::Hash &hash) {
       std::unique_lock lock{mutex_};
       if (auto it = keys_.find(hash); it != keys_.end()) {
         return it->second;
@@ -31,13 +33,13 @@ namespace kagome::subscription {
       return key;
     }
 
-    bool remove(const primitives::Transaction::Hash &hash) noexcept {
+    bool remove(const primitives::Transaction::Hash &hash) {
       std::unique_lock lock{mutex_};
       return keys_.erase(hash) > 0;
     }
 
     std::optional<ExtrinsicKey> get(
-        const primitives::Transaction::Hash &hash) const noexcept {
+        const primitives::Transaction::Hash &hash) const {
       std::unique_lock lock{mutex_};
       if (auto it = keys_.find(hash); it != keys_.end()) {
         return it->second;

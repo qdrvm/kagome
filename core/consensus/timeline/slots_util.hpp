@@ -19,12 +19,12 @@ namespace kagome::consensus {
   class SlotsUtil {
    public:
     SlotsUtil() = default;
-    SlotsUtil(SlotsUtil &&) noexcept = delete;
+    SlotsUtil(SlotsUtil &&) = delete;
     SlotsUtil(const SlotsUtil &) = delete;
 
     virtual ~SlotsUtil() = default;
 
-    SlotsUtil &operator=(SlotsUtil &&) noexcept = delete;
+    SlotsUtil &operator=(SlotsUtil &&) = delete;
     SlotsUtil &operator=(const SlotsUtil &) = delete;
 
     /// @return the duration of a slot in milliseconds

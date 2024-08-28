@@ -73,7 +73,7 @@ namespace kagome::runtime::wavm {
     }();
   }
 
-  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+  std::optional<std::string_view> ModuleFactoryImpl::compilerType() const {
     return "wavm";
   }
 
