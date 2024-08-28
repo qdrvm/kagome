@@ -69,15 +69,16 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
     std::unique_lock lock{mutex_};
-    if (auto r = authoritiesOutcome(target_block, finalized.operator bool())) {
+    auto r = authoritiesOutcome(target_block, finalized.operator bool());
+    if (r.has_value()) {
       return std::move(r.value());
-    } else {
-      SL_WARN(logger_,
-              "authorities {} finalized={} error: {}",
-              target_block,
-              finalized.operator bool(),
-              r.error());
     }
+
+    SL_WARN(logger_,
+            "authorities {} finalized={} error: {}",
+            target_block,
+            (bool)finalized,
+            r.error());
     return std::nullopt;
   }
 

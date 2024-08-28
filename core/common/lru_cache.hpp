@@ -153,11 +153,11 @@ namespace kagome {
       if (auto opt = get(key); opt.has_value()) {
         return opt.value();
       }
-      if (auto res = func(); res.has_value()) {
+      auto res = func();
+      if (res.has_value()) {
         return put(key, std::move(res.value()));
-      } else {
-        return res.as_failure();
       }
+      return res.as_failure();
     }
 
     void erase(const Key &key) {

@@ -117,18 +117,17 @@ namespace kagome::parachain {
       if (app_conf.runtimeInterpreter()
           == application::AppConfiguration::RuntimeInterpreter::WasmEdge) {
         return RuntimeEngine::kWasmEdgeInterpreted;
-      } else {
-        return RuntimeEngine::kBinaryen;
       }
-    } else {  // Execution method Compiled while WasmEdge is compile-enabled
-      return RuntimeEngine::kWasmEdgeCompiled;
+      return RuntimeEngine::kBinaryen;
     }
+    // Execution method Compiled while WasmEdge is compile-enabled
+    return RuntimeEngine::kWasmEdgeCompiled;
+
 #else
     if (interpreted) {  // WasmEdge is compile-disabled
       return RuntimeEngine::kBinaryen;
-    } else {
-      return RuntimeEngine::kWAVM;
     }
+    return RuntimeEngine::kWAVM;
 #endif
   }
 

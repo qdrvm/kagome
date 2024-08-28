@@ -397,9 +397,8 @@ namespace {
       if (n_approved + exact->tolerated_missing >= n_assigned) {
         return std::make_pair(exact->tolerated_missing,
                               exact->last_assignment_tick);
-      } else {
-        return kagome::parachain::approval::Unapproved{};
       }
+      return kagome::parachain::approval::Unapproved{};
     }
     UNREACHABLE;
   }
@@ -1290,12 +1289,11 @@ namespace kagome::parachain {
       const ImportedBlockInfo &block_info) {
     std::vector<std::pair<CandidateHash, CandidateEntry>> entries;
     std::vector<std::pair<CoreIndex, CandidateHash>> candidates;
-    if (auto blocks = storedBlocks().get_or_create(block_number);
-        blocks.get().find(block_hash) != blocks.get().end()) {
+    auto blocks = storedBlocks().get_or_create(block_number);
+    if (blocks.get().contains(block_hash)) {
       return entries;
-    } else {
-      blocks.get().insert(block_hash);
     }
+    blocks.get().insert(block_hash);
 
     entries.reserve(block_info.included_candidates.size());
     candidates.reserve(block_info.included_candidates.size());
@@ -1889,17 +1887,17 @@ namespace kagome::parachain {
 
     if (is_duplicate) {
       return AssignmentCheckResult::AcceptedDuplicate;
-    } else if (approval::count_ones(candidate_indices) > 1) {
+    }
+    if (approval::count_ones(candidate_indices) > 1) {
       SL_TRACE(logger_,
                "Imported assignment for multiple cores. (validator={})",
                assignment.validator);
       return AssignmentCheckResult::Accepted;
-    } else {
-      SL_TRACE(logger_,
-               "Imported assignment for a single core. (validator={})",
-               assignment.validator);
-      return AssignmentCheckResult::Accepted;
     }
+    SL_TRACE(logger_,
+             "Imported assignment for a single core. (validator={})",
+             assignment.validator);
+    return AssignmentCheckResult::Accepted;
   }
 
   ApprovalDistribution::ApprovalCheckResult
@@ -2288,9 +2286,8 @@ namespace kagome::parachain {
                std::get<2>(message_subject));
     }
 
-    std::pair<grid::RequiredRouting, std::unordered_set<libp2p::peer::PeerId>>
-        nar;
-    if (auto res = entry.note_approval(vote); res.has_error()) {
+    auto res = entry.note_approval(vote);
+    if (res.has_error()) {
       SL_WARN(logger_,
               "Possible bug: Vote import failed. (hash={}, validator_index={}, "
               "error={})",
@@ -2298,9 +2295,8 @@ namespace kagome::parachain {
               validator_index,
               res.error());
       return;
-    } else {
-      nar = std::move(res.value());
     }
+    auto nar = std::move(res.value());
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
       const auto &[_, pr] = nar;
@@ -2819,10 +2815,9 @@ namespace kagome::parachain {
     if (auto res = crypto_provider_->sign(key_pair.value(), payload);
         res.has_value()) {
       return res.value();
-    } else {
-      logger_->warn("Unable to sign with {}", pubkey);
-      return std::nullopt;
     }
+    logger_->warn("Unable to sign with {}", pubkey);
+    return std::nullopt;
   }
 
   void ApprovalDistribution::runLaunchApproval(

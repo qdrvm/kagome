@@ -69,15 +69,16 @@ namespace kagome::parachain::fragment {
     for (const auto &ancestor : ancestors) {
       if (prev == 0) {
         return Scope::Error::UNEXPECTED_ANCESTOR;
-      } else if (ancestor.number != prev - 1) {
-        return Scope::Error::UNEXPECTED_ANCESTOR;
-      } else if (prev == base_constraints.min_relay_parent_number) {
-        break;
-      } else {
-        prev = ancestor.number;
-        ancestors_by_hash.emplace(ancestor.hash, ancestor);
-        ancestors_map.emplace(ancestor.number, ancestor);
       }
+      if (ancestor.number != prev - 1) {
+        return Scope::Error::UNEXPECTED_ANCESTOR;
+      }
+      if (prev == base_constraints.min_relay_parent_number) {
+        break;
+      }
+      prev = ancestor.number;
+      ancestors_by_hash.emplace(ancestor.hash, ancestor);
+      ancestors_map.emplace(ancestor.number, ancestor);
     }
 
     return Scope{
@@ -215,12 +216,12 @@ namespace kagome::parachain::fragment {
     if (modifications.dmp_messages_processed
         > new_constraint.dmp_remaining_messages.size()) {
       return Error::DMP_MESSAGE_UNDERFLOW;
-    } else {
-      new_constraint.dmp_remaining_messages.erase(
-          new_constraint.dmp_remaining_messages.begin(),
-          new_constraint.dmp_remaining_messages.begin()
-              + modifications.dmp_messages_processed);
     }
+
+    new_constraint.dmp_remaining_messages.erase(
+        new_constraint.dmp_remaining_messages.begin(),
+        new_constraint.dmp_remaining_messages.begin()
+            + modifications.dmp_messages_processed);
 
     if (modifications.code_upgrade_applied) {
       if (auto new_code = std::move(new_constraint.future_validation_code)) {

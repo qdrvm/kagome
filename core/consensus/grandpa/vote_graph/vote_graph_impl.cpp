@@ -456,10 +456,10 @@ namespace kagome::consensus::grandpa {
         // Not enough weight, check the parent block.
         if (node.ancestors.empty()) {
           return std::nullopt;
-        } else {
-          block.hash = node.ancestors[0];
-          block.number = node.number - 1;
         }
+        block.hash = node.ancestors[0];
+        block.number = node.number - 1;
+
       } else {
         const auto &children = nodes_opt.value();
 

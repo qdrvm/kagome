@@ -46,12 +46,6 @@ namespace kagome::runtime {
     const auto &c_transaction_payment_api_hash =
         transaction_payment_api_hash;  // to create memory storage to push in
                                        // lambda
-    auto res = std::find_if(runtime_version.apis.begin(),
-                            runtime_version.apis.end(),
-                            [&](auto &api_version) {
-                              return api_version.first
-                                  == c_transaction_payment_api_hash;
-                            });
     auto res =
         std::ranges::find_if(runtime_version.apis, [&](auto &api_version) {
           return api_version.first == c_transaction_payment_api_hash;

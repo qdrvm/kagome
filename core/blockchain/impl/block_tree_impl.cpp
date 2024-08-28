@@ -331,7 +331,8 @@ namespace kagome::blockchain {
                   "Can't get header of target block: {}",
                   target_block_hash_opt_res.error());
       return BlockTreeError::HEADER_NOT_FOUND;
-    } else if (not target_block_hash_opt_res.value().has_value()) {
+    }
+    if (not target_block_hash_opt_res.value().has_value()) {
       SL_CRITICAL(log, "Can't get header of target block: header not found");
       return BlockTreeError::HEADER_NOT_FOUND;
     }

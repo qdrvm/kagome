@@ -43,7 +43,6 @@
   auto name = (op);              \
   if (!name) {                   \
     return;                      \
-  } else {                       \
   }
 #endif  // TRY_GET_OR_RET
 
@@ -3728,13 +3727,11 @@ namespace kagome::parachain {
       return backing_store_->get(relay_parent);
     }
 
-    BlockNumber block_number;
-    if (auto r = get_block_number_under_construction(relay_parent);
-        r.has_error()) {
+    auto r = get_block_number_under_construction(relay_parent);
+    if (r.has_error()) {
       return {};
-    } else {
-      block_number = r.value();
     }
+    BlockNumber block_number = r.value();
 
     using Ancestors = std::unordered_set<CandidateHash>;
     const auto &availability_cores =
@@ -3882,9 +3879,8 @@ namespace kagome::parachain {
         if (candidate.candidate.commitments.opt_para_runtime) {
           if (with_validation_code) {
             break;
-          } else {
-            with_validation_code = true;
           }
+          with_validation_code = true;
         }
 
         merged_candidates.emplace_back(candidate);
@@ -3970,9 +3966,9 @@ namespace kagome::parachain {
 
       const auto v_threshold = std::min(len, size_t(minimum_backing_votes));
       return attested(data.candidate, data, v_threshold);
-    } else {
-      SL_TRACE(logger_, "No candidate info. (relay_parent={})", relay_parent);
     }
+
+    SL_TRACE(logger_, "No candidate info. (relay_parent={})", relay_parent);
     return std::nullopt;
   }
 

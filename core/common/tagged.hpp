@@ -47,6 +47,7 @@ namespace kagome {
 
     template <typename Out>
     explicit operator Out() const {
+      // NOLINTNEXTLINE(readability-else-after-return)
       if constexpr (std::is_scalar_v<T>) {
         return this->Wrapper<T>::value;
       } else {
@@ -67,10 +68,11 @@ namespace kagome {
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, Tagged<T, Tag> &tagged) {
       if constexpr (std::is_scalar_v<T>) {
-        return s >> tagged.Wrapper<T>::value;
+        s >> tagged.Wrapper<T>::value;
       } else {
-        return s >> static_cast<T &>(tagged);
+        s >> static_cast<T &>(tagged);
       }
+      return s;
     }
   };
 

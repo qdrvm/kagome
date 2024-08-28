@@ -207,9 +207,8 @@ namespace kagome::runtime {
         if (height_ - num < frames_.back().start_height) {
           if (!frames_.back().is_polymorphic) {
             return WabtError{"Popping values not pushed in the current frame"};
-          } else {
-            return outcome::success();
           }
+          return outcome::success();
         }
         if (height_ < num) {
           return WabtError{"Stack underflow"};

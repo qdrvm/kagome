@@ -149,10 +149,9 @@ namespace kagome::storage::trie {
                    (int)child_idx);
           if (child_idx > sought_nibbles[mismatch_pos]) {
             return nextNodeWithValueInSubTree(*child);
-          } else {
-            return seekLowerBoundInternal(
-                *child, sought_nibbles.subspan(mismatch_pos + 1));
           }
+          return seekLowerBoundInternal(
+              *child, sought_nibbles.subspan(mismatch_pos + 1));
         }
       }
     }

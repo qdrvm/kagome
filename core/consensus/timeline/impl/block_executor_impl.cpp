@@ -233,14 +233,12 @@ namespace kagome::consensus {
             }
           }
 
-          BlockAppenderBase::SlotInfo slot_info;
-          if (auto res = self->appender_->getSlotInfo(block.header);
-              res.has_error()) {
+          auto res = self->appender_->getSlotInfo(block.header);
+          if (res.has_error()) {
             callback(res.as_failure());
             return;
-          } else {
-            slot_info = res.value();
           }
+          auto &slot_info = res.value();
 
           auto &[slot_start, slot_duration] = slot_info;
           auto lag = std::chrono::system_clock::now() - slot_start;

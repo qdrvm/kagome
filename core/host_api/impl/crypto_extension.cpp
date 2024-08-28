@@ -211,9 +211,8 @@ namespace kagome::host_api {
       if (seed_opt.has_value()) {
         return key_store_.value()->ed25519().generateKeypair(key_type,
                                                              seed_opt.value());
-      } else {
-        return key_store_.value()->ed25519().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->ed25519().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -340,9 +339,8 @@ namespace kagome::host_api {
       if (bip39_seed.has_value()) {
         return key_store_.value()->sr25519().generateKeypair(
             key_type, bip39_seed.value());
-      } else {
-        return key_store_.value()->sr25519().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->sr25519().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -668,9 +666,8 @@ namespace kagome::host_api {
       if (bip39_seed.has_value()) {
         return key_store_.value()->ecdsa().generateKeypair(key_type,
                                                            bip39_seed.value());
-      } else {
-        return key_store_.value()->ecdsa().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->ecdsa().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -787,10 +784,8 @@ namespace kagome::host_api {
       if (bip39_seed.has_value()) {
         return key_store_.value()->bandersnatch().generateKeypair(
             key_type, bip39_seed.value());
-      } else {
-        return key_store_.value()->bandersnatch().generateKeypairOnDisk(
-            key_type);
       }
+      return key_store_.value()->bandersnatch().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(logger_,

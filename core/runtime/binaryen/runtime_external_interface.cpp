@@ -289,9 +289,8 @@ namespace kagome::runtime::binaryen {
     }
     if (func->imported()) {
       return callImport(func, arguments);
-    } else {
-      return instance.callFunctionInternal(func->name, arguments);
     }
+    return instance.callFunctionInternal(func->name, arguments);
   }
 
 }  // namespace kagome::runtime::binaryen

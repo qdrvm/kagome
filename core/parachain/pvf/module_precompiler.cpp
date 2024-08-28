@@ -149,8 +149,8 @@ namespace kagome::parachain {
     auto &core = _core.state;
     if (std::holds_alternative<runtime::FreeCore>(core)) {
       return outcome::success();
-
-    } else if (std::holds_alternative<runtime::OccupiedCore>(core)) {
+    }
+    if (std::holds_alternative<runtime::OccupiedCore>(core)) {
       SL_TRACE(log_, "Precompile for occupied availability core");
       stats.occupied_precompiled_count++;
     } else if (std::holds_alternative<runtime::ScheduledCore>(core)) {

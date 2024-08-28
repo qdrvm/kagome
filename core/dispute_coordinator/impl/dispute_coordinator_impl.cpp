@@ -109,9 +109,8 @@ namespace kagome::dispute {
                   if (candidates.size() == 1) {
                     return scale::encode(
                         std::tie(magic, candidates.front(), session));
-                  } else {
-                    return scale::encode(std::tie(magic, candidates, session));
                   }
+                  return scale::encode(std::tie(magic, candidates, session));
                 });
           },
           [&](const InvalidDisputeStatement &kind) {

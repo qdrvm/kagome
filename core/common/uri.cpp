@@ -90,10 +90,9 @@ namespace kagome::common {
     }
 
     // Port
-    const auto port_begin = host_end + (*host_end == ':' ? 1 : 0);
-    const auto port_end = std::find_if(port_begin, uri_end, [](auto ch) {
-      return ch == '/' or ch == '?' or ch == '#';
-    });
+    const auto port_begin =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        host_end + (*host_end == ':' ? 1 : 0);
     const auto port_end =
         std::ranges::find_if(port_begin, uri_end, [](auto ch) {
           return ch == '/' or ch == '?' or ch == '#';
