@@ -44,13 +44,13 @@ namespace kagome::application::mode {
     for (auto &path : config_.parachains) {
       SL_INFO(log_, "precompile parachain {}", path.string());
       Buffer bytes;
-      if (not readFile(bytes, path)) {
-        SL_WARN(log_, "read error, file {}", path.string());
+      if (auto res = readFile(bytes, path); !res) {
+        SL_ERROR(log_, "read error {}, file {}",  res.error(), path.string());
         continue;
       }
       auto text = byte2str(bytes);
       if (text.starts_with("{")) {
-        SL_WARN(log_, "expected WASM, got JSON, file {}", path.string());
+        SL_ERROR(log_, "expected WASM, got JSON, file {}", path.string());
         continue;
       }
       if (text.starts_with("0x")) {

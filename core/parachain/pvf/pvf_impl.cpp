@@ -337,17 +337,20 @@ namespace kagome::parachain {
       auto &wasm_module = module_opt.value();
       CB_TRY(auto instance, wasm_module->instantiate());
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
-      KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
+      KAGOME_PROFILE_END(single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
+    auto profile = std::make_shared<kagome::log::ProfileScope>("pvf_process_call", log_);
     workers_->execute({
         pvf_pool_->getCachePath(code_hash, executor_params),
         scale::encode(params).value(),
-        [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+        [cb{std::move(cb)}, profile{std::move(profile)}](
+            outcome::result<common::Buffer> r) mutable {
           if (r.has_error()) {
             return cb(r.error());
           }
+          profile->end();
           cb(scale::decode<ValidationResult>(r.value()));
         },
     });

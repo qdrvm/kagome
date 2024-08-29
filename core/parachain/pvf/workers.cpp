@@ -146,7 +146,7 @@ namespace kagome::parachain {
             }
             self->writeCode(
                 std::move(job),
-                {.process = std::move(process), .code = std::nullopt},
+                {.process = std::move(process), .code_path = std::nullopt},
                 std::move(used));
           });
       return;
@@ -157,7 +157,7 @@ namespace kagome::parachain {
   void PvfWorkers::findFree(Job &&job) {
     auto it =
         std::find_if(free_.begin(), free_.end(), [&](const Worker &worker) {
-          return worker.code == job.code;
+          return worker.code_path == job.code_path;
         });
     if (it == free_.end()) {
       it = free_.begin();
@@ -180,14 +180,14 @@ namespace kagome::parachain {
   void PvfWorkers::writeCode(Job &&job,
                              Worker &&worker,
                              std::shared_ptr<Used> &&used) {
-    if (worker.code == job.code) {
+    if (worker.code_path == job.code_path) {
       call(std::move(job), std::move(worker), std::move(used));
       return;
     }
-    worker.code = job.code;
-    auto code = PvfWorkerInput{job.code};
+    worker.code_path = job.code_path;
+    auto code_path = PvfWorkerInput{job.code_path};
     worker.process->writeScale(
-        code,
+        code_path,
         [WEAK_SELF, job{std::move(job)}, worker, used{std::move(used)}](
             outcome::result<void> r) mutable {
           WEAK_LOCK(self);
