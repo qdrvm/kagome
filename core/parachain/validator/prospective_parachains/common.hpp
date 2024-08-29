@@ -1,3 +1,11 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#pragma once
+
 #include <boost/variant.hpp>
 #include <map>
 #include <optional>
@@ -34,4 +42,12 @@ namespace kagome::parachain::fragment {
   using CandidateCommitments = network::CandidateCommitments;
   using PersistedValidationData = runtime::PersistedValidationData;
 
+  struct RelayChainBlockInfo {
+    /// The hash of the relay-chain block.
+    Hash hash;
+    /// The number of the relay-chain block.
+    BlockNumber number;
+    /// The storage-root of the relay-chain block.
+    Hash storage_root;
+  };
 }  // namespace kagome::parachain::fragment

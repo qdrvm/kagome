@@ -11,15 +11,6 @@
 
 namespace kagome::parachain::fragment {
 
-  struct RelayChainBlockInfo {
-    /// The hash of the relay-chain block.
-    Hash hash;
-    /// The number of the relay-chain block.
-    BlockNumber number;
-    /// The storage-root of the relay-chain block.
-    Hash storage_root;
-  };
-
   struct Fragment {
     enum Error {
       HRMP_MESSAGE_DESCENDING_OR_DUPLICATE = 1,
