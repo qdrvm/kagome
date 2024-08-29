@@ -66,13 +66,11 @@ namespace kagome::parachain::fragment {
         .parent_head_data_hash = parent_head_data_hash,
         .output_head_data_hash = output_head_data_hash,
         .relay_parent = candidate.descriptor.relay_parent,
-        .candidate =
-            ProspectiveCandidate{
-                .commitments = candidate.commitments,
-                .persisted_validation_data = persisted_validation_data.get(),
-                .pov_hash = candidate.descriptor.pov_hash,
-                .validation_code_hash =
-                    candidate.descriptor.validation_code_hash},
+        .candidate = std::make_shared<ProspectiveCandidate>(
+            candidate.commitments,
+            persisted_validation_data.get(),
+            candidate.descriptor.pov_hash,
+            candidate.descriptor.validation_code_hash),
         .state = state,
     };
   }
@@ -135,10 +133,10 @@ namespace kagome::parachain::fragment {
     };
 
     if (auto e = search(by_output_head)) {
-      return {{e->get().candidate.commitments.para_head}};
+      return {{e->get().candidate->commitments.para_head}};
     }
     if (auto e = search(by_parent_head)) {
-      return {{e->get().candidate.persisted_validation_data.parent_head}};
+      return {{e->get().candidate->persisted_validation_data.parent_head}};
     }
     return std::nullopt;
   }

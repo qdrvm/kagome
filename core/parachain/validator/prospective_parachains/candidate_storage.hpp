@@ -19,17 +19,6 @@
 
 namespace kagome::parachain::fragment {
 
-  struct ProspectiveCandidate {
-    /// The commitments to the output of the execution.
-    network::CandidateCommitments commitments;
-    /// The persisted validation data used to create the candidate.
-    runtime::PersistedValidationData persisted_validation_data;
-    /// The hash of the PoV.
-    Hash pov_hash;
-    /// The validation code hash used by the candidate.
-    ValidationCodeHash validation_code_hash;
-  };
-
   /// The state of a candidate.
   ///
   /// Candidates aren't even considered until they've at least been seconded.
@@ -46,7 +35,7 @@ namespace kagome::parachain::fragment {
     Hash parent_head_data_hash;
     Hash output_head_data_hash;
     RelayHash relay_parent;
-    ProspectiveCandidate candidate;
+    std::shared_ptr<const ProspectiveCandidate> candidate;
     CandidateState state;
 
     static outcome::result<CandidateEntry> create_seconded(

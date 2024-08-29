@@ -50,4 +50,25 @@ namespace kagome::parachain::fragment {
     /// The storage-root of the relay-chain block.
     Hash storage_root;
   };
+
+  struct ProspectiveCandidate {
+    /// The commitments to the output of the execution.
+    network::CandidateCommitments commitments;
+    /// The persisted validation data used to create the candidate.
+    runtime::PersistedValidationData persisted_validation_data;
+    /// The hash of the PoV.
+    Hash pov_hash;
+    /// The validation code hash used by the candidate.
+    ValidationCodeHash validation_code_hash;
+
+    ProspectiveCandidate(network::CandidateCommitments c,
+                         runtime::PersistedValidationData p,
+                         Hash h,
+                         ValidationCodeHash v)
+        : commitments{std::move(c)},
+          persisted_validation_data{std::move(p)},
+          pov_hash{std::move(h)},
+          validation_code_hash{std::move(v)} {}
+  };
+
 }  // namespace kagome::parachain::fragment

@@ -21,6 +21,17 @@ namespace kagome::parachain::fragment {
     const Hash &relay_parent() const {
       return fragment.get_relay_parent().hash;
     }
+
+    CandidateEntry into_candidate_entry() const {
+      return CandidateEntry{
+          .candidate_hash = this->candidate_hash,
+          .parent_head_data_hash = this->parent_head_data_hash,
+          .output_head_data_hash = this->output_head_data_hash,
+          .relay_parent = this->relay_parent(),
+          .candidate = this->fragment.get_candidate_clone(),
+          .state = CandidateState::Backed,
+      };
+    }
   };
 
 }  // namespace kagome::parachain::fragment
