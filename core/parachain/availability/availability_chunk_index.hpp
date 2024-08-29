@@ -35,8 +35,8 @@ namespace kagome::parachain {
     }
 
     // tick down to the next lower power of 2
-    auto threshold_po2 = 1;
-    while (threshold >>= 1) {
+    ChunkIndex threshold_po2 = 1;
+    while (threshold_po2 < threshold) {
       threshold_po2 <<= 1;
     }
 
