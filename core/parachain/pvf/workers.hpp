@@ -28,10 +28,9 @@ namespace kagome::application {
   class AppConfiguration;
 }  // namespace kagome::application
 
-namespace kagome {
-  class ThreadPool;
-  class Watchdog;
-}  // namespace kagome
+namespace kagome::common {
+  class MainThreadPool;
+}  // namespace kagome::common
 
 namespace kagome::parachain {
   struct ProcessAndPipes;
@@ -39,7 +38,7 @@ namespace kagome::parachain {
   class PvfWorkers : public std::enable_shared_from_this<PvfWorkers> {
    public:
     PvfWorkers(const application::AppConfiguration &app_config,
-               std::shared_ptr<Watchdog> watchdog,
+               common::MainThreadPool &main_thread_pool,
                std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     using Cb = std::function<void(outcome::result<Buffer>)>;
@@ -69,8 +68,8 @@ namespace kagome::parachain {
     void call(Job &&job, Worker &&worker, std::shared_ptr<Used> &&used);
     void dequeue();
 
-    std::shared_ptr<ThreadPool> thread_pool_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::filesystem::path exe_;
     size_t max_;

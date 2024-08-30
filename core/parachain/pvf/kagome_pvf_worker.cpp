@@ -34,7 +34,6 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
-#include "log/profiling_logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
@@ -330,14 +329,9 @@ namespace kagome::parachain {
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
     std::shared_ptr<runtime::Module> module;
     while (true) {
-      KAGOME_PROFILE_START(pvf_worker_loop);
-
-      KAGOME_PROFILE_START(pvf_read_input);
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
-      KAGOME_PROFILE_END(pvf_read_input);
 
       if (auto *code_path = std::get_if<RuntimeCodePath>(&input)) {
-        KAGOME_PROFILE_START(pvf_load_code);
         OUTCOME_TRY(path, chroot_path(*code_path));
         BOOST_OUTCOME_TRY(module, factory->loadCompiled(path));
         continue;
@@ -355,7 +349,6 @@ namespace kagome::parachain {
           instance->callExportFunction(ctx, "validate_block", input_args));
       OUTCOME_TRY(instance->resetEnvironment());
       OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
-      KAGOME_PROFILE_START(pvf_write_output);
       std::cout.write((const char *)len.data(), len.size());
       std::cout.write((const char *)result.data(), result.size());
       std::cout.flush();

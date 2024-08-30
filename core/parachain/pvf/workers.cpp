@@ -11,12 +11,10 @@
 #include <boost/process.hpp>
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/asio_buffer.hpp>
-#include <memory>
 #include <qtils/option_take.hpp>
 
 #include "application/app_configuration.hpp"
 #include "common/main_thread_pool.hpp"
-#include "log/profiling_logger.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "utils/get_exe_path.hpp"
 #include "utils/weak_macro.hpp"
@@ -108,10 +106,10 @@ namespace kagome::parachain {
   };
 
   PvfWorkers::PvfWorkers(const application::AppConfiguration &app_config,
-                         std::shared_ptr<Watchdog> watchdog,
+                         common::MainThreadPool &main_thread_pool,
                          std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : thread_pool_{std::make_shared<ThreadPool>(watchdog, "pvf_mediator", 6)},
-        io_context_{thread_pool_->io_context()},
+      : io_context_{main_thread_pool.io_context()},
+        main_pool_handler_{main_thread_pool.handlerStarted()},
         scheduler_{std::move(scheduler)},
         exe_{exePath()},
         max_{app_config.pvfMaxWorkers()},
@@ -124,35 +122,27 @@ namespace kagome::parachain {
         } {}
 
   void PvfWorkers::execute(Job &&job) {
-    REINVOKE(*thread_pool_->handlerStarted(), execute, std::move(job));
+    REINVOKE(*main_pool_handler_, execute, std::move(job));
     if (free_.empty()) {
       if (used_ >= max_) {
         queue_.emplace(std::move(job));
         return;
       }
       auto used = std::make_shared<Used>(*this);
-      KAGOME_PROFILE_START(create_process);
       auto process = std::make_shared<ProcessAndPipes>(*io_context_, exe_);
-      KAGOME_PROFILE_END(create_process);
-      auto profile =
-          std::make_shared<kagome::log::ProfileScope>("write_process_config");
-      process->writeScale(worker_config_,
-                          [WEAK_SELF,
-                           job{std::move(job)},
-                           used{std::move(used)},
-                           process,
-                           profile](outcome::result<void> r) mutable {
-                            profile->end();
-                            WEAK_LOCK(self);
-                            if (not r) {
-                              return job.cb(r.error());
-                            }
-
-                            self->writeCode(std::move(job),
-                                            {.process = std::move(process),
-                                             .code_path = std::nullopt},
-                                            std::move(used));
-                          });
+      process->writeScale(
+          worker_config_,
+          [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](
+              outcome::result<void> r) mutable {
+            WEAK_LOCK(self);
+            if (not r) {
+              return job.cb(r.error());
+            }
+            self->writeCode(
+                std::move(job),
+                {.process = std::move(process), .code_path = std::nullopt},
+                std::move(used));
+          });
       return;
     }
     findFree(std::move(job));
@@ -190,17 +180,11 @@ namespace kagome::parachain {
     }
     worker.code_path = job.code_path;
     auto code_path = PvfWorkerInput{job.code_path};
-    auto profile =
-        std::make_shared<kagome::log::ProfileScope>("write_code_path");
 
     worker.process->writeScale(
         code_path,
-        [WEAK_SELF,
-         job{std::move(job)},
-         worker,
-         used{std::move(used)},
-         profile](outcome::result<void> r) mutable {
-          profile->end();
+        [WEAK_SELF, job{std::move(job)}, worker, used{std::move(used)}](
+            outcome::result<void> r) mutable {
           WEAK_LOCK(self);
           if (not r) {
             return job.cb(r.error());
@@ -224,25 +208,16 @@ namespace kagome::parachain {
           self->free_.emplace_back(std::move(worker));
           self->dequeue();
         });
-    auto read_profile =
-        std::make_shared<kagome::log::ProfileScope>("read_pvf_result");
-
-    auto cb =
-        [read_profile, cb_shared, timeout](outcome::result<Buffer> r) mutable {
-          read_profile->end();
-          if (auto cb = qtils::optionTake(*cb_shared)) {
-            (*cb)(std::move(r));
-          }
-          timeout->reset();
-        };
+    auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
+      if (auto cb = qtils::optionTake(*cb_shared)) {
+        (*cb)(std::move(r));
+      }
+      timeout->reset();
+    };
     *timeout = scheduler_->scheduleWithHandle(
         [cb]() mutable { cb(std::errc::timed_out); }, timeout_);
-    auto profile =
-        std::make_shared<kagome::log::ProfileScope>("write_pvf_args");
-
     worker.process->writeScale(PvfWorkerInput{job.args},
-                               [cb, profile](outcome::result<void> r) mutable {
-                                 profile->end();
+                               [cb](outcome::result<void> r) mutable {
                                  if (not r) {
                                    return cb(r.error());
                                  }
