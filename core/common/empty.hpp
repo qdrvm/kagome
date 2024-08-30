@@ -6,26 +6,12 @@
 
 #pragma once
 
-#include <scale/scale.hpp>
+#include <tuple>
 
 namespace kagome {
 
   /// Special zero-size-type for some things
   /// (e.g. unsupported, experimental or empty).
-  struct Empty {
-    inline constexpr bool operator==(const Empty &) const {
-      return true;
-    }
-
-    template <class Stream>
-    friend inline Stream &operator<<(Stream &s, const Empty &) {
-      return s;
-    }
-
-    template <class Stream>
-    friend inline Stream &operator>>(Stream &s, const Empty &) {
-      return s;
-    }
-  };
+  using Empty = std::tuple<>;
 
 }  // namespace kagome
