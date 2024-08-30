@@ -39,9 +39,9 @@ namespace kagome::parachain {
     bool force_disable_secure_mode;
   };
 
-  using RuntimeCodePath = std::string;
+  using PvfWorkerInputCodePath = std::string;
 
   using PvfWorkerInputArgs = Buffer;
 
-  using PvfWorkerInput = std::variant<RuntimeCodePath, PvfWorkerInputArgs>;
+  using PvfWorkerInput = std::variant<PvfWorkerInputCodePath, PvfWorkerInputArgs>;
 }  // namespace kagome::parachain

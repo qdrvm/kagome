@@ -333,7 +333,7 @@ namespace kagome::parachain {
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
 
-      if (auto *code_path = std::get_if<RuntimeCodePath>(&input)) {
+      if (auto *code_path = std::get_if<PvfWorkerInputCodePath>(&input)) {
         OUTCOME_TRY(path, chroot_path(*code_path));
         BOOST_OUTCOME_TRY(module, factory->loadCompiled(path));
         continue;
