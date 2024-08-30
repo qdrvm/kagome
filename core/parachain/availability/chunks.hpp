@@ -68,9 +68,11 @@ namespace kagome::parachain {
       size_t validators, const std::vector<network::ErasureChunk> &chunks) {
     EC_CPP_TRY(encoder, ec_cpp::create(validators));
     std::vector<decltype(encoder)::Shard> _chunks;
-    _chunks.resize(chunks.size());
+    _chunks.resize(encoder.k());
     for (auto &chunk : chunks) {
-      _chunks[chunk.index] = chunk.chunk;
+      if (chunk.index < encoder.k()) {
+        _chunks[chunk.index] = chunk.chunk;
+      }
     }
 
     EC_CPP_TRY(data, encoder.reconstruct_from_systematic(_chunks));
