@@ -64,7 +64,6 @@ target_link_libraries(kagome_pvf_worker
     scale::scale
     soralog::fallback_configurator
     soralog::soralog
-    spdlog::spdlog
     logger
     log_configurator
 
@@ -87,6 +86,12 @@ target_link_libraries(kagome_pvf_worker
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend
     )
+
+if("${WASM_COMPILER}" STREQUAL "WasmEdge")
+    target_link_libraries(kagome_pvf_worker PUBLIC
+        spdlog::spdlog
+    )
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
