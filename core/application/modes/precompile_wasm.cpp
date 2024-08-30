@@ -45,7 +45,7 @@ namespace kagome::application::mode {
       SL_INFO(log_, "precompile parachain {}", path.string());
       Buffer bytes;
       if (auto res = readFile(bytes, path); !res) {
-        SL_ERROR(log_, "read error {}, file {}", res.error(), path.string());
+        SL_ERROR(log_, "file {} read error {}", path.string(), res.error());
         continue;
       }
       auto text = byte2str(bytes);
