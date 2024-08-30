@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/sinks/ansicolor_sink.h>
+#include <spdlog/spdlog.h>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -367,6 +369,10 @@ namespace kagome::parachain {
   }
 
   int pvf_worker_main(int argc, const char **argv, const char **env) {
+    // fix wasmedge spdlog, change stdout to stderr
+    spdlog::default_logger()->sinks() = {
+        std::make_shared<spdlog::sinks::ansicolor_stderr_sink_mt>()};
+
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));

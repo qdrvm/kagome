@@ -64,6 +64,7 @@ target_link_libraries(kagome_pvf_worker
     scale::scale
     soralog::fallback_configurator
     soralog::soralog
+    spdlog::spdlog
     logger
     log_configurator
 
