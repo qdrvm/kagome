@@ -38,6 +38,7 @@
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
+#include "utils/spdlog_stderr.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/secure_mode.hpp"
@@ -367,6 +368,8 @@ namespace kagome::parachain {
   }
 
   int pvf_worker_main(int argc, const char **argv, const char **env) {
+    spdlogStderr();
+
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));
