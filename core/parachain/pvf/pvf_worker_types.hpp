@@ -43,5 +43,6 @@ namespace kagome::parachain {
 
   using PvfWorkerInputArgs = Buffer;
 
-  using PvfWorkerInput = std::variant<PvfWorkerInputCodePath, PvfWorkerInputArgs>;
+  using PvfWorkerInput =
+      std::variant<PvfWorkerInputCodePath, PvfWorkerInputArgs>;
 }  // namespace kagome::parachain
