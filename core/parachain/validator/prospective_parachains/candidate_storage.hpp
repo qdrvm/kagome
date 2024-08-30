@@ -107,6 +107,13 @@ namespace kagome::parachain::fragment {
     template <typename F>
     void retain(F &&pred /*bool(CandidateHash)*/);
 
+    template <typename F>
+    void candidates(F &&callback /*void(const CandidateEntry &)*/) const {
+      for (const auto &[_, entry] : by_candidate_hash) {
+        std::forward<F>(callback)(entry);
+      }
+    }
+
     void markSeconded(const CandidateHash &candidate_hash);
 
     void mark_backed(const CandidateHash &candidate_hash);

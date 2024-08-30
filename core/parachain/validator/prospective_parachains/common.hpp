@@ -42,6 +42,9 @@ namespace kagome::parachain::fragment {
   using CandidateCommitments = network::CandidateCommitments;
   using PersistedValidationData = runtime::PersistedValidationData;
 
+  /// A collection of ancestor candidates of a parachain.
+  using Ancestors = HashSet<CandidateHash>;
+
   struct RelayChainBlockInfo {
     /// The hash of the relay-chain block.
     Hash hash;

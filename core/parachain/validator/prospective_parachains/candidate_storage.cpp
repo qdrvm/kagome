@@ -195,26 +195,11 @@ namespace kagome::parachain::fragment {
     do_remove(by_output_head);
   }
 
-  void CandidateStorage::markSeconded(const CandidateHash &candidate_hash) {
-    if (auto it = by_candidate_hash.find(candidate_hash);
-        it != by_candidate_hash.end()) {
-      if (it->second.state != CandidateState::Backed) {
-        it->second.state = CandidateState::Seconded;
-      }
-    }
-  }
-
   void CandidateStorage::mark_backed(const CandidateHash &candidate_hash) {
     if (auto it = by_candidate_hash.find(candidate_hash);
         it != by_candidate_hash.end()) {
       it->second.state = CandidateState::Backed;
     }
-  }
-
-  bool CandidateStorage::isBacked(const CandidateHash &candidate_hash) const {
-    auto it = by_candidate_hash.find(candidate_hash);
-    return it != by_candidate_hash.end()
-        && it->second.state == CandidateState::Backed;
   }
 
   size_t CandidateStorage::len() const {
