@@ -36,7 +36,7 @@ namespace kagome {
     ThreadPool(std::shared_ptr<Watchdog> watchdog,
                std::string_view pool_tag,
                size_t thread_count,
-               std::optional<std::shared_ptr<boost::asio::io_context>> ioc)
+               std::optional<std::shared_ptr<boost::asio::io_context>> ioc = {})
         : log_(log::createLogger(fmt::format("ThreadPool:{}", pool_tag),
                                  "threads")),
           ioc_{ioc.has_value() ? std::move(ioc.value())

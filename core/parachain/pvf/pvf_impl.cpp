@@ -341,7 +341,8 @@ namespace kagome::parachain {
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
-    auto profile = std::make_shared<kagome::log::ProfileScope>("pvf_process_call", log_);
+    auto profile =
+        std::make_shared<kagome::log::ProfileScope>("pvf_process_call", log_);
     workers_->execute({
         pvf_pool_->getCachePath(code_hash, executor_params),
         scale::encode(params).value(),
