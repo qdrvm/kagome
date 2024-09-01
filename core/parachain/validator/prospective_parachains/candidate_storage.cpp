@@ -75,6 +75,40 @@ namespace kagome::parachain::fragment {
     };
   }
 
+  Option<Ref<const CandidateCommitments>> CandidateEntry::get_commitments()
+      const {
+    BOOST_ASSERT_MSG(candidate, "Candidate is undefined!");
+    return std::cref(candidate->commitments);
+  }
+
+  Option<Ref<const PersistedValidationData>>
+  CandidateEntry::get_persisted_validation_data() const {
+    BOOST_ASSERT_MSG(candidate, "Candidate is undefined!");
+    return std::cref(candidate->persisted_validation_data);
+  }
+
+  Option<Ref<const ValidationCodeHash>>
+  CandidateEntry::get_validation_code_hash() const {
+    BOOST_ASSERT_MSG(candidate, "Candidate is undefined!");
+    return std::cref(candidate->validation_code_hash);
+  }
+
+  Hash CandidateEntry::get_parent_head_data_hash() const {
+    return parent_head_data_hash;
+  }
+
+  Option<Hash> CandidateEntry::get_output_head_data_hash() const {
+    return output_head_data_hash;
+  }
+
+  Hash CandidateEntry::get_relay_parent() const {
+    return relay_parent;
+  }
+
+  CandidateHash CandidateEntry::get_candidate_hash() const {
+    return candidate_hash;
+  }
+
   outcome::result<void> CandidateStorage::add_candidate_entry(
       CandidateEntry candidate) {
     const auto candidate_hash = candidate.candidate_hash;

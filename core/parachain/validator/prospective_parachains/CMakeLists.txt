@@ -10,6 +10,7 @@ add_library(prospective_parachains
     constraints.cpp
     backed_chain.cpp
     scope.cpp
+    fragment_chain.cpp
     )
 
 target_link_libraries(prospective_parachains

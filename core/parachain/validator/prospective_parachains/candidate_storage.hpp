@@ -56,6 +56,21 @@ namespace kagome::parachain::fragment {
             &persisted_validation_data,
         CandidateState state,
         const std::shared_ptr<crypto::Hasher> &hasher);
+
+    Option<Ref<const CandidateCommitments>> get_commitments() const;
+
+    Option<Ref<const PersistedValidationData>> get_persisted_validation_data()
+        const;
+
+    Option<Ref<const ValidationCodeHash>> get_validation_code_hash() const;
+
+    Hash get_parent_head_data_hash() const;
+
+    Option<Hash> get_output_head_data_hash() const;
+
+    Hash get_relay_parent() const;
+
+    CandidateHash get_candidate_hash() const;
   };
 
   struct CandidateStorage {
@@ -114,11 +129,7 @@ namespace kagome::parachain::fragment {
       }
     }
 
-    void markSeconded(const CandidateHash &candidate_hash);
-
     void mark_backed(const CandidateHash &candidate_hash);
-
-    bool isBacked(const CandidateHash &candidate_hash) const;
 
     size_t len() const;
 

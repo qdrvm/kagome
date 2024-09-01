@@ -19,6 +19,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
       return COMPONENT_NAME ": Candidate already known";
     case E::INTRODUCE_BACKED_CANDIDATE:
       return COMPONENT_NAME ": Introduce backed candidate";
+    case E::CYCLE:
+      return COMPONENT_NAME ": Cycle";
+    case E::MULTIPLE_PATH:
+      return COMPONENT_NAME ": Multiple path";
   }
   return COMPONENT_NAME ": unknown error";
 }
@@ -31,6 +35,19 @@ namespace kagome::parachain::fragment {
         || unconnected.contains(candidate_hash)) {
       return Error::CANDIDATE_ALREADY_KNOWN;
     }
+    return outcome::success();
+  }
+
+  outcome::result<void> FragmentChain::check_cycles_or_invalid_tree(
+      const Hash &output_head_hash) const {
+    if (best_chain.by_parent_head.contains(output_head_hash)) {
+      return Error::CYCLE;
+    }
+
+    if (best_chain.by_output_head.contains(output_head_hash)) {
+      return Error::MULTIPLE_PATH;
+    }
+
     return outcome::success();
   }
 

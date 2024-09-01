@@ -17,6 +17,8 @@ namespace kagome::parachain::fragment {
     enum Error {
       CANDIDATE_ALREADY_KNOWN = 1,
       INTRODUCE_BACKED_CANDIDATE,
+      CYCLE,
+      MULTIPLE_PATH,
     };
 
     // The current scope, which dictates the on-chain operating constraints that
@@ -60,8 +62,8 @@ namespace kagome::parachain::fragment {
       for (const auto &candidate : prev_fragment_chain.best_chain.chain) {
         if (!prev_fragment_chain.scope.get_pending_availability(
                 candidate.candidate_hash)) {
-          std::ignore =
-              prev_storage.add_candidate_entry(CandidateEntry::from(candidate));
+          std::ignore = prev_storage.add_candidate_entry(
+              candidate.into_candidate_entry());
         }
       }
 
@@ -145,10 +147,9 @@ namespace kagome::parachain::fragment {
     /// Checks if this candidate could be added in the future to this chain.
     /// This will return `Error::CandidateAlreadyKnown` if the candidate is
     /// already in the chain or the unconnected candidate storage.
-    template <typename HypotheticalOrConcreteCandidate>
     outcome::result<void> can_add_candidate_as_potential(
-        const HypotheticalOrConcreteCandidate &candidate) const {
-      OUTCOME_TRY(check_not_contains_candidate(candidate.candidate_hash()));
+        const HypotheticalOrConcreteCandidate auto &candidate) const {
+      OUTCOME_TRY(check_not_contains_candidate(candidate.get_candidate_hash()));
       return check_potential(candidate);
     }
 
@@ -217,6 +218,85 @@ namespace kagome::parachain::fragment {
       }
       return res;
     }
+
+    // Tries to orders the ancestors into a viable path from root to the last
+    // one. Stops when the ancestors are all used or when a node in the chain is
+    // not present in the ancestor set. Returns the index in the chain were the
+    // search stopped.
+    size_t find_ancestor_path(Ancestors ancestors) const {
+      if (best_chain.chain.empty()) {
+        return 0;
+      }
+
+      for (size_t index = 0; index < best_chain.chain.size(); ++index) {
+        const auto &candidate = best_chain.chain[index];
+        if (!ancestors.erase(candidate.candidate_hash)) {
+          return index
+        }
+      }
+      return best_chain.chain.size();
+    }
+
+    // Return the earliest relay parent a new candidate can have in order to be
+    // added to the chain right now. This is the relay parent of the last
+    // candidate in the chain. The value returned may not be valid if we want to
+    // add a candidate pending availability, which may have a relay parent which
+    // is out of scope. Special handling is needed in that case. `None` is
+    // returned if the candidate's relay parent info cannot be found.
+    Option<RelayChainBlockInfo> earliest_relay_parent() const {
+      Option<RelayChainBlockInfo> result;
+      if (!best_chain.chain.empty()) {
+        const auto &last_candidate = best_chain.chain.back();
+        result = scope.ancestor(last_candidate.relay_parent());
+        if (!result) {
+          result = utils::map(
+              scope.get_pending_availability(last_candidate.candidate_hash),
+              [](const auto &v) { return v.relay_parent; });
+        }
+      } else {
+        result = scope.earliest_relay_parent();
+      }
+      return result;
+    }
+
+    // Return the earliest relay parent a potential candidate may have for it to
+    // ever be added to the chain. This is the relay parent of the last
+    // candidate pending availability or the earliest relay parent in scope.
+    RelayChainBlockInfo earliest_relay_parent_pending_availability() const {
+      for (auto it = best_chain.chain.rbegin(); it != best_chain.chain.rend();
+           ++it) {
+        const auto &candidate = *it;
+
+        auto item =
+            utils::map(scope.get_pending_availability(candidate.candidate_hash),
+                       [](const auto &v) { return v.relay_parent; });
+        if (item) {
+          return *item;
+        }
+      }
+      return scope.earliest_relay_parent();
+    }
+
+    // Populate the unconnected potential candidate storage starting from a
+    // previous storage.
+    void populate_unconnected_potential_candidates(
+        CandidateStorage old_storage) {
+      for (auto &&[_, candidate] : old_storage.by_candidate_hash) {
+        if (scope.get_pending_availability(candidate.candidate_hash)) {
+          continue;
+        }
+
+        if (can_add_candidate_as_potential(candidate).has_value()) {
+          unconnected.add_candidate_entry(std::move(candidate));
+        }
+      }
+    }
+
+    // Check whether a candidate outputting this head data would introduce a
+    // cycle or multiple paths to the same state. Trivial 0-length cycles are
+    // checked in `CandidateEntry::new`.
+    outcome::result<void> check_cycles_or_invalid_tree(
+        const Hash &output_head_hash) const;
   };
 
 }  // namespace kagome::parachain::fragment

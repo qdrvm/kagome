@@ -34,6 +34,8 @@ namespace kagome::parachain::fragment {
   template <typename... Args>
   using Map = std::map<Args...>;
   using FragmentTreeMembership = Vec<std::pair<Hash, Vec<size_t>>>;
+  template <typename... Args>
+  using Ref = std::reference_wrapper<Args...>;
 
   using NodePointerRoot = network::Empty;
   using NodePointerStorage = size_t;
@@ -72,6 +74,17 @@ namespace kagome::parachain::fragment {
           persisted_validation_data{std::move(p)},
           pov_hash{std::move(h)},
           validation_code_hash{std::move(v)} {}
+  };
+
+  template <typename T>
+  concept HypotheticalOrConcreteCandidate = requires(T v) {
+    v.get_commitments();
+    v.get_persisted_validation_data();
+    v.get_validation_code_hash();
+    v.get_parent_head_data_hash();
+    v.get_output_head_data_hash();
+    v.get_relay_parent();
+    v.get_candidate_hash();
   };
 
 }  // namespace kagome::parachain::fragment
