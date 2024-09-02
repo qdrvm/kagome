@@ -61,7 +61,8 @@ namespace kagome::network {
           beefy_justification_protocol,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
@@ -78,7 +79,8 @@ namespace kagome::network {
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
-        chain_sub_{std::move(chain_sub_engine)} {
+        chain_sub_{std::move(chain_sub_engine)},
+        block_storage_{std::move(block_storage)} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);
@@ -86,6 +88,7 @@ namespace kagome::network {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
+    BOOST_ASSERT(block_storage_ != nullptr);
   }
 
   primitives::BlockNumber BeefyImpl::finalized() const {
@@ -379,6 +382,7 @@ namespace kagome::network {
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
+    fetching_headers_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -393,9 +397,50 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  outcome::result<void> BeefyImpl::fetchHeaders() {
+    std::unordered_map<primitives::BlockNumber, BlockDataToStore> blocksToStore;
+    while (1) {
+      auto& fetchingHeader = *fetching_headers_;
+      auto block_hash = block_tree_->getBlockHash(fetchingHeader);
+      if (block_hash) {
+        auto& blockHashOptValue = block_hash.value();
+        if (blockHashOptValue.has_value()) {
+          const auto& hashValue = *blockHashOptValue;
+          auto blockHeader = block_tree_->getBlockHeader(hashValue);
+          if (blockHeader) {
+            const auto& blockHeaderValue = blockHeader.value();
+            blocksToStore[fetchingHeader] = {blockHeaderValue, hashValue};
+            if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
+              beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
+              break;
+            }
+          }
+        }
+      }
+      if (fetchingHeader == 0) {
+        break;
+      }
+      --fetchingHeader;
+    }
+    saveBlockData(blocksToStore);
+    return outcome::success();
+  }
+
+  void BeefyImpl::saveBlockData(
+      const std::unordered_map<primitives::BlockNumber, BlockDataToStore> &blocksToStore) {
+    for (const auto &[blockNumber, blockData] : blocksToStore) {
+      if (auto putBlockRes = block_storage_->putBlockHeader(blockData.header); putBlockRes.has_error()) {
+        SL_WARN(log_, "Failed to put block header: {}, number won't be assigned to hash", putBlockRes.error().message());
+        continue;
+      }
+      if (auto assignNumberToHash = block_storage_->assignNumberToHash({blockNumber, blockData.hash}); assignNumberToHash.has_error()) {
+        SL_WARN(log_, "Failed to assign number to hash: {}", assignNumberToHash.error().message());
+      }
+    }
+  }
+
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
-
     auto last_genesis = beefy_genesis_;
     BOOST_OUTCOME_TRY(beefy_genesis_,
                       beefy_api_->genesis(grandpa_finalized.hash));
@@ -424,6 +469,14 @@ namespace kagome::network {
     if (grandpa_finalized.number < *beefy_genesis_) {
       return outcome::success();
     }
+
+    if (grandpa_finalized.number) {
+      if (!fetching_headers_.has_value()) {
+        fetching_headers_ = grandpa_finalized.number;
+        OUTCOME_TRY(fetchHeaders());
+      }
+    }
+
     for (auto pending_it = pending_justifications_.begin();
          pending_it != pending_justifications_.end()
          and pending_it->first <= grandpa_finalized.number;) {

@@ -18,6 +18,8 @@
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
 
+#include "blockchain/block_storage.hpp"
+
 namespace kagome {
   class PoolHandler;
   class PoolHandlerReady;
@@ -30,6 +32,7 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
+  class BlockStorage;
 }
 
 namespace kagome::common {
@@ -86,7 +89,8 @@ namespace kagome::network {
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     bool tryStart();
 
@@ -119,6 +123,11 @@ namespace kagome::network {
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
+    struct BlockDataToStore {
+      primitives::BlockHeader header;
+      primitives::BlockHash hash;
+    };
+
     bool hasJustification(primitives::BlockNumber block) const;
     using FindValidatorsResult = std::optional<
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
@@ -132,6 +141,8 @@ namespace kagome::network {
     outcome::result<void> apply(
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
+    outcome::result<void> fetchHeaders();
+    outcome::result<void> fetchHeadersBack();
     outcome::result<void> vote();
     outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
         consensus::beefy::AuthoritySetId validator_set_id,
@@ -141,6 +152,8 @@ namespace kagome::network {
     void setTimer();
     outcome::result<void> reportDoubleVoting(
         const consensus::beefy::DoubleVotingProof &votes);
+    void saveBlockData(const std::unordered_map<primitives::BlockNumber,
+                                               BlockDataToStore> &blocksToStore);
 
     log::Logger log_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -161,6 +174,7 @@ namespace kagome::network {
     primitives::events::ChainSub chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
+    std::optional<primitives::BlockNumber> fetching_headers_;
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
     primitives::BlockNumber last_voted_ = 0;
@@ -169,5 +183,6 @@ namespace kagome::network {
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
     libp2p::basic::Scheduler::Handle timer_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
   };
 }  // namespace kagome::network
