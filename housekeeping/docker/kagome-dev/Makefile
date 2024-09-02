@@ -48,8 +48,8 @@ export BUILDKIT_PROGRESS=auto
 
 
 get_versions:
-	echo "full_commit_hash: `git rev-parse HEAD`" > commit_hash.txt
-	echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" >> commit_hash.txt
+	@echo "full_commit_hash: `git rev-parse HEAD`" | tee commit_hash.txt
+	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
 
 kagome_builder_deb:
 	docker build --platform $(PLATFORM) \

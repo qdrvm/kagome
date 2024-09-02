@@ -59,7 +59,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
@@ -195,7 +195,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
         
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
         
@@ -230,7 +230,12 @@ jobs:
         with:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
-  
+
+      - name: "Display installed versions"
+        if: always()
+        run: |
+          cat /tmp/versions.env
+
       - name: "Show system info"
         if: always()
         run: |
