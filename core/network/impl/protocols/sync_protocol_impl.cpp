@@ -68,7 +68,7 @@ namespace kagome::network {
         const PeerId &peer_id,
         BlocksRequest::Fingerprint request_fingerprint,
         std::optional<CacheRecordIndex> target_slot) {
-      CacheRecordIndex slot;
+      CacheRecordIndex slot;  // NOLINT(cppcoreguidelines-init-variables)
       if (target_slot) {
         slot = *target_slot;
       } else {

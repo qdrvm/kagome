@@ -136,7 +136,7 @@ namespace kagome::parachain {
 
     HeadData parent_head;
     ParachainBlock block_data;
-    BlockNumber relay_parent_number;
+    BlockNumber relay_parent_number{};
     Hash256 relay_parent_storage_root;
   };
 

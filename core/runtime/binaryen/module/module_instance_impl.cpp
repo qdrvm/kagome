@@ -117,7 +117,7 @@ namespace kagome::runtime::binaryen {
       return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
-    WasmSpan span;
+    WasmSpan span;  // NOLINT(cppcoreguidelines-init-variables)
     try {
       span = module_instance_->callExport(wasm::Name{name.data()}, args_list)
                  .geti64();

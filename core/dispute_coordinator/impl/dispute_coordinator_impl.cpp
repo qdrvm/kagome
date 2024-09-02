@@ -1090,9 +1090,9 @@ namespace kagome::dispute {
     struct ImportResult {
       CandidateVoteState old_state;
       CandidateVoteState new_state;
-      size_t imported_invalid_votes;
-      size_t imported_valid_votes;
-      size_t imported_approval_votes;
+      size_t imported_invalid_votes{};
+      size_t imported_valid_votes{};
+      size_t imported_approval_votes{};
       std::vector<ValidatorIndex> new_invalid_voters;
     };
 
@@ -1596,7 +1596,7 @@ namespace kagome::dispute {
                                                ValidatorIndex our_index) {
     auto &validators = session_info.validators;
 
-    ValidatorIndex other_index;
+    ValidatorIndex other_index;  // NOLINT(cppcoreguidelines-init-variables)
 
     auto get_other_vote =
         [&](auto &some_kind_votes) -> outcome::result<SignedDisputeStatement> {

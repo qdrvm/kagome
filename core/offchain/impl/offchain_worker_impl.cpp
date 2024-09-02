@@ -255,7 +255,7 @@ namespace kagome::offchain {
       }
       auto &request = it->second;
 
-      HttpStatus status;
+      HttpStatus status;  // NOLINT(cppcoreguidelines-init-variables)
       while ((status = request->status()) == 0) {
         if (deadline.has_value()
             and (clock_->zero() + std::chrono::milliseconds(deadline.value()))

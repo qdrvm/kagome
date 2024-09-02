@@ -556,7 +556,6 @@ class DbStatsCommand : public Command {
 
   void execute(std::ostream &out, const ArgumentList &args) override {
     rocksdb::Options options;
-    rocksdb::DB *db;
 
     std::vector<std::string> existing_families;
     auto res = rocksdb::DB::ListColumnFamilies(
@@ -571,6 +570,8 @@ class DbStatsCommand : public Command {
       column_families.emplace_back(rocksdb::ColumnFamilyDescriptor{family, {}});
     }
     std::vector<rocksdb::ColumnFamilyHandle *> column_handles;
+
+    rocksdb::DB *db;  // NOLINT(cppcoreguidelines-init-variables)
     auto status = rocksdb::DB::OpenForReadOnly(
         options, db_path, column_families, &column_handles, &db);
     if (!status.ok()) {
@@ -626,7 +627,7 @@ int storage_explorer_main(int argc, const char **argv) {
   auto configuration =
       std::make_shared<kagome::application::AppConfigurationImpl>();
 
-  size_t kagome_args_start;
+  size_t kagome_args_start;  // NOLINT(cppcoreguidelines-init-variables)
   bool is_found = false;
   for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {

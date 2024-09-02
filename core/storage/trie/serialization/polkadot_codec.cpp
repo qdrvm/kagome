@@ -128,9 +128,6 @@ namespace kagome::storage::trie {
       return Error::TOO_MANY_NIBBLES;
     }
 
-    uint8_t head;
-    uint8_t partial_length_mask;  // max partial key length
-
     auto type = getType(node);
     if (shouldBeHashed(node.getValue(), version)) {
       if (node.isBranch()) {
@@ -139,6 +136,11 @@ namespace kagome::storage::trie {
         type = TrieNode::Type::LeafContainingHashes;
       }
     }
+
+    uint8_t head;  // NOLINT(cppcoreguidelines-init-variables)
+
+    // max partial key length
+    uint8_t partial_length_mask;  // NOLINT(cppcoreguidelines-init-variables)
 
     // set bits of type
     switch (type) {
@@ -316,7 +318,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::pair<TrieNode::Type, size_t>>
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
-    TrieNode::Type type;
+    TrieNode::Type type;  // NOLINT(cppcoreguidelines-init-variables)
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }

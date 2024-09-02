@@ -533,6 +533,7 @@ namespace {
             return ApprovalDistributionError::VRF_DELAY_CORE_INDEX_MISMATCH;
           }
 
+          // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
           network::DelayTranche tranche;
           if (SR25519_SIGNATURE_RESULT_OK
               != sr25519_vrf_verify_and_get_tranche(
@@ -3217,6 +3218,7 @@ namespace kagome::parachain {
               indirect_cert.cert.kind, candidate_hash, block_entry)) {
         if (auto claimed_candidate_indices = cores_to_candidate_indices(
                 *claimed_core_indices, block_entry)) {
+          // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
           bool distribute_assignment;
           if (approval::count_ones(*claimed_candidate_indices) > 1) {
             distribute_assignment = !block_entry.mark_assignment_distributed(

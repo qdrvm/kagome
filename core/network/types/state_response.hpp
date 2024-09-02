@@ -25,7 +25,7 @@ namespace kagome::network {
     /// A collection of keys-values.
     std::vector<StateEntry> entries;
     /// Set to true when there are no more keys to return.
-    bool complete;
+    bool complete{};
   };
 
   /**

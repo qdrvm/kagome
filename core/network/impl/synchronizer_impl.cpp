@@ -452,6 +452,7 @@ namespace kagome::network {
           return;
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         primitives::BlockNumber hint;
 
         // Narrowing interval for next iteration

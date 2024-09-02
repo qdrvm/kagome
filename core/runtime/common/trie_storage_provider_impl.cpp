@@ -233,12 +233,11 @@ namespace kagome::runtime {
     if (not child and starts_with_child_storage_key(prefix)) {
       return result;
     }
-    storage::trie::TrieBatch *overlay;
-    if (child) {
-      overlay = &getMutableChildBatchAt(*child).value().get();
-    } else {
-      overlay = getCurrentBatch().get();
-    }
+
+    storage::trie::TrieBatch *overlay =
+        child ? &getMutableChildBatchAt(*child).value().get()
+              : getCurrentBatch().get();
+
     // https://github.com/paritytech/polkadot-sdk/blob/c973fe86f8c668462186c95655a58fda04508e9a/substrate/primitives/state-machine/src/overlayed_changes/mod.rs#L396-L399
     overlay->clearPrefix(prefix).value();
     std::unique_ptr<storage::BufferStorageCursor> cursor;

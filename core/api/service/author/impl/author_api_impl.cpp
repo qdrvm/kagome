@@ -111,8 +111,6 @@ namespace kagome::api {
   // it could be extended by reading config from chainspec palletSession/keys
   // value
   outcome::result<bool> AuthorApiImpl::hasSessionKeys(const BufferView &keys) {
-    scale::ScaleDecoderStream stream(keys);
-    std::array<uint8_t, 32> key;
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
       SL_WARN(logger_,
               "not valid key sequence, author_hasSessionKeys RPC call expects "
@@ -120,6 +118,9 @@ namespace kagome::api {
               "be 32 byte in size");
       return false;
     }
+    scale::ScaleDecoderStream stream(keys);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+    std::array<uint8_t, 32> key;
     stream >> key;
     if (store_->ed25519().findKeypair(
             crypto::KeyTypes::GRANDPA,

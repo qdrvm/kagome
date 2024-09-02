@@ -234,6 +234,7 @@ namespace kagome::parachain {
 
   template <typename T>
   outcome::result<T> decodeInput() {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
     OUTCOME_TRY(readStdin(length_bytes));
     OUTCOME_TRY(message_length, scale::decode<uint32_t>(length_bytes));

@@ -54,7 +54,7 @@ namespace kagome::primitives::events {
       primitives::BlockNumber number{};
     };
     std::vector<HeaderInfo> removed;
-    primitives::BlockNumber finalized;
+    primitives::BlockNumber finalized{};
   };
 
   using ChainEventParams = boost::variant<std::nullopt_t,

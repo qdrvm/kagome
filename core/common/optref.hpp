@@ -77,6 +77,6 @@ namespace kagome {
     }
 
    private:
-    T *data;
+    T *data = nullptr;
   };
 }  // namespace kagome

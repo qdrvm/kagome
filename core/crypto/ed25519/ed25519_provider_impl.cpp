@@ -60,6 +60,7 @@ namespace kagome::crypto {
   outcome::result<Ed25519Signature> Ed25519ProviderImpl::sign(
       const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
     SecureCleanGuard g{keypair_bytes};
     std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_bytes.begin());

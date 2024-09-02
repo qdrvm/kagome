@@ -96,7 +96,7 @@ namespace kagome::parachain {
     }
 
     const CandidateHash digest = candidateHash(*hasher_, candidate);
-    bool new_proposal;
+    bool new_proposal;  // NOLINT(cppcoreguidelines-init-variables)
     if (auto it = state.authority_data_.find(authority);
         it != state.authority_data_.end()) {
       auto &existing = it->second;

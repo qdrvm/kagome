@@ -418,6 +418,7 @@ namespace kagome::runtime::wasm_edge {
     auto code_hash = hasher_->blake2b_256(code);
     OUTCOME_TRY(configure_ctx, configureCtx());
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     WasmEdge_ASTModuleContext *module_ctx;
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
         loader_ctx.raw(), &module_ctx, path_compiled.c_str()));

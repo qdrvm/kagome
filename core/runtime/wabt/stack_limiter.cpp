@@ -109,9 +109,7 @@ namespace kagome::runtime {
                                         wabt::ExprList::iterator>;
 
       explicit Stack(log::Logger logger)
-          : height_{ACTIVATION_FRAME_COST},
-            frames_{},
-            logger_{std::move(logger)} {}
+          : height_{ACTIVATION_FRAME_COST}, logger_{std::move(logger)} {}
 
       WabtOutcome<void> unreachable() {
         if (frames_.empty()) {
@@ -275,7 +273,7 @@ namespace kagome::runtime {
 
      private:
       uint32_t height_ = ACTIVATION_FRAME_COST;
-      std::vector<StackFrame> frames_;
+      std::vector<StackFrame> frames_{};
       log::Logger logger_;
     };
 

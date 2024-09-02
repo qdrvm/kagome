@@ -402,7 +402,7 @@ namespace kagome::application {
   bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
                                       const char *name,
                                       uint16_t &target) {
-    uint32_t i;
+    uint32_t i;  // NOLINT(cppcoreguidelines-init-variables)
     if (load_u32(val, name, i)
         && (i & ~std::numeric_limits<uint16_t>::max()) == 0) {
       target = static_cast<uint16_t>(i);
