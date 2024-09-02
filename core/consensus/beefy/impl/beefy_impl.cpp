@@ -399,7 +399,7 @@ namespace kagome::network {
 
   outcome::result<void> BeefyImpl::fetchHeaders() {
     std::unordered_map<primitives::BlockNumber, BlockDataToStore> blocksToStore;
-    while (1) {
+    while (true) {
       auto& fetchingHeader = *fetching_headers_;
       auto block_hash = block_tree_->getBlockHash(fetchingHeader);
       if (block_hash) {
@@ -409,7 +409,10 @@ namespace kagome::network {
           auto blockHeader = block_tree_->getBlockHeader(hashValue);
           if (blockHeader) {
             const auto& blockHeaderValue = blockHeader.value();
-            blocksToStore[fetchingHeader] = {blockHeaderValue, hashValue};
+            blocksToStore[fetchingHeader] = {
+              .header = blockHeaderValue,
+              .hash = hashValue
+            };
             if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
               beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
               break;
