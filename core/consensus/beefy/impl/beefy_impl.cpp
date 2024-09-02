@@ -382,7 +382,6 @@ namespace kagome::network {
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
-    fetching_headers_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -398,13 +397,16 @@ namespace kagome::network {
   }
 
   outcome::result<void> BeefyImpl::fetchHeaders() {
+    if (not fetching_headers_ or not beefy_genesis_) {
+      return outcome::success();
+    }
+    auto& fetchingHeader = *fetching_headers_;
     std::unordered_map<primitives::BlockNumber, BlockDataToStore> blocksToStore;
-    while (true) {
-      auto& fetchingHeader = *fetching_headers_;
+    while (fetchingHeader > *beefy_genesis_) {
       auto block_hash = block_tree_->getBlockHash(fetchingHeader);
       if (block_hash) {
         auto& blockHashOptValue = block_hash.value();
-        if (blockHashOptValue.has_value()) {
+        if (blockHashOptValue) {
           const auto& hashValue = *blockHashOptValue;
           auto blockHeader = block_tree_->getBlockHeader(hashValue);
           if (blockHeader) {
@@ -415,16 +417,13 @@ namespace kagome::network {
             };
             if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
               beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
-              break;
             }
           }
         }
       }
-      if (fetchingHeader == 0) {
-        break;
-      }
       --fetchingHeader;
     }
+    fetching_headers_.reset();
     saveBlockData(blocksToStore);
     return outcome::success();
   }
@@ -473,13 +472,6 @@ namespace kagome::network {
       return outcome::success();
     }
 
-    if (grandpa_finalized.number) {
-      if (!fetching_headers_.has_value()) {
-        fetching_headers_ = grandpa_finalized.number;
-        OUTCOME_TRY(fetchHeaders());
-      }
-    }
-
     for (auto pending_it = pending_justifications_.begin();
          pending_it != pending_justifications_.end()
          and pending_it->first <= grandpa_finalized.number;) {
@@ -487,6 +479,10 @@ namespace kagome::network {
           apply(pending_justifications_.extract(pending_it++).mapped(), false);
     }
     while (next_digest_ <= grandpa_finalized.number) {
+      if (auto r = block_tree_->getBlockHash(next_digest_); not r or not r.value()) {
+        fetching_headers_ = grandpa_finalized.number;
+        OUTCOME_TRY(fetchHeaders());
+      }
       OUTCOME_TRY(
           found,
           findValidators(next_digest_,
