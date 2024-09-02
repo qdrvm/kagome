@@ -462,7 +462,8 @@ namespace kagome::dispute {
     for (auto &vote : votes) {
       auto res = process_on_chain_votes(vote);
       if (res.has_error()) {
-        SL_WARN(log_, "Skipping scraping block due to error: {}", res.error());
+        SL_WARN(
+            log_, "Skipping scraping block (due to error): {}", res.error());
       }
     }
 
@@ -1423,7 +1424,7 @@ namespace kagome::dispute {
 
       auto res = participation_->queue_participation(priority, request);
       if (res.has_error()) {
-        SL_ERROR(log_, "participation error: {}", res.error());
+        SL_ERROR(log_, "Error of participation: {}", res.error());
       }
 
     } else {

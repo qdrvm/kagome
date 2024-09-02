@@ -97,12 +97,12 @@ namespace kagome::consensus::babe {
         if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
-          SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
+          SL_ERROR(logger_, "Can't decode genesis slot: {}", res.error());
           std::ignore = persistent_storage_->remove(storage::kFirstBlockSlot);
         }
       }
     } else {
-      SL_ERROR(logger_, "genesis slot db read error: {}", res.error());
+      SL_ERROR(logger_, "Can't retrieve genesis slot from DB: {}", res.error());
       return false;
     }
 
@@ -140,7 +140,7 @@ namespace kagome::consensus::babe {
         return config(indexer_, best, true);
       };
       if (not res and not config_warp_sync_) {
-        SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
+        SL_ERROR(logger_, "Can't get config at best {}: {}", best, res.error());
         auto best_header = block_tree_->getBlockHeader(best.hash).value();
         if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
           SL_ERROR(logger_,
