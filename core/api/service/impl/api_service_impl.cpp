@@ -85,7 +85,7 @@ namespace {
     response["subscription"] = makeValue(set_id);
 
     jsonrpc::Request::Parameters params;
-    params.push_back(std::move(response));
+    params.emplace_back(std::move(response));
 
     server->processJsonData(name.data(), params, [&](const auto &response) {
       if (response.has_value()) {

@@ -349,13 +349,13 @@ namespace kagome::network {
       // disconnect from peers with negative reputation
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
       if (peer_reputation < kDisconnectReputation) {
-        peers_list.push_back(
-            std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
+        peers_list.emplace_back(std::numeric_limits<PriorityType>::min(),
+                                peer_id);
         // we have to store peers somewhere first due to inability to iterate
         // over active_peers_ and do disconnectFromPeers (which modifies
         // active_peers_) at the same time
       } else {
-        peers_list.push_back(std::make_pair(peer_reputation, peer_id));
+        peers_list.emplace_back(peer_reputation, peer_id);
       }
     }
 

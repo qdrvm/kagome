@@ -290,7 +290,7 @@ namespace kagome::consensus::grandpa {
     /// entries to be processed
     std::stack<std::reference_wrapper<const Entry>> nodes;
 
-    nodes.push(active_node);
+    nodes.emplace(active_node);
     while (not nodes.empty()) {
       auto &node = nodes.top().get();
       nodes.pop();
@@ -315,7 +315,7 @@ namespace kagome::consensus::grandpa {
           node_key = descendant_hash;
           active_node = descendant;
 
-          nodes.push(descendant);
+          nodes.emplace(descendant);
         }
       }
 

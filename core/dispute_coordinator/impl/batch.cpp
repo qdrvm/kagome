@@ -48,7 +48,7 @@ namespace kagome::dispute {
       return std::move(cb);
     }
 
-    requesters_.push_back(std::make_tuple(peer, std::move(cb)));
+    requesters_.emplace_back(peer, std::move(cb));
     return std::nullopt;
   }
 

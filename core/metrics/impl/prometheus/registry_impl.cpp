@@ -74,7 +74,7 @@ namespace kagome::metrics {
       const std::map<std::string, std::string> &labels) {
     prometheus::Summary::Quantiles q;
     for (const auto &p : quantiles) {
-      q.push_back({p.first, p.second});
+      q.emplace_back(p.first, p.second);
     }
     return registerMetric<Summary>(name, labels, q, max_age, age_buckets);
   }

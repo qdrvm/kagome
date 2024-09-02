@@ -2040,8 +2040,8 @@ namespace kagome::dispute {
       }
       auto &state_opt = state_res.value();
       if (state_opt.has_value()) {
-        output.push_back(std::make_tuple(
-            session, candidate_hash, std::move(state_opt.value())));
+        output.emplace_back(
+            session, candidate_hash, std::move(state_opt.value()));
       } else {
         SL_DEBUG(log_, "No votes found for candidate");
       }
