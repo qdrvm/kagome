@@ -17,8 +17,9 @@ namespace kagome::log {
   struct ProfileScope {
     using Clock = ::kagome::clock::SteadyClockImpl;
 
-    ProfileScope(std::string_view scope, log::Logger logger = profiling_logger)
-        : scope{scope}, logger{logger} {
+    explicit ProfileScope(std::string_view scope,
+                          log::Logger logger = profiling_logger)
+        : scope{scope}, logger{std::move(logger)} {
       BOOST_ASSERT(logger != nullptr);
       start = Clock{}.now();
     }

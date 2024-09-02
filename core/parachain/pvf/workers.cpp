@@ -27,9 +27,9 @@ namespace kagome::parachain {
 
   struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
     AsyncPipe pipe_stdin;
-    AsyncPipe &writer;
+    boost::asio::buffered_write_stream<AsyncPipe &> writer;
     AsyncPipe pipe_stdout;
-    AsyncPipe &reader;
+    boost::asio::buffered_write_stream<AsyncPipe &> reader;
     boost::process::child process;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
