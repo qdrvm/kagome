@@ -66,7 +66,13 @@ namespace kagome::parachain {
                   if (ec) {
                     return cb(ec);
                   }
-                  return cb(outcome::success());
+                  self->writer.async_flush(
+                      [cb](boost::system::error_code ec, size_t) mutable {
+                        if (ec) {
+                          return cb(ec);
+                        }
+                        cb(outcome::success());
+                      });
                 });
           });
     }
