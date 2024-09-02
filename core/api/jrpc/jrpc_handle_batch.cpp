@@ -110,7 +110,7 @@ namespace kagome::api {
         }
         batch_.append(formatted->GetData(), formatted->GetSize());
       };
-      Parser<decltype(cb) &> parser{std::move(cb)};
+      Parser<decltype(cb) &> parser{.cb = std::move(cb)};
       if (parser.parse(request)) {
         if (!batch_.empty()) {
           batch_.push_back(']');

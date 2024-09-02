@@ -80,7 +80,7 @@ namespace kagome::consensus {
     OUTCOME_TRY(slot_number, consensus->getSlot(header));
     auto start_time = slots_util_.get()->slotStartTime(slot_number);
     auto slot_duration = timings_.slot_duration;
-    return outcome::success(SlotInfo{start_time, slot_duration});
+    return SlotInfo{.start = start_time, .duration = slot_duration};
   }
 
 }  // namespace kagome::consensus

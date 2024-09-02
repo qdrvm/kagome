@@ -389,9 +389,12 @@ namespace kagome::consensus::grandpa {
              last_finalized);
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
-    network::GrandpaNeighborMessage message{.round_number = round,
-                                            .voter_set_id = set_id,
-                                            .last_finalized = last_finalized};
+    network::GrandpaNeighborMessage message{
+        .round_number = round,
+        .voter_set_id = set_id,
+        .last_finalized = last_finalized,
+    };
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     transmitter_->sendNeighborMessage(std::move(message));
   }
 

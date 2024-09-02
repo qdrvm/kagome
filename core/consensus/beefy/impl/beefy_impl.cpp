@@ -206,7 +206,8 @@ namespace kagome::network {
           SL_WARN(log_, "won't report own double woting");
           return;
         }
-        auto r = reportDoubleVoting({vote_it->second.first, vote});
+        auto r = reportDoubleVoting(
+            {.first = vote_it->second.first, .second = vote});
         if (not r) {
           SL_WARN(log_, "reportDoubleVoting: {}", r.error());
         }
@@ -220,14 +221,14 @@ namespace kagome::network {
     if (round == session.rounds.end()) {
       round = session.rounds.emplace(block_number, Round{}).first;
     }
-    round->second.double_voting.emplace(*index, DoubleVoting{vote});
+    round->second.double_voting.emplace(*index, DoubleVoting{.first = vote});
     auto justification = round->second.justifications.find(vote.commitment);
     if (justification == round->second.justifications.end()) {
-      justification =
-          round->second.justifications
-              .emplace(vote.commitment,
-                       consensus::beefy::SignedCommitment{vote.commitment, {}})
-              .first;
+      justification = round->second.justifications
+                          .emplace(vote.commitment,
+                                   consensus::beefy::SignedCommitment{
+                                       .commitment = vote.commitment})
+                          .first;
     }
     justification->second.signatures.resize(total);
     justification->second.signatures[*index] = vote.signature;
@@ -379,7 +380,7 @@ namespace kagome::network {
           session->second.rounds.upper_bound(block_number));
     }
     if (found) {
-      sessions_.emplace(first, Session{std::move(validators), {}});
+      sessions_.emplace(first, Session{.validators = std::move(validators)});
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
@@ -440,7 +441,8 @@ namespace kagome::network {
           findValidators(next_digest_,
                          sessions_.empty() ? *beefy_genesis_ : next_digest_));
       if (found) {
-        sessions_.emplace(found->first, Session{std::move(found->second), {}});
+        sessions_.emplace(found->first,
+                          Session{.validators = std::move(found->second)});
         metricValidatorSetId();
       }
       ++next_digest_;
@@ -514,8 +516,9 @@ namespace kagome::network {
     OUTCOME_TRY(sig,
                 ecdsa_->signPrehashed(consensus::beefy::prehash(*commitment),
                                       key->first->secret_key));
-    consensus::beefy::VoteMessage vote{
-        std::move(*commitment), key->first->public_key, sig};
+    consensus::beefy::VoteMessage vote{.commitment = std::move(*commitment),
+                                       .id = key->first->public_key,
+                                       .signature = sig};
     onVote(vote, true);
     last_voted_ = target;
     last_vote_ = std::move(vote);
@@ -538,9 +541,9 @@ namespace kagome::network {
       return std::nullopt;
     }
     return consensus::beefy::Commitment{
-        {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
-        block_number,
-        validator_set_id,
+        .payload = {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
+        .block_number = block_number,
+        .validator_set_id = validator_set_id,
     };
   }
 

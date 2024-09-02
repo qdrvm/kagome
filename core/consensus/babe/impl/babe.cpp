@@ -402,7 +402,8 @@ namespace kagome::consensus::babe {
     common::Buffer pre_runtime_data{std::move(encode_res.value())};
 
     return primitives::PreRuntime{
-        {primitives::kBabeEngineId, std::move(pre_runtime_data)}};
+        {.consensus_engine_id = primitives::kBabeEngineId,
+         .data = std::move(pre_runtime_data)}};
   }
 
   outcome::result<primitives::Seal> Babe::makeSeal(
@@ -416,7 +417,8 @@ namespace kagome::consensus::babe {
     if (signature_res.has_value()) {
       Seal seal{.signature = signature_res.value()};
       auto encoded_seal = common::Buffer(scale::encode(seal).value());
-      return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
+      return primitives::Seal{{.consensus_engine_id = primitives::kBabeEngineId,
+                               .data = std::move(encoded_seal)}};
     }
 
     SL_ERROR(log_, "Error signing a block seal: {}", signature_res.error());
@@ -620,12 +622,11 @@ namespace kagome::consensus::babe {
     telemetry_->pushBlockStats();
 
     // finally, broadcast the sealed block
-    announce_transmitter_->blockAnnounce(network::BlockAnnounce{
-        block.header,
-        block_info == block_tree_->bestBlock() ? network::BlockState::Best
-                                               : network::BlockState::Normal,
-        common::Buffer{},
-    });
+    announce_transmitter_->blockAnnounce(
+        {.header = block.header,
+         .state = block_info == block_tree_->bestBlock()
+                    ? network::BlockState::Best
+                    : network::BlockState::Normal});
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",

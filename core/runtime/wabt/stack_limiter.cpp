@@ -593,10 +593,10 @@ namespace kagome::runtime {
             if (auto cost = stack_costs.at(call->var.index()); cost != 0) {
               top_frame.current_expr = instrument_call(
                   InstrumentCallCtx{
-                      stack_height,
-                      call->var,
-                      stack_costs.at(call->var.index()),
-                      stack_limit,
+                      .stack_height = stack_height,
+                      .callee_idx = call->var,
+                      .callee_stack_cost = stack_costs.at(call->var.index()),
+                      .stack_limit = stack_limit,
                   },
                   top_frame.getExprList(),
                   top_frame.current_expr);
@@ -683,8 +683,10 @@ namespace kagome::runtime {
         wabt::Var v{thunked, {}};
         thunk.push_back(std::make_unique<wabt::CallExpr>(v));
         instrument_call(
-            InstrumentCallCtx{
-                stack_height, v, stack_costs.at(thunked), stack_limit},
+            InstrumentCallCtx{.stack_height = stack_height,
+                              .callee_idx = v,
+                              .callee_stack_cost = stack_costs.at(thunked),
+                              .stack_limit = stack_limit},
             thunk,
             std::prev(thunk.end()));
 

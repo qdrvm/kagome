@@ -160,7 +160,7 @@ namespace kagome::api {
     for (auto &block : range) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
-      StorageChangeSet change{block, {}};
+      StorageChangeSet change{.block = block};
       for (auto &key : keys) {
         OUTCOME_TRY(opt_get, batch->tryGet(key));
         auto opt_value = common::map_optional(
@@ -168,7 +168,8 @@ namespace kagome::api {
             [](common::BufferOrView &&r) { return std::move(r).intoBuffer(); });
         auto it = last_values.find(key);
         if (it == last_values.end() || it->second != opt_value) {
-          change.changes.push_back(StorageChangeSet::Change{key, opt_value});
+          change.changes.push_back(
+              StorageChangeSet::Change{.key = key, .data = opt_value});
         }
         last_values[key] = std::move(opt_value);
       }
@@ -200,7 +201,7 @@ namespace kagome::api {
     for (auto &key : keys) {
       OUTCOME_TRY(trie->tryGet(key));
     }
-    return ReadProof{at, db.vec()};
+    return ReadProof{.at = at, .proof = db.vec()};
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(

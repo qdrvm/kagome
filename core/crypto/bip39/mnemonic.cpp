@@ -45,7 +45,10 @@ namespace kagome::crypto::bip39 {
     } else {
       std::ranges::copy(raw, result.begin());
     }
-    return RawJunction{hard, result};
+    return RawJunction{
+        .hard = hard,
+        .cc = result,
+    };
   }
 
   outcome::result<Mnemonic> Mnemonic::parse(std::string_view phrase) {
@@ -82,12 +85,18 @@ namespace kagome::crypto::bip39 {
         }
         auto index = path.substr(0, slash_pos);
         auto end = index.data() + index.size();
-        uint64_t num;
+        uint64_t num;  // NOLINT(cppcoreguidelines-init-variables)
         auto parse = std::from_chars(index.data(), end, num);
         if (parse.ec == std::errc{} and parse.ptr == end) {
-          mnemonic.junctions.emplace_back(Junction{hard, num});
+          mnemonic.junctions.emplace_back(Junction{
+              .hard = hard,
+              .index = num,
+          });
         } else {
-          mnemonic.junctions.emplace_back(Junction{hard, std::string{index}});
+          mnemonic.junctions.emplace_back(Junction{
+              .hard = hard,
+              .index = std::string{index},
+          });
         }
         path.remove_prefix(slash_pos);
       }

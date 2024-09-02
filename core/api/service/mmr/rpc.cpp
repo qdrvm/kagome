@@ -104,9 +104,9 @@ namespace kagome::api {
                       *at, std::move(block_numbers), best_known_block_number));
               auto [leaves, proof] = unwrap(std::move(r));
               return primitives::MmrLeavesProof{
-                  *at,
-                  common::Buffer{scale::encode(leaves).value()},
-                  common::Buffer{scale::encode(proof).value()},
+                  .block_hash = *at,
+                  .leaves = common::Buffer{scale::encode(leaves).value()},
+                  .proof = common::Buffer{scale::encode(proof).value()},
               };
             }));
 

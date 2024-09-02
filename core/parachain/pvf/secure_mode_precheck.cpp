@@ -75,10 +75,11 @@ namespace kagome::parachain {
     namespace process_v2 = boost::process::v2;
     boost::asio::readable_pipe pipe{io_context};
     // input passed as CLI arguments to enable users to manually run the check
-    process_v2::process process{io_context,
-                                exePath().c_str(),
-                                {"check-secure-mode", cache_dir.c_str()},
-                                process_v2::process_stdio{{}, pipe, {}}};
+    process_v2::process process{
+        io_context,
+        exePath().c_str(),
+        {"check-secure-mode", cache_dir.c_str()},
+        process_v2::process_stdio{.in = {}, .out = pipe, .err = {}}};
     Buffer output;
     boost::system::error_code ec;
     boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);

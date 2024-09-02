@@ -149,7 +149,7 @@ namespace kagome::consensus::grandpa {
     last_finalized_block_ = round_state.last_finalized_block;
 
     if (round_number_ != 0) {
-      VotingRoundUpdate update{*this};
+      VotingRoundUpdate update{.round = *this};
       for (auto &vote : round_state.votes) {
         update.vote(vote);
       }
@@ -653,7 +653,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              justification.block_info);
 
-    VotingRoundUpdate update{*this};
+    VotingRoundUpdate update{.round = *this};
     for (auto &vote : justification.items) {
       update.vote(vote);
     }

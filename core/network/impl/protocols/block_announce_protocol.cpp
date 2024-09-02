@@ -55,9 +55,9 @@ namespace kagome::network {
 
   BlockAnnounceHandshake BlockAnnounceProtocol::createHandshake() const {
     return BlockAnnounceHandshake{
-        roles_,
-        block_tree_->bestBlock(),
-        block_tree_->getGenesisBlockHash(),
+        .roles = roles_,
+        .best_block = block_tree_->bestBlock(),
+        .genesis_hash = block_tree_->getGenesisBlockHash(),
     };
   }
 

@@ -1175,13 +1175,13 @@ namespace kagome::dispute {
     }
 
     ImportResult intermediate_result{
-        std::move(old_state),
-        CandidateVoteState::create(
+        .old_state = std::move(old_state),
+        .new_state = CandidateVoteState::create(
             votes, env, disabled_validators, now),  // new_state
-        imported_invalid_votes,
-        imported_valid_votes,
-        0,
-        new_invalid_voters,
+        .imported_invalid_votes = imported_invalid_votes,
+        .imported_valid_votes = imported_valid_votes,
+        .imported_approval_votes = 0,
+        .new_invalid_voters = new_invalid_voters,
     };
 
     // Handle approval vote import:
@@ -1449,11 +1449,13 @@ namespace kagome::dispute {
             auto &pub_key = env.session.validators[validator_index];
 
             SignedDisputeStatement statement{
-                DisputeStatement{ValidDisputeStatement{ApprovalChecking{}}},
-                candidate_hash,
-                pub_key,
-                sig,
-                session};
+                .dispute_statement =
+                    DisputeStatement{ValidDisputeStatement{ApprovalChecking{}}},
+                .candidate_hash = candidate_hash,
+                .validator_public = pub_key,
+                .validator_signature = sig,
+                .session_index = session,
+            };
 
             SL_TRACE(
                 log_,
@@ -1718,10 +1720,10 @@ namespace kagome::dispute {
     };
 
     return network::DisputeMessage{
-        candidate_receipt,
-        session_index,
-        invalid_vote,
-        valid_vote,
+        .candidate_receipt = candidate_receipt,
+        .session_index = session_index,
+        .invalid_vote = invalid_vote,
+        .valid_vote = valid_vote,
     };
   }
 
@@ -1774,11 +1776,11 @@ namespace kagome::dispute {
       }
 
       SignedDisputeStatement our_vote_signed{
-          dispute_statement,
-          candidate_hash,
-          validator_public,
-          validator_signature,
-          env.session_index,
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = validator_signature,
+          .session_index = env.session_index,
       };
 
       auto msg_res = make_dispute_message(
@@ -2336,14 +2338,14 @@ namespace kagome::dispute {
         return SignatureValidationError::InvalidSignature;
       }
 
-      checked_valid_vote = {{
-                                dispute_statement,
-                                candidate_hash,
-                                validator_public,
-                                signature,
-                                session_index,
-                            },
-                            validator_index};
+      checked_valid_vote.payload = {
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = signature,
+          .session_index = session_index,
+      };
+      checked_valid_vote.ix = validator_index;
     }
 
     Indexed<SignedDisputeStatement> checked_invalid_vote;
@@ -2376,14 +2378,14 @@ namespace kagome::dispute {
         return SignatureValidationError::InvalidSignature;
       }
 
-      checked_invalid_vote = {{
-                                  dispute_statement,
-                                  candidate_hash,
-                                  validator_public,
-                                  signature,
-                                  session_index,
-                              },
-                              validator_index};
+      checked_invalid_vote.payload = {
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = signature,
+          .session_index = session_index,
+      };
+      checked_invalid_vote.ix = validator_index;
     }
 
     auto &valid_vote = checked_valid_vote;

@@ -98,10 +98,10 @@ namespace kagome::network {
         return;
       }
       Op op{
-          block_info,
-          fragment.header,
-          fragment.justification,
-          *authorities,
+          .block_info = block_info,
+          .header = fragment.header,
+          .justification = fragment.justification,
+          .authorities = *authorities,
       };
       db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
       applyInner(op);

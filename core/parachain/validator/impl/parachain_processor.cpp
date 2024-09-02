@@ -3909,14 +3909,14 @@ namespace kagome::parachain {
           validity_vote,
           [](const BackingStore::ValidityVoteIssued &val) {
             return network::ValidityAttestation{
-                network::ValidityAttestation::Implicit{},
-                ((ValidatorSignature &)val),
+                .kind = network::ValidityAttestation::Implicit{},
+                .signature = ((ValidatorSignature &)val),
             };
           },
           [](const BackingStore::ValidityVoteValid &val) {
             return network::ValidityAttestation{
-                network::ValidityAttestation::Explicit{},
-                ((ValidatorSignature &)val),
+                .kind = network::ValidityAttestation::Explicit{},
+                .signature = ((ValidatorSignature &)val),
             };
           });
 

@@ -282,7 +282,8 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }
     OUTCOME_TRY(voters, VoterSet::make(**authorities));
-    MovableRoundState state{1, finalized, {}, std::nullopt};
+    MovableRoundState state{.round_number = 1,
+                            .last_finalized_block = finalized};
     if (finalized.number != 0) {
       OUTCOME_TRY(raw_justification,
                   block_tree_->getBlockJustification(finalized.hash));
@@ -435,7 +436,8 @@ namespace kagome::consensus::grandpa {
           }
           pending_catchup_request_.emplace(
               peer_id,
-              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
+              network::CatchUpRequest{.round_number = msg.round_number - 1,
+                                      .voter_set_id = msg.voter_set_id});
           catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
               [wp{weak_from_this()}] {
                 auto self = wp.lock();
@@ -739,7 +741,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*round, grandpa_context};
+    VotingRoundUpdate update{.round = *round, .ctx = grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
@@ -767,9 +769,10 @@ namespace kagome::consensus::grandpa {
                 * grandpa_context.checked_signature_counter);
       }
       if (allow_missing_blocks) {
-        loadMissingBlocks({peer_id,
-                           std::move(msg),
-                           std::move(grandpa_context.missing_blocks)});
+        loadMissingBlocks(
+            {.peer = peer_id,
+             .msg = std::move(msg),
+             .blocks = std::move(grandpa_context.missing_blocks)});
       }
       return;
     }
@@ -944,7 +947,8 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*target_round, grandpa_context, true};
+    VotingRoundUpdate update{
+        .round = *target_round, .ctx = grandpa_context, .propagate = true};
     update.vote(msg.vote);
     update.update();
 
@@ -971,9 +975,10 @@ namespace kagome::consensus::grandpa {
 
     if (not target_round->finalizedBlock().has_value()) {
       if (allow_missing_blocks) {
-        loadMissingBlocks({peer_id,
-                           std::move(msg),
-                           std::move(grandpa_context.missing_blocks)});
+        loadMissingBlocks(
+            {.peer = peer_id,
+             .msg = std::move(msg),
+             .blocks = std::move(grandpa_context.missing_blocks)});
       }
       return;
     }
@@ -1105,7 +1110,9 @@ namespace kagome::consensus::grandpa {
         }
       }
       if (not missing_blocks.empty()) {
-        loadMissingBlocks({peer_id, std::move(msg), std::move(missing_blocks)});
+        loadMissingBlocks({.peer = peer_id,
+                           .msg = std::move(msg),
+                           .blocks = std::move(missing_blocks)});
         return;
       }
     }
@@ -1139,7 +1146,8 @@ namespace kagome::consensus::grandpa {
     state.round_number = justification.round_number;
     auto round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
-        GrandpaConfig{voters, justification.round_number, {}, {}},
+        GrandpaConfig{.voters = voters,
+                      .round_number = justification.round_number},
         hasher_,
         environment_,
         std::make_shared<VoteCryptoProviderImpl>(
@@ -1448,7 +1456,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::applyHistoricalVotes(VotingRound &round) {
     auto &votes =
         historicalVotes(round.voterSetId(), round.roundNumber()).first;
-    VotingRoundUpdate update{round};
+    VotingRoundUpdate update{.round = round};
     for (auto &vote : votes.seen) {
       update.vote(vote);
     }

@@ -602,8 +602,8 @@ namespace kagome::blockchain {
             OUTCOME_TRY(p.storage_->removeJustification(finalized.hash));
             auto parent = *header.parentInfo();
             ReorgAndPrune changes{
-                Reorg{parent, {finalized}, {}},
-                {finalized},
+                .reorg = Reorg{.common = parent, .revert = {finalized}},
+                .prune = {finalized},
             };
             p.tree_ = std::make_unique<CachedTree>(parent);
             OUTCOME_TRY(reorgAndPrune(p, changes));
@@ -820,7 +820,7 @@ namespace kagome::blockchain {
         for (auto parent = node->parent(); parent; parent = parent->parent()) {
           retired_hashes.emplace_back(
               primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
-                  parent->info.hash, parent->info.number});
+                  .hash = parent->info.hash, .number = parent->info.number});
         }
 
         auto changes = p.tree_->finalize(node);
@@ -852,7 +852,8 @@ namespace kagome::blockchain {
         main_pool_handler_->execute(
             [weak{weak_from_this()},
              retired{primitives::events::RemoveAfterFinalizationParams{
-                 std::move(retired_hashes), header.number}}] {
+                 .removed = std::move(retired_hashes),
+                 .finalized = header.number}}] {
               if (auto self = weak.lock()) {
                 self->chain_events_engine_->notify(
                     primitives::events::ChainEventType::
@@ -1338,7 +1339,7 @@ namespace kagome::blockchain {
       }
       retired_hashes.emplace_back(
           primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
-              block.hash, block.number});
+              .hash = block.hash, .number = block.number});
       OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
 
@@ -1347,8 +1348,8 @@ namespace kagome::blockchain {
         [extrinsics{std::move(extrinsics)},
          wself{weak_from_this()},
          retired{primitives::events::RemoveAfterFinalizationParams{
-             std::move(retired_hashes),
-             getLastFinalizedNoLock(p).number}}]() mutable {
+             .removed = std::move(retired_hashes),
+             .finalized = getLastFinalizedNoLock(p).number}}]() mutable {
           if (auto self = wself.lock()) {
             auto eo = self->block_tree_data_.sharedAccess(
                 [&](const BlockTreeData &p) { return p.extrinsic_observer_; });

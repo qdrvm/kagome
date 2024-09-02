@@ -256,7 +256,7 @@ namespace kagome::authority_discovery {
         return outcome::success();
       }
     }
-    libp2p::peer::PeerInfo peer{std::move(peer_id), {}};
+    libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
@@ -290,9 +290,12 @@ namespace kagome::authority_discovery {
         peer.id, peer.addresses, libp2p::peer::ttl::kDay);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
-    auth_to_peer_cache_.insert_or_assign(
-        authority,
-        Authority{std::move(signed_record_pb), time, std::move(peer)});
+    auth_to_peer_cache_.insert_or_assign(authority,
+                                         Authority{
+                                             .raw = std::move(signed_record_pb),
+                                             .time = time,
+                                             .peer = std::move(peer),
+                                         });
 
     return outcome::success();
   }

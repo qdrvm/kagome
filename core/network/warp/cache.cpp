@@ -91,7 +91,8 @@ namespace kagome::network {
       OUTCOME_TRY(justification,
                   scale::decode<consensus::grandpa::GrandpaJustification>(
                       raw_justification.data));
-      WarpSyncFragment fragment{std::move(header), std::move(justification)};
+      WarpSyncFragment fragment{.header = std::move(header),
+                                .justification = std::move(justification)};
       auto fragment_size = scale::encode(fragment).value().size();
       if (fragment_size > size_limit) {
         res.is_finished = false;
@@ -110,7 +111,8 @@ namespace kagome::network {
                   scale::decode<consensus::grandpa::GrandpaJustification>(
                       raw_justification.data));
       res.proofs.emplace_back(
-          WarpSyncFragment{std::move(header), std::move(justification)});
+          WarpSyncFragment{.header = std::move(header),
+                           .justification = std::move(justification)});
     }
     return res;
   }

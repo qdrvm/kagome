@@ -36,7 +36,11 @@ namespace kagome::network {
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
     BOOST_ASSERT(not complete());
-    StateRequest req{block_info_.hash, {}, false};
+    StateRequest req{
+        .hash = block_info_.hash,
+        .start = {},
+        .no_proof = false,
+    };
     for (auto &level : levels_) {
       storage::trie::KeyNibbles nibbles;
       for (auto &item : level.stack) {
@@ -78,8 +82,16 @@ namespace kagome::network {
           // when trie node is contained in other node value
           BOOST_OUTCOME_TRY(node, codec.decodeNode(raw));
         }
-        level.push(
-            {node, std::nullopt, level.child, {it->first, std::move(raw)}});
+        level.push({
+            .node = node,
+            .branch = std::nullopt,
+            .child = level.child,
+            .t =
+                {
+                    .hash = it->first,
+                    .encoded = std::move(raw),
+                },
+        });
         nodes.erase(it);
         return outcome::success();
       };

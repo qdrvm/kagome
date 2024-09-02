@@ -42,9 +42,9 @@ namespace kagome::runtime {
       memory2->memory.page_limits = memory->memory.page_limits;
       auto export_ = std::make_unique<wabt::ExportModuleField>();
       export_->export_ = {
-          import->import->field_name,
-          wabt::ExternalKind::Memory,
-          wabt::Var{0, {}},
+          .name = import->import->field_name,
+          .kind = wabt::ExternalKind::Memory,
+          .var = wabt::Var{0, {}},
       };
       module.imports.erase(import_it);
       module.memories.erase(memory_it);

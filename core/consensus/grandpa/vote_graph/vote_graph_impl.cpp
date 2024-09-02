@@ -406,7 +406,7 @@ namespace kagome::consensus::grandpa {
       hashes.push_back(*new_best);
     }
 
-    return Subchain{hashes, best_number};
+    return Subchain{.hashes = hashes, .best_number = best_number};
   }
 
   void VoteGraphImpl::adjustBase(const std::vector<BlockHash> &ancestry_proof) {

@@ -82,13 +82,13 @@ namespace kagome::parachain::fragment {
     }
 
     return Scope{
-        para,
-        relay_parent,
-        ancestors_map,
-        ancestors_by_hash,
-        pending_availability,
-        base_constraints,
-        max_depth,
+        .para = para,
+        .relay_parent = relay_parent,
+        .ancestors = ancestors_map,
+        .ancestors_by_hash = ancestors_by_hash,
+        .pending_availability = pending_availability,
+        .base_constraints = base_constraints,
+        .max_depth = max_depth,
     };
   }
 

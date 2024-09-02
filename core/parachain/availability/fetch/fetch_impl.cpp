@@ -168,9 +168,11 @@ namespace kagome::parachain {
     auto &active = it->second;
     if (_chunk) {
       if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
-        network::ErasureChunk chunk{std::move(chunk2->data),
-                                    active.chunk_index,
-                                    std::move(chunk2->proof)};
+        network::ErasureChunk chunk{
+            .chunk = std::move(chunk2->data),
+            .index = active.chunk_index,
+            .proof = std::move(chunk2->proof),
+        };
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
           av_store_->putChunk(
               active.relay_parent, candidate_hash, std::move(chunk));

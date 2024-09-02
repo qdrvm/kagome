@@ -59,8 +59,9 @@ namespace kagome::runtime {
     child_batches_.clear();
     base_batch_ = batch;
     transaction_stack_.clear();
-    transaction_stack_.emplace_back(
-        Transaction{std::make_shared<TopperTrieBatchImpl>(base_batch_), {}});
+    transaction_stack_.emplace_back(Transaction{
+        .main_batch = std::make_shared<TopperTrieBatchImpl>(base_batch_),
+        .child_batches = {}});
   }
 
   std::shared_ptr<TrieStorageProviderImpl::Batch>
@@ -187,7 +188,8 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
     transaction_stack_.emplace_back(Transaction{
-        std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()), {}});
+        .main_batch = std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()),
+        .child_batches = {}});
     SL_TRACE(logger_,
              "Start storage transaction, depth {}",
              transaction_stack_.size());

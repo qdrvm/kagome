@@ -172,7 +172,7 @@ namespace kagome::runtime {
       lock.lock();
       pool_opt = pools_.get(key);
       if (!pool_opt) {
-        pool_opt = std::ref(pools_.put(key, InstancePool{module, {}}));
+        pool_opt = std::ref(pools_.put(key, InstancePool{.module = module}));
       }
     }
     BOOST_ASSERT(pool_opt);
@@ -228,7 +228,7 @@ namespace kagome::runtime {
     Key key{code_hash, config};
     auto entry = pools_.get(key);
     if (not entry) {
-      entry = pools_.put(key, {instance->getModule(), {}});
+      entry = pools_.put(key, {.module = instance->getModule()});
     }
     entry->get().instances.emplace_back(std::move(instance));
   }

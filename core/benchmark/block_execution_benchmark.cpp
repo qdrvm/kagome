@@ -272,8 +272,8 @@ namespace kagome::benchmark {
                       block_tree_->getBlockBody(current_block_info.hash),
                       "block {}",
                       current_block_info);
-      primitives::Block current_block{std::move(current_block_header),
-                                      std::move(current_block_body)};
+      primitives::Block current_block{.header = std::move(current_block_header),
+                                      .body = std::move(current_block_body)};
       current_block.header.digest.pop_back();
       block_hashes.emplace_back(current_block_info.hash);
       blocks.emplace_back(std::move(current_block));

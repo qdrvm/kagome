@@ -94,14 +94,15 @@ namespace kagome::transaction_pool {
             -> outcome::result<primitives::Transaction> {
           size_t length = extrinsic.data.size();
 
-          return primitives::Transaction{extrinsic,
-                                         length,
-                                         extrinsic_hash,
-                                         v.priority,
-                                         res.first.number + v.longevity,
-                                         std::move(v.required_tags),
-                                         std::move(v.provided_tags),
-                                         v.propagate};
+          return primitives::Transaction{
+              .ext = extrinsic,
+              .bytes = length,
+              .hash = extrinsic_hash,
+              .priority = v.priority,
+              .valid_till = res.first.number + v.longevity,
+              .required_tags = std::move(v.required_tags),
+              .provided_tags = std::move(v.provided_tags),
+              .should_propagate = v.propagate};
         });
   }
 
@@ -383,7 +384,7 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::setReady(PoolState &pool_state,
                                      const std::shared_ptr<Transaction> &tx) {
     if (auto [it, ok] =
-            pool_state.ready_txs_.emplace(tx->hash, ReadyStatus{tx, {}});
+            pool_state.ready_txs_.emplace(tx->hash, ReadyStatus{.tx = tx});
         ok) {
       if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),

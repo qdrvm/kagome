@@ -11,7 +11,8 @@
 
 namespace scale {
 
-  PeerInfoSerializable::PeerInfoSerializable() : PeerInfo{dummyPeerId(), {}} {}
+  PeerInfoSerializable::PeerInfoSerializable()
+      : PeerInfo{.id = dummyPeerId(), .addresses = {}} {}
 
   libp2p::peer::PeerId PeerInfoSerializable::dummyPeerId() {
     // some valid dummy peer id
