@@ -498,7 +498,8 @@ namespace kagome::blockchain {
                   res.has_value(),
                   "Block tree must contain at least genesis block");
 
-              const_cast<std::decay_t<decltype(p.genesis_block_hash_)> &>(
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+              const_cast<std::optional<primitives::BlockHash> &>(
                   p.genesis_block_hash_)
                   .emplace(res.value());
               return p.genesis_block_hash_.value();

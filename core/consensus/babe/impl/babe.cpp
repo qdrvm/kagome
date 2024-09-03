@@ -410,8 +410,7 @@ namespace kagome::consensus::babe {
       const primitives::Block &block) const {
     // Calculate and save hash, 'cause it's new produced block
     // Note: it is temporary hash significant for signing
-    primitives::calculateBlockHash(
-        const_cast<primitives::BlockHeader &>(block.header), *hasher_);
+    primitives::calculateBlockHash(block.header, *hasher_);
 
     auto signature_res =
         sr25519_provider_->sign(*slot_leadership_.keypair, block.header.hash());

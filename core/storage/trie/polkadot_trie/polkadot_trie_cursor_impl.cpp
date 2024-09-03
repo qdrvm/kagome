@@ -337,9 +337,9 @@ namespace kagome::storage::trie {
       const auto &value_opt = search_state->getCurrent().getValue();
       if (value_opt) {
         // TODO(turuslan): #1470, return error
-        if (auto r =
-                trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
-            !r) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        auto r = trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
+        if (r.has_error()) {
           SL_WARN(log_,
                   "PolkadotTrieCursorImpl::value {}: {}",
                   common::hex_lower_0x(collectKey()),

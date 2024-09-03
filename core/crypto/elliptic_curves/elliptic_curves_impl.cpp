@@ -24,6 +24,7 @@ namespace kagome::crypto {
 
   namespace {
     ::BytesVec convert(common::BufferView view) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       return {.data = const_cast<uint8_t *>(view.data()), .size = view.size()};
     }
     outcome::result<common::Buffer> convert(::Result res) {

@@ -92,9 +92,9 @@ namespace kagome::telemetry {
     // The buffer will remain valid till all holders request its release.
     // The handle cannot be reassigned prior to complete release.
     // => There is no chance to get dangling pointers inside boost buffers.
-    auto &entry = pool_[handle];
-    return boost::asio::buffer(const_cast<uint8_t *>(entry.data.data()),
-                               entry.data_size);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    auto &entry = const_cast<Record &>(pool_[handle]);
+    return boost::asio::buffer(entry.data.data(), entry.data_size);
   }
 
   std::size_t MessagePool::capacity() const {

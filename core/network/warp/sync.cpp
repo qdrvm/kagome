@@ -78,8 +78,7 @@ namespace kagome::network {
       auto &fragment = res.proofs[i];
 
       // Calculate and save hash, 'cause it's just received response
-      primitives::calculateBlockHash(
-          const_cast<primitives::BlockHeader &>(fragment.header), *hasher_);
+      primitives::calculateBlockHash(fragment.header, *hasher_);
 
       primitives::BlockInfo block_info = fragment.header.blockInfo();
       if (fragment.justification.block_info != block_info) {

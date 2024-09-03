@@ -60,6 +60,7 @@ namespace kagome::storage::trie {
       // SAFETY: changing a parent's opaque child node from a handle to a node
       // to the actual node doesn't break it's const correctness, because opaque
       // nodes are meant to hide their content
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       auto &mut_parent = const_cast<BranchNode &>(parent);
       auto &opaque_child = parent.children.at(idx);
       OUTCOME_TRY(child, retrieve_node_(opaque_child));
@@ -487,6 +488,7 @@ namespace kagome::storage::trie {
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->getValue()) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->getValue())));
       return BufferView{*node->getValue().value};
     }
