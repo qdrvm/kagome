@@ -1415,7 +1415,7 @@ namespace kagome::network {
         BlockAttribute::HEADER,
         block,
         Direction::DESCENDING,
-        1,
+        std::nullopt,
         false,
     };
     auto chosen = chooseJustificationPeer(block, request.fingerprint());
@@ -1443,11 +1443,16 @@ namespace kagome::network {
         return cb(Error::EMPTY_RESPONSE);
       }
       const auto& headerValue = header.value();
+      const auto& headerInfo = headerValue.blockInfo();
+      if (not self->block_tree_->isFinalized(headerInfo)) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      const auto headerHash = headerInfo.hash;
       if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
         SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
         return cb(er.error());
       }
-      if (auto er = self->block_storage_->assignNumberToHash({block, headerValue.hash()}); er.has_error()) {
+      if (auto er = self->block_storage_->assignNumberToHash({block, headerHash}); er.has_error()) {
         SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
         return cb(er.error());
       }
