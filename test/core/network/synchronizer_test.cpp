@@ -27,6 +27,7 @@
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "testutil/lazy.hpp"
@@ -109,7 +110,8 @@ class SynchronizerTest
                                                     _timeline,
                                                     nullptr,
                                                     grandpa_environment,
-                                                    *main_thread_pool);
+                                                    *main_thread_pool,
+                                                    block_storage);
   }
 
   void TearDown() override {
@@ -144,6 +146,8 @@ class SynchronizerTest
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =
       std::make_shared<EnvironmentMock>();
+  std::shared_ptr<blockchain::BlockStorageMock> block_storage =
+      std::make_shared<blockchain::BlockStorageMock>();
 
   std::shared_ptr<Watchdog> watchdog =
       std::make_shared<Watchdog>(std::chrono::milliseconds(1));
