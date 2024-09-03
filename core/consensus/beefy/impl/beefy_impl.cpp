@@ -64,7 +64,7 @@ namespace kagome::network {
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<network::Synchronizer> synchronizer)
+      LazySPtr<network::Synchronizer> synchronizer)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
@@ -90,7 +90,6 @@ namespace kagome::network {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
-    BOOST_ASSERT(synchronizer_ != nullptr);
   }
 
   primitives::BlockNumber BeefyImpl::finalized() const {
@@ -423,7 +422,7 @@ namespace kagome::network {
           }
         }
       }
-      synchronizer_->fetchHeadersBack(fetchingHeader, [WEAK_SELF] (auto&& res) {
+      synchronizer_.get()->fetchHeadersBack(fetchingHeader, [WEAK_SELF] (auto&& res) {
         WEAK_LOCK(self);
         if (auto er = self->fetchHeaders(); er.has_error()) {
           SL_WARN(self->log_, "Failed to fetch headers: {}", er.error().message());
@@ -433,19 +432,6 @@ namespace kagome::network {
     }
     return outcome::success();
   }
-
-  // void BeefyImpl::saveBlockData(
-      // const std::unordered_map<primitives::BlockNumber, BlockDataToStore> &blocksToStore) {
-    // for (const auto &[blockNumber, blockData] : blocksToStore) {
-    //   if (auto putBlockRes = block_storage_->putBlockHeader(blockData.header); putBlockRes.has_error()) {
-    //     SL_WARN(log_, "Failed to put block header: {}, number won't be assigned to hash", putBlockRes.error().message());
-    //     continue;
-    //   }
-    //   if (auto assignNumberToHash = block_storage_->assignNumberToHash({blockNumber, blockData.hash}); assignNumberToHash.has_error()) {
-    //     SL_WARN(log_, "Failed to assign number to hash: {}", assignNumberToHash.error().message());
-    //   }
-    // }
-  // }
 
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();

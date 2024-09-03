@@ -63,12 +63,9 @@ namespace kagome::storage {
 }
 
 namespace kagome::network {
-  class Synchronizer;
-}
-
-namespace kagome::network {
   class BeefyProtocol;
   class BeefyThreadPool;
+  class Synchronizer;
 
   class BeefyImpl : public Beefy,
                     public std::enable_shared_from_this<BeefyImpl> {
@@ -92,7 +89,7 @@ namespace kagome::network {
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<network::Synchronizer> synchronizer);
+        LazySPtr<network::Synchronizer> synchronizer);
 
     bool tryStart();
 
@@ -176,6 +173,6 @@ namespace kagome::network {
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
     libp2p::basic::Scheduler::Handle timer_;
-    std::shared_ptr<network::Synchronizer> synchronizer_;
+    LazySPtr<network::Synchronizer> synchronizer_;
   };
 }  // namespace kagome::network
