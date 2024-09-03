@@ -1412,7 +1412,7 @@ namespace kagome::network {
   bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber block,
     CbResultVoid cb) {
     BlocksRequest request{
-        BlockAttribute::HEADER,
+        BlockAttribute::HEADER | BlockAttribute::BODY,
         block,
         Direction::DESCENDING,
         std::nullopt,
@@ -1422,41 +1422,47 @@ namespace kagome::network {
     if (not chosen) {
       return false;
     }
+
     auto cb2 = [weak{weak_from_this()},
-                block,
                 cb{std::move(cb)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
+
       self->busy_peers_.erase(peer);
       if (not r) {
         return cb(r.error());
       }
+
       auto &blocks = r.value().blocks;
       if (blocks.size() != 1) {
         return cb(Error::EMPTY_RESPONSE);
       }
+
       auto &header = blocks[0].header;
       if (not header) {
         return cb(Error::EMPTY_RESPONSE);
       }
+
       const auto& headerValue = header.value();
       const auto& headerInfo = headerValue.blockInfo();
+
       if (not self->block_tree_->isFinalized(headerInfo)) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      const auto headerHash = headerInfo.hash;
+
       if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
         SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
         return cb(er.error());
       }
-      if (auto er = self->block_storage_->assignNumberToHash({block, headerHash}); er.has_error()) {
+      if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
         SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
         return cb(er.error());
       }
     };
+
     fetch(*chosen, std::move(request), "header", std::move(cb2));
     return true;
   }
