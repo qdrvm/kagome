@@ -30,6 +30,8 @@
 #include "utils/block_number_key.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
+#include "utils/weak_macro.hpp"
+
 // TODO(turuslan): #1651, report equivocation
 
 namespace kagome::network {
@@ -62,7 +64,7 @@ namespace kagome::network {
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      std::shared_ptr<network::Synchronizer> synchronizer)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
@@ -80,7 +82,7 @@ namespace kagome::network {
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{std::move(chain_sub_engine)},
-        block_storage_{std::move(block_storage)} {
+        synchronizer_{std::move(synchronizer)} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);
@@ -88,7 +90,7 @@ namespace kagome::network {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
-    BOOST_ASSERT(block_storage_ != nullptr);
+    BOOST_ASSERT(synchronizer_ != nullptr);
   }
 
   primitives::BlockNumber BeefyImpl::finalized() const {
@@ -382,6 +384,7 @@ namespace kagome::network {
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
+    fetching_headers_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -400,9 +403,12 @@ namespace kagome::network {
     if (not fetching_headers_ or not beefy_genesis_) {
       return outcome::success();
     }
-    auto& fetchingHeader = *fetching_headers_;
-    std::unordered_map<primitives::BlockNumber, BlockDataToStore> blocksToStore;
-    while (fetchingHeader > *beefy_genesis_) {
+    while (fetching_headers_) {
+      auto& fetchingHeader = *fetching_headers_;
+      if (fetchingHeader <= beefy_genesis_) {
+        fetching_headers_.reset();
+        break;
+      }
       auto block_hash = block_tree_->getBlockHash(fetchingHeader);
       if (block_hash) {
         auto& blockHashOptValue = block_hash.value();
@@ -411,35 +417,35 @@ namespace kagome::network {
           auto blockHeader = block_tree_->getBlockHeader(hashValue);
           if (blockHeader) {
             const auto& blockHeaderValue = blockHeader.value();
-            blocksToStore[fetchingHeader] = {
-              .header = blockHeaderValue,
-              .hash = hashValue
-            };
             if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
               beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
             }
           }
         }
       }
+      synchronizer_->fetchHeadersBack(fetchingHeader, [WEAK_SELF] (auto&& res) {
+        WEAK_LOCK(self);
+        if (auto er = self->fetchHeaders(); er.has_error()) {
+          SL_WARN(self->log_, "Failed to fetch headers: {}", er.error().message());
+        }
+      });
       --fetchingHeader;
     }
-    fetching_headers_.reset();
-    saveBlockData(blocksToStore);
     return outcome::success();
   }
 
-  void BeefyImpl::saveBlockData(
-      const std::unordered_map<primitives::BlockNumber, BlockDataToStore> &blocksToStore) {
-    for (const auto &[blockNumber, blockData] : blocksToStore) {
-      if (auto putBlockRes = block_storage_->putBlockHeader(blockData.header); putBlockRes.has_error()) {
-        SL_WARN(log_, "Failed to put block header: {}, number won't be assigned to hash", putBlockRes.error().message());
-        continue;
-      }
-      if (auto assignNumberToHash = block_storage_->assignNumberToHash({blockNumber, blockData.hash}); assignNumberToHash.has_error()) {
-        SL_WARN(log_, "Failed to assign number to hash: {}", assignNumberToHash.error().message());
-      }
-    }
-  }
+  // void BeefyImpl::saveBlockData(
+      // const std::unordered_map<primitives::BlockNumber, BlockDataToStore> &blocksToStore) {
+    // for (const auto &[blockNumber, blockData] : blocksToStore) {
+    //   if (auto putBlockRes = block_storage_->putBlockHeader(blockData.header); putBlockRes.has_error()) {
+    //     SL_WARN(log_, "Failed to put block header: {}, number won't be assigned to hash", putBlockRes.error().message());
+    //     continue;
+    //   }
+    //   if (auto assignNumberToHash = block_storage_->assignNumberToHash({blockNumber, blockData.hash}); assignNumberToHash.has_error()) {
+    //     SL_WARN(log_, "Failed to assign number to hash: {}", assignNumberToHash.error().message());
+    //   }
+    // }
+  // }
 
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();

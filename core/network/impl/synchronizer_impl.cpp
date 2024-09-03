@@ -102,7 +102,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      common::MainThreadPool &main_thread_pool)
+      common::MainThreadPool &main_thread_pool,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -118,8 +119,8 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_pool_handler_{
-            poolHandlerReadyMake(app_state_manager, main_thread_pool)} {
+        main_pool_handler_{poolHandlerReadyMake(app_state_manager, main_thread_pool)},
+        block_storage_{std::move(block_storage)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -131,6 +132,7 @@ namespace kagome::network {
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(block_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -1405,5 +1407,52 @@ namespace kagome::network {
     generations_.clear();
     ancestry_.clear();
     recent_requests_.clear();
+  }
+
+  bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber block,
+    CbResultVoid cb) {
+    BlocksRequest request{
+        BlockAttribute::HEADER,
+        block,
+        Direction::DESCENDING,
+        1,
+        false,
+    };
+    auto chosen = chooseJustificationPeer(block, request.fingerprint());
+    if (not chosen) {
+      return false;
+    }
+    auto cb2 = [weak{weak_from_this()},
+                block,
+                cb{std::move(cb)},
+                peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      self->busy_peers_.erase(peer);
+      if (not r) {
+        return cb(r.error());
+      }
+      auto &blocks = r.value().blocks;
+      if (blocks.size() != 1) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      auto &header = blocks[0].header;
+      if (not header) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      const auto& headerValue = header.value();
+      if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
+        SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
+        return cb(er.error());
+      }
+      if (auto er = self->block_storage_->assignNumberToHash({block, headerValue.hash()}); er.has_error()) {
+        SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
+        return cb(er.error());
+      }
+    };
+    fetch(*chosen, std::move(request), "header", std::move(cb2));
+    return true;
   }
 }  // namespace kagome::network

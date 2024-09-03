@@ -28,6 +28,7 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
+#include "blockchain/block_storage.hpp"
 
 namespace kagome {
   class PoolHandlerReady;
@@ -39,6 +40,7 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
+  class BlockStorage;
 }
 
 namespace kagome::common {
@@ -124,7 +126,8 @@ namespace kagome::network {
         LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        common::MainThreadPool &main_thread_pool);
+        common::MainThreadPool &main_thread_pool,
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -152,6 +155,9 @@ namespace kagome::network {
 
     bool fetchJustificationRange(primitives::BlockNumber min,
                                  FetchJustificationRangeCb cb) override;
+
+    bool fetchHeadersBack(primitives::BlockNumber block,
+                                  CbResultVoid cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
@@ -253,6 +259,7 @@ namespace kagome::network {
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
 
     application::SyncMethod sync_method_;
 

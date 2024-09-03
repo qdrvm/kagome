@@ -23,7 +23,6 @@
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/protocols/beefy_protocol_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
-#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
@@ -198,15 +197,6 @@ struct BeefyTest : testing::Test {
             }
             peer.beefy_->onMessage(it->second);
           }));
-
-    auto block_storage_ = std::make_shared<::testing::NiceMock<kagome::blockchain::BlockStorageMock>>();
-
-    ON_CALL(*block_storage_, putBlockHeader(_))
-        .WillByDefault(Return(kagome::common::Hash256{}));
-
-    ON_CALL(*block_storage_, assignNumberToHash(_))
-        .WillByDefault(Return(outcome::success()));
-
       peer.beefy_ = std::make_shared<BeefyImpl>(
           app_state_manager,
           chain_spec_,
@@ -223,8 +213,7 @@ struct BeefyTest : testing::Test {
           testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
           nullptr,
           nullptr,
-          peer.chain_sub_,
-          block_storage_);
+          peer.chain_sub_);
       app_state_manager->start();
     }
   }
