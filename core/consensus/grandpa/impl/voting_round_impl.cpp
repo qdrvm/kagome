@@ -1433,16 +1433,21 @@ namespace kagome::consensus::grandpa {
                   if (env_->hasAncestry(estimate.hash,
                                         voting_message.getBlockHash())) {
                     prevotes.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                         static_cast<const SignedPrevote &>(voting_message));
                   }
                 }
               },
               [&prevotes](const EquivocatorySignedMessage
                               &equivocatory_voting_message) {
-                prevotes.push_back(static_cast<const SignedPrevote &>(
-                    equivocatory_voting_message.first));
-                prevotes.push_back(static_cast<const SignedPrevote &>(
-                    equivocatory_voting_message.second));
+                prevotes.push_back(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                    static_cast<const SignedPrevote &>(
+                        equivocatory_voting_message.first));
+                prevotes.push_back(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                    static_cast<const SignedPrevote &>(
+                        equivocatory_voting_message.second));
               });
           return std::move(prevotes);
         });
@@ -1465,16 +1470,21 @@ namespace kagome::consensus::grandpa {
                 voting_variant,
                 [this, &precommits, &weight](const EquivocatorySignedMessage
                                                  &equivocatory_voting_message) {
+                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                   auto &signed_precommit = static_cast<const SignedPrecommit &>(
                       equivocatory_voting_message.first);
                   auto voter_weight =
                       voter_set_->voterWeight(signed_precommit.id);
                   if (voter_weight.has_value() and voter_weight.value() > 0) {
                     weight += voter_weight.value();
-                    precommits.push_back(static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.first));
-                    precommits.push_back(static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.second));
+                    precommits.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                        static_cast<const SignedPrecommit &>(
+                            equivocatory_voting_message.first));
+                    precommits.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                        static_cast<const SignedPrecommit &>(
+                            equivocatory_voting_message.second));
                   }
                 },
                 [](const auto &) {});
@@ -1500,6 +1510,7 @@ namespace kagome::consensus::grandpa {
                       and env_->hasAncestry(estimate.hash,
                                             voting_message.getBlockHash())) {
                     auto &signed_precommit =
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                         static_cast<const SignedPrecommit &>(voting_message);
                     weight +=
                         voter_set_->voterWeight(signed_precommit.id).value();

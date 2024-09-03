@@ -95,6 +95,7 @@ namespace kagome::storage::trie {
     if (auto dummy = dynamic_cast<const DummyNode *>(&node); dummy != nullptr) {
       return dummy->db_key;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
     OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
     return merkleValue(enc);

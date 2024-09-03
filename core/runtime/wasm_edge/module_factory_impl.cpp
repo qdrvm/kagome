@@ -321,6 +321,8 @@ namespace kagome::runtime::wasm_edge {
         auto memory_ctx =
             WasmEdge_ModuleInstanceFindMemory(instance_ctx.raw(), kMemoryName);
         BOOST_ASSERT(memory_ctx);
+
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         static_cast<InternalMemoryProviderImpl *>(memory_provider.get())
             ->setMemory(memory_ctx);
       }

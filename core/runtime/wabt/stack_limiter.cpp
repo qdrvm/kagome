@@ -522,6 +522,7 @@ namespace kagome::runtime {
                    std::make_unique<wabt::BinaryExpr>(wabt::Opcode::I32GtU));
 
       auto if_it = exprs.insert(call_it, std::make_unique<wabt::IfExpr>());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
       auto &if_expr = static_cast<wabt::IfExpr &>(*if_it);
       wabt::ExprList if_exprs;
       if_exprs.push_back(std::make_unique<wabt::UnreachableExpr>());
@@ -643,6 +644,7 @@ namespace kagome::runtime {
           using wabt::ExprType;
           switch (expr.type()) {
             case ExprType::RefFunc: {
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               auto &ref = static_cast<wabt::RefFuncExpr &>(expr);
               assert(ref.var.is_index());
               if (!module.IsImport(wabt::ExternalKind::Func, ref.var)) {
@@ -713,6 +715,7 @@ namespace kagome::runtime {
           using wabt::ExprType;
           switch (expr.type()) {
             case ExprType::RefFunc: {
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               auto &ref = static_cast<wabt::RefFuncExpr &>(expr);
               if (!module.IsImport(wabt::ExternalKind::Func, ref.var)) {
                 ref.var.set_index(thunked_to_thunk.at(ref.var.index()));

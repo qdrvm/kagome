@@ -110,7 +110,7 @@ namespace kagome::storage::trie_pruner {
     return true;
   }
 
-  class Encoder {
+  class Encoder {  // NOLINT(cppcoreguidelines-special-member-functions)
    public:
     explicit Encoder(const trie::Codec &codec, log::Logger logger)
         : codec{codec}, logger{std::move(logger)} {}
@@ -157,6 +157,7 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const trie::Codec &codec;
     size_t encode_called = 0;
     log::Logger logger;
@@ -285,8 +286,9 @@ namespace kagome::storage::trie_pruner {
           }
         }
         if (node->isBranch()) {
-          auto branch = static_cast<const trie::BranchNode &>(*node);
-          for (auto opaque_child : branch.children) {
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+          const auto &branch = static_cast<const trie::BranchNode &>(*node);
+          for (const auto &opaque_child : branch.children) {
             if (opaque_child != nullptr) {
               auto dummy_child =
                   dynamic_cast<const trie::DummyNode *>(opaque_child.get());
@@ -417,8 +419,9 @@ namespace kagome::storage::trie_pruner {
       bool is_new_branch_node =
           node != nullptr && node->isBranch() && ref_count == 1;
       if (is_new_branch_node) {
-        auto branch = static_cast<const trie::BranchNode *>(node.get());
-        for (auto opaque_child : branch->children) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        const auto &branch = static_cast<const trie::BranchNode *>(node.get());
+        for (const auto &opaque_child : branch->children) {
           if (opaque_child != nullptr) {
             OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
             OUTCOME_TRY(child_merkle_val,
