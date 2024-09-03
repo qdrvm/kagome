@@ -69,11 +69,13 @@ namespace kagome::primitives {
   };
 
   struct BlockHeaderReflection {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockHash &parent_hash;
     const BlockNumber &number;
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
     std::span<const DigestItem> digest;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     BlockHeaderReflection(const BlockHeader &origin)
         : parent_hash(origin.parent_hash),
@@ -96,8 +98,10 @@ namespace kagome::primitives {
   };
 
   struct GenesisBlockHeader {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockHeader header;
     const BlockHash hash;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   template <class Stream>

@@ -83,6 +83,7 @@ namespace kagome::storage::trie {
       TriePathEntry(const BranchNode &parent, uint8_t child_idx)
           : parent{parent}, child_idx{child_idx} {}
 
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       const BranchNode &parent;
       uint8_t child_idx;
     };

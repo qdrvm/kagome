@@ -29,6 +29,7 @@ namespace kagome::host_api {
    * Helps reading arguments from wasm and writing result to wasm.
    */
   struct Ffi {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     runtime::Memory &memory;
 
     /**

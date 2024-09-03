@@ -225,6 +225,8 @@ namespace kagome::runtime::wasm_edge {
     std::shared_ptr<ExecutorContext> executor_;
     log::Logger log_ = log::createLogger("ModuleInstance", "runtime");
     InstanceEnvironment env_;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const common::Hash256 code_hash_;
   };
 
@@ -341,6 +343,8 @@ namespace kagome::runtime::wasm_edge {
     log::Logger log_ = log::createLogger("Module", "runtime");
     const WasmEdge_MemoryTypeContext *memory_type_;
     ASTModuleContext module_;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const common::Hash256 code_hash_;
 
     friend class ModuleInstanceImpl;

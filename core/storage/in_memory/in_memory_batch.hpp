@@ -41,6 +41,7 @@ namespace kagome::storage {
 
    private:
     std::map<std::string, Buffer> entries;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     InMemoryStorage &db;
   };
 }  // namespace kagome::storage

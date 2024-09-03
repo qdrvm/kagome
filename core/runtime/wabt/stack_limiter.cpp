@@ -495,6 +495,7 @@ namespace kagome::runtime {
     }
 
     struct InstrumentCallCtx {
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       const wabt::Var &stack_height;
       wabt::Var callee_idx;
       uint32_t callee_stack_cost;

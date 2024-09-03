@@ -176,6 +176,7 @@ class PrintHelpCommand final : public Command {
   }
 
  private:
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   const CommandParser &parser;
 };
 

@@ -15,7 +15,7 @@ namespace kagome::api {
    */
   template <typename Cb>
   struct Parser {
-    Cb cb;
+    std::remove_reference_t<Cb> cb;
 
     rapidjson::MemoryStream stream{nullptr, 0};
     size_t level = 0;
@@ -96,7 +96,7 @@ namespace kagome::api {
                                    std::string_view request) {
     std::string request_string;
     if (!request.empty() && request[0] == '[') {
-      const auto cb = [&](std::string_view request) {
+      auto cb = [&](std::string_view request) {
         request_string = request;
         auto formatted = handler.HandleRequest(request_string);
         if (formatted->GetSize() == 0) {
@@ -109,7 +109,7 @@ namespace kagome::api {
         }
         batch_.append(formatted->GetData(), formatted->GetSize());
       };
-      Parser<decltype(cb) &> parser{cb};
+      Parser<decltype(cb) &> parser{std::move(cb)};
       if (parser.parse(request)) {
         if (!batch_.empty()) {
           batch_.push_back(']');

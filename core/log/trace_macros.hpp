@@ -15,6 +15,7 @@ namespace kagome::log {
   struct TraceFuncCall {
     const void *caller{};
     std::string_view func_name;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const Ret &ret;
     Args args;
   };
