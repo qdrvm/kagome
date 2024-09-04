@@ -19,6 +19,15 @@ namespace kagome::parachain::fragment {
       INTRODUCE_BACKED_CANDIDATE,
       CYCLE,
       MULTIPLE_PATH,
+      ZERO_LENGTH_CYCLE,
+      RELAY_PARENT_NOT_IN_SCOPE,
+      RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY,
+      FORK_WITH_CANDIDATE_PENDING_AVAILABILITY,
+      FORK_CHOICE_RULE,
+      PARENT_CANDIDATE_NOT_FOUND,
+      COMPUTE_CONSTRAINTS,
+      CHECK_AGAINST_CONSTRAINTS,
+      RELAY_PARENT_MOVED_BACKWARDS,
     };
 
     // The current scope, which dictates the on-chain operating constraints that
@@ -39,6 +48,9 @@ namespace kagome::parachain::fragment {
 
     // Hasher
     std::shared_ptr<crypto::Hasher> hasher_;
+
+    // Logger
+    log::Logger logger = log::createLogger("parachain", "fragment_chain");
 
     /// Create a new [`FragmentChain`] with the given scope and populate it with
     /// the candidates pending availability.
@@ -140,7 +152,7 @@ namespace kagome::parachain::fragment {
       auto prev_storage{std::move(unconnected)};
       populate_chain(prev_storage);
 
-      trim_uneligible_forks(prev_storage, parent_head_hash);
+      trim_uneligible_forks(prev_storage, std::move(parent_head_hash));
       populate_unconnected_potential_candidates(std::move(prev_storage));
     }
 
@@ -297,6 +309,364 @@ namespace kagome::parachain::fragment {
     // checked in `CandidateEntry::new`.
     outcome::result<void> check_cycles_or_invalid_tree(
         const Hash &output_head_hash) const;
+
+    // Checks the potential of a candidate to be added to the chain now or in
+    // the future. It works both with concrete candidates for which we have the
+    // full PVD and committed receipt, but also does some more basic checks for
+    // incomplete candidates (before even fetching them).
+    outcome::result<void> check_potential(
+        const HypotheticalOrConcreteCandidate auto &candidate) const {
+      const auto parent_head_hash = candidate.get_parent_head_data_hash();
+
+      if (auto output_head_hash = candidate.get_output_head_data_hash()) {
+        if (parent_head_hash == *output_head_hash) {
+          return Error::ZERO_LENGTH_CYCLE;
+        }
+      }
+
+      auto relay_parent = scope.ancestor(candidate.get_relay_parent());
+      if (!relay_parent) {
+        return Error::RELAY_PARENT_NOT_IN_SCOPE;
+      }
+
+      const auto earliest_rp_of_pending_availability =
+          earliest_relay_parent_pending_availability();
+      if (relay_parent->number < earliest_rp_of_pending_availability.number) {
+        return Error::RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY;
+      }
+
+      if (auto other_candidate =
+              utils::get(best_chain.by_parent_head, parent_head_hash)) {
+        if (scope.get_pending_availability(**other_candidate)) {
+          return Error::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY;
+        }
+
+        if (fork_selection_rule(other_candidate, candidate.get_candidate_hash())
+            == -1) {
+          return Error::FORK_CHOICE_RULE;
+        }
+      }
+
+      std::pair<Constraints, Option<BlockNumber>> constraints_and_number;
+      if (auto parent_candidate_ =
+              utils::get(best_chain.by_output_head, parent_head_hash)) {
+        auto parent_candidate =
+            std::find_if(best_chain.chain.begin(),
+                         best_chain.chain.end(),
+                         [&](const auto &c) {
+                           return c.candidate_hash == **parent_candidate;
+                         });
+        if (parent_candidate == best_chain.chain.end()) {
+          return Error::PARENT_CANDIDATE_NOT_FOUND;
+        }
+
+        auto constraints = scope.base_constraints.apply_modifications(
+            parent_candidate->cumulative_modifications);
+        if (constraints.has_error()) {
+          return Error::COMPUTE_CONSTRAINTS;
+        }
+        constraints_and_number = std::make_pair(
+            std::move(constraints.value()),
+            utils::map(scope.ancestor(parent_candidate->relay_parent()),
+                       [](const auto &rp) { return rp.number; }));
+      } else if (hasher_->blake2b_256(scope.base_constraints.required_parent)
+                 == parent_head_hash) {
+        constraints_and_number =
+            std::make_pair(scope.base_constraints, std::nullopt);
+      } else {
+        return outcome::success();
+      }
+      const auto &[constraints, maybe_min_relay_parent_number] =
+          constraints_and_number;
+
+      if (auto output_head_hash = candidate.get_output_head_data_hash()) {
+        OUTCOME_TRY(check_cycles_or_invalid_tree(*output_head_hash));
+      }
+
+      if (candidate.get_commitments()
+          && candidate.get_persisted_validation_data()
+          && candidate.get_validation_code_hash()) {
+        if (Fragment::check_against_constraints(
+                *relay_parent,
+                constraints,
+                candidate.get_commitments()->get(),
+                candidate.get_persisted_validation_data()->get(),
+                candidate.get_validation_code_hash()->get())
+                .has_error()) {
+          return Error::CHECK_AGAINST_CONSTRAINTS;
+        }
+      }
+
+      if (relay_parent->number < constraints.min_relay_parent_number) {
+        return Error::RELAY_PARENT_MOVED_BACKWARDS;
+      }
+
+      if (maybe_min_relay_parent_number) {
+        if (relay_parent.number < *maybe_min_relay_parent_number) {
+          return Error::RELAY_PARENT_MOVED_BACKWARDS;
+        }
+      }
+
+      return outcome::success();
+    }
+
+    // Once the backable chain was populated, trim the forks generated by
+    // candidates which are not present in the best chain. Fan this out into a
+    // full breadth-first search. If `starting_point` is `Some()`, start the
+    // search from the candidates having this parent head hash.
+    void trim_uneligible_forks(CandidateStorage &storage,
+                               Option<Hash> starting_point) const {
+      std::deque<std::pair<Hash, bool>> queue;
+      if (starting_point) {
+        queue.emplace.back(*starting_point, true);
+      } else {
+        if (best_chain.chain.empty()) {
+          queue.emplace.back(
+              hasher_->blake2b_256(scope.base_constraints.required_parent),
+              true);
+        } else {
+          for (const auto &c : best_chain.chain) {
+            queue.emplace.back(c.parent_head_data_hash, true);
+          }
+        }
+      }
+
+      auto pop = [&]() {
+        Option<std::pair<Hash, bool>> result;
+        if (!queue.empty()) {
+          result = std::move(queue.front());
+          queue.pop_front();
+        }
+        return result;
+      };
+
+      HashSet<Hash> visited;
+      while (auto data = pop()) {
+        const auto &[parent, parent_has_potential] = *data;
+        visited.insert(parent);
+
+        auto children = utils::get(storage.by_parent_head, parent);
+        if (!children) {
+          continue;
+        }
+
+        Vec<Hash> to_remove;
+        for (const auto &child_hash : **children) {
+          auto child = utils::get(storage.by_candidate_hash, child_hash);
+          if (!child) {
+            continue;
+          }
+
+          if (visited.contains((*child)->output_head_data_hash)) {
+            continue;
+          }
+
+          if (parent_has_potential && check_potential(**child).has_value()) {
+            queue.emplace_back((*child)->output_head_data_hash, true);
+          } else {
+            to_remove.emplace_back(child_hash);
+            queue.emplace_back((*child)->output_head_data_hash, false);
+          }
+        }
+
+        for (const auto &hash : to_remove) {
+          storage.remove_candidate(hash, hasher_);
+        }
+      }
+    }
+
+    // Revert the best backable chain so that the last candidate will be one
+    // outputting the given `parent_head_hash`. If the `parent_head_hash` is
+    // exactly the required parent of the base constraints (builds on the latest
+    // included candidate), revert the entire chain. Return false if we couldn't
+    // find the parent head hash.
+    bool revert_to(const Hash &parent_head_hash) {
+      Option<Vec<FragmentNode>> removed_items;
+      if (hasher_->blake2b_256(scope.base_constraints.required_parent)
+          == parent_head_hash) {
+        removed_items = best_chain.clear();
+      }
+
+      if (!removed_items
+          && best_chain.by_output_head.contains(parent_head_hash)) {
+        removed_items = best_chain.revert_to_parent_hash(parent_head_hash);
+      }
+
+      if (!removed_items) {
+        return false;
+      }
+      for (const auto &node : *removed_items) {
+        std::ignore =
+            unconnected.add_candidate_entry(node.into_candidate_entry());
+      }
+      return true;
+    }
+
+    /// The rule for selecting between two backed candidate forks, when adding
+    /// to the chain. All validators should adhere to this rule, in order to not
+    /// lose out on rewards in case of forking parachains.
+    static bool fork_selection_rule(const CandidateHash &hash1,
+                                    const CandidateHash &hash2) {
+      return std::less<CandidateHash>()(hash1, hash2);
+    }
+
+    // Populate the fragment chain with candidates from the supplied
+    // `CandidateStorage`. Can be called by the constructor or when backing a
+    // new candidate. When this is called, it may cause the previous chain to be
+    // completely erased or it may add more than one candidate.
+    void populate_chain(CandidateStorage &storage) {
+      auto cumulative_modifications = [&]() {
+        if (!best_chain.chain.empty()) {
+          const auto &last_candidate = best_chain.chain.back();
+          return last_candidate.cumulative_modifications;
+        }
+        return ConstraintModifications{
+            .required_parent = std::nullopt,
+            .hrmp_watermark = std::nullopt,
+            .outbound_hrmp = {},
+            .ump_messages_sent = 0,
+            .ump_bytes_sent = 0,
+            .dmp_messages_processed = 0,
+            .code_upgrade_applied = false,
+        };
+      }();
+
+      auto earliest_rp = earliest_relay_parent();
+      if (!earliest_rp) {
+        return;
+      }
+
+      do {
+        if (best_chain.chain.size() > scope.max_depth) {
+          break;
+        }
+
+        Constraints child_constraints;
+        if (auto c = scope.base_constraints.apply_modifications(
+                &cumulative_modifications);
+            c.has_value()) {
+          child_constraints = std::move(c.value());
+        } else {
+          SL_TRACE(
+              logger, "Failed to apply modifications. (error={})", c.error());
+          break;
+        }
+
+        struct BestCandidate {
+          Fragment fragment;
+          CandidateHash candidate_hash;
+          Hash output_head_data_hash;
+          Hash parent_head_data_hash;
+        };
+
+        const auto required_head_hash =
+            hasher_->blake2b_256(child_constraints.required_parent);
+        Option<BestCandidate> best_candidate;
+
+        storage.possible_backed_para_children(
+            required_head_hash, [&](const auto &candidate) {
+              auto pending =
+                  scope.get_pending_availability(candidate.candidate_hash);
+              Option<RelayChainBlockInfo> relay_parent = utils::map(
+                  pending, [](const auto &v) { return v.relay_parent; });
+              if (!relay_parent) {
+                relay_parent = scope.ancestor(candidate.relay_parent);
+              }
+              if (!relay_parent) {
+                return;
+              }
+
+              if (check_cycles_or_invalid_tree(candidate.output_head_data_hash)
+                      .has_error()) {
+                return;
+              }
+
+              BlockNumber min_relay_parent_number = earliest_rp->number;
+              {
+                auto mrp = utils::map(pending, [](const auto &) {
+                  if (best_chain.chain.empty()) {
+                    return p.relay_parent.number;
+                  }
+                  return earliest_rp->number;
+                });
+                if (mrp) {
+                  min_relay_parent_number = *mrp;
+                }
+              }
+
+              if (relay_parent.number < min_relay_parent_number) {
+                return;
+              }
+
+              if (best_chain.contains(candidate.candidate_hash)) {
+                return;
+              }
+
+              Fragment fragment;
+              {
+                auto constraints = child_constraints;
+                if (pending) {
+                  constraints.min_relay_parent_number =
+                      pending->get().relay_parent.number;
+                }
+
+                if (auto f = Fragment::create(
+                        relay_parent, constraints, candidate.candidate);
+                    f.has_value()) {
+                  fragment = std::move(f.value());
+                } else {
+                  SL_TRACE(logger,
+                           "Failed to instantiate fragment. (error={}, "
+                           "candidate_hash={})",
+                           f.error(),
+                           candidate.candidate_hash);
+                  return;
+                }
+              }
+
+              if (!best_candidate
+                  || scope.get_pending_availability(candidate.candidate_hash)) {
+                best_candidate = BestCandidate{
+                    .fragment = std::move(fragment),
+                    .candidate_hash = candidate.candidate_hash,
+                    .output_head_data_hash = candidate.output_head_data_hash,
+                    .parent_head_data_hash = candidate.parent_head_data_hash,
+                };
+              } else if (scope.get_pending_availability(child2)) {
+                continue;
+              } else {
+                if (fork_selection_rule(candidate.candidate_hash,
+                                        best_candidate->candidate_hash)) {
+                  best_candidate = BestCandidate{
+                      .fragment = std::move(fragment),
+                      .candidate_hash = candidate.candidate_hash,
+                      .output_head_data_hash = candidate.output_head_data_hash,
+                      .parent_head_data_hash = candidate.parent_head_data_hash,
+                  };
+                }
+              }
+            });
+
+        if (!best_candidate) {
+          break;
+        }
+
+        storage.remove_candidate(best_candidate->candidate_hash);
+        cumulative_modifications.stack(
+            best_candidate->fragment.constraint_modifications());
+        earliest_rp = best_candidate->fragment.get_relay_parent();
+
+        best_chain.push(FragmentNode{
+            .fragment = std::move(best_candidate->fragment),
+            .candidate_hash = std::move(best_candidate->candidate_hash),
+            .parent_head_data_hash =
+                std::move(best_candidate->parent_head_data_hash),
+            .output_head_data_hash =
+                std::move(best_candidate->output_head_data_hash),
+            .cumulative_modifications = cumulative_modifications,
+        });
+      } while (true);
+    }
   };
 
 }  // namespace kagome::parachain::fragment

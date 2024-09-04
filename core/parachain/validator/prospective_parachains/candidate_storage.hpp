@@ -96,8 +96,9 @@ namespace kagome::parachain::fragment {
     /// Returns the backed candidates which have the given head data hash as
     /// parent.
     template <typename F>
-    void possible_backed_para_children(const Hash &parent_head_hash,
-                                       F &&func) const {
+    void possible_backed_para_children(
+        const Hash &parent_head_hash,
+        F &&func /*void(const CandidateEntry &)*/) const {
       if (auto it = by_parent_head.find(parent_head_hash);
           it != by_parent_head.end()) {
         for (const auto &h : it->second) {
