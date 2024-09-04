@@ -220,7 +220,7 @@ namespace kagome::crypto {
 
     template <size_t OtherSize>
       requires(OtherSize >= Size)
-    explicit PrivateKey(SecureBuffer<OtherSize> data)
+    explicit PrivateKey(const SecureBuffer<OtherSize> &data)
         : PrivateKey{data.view().template subspan<0, Size>()} {
       BOOST_ASSERT(this->data.size() == Size);
     }

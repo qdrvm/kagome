@@ -253,7 +253,7 @@ namespace {
 
   sptr<storage::SpacedStorage> get_rocks_db(
       const application::AppConfiguration &app_config,
-      sptr<application::ChainSpec> chain_spec) {
+      const sptr<application::ChainSpec> &chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
 
@@ -309,7 +309,7 @@ namespace {
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       const application::AppConfiguration &config,
-      sptr<application::ChainSpec> chain_spec) {
+      const sptr<application::ChainSpec> &chain_spec) {
     auto path = config.keystorePath(chain_spec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {

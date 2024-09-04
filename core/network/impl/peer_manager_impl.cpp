@@ -453,7 +453,7 @@ namespace kagome::network {
     }
 
     SL_DEBUG(log_, "Try to connect to peer {}", peer_info.id);
-    for (auto addr : peer_info.addresses) {
+    for (auto &addr : peer_info.addresses) {
       SL_DEBUG(log_, "  address: {}", addr.getStringAddress());
     }
 
@@ -863,11 +863,12 @@ namespace kagome::network {
                 network::CollationVersion::VStaging);
             auto beefy_protocol = std::static_pointer_cast<BeefyProtocolImpl>(
                 self->router_->getBeefyProtocol());
-            openOutgoing(self->stream_engine_,
-                         beefy_protocol,
-                         peer_info,
-                         [](outcome::result<
-                             std::shared_ptr<libp2p::connection::Stream>>) {});
+            openOutgoing(
+                self->stream_engine_,
+                beefy_protocol,
+                peer_info,
+                [](const outcome::result<
+                    std::shared_ptr<libp2p::connection::Stream>> &) {});
           }
         });
 

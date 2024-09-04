@@ -98,9 +98,10 @@ namespace kagome::api {
                 at = self->block_tree_.get()->bestBlock().hash;
               }
               auto offchain = self->withOffchain(*at);
-              OUTCOME_TRY(r,
-                          self->mmr_api_.get()->generateProof(
-                              *at, block_numbers, best_known_block_number));
+              OUTCOME_TRY(
+                  r,
+                  self->mmr_api_.get()->generateProof(
+                      *at, std::move(block_numbers), best_known_block_number));
               auto [leaves, proof] = unwrap(std::move(r));
               return primitives::MmrLeavesProof{
                   *at,

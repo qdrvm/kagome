@@ -18,8 +18,8 @@ namespace kagome::dispute {
                                "dispute")) {}
 
   std::optional<CbOutcome<void>> Batch::add_votes(
-      Indexed<SignedDisputeStatement> valid_vote,
-      Indexed<SignedDisputeStatement> invalid_vote,
+      const Indexed<SignedDisputeStatement> &valid_vote,
+      const Indexed<SignedDisputeStatement> &invalid_vote,
       const libp2p::peer::PeerId &peer,
       CbOutcome<void> &&cb) {
     BOOST_ASSERT(valid_vote.payload.candidate_hash == candidate_hash);

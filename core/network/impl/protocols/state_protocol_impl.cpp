@@ -203,7 +203,7 @@ namespace kagome::network {
   }
 
   void StateProtocolImpl::writeResponse(std::shared_ptr<Stream> stream,
-                                        StateResponse state_response) {
+                                        const StateResponse &state_response) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     read_writer->write(
@@ -233,7 +233,7 @@ namespace kagome::network {
 
   void StateProtocolImpl::writeRequest(
       std::shared_ptr<Stream> stream,
-      StateRequest state_request,
+      const StateRequest &state_request,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 

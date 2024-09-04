@@ -551,7 +551,7 @@ namespace kagome::dispute {
   }
 
   outcome::result<void> DisputeCoordinatorImpl::process_on_chain_votes(
-      ScrapedOnChainVotes votes) {
+      const ScrapedOnChainVotes &votes) {
     const auto &session = votes.session;
     const auto &backing_validators_per_candidate =
         votes.backing_validators_per_candidate;

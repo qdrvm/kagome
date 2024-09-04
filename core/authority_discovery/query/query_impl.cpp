@@ -194,14 +194,16 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
-      common::Buffer hash{crypto::sha256(authority)};
-      scheduler_->schedule([=, this, wp{weak_from_this()}] {
+      scheduler_->schedule([wp{weak_from_this()},
+                            hash = common::Buffer{crypto::sha256(authority)}] {
         if (auto self = wp.lock()) {
-          std::ignore = kademlia_.get()->getValue(
-              hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
-                std::unique_lock lock{mutex_};
-                --active_;
-                pop();
+          std::ignore = self->kademlia_.get()->getValue(
+              hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
+                if (auto self = wp.lock()) {
+                  std::unique_lock lock{self->mutex_};
+                  --self->active_;
+                  self->pop();
+                }
               });
         }
       });

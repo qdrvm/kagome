@@ -87,7 +87,7 @@ namespace kagome::network {
       return true;
     };
     auto on_message = [peer_id](std::shared_ptr<BlockAnnounceProtocol> self,
-                                BlockAnnounce block_announce) {
+                                const BlockAnnounce &block_announce) {
       // Calculate and save hash, 'cause it's just received announce
       primitives::calculateBlockHash(block_announce.header, *self->hasher_);
 

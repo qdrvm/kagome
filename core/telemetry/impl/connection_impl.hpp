@@ -107,11 +107,12 @@ namespace kagome::telemetry {
     void write(WsStreamT &ws, MessageHandle message_handle);
 
     void onResolve(boost::beast::error_code ec,
-                   boost::asio::ip::tcp::resolver::results_type results);
+                   const boost::asio::ip::tcp::resolver::results_type &results);
 
     void onConnect(
         boost::beast::error_code ec,
-        boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint);
+        const boost::asio::ip::tcp::resolver::results_type::endpoint_type
+            &endpoint);
 
     template <typename WsStreamT>
     void setOptionsAndRunWsHandshake(WsStreamT &ws);

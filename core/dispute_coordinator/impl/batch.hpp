@@ -65,8 +65,8 @@ namespace kagome::dispute {
     /// case both votes are known already, we return the response sender as an
     /// `Err` value.
     std::optional<CbOutcome<void>> add_votes(
-        Indexed<SignedDisputeStatement> valid_vote,
-        Indexed<SignedDisputeStatement> invalid_vote,
+        const Indexed<SignedDisputeStatement> &valid_vote,
+        const Indexed<SignedDisputeStatement> &invalid_vote,
         const libp2p::peer::PeerId &peer,
         CbOutcome<void> &&cb);
 

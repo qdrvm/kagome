@@ -343,7 +343,7 @@ namespace kagome::network {
 
   void SyncProtocolImpl::writeRequest(
       std::shared_ptr<Stream> stream,
-      BlocksRequest block_request,
+      const BlocksRequest &block_request,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 

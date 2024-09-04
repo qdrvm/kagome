@@ -188,7 +188,7 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onResolve(
       boost::beast::error_code ec,
-      boost::asio::ip::tcp::resolver::results_type results) {
+      const boost::asio::ip::tcp::resolver::results_type &results) {
     if (ec) {
       SL_ERROR(log_, "Unable to resolve host: {}", ec);
       reconnect();
@@ -204,7 +204,8 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onConnect(
       boost::beast::error_code ec,
-      boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint) {
+      const boost::asio::ip::tcp::resolver::results_type::endpoint_type
+          &endpoint) {
     if (ec) {
       SL_ERROR(log_, "Unable to connect to endpoint: {}", ec);
       reconnect();

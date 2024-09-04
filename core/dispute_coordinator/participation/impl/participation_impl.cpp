@@ -249,22 +249,22 @@ namespace kagome::dispute {
     BOOST_ASSERT(ctx->available_data.has_value());
     BOOST_ASSERT(ctx->validation_code.has_value());
 
-    pvf_->pvfValidate(
-        ctx->available_data->validation_data,
-        ctx->available_data->pov,
-        ctx->request.candidate_receipt,
-        ctx->validation_code.value(),
-        [cb{std::move(cb)}](outcome::result<parachain::Pvf::Result> &&res) {
-          // we cast votes (either positive or negative)
-          // depending on the outcome of the validation and if
-          // valid, whether the commitments hash matches
+    pvf_->pvfValidate(ctx->available_data->validation_data,
+                      ctx->available_data->pov,
+                      ctx->request.candidate_receipt,
+                      ctx->validation_code.value(),
+                      [cb{std::move(cb)}](
+                          const outcome::result<parachain::Pvf::Result> &res) {
+                        // we cast votes (either positive or negative)
+                        // depending on the outcome of the validation and if
+                        // valid, whether the commitments hash matches
 
-          if (res.has_value()) {
-            cb(ParticipationOutcome::Valid);
-            return;
-          }
-          cb(ParticipationOutcome::Invalid);
-        });
+                        if (res.has_value()) {
+                          cb(ParticipationOutcome::Valid);
+                          return;
+                        }
+                        cb(ParticipationOutcome::Invalid);
+                      });
   }
 
 }  // namespace kagome::dispute

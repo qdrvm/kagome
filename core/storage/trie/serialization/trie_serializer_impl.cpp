@@ -135,7 +135,7 @@ namespace kagome::storage::trie {
                                   if (on_node_loaded) {
                                     on_node_loaded(hash, value);
                                   }
-                                  return value.intoBuffer();
+                                  return std::move(value).intoBuffer();
                                 });
   }
 

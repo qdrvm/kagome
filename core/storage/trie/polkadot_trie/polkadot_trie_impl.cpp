@@ -36,7 +36,7 @@ namespace kagome::storage::trie {
 
     static outcome::result<std::unique_ptr<OpaqueNodeStorage>> createAt(
         std::shared_ptr<OpaqueTrieNode> root,
-        PolkadotTrie::NodeRetrieveFunction node_retriever,
+        const PolkadotTrie::NodeRetrieveFunction &node_retriever,
         PolkadotTrie::ValueRetrieveFunction value_retriever) {
       OUTCOME_TRY(root_node, node_retriever(root));
       return std::unique_ptr<OpaqueNodeStorage>{

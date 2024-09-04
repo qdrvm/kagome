@@ -116,7 +116,8 @@ namespace kagome::offchain {
       }
     }
 
-    auto resolve_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
+    auto resolve_handler = [wp{weak_from_this()}](const auto &ec,
+                                                  const auto &it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -157,7 +158,8 @@ namespace kagome::offchain {
                            : boost::beast::get_lowest_layer(
                                *boost::relaxed_get<TcpStreamPtr>(stream_));
 
-    auto connect_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
+    auto connect_handler = [wp{weak_from_this()}](const auto &ec,
+                                                  const auto &it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(

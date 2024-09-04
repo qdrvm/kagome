@@ -309,7 +309,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::recover(
-      primitives::BlockId target_block_id,
+      const primitives::BlockId &target_block_id,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,

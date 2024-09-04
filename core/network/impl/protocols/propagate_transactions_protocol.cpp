@@ -86,7 +86,7 @@ namespace kagome::network {
     };
     auto on_message = [peer_id = stream->remotePeerId().value()](
                           std::shared_ptr<PropagateTransactionsProtocol> self,
-                          PropagatedExtrinsics message) {
+                          const PropagatedExtrinsics &message) {
       SL_VERBOSE(self->base_.logger(),
                  "Received {} propagated transactions from {}",
                  message.extrinsics.size(),

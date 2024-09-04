@@ -22,7 +22,7 @@ namespace kagome::runtime {
       if (not memory) {
         continue;
       }
-      // NOLINTNEXTLINE(boost-use-ranges,modernize-use-ranges)
+      // NOLINTNEXTLINE(modernize-use-ranges,boost-use-ranges)
       if (std::any_of(module.fields.begin(),
                       module.fields.end(),
                       [&](const wabt::ModuleField &field) {

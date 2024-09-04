@@ -71,7 +71,7 @@ namespace {
    */
   template <typename F>
   inline void forJsonData(std::shared_ptr<JRpcServer> server,
-                          kagome::log::Logger logger,
+                          const kagome::log::Logger &logger,
                           uint32_t set_id,
                           std::string_view name,
                           jsonrpc::Value &&value,
@@ -97,7 +97,7 @@ namespace {
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
                         std::shared_ptr<Session> session,
-                        kagome::log::Logger logger,
+                        const kagome::log::Logger &logger,
                         uint32_t set_id,
                         std::string_view name,
                         jsonrpc::Value &&value) {
@@ -133,6 +133,7 @@ namespace kagome::api {
       application::AppStateManager &app_state_manager,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
+      // NOLINTNEXTLINE(performance-unnecessary-value-param)
       std::vector<std::shared_ptr<JRpcProcessor>> processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
@@ -186,10 +187,10 @@ namespace kagome::api {
     jsonrpc::Value::Array changes;
     changes.reserve(key_value_pairs.size());
     for (auto &[key, value] : key_value_pairs) {
-      changes.emplace_back(jsonrpc::Value{jsonrpc::Value::Array{
+      changes.emplace_back(jsonrpc::Value::Array{
           api::makeValue(key),
           value.has_value() ? api::makeValue(hex_lower_0x(value.value()))
-                            : api::makeValue(std::nullopt)}});
+                            : api::makeValue(std::nullopt)});
     }
 
     jsonrpc::Value::Struct result;

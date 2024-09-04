@@ -901,7 +901,7 @@ namespace kagome::parachain {
     std::vector<approval::IndirectSignedApprovalVoteV2> out;
     out.reserve(result.size());
 
-    std::ranges::transform(result, std::back_inserter(out), [](const auto it) {
+    std::ranges::transform(result, std::back_inserter(out), [](const auto &it) {
       return it.second;
     });
     return out;
@@ -2498,8 +2498,7 @@ namespace kagome::parachain {
                   assignment.indirect_assignment_cert.block_hash,
                   assignment.indirect_assignment_cert.validator,
                   peer_id);
-              it->second.emplace_back(
-                  std::make_pair(peer_id, PendingMessage{assignment}));
+              it->second.emplace_back(peer_id, PendingMessage{assignment});
               continue;
             }
 
@@ -2523,8 +2522,7 @@ namespace kagome::parachain {
                   approval_vote.payload.payload.block_hash,
                   approval_vote.payload.ix,
                   peer_id);
-              it->second.emplace_back(
-                  std::make_pair(peer_id, PendingMessage{approval_vote}));
+              it->second.emplace_back(peer_id, PendingMessage{approval_vote});
               continue;
             }
 

@@ -137,6 +137,5 @@ groups:
 
   Configurator::Configurator(std::shared_ptr<PrevConfigurator> previous,
                              filesystem::path path)
-      : ConfiguratorFromYAML(std::move(previous),
-                             filesystem::path(path.string())) {}
+      : ConfiguratorFromYAML(std::move(previous), std::move(path)) {}
 }  // namespace kagome::log

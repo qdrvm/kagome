@@ -852,7 +852,7 @@ namespace kagome::network {
   outcome::result<void> SynchronizerImpl::syncState(
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
-    OUTCOME_TRY(res, _res);
+    OUTCOME_TRY(res, std::move(_res));
     OUTCOME_TRY(state_sync_flow_->onResponse(res));
     if (not state_sync_flow_->complete()) {
       syncState();
@@ -1028,19 +1028,19 @@ namespace kagome::network {
                   n ? fmt::format("and {} others have", n) : fmt::format("has"),
                   block_addition_result.error());
           if (handler) {
-            handler(Error::DISCARDED_BLOCK);
+            std::move(handler)(Error::DISCARDED_BLOCK);
           }
         } else {
           SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
           if (handler) {
-            handler(block_info);
+            std::move(handler)(block_info);
           }
         }
       } else {
         telemetry_->notifyBlockImported(
             block_info, telemetry::BlockOrigin::kNetworkInitialSync);
         if (handler) {
-          handler(block_info);
+          std::move(handler)(block_info);
         }
 
         if (block_data.beefy_justification) {

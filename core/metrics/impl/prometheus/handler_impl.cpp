@@ -56,7 +56,7 @@ namespace kagome::metrics {
   }
 
   std::size_t PrometheusHandler::writeResponse(std::shared_ptr<Session> session,
-                                               Session::Request request,
+                                               const Session::Request &request,
                                                const std::string &body) {
     Session::Response res{boost::beast::http::status::ok, request.version()};
     res.set(boost::beast::http::field::content_type,

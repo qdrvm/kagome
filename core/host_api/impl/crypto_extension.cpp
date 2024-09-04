@@ -37,7 +37,7 @@ namespace {
   }
 
   void checkIfKeyIsSupported(kagome::crypto::KeyType key_type,
-                             kagome::log::Logger log) {
+                             const kagome::log::Logger &log) {
     if (not key_type.is_supported()) {
       log->warn("key type {} is not officially supported", key_type);
     }
@@ -335,7 +335,7 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::Sr25519Keypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->sr25519().generateKeypair(
             key_type, bip39_seed.value());
@@ -662,7 +662,7 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::EcdsaKeypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->ecdsa().generateKeypair(key_type,
                                                            bip39_seed.value());
@@ -780,7 +780,7 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::BandersnatchKeypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->bandersnatch().generateKeypair(
             key_type, bip39_seed.value());

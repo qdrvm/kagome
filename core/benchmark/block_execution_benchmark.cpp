@@ -296,8 +296,8 @@ namespace kagome::benchmark {
 
     std::vector<Stats<std::chrono::nanoseconds>> duration_stats;
     for (size_t i = 0; i < blocks.size(); i++) {
-      duration_stats.emplace_back(Stats<std::chrono::nanoseconds>{
-          primitives::BlockInfo{block_hashes[i], blocks[i].header.number}});
+      duration_stats.emplace_back(
+          primitives::BlockInfo{block_hashes[i], blocks[i].header.number});
     }
     auto duration_stat_it = duration_stats.begin();
     for (size_t block_i = 0; block_i < blocks.size(); block_i++) {
