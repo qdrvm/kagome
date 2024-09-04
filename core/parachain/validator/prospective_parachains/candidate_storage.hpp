@@ -134,7 +134,6 @@ namespace kagome::parachain::fragment {
 
     size_t len() const;
 
-   private:
     // Index from head data hash to candidate hashes with that head data as a
     // parent.
     HashMap<Hash, HashSet<CandidateHash>> by_parent_head;
