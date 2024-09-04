@@ -54,7 +54,8 @@ namespace kagome::parachain::fragment {
 
     /// Create a new [`FragmentChain`] with the given scope and populate it with
     /// the candidates pending availability.
-    static FragmentChain init(const Scope scope,
+    static FragmentChain init(std::shared_ptr<crypto::Hasher> hasher,
+                              const Scope scope,
                               CandidateStorage candidates_pending_availability);
 
     /// Populate the [`FragmentChain`] given the new candidates pending

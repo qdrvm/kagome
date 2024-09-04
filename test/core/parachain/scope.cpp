@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "parachain/validator/prospective_parachains/scope.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
-#include "parachain/validator/prospective_parachains/fragment_chain.hpp"
 
 using namespace kagome::parachain::fragment;
 

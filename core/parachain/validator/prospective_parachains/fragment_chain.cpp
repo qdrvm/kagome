@@ -49,11 +49,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
 namespace kagome::parachain::fragment {
 
   FragmentChain FragmentChain::init(
-      const Scope scope, CandidateStorage candidates_pending_availability) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      const Scope scope,
+      CandidateStorage candidates_pending_availability) {
     FragmentChain fragment_chain{
         .scope = std::move(scope),
         .best_chain = {},
         .unconnected = {},
+        .hasher_ = std::move(hasher),
     };
 
     fragment_chain.populate_chain(candidates_pending_availability);

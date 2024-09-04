@@ -28,7 +28,19 @@ target_link_libraries(scope_test
     logger
     )
 
-addtest(parachain_test
+addtest(fragment_chain_test
+    fragment_chain.cpp
+    )
+
+target_link_libraries(fragment_chain_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
+    addtest(parachain_test
     pvf_test.cpp
     assignments.cpp
     prospective_parachains.cpp
