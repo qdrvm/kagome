@@ -68,7 +68,7 @@ jobs:
         run: make kagome_builder_deb_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
         
-      - name: "Artifacts Info"
+      - name: "Versions Info"
         if: always()
         run: |
           echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder_deb }}"
@@ -105,7 +105,7 @@ jobs:
         run: make upload_apt_package_runtime \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   
-      - name: "Artifacts Info"
+      - name: "Versions Info"
         if: always()
         working-directory: ./housekeeping/docker/kagome-dev
         run: |

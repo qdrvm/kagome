@@ -132,6 +132,17 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Kagome Images: "
+          cat /tmp/docker_image.env || true
+          cat /tmp/dockerhub_image.env || true
+          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
+          echo "Zombie Tests Versions: "
+          cat /tmp/versions.env || true
 
 
   Zombie-Tests:
@@ -231,10 +242,13 @@ jobs:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
 
-      - name: "Display installed versions"
+      - name: "Versions Info"
         if: always()
         run: |
-          cat /tmp/versions.env
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
+          echo "Zombie Tests Versions: "
+          cat /tmp/versions.env || true
 
       - name: "Show system info"
         if: always()
