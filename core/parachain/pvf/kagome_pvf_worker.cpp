@@ -218,7 +218,10 @@ namespace kagome::parachain {
 #endif
 
   outcome::result<void> readStdin(std::span<uint8_t> out) {
-    std::cin.read(reinterpret_cast<char *>(out.data()), out.size());
+    std::cin.read(
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        reinterpret_cast<char *>(out.data()),
+        out.size());
     if (not std::cin.good()) {
       return std::errc::io_error;
     }
@@ -350,8 +353,15 @@ namespace kagome::parachain {
           instance->callExportFunction(ctx, "validate_block", input_args));
       OUTCOME_TRY(instance->resetEnvironment());
       OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
-      std::cout.write((const char *)len.data(), len.size());
-      std::cout.write((const char *)result.data(), result.size());
+
+      std::cout.write(
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<const char *>(len.data()),
+          len.size());
+      std::cout.write(
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<const char *>(result.data()),
+          result.size());
       std::cout.flush();
     }
   }

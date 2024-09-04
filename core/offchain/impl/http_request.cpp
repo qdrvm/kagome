@@ -395,8 +395,10 @@ namespace kagome::offchain {
       }
 
     } else {
-      request_.body().append(reinterpret_cast<const char *>(chunk.data()),
-                             chunk.size());
+      request_.body().append(
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<const char *>(chunk.data()),
+          chunk.size());
     }
 
     return Result<Success, HttpError>();
