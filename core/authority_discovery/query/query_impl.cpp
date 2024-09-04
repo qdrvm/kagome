@@ -52,7 +52,7 @@ namespace kagome::authority_discovery {
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
         key_marshaller_{std::move(key_marshaller)},
         host_{host},
-        kademlia_{std::move(kademlia)},
+        kademlia_{kademlia},
         scheduler_{[&] {
           BOOST_ASSERT(scheduler != nullptr);
           return std::move(scheduler);

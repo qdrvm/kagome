@@ -74,7 +74,7 @@ namespace kagome::consensus::babe {
         consensus_selector_(consensus_selector),
         babe_api_(std::move(babe_api)),
         trie_storage_(std::move(trie_storage)),
-        chain_sub_{chain_events_engine},
+        chain_sub_{std::move(chain_events_engine)},
         slots_util_(slots_util),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);

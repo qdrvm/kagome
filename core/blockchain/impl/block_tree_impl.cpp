@@ -587,8 +587,7 @@ namespace kagome::blockchain {
     main_pool_handler_->execute(
         [wself{weak_from_this()}, event, header]() mutable {
           if (auto self = wself.lock()) {
-            self->chain_events_engine_->notify(std::move(event),
-                                               std::move(header));
+            self->chain_events_engine_->notify(event, header);
           }
         });
   }
@@ -1390,7 +1389,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
     BOOST_ASSERT(hash_opt.has_value());
-    primitives::BlockHash hash = std::move(*hash_opt);
+    auto &hash = hash_opt.value();
     auto pruning_depth =
         block_tree_data.state_pruner_->getPruningDepth().value_or(0);
     if (new_finalized < pruning_depth) {
@@ -1404,7 +1403,7 @@ namespace kagome::blockchain {
       auto &next_hash = *next_hash_opt;
       OUTCOME_TRY(header, getBlockHeader(hash));
       OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
-      hash = std::move(next_hash);
+      hash = next_hash;
     }
 
     return outcome::success();

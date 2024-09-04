@@ -129,7 +129,7 @@ namespace kagome::runtime {
       OUTCOME_TRY(res, push(block.hash));
       SL_DEBUG(
           logger_, "Pick runtime state at block {} for the same block", block);
-      return std::move(res.first);
+      return res.first;
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -231,7 +231,7 @@ namespace kagome::runtime {
         == runtime_upgrades_.end();
 
     if (is_new_upgrade) {
-      runtime_upgrades_.emplace_back(block_info, std::move(header.state_root));
+      runtime_upgrades_.emplace_back(block_info, header.state_root);
 
       std::ranges::sort(runtime_upgrades_,
                         [](const auto &lhs, const auto &rhs) {

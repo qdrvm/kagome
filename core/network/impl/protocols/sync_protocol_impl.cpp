@@ -491,7 +491,7 @@ namespace kagome::network {
                    stream->remotePeerId().value());
 
           self->writeRequest(stream,
-                             std::move(block_request),
+                             block_request,
                              [stream,
                               wp = std::move(wp),
                               response_handler = std::move(response_handler)](

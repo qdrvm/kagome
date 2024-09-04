@@ -171,7 +171,7 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{std::move(chain_sub_engine)},
-        timeline_(std::move(timeline)),
+        timeline_(timeline),
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_thread_handler_{poolHandlerReadyMake(
             this, app_state_manager, dispute_thread_pool, log_)},
@@ -829,7 +829,7 @@ namespace kagome::dispute {
     if (not res.has_error()) {
       auto sessions_updated = res.value();
 
-      auto waiting = std::move(waiting_for_active_disputes_);
+      auto waiting = waiting_for_active_disputes_;
       waiting_for_active_disputes_.reset();
       if (not waiting.has_value()) {
         // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L196
@@ -900,7 +900,7 @@ namespace kagome::dispute {
   void DisputeCoordinatorImpl::handle_active_dispute_response(
       outcome::result<OutputDisputes> active_disputes_res) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L184
-    auto state = std::move(waiting_for_active_disputes_);
+    auto state = waiting_for_active_disputes_;
     waiting_for_active_disputes_.reset();
     auto have_new_sessions = state.has_value() and state->have_new_sessions;
 
@@ -1927,7 +1927,7 @@ namespace kagome::dispute {
       CbOutcome<void> &&cb) {
     REINVOKE(*dispute_thread_handler_,
              importStatements,
-             std::move(candidate_receipt),
+             candidate_receipt,
              session,
              std::move(statements),
              std::move(cb));
@@ -2057,7 +2057,7 @@ namespace kagome::dispute {
              issueLocalStatement,
              session,
              candidate_hash,
-             std::move(candidate_receipt),
+             candidate_receipt,
              valid);
 
     SL_TRACE(log_,
@@ -2279,7 +2279,7 @@ namespace kagome::dispute {
     for (auto &[peer, request, cb] : std::move(heads)) {
       // No early return - we cannot cancel imports of one peer, because the
       // import of another failed:
-      auto res = start_import_or_batch(peer, std::move(request), std::move(cb));
+      auto res = start_import_or_batch(peer, request, std::move(cb));
       if (res.has_error()) {
         SL_ERROR(log_, "Can't start import or batch: {}", res.error());
       }

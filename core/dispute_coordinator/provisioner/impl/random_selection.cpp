@@ -57,7 +57,7 @@ namespace kagome::dispute {
 
     // Load all votes for all disputes from the coordinator.
     auto dispute_candidate_votes =
-        request_votes(dispute_coordinator_, std::move(disputes));
+        request_votes(dispute_coordinator_, disputes);
 
     // Transform all `CandidateVotes` into `MultiDisputeStatementSet`.
     MultiDisputeStatementSet result;

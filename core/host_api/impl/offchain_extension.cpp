@@ -67,7 +67,7 @@ namespace kagome::host_api {
     }
     auto &xt = xt_res.value();
 
-    auto result = worker->submitTransaction(std::move(xt));
+    auto result = worker->submitTransaction(xt);
 
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -446,7 +446,7 @@ namespace kagome::host_api {
     auto [value_ptr, value_size] = runtime::PtrSize(value);
     auto value_buffer = memory.loadN(value_ptr, value_size);
 
-    auto result = offchain_storage_->set(key_buffer, std::move(value_buffer));
+    auto result = offchain_storage_->set(key_buffer, value_buffer);
     if (result.has_error()) {
       SL_WARN(log_, "Can't set value in storage: {}", result.error());
     }

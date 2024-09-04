@@ -29,7 +29,7 @@ namespace kagome::consensus::grandpa {
         grandpa_api_(std::move(grandpa_api)),
         persistent_storage_{
             persistent_storage->getSpace(storage::Space::kDefault)},
-        chain_sub_{chain_events_engine},
+        chain_sub_{std::move(chain_events_engine)},
         indexer_{
             std::make_shared<storage::MapPrefix>(
                 storage::kAuthorityManagerImplIndexerPrefix,

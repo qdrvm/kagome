@@ -58,7 +58,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable)
       : log_(log::createLogger("BabeBlockValidatorImpl", "babe")),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         config_repo_(std::move(config_repo)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),

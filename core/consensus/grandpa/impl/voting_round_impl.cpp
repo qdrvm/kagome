@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> vote_graph,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : voter_set_{std::move(config.voters)},
+      : voter_set_{config.voters},
         round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},

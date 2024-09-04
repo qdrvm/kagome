@@ -148,14 +148,14 @@ namespace kagome::api {
         }
         auto &req = self->http_request_->get();
         auto &res = self->http_response_.emplace(
-            boost::beast::http::status::ok, req.version(), std::move(response));
+            boost::beast::http::status::ok, req.version(), response);
         res.set(boost::beast::http::field::server, kServerName);
         res.set(boost::beast::http::field::content_type, "application/json");
         res.keep_alive(req.keep_alive());
         self->httpWrite();
         return;
       }
-      self->pending_responses_.emplace(std::move(response));
+      self->pending_responses_.emplace(response);
       self->asyncWrite();
     });
   }

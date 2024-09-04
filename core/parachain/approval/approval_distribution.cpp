@@ -255,8 +255,7 @@ namespace {
                 .cert =
                     approval::AssignmentCertV2{
                         .kind = approval::RelayVRFDelay{.core_index = core},
-                        .vrf = crypto::VRFOutput{.output = std::move(o),
-                                                 .proof = std::move(p)}},
+                        .vrf = crypto::VRFOutput{.output = o, .proof = p}},
                 .tranche = tranche,
                 .validator_index = validator_ix,
                 .triggered = false});
@@ -581,7 +580,7 @@ namespace kagome::parachain {
           this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
@@ -596,7 +595,7 @@ namespace kagome::parachain {
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
-        dispute_coordinator_{std::move(dispute_coordinator)},
+        dispute_coordinator_{dispute_coordinator},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 approval_thread_pool.io_context()),
@@ -694,7 +693,7 @@ namespace kagome::parachain {
     }
 
     unify_with_peer(storedDistribBlockEntries(), peer_id, view, false);
-    peer_views_[peer_id] = std::move(view);
+    peer_views_[peer_id] = view;
   }
 
   void ApprovalDistribution::clearCaches(
@@ -741,7 +740,7 @@ namespace kagome::parachain {
               crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
-        return std::make_pair((ValidatorIndex)ix, std::move(res.value()));
+        return std::make_pair((ValidatorIndex)ix, res.value());
       }
     }
     return std::nullopt;
@@ -1256,10 +1255,8 @@ namespace kagome::parachain {
     OUTCOME_TRY(babe_config,
                 babe_config_repo_->config(*block_header.parentInfo(), epoch));
 
-    return std::make_tuple(epoch,
-                           std::move(babe_header),
-                           std::move(babe_config->authorities),
-                           std::move(babe_config->randomness));
+    return std::make_tuple(
+        epoch, babe_header, babe_config->authorities, babe_config->randomness);
   }
 
   outcome::result<ApprovalDistribution::CandidateIncludedList>
@@ -1270,10 +1267,10 @@ namespace kagome::parachain {
 
     for (auto &candidate : candidates) {
       if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
-        included.emplace_back(std::make_tuple(
-            HashedCandidateReceipt{std::move(obj->candidate_receipt)},
-            obj->core_index,
-            obj->group_index));
+        included.emplace_back(
+            std::make_tuple(HashedCandidateReceipt{obj->candidate_receipt},
+                            obj->core_index,
+                            obj->group_index));
       }
     }
     return included;
@@ -1331,7 +1328,7 @@ namespace kagome::parachain {
                    .block_number = block_number,
                    .session = block_info.session_index,
                    .slot = block_info.slot,
-                   .relay_vrf_story = std::move(block_info.relay_vrf_story),
+                   .relay_vrf_story = block_info.relay_vrf_story,
                    .candidates = std::move(candidates),
                    .approved_bitfield = std::move(approved_bitfield),
                    .distributed_assignments = {},
@@ -1548,7 +1545,7 @@ namespace kagome::parachain {
                  block_hash{head},
                  block_number,
                  finalized_block_number{updated.view.finalized_number_},
-                 parent_hash{std::move(parent_hash)},
+                 parent_hash,
                  func = std::forward<Func>(func)](
                     outcome::result<ImportedBlockInfo> &&block_info) mutable {
                   auto self = wself.lock();
@@ -2790,7 +2787,7 @@ namespace kagome::parachain {
                         },
                     .ix = validator_index,
                 },
-            .signature = std::move(*sig),
+            .signature = *sig,
         });
 
     /// TODO(iceseer): store state for the dispute
@@ -2808,7 +2805,7 @@ namespace kagome::parachain {
     }
     static std::array<uint8_t, 4ull> kMagic{'A', 'P', 'P', 'R'};
     auto d = std::make_tuple(kMagic, candidate_hash, session_index);
-    auto payload = scale::encode(std::move(d)).value();
+    auto payload = scale::encode(d).value();
 
     if (auto res = crypto_provider_->sign(key_pair.value(), payload);
         res.has_value()) {

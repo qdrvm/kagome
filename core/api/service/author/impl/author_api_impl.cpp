@@ -43,8 +43,8 @@ namespace kagome::api {
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
-        api_service_{std::move(api_service)},
-        block_tree_{std::move(block_tree)},
+        api_service_{api_service},
+        block_tree_{block_tree},
         logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(keys_api_ != nullptr, "session keys api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");

@@ -56,7 +56,7 @@ namespace kagome::network {
             storage::kWarpSyncCacheBlocksPrefix,
             db->getSpace(storage::Space::kDefault),
         },
-        chain_sub_{chain_sub_engine},
+        chain_sub_{std::move(chain_sub_engine)},
         log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
     app_state_manager.takeControl(*this);
   }

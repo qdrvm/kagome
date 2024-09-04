@@ -110,7 +110,7 @@ namespace kagome::network {
         storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
-        can_disconnect_{std::move(can_disconnect)},
+        can_disconnect_{can_disconnect},
         peer_view_{std::move(peer_view)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);

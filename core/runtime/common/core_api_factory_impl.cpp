@@ -31,7 +31,7 @@ namespace kagome::runtime {
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
       LazySPtr<RuntimeInstancesPool> instance_pool)
-      : hasher_{std::move(hasher)}, instance_pool_{std::move(instance_pool)} {}
+      : hasher_{std::move(hasher)}, instance_pool_{instance_pool} {}
 
   outcome::result<std::unique_ptr<RestrictedCore>> CoreApiFactoryImpl::make(
       BufferView code_zstd,

@@ -179,7 +179,7 @@ namespace kagome::parachain {
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
         peer_use_count_(
             std::make_shared<decltype(peer_use_count_)::element_type>()),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         babe_config_repo_(std::move(babe_config_repo)),
         chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
@@ -1382,7 +1382,7 @@ namespace kagome::parachain {
 
           return network::PendingCollationFetch{
               .collation_event = std::move(collation_event),
-              .candidate_receipt = std::move(value.receipt),
+              .candidate_receipt = value.receipt,
               .pov = std::move(value.pov),
               .maybe_parent_head_data = std::nullopt,
           };
@@ -1408,7 +1408,7 @@ namespace kagome::parachain {
 
           return network::PendingCollationFetch{
               .collation_event = std::move(collation_event),
-              .candidate_receipt = std::move(value.receipt),
+              .candidate_receipt = value.receipt,
               .pov = std::move(value.pov),
               .maybe_parent_head_data = std::move(value.parent_head_data),
           };
@@ -3124,10 +3124,7 @@ namespace kagome::parachain {
                 candidate_hash,
                 peer_id);
             self->validateAsync<ValidationTaskType::kAttest>(
-                std::move(candidate),
-                std::move(*p),
-                std::move(pvd),
-                relay_parent);
+                candidate, std::move(*p), std::move(pvd), relay_parent);
           });
     }
   }
@@ -5034,21 +5031,21 @@ namespace kagome::parachain {
     parachain_state->get().awaiting_validation.erase(candidate_hash);
     auto q{std::move(validate_and_second_result)};
     if constexpr (kMode == ValidationTaskType::kSecond) {
-      onValidationComplete(std::move(q));
+      onValidationComplete(q);
     } else {
-      onAttestComplete(std::move(q));
+      onAttestComplete(q);
     }
   }
 
   template <ParachainProcessorImpl::ValidationTaskType kMode>
   void ParachainProcessorImpl::validateAsync(
-      network::CandidateReceipt &&candidate,
+      network::CandidateReceipt candidate,
       network::ParachainBlock &&pov,
       runtime::PersistedValidationData &&pvd,
       const primitives::BlockHash &relay_parent) {
     REINVOKE(*main_pool_handler_,
              validateAsync<kMode>,
-             std::move(candidate),
+             candidate,
              std::move(pov),
              std::move(pvd),
              relay_parent);
@@ -5384,7 +5381,7 @@ namespace kagome::parachain {
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
-        std::move(pending_collation_fetch.candidate_receipt),
+        pending_collation_fetch.candidate_receipt,
         std::move(pending_collation_fetch.pov),
         std::move(pvd),
         relay_parent);
@@ -5674,7 +5671,7 @@ namespace kagome::parachain {
         .relay_parent = relay_parent,
         .para_id = para_id,
         .peer_id = peer_id,
-        .prospective_candidate = std::move(pc),
+        .prospective_candidate = pc,
         .commitments_hash = {},
     };
 
@@ -5692,14 +5689,13 @@ namespace kagome::parachain {
                                               collator_id);
       } break;
       case CollationStatus::Waiting: {
-        std::ignore = fetchCollation(std::move(pending_collation), collator_id);
+        std::ignore = fetchCollation(pending_collation, collator_id);
       } break;
       case CollationStatus::Seconded: {
         if (relay_parent_mode) {
           // Limit is not reached, it's allowed to second another
           // collation.
-          std::ignore =
-              fetchCollation(std::move(pending_collation), collator_id);
+          std::ignore = fetchCollation(pending_collation, collator_id);
         } else {
           SL_TRACE(logger_,
                    "A collation has already been seconded. (peer_id={}, para "
@@ -5797,7 +5793,7 @@ namespace kagome::parachain {
              pc.para_id,
              pc.relay_parent);
 
-    our_current_state_.collation_requests_cancel_handles.insert(std::move(pc));
+    our_current_state_.collation_requests_cancel_handles.insert(pc);
     const auto maybe_candidate_hash =
         utils::map(pc.prospective_candidate,
                    [](const auto &v) { return std::cref(v.candidate_hash); });
@@ -5811,9 +5807,7 @@ namespace kagome::parachain {
           .para_id = pc.para_id,
       };
       router_->getReqCollationProtocol()->request(
-          peer_id,
-          std::move(fetch_collation_request),
-          std::move(response_callback));
+          peer_id, fetch_collation_request, std::move(response_callback));
     } else if (network::CollationVersion::VStaging == version
                && maybe_candidate_hash) {
       network::vstaging::CollationFetchingRequest fetch_collation_request{
@@ -5822,9 +5816,7 @@ namespace kagome::parachain {
           .candidate_hash = maybe_candidate_hash->get(),
       };
       router_->getReqCollationProtocol()->request(
-          peer_id,
-          std::move(fetch_collation_request),
-          std::move(response_callback));
+          peer_id, fetch_collation_request, std::move(response_callback));
     } else {
       UNREACHABLE;
     }

@@ -88,13 +88,13 @@ namespace kagome::dispute {
   std::optional<ParticipationRequest> QueuesImpl::dequeue() {
     if (not priority_.empty()) {
       if (auto priority_node = priority_.extract(priority_.begin())) {
-        return std::move(priority_node.mapped());
+        return priority_node.mapped();
       }
     }
 
     if (not best_effort_.empty()) {
       if (auto best_effort_node = best_effort_.extract(best_effort_.begin())) {
-        return std::move(best_effort_node.mapped());
+        return best_effort_node.mapped();
       }
     }
 

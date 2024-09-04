@@ -877,17 +877,16 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::post_block_addition(
-      outcome::result<void> &&block_addition_result,
+      outcome::result<void> block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
     REINVOKE(*main_pool_handler_,
              post_block_addition,
-             std::move(block_addition_result),
+             block_addition_result,
              std::move(handler),
              hash);
 
-    processBlockAdditionResult(
-        std::move(block_addition_result), hash, std::move(handler));
+    processBlockAdditionResult(block_addition_result, hash, std::move(handler));
     postApplyBlock(hash);
   }
 
@@ -1007,7 +1006,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::processBlockAdditionResult(
-      outcome::result<void> &&block_addition_result,
+      outcome::result<void> block_addition_result,
       const primitives::BlockHash &hash,
       SyncResultHandler &&handler) {
     auto node = known_blocks_.extract(hash);

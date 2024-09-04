@@ -50,7 +50,7 @@ namespace kagome::api {
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
-        api_service_{std::move(api_service)},
+        api_service_{api_service},
         metadata_{std::move(metadata)},
         executor_{std::move(executor)} {
     BOOST_ASSERT(nullptr != header_repo_);

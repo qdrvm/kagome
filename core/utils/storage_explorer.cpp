@@ -153,7 +153,7 @@ std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
       std::cerr << "Invalid block hash!\n";
       return std::nullopt;
     }
-    id = std::move(id_hash);
+    id = id_hash;
   } else {
     try {
       id = std::stoi(string);

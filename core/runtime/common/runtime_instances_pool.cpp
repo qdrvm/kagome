@@ -25,11 +25,11 @@ namespace kagome::runtime {
    public:
     BorrowedInstance(std::weak_ptr<RuntimeInstancesPoolImpl> pool,
                      const common::Hash256 &hash,
-                     const RuntimeContext::ContextParams &config,
+                     RuntimeContext::ContextParams config,
                      std::shared_ptr<ModuleInstance> instance)
         : pool_{std::move(pool)},
           hash_{hash},
-          config_{config},
+          config_{std::move(config)},
           instance_{std::move(instance)} {}
     ~BorrowedInstance() {
       if (auto pool = pool_.lock()) {

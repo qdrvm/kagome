@@ -49,9 +49,7 @@ namespace kagome::runtime {
 
     auto label = fmt::format("#{}", block);
 
-    auto func = [block = std::move(block),
-                 header = std::move(header),
-                 executor = executor_] {
+    auto func = [block, header, executor = executor_] {
       auto res = [&]() -> outcome::result<void> {
         OUTCOME_TRY(ctx, executor->ctx().ephemeralAt(block));
         return executor->call<void>(

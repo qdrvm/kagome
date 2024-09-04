@@ -175,7 +175,7 @@ namespace kagome::network {
 
           self->writeRequest(
               stream,
-              std::move(state_request),
+              state_request,
               [stream,
                wp = std::move(wp),
                response_handler =

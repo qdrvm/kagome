@@ -70,13 +70,12 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      dispute_thread_handler_->execute([wp{weak_from_this()},
-                                        request{std::move(request)},
-                                        recent_head{std::move(recent_head)}]() {
-        if (auto self = wp.lock()) {
-          self->participate(std::move(request), std::move(recent_head));
-        }
-      });
+      dispute_thread_handler_->execute(
+          [wp{weak_from_this()}, request, recent_head]() {
+            if (auto self = wp.lock()) {
+              self->participate(request, recent_head);
+            }
+          });
     }
     return outcome::success();
   }

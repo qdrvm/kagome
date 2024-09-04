@@ -101,7 +101,7 @@ namespace kagome::consensus::grandpa {
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
         timeline_{timeline},
-        chain_sub_{chain_sub_engine},
+        chain_sub_{std::move(chain_sub_engine)},
         db_{db.getSpace(storage::Space::kDefault)},
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         grandpa_pool_handler_{poolHandlerReadyMake(

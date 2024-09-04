@@ -127,9 +127,11 @@ namespace kagome::network {
                        "NeighborMessage has received from {}",
                        peer_id);
             auto info = peer_manager_->getPeerState(peer_id);
-            grandpa_observer_->onNeighborMessage(peer_id,
-                                                 compactFromRefToOwn(info),
-                                                 std::move(neighbor_message));
+            grandpa_observer_->onNeighborMessage(
+                peer_id,
+                compactFromRefToOwn(info),
+                // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+                std::move(neighbor_message));
           }
         },
         [&](network::CatchUpRequest &&catch_up_request) {
@@ -137,7 +139,10 @@ namespace kagome::network {
               base_.logger(), "CatchUpRequest has received from {}", peer_id);
           auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onCatchUpRequest(
-              peer_id, compactFromRefToOwn(info), std::move(catch_up_request));
+              peer_id,
+              compactFromRefToOwn(info),
+              // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+              std::move(catch_up_request));
         },
         [&](network::CatchUpResponse &&catch_up_response) {
           SL_VERBOSE(
