@@ -3170,48 +3170,39 @@ namespace kagome::parachain {
     }
 
     auto &active = local_validator->active;
-    auto [validator_id, is_cluster] =
-        [&]() -> std::pair<std::optional<ValidatorIndex>, bool> {
-      std::optional<ValidatorIndex> validator_id;
-      bool is_cluster = false;
+    std::optional<ValidatorIndex> validator_id;
+    bool is_cluster;
+    [&] {
+      auto audi = query_audi_->get(peer_id);
+      if (not audi.has_value()) {
+        SL_TRACE(logger_, "No audi. (peer={})", peer_id);
+        return;
+      }
 
-      do {
-        auto audi = query_audi_->get(peer_id);
-        if (!audi) {
-          SL_TRACE(logger_, "No audi. (peer={})", peer_id);
+      ValidatorIndex v = 0;
+      for (; v < session_info.discovery_keys.size(); ++v) {
+        if (session_info.discovery_keys[v] == audi.value()) {
+          SL_TRACE(logger_,
+                   "Captured validator. (relay_parent={}, candidate_hash={})",
+                   confirmed->get().relay_parent(),
+                   request.candidate_hash);
           break;
         }
+      }
 
-        ValidatorIndex v = 0;
-        for (; v < session_info.discovery_keys.size(); ++v) {
-          if (session_info.discovery_keys[v] == *audi) {
-            SL_TRACE(logger_,
-                     "Captured validator. (relay_parent={}, candidate_hash={})",
-                     confirmed->get().relay_parent(),
-                     request.candidate_hash);
-            break;
-          }
-        }
+      if (v >= session_info.discovery_keys.size()) {
+        return;
+      }
 
-        if (v >= session_info.discovery_keys.size()) {
-          break;
-        }
+      if (active
+          and active->cluster_tracker.can_request(v, request.candidate_hash)) {
+        validator_id = v;
+        is_cluster = true;
 
-        if (active
-            && active->cluster_tracker.can_request(v, request.candidate_hash)) {
-          validator_id = v;
-          is_cluster = true;
-          break;
-        }
-
-        if (local_validator->grid_tracker.can_request(v,
-                                                      request.candidate_hash)) {
-          validator_id = v;
-          break;
-        }
-      } while (false);
-
-      return {validator_id, is_cluster};
+      } else if (local_validator->grid_tracker.can_request(
+                     v, request.candidate_hash)) {
+        validator_id = v;
+      }
     }();
 
     if (!validator_id) {

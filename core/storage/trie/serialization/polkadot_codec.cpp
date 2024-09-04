@@ -352,7 +352,7 @@ namespace kagome::storage::trie {
 
     if (pk_length == partial_key_length_mask) {
       uint8_t read_length{};
-      do {
+      do {  // NOLINT(cppcoreguidelines-avoid-do-while)
         if (not stream.hasMore(1)) {
           return Error::INPUT_TOO_SMALL;
         }

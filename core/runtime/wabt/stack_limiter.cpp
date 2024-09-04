@@ -223,7 +223,7 @@ namespace kagome::runtime {
 
       WabtOutcome<void> advance() {
         bool is_over = false;
-        do {
+        do {  // NOLINT(cppcoreguidelines-avoid-do-while)
           auto &frame = frames_.back();
           is_over = frame.getExprList().end() == frame.current_expr;
           if (!is_over) {
