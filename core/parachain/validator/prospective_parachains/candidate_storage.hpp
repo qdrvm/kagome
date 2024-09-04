@@ -41,7 +41,7 @@ namespace kagome::parachain::fragment {
     static outcome::result<CandidateEntry> create_seconded(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
@@ -50,7 +50,7 @@ namespace kagome::parachain::fragment {
     static outcome::result<CandidateEntry> create(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
@@ -85,7 +85,7 @@ namespace kagome::parachain::fragment {
     outcome::result<void> add_pending_availability_candidate(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
