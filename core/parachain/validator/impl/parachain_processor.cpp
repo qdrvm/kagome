@@ -4419,7 +4419,7 @@ namespace kagome::parachain {
     /// TODO(iceseer):
     /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
     auto sign_result =
-        parachain_state.table_context.validator->sign(std::move(payload));
+        parachain_state.table_context.validator->sign(std::forward<T>(payload));
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",
@@ -4441,7 +4441,7 @@ namespace kagome::parachain {
     if (stream_engine->reserveOutgoing(peer_id, protocol)) {
       protocol->newOutgoingStream(
           peer_id,
-          [callback{std::forward<F>(callback)},
+          [callback = std::forward<F>(callback),
            protocol,
            peer_id,
            wptr{weak_from_this()}](auto &&stream_result) mutable {

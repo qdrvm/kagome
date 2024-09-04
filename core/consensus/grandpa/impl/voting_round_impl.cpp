@@ -27,27 +27,27 @@ namespace kagome::consensus::grandpa {
 
   namespace {
     template <typename T>
-    auto convertToPrimaryPropose(T &&vote) {
+    auto convertToPrimaryPropose(const T &vote) {
       return PrimaryPropose(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToPrevote(T &&vote) {
+    auto convertToPrevote(const T &vote) {
       return Prevote(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToPrecommit(T &&vote) {
+    auto convertToPrecommit(const T &vote) {
       return Precommit(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToBlockInfo(T &&vote) {
+    auto convertToBlockInfo(const T &vote) {
       return BlockInfo(vote.number, vote.hash);
     }
 
     template <typename D>
-    auto toMilliseconds(D &&duration) {
+    auto toMilliseconds(const D &duration) {
       return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
     }
   }  // namespace

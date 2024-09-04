@@ -653,20 +653,20 @@ namespace kagome::network {
       const PeerInfo &peer_info,
       const libp2p::network::ConnectionManager::ConnectionSPtr &connection,
       F &&opened_callback) {
-    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-    BOOST_ASSERT_MSG(block_announce_protocol,
+    auto protocol = router_->getBlockAnnounceProtocol();
+    BOOST_ASSERT_MSG(protocol,
                      "Router did not provide block announce protocol");
 
     if (!openOutgoing(
             stream_engine_,
-            block_announce_protocol,
+            protocol,
             peer_info,
             [wp{weak_from_this()},
              peer_info,
-             protocol = block_announce_protocol,
+             protocol,
              connection,
-             opened_callback{std::forward<F>(opened_callback)}](
-                auto &&stream_res) mutable {
+             opened_callback =
+                 std::forward<F>(opened_callback)](auto &&stream_res) mutable {
               auto self = wp.lock();
               if (not self) {
                 return;
@@ -728,7 +728,7 @@ namespace kagome::network {
             })) {
       SL_DEBUG(log_,
                "Stream {} with {} is alive or connecting",
-               block_announce_protocol->protocolName(),
+               protocol->protocolName(),
                peer_info.id);
     }
   }

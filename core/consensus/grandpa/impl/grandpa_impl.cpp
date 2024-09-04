@@ -43,7 +43,7 @@ namespace {
       "kagome_finality_grandpa_round";
 
   template <typename D>
-  auto toMilliseconds(D &&duration) {
+  auto toMilliseconds(const D &duration) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
   }
 }  // namespace

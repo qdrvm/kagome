@@ -1549,7 +1549,7 @@ namespace kagome::parachain {
                  block_number,
                  finalized_block_number{updated.view.finalized_number_},
                  parent_hash{std::move(parent_hash)},
-                 func(std::forward<Func>(func))](
+                 func = std::forward<Func>(func)](
                     outcome::result<ImportedBlockInfo> &&block_info) mutable {
                   auto self = wself.lock();
                   if (!self) {

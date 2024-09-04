@@ -26,7 +26,8 @@ namespace boost::beast {
                       buffered_read_stream<NextLayer, DynamicBuffer> &s,
                       TeardownHandler &&handler) {
     using boost::beast::websocket::async_teardown;
-    async_teardown(role, s.next_layer(), std::move(handler));
+    async_teardown(
+        role, s.next_layer(), std::forward<TeardownHandler>(handler));
   }
 }  // namespace boost::beast
 
