@@ -140,9 +140,6 @@ jobs:
           echo "Kagome Images: "
           cat /tmp/docker_image.env || true
           cat /tmp/dockerhub_image.env || true
-          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
-          echo "Zombie Tests Versions: "
-          cat /tmp/versions.env || true
 
 
   Zombie-Tests:
