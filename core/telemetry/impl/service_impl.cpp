@@ -194,11 +194,13 @@ namespace kagome::telemetry {
         last_imported_.is_set = false;
         auto msg =
             blockNotification(last_imported_.block, last_imported_.origin);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         last_imported_msg = message_pool_->push(msg, refs);
       }
       // prepare last finalized message if there is a need to
       if (last_finalized_.reported < last_finalized_.block.number) {
         auto msg = blockNotification(last_finalized_.block, std::nullopt);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         last_finalized_msg = message_pool_->push(msg, refs);
         last_finalized_.reported = last_finalized_.block.number;
       }
@@ -222,7 +224,9 @@ namespace kagome::telemetry {
     }
     std::optional<MessageHandle> system_msg_1, system_msg_2;
     auto refs = connections_.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     system_msg_1 = message_pool_->push(systemIntervalMessage1(), refs);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     system_msg_2 = message_pool_->push(systemIntervalMessage2(), refs);
 
     for (auto &conn : connections_) {
@@ -344,6 +348,7 @@ namespace kagome::telemetry {
         "best", str_val(fmt::format("{:l}", info.hash)), allocator);
 
     if (origin.has_value()) {
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       height.SetInt(info.number);
       rapidjson::Value origin_val;
       using o = BlockOrigin;
@@ -404,9 +409,13 @@ namespace kagome::telemetry {
         finalized_hash;
     {
       std::lock_guard lock(cache_mutex_);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       height.SetInt(last_imported_.block.number);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       finalized_height.SetInt(last_finalized_.block.number);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       tx_count.SetInt(tx_pool_->getStatus().ready_num);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       state_size.SetInt(buffer_storage_->byteSizeHint().value_or(0));
       best_hash = str_val(fmt::format("{:l}", last_imported_.block.hash));
       finalized_hash = str_val(fmt::format("{:l}", last_finalized_.block.hash));
@@ -447,8 +456,11 @@ namespace kagome::telemetry {
     // we are not actually measuring bandwidth. the following will just let us
     // see the history of active peers count change in the telemetry UI
     auto peers_to_bandwidth = active_peers * 1'000'000;
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     bandwidth_down.SetInt(peers_to_bandwidth);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     bandwidth_up.SetInt(peers_to_bandwidth);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     peers_count.SetInt(active_peers);
 
     // fields order is preserved the same way substrate orders it

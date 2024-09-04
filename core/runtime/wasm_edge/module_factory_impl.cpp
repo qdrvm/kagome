@@ -147,8 +147,9 @@ namespace kagome::runtime::wasm_edge {
                                    .get()
                                    .storeBuffer(encoded_args)};
       }
-      std::array params{WasmEdge_ValueGenI32(args_ptrsize.ptr),
-                        WasmEdge_ValueGenI32(args_ptrsize.size)};
+      std::array params{
+          WasmEdge_ValueGenI32(static_cast<int32_t>(args_ptrsize.ptr)),
+          WasmEdge_ValueGenI32(static_cast<int32_t>(args_ptrsize.size))};
       std::array returns{WasmEdge_ValueGenI64(0)};
       String wasm_name =
           WasmEdge_StringCreateByBuffer(name.data(), name.size());

@@ -255,8 +255,10 @@ namespace kagome::blockchain {
             changes.reorg->apply.emplace_back(node->info);
           });
       BOOST_ASSERT(ok);
-      std::reverse(changes.reorg->apply.begin() + offset,
-                   changes.reorg->apply.end());
+      std::reverse(
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          changes.reorg->apply.begin() + offset,
+          changes.reorg->apply.end());
     }
     return changes;
   }

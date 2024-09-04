@@ -3012,6 +3012,7 @@ namespace kagome::parachain {
 
         auto no_shows = known_no_shows(check);
         if (no_shows != 0) {
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           metric_no_shows_total_->inc(no_shows);
         }
 

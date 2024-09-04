@@ -1580,7 +1580,9 @@ namespace kagome::dispute {
       metric_disputes_total_->inc();
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     metric_votes_valid_->inc(import_result.imported_valid_votes);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     metric_votes_invalid_->inc(import_result.imported_invalid_votes);
 
     if (is_freshly_concluded_for) {

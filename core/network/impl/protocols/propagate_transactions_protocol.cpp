@@ -153,7 +153,9 @@ namespace kagome::network {
           peers.push_back(peer_id);
         });
     if (peers.size() > 1) {  // One of peers is current node itself
-      metric_propagated_tx_counter_->inc(peers.size() - 1);
+      auto delta = peers.size() - 1;
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+      metric_propagated_tx_counter_->inc(delta);
       for (const auto &tx : txs) {
         if (auto key = ext_event_key_repo_->get(tx.hash); key.has_value()) {
           extrinsic_events_engine_->notify(

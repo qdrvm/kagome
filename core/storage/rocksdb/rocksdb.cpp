@@ -56,7 +56,8 @@ namespace kagome::storage {
 
     // calculate state cache size per space
     const auto memory_budget = memory_budget_mib * 1024 * 1024;
-    const uint32_t trie_space_cache_size = memory_budget * 0.9;
+    const auto trie_space_cache_size =
+        static_cast<uint32_t>(memory_budget * 0.9);
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;

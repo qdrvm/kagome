@@ -84,7 +84,7 @@ namespace kagome::host_api {
   runtime::WasmI64 OffchainExtension::ext_offchain_timestamp_version_1() {
     auto worker = getWorker();
     auto result = worker->timestamp();
-    return result;
+    return static_cast<runtime::WasmI64>(result);
   }
 
   void OffchainExtension::ext_offchain_sleep_until_version_1(
@@ -284,7 +284,8 @@ namespace kagome::host_api {
     auto value_buffer = memory.loadN(value_ptr, value_size);
     auto value = value_buffer.toStringView();
 
-    auto result = worker->httpRequestAddHeader(request_id, name, value);
+    auto result = worker->httpRequestAddHeader(
+        static_cast<RequestId>(request_id), name, value);
 
     if (result.isSuccess()) {
       SL_TRACE_FUNC_CALL(log_, "Success", name, value);
@@ -323,8 +324,8 @@ namespace kagome::host_api {
     }
     auto &deadline = deadline_res.value();
 
-    auto result =
-        worker->httpRequestWriteBody(request_id, chunk_buffer, deadline);
+    auto result = worker->httpRequestWriteBody(
+        static_cast<RequestId>(request_id), chunk_buffer, deadline);
 
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -365,7 +366,8 @@ namespace kagome::host_api {
 
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    auto result = worker->httpResponseHeaders(request_id);
+    auto result =
+        worker->httpResponseHeaders(static_cast<RequestId>(request_id));
 
     SL_TRACE_FUNC_CALL(
         log_, fmt::format("<{} headers>", result.size()), request_id);
@@ -395,7 +397,8 @@ namespace kagome::host_api {
     common::Buffer buffer;
     buffer.resize(dst_buffer.size);
 
-    auto result = worker->httpResponseReadBody(request_id, buffer, deadline);
+    auto result = worker->httpResponseReadBody(
+        static_cast<RequestId>(request_id), buffer, deadline);
 
     if (result.isSuccess()) {
       memory.storeBuffer(dst_buffer.ptr, buffer);

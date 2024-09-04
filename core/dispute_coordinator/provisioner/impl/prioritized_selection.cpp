@@ -226,6 +226,7 @@ namespace kagome::dispute {
           return result;
         };
         result.emplace(std::tie(session_index, candidate_hash), selected_votes);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         total_votes_len += votes_len;
       }
     }
@@ -288,7 +289,8 @@ namespace kagome::dispute {
       auto &dispute_state = it->second;
 
       const auto size = dispute_state.validators_against.bits.size();
-      ssize_t supermajority = size - (std::min<size_t>(1, size) - 1) / 3;
+      auto supermajority =
+          static_cast<ssize_t>(size - (std::min<size_t>(1, size) - 1) / 3);
 
       // Check if there are enough onchain votes for or against to conclude
       // the dispute

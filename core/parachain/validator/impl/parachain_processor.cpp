@@ -1757,6 +1757,7 @@ namespace kagome::parachain {
     auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
     if (lucky != 0) {
       std::shuffle(any.begin(), any.end(), random_);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       any.erase(any.begin() + std::min(any.size(), lucky), any.end());
     } else {
       any.clear();

@@ -268,6 +268,7 @@ namespace {
     if (!soft_limit) {
       exit(EXIT_FAILURE);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
     auto db_res =

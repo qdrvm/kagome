@@ -426,7 +426,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_batch_verify_version_1(
@@ -437,7 +437,7 @@ namespace kagome::host_api {
         logger_,
         "Deprecated API method ext_crypto_sr25519_batch_verify_version_1 being "
         "called. Passing call to ext_crypto_sr25519_verify_version_1");
-    return batchVerify(
+    return batchVerify(  // NOLINT(cppcoreguidelines-narrowing-conversions)
         ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data));
   }
 
@@ -711,7 +711,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_1(
@@ -755,7 +755,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   void CryptoExtension::reset() {

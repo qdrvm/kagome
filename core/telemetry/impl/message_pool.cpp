@@ -60,6 +60,7 @@ namespace kagome::telemetry {
     // allowed to call only over already occupied slots
     BOOST_ASSERT(free_slots_.count(handle) == 0);
     auto &entry = pool_[handle];
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     return ++entry.ref_count;
   }
 
@@ -76,6 +77,7 @@ namespace kagome::telemetry {
       entry.data_size = 0;
       free_slots_.emplace(handle);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     return entry.ref_count;
   }
 

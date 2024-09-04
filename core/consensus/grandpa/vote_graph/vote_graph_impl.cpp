@@ -212,7 +212,9 @@ namespace kagome::consensus::grandpa {
       if (not filled) {
         // `[offset_size..end)` elements
         new_entry.ancestors = std::vector<BlockHash>{
-            entry.ancestors.begin() + offset_size, entry.ancestors.end()};
+            // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+            entry.ancestors.begin() + offset_size,
+            entry.ancestors.end()};
 
         auto last_it = entry.ancestors.rbegin();
         if (last_it != entry.ancestors.rend()) {
@@ -225,7 +227,9 @@ namespace kagome::consensus::grandpa {
 
       // `[0..offset_size)` elements
       entry.ancestors = std::vector<BlockHash>{
-          entry.ancestors.begin(), entry.ancestors.begin() + offset_size};
+          entry.ancestors.begin(),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          entry.ancestors.begin() + offset_size};
 
       new_entry.descendants.push_back(descendant);
 

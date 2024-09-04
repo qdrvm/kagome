@@ -63,6 +63,7 @@ namespace kagome::parachain {
         code_hash,
         [&]() mutable -> runtime::RuntimeCodeProvider::Result {
           OUTCOME_TRY(code, runtime::uncompressCodeIfNeeded(code_zstd));
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           metric_code_size.observe(code.size());
           return std::make_shared<Buffer>(code);
         },

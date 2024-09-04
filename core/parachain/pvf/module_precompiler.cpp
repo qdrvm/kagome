@@ -40,9 +40,9 @@ namespace kagome::parachain {
 
   struct ModulePrecompiler::PrecompilationStats {
     const size_t total_count{};
-    std::atomic_int occupied_precompiled_count{};
-    std::atomic_int scheduled_precompiled_count{};
-    std::atomic_int total_code_size{};
+    std::atomic_size_t occupied_precompiled_count{};
+    std::atomic_size_t scheduled_precompiled_count{};
+    std::atomic_size_t total_code_size{};
   };
 
   std::optional<ParachainId> get_para_id(runtime::CoreState core) {

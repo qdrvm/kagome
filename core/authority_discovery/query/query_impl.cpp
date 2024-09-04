@@ -218,8 +218,10 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
     ::authority_discovery_v3::SignedAuthorityRecord signed_record;
-    if (not signed_record.ParseFromArray(signed_record_pb.data(),
-                                         signed_record_pb.size())) {
+    if (not signed_record.ParseFromArray(
+            signed_record_pb.data(),
+            // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+            signed_record_pb.size())) {
       return Error::DECODE_ERROR;
     }
 

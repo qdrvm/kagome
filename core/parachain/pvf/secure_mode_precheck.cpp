@@ -121,6 +121,7 @@ namespace kagome::parachain {
       return EXIT_FAILURE;
     }
     std::cout.write(qtils::byte2str(enc_result.value().data()),
+                    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
                     enc_result.value().size());
     return 0;
   }

@@ -591,7 +591,7 @@ class DbStatsCommand : public Command {
                5);
     for (auto column_data : columns_data) {
       constexpr std::array sizes{"B ", "KB", "MB", "GB", "TB"};
-      double size = column_data.size;
+      auto size = static_cast<double>(column_data.size);
       int idx = 0;
       while (size > 1024.0) {
         size /= 1024.0;
@@ -626,20 +626,24 @@ int storage_explorer_main(int argc, const char **argv) {
   auto configuration =
       std::make_shared<kagome::application::AppConfigurationImpl>();
 
-  int kagome_args_start = -1;
+  size_t kagome_args_start;
+  bool is_found = false;
   for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
+      is_found = true;
     }
   }
-  if (kagome_args_start == -1) {
+  if (not is_found) {
     std::cerr
         << "You must specify arguments for kagome initialization after '--'\n";
     return -1;
   }
 
   if (!configuration->initializeFromArgs(
-          argc - kagome_args_start, args.subspan(kagome_args_start).data())) {
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          argc - kagome_args_start,
+          args.subspan(kagome_args_start).data())) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }

@@ -236,7 +236,7 @@ namespace kagome::host_api {
      * @returns an i32 integer value equal to 1 if all the signatures are valid
      * or a value equal to 0 if one or more of the signatures are invalid.
      */
-    [[nodiscard]] virtual int32_t
+    [[nodiscard]] virtual runtime::WasmSize
     ext_crypto_finish_batch_verify_version_1() = 0;
 
     /**

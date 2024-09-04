@@ -147,9 +147,7 @@ namespace kagome::parachain {
                   LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE
                       | LANDLOCK_ACCESS_FS_MAKE_REG};
 
-    int abi{};
-
-    abi = ::syscall(
+    auto abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
       return getLastErr("landlock_create_ruleset");
@@ -177,14 +175,14 @@ namespace kagome::parachain {
 #endif
     };
 
-    int ruleset_fd{};
-
-    ruleset_fd = ::syscall(
+    auto ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
     if (ruleset_fd < 0) {
       return getLastErr("landlock_create_ruleset");
     }
-    libp2p::common::FinalAction cleanup = [ruleset_fd]() { close(ruleset_fd); };
+    libp2p::common::FinalAction cleanup = [ruleset_fd]() {
+      close(ruleset_fd);  // NOLINT(cppcoreguidelines-narrowing-conversions)
+    };
 
     for (auto &[path, access_flags] : allowed_exceptions) {
       struct landlock_path_beneath_attr path_beneath = {
@@ -208,11 +206,12 @@ namespace kagome::parachain {
 
     if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
         == -1) {  // NOLINT(cppcoreguidelines-pro-type-vararg)
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       ::close(ruleset_fd);
       return getLastErr("prctl PR_SET_NO_NEW_PRIVS");
     }
 
-    if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0)) {
+    if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0) != 0) {
       return getLastErr("landlock_restrict_self");
     }
 
@@ -224,6 +223,7 @@ namespace kagome::parachain {
     std::cin.read(
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<char *>(out.data()),
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         out.size());
     if (not std::cin.good()) {
       return std::errc::io_error;
@@ -360,10 +360,12 @@ namespace kagome::parachain {
       std::cout.write(
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
           reinterpret_cast<const char *>(len.data()),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           len.size());
       std::cout.write(
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
           reinterpret_cast<const char *>(result.data()),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           result.size());
       std::cout.flush();
     }
