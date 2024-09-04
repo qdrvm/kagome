@@ -82,7 +82,7 @@ namespace kagome::network {
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{std::move(chain_sub_engine)},
-        synchronizer_{std::move(synchronizer)} {
+        synchronizer_{synchronizer} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);

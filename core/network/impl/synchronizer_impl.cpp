@@ -1412,11 +1412,11 @@ namespace kagome::network {
   bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber block,
     CbResultVoid cb) {
     BlocksRequest request{
-        BlockAttribute::HEADER | BlockAttribute::BODY,
-        block,
-        Direction::DESCENDING,
-        std::nullopt,
-        false,
+        .fields = BlocksRequest::kBasicAttributes,
+        .from = block,
+        .direction = Direction::DESCENDING,
+        .max = std::nullopt,
+        .multiple_justifications = false,
     };
     auto chosen = chooseJustificationPeer(block, request.fingerprint());
     if (not chosen) {
