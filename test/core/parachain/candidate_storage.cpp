@@ -5,6 +5,9 @@
  */
 
 #include "core/parachain/parachain_test_harness.hpp"
+#include "parachain/validator/prospective_parachains/fragment_chain.hpp"
+
+using namespace kagome::parachain::fragment;
 
 class CandidateStorageTest : public ProspectiveParachainsTest {
   void SetUp() override {

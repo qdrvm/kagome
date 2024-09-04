@@ -16,6 +16,18 @@ target_link_libraries(candidate_storage_test
     logger
     )
 
+addtest(scope_test
+    scope.cpp
+    )
+
+target_link_libraries(scope_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(parachain_test
     pvf_test.cpp
     assignments.cpp

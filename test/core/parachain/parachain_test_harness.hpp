@@ -135,28 +135,28 @@ class ProspectiveParachainsTest : public testing::Test {
     return ghashFromStrData(hasher_, data);
   }
 
-//  fragment::Constraints make_constraints(
-//      BlockNumber min_relay_parent_number,
-//      std::vector<BlockNumber> valid_watermarks,
-//      HeadData required_parent) {
-//    return fragment::Constraints{
-//        .min_relay_parent_number = min_relay_parent_number,
-//        .max_pov_size = 1000000,
-//        .max_code_size = 1000000,
-//        .ump_remaining = 10,
-//        .ump_remaining_bytes = 1000,
-//        .max_ump_num_per_candidate = 10,
-//        .dmp_remaining_messages = std::vector<BlockNumber>(10, 0),
-//        .hrmp_inbound = fragment::InboundHrmpLimitations{.valid_watermarks =
-//                                                             valid_watermarks},
-//        .hrmp_channels_out = {},
-//        .max_hrmp_num_per_candidate = 0,
-//        .required_parent = required_parent,
-//        .validation_code_hash = hashFromStrData("42"),
-//        .upgrade_restriction = std::nullopt,
-//        .future_validation_code = std::nullopt,
-//    };
-//  }
+  fragment::Constraints make_constraints(
+      BlockNumber min_relay_parent_number,
+      std::vector<BlockNumber> valid_watermarks,
+      HeadData required_parent) {
+    return fragment::Constraints{
+        .min_relay_parent_number = min_relay_parent_number,
+        .max_pov_size = 1000000,
+        .max_code_size = 1000000,
+        .ump_remaining = 10,
+        .ump_remaining_bytes = 1000,
+        .max_ump_num_per_candidate = 10,
+        .dmp_remaining_messages = std::vector<BlockNumber>(10, 0),
+        .hrmp_inbound = fragment::InboundHrmpLimitations{.valid_watermarks =
+                                                             valid_watermarks},
+        .hrmp_channels_out = {},
+        .max_hrmp_num_per_candidate = 0,
+        .required_parent = required_parent,
+        .validation_code_hash = hashFromStrData("42"),
+        .upgrade_restriction = std::nullopt,
+        .future_validation_code = std::nullopt,
+    };
+  }
 //
 //  std::pair<network::CommittedCandidateReceipt, CandidateHash>
 //  make_and_back_candidate(const TestState &test_state,
@@ -309,11 +309,11 @@ class ProspectiveParachainsTest : public testing::Test {
 //    return h;
 //  }
 //
-//  Hash fromNumber(uint64_t n) const {
-//    Hash h{};
-//    *(uint64_t *)&h[0] = n;
-//    return h;
-//  }
+  Hash fromNumber(uint64_t n) const {
+    Hash h{};
+    *(uint64_t *)&h[0] = n;
+    return h;
+  }
 //
 //  void filterACByPara(TestState &test_state, ParachainId para_id) {
 //    for (auto it = test_state.availability_cores.begin();
