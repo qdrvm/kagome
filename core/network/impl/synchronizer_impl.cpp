@@ -1412,10 +1412,10 @@ namespace kagome::network {
   bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber block,
     CbResultVoid cb) {
     BlocksRequest request{
-        .fields = BlocksRequest::kBasicAttributes,
+        .fields = BlockAttribute::HEADER,
         .from = block,
         .direction = Direction::DESCENDING,
-        .max = std::nullopt,
+        .max = 1,
         .multiple_justifications = false,
     };
     auto chosen = chooseJustificationPeer(block, request.fingerprint());
@@ -1437,7 +1437,7 @@ namespace kagome::network {
       }
 
       auto &blocks = r.value().blocks;
-      if (blocks.size() != 1) {
+      if (blocks.size() == 0) {
         return cb(Error::EMPTY_RESPONSE);
       }
 
@@ -1446,11 +1446,13 @@ namespace kagome::network {
         return cb(Error::EMPTY_RESPONSE);
       }
 
-      const auto& headerValue = header.value();
+      auto& headerValue = header.value();
+      primitives::calculateBlockHash(headerValue, *self->hasher_);
       const auto& headerInfo = headerValue.blockInfo();
 
       if (not self->block_tree_->isFinalized(headerInfo)) {
-        return cb(Error::EMPTY_RESPONSE);
+        SL_WARN(self->log_, "Block #{} is not finalized and won't be stored", headerInfo.number);
+        return cb(Error::DISCARDED_BLOCK);
       }
 
       if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {

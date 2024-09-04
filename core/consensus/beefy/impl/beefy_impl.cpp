@@ -404,7 +404,7 @@ namespace kagome::network {
     }
     while (fetching_headers_) {
       auto& fetchingHeader = *fetching_headers_;
-      if (fetchingHeader <= beefy_genesis_) {
+      if (fetchingHeader <= *beefy_genesis_) {
         fetching_headers_.reset();
         break;
       }
