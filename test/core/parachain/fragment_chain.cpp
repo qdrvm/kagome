@@ -669,231 +669,348 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
   //
   // Check that D, F, A2 and B2 are kept as unconnected potential candidates.
   {
-    EXPECT_OUTCOME_TRUE(
-        scope,
-        Scope::with_ancestors(
-            relay_parent_z_info, base_constraints, {}, 2, ancestors));
+    {
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(
+              relay_parent_z_info, base_constraints, {}, 2, ancestors));
 
-    // Candidate D
-    const auto &[pvd_d, candidate_d] =
-        make_committed_candidate(para_id,
-                                 relay_parent_z_info.hash,
-                                 relay_parent_z_info.number,
-                                 {0x0d},
-                                 {0x0e},
-                                 relay_parent_z_info.number);
-    const auto candidate_d_hash = hash(candidate_d);
-    const auto candidate_d_entry =
-        CandidateEntry::create(candidate_d_hash,
-                               candidate_d,
-                               pvd_d,
-                               CandidateState::Backed,
-                               hasher_)
-            .value();
+      // Candidate D
+      const auto &[pvd_d, candidate_d] =
+          make_committed_candidate(para_id,
+                                   relay_parent_z_info.hash,
+                                   relay_parent_z_info.number,
+                                   {0x0d},
+                                   {0x0e},
+                                   relay_parent_z_info.number);
+      const auto candidate_d_hash = hash(candidate_d);
+      const auto candidate_d_entry =
+          CandidateEntry::create(candidate_d_hash,
+                                 candidate_d,
+                                 pvd_d,
+                                 CandidateState::Backed,
+                                 hasher_)
+              .value();
 
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_d_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_d_entry).has_value());
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_d_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_d_entry).has_value());
 
-    // Candidate F
-    const auto &[pvd_f, candidate_f] =
-        make_committed_candidate(para_id,
-                                 relay_parent_z_info.hash,
-                                 relay_parent_z_info.number,
-                                 {0x0f},
-                                 {0xf1},
-                                 1000);
-    const auto candidate_f_hash = hash(candidate_f);
-    const auto candidate_f_entry =
-        CandidateEntry::create(candidate_f_hash,
-                               candidate_f,
-                               pvd_f,
-                               CandidateState::Seconded,
-                               hasher_)
-            .value();
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_f_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_f_entry).has_value());
+      // Candidate F
+      const auto &[pvd_f, candidate_f] =
+          make_committed_candidate(para_id,
+                                   relay_parent_z_info.hash,
+                                   relay_parent_z_info.number,
+                                   {0x0f},
+                                   {0xf1},
+                                   1000);
+      const auto candidate_f_hash = hash(candidate_f);
+      const auto candidate_f_entry =
+          CandidateEntry::create(candidate_f_hash,
+                                 candidate_f,
+                                 pvd_f,
+                                 CandidateState::Seconded,
+                                 hasher_)
+              .value();
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_f_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_f_entry).has_value());
 
-    // Candidate A1
-    const auto &[pvd_a1, candidate_a1] =
-        make_committed_candidate(para_id,
-                                 relay_parent_x_info.hash,
-                                 relay_parent_x_info.number,
-                                 {0x0a},
-                                 {0xb1},
-                                 relay_parent_x_info.number);
-    const auto candidate_a1_hash = hash(candidate_a1);
-    const auto candidate_a1_entry =
-        CandidateEntry::create(candidate_a1_hash,
-                               candidate_a1,
-                               pvd_a1,
-                               CandidateState::Backed,
-                               hasher_)
-            .value();
-    // Candidate A1 is created so that its hash is greater than the candidate A
-    // hash.
-    ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a_hash,
-                                                   candidate_a1_hash));
-    ASSERT_EQ(populate_chain_from_previous_storage(scope, storage)
-                  .can_add_candidate_as_potential(candidate_a1_entry)
-                  .error(),
+      // Candidate A1
+      const auto &[pvd_a1, candidate_a1] =
+          make_committed_candidate(para_id,
+                                   relay_parent_x_info.hash,
+                                   relay_parent_x_info.number,
+                                   {0x0a},
+                                   {0xb1},
+                                   relay_parent_x_info.number);
+      const auto candidate_a1_hash = hash(candidate_a1);
+      const auto candidate_a1_entry =
+          CandidateEntry::create(candidate_a1_hash,
+                                 candidate_a1,
+                                 pvd_a1,
+                                 CandidateState::Backed,
+                                 hasher_)
+              .value();
+      // Candidate A1 is created so that its hash is greater than the candidate
+      // A hash.
+      ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a_hash,
+                                                     candidate_a1_hash));
+      ASSERT_EQ(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_a1_entry)
+                    .error(),
+                FragmentChain::Error::FORK_CHOICE_RULE);
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_a1_entry).has_value());
+
+      // Candidate B1.
+      const auto &[pvd_b1, candidate_b1] =
+          make_committed_candidate(para_id,
+                                   relay_parent_x_info.hash,
+                                   relay_parent_x_info.number,
+                                   {0xb1},
+                                   {0xc1},
+                                   relay_parent_x_info.number);
+      const auto candidate_b1_hash = hash(candidate_b1);
+      const auto candidate_b1_entry =
+          CandidateEntry::create(candidate_b1_hash,
+                                 candidate_b1,
+                                 pvd_b1,
+                                 CandidateState::Seconded,
+                                 hasher_)
+              .value();
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_b1_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_b1_entry).has_value());
+
+      // Candidate C1.
+      const auto &[pvd_c1, candidate_c1] =
+          make_committed_candidate(para_id,
+                                   relay_parent_x_info.hash,
+                                   relay_parent_x_info.number,
+                                   {0xc1},
+                                   {0xd1},
+                                   relay_parent_x_info.number);
+      const auto candidate_c1_hash = hash(candidate_c1);
+      const auto candidate_c1_entry =
+          CandidateEntry::create(candidate_c1_hash,
+                                 candidate_c1,
+                                 pvd_c1,
+                                 CandidateState::Backed,
+                                 hasher_)
+              .value();
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_c1_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_c1_entry).has_value());
+
+      // Candidate C2.
+      const auto &[pvd_c2, candidate_c2] =
+          make_committed_candidate(para_id,
+                                   relay_parent_x_info.hash,
+                                   relay_parent_x_info.number,
+                                   {0xc1},
+                                   {0xd2},
+                                   relay_parent_x_info.number);
+      const auto candidate_c2_hash = hash(candidate_c2);
+      const auto candidate_c2_entry =
+          CandidateEntry::create(candidate_c2_hash,
+                                 candidate_c2,
+                                 pvd_c2,
+                                 CandidateState::Seconded,
+                                 hasher_)
+              .value();
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_c2_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_c2_entry).has_value());
+
+      // Candidate A2.
+      const auto &[pvd_a2, candidate_a2] =
+          make_committed_candidate(para_id,
+                                   relay_parent_x_info.hash,
+                                   relay_parent_x_info.number,
+                                   {0x0a},
+                                   {0xb3},
+                                   relay_parent_x_info.number);
+      const auto candidate_a2_hash = hash(candidate_a2);
+      const auto candidate_a2_entry =
+          CandidateEntry::create(candidate_a2_hash,
+                                 candidate_a2,
+                                 pvd_a2,
+                                 CandidateState::Seconded,
+                                 hasher_)
+              .value();
+      // Candidate A2 is created so that its hash is greater than the candidate
+      // A hash.
+      ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a2_hash,
+                                                     candidate_a_hash));
+
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_a2_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_a2_entry).has_value());
+
+      // Candidate B2.
+      const auto &[pvd_b2, candidate_b2] =
+          make_committed_candidate(para_id,
+                                   relay_parent_y_info.hash,
+                                   relay_parent_y_info.number,
+                                   {0xb3},
+                                   {0xb4},
+                                   relay_parent_y_info.number);
+      const auto candidate_b2_hash = hash(candidate_b2);
+      const auto candidate_b2_entry =
+          CandidateEntry::create(candidate_b2_hash,
+                                 candidate_b2,
+                                 pvd_b2,
+                                 CandidateState::Backed,
+                                 hasher_)
+              .value();
+      ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                      .can_add_candidate_as_potential(candidate_b2_entry)
+                      .has_value());
+      ASSERT_TRUE(storage.add_candidate_entry(candidate_b2_entry).has_value());
+
+      {
+        const auto chain = populate_chain_from_previous_storage(scope, storage);
+        {
+          const Vec<CandidateHash> ref = {
+              candidate_a_hash, candidate_b_hash, candidate_c_hash};
+          ASSERT_EQ(chain.best_chain_vec(), ref);
+        }
+        {
+          const HashSet<CandidateHash> ref = {candidate_d_hash,
+                                              candidate_f_hash,
+                                              candidate_a2_hash,
+                                              candidate_b2_hash};
+          ASSERT_EQ(get_unconnected(chain), ref);
+        }
+
+        // Cannot add as potential an already present candidate (whether it's in
+        // the best chain or in unconnected storage)
+        ASSERT_EQ(
+            chain.can_add_candidate_as_potential(candidate_a_entry).error(),
+            FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+        ASSERT_EQ(
+            chain.can_add_candidate_as_potential(candidate_f_entry).error(),
+            FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+
+        // Simulate a best chain reorg by backing a2.
+        {
+          FragmentChain chain_2 = chain;
+          chain_2.candidate_backed(candidate_a2_hash);
+          {
+            const Vec<CandidateHash> ref = {candidate_a2_hash,
+                                            candidate_b2_hash};
+            ASSERT_EQ(chain_2.best_chain_vec(), ref);
+          }
+          {
+            // F is kept as it was truly unconnected. The rest will be trimmed.
+            const HashSet<CandidateHash> ref = {candidate_f_hash};
+            ASSERT_EQ(get_unconnected(chain_2), ref);
+          }
+          // A and A1 will never have potential again.
+          ASSERT_EQ(chain_2.can_add_candidate_as_potential(candidate_a1_entry)
+                        .error(),
+                    FragmentChain::Error::FORK_CHOICE_RULE);
+          ASSERT_EQ(
+              chain_2.can_add_candidate_as_potential(candidate_a_entry).error(),
               FragmentChain::Error::FORK_CHOICE_RULE);
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_a1_entry).has_value());
+        }
+      }
+      // Candidate F has an invalid hrmp watermark. however, it was not checked
+      // beforehand as we don't have its parent yet. Add its parent now. This
+      // will not impact anything as E is not yet part of the best chain.
 
-    // Candidate B1.
-    const auto &[pvd_b1, candidate_b1] =
-        make_committed_candidate(para_id,
-                                 relay_parent_x_info.hash,
-                                 relay_parent_x_info.number,
-                                 {0xb1},
-                                 {0xc1},
-                                 relay_parent_x_info.number);
-    const auto candidate_b1_hash = hash(candidate_b1);
-    const auto candidate_b1_entry =
-        CandidateEntry::create(candidate_b1_hash,
-                               candidate_b1,
-                               pvd_b1,
-                               CandidateState::Seconded,
-                               hasher_)
-            .value();
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_b1_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_b1_entry).has_value());
+      const auto &[pvd_e, candidate_e] =
+          make_committed_candidate(para_id,
+                                   relay_parent_z_info.hash,
+                                   relay_parent_z_info.number,
+                                   {0x0e},
+                                   {0x0f},
+                                   relay_parent_z_info.number);
+      const auto candidate_e_hash = hash(candidate_e);
+      ASSERT_TRUE(storage
+                      .add_candidate_entry(
+                          CandidateEntry::create(candidate_e_hash,
+                                                 candidate_e,
+                                                 pvd_e,
+                                                 CandidateState::Seconded,
+                                                 hasher_)
+                              .value())
+                      .has_value());
 
-    // Candidate C1.
-    const auto &[pvd_c1, candidate_c1] =
-        make_committed_candidate(para_id,
-                                 relay_parent_x_info.hash,
-                                 relay_parent_x_info.number,
-                                 {0xc1},
-                                 {0xd1},
-                                 relay_parent_x_info.number);
-    const auto candidate_c1_hash = hash(candidate_c1);
-    const auto candidate_c1_entry =
-        CandidateEntry::create(candidate_c1_hash,
-                               candidate_c1,
-                               pvd_c1,
-                               CandidateState::Backed,
-                               hasher_)
-            .value();
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_c1_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_c1_entry).has_value());
-
-    // Candidate C2.
-    const auto &[pvd_c2, candidate_c2] =
-        make_committed_candidate(para_id,
-                                 relay_parent_x_info.hash,
-                                 relay_parent_x_info.number,
-                                 {0xc1},
-                                 {0xd2},
-                                 relay_parent_x_info.number);
-    const auto candidate_c2_hash = hash(candidate_c2);
-    const auto candidate_c2_entry =
-        CandidateEntry::create(candidate_c2_hash,
-                               candidate_c2,
-                               pvd_c2,
-                               CandidateState::Seconded,
-                               hasher_)
-            .value();
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_c2_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_c2_entry).has_value());
-
-    // Candidate A2.
-    const auto &[pvd_a2, candidate_a2] =
-        make_committed_candidate(para_id,
-                                 relay_parent_x_info.hash,
-                                 relay_parent_x_info.number,
-                                 {0x0a},
-                                 {0xb3},
-                                 relay_parent_x_info.number);
-    const auto candidate_a2_hash = hash(candidate_a2);
-    const auto candidate_a2_entry =
-        CandidateEntry::create(candidate_a2_hash,
-                               candidate_a2,
-                               pvd_a2,
-                               CandidateState::Seconded,
-                               hasher_)
-            .value();
-    // Candidate A2 is created so that its hash is greater than the candidate A
-    // hash.
-    ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a2_hash,
-                                                   candidate_a_hash));
-
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_a2_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_a2_entry).has_value());
-
-    // Candidate B2.
-    const auto &[pvd_b2, candidate_b2] =
-        make_committed_candidate(para_id,
-                                 relay_parent_y_info.hash,
-                                 relay_parent_y_info.number,
-                                 {0xb3},
-                                 {0xb4},
-                                 relay_parent_y_info.number);
-    const auto candidate_b2_hash = hash(candidate_b2);
-    const auto candidate_b2_entry =
-        CandidateEntry::create(candidate_b2_hash,
-                               candidate_b2,
-                               pvd_b2,
-                               CandidateState::Backed,
-                               hasher_)
-            .value();
-    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
-                    .can_add_candidate_as_potential(candidate_b2_entry)
-                    .has_value());
-    ASSERT_TRUE(storage.add_candidate_entry(candidate_b2_entry).has_value());
-
-    const auto chain = populate_chain_from_previous_storage(scope, storage);
-    {
-      const Vec<CandidateHash> ref = {
-          candidate_a_hash, candidate_b_hash, candidate_c_hash};
-      ASSERT_EQ(chain.best_chain_vec(), ref);
-    }
-    {
-      const HashSet<CandidateHash> ref = {candidate_d_hash,
-                                          candidate_f_hash,
-                                          candidate_a2_hash,
-                                          candidate_b2_hash};
-      ASSERT_EQ(get_unconnected(chain), ref);
-    }
-
-    // Cannot add as potential an already present candidate (whether it's in the
-    // best chain or in unconnected storage)
-    ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-              FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
-    ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_f_entry).error(),
-              FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
-
-    // Simulate a best chain reorg by backing a2.
-    {
-      FragmentChain chain_2 = chain;
-      chain_2.candidate_backed(candidate_a2_hash);
       {
-        const Vec<CandidateHash> ref = {candidate_a2_hash, candidate_b2_hash};
-        ASSERT_EQ(chain_2.best_chain_vec(), ref);
+        const auto chain = populate_chain_from_previous_storage(scope, storage);
+        {
+          const Vec<CandidateHash> ref = {
+              candidate_a_hash, candidate_b_hash, candidate_c_hash};
+          ASSERT_EQ(chain.best_chain_vec(), ref);
+        }
+        {
+          const HashSet<CandidateHash> ref = {candidate_d_hash,
+                                              candidate_f_hash,
+                                              candidate_a2_hash,
+                                              candidate_b2_hash,
+                                              candidate_e_hash};
+          ASSERT_EQ(get_unconnected(chain), ref);
+        }
+      }
+
+      // Simulate the fact that candidates A, B, C are now pending availability.
+      EXPECT_OUTCOME_TRUE(
+          scope2,
+          Scope::with_ancestors(relay_parent_z_info,
+                                base_constraints,
+                                {PendingAvailability{
+                                     .candidate_hash = candidate_a_hash,
+                                     .relay_parent = relay_parent_x_info,
+                                 },
+                                 PendingAvailability{
+                                     .candidate_hash = candidate_b_hash,
+                                     .relay_parent = relay_parent_y_info,
+                                 },
+                                 PendingAvailability{
+                                     .candidate_hash = candidate_c_hash,
+                                     .relay_parent = relay_parent_z_info,
+                                 }},
+                                2,
+                                ancestors));
+
+      // A2 and B2 will now be trimmed
+      const auto chain = populate_chain_from_previous_storage(scope2, storage);
+      {
+        const Vec<CandidateHash> ref = {
+            candidate_a_hash, candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
       }
       {
-        // F is kept as it was truly unconnected. The rest will be trimmed.
-        const HashSet<CandidateHash> ref = {candidate_f_hash};
-        ASSERT_EQ(get_unconnected(chain_2), ref);
+        const HashSet<CandidateHash> ref = {
+            candidate_d_hash, candidate_f_hash, candidate_e_hash};
+        ASSERT_EQ(get_unconnected(chain), ref);
       }
-      // A and A1 will never have potential again.
+
+      // Cannot add as potential an already pending availability candidate
+      ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
+                FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+
+      // Simulate the fact that candidates A, B and C have been included.
+      EXPECT_OUTCOME_TRUE(
+          scope3,
+          Scope::with_ancestors(relay_parent_z_info,
+                                make_constraints(0, {0}, {0x0d}),
+                                {},
+                                2,
+                                ancestors));
+
+      FragmentChain prev_chain = chain;
+      FragmentChain chain_new =
+          FragmentChain::init(hasher_, scope3, CandidateStorage{});
+      chain_new.populate_from_previous(prev_chain);
+      {
+        const Vec<CandidateHash> ref = {candidate_d_hash};
+        ASSERT_EQ(chain_new.best_chain_vec(), ref);
+      }
+      {
+        const HashSet<CandidateHash> ref = {candidate_e_hash, candidate_f_hash};
+        ASSERT_EQ(get_unconnected(chain_new), ref);
+      }
+
+      // Mark E as backed. F will be dropped for invalid watermark. No other
+      // unconnected candidates.
+      chain_new.candidate_backed(candidate_e_hash);
+      {
+        const Vec<CandidateHash> ref = {candidate_d_hash, candidate_e_hash};
+        ASSERT_EQ(chain_new.best_chain_vec(), ref);
+      }
+      ASSERT_EQ(chain_new.unconnected_len(), 0);
+
       ASSERT_EQ(
-          chain_2.can_add_candidate_as_potential(candidate_a1_entry).error(),
-          FragmentChain::Error::FORK_CHOICE_RULE);
-      ASSERT_EQ(
-          chain_2.can_add_candidate_as_potential(candidate_a_entry).error(),
-          FragmentChain::Error::FORK_CHOICE_RULE);
+          chain_new.can_add_candidate_as_potential(candidate_f_entry).error(),
+          FragmentChain::Error::CHECK_AGAINST_CONSTRAINTS);
     }
   }
 }
