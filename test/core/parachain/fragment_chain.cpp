@@ -420,29 +420,83 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         modified_storage.add_candidate_entry(unconnected_candidate_c_entry)
             .has_value());
 
-    EXPECT_OUTCOME_TRUE(
-        scope,
-        Scope::with_ancestors(
-            relay_parent_z_info, base_constraints, {}, 4, ancestors));
     {
-      const auto chain =
-          FragmentChain::init(hasher_, scope, CandidateStorage{});
-      ASSERT_TRUE(
-          chain.can_add_candidate_as_potential(unconnected_candidate_c_entry)
-              .has_value());
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(
+              relay_parent_z_info, base_constraints, {}, 4, ancestors));
+      {
+        const auto chain =
+            FragmentChain::init(hasher_, scope, CandidateStorage{});
+        ASSERT_TRUE(
+            chain.can_add_candidate_as_potential(unconnected_candidate_c_entry)
+                .has_value());
+      }
+
+      {
+        const auto chain =
+            populate_chain_from_previous_storage(scope, modified_storage);
+        {
+          const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+          ASSERT_EQ(chain.best_chain_vec(), ref);
+        }
+        {
+          const HashSet<CandidateHash> ref = {unconnected_candidate_c_hash};
+          ASSERT_EQ(get_unconnected(chain), ref);
+        }
+      }
     }
 
+    // Candidate A is a pending availability candidate and Candidate C is an
+    // unconnected candidate, C's relay parent is not allowed to move backwards
+    // from A's relay parent because we're sure A will not get removed in the
+    // future, as it's already on-chain (unless it times out availability, a
+    // case for which we don't care to optimise for)
+    modified_storage.remove_candidate(candidate_a_hash, hasher_);
+    const auto &[modified_pvd_a, modified_candidate_a] =
+        make_committed_candidate(para_id,
+                                 relay_parent_y_info.hash,
+                                 relay_parent_y_info.number,
+                                 {0x0a},
+                                 {0x0b},
+                                 relay_parent_y_info.number);
+
+    const auto modified_candidate_a_hash =
+        network::candidateHash(*hasher_, modified_candidate_a);
+
+    EXPECT_OUTCOME_TRUE(modified_candidate_a_entry,
+                        CandidateEntry::create(modified_candidate_a_hash,
+                                               modified_candidate_a,
+                                               modified_pvd_a,
+                                               CandidateState::Backed,
+                                               hasher_));
+    ASSERT_TRUE(modified_storage.add_candidate_entry(modified_candidate_a_entry)
+                    .has_value());
     {
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(relay_parent_z_info,
+                                base_constraints,
+                                {PendingAvailability{
+                                    .candidate_hash = modified_candidate_a_hash,
+                                    .relay_parent = relay_parent_y_info,
+                                }},
+                                4,
+                                ancestors));
+
       const auto chain =
           populate_chain_from_previous_storage(scope, modified_storage);
       {
-        const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+        const Vec<CandidateHash> ref = {modified_candidate_a_hash,
+                                        candidate_b_hash};
         ASSERT_EQ(chain.best_chain_vec(), ref);
       }
-      {
-        const HashSet<CandidateHash> ref = {unconnected_candidate_c_hash};
-        ASSERT_EQ(get_unconnected(chain), ref);
-      }
+      ASSERT_EQ(chain.unconnected_len(), 0);
+      ASSERT_EQ(
+          chain.can_add_candidate_as_potential(unconnected_candidate_c_entry)
+              .error(),
+          FragmentChain::Error::
+              RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY);
     }
   }
 }
