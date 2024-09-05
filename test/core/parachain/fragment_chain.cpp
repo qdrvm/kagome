@@ -36,6 +36,10 @@ class FragmentChainTest : public ProspectiveParachainsTest {
         [&](const auto &c) { unconnected.insert(c.candidate_hash); });
     return unconnected;
   }
+
+  Hash hash(const network::CommittedCandidateReceipt &data) {
+    return network::candidateHash(*hasher_, data);
+  }
 };
 
 TEST_F(FragmentChainTest, init_and_populate_from_empty) {
@@ -648,5 +652,48 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_TRUE(chain.best_chain_vec().empty());
       ASSERT_EQ(chain.unconnected_len(), 0);
     }
+  }
+
+  // More complex case:
+  // max_depth is 2 (a chain of max depth 3).
+  // A -> B -> C are the best backable chain.
+  // D is backed but would exceed the max depth.
+  // F is unconnected and seconded.
+  // A1 has same parent as A, is backed but has a higher candidate hash. It'll
+  // therefore be deleted.
+  //	A1 has underneath a subtree that will all need to be trimmed. A1 -> B1.
+  // B1 -> C1
+  // 	and B1 -> C2. (C1 is backed).
+  // A2 is seconded but is kept because it has a lower candidate hash than A.
+  // A2 points to B2, which is backed.
+  //
+  // Check that D, F, A2 and B2 are kept as unconnected potential candidates.
+  {
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 2, ancestors));
+
+    // Candidate D
+    const auto &[pvd_d, candidate_d] =
+        make_committed_candidate(para_id,
+                                 relay_parent_z_info.hash,
+                                 relay_parent_z_info.number,
+                                 {0x0d},
+                                 {0x0e},
+                                 relay_parent_z_info.number);
+    const auto candidate_d_hash = hash(candidate_d);
+    const auto candidate_d_entry =
+        CandidateEntry::create(candidate_d_hash,
+                               candidate_d,
+                               pvd_d,
+                               CandidateState::Backed,
+                               hasher_)
+            .value();
+
+    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_d_entry)
+                    .has_value());
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_d_entry).has_value());
   }
 }
