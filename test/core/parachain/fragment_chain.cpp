@@ -784,5 +784,73 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                     .can_add_candidate_as_potential(candidate_c1_entry)
                     .has_value());
     ASSERT_TRUE(storage.add_candidate_entry(candidate_c1_entry).has_value());
+
+    // Candidate C2.
+    const auto &[pvd_c2, candidate_c2] =
+        make_committed_candidate(para_id,
+                                 relay_parent_x_info.hash,
+                                 relay_parent_x_info.number,
+                                 {0xc1},
+                                 {0xd2},
+                                 relay_parent_x_info.number);
+    const auto candidate_c2_hash = hash(candidate_c2);
+    const auto candidate_c2_entry =
+        CandidateEntry::create(candidate_c2_hash,
+                               candidate_c2,
+                               pvd_c2,
+                               CandidateState::Seconded,
+                               hasher_)
+            .value();
+    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_c2_entry)
+                    .has_value());
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_c2_entry).has_value());
+
+    // Candidate A2.
+    const auto &[pvd_a2, candidate_a2] =
+        make_committed_candidate(para_id,
+                                 relay_parent_x_info.hash,
+                                 relay_parent_x_info.number,
+                                 {0x0a},
+                                 {0xb3},
+                                 relay_parent_x_info.number);
+    const auto candidate_a2_hash = hash(candidate_a2);
+    const auto candidate_a2_entry =
+        CandidateEntry::create(candidate_a2_hash,
+                               candidate_a2,
+                               pvd_a2,
+                               CandidateState::Seconded,
+                               hasher_)
+            .value();
+    // Candidate A2 is created so that its hash is greater than the candidate A
+    // hash.
+    ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a2_hash,
+                                                   candidate_a_hash));
+
+    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_a2_entry)
+                    .has_value());
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_a2_entry).has_value());
+
+    // Candidate B2.
+    const auto &[pvd_b2, candidate_b2] =
+        make_committed_candidate(para_id,
+                                 relay_parent_y_info.hash,
+                                 relay_parent_y_info.number,
+                                 {0xb3},
+                                 {0xb4},
+                                 relay_parent_y_info.number);
+    const auto candidate_b2_hash = hash(candidate_b2);
+    const auto candidate_b2_entry =
+        CandidateEntry::create(candidate_b2_hash,
+                               candidate_b2,
+                               pvd_b2,
+                               CandidateState::Backed,
+                               hasher_)
+            .value();
+    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_b2_entry)
+                    .has_value());
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_b2_entry).has_value());
   }
 }
