@@ -695,5 +695,26 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                     .can_add_candidate_as_potential(candidate_d_entry)
                     .has_value());
     ASSERT_TRUE(storage.add_candidate_entry(candidate_d_entry).has_value());
+
+    // Candidate F
+    const auto &[pvd_f, candidate_f] =
+        make_committed_candidate(para_id,
+                                 relay_parent_z_info.hash,
+                                 relay_parent_z_info.number,
+                                 {0x0f},
+                                 {0xf1},
+                                 1000);
+    const auto candidate_f_hash = hash(candidate_f);
+    const auto candidate_f_entry =
+        CandidateEntry::create(candidate_f_hash,
+                               candidate_f,
+                               pvd_f,
+                               CandidateState::Seconded,
+                               hasher_)
+            .value();
+    ASSERT_TRUE(populate_chain_from_previous_storage(scope, storage)
+                    .can_add_candidate_as_potential(candidate_f_entry)
+                    .has_value());
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_f_entry).has_value());
   }
 }
