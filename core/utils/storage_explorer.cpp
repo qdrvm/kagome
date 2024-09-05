@@ -186,7 +186,7 @@ class InspectBlockCommand : public Command {
       : Command{"inspect-block",
                 "# or hash - print info about the block with the given number "
                 "or hash"},
-        block_storage{block_storage} {}
+        block_storage{std::move(block_storage)} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
@@ -238,7 +238,7 @@ class RemoveBlockCommand : public Command {
   explicit RemoveBlockCommand(std::shared_ptr<BlockStorage> block_storage)
       : Command{"remove-block",
                 "# or hash - remove the block from the block tree"},
-        block_storage{block_storage} {}
+        block_storage{std::move(block_storage)} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
@@ -270,7 +270,7 @@ class QueryStateCommand : public Command {
   explicit QueryStateCommand(std::shared_ptr<TrieStorage> trie_storage)
       : Command{"query-state",
                 "state_hash, key - query value at a given key and state"},
-        trie_storage{trie_storage} {}
+        trie_storage{std::move(trie_storage)} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 3, 3);
@@ -523,7 +523,7 @@ class ChainInfoCommand final : public Command {
  public:
   ChainInfoCommand(std::shared_ptr<kagome::blockchain::BlockTree> block_tree)
       : Command{"chain-info", "Print general info about the current chain. "},
-        block_tree{block_tree} {
+        block_tree{std::move(block_tree)} {
     BOOST_ASSERT(block_tree);
   }
 
@@ -551,7 +551,8 @@ class ChainInfoCommand final : public Command {
 class DbStatsCommand : public Command {
  public:
   DbStatsCommand(std::filesystem::path db_path)
-      : Command("db-stats", "Print RocksDb stats"), db_path{db_path} {}
+      : Command("db-stats", "Print RocksDb stats"),
+        db_path{std::move(db_path)} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     rocksdb::Options options;

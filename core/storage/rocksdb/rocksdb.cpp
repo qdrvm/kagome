@@ -266,7 +266,7 @@ namespace kagome::storage {
                                           BufferOrView &&value) {
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Put(
-        rocks->wo_, column_, make_slice(key), make_slice(value));
+        rocks->wo_, column_, make_slice(key), make_slice(std::move(value)));
     if (status.ok()) {
       return outcome::success();
     }

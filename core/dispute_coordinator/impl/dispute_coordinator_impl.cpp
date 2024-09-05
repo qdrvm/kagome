@@ -2542,7 +2542,7 @@ namespace kagome::dispute {
 
       auto disputes = selection.select_disputes(relay_parent);
 
-      cb(std::move(disputes));
+      std::move(cb)(std::move(disputes));
       return;
     }
 

@@ -126,7 +126,7 @@ namespace kagome::api {
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
         std::move(res),
-        [](common::BufferOrView &&r) { return r.intoBuffer(); });
+        [](common::BufferOrView &&r) { return std::move(r).intoBuffer(); });
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
@@ -165,7 +165,7 @@ namespace kagome::api {
         OUTCOME_TRY(opt_get, batch->tryGet(key));
         auto opt_value = common::map_optional(
             std::move(opt_get),
-            [](common::BufferOrView &&r) { return r.intoBuffer(); });
+            [](common::BufferOrView &&r) { return std::move(r).intoBuffer(); });
         auto it = last_values.find(key);
         if (it == last_values.end() || it->second != opt_value) {
           change.changes.push_back(StorageChangeSet::Change{key, opt_value});

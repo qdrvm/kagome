@@ -245,8 +245,8 @@ namespace {
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::SpacedStorage> spaced_storage) {
-    auto backend =
-        std::make_shared<storage::trie::TrieStorageBackendImpl>(spaced_storage);
+    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
+        std::move(spaced_storage));
 
     return backend;
   }
@@ -899,7 +899,7 @@ namespace {
   auto makeKagomeNodeInjector(sptr<application::AppConfiguration> app_config,
                               Ts &&...args) {
     return di::make_injector<boost::di::extension::shared_config>(
-        makeApplicationInjector(app_config),
+        makeApplicationInjector(std::move(app_config)),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -922,7 +922,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

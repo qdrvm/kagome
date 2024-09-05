@@ -29,6 +29,7 @@ namespace kagome::offchain {
 
   bool HttpRequest::init(HttpMethod method,
                          std::string_view uri_arg,
+                         // NOLINTNEXTLINE(performance-unnecessary-value-param)
                          common::Buffer meta) {
     uri_ = common::Uri::parse(uri_arg);
     if (uri_.error().has_value()) {

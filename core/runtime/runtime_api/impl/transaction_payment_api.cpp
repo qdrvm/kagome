@@ -28,7 +28,9 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor,
       std::shared_ptr<Core> core_api,
       std::shared_ptr<crypto::Hasher> hasher)
-      : executor_{std::move(executor)}, core_api_{core_api}, hasher_{hasher} {
+      : executor_{std::move(executor)},
+        core_api_{std::move(core_api)},
+        hasher_{std::move(hasher)} {
     BOOST_ASSERT(executor_);
     BOOST_ASSERT(core_api_);
     BOOST_ASSERT(hasher_);

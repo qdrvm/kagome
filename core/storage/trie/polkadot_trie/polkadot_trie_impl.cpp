@@ -310,7 +310,7 @@ namespace kagome::storage::trie {
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::create(
       NodePtr root, RetrieveFunctions retrieve_functions) {
     return std::shared_ptr<PolkadotTrieImpl>(
-        new PolkadotTrieImpl{root, std::move(retrieve_functions)});
+        new PolkadotTrieImpl{std::move(root), std::move(retrieve_functions)});
   }
 
   PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
@@ -325,7 +325,7 @@ namespace kagome::storage::trie {
       : nodes_{std::make_unique<OpaqueNodeStorage>(
           std::move(retrieve_functions.retrieve_node),
           std::move(retrieve_functions.retrieve_value),
-          root)},
+          std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   PolkadotTrieImpl::~PolkadotTrieImpl() {}
@@ -350,7 +350,8 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(n,
                 insert(root,
                        k_enc,
-                       std::make_shared<LeafNode>(k_enc, value.intoBuffer())));
+                       std::make_shared<LeafNode>(
+                           k_enc, std::move(value).intoBuffer())));
     nodes_->setRoot(n);
 
     return outcome::success();

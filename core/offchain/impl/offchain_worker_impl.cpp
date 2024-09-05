@@ -68,7 +68,7 @@ namespace kagome::offchain {
 
     SL_TRACE(log_, "Offchain worker with label {} is started", label);
 
-    func();
+    std::move(func)();
 
     SL_TRACE(log_, "Offchain worker with label {} is finished", label);
   }
