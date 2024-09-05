@@ -371,5 +371,78 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                             wrong_pvd_c,
                             CandidateState::Backed,
                             hasher_));
+
+    ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
+                    .has_value());
+
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 4, ancestors));
+
+    const auto chain =
+        populate_chain_from_previous_storage(scope, modified_storage);
+    {
+      const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+      ASSERT_EQ(chain.best_chain_vec(), ref);
+    }
+    ASSERT_EQ(chain.unconnected_len(), 0);
+
+    ASSERT_EQ(
+        chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
+        FragmentChain::Error::RELAY_PARENT_MOVED_BACKWARDS);
+  }
+
+  // Candidate C is an unconnected candidate.
+  // C's relay parent is allowed to move backwards from B's relay parent,
+  // because C may later on trigger a reorg and B may get removed.
+  {
+    fragment::CandidateStorage modified_storage = storage;
+    modified_storage.remove_candidate(candidate_c_hash, hasher_);
+
+    const auto &[unconnected_pvd_c, unconnected_candidate_c] =
+        make_committed_candidate(para_id,
+                                 relay_parent_x_info.hash,
+                                 relay_parent_x_info.number,
+                                 {0x0d},
+                                 {0x0e},
+                                 0);
+    const auto unconnected_candidate_c_hash =
+        network::candidateHash(*hasher_, unconnected_candidate_c);
+    EXPECT_OUTCOME_TRUE(unconnected_candidate_c_entry,
+                        CandidateEntry::create(unconnected_candidate_c_hash,
+                                               unconnected_candidate_c,
+                                               unconnected_pvd_c,
+                                               CandidateState::Backed,
+                                               hasher_));
+
+    ASSERT_TRUE(
+        modified_storage.add_candidate_entry(unconnected_candidate_c_entry)
+            .has_value());
+
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 4, ancestors));
+    {
+      const auto chain =
+          FragmentChain::init(hasher_, scope, CandidateStorage{});
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(unconnected_candidate_c_entry)
+              .has_value());
+    }
+
+    {
+      const auto chain =
+          populate_chain_from_previous_storage(scope, modified_storage);
+      {
+        const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      {
+        const HashSet<CandidateHash> ref = {unconnected_candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), ref);
+      }
+    }
   }
 }
