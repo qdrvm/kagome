@@ -716,5 +716,32 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                     .can_add_candidate_as_potential(candidate_f_entry)
                     .has_value());
     ASSERT_TRUE(storage.add_candidate_entry(candidate_f_entry).has_value());
+
+    // Candidate A1
+    const auto &[pvd_a1, candidate_a1] =
+        make_committed_candidate(para_id,
+                                 relay_parent_x_info.hash,
+                                 relay_parent_x_info.number,
+                                 {0x0a},
+                                 {0xb1},
+                                 relay_parent_x_info.number);
+    const auto candidate_a1_hash = hash(candidate_a1);
+    const auto candidate_a1_entry =
+        CandidateEntry::create(candidate_a1_hash,
+                               candidate_a1,
+                               pvd_a1,
+                               CandidateState::Backed,
+                               hasher_)
+            .value();
+    // Candidate A1 is created so that its hash is greater than the candidate A
+    // hash.
+    ASSERT_TRUE(FragmentChain::fork_selection_rule(candidate_a_hash,
+                                                   candidate_a1_hash));
+
+    auto res = populate_chain_from_previous_storage(scope, storage)
+                   .can_add_candidate_as_potential(candidate_a1_entry);
+    ASSERT_EQ(res.error(), FragmentChain::Error::FORK_CHOICE_RULE);
+
+    ASSERT_TRUE(storage.add_candidate_entry(candidate_a1_entry).has_value());
   }
 }

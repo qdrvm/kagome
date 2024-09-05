@@ -469,8 +469,7 @@ namespace kagome::parachain::fragment {
       }
 
       if (fork_selection_rule((*other_candidate)->second,
-                              candidate.get_candidate_hash())
-          == -1) {
+                              candidate.get_candidate_hash())) {
         return Error::FORK_CHOICE_RULE;
       }
     }
