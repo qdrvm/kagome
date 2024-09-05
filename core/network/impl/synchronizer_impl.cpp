@@ -1455,7 +1455,11 @@ namespace kagome::network {
         if (self->block_tree_->isFinalized(headerInfo)) {
           parentHash = headerValue.parent_hash;
         } else {
-          if (parentHash.has_value() and *parentHash != headerInfo.hash) {
+          if (not parentHash.has_value()) {
+            SL_WARN(self->log_, "parentHash is not set yet and block #{} is not finalized, will not be stored", headerInfo.number);
+            continue;
+          }
+          if (*parentHash != headerInfo.hash) {
             SL_ERROR(self->log_, "Parent hash mismatch in block #{}", headerInfo.number);
             return cb(Error::INVALID_HASH);
           }
