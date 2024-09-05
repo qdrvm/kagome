@@ -852,5 +852,48 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                     .can_add_candidate_as_potential(candidate_b2_entry)
                     .has_value());
     ASSERT_TRUE(storage.add_candidate_entry(candidate_b2_entry).has_value());
+
+    const auto chain = populate_chain_from_previous_storage(scope, storage);
+    {
+      const Vec<CandidateHash> ref = {
+          candidate_a_hash, candidate_b_hash, candidate_c_hash};
+      ASSERT_EQ(chain.best_chain_vec(), ref);
+    }
+    {
+      const HashSet<CandidateHash> ref = {candidate_d_hash,
+                                          candidate_f_hash,
+                                          candidate_a2_hash,
+                                          candidate_b2_hash};
+      ASSERT_EQ(get_unconnected(chain), ref);
+    }
+
+    // Cannot add as potential an already present candidate (whether it's in the
+    // best chain or in unconnected storage)
+    ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
+              FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+    ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_f_entry).error(),
+              FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+
+    // Simulate a best chain reorg by backing a2.
+    {
+      FragmentChain chain_2 = chain;
+      chain_2.candidate_backed(candidate_a2_hash);
+      {
+        const Vec<CandidateHash> ref = {candidate_a2_hash, candidate_b2_hash};
+        ASSERT_EQ(chain_2.best_chain_vec(), ref);
+      }
+      {
+        // F is kept as it was truly unconnected. The rest will be trimmed.
+        const HashSet<CandidateHash> ref = {candidate_f_hash};
+        ASSERT_EQ(get_unconnected(chain_2), ref);
+      }
+      // A and A1 will never have potential again.
+      ASSERT_EQ(
+          chain_2.can_add_candidate_as_potential(candidate_a1_entry).error(),
+          FragmentChain::Error::FORK_CHOICE_RULE);
+      ASSERT_EQ(
+          chain_2.can_add_candidate_as_potential(candidate_a_entry).error(),
+          FragmentChain::Error::FORK_CHOICE_RULE);
+    }
   }
 }
