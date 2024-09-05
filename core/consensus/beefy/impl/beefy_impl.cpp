@@ -402,6 +402,7 @@ namespace kagome::network {
     if (not fetching_headers_ or not beefy_genesis_) {
       return outcome::success();
     }
+    const auto initFetchHeadersValue = *fetching_headers_;
     while (fetching_headers_) {
       auto& fetchingHeader = *fetching_headers_;
       if (fetchingHeader <= *beefy_genesis_) {
@@ -422,14 +423,14 @@ namespace kagome::network {
           }
         }
       }
-      synchronizer_.get()->fetchHeadersBack(fetchingHeader, [WEAK_SELF] (auto&& res) {
-        WEAK_LOCK(self);
-        if (auto er = self->fetchHeaders(); er.has_error()) {
-          SL_WARN(self->log_, "Failed to fetch headers: {}", er.error().message());
-        }
-      });
       --fetchingHeader;
     }
+    synchronizer_.get()->fetchHeadersBack(initFetchHeadersValue, [WEAK_SELF] (auto&& res) {
+      WEAK_LOCK(self);
+      if (auto er = self->fetchHeaders(); er.has_error()) {
+        SL_WARN(self->log_, "Failed to fetch headers: {}", er.error().message());
+      }
+    });
     return outcome::success();
   }
 

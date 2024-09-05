@@ -1415,7 +1415,7 @@ namespace kagome::network {
         .fields = BlockAttribute::HEADER,
         .from = block,
         .direction = Direction::DESCENDING,
-        .max = 1,
+        .max = std::nullopt,
         .multiple_justifications = false,
     };
     auto chosen = chooseJustificationPeer(block, request.fingerprint());
@@ -1440,28 +1440,36 @@ namespace kagome::network {
       if (blocks.size() == 0) {
         return cb(Error::EMPTY_RESPONSE);
       }
+      std::optional<primitives::BlockHash> parentHash;
+      for (auto& b : blocks) {
+        auto &header = b.header;
 
-      auto &header = blocks[0].header;
-      if (not header) {
-        return cb(Error::EMPTY_RESPONSE);
-      }
+        if (not header) {
+          return cb(Error::EMPTY_RESPONSE);
+        }
 
-      auto& headerValue = header.value();
-      primitives::calculateBlockHash(headerValue, *self->hasher_);
-      const auto& headerInfo = headerValue.blockInfo();
+        auto& headerValue = header.value();
+        primitives::calculateBlockHash(headerValue, *self->hasher_);
+        const auto& headerInfo = headerValue.blockInfo();
 
-      if (not self->block_tree_->isFinalized(headerInfo)) {
-        SL_WARN(self->log_, "Block #{} is not finalized and won't be stored", headerInfo.number);
-        return cb(Error::DISCARDED_BLOCK);
-      }
+        if (self->block_tree_->isFinalized(headerInfo)) {
+          parentHash = headerValue.parent_hash;
+        } else {
+          if (parentHash.has_value() and *parentHash != headerInfo.hash) {
+            SL_ERROR(self->log_, "Parent hash mismatch in block #{}", headerInfo.number);
+            return cb(Error::INVALID_HASH);
+          }
+          parentHash = headerValue.parent_hash;
+        }
 
-      if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
-        SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
-        return cb(er.error());
-      }
-      if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
-        SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
-        return cb(er.error());
+        if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
+          SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
+          return cb(er.error());
+        }
+        if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
+          SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
+          return cb(er.error());
+        }
       }
     };
 
