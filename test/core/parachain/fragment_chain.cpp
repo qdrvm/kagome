@@ -591,5 +591,62 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       }
       ASSERT_EQ(chain.unconnected_len(), 0);
     }
+
+    // Relay parents of pending availability candidates can be out of scope
+    // Relay parent of candidate A is out of scope.
+    Vec<fragment::RelayChainBlockInfo> ancestors_without_x = {
+        relay_parent_y_info};
+
+    {
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(relay_parent_z_info,
+                                base_constraints,
+                                {PendingAvailability{
+                                    .candidate_hash = candidate_a_hash,
+                                    .relay_parent = relay_parent_x_info,
+                                }},
+                                4,
+                                ancestors_without_x));
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      {
+        const Vec<CandidateHash> ref = {
+            candidate_a_hash, candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      ASSERT_EQ(chain.unconnected_len(), 0);
+    }
+    {
+      // Even relay parents of pending availability candidates which are out of
+      // scope cannot move backwards.
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(
+              relay_parent_z_info,
+              base_constraints,
+              {PendingAvailability{
+                   .candidate_hash = candidate_a_hash,
+                   .relay_parent =
+                       RelayChainBlockInfo{
+                           .hash = relay_parent_x_info.hash,
+                           .number = 1,
+                           .storage_root = relay_parent_x_info.storage_root,
+                       },
+               },
+               PendingAvailability{
+                   .candidate_hash = candidate_b_hash,
+                   .relay_parent =
+                       RelayChainBlockInfo{
+                           .hash = relay_parent_y_info.hash,
+                           .number = 0,
+                           .storage_root = relay_parent_y_info.storage_root,
+                       },
+               }},
+              4,
+              {}));
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      ASSERT_TRUE(chain.best_chain_vec().empty());
+      ASSERT_EQ(chain.unconnected_len(), 0);
+    }
   }
 }
