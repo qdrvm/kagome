@@ -1014,3 +1014,35 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     }
   }
 }
+
+TEST_F(FragmentChainTest,
+       test_find_ancestor_path_and_find_backable_chain_empty_best_chain) {
+  const auto relay_parent = fromNumber(1);
+  HeadData required_parent = {0xff};
+  size_t max_depth = 10;
+
+  // Empty chain
+  const auto base_constraints = make_constraints(0, {0}, required_parent);
+
+  const RelayChainBlockInfo relay_parent_info{
+      .hash = relay_parent,
+      .number = 0,
+      .storage_root = fromNumber(0),
+  };
+
+  EXPECT_OUTCOME_TRUE(
+      scope,
+      Scope::with_ancestors(
+          relay_parent_info, base_constraints, {}, max_depth, {}));
+  const auto chain = FragmentChain::init(hasher_, scope, CandidateStorage{});
+  ASSERT_EQ(chain.best_chain_len(), 0);
+
+  Vec<std::pair<CandidateHash, Hash>> ref;
+  ASSERT_EQ(chain.find_ancestor_path({}), 0);
+  ASSERT_EQ(chain.find_backable_chain({}, 2), ref);
+
+  // Invalid candidate.
+  Ancestors ancestors = {CandidateHash{}};
+  ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
+  ASSERT_EQ(chain.find_backable_chain(ancestors, 2), ref);
+}
