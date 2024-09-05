@@ -1046,3 +1046,38 @@ TEST_F(FragmentChainTest,
   ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
   ASSERT_EQ(chain.find_backable_chain(ancestors, 2), ref);
 }
+
+TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
+  const ParachainId para_id{5};
+  const auto relay_parent = fromNumber(1);
+  HeadData required_parent = {0xff};
+  size_t max_depth = 5;
+  BlockNumber relay_parent_number = 0;
+  auto relay_parent_storage_root = fromNumber(0);
+
+  Vec<std::pair<crypto::Hashed<runtime::PersistedValidationData,
+                               32,
+                               crypto::Blake2b_StreamHasher<32>>,
+                network::CommittedCandidateReceipt>>
+      candidates;
+
+  // Candidate 0
+  candidates.emplace_back(make_committed_candidate(
+      para_id, relay_parent, 0, required_parent, {0}, 0));
+
+  // Candidates 1..=5
+  for (uint8_t index = 1; index <= 5; ++index) {
+    candidates.emplace_back(make_committed_candidate(
+        para_id, relay_parent, 0, {uint8_t(index - 1)}, {index}, 0));
+  }
+
+  CandidateStorage storage;
+  for (const auto &[pvd, candidate] : candidates) {
+    ASSERT_TRUE(
+        storage
+            .add_candidate_entry(CandidateEntry::create_seconded(
+                                     hash(candidate), candidate, pvd, hasher_)
+                                     .value())
+            .has_value());
+  }
+}
