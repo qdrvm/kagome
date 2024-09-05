@@ -1080,4 +1080,19 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
                                      .value())
             .has_value());
   }
+
+  Vec<CandidateHash> candidate_hashes;
+  for (const auto &[_, candidate] : candidates) {
+    const auto h = hash(candidate);
+  }
+
+  auto hashes = [&](size_t from, size_t to) {
+    Vec<std::pair<CandidateHash, Hash>> result;
+    for (size_t ix = from; ix < to; ++ix) {
+        result.emplace_back(candidate_hashes[ix], relay_parent);
+    }
+    return result;
+  };
+
+
 }
