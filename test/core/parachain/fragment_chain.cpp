@@ -547,4 +547,49 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
           FragmentChain::Error::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY);
     }
   }
+
+  // Test with candidates pending availability
+  {
+    Vec<PendingAvailability> test_case_0 = {PendingAvailability{
+        .candidate_hash = candidate_a_hash,
+        .relay_parent = relay_parent_x_info,
+    }};
+    Vec<PendingAvailability> test_case_1 = {
+        PendingAvailability{
+            .candidate_hash = candidate_a_hash,
+            .relay_parent = relay_parent_x_info,
+        },
+        PendingAvailability{
+            .candidate_hash = candidate_b_hash,
+            .relay_parent = relay_parent_y_info,
+        }};
+    Vec<PendingAvailability> test_case_2 = {
+        PendingAvailability{
+            .candidate_hash = candidate_a_hash,
+            .relay_parent = relay_parent_x_info,
+        },
+        PendingAvailability{
+            .candidate_hash = candidate_b_hash,
+            .relay_parent = relay_parent_y_info,
+        },
+        PendingAvailability{
+            .candidate_hash = candidate_c_hash,
+            .relay_parent = relay_parent_z_info,
+        }};
+
+    for (const auto &pending : {test_case_0, test_case_1, test_case_2}) {
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(
+              relay_parent_z_info, base_constraints, pending, 3, ancestors));
+
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      {
+        const Vec<CandidateHash> ref = {
+            candidate_a_hash, candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      ASSERT_EQ(chain.unconnected_len(), 0);
+    }
+  }
 }
