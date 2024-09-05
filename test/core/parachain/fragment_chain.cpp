@@ -463,7 +463,6 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
     const auto modified_candidate_a_hash =
         network::candidateHash(*hasher_, modified_candidate_a);
-
     EXPECT_OUTCOME_TRUE(modified_candidate_a_entry,
                         CandidateEntry::create(modified_candidate_a_hash,
                                                modified_candidate_a,
@@ -497,6 +496,55 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
               .error(),
           FragmentChain::Error::
               RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY);
+    }
+
+    // Not allowed to fork from a candidate pending availability
+    const auto &[wrong_pvd_c, wrong_candidate_c] =
+        make_committed_candidate(para_id,
+                                 relay_parent_y_info.hash,
+                                 relay_parent_y_info.number,
+                                 {0x0a},
+                                 {0x0b2},
+                                 0);
+
+    const auto wrong_candidate_c_hash =
+        network::candidateHash(*hasher_, wrong_candidate_c);
+    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
+                        CandidateEntry::create(wrong_candidate_c_hash,
+                                               wrong_candidate_c,
+                                               wrong_pvd_c,
+                                               CandidateState::Backed,
+                                               hasher_));
+    ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
+                    .has_value());
+
+    // Does not even matter if the fork selection rule would have picked up the
+    // new candidate, as the other is already pending availability.
+    ASSERT_TRUE(FragmentChain::fork_selection_rule(wrong_candidate_c_hash,
+                                                   modified_candidate_a_hash));
+    {
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(relay_parent_z_info,
+                                base_constraints,
+                                {PendingAvailability{
+                                    .candidate_hash = modified_candidate_a_hash,
+                                    .relay_parent = relay_parent_y_info,
+                                }},
+                                4,
+                                ancestors));
+
+      const auto chain =
+          populate_chain_from_previous_storage(scope, modified_storage);
+      {
+        const Vec<CandidateHash> ref = {modified_candidate_a_hash,
+                                        candidate_b_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      ASSERT_EQ(chain.unconnected_len(), 0);
+      ASSERT_EQ(
+          chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
+          FragmentChain::Error::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY);
     }
   }
 }

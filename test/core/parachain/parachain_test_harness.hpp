@@ -310,8 +310,9 @@ class ProspectiveParachainsTest : public testing::Test {
 //  }
 //
   Hash fromNumber(uint64_t n) const {
+    assert(n <= 255);
     Hash h{};
-    *(uint64_t *)&h[0] = n;
+    memset(&h[0], n, 32);
     return h;
   }
 //
