@@ -152,7 +152,7 @@ class ProspectiveParachainsTest : public testing::Test {
         .hrmp_channels_out = {},
         .max_hrmp_num_per_candidate = 0,
         .required_parent = required_parent,
-        .validation_code_hash = hashFromStrData("42"),
+        .validation_code_hash = fromNumber(42),
         .upgrade_restriction = std::nullopt,
         .future_validation_code = std::nullopt,
     };
@@ -256,7 +256,7 @@ class ProspectiveParachainsTest : public testing::Test {
         persisted_validation_data(runtime::PersistedValidationData{
             .parent_head = parent_head,
             .relay_parent_number = relay_parent_number,
-            .relay_parent_storage_root = hashFromStrData("69"),
+            .relay_parent_storage_root = fromNumber(0),
             .max_pov_size = 1000000,
         });
 
@@ -267,11 +267,11 @@ class ProspectiveParachainsTest : public testing::Test {
                 .relay_parent = relay_parent,
                 .collator_id = {},
                 .persisted_data_hash = persisted_validation_data.getHash(),
-                .pov_hash = hashFromStrData("1"),
-                .erasure_encoding_root = hashFromStrData("1"),
+                .pov_hash = fromNumber(1),
+                .erasure_encoding_root = fromNumber(1),
                 .signature = {},
                 .para_head_hash = hasher_->blake2b_256(para_head),
-                .validation_code_hash = hashFromStrData("42"),
+                .validation_code_hash = fromNumber(42),
             },
         .commitments =
             network::CandidateCommitments{

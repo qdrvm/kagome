@@ -29,6 +29,13 @@ class FragmentChainTest : public ProspectiveParachainsTest {
     chain.populate_from_previous(prev_chain);
     return chain;
   }
+
+  HashSet<CandidateHash> get_unconnected(const FragmentChain &chain) {
+    HashSet<CandidateHash> unconnected;
+    chain.get_unconnected(
+        [&](const auto &c) { unconnected.insert(c.candidate_hash); });
+    return unconnected;
+  }
 };
 
 TEST_F(FragmentChainTest, init_and_populate_from_empty) {
@@ -150,12 +157,219 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_TRUE(
           chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
     } else {
-      HashSet<CandidateHash> unconnected;
-      chain.get_unconnected(
-          [&](const auto &c) { unconnected.insert(c.candidate_hash); });
       const HashSet<CandidateHash> ref = {
           candidate_a_hash, candidate_b_hash, candidate_c_hash};
-      ASSERT_EQ(unconnected, ref);
+      ASSERT_EQ(get_unconnected(chain), ref);
     }
+  }
+
+  // Various depths
+  {
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 0, ancestors));
+    {
+      const auto chain =
+          FragmentChain::init(hasher_, scope, CandidateStorage{});
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_a_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_b_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
+    }
+
+    {
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      {
+        const Vec<CandidateHash> ref = {candidate_a_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      {
+        const HashSet<CandidateHash> ref = {candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), ref);
+      }
+    }
+  }
+  {
+    // depth is 1, allows two candidates
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 1, ancestors));
+    {
+      const auto chain =
+          FragmentChain::init(hasher_, scope, CandidateStorage{});
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_a_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_b_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
+    }
+    {
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      {
+        const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      {
+        const HashSet<CandidateHash> ref = {candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), ref);
+      }
+    }
+  }
+
+  // depth is larger than 2, allows all three candidates
+  for (size_t depth = 2; depth < 6; ++depth) {
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, depth, ancestors));
+    {
+      const auto chain =
+          FragmentChain::init(hasher_, scope, CandidateStorage{});
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_a_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_b_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
+    }
+    {
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      {
+        const Vec<CandidateHash> ref = {
+            candidate_a_hash, candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      { ASSERT_EQ(chain.unconnected_len(), 0); }
+    }
+  }
+
+  // Relay parents out of scope
+  {
+    {
+      // Candidate A has relay parent out of scope. Candidates B and C will also
+      // be deleted since they form a chain with A.
+      Vec<fragment::RelayChainBlockInfo> ancestors_without_x = {
+          relay_parent_y_info};
+      EXPECT_OUTCOME_TRUE(scope,
+                          Scope::with_ancestors(relay_parent_z_info,
+                                                base_constraints,
+                                                {},
+                                                4,
+                                                ancestors_without_x));
+
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      ASSERT_TRUE(chain.best_chain_vec().empty());
+      ASSERT_EQ(chain.unconnected_len(), 0);
+
+      ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
+                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+
+      // However, if taken independently, both B and C still have potential,
+      // since we don't know that A doesn't.
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_b_entry).has_value());
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
+    }
+
+    {
+      // Candidates A and B have relay parents out of scope. Candidate C will
+      // also be deleted since it forms a chain with A and B.
+      EXPECT_OUTCOME_TRUE(
+          scope,
+          Scope::with_ancestors(
+              relay_parent_z_info, base_constraints, {}, 4, {}));
+
+      const auto chain = populate_chain_from_previous_storage(scope, storage);
+      ASSERT_TRUE(chain.best_chain_vec().empty());
+      ASSERT_EQ(chain.unconnected_len(), 0);
+
+      ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
+                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+      ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_b_entry).error(),
+                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+      // However, if taken independently, C still has potential, since we
+      // don't know that A and B don't
+      ASSERT_TRUE(
+          chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
+    }
+  }
+
+  // Parachain cycle is not allowed. Make C have the same parent as A.
+  {
+    fragment::CandidateStorage modified_storage = storage;
+    modified_storage.remove_candidate(candidate_c_hash, hasher_);
+
+    const auto &[wrong_pvd_c, wrong_candidate_c] =
+        make_committed_candidate(para_id,
+                                 relay_parent_z_info.hash,
+                                 relay_parent_z_info.number,
+                                 {0x0c},
+                                 {0x0a},
+                                 relay_parent_z_info.number);
+    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
+                        CandidateEntry::create(
+                            network::candidateHash(*hasher_, wrong_candidate_c),
+                            wrong_candidate_c,
+                            wrong_pvd_c,
+                            CandidateState::Backed,
+                            hasher_));
+    ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
+                    .has_value());
+
+    EXPECT_OUTCOME_TRUE(
+        scope,
+        Scope::with_ancestors(
+            relay_parent_z_info, base_constraints, {}, 4, ancestors));
+
+    {
+      const auto chain =
+          populate_chain_from_previous_storage(scope, modified_storage);
+      {
+        const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
+        ASSERT_EQ(chain.best_chain_vec(), ref);
+      }
+      ASSERT_EQ(chain.unconnected_len(), 0);
+
+      ASSERT_EQ(
+          chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
+          FragmentChain::Error::CYCLE);
+    }
+
+    {
+      // However, if taken independently, C still has potential, since we don't
+      // know A and B.
+      const auto chain =
+          FragmentChain::init(hasher_, scope, CandidateStorage{});
+      ASSERT_TRUE(chain.can_add_candidate_as_potential(wrong_candidate_c_entry)
+                      .has_value());
+    }
+  }
+
+  // Candidate C has the same relay parent as candidate A's parent. Relay parent
+  // not allowed to move backwards
+  {
+    fragment::CandidateStorage modified_storage = storage;
+    modified_storage.remove_candidate(candidate_c_hash, hasher_);
+
+    const auto &[wrong_pvd_c, wrong_candidate_c] =
+        make_committed_candidate(para_id,
+                                 relay_parent_x_info.hash,
+                                 relay_parent_x_info.number,
+                                 {0x0c},
+                                 {0x0d},
+                                 0);
+    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
+                        CandidateEntry::create(
+                            network::candidateHash(*hasher_, wrong_candidate_c),
+                            wrong_candidate_c,
+                            wrong_pvd_c,
+                            CandidateState::Backed,
+                            hasher_));
   }
 }
