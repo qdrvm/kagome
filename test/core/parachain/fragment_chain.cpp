@@ -10,13 +10,13 @@
 
 using namespace kagome::parachain::fragment;
 
-class FragmentChainTest : public ProspectiveParachainsTest {
+class FragmentChainTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
-    ProspectiveParachainsTest::SetUp();
+    ProspectiveParachainsTestHarness::SetUp();
   }
 
   void TearDown() override {
-    ProspectiveParachainsTest::TearDown();
+    ProspectiveParachainsTestHarness::TearDown();
   }
 
  public:

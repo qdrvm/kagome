@@ -99,7 +99,7 @@ inline Hash ghashFromStrData(
 //  }
 //};
 
-class ProspectiveParachainsTest : public testing::Test {
+class ProspectiveParachainsTestHarness : public testing::Test {
  protected:
   void SetUp() override {
     testutil::prepareLoggers();
