@@ -1083,16 +1083,75 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
 
   Vec<CandidateHash> candidate_hashes;
   for (const auto &[_, candidate] : candidates) {
-    const auto h = hash(candidate);
+    candidate_hashes.emplace_back(hash(candidate));
   }
 
   auto hashes = [&](size_t from, size_t to) {
     Vec<std::pair<CandidateHash, Hash>> result;
     for (size_t ix = from; ix < to; ++ix) {
-        result.emplace_back(candidate_hashes[ix], relay_parent);
+      result.emplace_back(candidate_hashes[ix], relay_parent);
     }
     return result;
   };
 
+  const RelayChainBlockInfo relay_parent_info{
+      .hash = relay_parent,
+      .number = relay_parent_number,
+      .storage_root = relay_parent_storage_root,
+  };
 
+  const auto base_constraints = make_constraints(0, {0}, required_parent);
+  EXPECT_OUTCOME_TRUE(
+      scope,
+      Scope::with_ancestors(
+          relay_parent_info, base_constraints, {}, max_depth, {}));
+  auto chain = populate_chain_from_previous_storage(scope, storage);
+
+  // For now, candidates are only seconded, not backed. So the best chain is
+  // empty and no candidate will be returned.
+  ASSERT_EQ(candidate_hashes.size(), 6);
+  ASSERT_EQ(chain.best_chain_len(), 0);
+  ASSERT_EQ(chain.unconnected_len(), 6);
+
+  for (size_t count = 0; count < 10; ++count) {
+    ASSERT_EQ(chain.find_backable_chain(Ancestors{}, count).size(), 0);
+  }
+
+  // Do tests with only a couple of candidates being backed.
+  {
+    auto chain_new = chain;
+    chain_new.candidate_backed(candidate_hashes[5]);
+    for (size_t count = 0; count < 10; ++count) {
+      ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
+    }
+    chain_new.candidate_backed(candidate_hashes[3]);
+    chain_new.candidate_backed(candidate_hashes[4]);
+    for (size_t count = 0; count < 10; ++count) {
+      ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
+    }
+
+    chain_new.candidate_backed(candidate_hashes[1]);
+    for (size_t count = 0; count < 10; ++count) {
+      ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
+    }
+
+    chain_new.candidate_backed(candidate_hashes[0]);
+    ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, 1), hashes(0, 1));
+    for (size_t count = 2; count < 10; ++count) {
+      ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
+                hashes(0, 2));
+    }
+
+    // Now back the missing piece.
+    chain_new.candidate_backed(candidate_hashes[2]);
+    ASSERT_EQ(chain_new.best_chain_len(), 6);
+
+    for (size_t count = 0; count < 10; ++count) {
+      const auto l = std::min(count, size_t(6));
+      for (size_t i = 0; i < l; ++i) {
+        ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
+                  hashes(0, i));
+      }
+    }
+  }
 }
