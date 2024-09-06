@@ -59,7 +59,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
@@ -132,6 +132,14 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Kagome Images: "
+          cat /tmp/docker_image.env || true
+          cat /tmp/dockerhub_image.env || true
 
 
   Zombie-Tests:
@@ -195,7 +203,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
         
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
         
@@ -230,7 +238,15 @@ jobs:
         with:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
-  
+
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
+          echo "Zombie Tests Versions: "
+          cat /tmp/versions.env || true
+
       - name: "Show system info"
         if: always()
         run: |
