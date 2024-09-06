@@ -28,15 +28,60 @@ namespace kagome::parachain {
     struct FetchSummary {
       BlockNumber minimum_ancestor_number;
       BlockNumber leaf_number;
-      std::vector<ParachainId> relevant_paras;
     };
 
+    /// Get the known, allowed relay-parents that are valid for parachain
+    /// candidates which could be backed in a child of a given block for a given
+    /// para ID.
+    ///
+    /// This is expressed as a contiguous slice of relay-chain block hashes
+    /// which may include the provided block hash itself.
+    ///
+    /// If `para_id` is `None`, this returns all valid relay-parents across all
+    /// paras for the leaf.
+    ///
+    /// `None` indicates that the block hash isn't part of the implicit view or
+    /// that there are no known allowed relay parents.
+    ///
+    /// This always returns `Some` for active leaves or for blocks that
+    /// previously were active leaves.
+    ///
+    /// This can return the empty slice, which indicates that no relay-parents
+    /// are allowed for the para, e.g. if the para is not scheduled at the given
+    /// block hash.
     std::span<const Hash> knownAllowedRelayParentsUnder(
         const Hash &block_hash,
         const std::optional<ParachainId> &para_id) const;
-    outcome::result<std::vector<ParachainId>> activate_leaf(
-        const Hash &leaf_hash);
+
+    /// Activate a leaf in the view.
+    /// This will request the minimum relay parents the leaf and will load
+    /// headers in the ancestry of the leaf as needed. These are the 'implicit
+    /// ancestors' of the leaf.
+    ///
+    /// To maximize reuse of outdated leaves, it's best to activate new leaves
+    /// before deactivating old ones.
+    ///
+    /// The allowed relay parents for the relevant paras under this leaf can be
+    /// queried with [`View::known_allowed_relay_parents_under`].
+    ///
+    /// No-op for known leaves.
+    outcome::result<void> activate_leaf(const Hash &leaf_hash);
+
+    /// Deactivate a leaf in the view. This prunes any outdated implicit
+    /// ancestors as well.
+    ///
+    /// Returns hashes of blocks pruned from storage.
     std::vector<Hash> deactivate_leaf(const Hash &leaf_hash);
+
+    /// Get an iterator over all allowed relay-parents in the view with no
+    /// particular order.
+    ///
+    /// **Important**: not all blocks are guaranteed to be allowed for some
+    /// leaves, it may happen that a block info is only kept in the view storage
+    /// because of a retaining rule.
+    ///
+    /// For getting relay-parents that are valid for parachain candidates use
+    /// [`View::known_allowed_relay_parents_under`].
     std::vector<Hash> all_allowed_relay_parents() const {
       std::vector<Hash> r;
       r.reserve(block_info_storage.size());
@@ -46,6 +91,9 @@ namespace kagome::parachain {
       return r;
     }
 
+    /// Trace print of all internal buffers.
+    ///
+    /// Usable for tracing memory consumption.
     void printStoragesLoad() {
       SL_TRACE(logger,
                "[Backing implicit view statistics]:"
@@ -55,7 +103,9 @@ namespace kagome::parachain {
                block_info_storage.size());
     }
 
-    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
+    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains,
+                 std::shared_ptr<runtime::ParachainHost> parachain_host_,
+                 std::optional<ParachainId> collating_for_);
 
    private:
     struct ActiveLeafPruningInfo {
@@ -77,13 +127,16 @@ namespace kagome::parachain {
       Hash parent_hash;
     };
 
-    std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
-    std::unordered_map<Hash, BlockInfo> block_info_storage;
-    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
-    log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
-
     outcome::result<FetchSummary> fetch_fresh_leaf_and_insert_ancestry(
         const Hash &leaf_hash);
+
+    std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
+    std::unordered_map<Hash, BlockInfo> block_info_storage;
+    std::shared_ptr<runtime::ParachainHost> parachain_host;
+    std::optional<ParachainId> collating_for;
+
+    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
   };
 
 }  // namespace kagome::parachain
