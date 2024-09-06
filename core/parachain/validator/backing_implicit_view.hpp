@@ -12,10 +12,11 @@
 #include <vector>
 
 #include "parachain/types.hpp"
-#include "parachain/validator/prospective_parachains.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::parachain {
+
+  class ProspectiveParachains;
 
   // Always aim to retain 1 block before the active leaves.
   constexpr BlockNumber MINIMUM_RETAIN_LENGTH = 2ull;

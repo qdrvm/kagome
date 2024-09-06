@@ -5,6 +5,7 @@
  */
 
 #include "parachain/validator/backing_implicit_view.hpp"
+#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 
 #include <span>
 

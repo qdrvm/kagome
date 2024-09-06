@@ -17,12 +17,12 @@
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
+#include "parachain/validator/backing_implicit_view.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/prospective_parachains/fragment_chain.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
-#include "parachain/validator/backing_implicit_view.hpp"
 
 namespace kagome::parachain {
 
@@ -40,15 +40,16 @@ namespace kagome::parachain {
       std::unordered_map<ParachainId, fragment::FragmentChain> fragment_chains;
     };
 
-  struct View {
-    // Per relay parent fragment chains. These includes all relay parents under the implicit view.
-    std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
-    // The hashes of the currently active leaves. This is a subset of the keys in
-    // `per_relay_parent`.
-    std::unordered_set<Hash> active_leaves;
-    // The backing implicit view.
-    ImplicitView implicit_view;
-  };
+    struct View {
+      // Per relay parent fragment chains. These includes all relay parents
+      // under the implicit view.
+      std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
+      // The hashes of the currently active leaves. This is a subset of the keys
+      // in `per_relay_parent`.
+      std::unordered_set<Hash> active_leaves;
+      // The backing implicit view.
+      ImplicitView implicit_view;
+    };
 
     struct ImportablePendingAvailability {
       network::CommittedCandidateReceipt candidate;
@@ -144,8 +145,7 @@ namespace kagome::parachain {
     void candidateSeconded(ParachainId para,
                            const CandidateHash &candidate_hash);
 
-    void candidateBacked(ParachainId para,
-                         const CandidateHash &candidate_hash);
+    void candidateBacked(ParachainId para, const CandidateHash &candidate_hash);
 
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
