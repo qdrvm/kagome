@@ -41,7 +41,7 @@ namespace kagome::parachain::fragment {
         by_parent_head.erase(node.parent_head_data_hash);
         by_output_head.erase(node.output_head_data_hash);
         candidates.erase(node.candidate_hash);
-      } else {
+      } else if (node.output_head_data_hash == parent_head_data_hash) {
         found_index = index;
       }
     }
