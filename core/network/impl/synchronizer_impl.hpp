@@ -156,7 +156,7 @@ namespace kagome::network {
     bool fetchJustificationRange(primitives::BlockNumber min,
                                  FetchJustificationRangeCb cb) override;
 
-    bool fetchHeadersBack(primitives::BlockNumber block,
+    bool fetchHeadersBack(primitives::BlockNumber max, primitives::BlockNumber min,
                                   CbResultVoid cb) override;
 
     /// Enqueues loading and applying state on block {@param block}

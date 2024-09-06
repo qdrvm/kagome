@@ -1409,16 +1409,21 @@ namespace kagome::network {
     recent_requests_.clear();
   }
 
-  bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber block,
+  bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber max, primitives::BlockNumber min,
     CbResultVoid cb) {
+    if (max < min) {
+      SL_ERROR(log_, "max {} < min {}, will not fetch headers", max, min);
+      return false;
+    }
+
     BlocksRequest request{
         .fields = BlockAttribute::HEADER,
-        .from = block,
+        .from = max,
         .direction = Direction::DESCENDING,
-        .max = std::nullopt,
+        .max = max - min + 1,
         .multiple_justifications = false,
     };
-    auto chosen = chooseJustificationPeer(block, request.fingerprint());
+    auto chosen = chooseJustificationPeer(max, request.fingerprint());
     if (not chosen) {
       return false;
     }

@@ -59,7 +59,7 @@ namespace kagome::network {
 
     MOCK_METHOD(bool,
                 fetchHeadersBack,
-                (primitives::BlockNumber, CbResultVoid),
+                (primitives::BlockNumber max, primitives::BlockNumber min, CbResultVoid),
                 (override));
 
     void syncState(const libp2p::peer::PeerId &peer_id,
