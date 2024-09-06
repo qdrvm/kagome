@@ -66,7 +66,6 @@ target_link_libraries(kagome_pvf_worker
     soralog::soralog
     logger
     log_configurator
-
     binaryen_wasm_memory
     binaryen_wasm_memory_factory
     binaryen_runtime_external_interface
@@ -75,7 +74,6 @@ target_link_libraries(kagome_pvf_worker
     binaryen_instance_environment_factory
     binaryen_module_factory
     wasm_compiler
-
     runtime_properties_cache
     sr25519_provider
     ed25519_provider
