@@ -1,67 +1,16 @@
-/**
  * Copyright Quadrivium LLC
  * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
+#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
+#include "utils/stringify.hpp"
 
-#include <boost/variant.hpp>
-#include <map>
-#include <optional>
-#include <unordered_map>
-#include <unordered_set>
-
-#include "blockchain/block_tree.hpp"
-#include "blockchain/block_tree_error.hpp"
-#include "network/peer_view.hpp"
-#include "network/types/collator_messages_vstaging.hpp"
-#include "parachain/types.hpp"
-#include "parachain/validator/collations.hpp"
-#include "parachain/validator/fragment_tree.hpp"
-#include "runtime/runtime_api/parachain_host.hpp"
-#include "runtime/runtime_api/parachain_host_types.hpp"
-#include "utils/map.hpp"
+#define COMPONENT ProspectiveParachains
+#define COMPONENT_NAME STRINGIFY(COMPONENT)
 
 namespace kagome::parachain {
-
-  using ParentHeadData_OnlyHash = Hash;
-  using ParentHeadData_WithData = std::pair<HeadData, Hash>;
-  using ParentHeadData =
-      boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
-
-  class ProspectiveParachains {
-#ifdef CFG_TESTING
-   public:
-#endif  // CFG_TESTING
-    struct RelayBlockViewData {
-      // Scheduling info for paras and upcoming paras.
-      std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
-      std::unordered_set<CandidateHash> pending_availability;
-    };
-
-    struct View {
-      // Active or recent relay-chain blocks by block hash.
-      std::unordered_map<Hash, RelayBlockViewData> active_leaves;
-      std::unordered_map<ParachainId, fragment::CandidateStorage>
-          candidate_storage;
-    };
-
-    struct ImportablePendingAvailability {
-      network::CommittedCandidateReceipt candidate;
-      runtime::PersistedValidationData persisted_validation_data;
-      fragment::PendingAvailability compact;
-    };
-
-    View view;
-    std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<runtime::ParachainHost> parachain_host_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
-    log::Logger logger =
-        log::createLogger("ProspectiveParachains", "parachain");
-
-   public:
-    ProspectiveParachains(
+    ProspectiveParachains::ProspectiveParachains(
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<blockchain::BlockTree> block_tree)
@@ -73,7 +22,7 @@ namespace kagome::parachain {
       BOOST_ASSERT(block_tree_);
     }
 
-    void printStoragesLoad() {
+    void ProspectiveParachains::printStoragesLoad() {
       SL_TRACE(logger,
                "[Prospective parachains storages statistics]:"
                "\n\t-> view.active_leaves={}"
@@ -82,20 +31,18 @@ namespace kagome::parachain {
                view.candidate_storage.size());
     }
 
-    std::shared_ptr<blockchain::BlockTree> getBlockTree() {
+    std::shared_ptr<blockchain::BlockTree> ProspectiveParachains::getBlockTree() {
       BOOST_ASSERT(block_tree_);
       return block_tree_;
     }
 
     std::vector<std::pair<ParachainId, BlockNumber>>
-    answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const {
+    ProspectiveParachains::answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const {
       std::vector<std::pair<ParachainId, BlockNumber>> v;
-      SL_TRACE(logger,
-               "Search for minimum relay parents. (relay_parent={})",
-               relay_parent);
+      if (view.active_leaves.contains(relay_parent)) {
+        if (auto leaf_data = utils::get(view.per_relay_parent, relay_parent)) {
 
-      auto it = view.active_leaves.find(relay_parent);
-      if (it != view.active_leaves.end()) {
+        }
         const RelayBlockViewData &leaf_data = it->second;
         SL_TRACE(
             logger,
@@ -111,7 +58,7 @@ namespace kagome::parachain {
       return v;
     }
 
-    std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
+    std::vector<std::pair<CandidateHash, Hash>> ProspectiveParachains::answerGetBackableCandidates(
         const RelayHash &relay_parent,
         ParachainId para,
         uint32_t count,
@@ -188,7 +135,7 @@ namespace kagome::parachain {
       return backable_candidates;
     }
 
-    fragment::FragmentTreeMembership answerTreeMembershipRequest(
+        fragment::FragmentTreeMembership ProspectiveParachains::answerTreeMembershipRequest(
         ParachainId para, const CandidateHash &candidate) {
       SL_TRACE(logger,
                "Answer tree membership request. "
@@ -198,8 +145,73 @@ namespace kagome::parachain {
       return fragmentTreeMembership(view.active_leaves, para, candidate);
     }
 
+    std::optional<ProspectiveParachainsMode> ProspectiveParachains::prospectiveParachainsMode(
+        const RelayHash &relay_parent) {
+      auto result = parachain_host_->staging_async_backing_params(relay_parent);
+      if (result.has_error()) {
+        SL_TRACE(logger,
+                 "Prospective parachains are disabled, is not supported by the "
+                 "current Runtime API. (relay parent={}, error={})",
+                 relay_parent,
+                 result.error());
+        return std::nullopt;
+      }
+
+      const parachain::fragment::AsyncBackingParams &vs = result.value();
+      return ProspectiveParachainsMode{
+          .max_candidate_depth = vs.max_candidate_depth,
+          .allowed_ancestry_len = vs.allowed_ancestry_len,
+      };
+    }
+
+    outcome::result<std::optional<fragment::RelayChainBlockInfo>>
+    ProspectiveParachains::fetchBlockInfo(const RelayHash &relay_hash) {
+      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
+      /// cache for block header request and calculations
+      auto res_header = block_tree_->getBlockHeader(relay_hash);
+      if (res_header.has_error()) {
+        if (res_header.error()
+            == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+          return outcome::success(std::nullopt);
+        }
+        return res_header.error();
+      }
+
+      return fragment::RelayChainBlockInfo{
+          .hash = relay_hash,
+          .number = res_header.value().number,
+          .storage_root = res_header.value().state_root,
+      };
+    }
+
+
+    outcome::result<std::optional<
+        std::pair<fragment::Constraints,
+                  std::vector<fragment::CandidatePendingAvailability>>>>
+    ProspectiveParachains::fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
+      auto result =
+          parachain_host_->staging_para_backing_state(relay_parent, para_id);
+      if (result.has_error()) {
+        SL_TRACE(logger,
+                 "Staging para backing state failed. (relay parent={}, "
+                 "para_id={}, error={})",
+                 relay_parent,
+                 para_id,
+                 result.error());
+        return result.as_failure();
+      }
+
+      auto &s = result.value();
+      if (!s) {
+        return std::nullopt;
+      }
+
+      return std::make_pair(std::move(s->constraints),
+                            std::move(s->pending_availability));
+    }
+
     outcome::result<std::optional<runtime::PersistedValidationData>>
-    answerProspectiveValidationDataRequest(
+    ProspectiveParachains::answerProspectiveValidationDataRequest(
         const RelayHash &candidate_relay_parent,
         const ParentHeadData &parent_head_data,
         ParachainId para_id) {
@@ -269,71 +281,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    std::optional<ProspectiveParachainsMode> prospectiveParachainsMode(
-        const RelayHash &relay_parent) {
-      auto result = parachain_host_->staging_async_backing_params(relay_parent);
-      if (result.has_error()) {
-        SL_TRACE(logger,
-                 "Prospective parachains are disabled, is not supported by the "
-                 "current Runtime API. (relay parent={}, error={})",
-                 relay_parent,
-                 result.error());
-        return std::nullopt;
-      }
-
-      const parachain::fragment::AsyncBackingParams &vs = result.value();
-      return ProspectiveParachainsMode{
-          .max_candidate_depth = vs.max_candidate_depth,
-          .allowed_ancestry_len = vs.allowed_ancestry_len,
-      };
-    }
-
-    outcome::result<std::optional<
-        std::pair<fragment::Constraints,
-                  std::vector<fragment::CandidatePendingAvailability>>>>
-    fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
-      auto result =
-          parachain_host_->staging_para_backing_state(relay_parent, para_id);
-      if (result.has_error()) {
-        SL_TRACE(logger,
-                 "Staging para backing state failed. (relay parent={}, "
-                 "para_id={}, error={})",
-                 relay_parent,
-                 para_id,
-                 result.error());
-        return result.as_failure();
-      }
-
-      auto &s = result.value();
-      if (!s) {
-        return std::nullopt;
-      }
-
-      return std::make_pair(std::move(s->constraints),
-                            std::move(s->pending_availability));
-    }
-
-    outcome::result<std::optional<fragment::RelayChainBlockInfo>>
-    fetchBlockInfo(const RelayHash &relay_hash) {
-      /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
-      /// cache for block header request and calculations
-      auto res_header = block_tree_->getBlockHeader(relay_hash);
-      if (res_header.has_error()) {
-        if (res_header.error()
-            == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-          return outcome::success(std::nullopt);
-        }
-        return res_header.error();
-      }
-
-      return fragment::RelayChainBlockInfo{
-          .hash = relay_hash,
-          .number = res_header.value().number,
-          .storage_root = res_header.value().state_root,
-      };
-    }
-
-    outcome::result<std::unordered_set<ParachainId>> fetchUpcomingParas(
+    outcome::result<std::unordered_set<ParachainId>> ProspectiveParachains::fetchUpcomingParas(
         const RelayHash &relay_parent,
         std::unordered_set<CandidateHash> &pending_availability) {
       OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
@@ -359,7 +307,7 @@ namespace kagome::parachain {
       return upcoming;
     }
 
-    outcome::result<std::vector<fragment::RelayChainBlockInfo>> fetchAncestry(
+    outcome::result<std::vector<fragment::RelayChainBlockInfo>> ProspectiveParachains::fetchAncestry(
         const RelayHash &relay_hash, size_t ancestors) {
       std::vector<fragment::RelayChainBlockInfo> block_info;
       if (ancestors == 0) {
@@ -425,7 +373,7 @@ namespace kagome::parachain {
     }
 
     outcome::result<std::vector<ImportablePendingAvailability>>
-    preprocessCandidatesPendingAvailability(
+    ProspectiveParachains::preprocessCandidatesPendingAvailability(
         const HeadData &required_parent,
         const std::vector<fragment::CandidatePendingAvailability>
             &pending_availability) {
@@ -471,7 +419,7 @@ namespace kagome::parachain {
       return importable;
     }
 
-    outcome::result<void> onActiveLeavesUpdate(
+    outcome::result<void> ProspectiveParachains::onActiveLeavesUpdate(
         const network::ExViewRef &update) {
       for (const auto &deactivated : update.lost) {
         SL_TRACE(logger,
@@ -586,7 +534,7 @@ namespace kagome::parachain {
       return outcome::success();
     }
 
-    void prune_view_candidate_storage() {
+    void ProspectiveParachains::prune_view_candidate_storage() {
       const auto &active_leaves = view.active_leaves;
       std::unordered_set<CandidateHash> live_candidates;
       std::unordered_set<ParachainId> live_paras;
@@ -617,16 +565,9 @@ namespace kagome::parachain {
       }
     }
 
-    /// @brief calculates hypothetical candidate and fragment tree membership
-    /// @param candidates Candidates, in arbitrary order, which should be
-    /// checked for possible membership in fragment trees.
-    /// @param fragment_tree_relay_parent Either a specific fragment tree to
-    /// check, otherwise all.
-    /// @param backed_in_path_only Only return membership if all candidates in
-    /// the path from the root are backed.
     std::vector<
         std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>>
-    answerHypotheticalFrontierRequest(
+    ProspectiveParachains::answerHypotheticalFrontierRequest(
         const std::span<const HypotheticalCandidate> &candidates,
         const std::optional<std::reference_wrapper<const Hash>>
             &fragment_tree_relay_parent,
@@ -682,7 +623,7 @@ namespace kagome::parachain {
       return response;
     }
 
-    fragment::FragmentTreeMembership fragmentTreeMembership(
+    fragment::FragmentTreeMembership ProspectiveParachains::fragmentTreeMembership(
         const std::unordered_map<Hash, RelayBlockViewData> &active_leaves,
         ParachainId para,
         const CandidateHash &candidate) const {
@@ -699,7 +640,7 @@ namespace kagome::parachain {
       return membership;
     }
 
-    void candidateSeconded(ParachainId para,
+    void ProspectiveParachains::candidateSeconded(ParachainId para,
                            const CandidateHash &candidate_hash) {
       auto it = view.candidate_storage.find(para);
       if (it == view.candidate_storage.end()) {
@@ -725,7 +666,7 @@ namespace kagome::parachain {
       storage.markSeconded(candidate_hash);
     }
 
-    void candidateBacked(ParachainId para,
+    void ProspectiveParachains::candidateBacked(ParachainId para,
                          const CandidateHash &candidate_hash) {
       auto storage = view.candidate_storage.find(para);
       if (storage == view.candidate_storage.end()) {
@@ -755,7 +696,7 @@ namespace kagome::parachain {
       storage->second.markBacked(candidate_hash);
     }
 
-    fragment::FragmentTreeMembership introduceCandidate(
+    fragment::FragmentTreeMembership ProspectiveParachains::introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
         const crypto::Hashed<const runtime::PersistedValidationData &,
@@ -811,6 +752,5 @@ namespace kagome::parachain {
 
       return membership;
     }
-  };
 
-}  // namespace kagome::parachain
+}
