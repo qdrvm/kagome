@@ -5,6 +5,7 @@
  */
 
 #include "parachain/validator/prospective_parachains/fragment_chain.hpp"
+#include <random>
 #include "core/parachain/parachain_test_harness.hpp"
 
 using namespace kagome::parachain::fragment;
@@ -1121,21 +1122,27 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   {
     auto chain_new = chain;
     chain_new.candidate_backed(candidate_hashes[5]);
+    ASSERT_EQ(chain_new.unconnected_len(), 6);
     for (size_t count = 0; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
+
     chain_new.candidate_backed(candidate_hashes[3]);
+    ASSERT_EQ(chain_new.unconnected_len(), 6);
     chain_new.candidate_backed(candidate_hashes[4]);
+    ASSERT_EQ(chain_new.unconnected_len(), 6);
     for (size_t count = 0; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
 
     chain_new.candidate_backed(candidate_hashes[1]);
+    ASSERT_EQ(chain_new.unconnected_len(), 6);
     for (size_t count = 0; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
 
     chain_new.candidate_backed(candidate_hashes[0]);
+    ASSERT_EQ(chain_new.unconnected_len(), 4);
     ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, 1), hashes(0, 1));
     for (size_t count = 2; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
@@ -1144,14 +1151,113 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
 
     // Now back the missing piece.
     chain_new.candidate_backed(candidate_hashes[2]);
+    ASSERT_EQ(chain_new.unconnected_len(), 0);
     ASSERT_EQ(chain_new.best_chain_len(), 6);
 
     for (size_t count = 0; count < 10; ++count) {
-      const auto l = std::min(count, size_t(6));
-      for (size_t i = 0; i < l; ++i) {
-        ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
-                  hashes(0, i));
-      }
+      ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
+                hashes(0, std::min(count, size_t(6))));
     }
+  }
+
+  // Now back all candidates. Back them in a random order. The result should
+  // always be the same.
+  auto candidates_shuffled = candidate_hashes;
+  std::default_random_engine random_;
+  std::shuffle(candidates_shuffled.begin(), candidates_shuffled.end(), random_);
+  for (const auto &candidate : candidates_shuffled) {
+    chain.candidate_backed(candidate);
+    storage.mark_backed(candidate);
+  }
+
+  // No ancestors supplied.
+  ASSERT_EQ(chain.find_ancestor_path(Ancestors{}), 0);
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 0), hashes(0, 0));
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 1), hashes(0, 1));
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 2), hashes(0, 2));
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 5), hashes(0, 5));
+
+  for (size_t count = 6; count < 10; ++count) {
+    ASSERT_EQ(chain.find_backable_chain(Ancestors{}, count), hashes(0, 6));
+  }
+
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 7), hashes(0, 6));
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 10), hashes(0, 6));
+
+  // Ancestor which is not part of the chain. Will be ignored.
+  {
+    Ancestors ancestors = {CandidateHash{}};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(0, 4));
+  }
+
+  {
+    Ancestors ancestors = {candidate_hashes[1], CandidateHash{}};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(0, 4));
+  }
+
+  {
+    Ancestors ancestors = {candidate_hashes[0], CandidateHash{}};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 1);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(1, 5));
+  }
+
+  {
+    // Ancestors which are part of the chain but don't form a path from root.
+    // Will be ignored.
+    Ancestors ancestors = {candidate_hashes[1], candidate_hashes[2]};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(0, 4));
+  }
+
+  {
+    // Valid ancestors.
+    Ancestors ancestors = {
+        candidate_hashes[2], candidate_hashes[0], candidate_hashes[1]};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 3);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 2), hashes(3, 5));
+    for (size_t count = 3; count < 10; ++count) {
+      ASSERT_EQ(chain.find_backable_chain(ancestors, count), hashes(3, 6));
+    }
+  }
+
+  {
+    // Valid ancestors with candidates which have been omitted due to timeouts
+    Ancestors ancestors = {candidate_hashes[0], candidate_hashes[2]};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 1);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 3), hashes(1, 4));
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(1, 5));
+    for (size_t count = 5; count < 10; ++count) {
+      ASSERT_EQ(chain.find_backable_chain(ancestors, count), hashes(1, 6));
+    }
+  }
+
+  {
+    Ancestors ancestors = {
+        candidate_hashes[0], candidate_hashes[1], candidate_hashes[3]};
+    ASSERT_EQ(chain.find_ancestor_path(ancestors), 2);
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(2, 6));
+
+    // Requested count is 0.
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 0), hashes(0, 0));
+  }
+
+  // Stop when we've found a candidate which is pending availability
+  {
+    EXPECT_OUTCOME_TRUE(
+        scope2,
+        Scope::with_ancestors(relay_parent_info,
+                              base_constraints,
+                              {PendingAvailability{
+                                  .candidate_hash = candidate_hashes[3],
+                                  .relay_parent = relay_parent_info,
+                              }},
+                              max_depth,
+                              {}));
+
+    auto chain = populate_chain_from_previous_storage(scope2, storage);
+    Ancestors ancestors = {candidate_hashes[0], candidate_hashes[1]};
+    ASSERT_EQ(chain.find_backable_chain(ancestors, 3), hashes(2, 3));
   }
 }
