@@ -83,6 +83,7 @@ namespace {
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     roles.flags.full = 1;
     return roles;
   }();
@@ -440,7 +441,9 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.full = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.authority = 1;
     }
 
@@ -1027,7 +1030,9 @@ namespace kagome::application {
           }
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.full = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         rpc_host_ = def_rpc_host;
@@ -1049,7 +1054,9 @@ namespace kagome::application {
         node_name_ = name;
         dev_mnemonic_phrase_ = dev;
         // if dev account is passed node is considered as validator
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.full = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.authority = 1;
       }
     }
@@ -1078,7 +1085,9 @@ namespace kagome::application {
     });
 
     if (vm.end() != vm.find("validator")) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.full = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.authority = 1;
     }
 

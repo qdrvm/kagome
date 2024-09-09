@@ -4743,6 +4743,7 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     return (app_config_.roles().flags.authority == 1);
   }
 

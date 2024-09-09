@@ -261,6 +261,7 @@ namespace kagome::telemetry {
     payload
         .AddMember(
             "authority",
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
             static_cast<bool>(app_configuration_.roles().flags.authority),
             allocator)
         .AddMember("chain", str_val(chain_spec_.name()), allocator)

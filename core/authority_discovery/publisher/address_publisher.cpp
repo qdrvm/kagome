@@ -82,6 +82,7 @@ namespace kagome::authority_discovery {
     if (not libp2p_key_) {
       return true;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     if (not roles_.flags.authority) {
       return true;
     }

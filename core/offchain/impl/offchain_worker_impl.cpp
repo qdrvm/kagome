@@ -74,6 +74,7 @@ namespace kagome::offchain {
   }
 
   bool OffchainWorkerImpl::isValidator() const {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     bool isValidator = app_config_.roles().flags.authority == 1;
     return isValidator;
   }
