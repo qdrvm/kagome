@@ -75,8 +75,8 @@ namespace kagome::dispute {
       auto &dispute_status = std::get<2>(recent_dispute);
 
       if (is_type<Active>(dispute_status)  // is_confirmed_concluded
-          or onchain.count(std::tie(std::get<0>(recent_dispute),
-                                    std::get<1>(recent_dispute)))) {
+          or onchain.contains(std::tie(std::get<0>(recent_dispute),
+                                       std::get<1>(recent_dispute)))) {
         recent_disputes.emplace_back(std::move(recent_dispute));
       }
     }

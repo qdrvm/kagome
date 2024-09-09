@@ -52,13 +52,13 @@ namespace kagome::telemetry {
 
   MessagePool::RefCount MessagePool::add_ref(MessageHandle handle) {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       return 0;  // zero references for bad handle
     }
     std::lock_guard lock(mutex_);
     // allowed to call only over already occupied slots
-    BOOST_ASSERT(free_slots_.count(handle) == 0);
+    BOOST_ASSERT(not free_slots_.contains(handle));
     auto &entry = pool_[handle];
     // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     return ++entry.ref_count;
@@ -66,7 +66,7 @@ namespace kagome::telemetry {
 
   MessagePool::RefCount MessagePool::release(MessageHandle handle) {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       return 0;  // zero references for bad handle
     }
@@ -84,7 +84,7 @@ namespace kagome::telemetry {
   boost::asio::mutable_buffer MessagePool::operator[](
       MessageHandle handle) const {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       throw std::runtime_error("Bad access through invalid handle");
     }

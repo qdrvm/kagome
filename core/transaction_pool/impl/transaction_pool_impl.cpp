@@ -218,7 +218,7 @@ namespace kagome::transaction_pool {
       for (auto &requirement : state->tx->required_tags) {
         auto &pending_status = pool_state.dependency_graph_[requirement];
         if (!pending_status.tag_provided
-            && pending_status.dependents.count(tx_hash) == 0) {
+            and not pending_status.dependents.contains(tx_hash)) {
           ++state->remains_required_txs_count;
           pending_status.dependents[tx_hash] = state;
         }

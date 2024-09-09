@@ -289,7 +289,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::forOnePeer(
       const PeerId &peer_id, std::function<void(const PeerId &)> func) const {
-    if (active_peers_.count(peer_id)) {
+    if (active_peers_.contains(peer_id)) {
       func(peer_id);
     }
   }

@@ -69,7 +69,7 @@ namespace kagome::dispute {
 
       priority_.emplace(comparator, request);
     } else {
-      if (priority_.count(comparator)) {
+      if (priority_.contains(comparator)) {
         // The candidate is already in priority queue - don't add in in best
         // effort too.
         return outcome::success();

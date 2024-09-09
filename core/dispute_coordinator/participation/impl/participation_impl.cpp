@@ -50,7 +50,7 @@ namespace kagome::dispute {
   outcome::result<void> ParticipationImpl::queue_participation(
       ParticipationPriority priority, ParticipationRequest request) {
     // Participation already running - we can ignore that request:
-    if (running_participations_.count(request.candidate_hash)) {
+    if (running_participations_.contains(request.candidate_hash)) {
       return outcome::success();
     }
 

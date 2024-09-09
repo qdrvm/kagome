@@ -1749,7 +1749,7 @@ namespace kagome::parachain {
     }();
 
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
-      if (group_set.count(peer) == 0) {
+      if (not group_set.contains(peer)) {
         any.emplace_back(peer);
       }
     });
@@ -5155,7 +5155,7 @@ namespace kagome::parachain {
     const auto candidate_hash = result.candidate.hash(*hasher_);
     parachain_state->get().fallbacks.erase(candidate_hash);
 
-    if (parachain_state->get().issued_statements.count(candidate_hash) == 0) {
+    if (not parachain_state->get().issued_statements.contains(candidate_hash)) {
       if (result.result) {
         if (const auto r =
                 sign_import_and_distribute_statement<StatementType::kValid>(
@@ -5243,7 +5243,7 @@ namespace kagome::parachain {
           &active_leaves,
       ParachainId para_id) {
     if (!relay_parent_mode) {
-      return active_leaves.count(relay_parent) != 0ull;
+      return active_leaves.contains(relay_parent);
     }
 
     for (const auto &[hash, mode] : active_leaves) {
@@ -5281,8 +5281,7 @@ namespace kagome::parachain {
     }
 
     if (!relay_parent_mode) {
-      if (peer_data.collator_state->advertisements.count(on_relay_parent)
-          != 0ull) {
+      if (peer_data.collator_state->advertisements.contains(on_relay_parent)) {
         return Error::DUPLICATE;
       }
 
@@ -5410,7 +5409,7 @@ namespace kagome::parachain {
       for (auto depth : depths) {
         if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
             it != leaf_state.seconded_at_depth.end()
-            && it->second.count(depth) != 0ull) {
+            && it->second.contains(depth)) {
           return false;
         }
       }
@@ -5450,7 +5449,7 @@ namespace kagome::parachain {
         if (head == candidate_relay_parent.get()) {
           if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
               it != leaf_state.seconded_at_depth.end()
-              && it->second.count(0) != 0ull) {
+              && it->second.contains(0)) {
             return std::nullopt;
           }
           if (!proc_response(std::vector<size_t>{0ull}, head, leaf_state)) {
@@ -5739,8 +5738,7 @@ namespace kagome::parachain {
       const PendingCollation &pc,
       const CollatorId &id,
       network::CollationVersion version) {
-    if (our_current_state_.collation_requests_cancel_handles.count(pc)
-        != 0ull) {
+    if (our_current_state_.collation_requests_cancel_handles.contains(pc)) {
       SL_WARN(logger_,
               "Already requested. (relay parent={}, para id={})",
               pc.relay_parent,

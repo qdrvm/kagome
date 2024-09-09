@@ -360,7 +360,7 @@ namespace kagome::network {
     OUTCOME_TRY(db_->put(BlockNumberKey::encode(block_number),
                          scale::encode(justification_v1).value()));
     if (beefy_finalized_ > *beefy_genesis_
-        and sessions_.count(beefy_finalized_) == 0) {
+        and not sessions_.contains(beefy_finalized_)) {
       OUTCOME_TRY(last_hash, block_tree_->getBlockHash(beefy_finalized_));
       if (last_hash) {
         if (auto r = block_tree_->getBlockHeader(*last_hash)) {

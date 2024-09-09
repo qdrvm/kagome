@@ -182,7 +182,7 @@ namespace {
                                                     &cert_output,
                                                     &cert_proof,
                                                     &core)) {
-        if (assignments.count(core) > 0) {
+        if (assignments.contains(core)) {
           continue;
         }
 
@@ -1526,7 +1526,7 @@ namespace kagome::parachain {
 
     const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
-    if (approving_context_map_.count(head) != 0ull) {
+    if (approving_context_map_.contains(head)) {
       logger_->warn("Approving {} already in progress.", head);
       return;  // Error::ALREADY_APPROVING;
     }
@@ -2556,7 +2556,7 @@ namespace kagome::parachain {
                         .indirect_assignment_cert = indirect_cert,
                         .candidate_bitfield = candidate_indices,
                     }}}}),
-        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2675,7 +2675,7 @@ namespace kagome::parachain {
                 network::vstaging::Approvals{
                     .approvals = {vote},
                 }}),
-        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
@@ -3275,7 +3275,7 @@ namespace kagome::parachain {
         }
 
         auto &entry = opt_entry->get();
-        if (entry.known_by.count(peer_id) != 0ull && !retry_known_blocks) {
+        if (entry.known_by.contains(peer_id) and !retry_known_blocks) {
           break;
         }
 

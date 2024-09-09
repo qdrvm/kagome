@@ -77,7 +77,7 @@ struct TrieTracker : TrieStorageBackend {
     keys.emplace(common::Hash256::fromSpan(key).value());
   }
   bool tracked(BufferView key) const {
-    return keys.count(common::Hash256::fromSpan(key).value());
+    return keys.contains(common::Hash256::fromSpan(key).value());
   }
 
   std::shared_ptr<TrieStorageBackend> inner;

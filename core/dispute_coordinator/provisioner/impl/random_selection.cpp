@@ -126,7 +126,7 @@ namespace kagome::dispute {
 
     std::unordered_set<std::tuple<SessionIndex, CandidateHash>> unique_new;
     for (auto &ext : std::move(extension)) {
-      if (lut.count(ext) == 0) {
+      if (not lut.contains(ext)) {
         unique_new.emplace(ext);
       }
     }

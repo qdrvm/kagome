@@ -174,12 +174,12 @@ namespace kagome::blockchain {
           }
 
           // Met early observed block
-          if (observed.count(block.hash) != 0) {
+          if (observed.contains(block.hash)) {
             break;
           }
 
           // Met known dead block
-          if (dead.count(block) != 0) {
+          if (dead.contains(block)) {
             dead.insert(subchain.begin(), subchain.end());
             break;
           }
