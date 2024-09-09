@@ -70,6 +70,7 @@ namespace kagome::runtime::wasm_edge {
                            wasm_edge_err_category};
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define WasmEdge_UNWRAP(expr)                                             \
   if (auto _wasm_edge_res = (expr); !WasmEdge_ResultOK(_wasm_edge_res)) { \
     return make_error_code(_wasm_edge_res);                               \
