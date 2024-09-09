@@ -599,15 +599,17 @@ class DbStatsCommand : public Command {
         size /= 1024.0;
         idx++;
       }
-      fmt::print(out,
-                 "{:{}} | {:{}.2f} {} | {:{}} |\n",
-                 column_data.name,
-                 30,
-                 size,
-                 10,
-                 sizes[idx],
-                 column_data.file_count,
-                 5);
+      fmt::print(
+          out,
+          "{:{}} | {:{}.2f} {} | {:{}} |\n",
+          column_data.name,
+          30,
+          size,
+          10,
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+          sizes[idx],
+          column_data.file_count,
+          5);
     }
   }
 

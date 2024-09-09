@@ -179,6 +179,7 @@ namespace kagome::parachain {
     };
     SL_INFO(log_,
             "pvf runtime engine {}",
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 

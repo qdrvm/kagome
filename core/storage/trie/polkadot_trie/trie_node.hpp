@@ -232,6 +232,7 @@ namespace kagome::storage::trie {
 
     uint8_t getNextChildIdxFrom(uint8_t child_idx) const {
       while (child_idx < kMaxChildren) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         if (children[child_idx]) {
           return child_idx;
         }

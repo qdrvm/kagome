@@ -178,6 +178,7 @@ namespace {
             logger, "deleteNode: go to child {:x}", (int)sought_key[length]);
         OUTCOME_TRY(deleteNode(
             logger, child, sought_key.subspan(length + 1), node_storage));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         branch.children[sought_key[length]] = child;
       }
       OUTCOME_TRY(handleDeletion(logger, node, node_storage));
@@ -231,6 +232,7 @@ namespace {
           auto &branch = dynamic_cast<BranchNode &>(*parent);
           for (uint8_t child_idx = 0; child_idx < branch.kMaxChildren;
                child_idx++) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             if (branch.children[child_idx] != nullptr) {
               OUTCOME_TRY(child_node, node_storage.getChild(branch, child_idx));
               OUTCOME_TRY(detachNode(logger,
@@ -242,6 +244,7 @@ namespace {
                                      callback,
                                      trie,
                                      node_storage));
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
               branch.children[child_idx] = child_node;
             }
           }
@@ -288,6 +291,7 @@ namespace {
                                callback,
                                trie,
                                node_storage));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         branch.children[prefix[length]] = child_node;
         OUTCOME_TRY(handleDeletion(logger, parent, node_storage));
       }
