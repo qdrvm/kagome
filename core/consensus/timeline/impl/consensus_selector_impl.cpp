@@ -33,7 +33,7 @@ namespace kagome::consensus {
       const primitives::BlockInfo &parent_block) const {
     auto consensus_opt = pc_cache_.get(parent_block);
     if (consensus_opt.has_value()) {
-      return consensus_opt.value();
+      return consensus_opt.value().get();
     }
 
     [[unlikely]] if (parent_block.number == 0) {
@@ -46,7 +46,7 @@ namespace kagome::consensus {
 
     auto header_res = header_repo_->getBlockHeader(parent_block.hash);
     if (header_res.has_error()) {
-      // TODO Log it
+      BOOST_UNREACHABLE_RETURN();
       return {};
     }
     const auto &header = header_res.value();
@@ -72,7 +72,7 @@ namespace kagome::consensus {
       const primitives::BlockHeader &header) const {
     auto consensus_opt = pc_cache_.get(header.blockInfo());
     if (consensus_opt.has_value()) {
-      return consensus_opt.value();
+      return consensus_opt.value().get();
     }
 
     [[unlikely]] if (header.number == 0) {
@@ -104,7 +104,7 @@ namespace kagome::consensus {
       const primitives::BlockInfo &parent_block) const {
     auto consensus_opt = fc_cache_.get(parent_block);
     if (consensus_opt.has_value()) {
-      return consensus_opt.value();
+      return consensus_opt.value().get();
     }
 
     for (size_t i = 0; i < finality_consensuses_.size(); ++i) {
@@ -113,7 +113,7 @@ namespace kagome::consensus {
         return fc_cache_.put(parent_block, consensus);
       }
 
-      // TODO: Code for trying to select another consensus
+      // TODO(xDimon): Code for trying to select another consensus
     }
     BOOST_UNREACHABLE_RETURN({});
   }
@@ -123,7 +123,7 @@ namespace kagome::consensus {
       const primitives::BlockHeader &header) const {
     auto consensus_opt = fc_cache_.get(header.blockInfo());
     if (consensus_opt.has_value()) {
-      return consensus_opt.value();
+      return consensus_opt.value().get();
     }
 
     for (size_t i = 0; i < finality_consensuses_.size(); ++i) {
@@ -132,7 +132,7 @@ namespace kagome::consensus {
         return consensus;
       }
 
-      // TODO: Code for trying to select another consensus
+      // TODO(xDimon): Code for trying to select another consensus
     }
     BOOST_UNREACHABLE_RETURN({});
   }
