@@ -12,19 +12,24 @@
 #include "parachain/types.hpp"
 #include "primitives/math.hpp"
 
+#define COMPONENT BackingImplicitView
+#define COMPONENT_NAME STRINGIFY(COMPONENT)
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
   using E = decltype(e);
   switch (e) {
     case E::ALREADY_KNOWN:
-      return "Already known leaf";
+      return COMPONENT_NAME ": Already known leaf";
+      case E::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS:
+      return COMPONENT_NAME ": Not initialized with prospective parachains";
   }
-  return "ImplicitView failed.";
+  return COMPONENT_NAME ": unknown error";
 }
 
 namespace kagome::parachain {
 
   ImplicitView::ImplicitView(
-      std::shared_ptr<ProspectiveParachains> prospective_parachains,
+      std::weak_ptr<ProspectiveParachains> prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> parachain_host_,
       std::optional<ParachainId> collating_for_)
       : prospective_parachains_{std::move(prospective_parachains)},

@@ -31,7 +31,7 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
-  class ProspectiveParachains {
+  class ProspectiveParachains : public std::enable_shared_from_this<ProspectiveParachains> {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING
@@ -57,12 +57,14 @@ namespace kagome::parachain {
       fragment::PendingAvailability compact;
     };
 
-    View view;
+    std::optional<View> view_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger =
         log::createLogger("ProspectiveParachains", "parachain");
+
+    View &view() const;
 
    public:
     ProspectiveParachains(
@@ -82,10 +84,7 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         ParachainId para,
         uint32_t count,
-        const std::vector<CandidateHash> &required_path);
-
-    fragment::FragmentTreeMembership answerTreeMembershipRequest(
-        ParachainId para, const CandidateHash &candidate);
+        const fragment::Ancestors &ancestors);
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     answerProspectiveValidationDataRequest(

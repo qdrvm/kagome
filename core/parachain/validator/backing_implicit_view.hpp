@@ -13,6 +13,8 @@
 
 #include "parachain/types.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
 
@@ -24,6 +26,7 @@ namespace kagome::parachain {
   struct ImplicitView {
     enum Error {
       ALREADY_KNOWN,
+      NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS
     };
 
     struct FetchSummary {
@@ -104,7 +107,7 @@ namespace kagome::parachain {
                block_info_storage.size());
     }
 
-    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains,
+    ImplicitView(std::weak_ptr<ProspectiveParachains> prospective_parachains,
                  std::shared_ptr<runtime::ParachainHost> parachain_host_,
                  std::optional<ParachainId> collating_for_);
 
@@ -136,7 +139,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::optional<ParachainId> collating_for;
 
-    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    std::weak_ptr<ProspectiveParachains> prospective_parachains_;
     log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
   };
 
