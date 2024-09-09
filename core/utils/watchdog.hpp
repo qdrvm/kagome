@@ -43,6 +43,7 @@ inline uint64_t getPlatformThreadId() {
 #include <unistd.h>
 
 inline uint64_t getPlatformThreadId() {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
   return syscall(SYS_gettid);
 }
 

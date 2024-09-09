@@ -47,6 +47,8 @@
 #include "runtime/wabt/instrument.hpp"
 #include "utils/mkdirs.hpp"
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
 #define EXPECT_NON_NEG(func, ...)                  \
@@ -204,8 +206,7 @@ namespace kagome::parachain {
       }
     }
 
-    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
-        == -1) {  // NOLINT(cppcoreguidelines-pro-type-vararg)
+    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
       // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       ::close(ruleset_fd);
       return getLastErr("prctl PR_SET_NO_NEW_PRIVS");
@@ -400,3 +401,5 @@ namespace kagome::parachain {
     return EXIT_SUCCESS;
   }
 }  // namespace kagome::parachain
+
+// NOLINTEND(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
