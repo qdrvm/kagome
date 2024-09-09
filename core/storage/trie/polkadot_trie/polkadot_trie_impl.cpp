@@ -298,8 +298,9 @@ namespace {
 }  // namespace
 
 namespace kagome::storage::trie {
-  PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) = default;
-  PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl &&) = default;
+  //  PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) noexcept =
+  //  default; PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl
+  //  &&) = default;
 
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::createEmpty(
       RetrieveFunctions retrieve_functions) {
@@ -328,7 +329,7 @@ namespace kagome::storage::trie {
           std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
-  PolkadotTrieImpl::~PolkadotTrieImpl() {}
+  //  PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
     return nodes_->getRoot();

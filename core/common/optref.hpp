@@ -15,14 +15,18 @@ namespace kagome {
   template <typename T>
   class OptRef {
    public:
-    OptRef() : data{nullptr} {}
+    OptRef() = default;
+    OptRef(const OptRef &) = default;
+    OptRef(OptRef &&) noexcept = default;
+
     OptRef(T &data) : data{&data} {}
     OptRef(T &&) = delete;
-    OptRef(std::nullopt_t) : data{nullptr} {}
+    OptRef(std::nullopt_t) {}
 
-    OptRef(const OptRef &) = default;
+    ~OptRef() = default;
 
     OptRef &operator=(const OptRef &) = default;
+    OptRef &operator=(OptRef &&) noexcept = default;
 
     T &operator*() {
       BOOST_ASSERT(data);

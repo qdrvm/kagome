@@ -31,7 +31,11 @@ namespace kagome::runtime {
           hash_{hash},
           config_{std::move(config)},
           instance_{std::move(instance)} {}
-    ~BorrowedInstance() {
+    BorrowedInstance(const BorrowedInstance &) = delete;
+    BorrowedInstance(BorrowedInstance &&) = delete;
+    BorrowedInstance &operator=(const BorrowedInstance &) = delete;
+    BorrowedInstance &operator=(BorrowedInstance &&) = delete;
+    ~BorrowedInstance() override {
       if (auto pool = pool_.lock()) {
         pool->release(hash_, config_, std::move(instance_));
       }

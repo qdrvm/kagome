@@ -22,11 +22,13 @@ namespace kagome::storage::trie {
       INVALID_NODE_TYPE = 1,
     };
 
-    PolkadotTrieImpl(PolkadotTrieImpl &&);
-    PolkadotTrieImpl &operator=(PolkadotTrieImpl &&);
+    PolkadotTrieImpl(PolkadotTrieImpl &&) noexcept = default;
+    PolkadotTrieImpl &operator=(PolkadotTrieImpl &&) noexcept = default;
 
     PolkadotTrieImpl(const PolkadotTrieImpl &) = delete;
     PolkadotTrieImpl &operator=(const PolkadotTrieImpl &) = delete;
+
+    ~PolkadotTrieImpl() override = default;
 
     /**
      * Creates an empty Trie.
@@ -49,8 +51,6 @@ namespace kagome::storage::trie {
      */
     static std::shared_ptr<PolkadotTrieImpl> create(
         NodePtr root, RetrieveFunctions retrieve_functions = {});
-
-    ~PolkadotTrieImpl();
 
     NodePtr getRoot() override;
     ConstNodePtr getRoot() const override;

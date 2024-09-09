@@ -25,10 +25,12 @@ namespace kagome::storage::trie {
                   std::shared_ptr<PolkadotTrie> trie);
 
     TrieBatchBase(const TrieBatchBase &) = delete;
-    TrieBatchBase(TrieBatchBase &&) = default;
+    TrieBatchBase(TrieBatchBase &&) noexcept = default;
+
+    ~TrieBatchBase() override = default;
 
     TrieBatchBase &operator=(const TrieBatchBase &) = delete;
-    TrieBatchBase &operator=(TrieBatchBase &&) = default;
+    TrieBatchBase &operator=(TrieBatchBase &&) noexcept = default;
 
     outcome::result<BufferOrView> get(const BufferView &key) const override;
     outcome::result<std::optional<BufferOrView>> tryGet(

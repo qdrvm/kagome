@@ -37,7 +37,8 @@ namespace kagome::runtime {
     RuntimeContext(const RuntimeContext &) = delete;
     RuntimeContext &operator=(const RuntimeContext &) = delete;
 
-    RuntimeContext(RuntimeContext &&) = default;
+    RuntimeContext(RuntimeContext &&) noexcept = default;
+    RuntimeContext &operator=(RuntimeContext &&) noexcept = delete;
 
     ~RuntimeContext();
 
