@@ -2196,7 +2196,7 @@ namespace kagome::dispute {
     auto authority_id_opt = authority_discovery_->get(peer_id);
     if (not authority_id_opt.has_value()) {
       SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
-      // TODO reputation_changes: vec![COST_NOT_A_VALIDATOR],
+      // TODO(xDimon): reputation_changes: vec![COST_NOT_A_VALIDATOR],
       return sendDisputeResponse(DisputeProcessingError::NotAValidator,
                                  std::move(cb));
     }
@@ -2208,7 +2208,7 @@ namespace kagome::dispute {
 
     if (queue.size() >= kPeerQueueCapacity) {
       SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
-      // TODO reputation_changes: vec![COST_APPARENT_FLOOD],
+      // TODO(xDimon): reputation_changes: vec![COST_APPARENT_FLOOD],
       return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
                                  std::move(cb));
     }
@@ -2319,7 +2319,7 @@ namespace kagome::dispute {
     {
       const auto &[validator_index, signature, kind] = unchecked_valid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return DisputeMessageCreationError::InvalidValidatorIndex;
       }
       auto validator_public = session_info.validators[validator_index];
@@ -2337,11 +2337,11 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
 
@@ -2359,7 +2359,7 @@ namespace kagome::dispute {
     {
       const auto &[validator_index, signature, kind] = unchecked_invalid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return DisputeMessageCreationError::InvalidValidatorIndex;
       }
       auto validator_public = session_info.validators[validator_index];
@@ -2377,11 +2377,11 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
 

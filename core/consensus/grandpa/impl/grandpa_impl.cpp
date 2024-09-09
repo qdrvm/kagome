@@ -993,7 +993,7 @@ namespace kagome::consensus::grandpa {
              msg,
              allow_missing_blocks);
 
-    // TODO check if height of commit less then previous one
+    // TODO(xDimon) check if height of commit less then previous one
     // if (new_commit_height < last_commit_height) {
     //   reputation_repository_->change(
     //       peer_id, network::reputation::cost::INVALID_VIEW_CHANGE);

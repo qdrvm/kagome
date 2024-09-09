@@ -244,7 +244,7 @@ namespace kagome::runtime {
     return executor_->call<std::vector<std::tuple<dispute::SessionIndex,
                                                   dispute::CandidateHash,
                                                   dispute::DisputeState>>>(
-        ctx, "ParachainHost_disputes");  // TODO ensure if it works
+        ctx, "ParachainHost_disputes");  // TODO(harrm): ensure if it works
   }
 
   outcome::result<std::vector<ValidationCodeHash>>
