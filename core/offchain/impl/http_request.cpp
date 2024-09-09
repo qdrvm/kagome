@@ -404,7 +404,7 @@ namespace kagome::offchain {
           chunk.size());
     }
 
-    return Result<Success, HttpError>();
+    return Success();
   }
 
   std::vector<std::pair<std::string, std::string>>
