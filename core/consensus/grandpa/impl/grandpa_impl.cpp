@@ -358,7 +358,9 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onNeighborMessage,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info),
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(msg));
 
     BOOST_ASSERT(grandpa_pool_handler_->isInCurrentThread());
@@ -472,7 +474,9 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onCatchUpRequest,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info_opt),
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(msg));
 
     if (not info_opt.has_value() or not info_opt->set_id.has_value()
@@ -792,7 +796,12 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       std::optional<network::PeerStateCompact> &&info,
       VoteMessage &&msg) {
-    onVoteMessage(peer_id, std::move(info), std::move(msg), true);
+    onVoteMessage(
+        peer_id,
+        // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+        std::move(info),
+        std::move(msg),
+        true);
   }
 
   void GrandpaImpl::onVoteMessage(
@@ -803,6 +812,7 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onVoteMessage,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info),
              msg,
              allow_missing_blocks);
@@ -1131,11 +1141,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
-                                 outcome::result<void> &&result) {
+                                 const outcome::result<void> &result) {
     main_pool_handler_->execute(
-        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
-          callback(std::move(result));
-        });
+        [callback{std::move(callback)}, result]() { callback(result); });
   }
 
   outcome::result<void> GrandpaImpl::verifyJustification(
@@ -1192,7 +1200,7 @@ namespace kagome::consensus::grandpa {
       } else {
         r = environment_->finalize(authority_set->id, justification);
       }
-      callbackCall(std::move(callback), std::move(r));
+      callbackCall(std::move(callback), r);
       return;
     }
     std::shared_ptr<VotingRound> round;

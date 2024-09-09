@@ -124,7 +124,7 @@ namespace kagome::consensus {
     auto execute = [this,
                     self{shared_from_this()},
                     block{std::move(block)},
-                    justification,
+                    justification{justification},
                     callback{std::move(callback)},
                     block_info,
                     start_time,

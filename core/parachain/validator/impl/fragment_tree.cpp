@@ -226,7 +226,7 @@ namespace kagome::parachain::fragment {
     if (modifications.code_upgrade_applied) {
       if (auto new_code = std::move(new_constraint.future_validation_code)) {
         BOOST_ASSERT(!new_constraint.future_validation_code);
-        new_constraint.validation_code_hash = std::move(new_code->second);
+        new_constraint.validation_code_hash = new_code->second;
       } else {
         return Error::APPLIED_NONEXISTENT_CODE_UPGRADE;
       }

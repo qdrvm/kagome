@@ -40,7 +40,7 @@ namespace kagome::dispute {
         log::Logger logger,
         std::shared_ptr<PoolHandler> main_pool_handler,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
+        const std::shared_ptr<network::SendDisputeProtocol> &dispute_protocol,
         network::DisputeMessage request);
 
     /// Make sure we are sending to all relevant authorities.

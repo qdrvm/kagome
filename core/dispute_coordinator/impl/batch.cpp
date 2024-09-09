@@ -8,11 +8,11 @@
 
 namespace kagome::dispute {
 
-  Batch::Batch(CandidateHash candidate_hash,
-               CandidateReceipt candidate_receipt,
+  Batch::Batch(const CandidateHash &candidate_hash,
+               const CandidateReceipt &candidate_receipt,
                TimePoint now)
-      : candidate_hash(std::move(candidate_hash)),
-        candidate_receipt(std::move(candidate_receipt)),
+      : candidate_hash(candidate_hash),
+        candidate_receipt(candidate_receipt),
         best_before_(now + kMaxBatchLifetime),
         log_(log::createLogger(fmt::format("Batch:{}", candidate_hash),
                                "dispute")) {}

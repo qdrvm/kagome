@@ -327,8 +327,7 @@ namespace kagome::application {
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
       const std::string &filepath) {
     assert(!filepath.empty());
-    return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
-                                         &std::fclose);
+    return {std::fopen(filepath.c_str(), "r"), &std::fclose};
   }
 
   bool AppConfigurationImpl::load_ms(const rapidjson::Value &val,

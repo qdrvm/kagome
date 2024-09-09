@@ -46,7 +46,9 @@ namespace kagome::network {
       return block_.state_root;
     }
 
-    bool complete() const;
+    bool complete() const {
+      return done_;
+    }
 
     StateRequest nextRequest() const;
 

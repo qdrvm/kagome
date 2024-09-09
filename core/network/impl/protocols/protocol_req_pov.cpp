@@ -90,8 +90,7 @@ namespace kagome::network {
 
   void ReqPovProtocol::newOutgoingStream(
       const PeerId &,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    std::ignore = std::move(cb);
+      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT(!"Must not be called!");
   }
 

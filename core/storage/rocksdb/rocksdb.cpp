@@ -63,10 +63,10 @@ namespace kagome::storage {
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
     column_family_descriptors.reserve(Space::kTotal);
     for (auto i = 0; i < Space::kTotal; ++i) {
-      column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
+      column_family_descriptors.emplace_back(
           spaceName(static_cast<Space>(i)),
           configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
-                                                : trie_space_cache_size)});
+                                                : trie_space_cache_size));
     }
 
     std::vector<std::string> existing_families;
@@ -86,8 +86,8 @@ namespace kagome::storage {
                 return desc.name == family;
               })
           == column_family_descriptors.end()) {
-        column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
-            family, configureColumn(other_spaces_cache_size)});
+        column_family_descriptors.emplace_back(
+            family, configureColumn(other_spaces_cache_size));
       }
     }
 
@@ -140,7 +140,7 @@ namespace kagome::storage {
       throw DatabaseError::INVALID_ARGUMENT;
     }
     auto &handle = *column_it;
-    auto e = [this](rocksdb::Status status) {
+    auto e = [this](const rocksdb::Status &status) {
       if (!status.ok()) {
         logger_->error("DB operation failed: {}", status.ToString());
         throw status_as_error(status);

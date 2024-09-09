@@ -22,16 +22,12 @@ namespace kagome::network {
         block_info_{block_info},
         block_{block},
         log_{log::createLogger("StateSync")} {
-    done_ = isKnown(block.state_root);
-    if (not done_) {
+    if (not isKnown(block.state_root)) {
+      done_ = false;
       auto &level = levels_.emplace_back();
       level.child = {};
       level.branch_hash = block.state_root;
     }
-  }
-
-  bool StateSyncRequestFlow::complete() const {
-    return done_;
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {

@@ -1531,7 +1531,7 @@ namespace kagome::dispute {
             blocks_including,
             std::back_inserter(to_revert),
             [](auto &block_info) { return block_info.hash; });
-        std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
+        std::ignore = block_tree_->markAsRevertedBlocks(to_revert);
         SL_DEBUG(
             log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
@@ -2112,7 +2112,7 @@ namespace kagome::dispute {
       metric_disputes_finality_lag_->set(0);
     }
 
-    cb(std::move(undisputed_chain));
+    cb(undisputed_chain);
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1272
@@ -2222,10 +2222,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_pool_handler_,
-             sendDisputeResponse,
-             std::move(res),
-             std::move(cb));
+    REINVOKE(*main_pool_handler_, sendDisputeResponse, res, std::move(cb));
     cb(res);
   }
 

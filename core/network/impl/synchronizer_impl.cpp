@@ -1188,7 +1188,7 @@ namespace kagome::network {
       for (auto p_it = peers.begin(); p_it != peers.end();) {
         auto cp_it = p_it++;
 
-        auto peer_id = *cp_it;
+        auto &peer_id = *cp_it;
 
         if (busy_peers_.find(peer_id) != busy_peers_.end()) {
           SL_TRACE(log_,

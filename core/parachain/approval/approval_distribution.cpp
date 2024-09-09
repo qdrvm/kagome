@@ -331,7 +331,7 @@ namespace {
 
       s = s.advance(
           n_assignments, no_shows, next_no_show, last_assignment_tick);
-      const auto output =
+      auto output =
           s.output(tranche, needed_approvals, n_validators, no_show_duration);
 
       state = kagome::visit_in_place(

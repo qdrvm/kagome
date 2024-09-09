@@ -55,7 +55,7 @@ namespace {
           (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...));
     } else {
       (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...);
-      return wasm::Literal();
+      return {};
     }
   }
 

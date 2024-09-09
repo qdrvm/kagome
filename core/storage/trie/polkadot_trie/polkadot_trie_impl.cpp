@@ -39,8 +39,8 @@ namespace kagome::storage::trie {
         const PolkadotTrie::NodeRetrieveFunction &node_retriever,
         PolkadotTrie::ValueRetrieveFunction value_retriever) {
       OUTCOME_TRY(root_node, node_retriever(root));
-      return std::unique_ptr<OpaqueNodeStorage>{
-          new OpaqueNodeStorage{node_retriever, value_retriever, root_node}};
+      return std::make_unique<OpaqueNodeStorage>(
+          node_retriever, std::move(value_retriever), std::move(root_node));
     }
 
     [[nodiscard]] const std::shared_ptr<TrieNode> &getRoot() {
@@ -222,8 +222,7 @@ namespace {
       return outcome::success();
     }
 
-    if (std::greater_equal<size_t>()(parent->getKeyNibbles().size(),
-                                     prefix.size())) {
+    if (std::greater_equal<>()(parent->getKeyNibbles().size(), prefix.size())) {
       // if this is the node to be detached -- detach it
       if (std::equal(
               prefix.begin(), prefix.end(), parent->getKeyNibbles().begin())) {

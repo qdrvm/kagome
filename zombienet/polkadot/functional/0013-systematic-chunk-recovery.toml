@@ -31,7 +31,7 @@ requests = { memory = "2G", cpu = "1" }
   command = "kagome"
   prometheus_prefix = "kagome"
   count = 1
-  args = ["--wasm-execution=Compiled", "-lparachain=trace"]
+  args = ["--wasm-execution=Compiled", "-lparachain=trace", "--parachain-single-process"]
 
 {% for id in range(2000,2002) %}
 [[parachains]]

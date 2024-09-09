@@ -700,7 +700,7 @@ namespace {
             di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
             di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
             bind_by_lambda<storage::SpacedStorage>([](const auto &injector) {
-              const application::AppConfiguration &config =
+              auto& config =
                   injector
                       .template create<application::AppConfiguration const &>();
               auto chain_spec =
@@ -815,7 +815,7 @@ namespace {
             bind_by_lambda<storage::trie_pruner::TriePruner>(
                 [](const auto &injector)
                     -> sptr<storage::trie_pruner::TriePruner> {
-                  const application::AppConfiguration &config =
+                  auto &config =
                       injector.template create<
                           application::AppConfiguration const &>();
                   if (config.statePruningDepth() == std::nullopt
@@ -829,7 +829,7 @@ namespace {
             di::bind<runtime::RuntimeContextFactory>.template to<runtime::RuntimeContextFactoryImpl>(),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {
-              const application::AppConfiguration &config =
+              auto &config =
                   injector
                       .template create<application::AppConfiguration const &>();
               return get_chain_spec(config);

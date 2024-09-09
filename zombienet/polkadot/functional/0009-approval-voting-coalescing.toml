@@ -18,14 +18,14 @@ requests = { memory = "2G", cpu = "1" }
   [[relaychain.node_groups]]
   name = "alice"
   args = [ "-lparachain=trace,runtime=debug" ]
-  count = 6
+  count = 0
 
   [[relaychain.node_groups]]
   name = "kagome-alice"
   command = "kagome"
   prometheus_prefix = "kagome"
   args = [ "-lparachain=trace", "-lruntime=debug", "--wasm-execution=Compiled" ]
-  count = 7
+  count = 1
 
 [[parachains]]
 id = 2000
