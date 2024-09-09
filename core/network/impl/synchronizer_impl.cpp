@@ -1420,7 +1420,8 @@ namespace kagome::network {
         .fields = BlockAttribute::HEADER,
         .from = max,
         .direction = Direction::DESCENDING,
-        .max = max - min + 1,
+        // .max = max - min + 1,
+        .max = 1, // just for debug
         .multiple_justifications = false,
     };
     auto chosen = chooseJustificationPeer(max, request.fingerprint());
@@ -1442,7 +1443,7 @@ namespace kagome::network {
       }
 
       auto &blocks = r.value().blocks;
-      if (blocks.size() == 0) {
+      if (blocks.empty()) {
         return cb(Error::EMPTY_RESPONSE);
       }
       std::optional<primitives::BlockHash> parentHash;
@@ -1457,19 +1458,19 @@ namespace kagome::network {
         primitives::calculateBlockHash(headerValue, *self->hasher_);
         const auto& headerInfo = headerValue.blockInfo();
 
-        if (self->block_tree_->isFinalized(headerInfo)) {
-          parentHash = headerValue.parent_hash;
-        } else {
-          if (not parentHash.has_value()) {
-            SL_WARN(self->log_, "parentHash is not set yet and block #{} is not finalized, will not be stored", headerInfo.number);
-            continue;
-          }
-          if (*parentHash != headerInfo.hash) {
-            SL_ERROR(self->log_, "Parent hash mismatch in block #{}", headerInfo.number);
-            return cb(Error::INVALID_HASH);
-          }
-          parentHash = headerValue.parent_hash;
-        }
+        // if (self->block_tree_->isFinalized(headerInfo)) {
+        //   parentHash = headerValue.parent_hash;
+        // } else {
+        //   if (not parentHash.has_value()) {
+        //     SL_WARN(self->log_, "parentHash is not set yet and block #{} is not finalized, will not be stored", headerInfo.number);
+        //     continue;
+        //   }
+        //   if (*parentHash != headerInfo.hash) {
+        //     SL_ERROR(self->log_, "Parent hash mismatch in block #{}", headerInfo.number);
+        //     return cb(Error::INVALID_HASH);
+        //   }
+        //   parentHash = headerValue.parent_hash;
+        // }
 
         if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
           SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
@@ -1480,6 +1481,7 @@ namespace kagome::network {
           return cb(er.error());
         }
       }
+      return cb(outcome::success());
     };
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));

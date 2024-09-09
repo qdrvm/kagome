@@ -312,14 +312,6 @@ namespace kagome::network {
     }
     pending_justifications_.emplace(block_number, std::move(justification));
 
-    synchronizer_.get()->fetchHeadersBack(block_tree_->getLastFinalized().number, block_number,
-      [WEAK_SELF] (auto&& res) {
-        WEAK_LOCK(self);
-        if (auto er = self->fetchHeaders(); er.has_error()) {
-          SL_WARN(self->log_, "Failed to fetch headers: {}", er.error().message());
-        }
-      });
-
     return update();
   }
 
@@ -407,35 +399,43 @@ namespace kagome::network {
     return outcome::success();
   }
 
-  outcome::result<void> BeefyImpl::fetchHeaders() {
+  void BeefyImpl::fetchHeaders() {
     if (not fetching_headers_ or not beefy_genesis_) {
-      return outcome::success();
+      return;
     }
 
     while (fetching_headers_) {
       auto& fetchingHeader = *fetching_headers_;
       if (fetchingHeader <= *beefy_genesis_) {
         fetching_headers_.reset();
-        break;
+        return;
       }
       auto block_hash = block_tree_->getBlockHash(fetchingHeader);
-      if (block_hash) {
-        auto& blockHashOptValue = block_hash.value();
-        if (blockHashOptValue) {
-          const auto& hashValue = *blockHashOptValue;
-          auto blockHeader = block_tree_->getBlockHeader(hashValue);
-          if (blockHeader) {
-            const auto& blockHeaderValue = blockHeader.value();
-            if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
-              beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
-            }
-          }
-        }
+      if (not block_hash) {
+        break;
+      }
+      auto& blockHashOptValue = block_hash.value();
+      if (not blockHashOptValue) {
+        break;
+      }
+      auto blockHeader = block_tree_->getBlockHeader(*blockHashOptValue);
+      if (not blockHeader) {
+        break;
+      }
+      const auto& blockHeaderValue = blockHeader.value();
+      if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
+        beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
       }
       --fetchingHeader;
     }
 
-    return outcome::success();
+    if (fetching_headers_) {
+      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, *beefy_genesis_,
+        [WEAK_SELF] (auto&& res) {
+          WEAK_LOCK(self);
+          self->fetchHeaders();
+        });
+    }
   }
 
   outcome::result<void> BeefyImpl::update() {
@@ -478,7 +478,7 @@ namespace kagome::network {
     while (next_digest_ <= grandpa_finalized.number) {
       if (auto r = block_tree_->getBlockHash(next_digest_); not r or not r.value()) {
         fetching_headers_ = grandpa_finalized.number;
-        OUTCOME_TRY(fetchHeaders());
+        fetchHeaders();
       }
       OUTCOME_TRY(
           found,

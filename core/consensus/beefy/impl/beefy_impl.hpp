@@ -135,7 +135,7 @@ namespace kagome::network {
     outcome::result<void> apply(
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
-    outcome::result<void> fetchHeaders();
+    void fetchHeaders();
     outcome::result<void> vote();
     outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
         consensus::beefy::AuthoritySetId validator_set_id,
