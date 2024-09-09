@@ -20,7 +20,7 @@ namespace kagome::runtime {
    public:
     GetVersion(Version version) : version_{std::move(version)} {}
 
-    outcome::result<Version> version() {
+    outcome::result<Version> version() override {
       return version_;
     }
 

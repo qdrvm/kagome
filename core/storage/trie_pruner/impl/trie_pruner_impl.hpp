@@ -71,18 +71,16 @@ namespace kagome::storage::trie_pruner {
 
     bool prepare();
 
-    virtual outcome::result<void> addNewState(
-        const storage::trie::RootHash &state_root,
-        trie::StateVersion version) override;
+    outcome::result<void> addNewState(const storage::trie::RootHash &state_root,
+                                      trie::StateVersion version) override;
 
-    virtual outcome::result<void> addNewState(
-        const trie::PolkadotTrie &new_trie,
-        trie::StateVersion version) override;
+    outcome::result<void> addNewState(const trie::PolkadotTrie &new_trie,
+                                      trie::StateVersion version) override;
 
-    virtual outcome::result<void> pruneFinalized(
+    outcome::result<void> pruneFinalized(
         const primitives::BlockHeader &state) override;
 
-    virtual outcome::result<void> pruneDiscarded(
+    outcome::result<void> pruneDiscarded(
         const primitives::BlockHeader &state) override;
 
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {

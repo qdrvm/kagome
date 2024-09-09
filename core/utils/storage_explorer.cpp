@@ -170,7 +170,7 @@ class PrintHelpCommand final : public Command {
   explicit PrintHelpCommand(const CommandParser &parser)
       : Command{"help", "print help message"}, parser{parser} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 1, 1);
     parser.printCommands(out);
   }
@@ -188,7 +188,7 @@ class InspectBlockCommand : public Command {
                 "or hash"},
         block_storage{std::move(block_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
     auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
@@ -240,7 +240,7 @@ class RemoveBlockCommand : public Command {
                 "# or hash - remove the block from the block tree"},
         block_storage{std::move(block_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
     auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
@@ -272,7 +272,7 @@ class QueryStateCommand : public Command {
                 "state_hash, key - query value at a given key and state"},
         trie_storage{std::move(trie_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 3, 3);
 
     kagome::storage::trie::RootHash state_root{};
@@ -335,7 +335,7 @@ class SearchChainCommand : public Command {
     LastBlock,
   };
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
@@ -527,7 +527,7 @@ class ChainInfoCommand final : public Command {
     BOOST_ASSERT(block_tree);
   }
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     if (args.size() > 1) {
       throwError("No arguments expected, {} arguments received", args.size());
     }
@@ -554,7 +554,7 @@ class DbStatsCommand : public Command {
       : Command("db-stats", "Print RocksDb stats"),
         db_path{std::move(db_path)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     rocksdb::Options options;
     rocksdb::DB *db;
 

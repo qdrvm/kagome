@@ -43,10 +43,10 @@ namespace kagome::storage::trie {
 
     outcome::result<void> writeBack();
 
-    virtual outcome::result<RootHash> commit(StateVersion version) override;
+    outcome::result<RootHash> commit(StateVersion version) override;
 
-    virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
-    createChildBatch(common::BufferView path) override;
+    outcome::result<std::optional<std::shared_ptr<TrieBatch>>> createChildBatch(
+        common::BufferView path) override;
 
     outcome::result<void> apply(storage::BufferStorage &map);
 
