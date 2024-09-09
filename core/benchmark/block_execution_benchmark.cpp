@@ -295,6 +295,7 @@ namespace kagome::benchmark {
     std::chrono::steady_clock clock;
 
     std::vector<Stats<std::chrono::nanoseconds>> duration_stats;
+    duration_stats.reserve(blocks.size());
     for (size_t i = 0; i < blocks.size(); i++) {
       duration_stats.emplace_back(
           primitives::BlockInfo{block_hashes[i], blocks[i].header.number});

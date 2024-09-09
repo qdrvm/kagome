@@ -25,6 +25,7 @@ namespace scale {
   scale::ScaleEncoderStream &operator<<(
       scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info) {
     std::vector<std::string> addresses;
+    addresses.reserve(peer_info.addresses.size());
     for (const auto &addr : peer_info.addresses) {
       addresses.emplace_back(addr.getStringAddress());
     }

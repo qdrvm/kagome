@@ -61,6 +61,7 @@ namespace kagome::storage {
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
+    column_family_descriptors.reserve(Space::kTotal);
     for (auto i = 0; i < Space::kTotal; ++i) {
       column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
           spaceName(static_cast<Space>(i)),

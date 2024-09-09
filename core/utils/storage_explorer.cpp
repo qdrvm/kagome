@@ -566,6 +566,7 @@ class DbStatsCommand : public Command {
                  res.ToString());
     }
     std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+    column_families.reserve(existing_families.size());
     for (auto &family : existing_families) {
       column_families.emplace_back(rocksdb::ColumnFamilyDescriptor{family, {}});
     }
