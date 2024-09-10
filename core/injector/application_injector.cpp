@@ -722,7 +722,7 @@ namespace {
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
                           sptr<runtime::RuntimePropertiesCache>>());
-              if (!root_res) {
+              if (root_res.has_error()) {
                 throw std::runtime_error{fmt::format("Failed to calculate genesis state: {}", root_res.error())};
               }
               const auto &hasher =

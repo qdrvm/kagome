@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -101,6 +100,13 @@ namespace kagome::primitives {
      */
     static outcome::result<Version> decode(
         scale::ScaleDecoderStream &s, std::optional<uint32_t> core_version);
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 Version &v) {
+      // `.value()` may throw, `scale::decode` will catch that
+      v = Version::decode(s, std::nullopt).value();
+      return s;
+    }
   };
 
   namespace detail {
@@ -112,18 +118,4 @@ namespace kagome::primitives {
     std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis);
   }  // namespace detail
 
-  /**
-   * @brief decodes object of type Version from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator>>(Stream &s, Version &v) {
-    // `.value()` may throw, `scale::decode` will catch that
-    v = Version::decode(s, std::nullopt).value();
-    return s;
-  }
 }  // namespace kagome::primitives
