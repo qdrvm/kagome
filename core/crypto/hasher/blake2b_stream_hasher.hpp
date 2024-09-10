@@ -37,7 +37,7 @@ namespace kagome::crypto {
     }
 
    private:
-    blake2b_ctx ctx_;
+    blake2b_ctx ctx_{};
     bool initialized_{false};
   };
 }  // namespace kagome::crypto

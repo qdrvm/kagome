@@ -206,6 +206,6 @@ namespace kagome::crypto {
   }
 }  // namespace kagome::crypto
 
-// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
-// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
