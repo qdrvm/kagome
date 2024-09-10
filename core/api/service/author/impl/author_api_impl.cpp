@@ -127,12 +127,12 @@ namespace kagome::api {
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       auto it = crypto::polkadot_key_order.begin();
       while (stream.currentIndex() < keys.size()) {
+        ++it;
         stream >> key;
         if (not store_->sr25519().findKeypair(
                 *it, crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
           return false;
         }
-        ++it;
       }
       return true;
     }
