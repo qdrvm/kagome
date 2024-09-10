@@ -27,11 +27,9 @@ namespace kagome::parachain {
 
   struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
     AsyncPipe pipe_stdin;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    AsyncPipe &writer;
+    boost::asio::buffered_write_stream<AsyncPipe &> writer;
     AsyncPipe pipe_stdout;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    AsyncPipe &reader;
+    boost::asio::buffered_read_stream<AsyncPipe &> reader;
     boost::process::child process;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
@@ -68,7 +66,13 @@ namespace kagome::parachain {
                   if (ec) {
                     return cb(ec);
                   }
-                  cb(outcome::success());
+                  self->writer.async_flush(
+                      [cb](boost::system::error_code ec, size_t) mutable {
+                        if (ec) {
+                          return cb(ec);
+                        }
+                        cb(outcome::success());
+                      });
                 });
           });
     }
