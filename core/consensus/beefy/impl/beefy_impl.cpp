@@ -509,7 +509,10 @@ namespace kagome::network {
     }
     while (next_digest_ <= grandpa_finalized.number) {
       if (auto r = block_tree_->getBlockHash(next_digest_); not r or not r.value()) {
-        fetching_headers_ = FetchingHeaders{grandpa_finalized, true};
+        fetching_headers_ = FetchingHeaders{
+          .block = grandpa_finalized,
+          .finalizationEstablished = true,
+        };
         fetchHeaders();
       }
 
