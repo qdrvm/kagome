@@ -18,14 +18,14 @@ namespace kagome::crypto {
 
     static_assert((Outlen & (Outlen - 1)) == 0, "Outlen is pow 2");
     Blake2b_StreamHasher() {
-      initialized_ = (0 == blake2b_init(&ctx_, Outlen, nullptr, 0ull));
+      initialized_ = (0 == blake2b_init(ctx_, Outlen, nullptr, 0ull));
     }
 
     bool update(std::span<const uint8_t> buffer) {
       if (!initialized_) {
         return false;
       }
-      blake2b_update(&ctx_, buffer.data(), buffer.size());
+      blake2b_update(ctx_, buffer.data(), buffer.size());
       return true;
     }
 
@@ -33,7 +33,7 @@ namespace kagome::crypto {
       if (!initialized_) {
         return false;
       }
-      blake2b_final(&ctx_, out.data());
+      blake2b_final(ctx_, out.data());
       return true;
     }
 

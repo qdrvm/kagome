@@ -7,23 +7,28 @@
 // taken from here
 // https://github.com/mjosaarinen/blake2_mjosref/blob/master/blake2s.h
 
-#ifndef CORE_BLAKE2S_HASH
-#define CORE_BLAKE2S_HASH
+#pragma once
 
+#include <array>
+#include <cstdint>
 #include <cstdlib>
 
 namespace kagome::crypto {
 
-  using blake2s_ctx = struct {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
-    unsigned char opaque[128];
+  // state context
+  struct blake2s_ctx {
+    std::array<uint8_t, 64> b;  // input buffer
+    std::array<uint32_t, 8> h;  // chained state
+    std::array<uint32_t, 2> t;  // total number of bytes
+    size_t c;                   // pointer for b[]
+    size_t outlen;              // digest size
   };
 
   /**
    * @brief Initialize hash context
    * @param ctx context
    */
-  void blake2s_256_init(blake2s_ctx *ctx);
+  void blake2s_256_init(blake2s_ctx &ctx);
 
   /**
    * @brief Update context with incoming bytes
@@ -31,7 +36,7 @@ namespace kagome::crypto {
    * @param in {@param inlen} byte array
    * @param inlen size of {@param in}
    */
-  void blake2s_update(blake2s_ctx *ctx, const void *in, size_t inlen);
+  void blake2s_update(blake2s_ctx &ctx, const void *in, size_t inlen);
 
   /**
    * @brief Finalize hash calculation
@@ -39,7 +44,7 @@ namespace kagome::crypto {
    * @param out 32-byte output
    * @return
    */
-  void blake2s_final(blake2s_ctx *ctx, void *out);
+  void blake2s_final(blake2s_ctx &ctx, void *out);
 
   /**
    * @brief One-shot convenience function to calculate blake2s_256 hash
@@ -59,7 +64,7 @@ namespace kagome::crypto {
    * is not provided.
    * @return -1 in case of wrong input arguments; 0 in case of success.
    */
-  int blake2s_init(blake2s_ctx *ctx,
+  int blake2s_init(blake2s_ctx &ctx,
                    size_t outlen,
                    const void *key,
                    size_t keylen);
@@ -83,5 +88,3 @@ namespace kagome::crypto {
               size_t inlen);
 
 }  // namespace kagome::crypto
-
-#endif  // CORE_BLAKE2S_HASH
