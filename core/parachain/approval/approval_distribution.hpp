@@ -446,7 +446,7 @@ namespace kagome::parachain {
         out.reserve(approvals.size());
         std::ranges::transform(approvals,
                                std::back_inserter(out),
-                               [](const auto it) { return it.second; });
+                               [](const auto &it) { return it.second; });
         return out;
       }
 

@@ -304,7 +304,8 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;                        // supermajority threshold
+    size_t threshold_;  // supermajority threshold
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::optional<Id> id_;              // id of current peer
     std::chrono::milliseconds start_time_{};  // time of start round to play
 

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <qtils/enum_error_code.hpp>
 
 #include "common/empty.hpp"

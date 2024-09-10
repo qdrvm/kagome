@@ -12,6 +12,10 @@
 
 #include "blake2b.h"
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast)
+
 namespace kagome::crypto {
 
   // Cyclic right rotation.
@@ -206,3 +210,7 @@ namespace kagome::crypto {
   }
 
 }  // namespace kagome::crypto
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast)

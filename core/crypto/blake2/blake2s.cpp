@@ -14,6 +14,10 @@
 
 #include <cstdint>
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast)
+
 namespace kagome::crypto {
 
 #define _256_bits 32
@@ -194,10 +198,14 @@ namespace kagome::crypto {
   }
 
   void blake2s_256_init(blake2s_ctx &ctx) {
-    blake2s_init(ctx, _256_bits, NULL, 0);
+    blake2s_init(ctx, _256_bits, nullptr, 0);
   }
 
   void blake2s_256(void *out, const void *in, size_t inlen) {
-    blake2s(out, _256_bits, NULL, 0, in, inlen);
+    blake2s(out, _256_bits, nullptr, 0, in, inlen);
   }
 }  // namespace kagome::crypto
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast)
