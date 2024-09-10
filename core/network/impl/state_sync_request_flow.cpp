@@ -21,12 +21,10 @@ namespace kagome::network {
       : node_db_{std::move(node_db)},
         block_info_{block_info},
         block_{block},
+        done_(isKnown(block.state_root)),
         log_{log::createLogger("StateSync")} {
-    if (not isKnown(block.state_root)) {
-      done_ = false;
-      auto &level = levels_.emplace_back();
-      level.child = {};
-      level.branch_hash = block.state_root;
+    if (not done_) {
+      levels_.emplace_back(Level{.branch_hash = block.state_root});
     }
   }
 
