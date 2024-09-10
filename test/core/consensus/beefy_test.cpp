@@ -134,7 +134,7 @@ struct BeefyTest : testing::Test {
       return genesisVoters();
     });
     EXPECT_CALL(*timeline_, wasSynchronized()).WillRepeatedly(Return(true));
-    EXPECT_CALL(*synchronizer, fetchHeadersBack(_, _, _))
+    EXPECT_CALL(*synchronizer, fetchHeaderBack(_, _, _))
         .WillRepeatedly(Return(true));
   }
 

@@ -405,12 +405,15 @@ namespace kagome::network {
     }
 
     while (fetching_headers_) {
-      auto& fetchingHeader = *fetching_headers_;
-      if (fetchingHeader <= *beefy_genesis_) {
+      if (auto& finalized = fetching_headers_->finalizationEstablished; not finalized) {
+        finalized = block_tree_->isFinalized(fetching_headers_->block);
+      }
+      const auto blockNumber = fetching_headers_->block.number;
+      if (blockNumber <= *beefy_genesis_) {
         fetching_headers_.reset();
         return;
       }
-      auto block_hash = block_tree_->getBlockHash(fetchingHeader);
+      auto block_hash = block_tree_->getBlockHash(blockNumber);
       if (not block_hash) {
         break;
       }
@@ -422,18 +425,47 @@ namespace kagome::network {
       if (not blockHeader) {
         break;
       }
+
       const auto& blockHeaderValue = blockHeader.value();
-      if (beefyValidatorsDigest(blockHeaderValue).has_value()) {
-        beefy_justification_protocol_.get()->fetchJustification(fetchingHeader);
+      if (beefyValidatorsDigest(blockHeaderValue)) {
+        beefy_justification_protocol_.get()->fetchJustification(blockNumber);
       }
-      --fetchingHeader;
+
+      if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
+        fetching_headers_->block = *parentInfo;
+      } else {
+        SL_ERROR(log_, "Failed to get parent info for block {}, fetching stopped", blockNumber);
+        fetching_headers_.reset();
+        return;
+      }
     }
 
     if (fetching_headers_) {
-      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, *beefy_genesis_,
+      synchronizer_.get()->fetchHeaderBack(fetching_headers_->block, fetching_headers_->finalizationEstablished, 
         [WEAK_SELF] (auto&& res) {
           WEAK_LOCK(self);
-          self->fetchHeaders();
+          if (self->fetching_headers_) {
+            if (not res) {
+              SL_ERROR(self->log_, "Fetching stopped during previous error {} for block {}",
+                res.error().message(), self->fetching_headers_->block.number);
+              self->fetching_headers_.reset();
+              return;
+            }
+            auto blockHeader = self->block_tree_->getBlockHeader(self->fetching_headers_->block.hash);
+            if (not blockHeader) {
+              SL_ERROR(self->log_, "Failed to get block header for block {}, fetching stopped", self->fetching_headers_->block.number);
+              self->fetching_headers_.reset();
+              return;
+            }
+            const auto& blockHeaderValue = blockHeader.value();
+            if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
+              self->fetching_headers_->block = *parentInfo;
+              self->fetchHeaders();
+            } else {
+              SL_ERROR(self->log_, "Failed to get parent info for block {}, fetching stopped from fetch callback", self->fetching_headers_->block.number);
+              self->fetching_headers_.reset();
+            }
+          }
         });
     }
   }
@@ -477,9 +509,10 @@ namespace kagome::network {
     }
     while (next_digest_ <= grandpa_finalized.number) {
       if (auto r = block_tree_->getBlockHash(next_digest_); not r or not r.value()) {
-        fetching_headers_ = grandpa_finalized.number;
+        fetching_headers_ = FetchingHeaders{grandpa_finalized, true};
         fetchHeaders();
       }
+
       OUTCOME_TRY(
           found,
           findValidators(next_digest_,

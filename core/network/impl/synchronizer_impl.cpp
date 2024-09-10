@@ -1409,32 +1409,29 @@ namespace kagome::network {
     recent_requests_.clear();
   }
 
-  bool SynchronizerImpl::fetchHeadersBack(primitives::BlockNumber max, primitives::BlockNumber min,
-    CbResultVoid cb) {
-    if (max < min) {
-      SL_ERROR(log_, "max {} < min {}, will not fetch headers", max, min);
-      return false;
-    }
-
+  bool SynchronizerImpl::fetchHeaderBack(const primitives::BlockInfo& block,
+    bool isFinalized, CbResultVoid cb) {
+    const auto blockNumber = block.number;
     BlocksRequest request{
         .fields = BlockAttribute::HEADER,
-        .from = max,
+        .from = blockNumber,
         .direction = Direction::DESCENDING,
-        // .max = max - min + 1,
-        .max = 1, // just for debug
+        .max = 1,
         .multiple_justifications = false,
     };
-    auto chosen = chooseJustificationPeer(max, request.fingerprint());
+    auto chosen = chooseJustificationPeer(blockNumber, request.fingerprint());
     if (not chosen) {
       return false;
     }
 
     auto cb2 = [weak{weak_from_this()},
+                block,
+                isFinalized,
                 cb{std::move(cb)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
-        return;
+        return cb(Error::SHUTTING_DOWN);
       }
 
       self->busy_peers_.erase(peer);
@@ -1446,41 +1443,34 @@ namespace kagome::network {
       if (blocks.empty()) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      std::optional<primitives::BlockHash> parentHash;
-      for (auto& b : blocks) {
-        auto &header = b.header;
+      auto &header = blocks[0].header;
 
-        if (not header) {
-          return cb(Error::EMPTY_RESPONSE);
-        }
-
-        auto& headerValue = header.value();
-        primitives::calculateBlockHash(headerValue, *self->hasher_);
-        const auto& headerInfo = headerValue.blockInfo();
-
-        // if (self->block_tree_->isFinalized(headerInfo)) {
-        //   parentHash = headerValue.parent_hash;
-        // } else {
-        //   if (not parentHash.has_value()) {
-        //     SL_WARN(self->log_, "parentHash is not set yet and block #{} is not finalized, will not be stored", headerInfo.number);
-        //     continue;
-        //   }
-        //   if (*parentHash != headerInfo.hash) {
-        //     SL_ERROR(self->log_, "Parent hash mismatch in block #{}", headerInfo.number);
-        //     return cb(Error::INVALID_HASH);
-        //   }
-        //   parentHash = headerValue.parent_hash;
-        // }
-
-        if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
-          SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
-          return cb(er.error());
-        }
-        if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
-          SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
-          return cb(er.error());
-        }
+      if (not header) {
+        return cb(Error::EMPTY_RESPONSE);
       }
+
+      auto& headerValue = header.value();
+      primitives::calculateBlockHash(headerValue, *self->hasher_);
+      const auto& headerInfo = headerValue.blockInfo();
+
+      if (headerInfo != block) {
+        SL_ERROR(self->log_,
+                 "Header info is different from expected, block #{}", block.number);
+        return cb(Error::INVALID_HASH);
+      }
+
+      if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
+        SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
+        return cb(er.error());
+      }
+
+      if (isFinalized) {
+          if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
+            SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
+            return cb(er.error());
+          }
+      }
+      SL_TRACE(self->log_, "Block #{} is successfully stored", headerInfo.number);
       return cb(outcome::success());
     };
 

@@ -122,6 +122,11 @@ namespace kagome::network {
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
+    struct FetchingHeaders {
+      primitives::BlockInfo block;
+      bool finalizationEstablished = false;
+    };
+
     bool hasJustification(primitives::BlockNumber block) const;
     using FindValidatorsResult = std::optional<
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
@@ -164,7 +169,7 @@ namespace kagome::network {
     primitives::events::ChainSub chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
-    std::optional<primitives::BlockNumber> fetching_headers_;
+    std::optional<FetchingHeaders> fetching_headers_;
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
     primitives::BlockNumber last_voted_ = 0;
