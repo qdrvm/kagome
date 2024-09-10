@@ -41,7 +41,8 @@ namespace kagome::common {
 
     template <typename T>
     BufferView &operator=(T &&value) {
-      return (*this = std::forward<T>(value));
+      span::operator=(std::forward<T>(value));
+      return *this;
     }
 
     template <size_t count>
