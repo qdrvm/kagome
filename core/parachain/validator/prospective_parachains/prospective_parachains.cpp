@@ -672,15 +672,15 @@ namespace kagome::parachain {
       } else if ((*chain)->second.contains_unconnected_candidate(
                      candidate_hash)) {
         found_candidate = true;
-        (*chain)->second.candidate_backed(&candidate_hash);
+        (*chain)->second.candidate_backed(candidate_hash);
 
         SL_TRACE(logger,
                  "Candidate backed. Candidate chain for para. (para={}, "
-                 "relay_parent={}, is_active_leaf={}, best_chain_vec={})",
+                 "relay_parent={}, is_active_leaf={}, best_chain_len={})",
                  para,
                  relay_parent,
                  is_active_leaf,
-                 (*chain)->second.best_chain_vec());
+                 (*chain)->second.best_chain_len());
 
         SL_TRACE(logger,
                  "Potential candidate storage for para. (para={}, "
@@ -698,7 +698,7 @@ namespace kagome::parachain {
               "(para={}, candidate_hash={})",
               para,
               candidate_hash);
-      return
+      return;
     }
 
     if (!found_candidate) {
@@ -717,7 +717,7 @@ namespace kagome::parachain {
                            32,
                            crypto::Blake2b_StreamHasher<32>> &pvd,
       const CandidateHash &candidate_hash) {
-    auto candidate_entry = CandidateEntry::create_seconded(
+    auto candidate_entry = fragment::CandidateEntry::create_seconded(
         candidate_hash, candidate, pvd, hasher_);
     if (candidate_entry.has_error()) {
       SL_WARN(logger,
