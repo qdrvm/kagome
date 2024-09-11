@@ -1409,23 +1409,29 @@ namespace kagome::network {
     recent_requests_.clear();
   }
 
-  bool SynchronizerImpl::fetchHeaderBack(const primitives::BlockInfo& block,
+  bool SynchronizerImpl::fetchHeadersBack(const primitives::BlockInfo& max, primitives::BlockNumber min,
     bool isFinalized, CbResultVoid cb) {
-    const auto blockNumber = block.number;
-    BlocksRequest request{
-        .fields = BlockAttribute::HEADER,
-        .from = blockNumber,
-        .direction = Direction::DESCENDING,
-        .max = 1,
-        .multiple_justifications = false,
-    };
-    auto chosen = chooseJustificationPeer(blockNumber, request.fingerprint());
-    if (not chosen) {
+    auto initialBlockNumber = max.number;
+    if (initialBlockNumber < min) {
       return false;
     }
 
+    BlocksRequest request{
+        .fields = BlockAttribute::HEADER,
+        .from = initialBlockNumber,
+        .direction = Direction::DESCENDING,
+        .max = initialBlockNumber - min + 1,
+        .multiple_justifications = false,
+    };
+    auto chosen = chooseJustificationPeer(initialBlockNumber, request.fingerprint());
+    if (not chosen) {
+      return false;
+    }
+    auto expected = max;
+
     auto cb2 = [weak{weak_from_this()},
-                block,
+                expected,
+                min,
                 isFinalized,
                 cb{std::move(cb)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
@@ -1443,35 +1449,50 @@ namespace kagome::network {
       if (blocks.empty()) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      auto &header = blocks[0].header;
+      for (auto& b : blocks) {
+        auto &header = b.header;
 
-      if (not header) {
-        return cb(Error::EMPTY_RESPONSE);
+        if (not header) {
+          return cb(Error::EMPTY_RESPONSE);
+        }
+
+        auto& headerValue = header.value();
+        primitives::calculateBlockHash(headerValue, *self->hasher_);
+        const auto& headerInfo = headerValue.blockInfo();
+
+        if (headerInfo != expected) {
+          SL_ERROR(self->log_,
+                  "Header info is different from expected, block #{}", expected.number);
+          return cb(Error::INVALID_HASH);
+        }
+
+        if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
+          SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
+          return cb(er.error());
+        }
+
+        if (isFinalized) {
+            if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
+              SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
+              return cb(er.error());
+            }
+        }
+        SL_TRACE(self->log_, "Block #{} is successfully stored", headerInfo.number);
+        if (const auto parentInfo = headerValue.parentInfo(); parentInfo) {
+          expected = *parentInfo;
+        } else if (headerInfo.number != 0) {
+          SL_ERROR(self->log_, "Parent info is not provided for block #{}", headerInfo.number);
+          return cb(Error::EMPTY_RESPONSE);
+        } else {
+          break;
+        }
       }
-
-      auto& headerValue = header.value();
-      primitives::calculateBlockHash(headerValue, *self->hasher_);
-      const auto& headerInfo = headerValue.blockInfo();
-
-      if (headerInfo != block) {
-        SL_ERROR(self->log_,
-                 "Header info is different from expected, block #{}", block.number);
-        return cb(Error::INVALID_HASH);
+      if (const auto lastBlockNumber = blocks.back().header->number; lastBlockNumber <= min) {
+        return cb(outcome::success());
+      } else {
+        SL_TRACE(self->log_, "Not all headers are fetched, fetching next portion, block #{}", lastBlockNumber);
+        self->fetchHeadersBack(expected, min, isFinalized, std::move(cb));
       }
-
-      if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
-        SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
-        return cb(er.error());
-      }
-
-      if (isFinalized) {
-          if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
-            SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
-            return cb(er.error());
-          }
-      }
-      SL_TRACE(self->log_, "Block #{} is successfully stored", headerInfo.number);
-      return cb(outcome::success());
     };
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));

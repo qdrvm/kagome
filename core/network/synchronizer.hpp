@@ -53,7 +53,7 @@ namespace kagome::network {
     virtual bool fetchJustificationRange(primitives::BlockNumber min,
                                          FetchJustificationRangeCb cb) = 0;
 
-    virtual bool fetchHeaderBack(const primitives::BlockInfo& block, bool isFinalized,
+    virtual bool fetchHeadersBack(const primitives::BlockInfo& max, primitives::BlockNumber min, bool isFinalized,
                                   CbResultVoid cb) = 0;
 
     virtual void syncState(const libp2p::peer::PeerId &peer_id,

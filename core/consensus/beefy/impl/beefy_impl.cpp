@@ -439,7 +439,7 @@ namespace kagome::network {
     }
 
     if (fetching_headers_) {
-      synchronizer_.get()->fetchHeaderBack(*fetching_headers_, true,
+      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, fetching_headers_->number, true,
         [WEAK_SELF] (auto&& res) {
           WEAK_LOCK(self);
           if (self->fetching_headers_) {

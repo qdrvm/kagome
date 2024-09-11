@@ -58,8 +58,8 @@ namespace kagome::network {
                 ());
 
     MOCK_METHOD(bool,
-                fetchHeaderBack,
-                (const primitives::BlockInfo&, bool, CbResultVoid),
+                fetchHeadersBack,
+                (const primitives::BlockInfo&, primitives::BlockNumber, bool, CbResultVoid),
                 (override));
 
     void syncState(const libp2p::peer::PeerId &peer_id,
