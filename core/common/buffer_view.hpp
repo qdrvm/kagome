@@ -32,11 +32,11 @@ namespace kagome::common {
 
     BufferView(std::initializer_list<uint8_t> &&) = delete;
 
-    BufferView(const span &other) noexcept : span(other) {}
+    BufferView(const span &other) : span(other) {}
 
     template <typename T>
       requires std::is_integral_v<std::decay_t<T>> and (sizeof(T) == 1)
-    BufferView(std::span<T> other) noexcept
+    BufferView(std::span<T> other)
         : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
 
     template <typename T>
@@ -71,12 +71,12 @@ namespace kagome::common {
       return {reinterpret_cast<const char *>(data()), size()};
     }
 
-    auto operator<=>(const BufferView &other) const noexcept {
+    auto operator<=>(const BufferView &other) const {
       return qtils::cxx20::lexicographical_compare_three_way(
           span::begin(), span::end(), other.begin(), other.end());
     }
 
-    auto operator==(const BufferView &other) const noexcept {
+    auto operator==(const BufferView &other) const {
       return (*this <=> other) == std::strong_ordering::equal;
     }
   };

@@ -109,7 +109,7 @@ class CommandParser {
     commands_.insert({name, std::move(cmd)});
   }
 
-  void invoke(const ArgumentList &args) const noexcept {
+  void invoke(const ArgumentList &args) const {
     if (args.size() < 2) {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);

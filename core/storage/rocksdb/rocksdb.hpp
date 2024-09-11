@@ -31,9 +31,9 @@ namespace kagome::storage {
     static const uint32_t kDefaultBlockSizeKiB = 32;
 
     RocksDb(const RocksDb &) = delete;
-    RocksDb(RocksDb &&) noexcept = delete;
+    RocksDb(RocksDb &&) = delete;
     RocksDb &operator=(const RocksDb &) = delete;
-    RocksDb &operator=(RocksDb &&) noexcept = delete;
+    RocksDb &operator=(RocksDb &&) = delete;
 
     /**
      * @brief Factory method to create an instance of RocksDb class.

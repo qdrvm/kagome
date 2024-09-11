@@ -35,6 +35,11 @@ set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
+# SHA1 hash of the WasmEdge repository archive.
+# Required to separate cached runtimes 
+# compiled with different WasmEdge versions.
+set(WASMEDGE_ID 58aea400de9179ad3e314c7e84fd4da345b8a643)
+
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)

@@ -18,9 +18,9 @@ namespace kagome::network {
   struct BootstrapNodes : public std::vector<libp2p::peer::PeerInfo> {
     BootstrapNodes() = delete;
     BootstrapNodes(const BootstrapNodes &) = delete;
-    BootstrapNodes(BootstrapNodes &&) noexcept = delete;
+    BootstrapNodes(BootstrapNodes &&) = delete;
     BootstrapNodes &operator=(const BootstrapNodes &) = delete;
-    BootstrapNodes &operator=(BootstrapNodes &&) noexcept = delete;
+    BootstrapNodes &operator=(BootstrapNodes &&) = delete;
 
     BootstrapNodes(const application::AppConfiguration &app_config,
                    const application::ChainSpec &chain_spec) {

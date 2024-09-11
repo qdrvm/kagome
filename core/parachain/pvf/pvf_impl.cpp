@@ -337,7 +337,7 @@ namespace kagome::parachain {
       auto &wasm_module = module_opt.value();
       CB_TRY(auto instance, wasm_module->instantiate());
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
-      KAGOME_PROFILE_END_L(log_, single_process_runtime_instantitation);
+      KAGOME_PROFILE_END(single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }

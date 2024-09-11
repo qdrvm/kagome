@@ -54,7 +54,7 @@ jobs:
           KAGOME_BUILDER_DEB_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
           TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_DEB_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "kagome_builder_deb=KAGOME_BUILDER_DEB_IMAGE" >> GITHUB_OUTPUT
+          echo "kagome_builder_deb=$KAGOME_BUILDER_DEB_IMAGE" >> $GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./housekeeping/docker/kagome-dev
@@ -67,6 +67,11 @@ jobs:
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: make kagome_builder_deb_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+        
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder_deb }}"
 
   build_kagome_runtime:
     runs-on: [ actions-runner-controller ]
@@ -100,3 +105,8 @@ jobs:
         run: make upload_apt_package_runtime \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
   
+      - name: "Versions Info"
+        if: always()
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          echo "Package name and version: kagome-dev-runtime $(python3 get_wasmedge_version.py)-$(date +'%y.%m.%d')"

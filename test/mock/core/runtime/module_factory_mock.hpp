@@ -16,7 +16,7 @@ namespace kagome::runtime {
 
   class ModuleFactoryMock final : public ModuleFactory {
    public:
-    MOCK_METHOD(std::optional<std::string>,
+    MOCK_METHOD(std::optional<std::string_view>,
                 compilerType,
                 (),
                 (const, override));
