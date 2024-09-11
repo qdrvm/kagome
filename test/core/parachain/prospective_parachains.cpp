@@ -589,7 +589,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
 //
 //  void back_candidate(const network::CommittedCandidateReceipt &candidate,
 //                      const CandidateHash &candidate_hash) {
-//    prospective_parachain_->candidateBacked(candidate.descriptor.para_id,
+//    prospective_parachain_->candidate_backed(candidate.descriptor.para_id,
 //                                            candidate_hash);
 //  }
 //

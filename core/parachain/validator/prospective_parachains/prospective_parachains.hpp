@@ -31,7 +31,8 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
-  class ProspectiveParachains : public std::enable_shared_from_this<ProspectiveParachains> {
+  class ProspectiveParachains
+      : public std::enable_shared_from_this<ProspectiveParachains> {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING
@@ -50,14 +51,16 @@ namespace kagome::parachain {
       // The backing implicit view.
       ImplicitView implicit_view;
 
-        // Get the fragment chains of this leaf.
-        std::optional<std::reference_wrapper<const std::unordered_map<ParachainId, fragment::FragmentChain>>> get_fragment_chains(const Hash &leaf) const {
-            auto view_data = utils::get(per_relay_parent, leaf);
-            if (view_data) {
-                return std::cref((*view_data)->second.fragment_chains);
-            }
-            return std::nullopt;
+      // Get the fragment chains of this leaf.
+      std::optional<std::reference_wrapper<
+          const std::unordered_map<ParachainId, fragment::FragmentChain>>>
+      get_fragment_chains(const Hash &leaf) const {
+        auto view_data = utils::get(per_relay_parent, leaf);
+        if (view_data) {
+          return std::cref((*view_data)->second.fragment_chains);
         }
+        return std::nullopt;
+      }
     };
 
     struct ImportablePendingAvailability {
@@ -116,8 +119,8 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         std::unordered_set<CandidateHash> &pending_availability);
 
-    outcome::result<std::vector<fragment::BlockInfoProspectiveParachains>> fetchAncestry(
-        const RelayHash &relay_hash, size_t ancestors);
+    outcome::result<std::vector<fragment::BlockInfoProspectiveParachains>>
+    fetchAncestry(const RelayHash &relay_hash, size_t ancestors);
 
     outcome::result<std::vector<ImportablePendingAvailability>>
     preprocessCandidatesPendingAvailability(
@@ -142,7 +145,8 @@ namespace kagome::parachain {
         const std::optional<std::reference_wrapper<const Hash>>
             &fragment_tree_relay_parent);
 
-    void candidateBacked(ParachainId para, const CandidateHash &candidate_hash);
+    void candidate_backed(ParachainId para,
+                          const CandidateHash &candidate_hash);
 
     bool introduce_seconded_candidate(
         ParachainId para,

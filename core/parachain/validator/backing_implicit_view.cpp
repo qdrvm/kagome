@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
   switch (e) {
     case E::ALREADY_KNOWN:
       return COMPONENT_NAME ": Already known leaf";
-      case E::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS:
+    case E::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS:
       return COMPONENT_NAME ": Not initialized with prospective parachains";
   }
   return COMPONENT_NAME ": unknown error";
@@ -60,46 +60,48 @@ namespace kagome::parachain {
     return {};
   }
 
-void ImplicitView::activate_leaf_from_prospective_parachains(fragment::BlockInfoProspectiveParachains leaf, const std::vector<fragment::BlockInfoProspectiveParachains> &ancestors) {
-		if (leaves.contains(leaf.hash)) {
-			return;
-		}
+  void ImplicitView::activate_leaf_from_prospective_parachains(
+      fragment::BlockInfoProspectiveParachains leaf,
+      const std::vector<fragment::BlockInfoProspectiveParachains> &ancestors) {
+    if (leaves.contains(leaf.hash)) {
+      return;
+    }
 
-		const auto retain_minimum = std::min(
-			ancestors.empty() ? 0 : ancestors.back().number,
-      math::sat_sub_unsigned(leaf.number, MINIMUM_RETAIN_LENGTH)
-		);
+    const auto retain_minimum =
+        std::min(ancestors.empty() ? 0 : ancestors.back().number,
+                 math::sat_sub_unsigned(leaf.number, MINIMUM_RETAIN_LENGTH));
 
-		leaves.insert(leaf.hash, ActiveLeafPruningInfo { 
-      .retain_minimum = retain_minimum,
-      });
-		AllowedRelayParents allowed_relay_parents {
-			.minimum_relay_parents = {},
-			.allowed_relay_parents_contiguous = {},
-		};
-    allowed_relay_parents.allowed_relay_parents_contiguous.reserve(ancestors.size());
+    leaves.insert(leaf.hash,
+                  ActiveLeafPruningInfo{
+                      .retain_minimum = retain_minimum,
+                  });
+    AllowedRelayParents allowed_relay_parents{
+        .minimum_relay_parents = {},
+        .allowed_relay_parents_contiguous = {},
+    };
+    allowed_relay_parents.allowed_relay_parents_contiguous.reserve(
+        ancestors.size());
 
-		for (const auto &ancestor : ancestors) {
-			block_info_storage.insert_or_assign(
-				ancestor.hash,
-				BlockInfo {
-					.block_number = ancestor.number,
-					.maybe_allowed_relay_parents = {},
-					.parent_hash = ancestor.parent_hash,
-				}
-			);
-			allowed_relay_parents.allowed_relay_parents_contiguous.emplace_back(ancestor.hash);
-		}
+    for (const auto &ancestor : ancestors) {
+      block_info_storage.insert_or_assign(
+          ancestor.hash,
+          BlockInfo{
+              .block_number = ancestor.number,
+              .maybe_allowed_relay_parents = {},
+              .parent_hash = ancestor.parent_hash,
+          });
+      allowed_relay_parents.allowed_relay_parents_contiguous.emplace_back(
+          ancestor.hash);
+    }
 
-		block_info_storage.insert_or_assign(
-			leaf.hash,
-			BlockInfo {
-				.block_number = leaf.number,
-				.maybe_allowed_relay_parents = allowed_relay_parents,
-				.parent_hash = leaf.parent_hash,
-			}
-		);
-	}  
+    block_info_storage.insert_or_assign(
+        leaf.hash,
+        BlockInfo{
+            .block_number = leaf.number,
+            .maybe_allowed_relay_parents = allowed_relay_parents,
+            .parent_hash = leaf.parent_hash,
+        });
+  }
 
   std::span<const Hash> ImplicitView::knownAllowedRelayParentsUnder(
       const Hash &block_hash, const std::optional<ParachainId> &para_id) const {
