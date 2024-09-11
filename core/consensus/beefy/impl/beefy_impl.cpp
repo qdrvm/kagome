@@ -22,6 +22,7 @@
 #include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/synchronizer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/runtime_execution_error.hpp"

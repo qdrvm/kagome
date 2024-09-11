@@ -18,7 +18,6 @@
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
 
-#include "network/synchronizer.hpp"
 namespace kagome {
   class PoolHandler;
   class PoolHandlerReady;
