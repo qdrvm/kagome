@@ -15,6 +15,7 @@
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "parachain/validator/prospective_parachains/common.hpp"
 
 namespace kagome::parachain {
 
@@ -56,6 +57,16 @@ namespace kagome::parachain {
     std::span<const Hash> knownAllowedRelayParentsUnder(
         const Hash &block_hash,
         const std::optional<ParachainId> &para_id) const;
+
+    	/// Activate a leaf in the view. To be used by the prospective parachains subsystem.
+	///
+	/// This will not request any additional data, as prospective parachains already provides all
+	/// the required info.
+	/// NOTE: using `activate_leaf` instead of this function will result in a
+	/// deadlock, as it calls prospective-parachains under the hood.
+	///
+	/// No-op for known leaves.
+	void activate_leaf_from_prospective_parachains(fragment::BlockInfoProspectiveParachains leaf, const std::vector<fragment::BlockInfoProspectiveParachains> &ancestors);
 
     /// Activate a leaf in the view.
     /// This will request the minimum relay parents the leaf and will load

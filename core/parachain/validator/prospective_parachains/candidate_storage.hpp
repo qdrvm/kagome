@@ -57,19 +57,14 @@ namespace kagome::parachain::fragment {
         CandidateState state,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
+    /// `HypotheticalOrConcreteCandidate` impl
     Option<Ref<const CandidateCommitments>> get_commitments() const;
-
     Option<Ref<const PersistedValidationData>> get_persisted_validation_data()
         const;
-
     Option<Ref<const ValidationCodeHash>> get_validation_code_hash() const;
-
-    Hash get_parent_head_data_hash() const;
-
     Option<Hash> get_output_head_data_hash() const;
-
+    Hash get_parent_head_data_hash() const;
     Hash get_relay_parent() const;
-
     CandidateHash get_candidate_hash() const;
   };
 

@@ -33,7 +33,6 @@ namespace kagome::parachain::fragment {
   using Option = std::optional<Args...>;
   template <typename... Args>
   using Map = std::map<Args...>;
-  using FragmentTreeMembership = Vec<std::pair<Hash, Vec<size_t>>>;
   template <typename... Args>
   using Ref = std::reference_wrapper<Args...>;
 
@@ -43,6 +42,10 @@ namespace kagome::parachain::fragment {
 
   using CandidateCommitments = network::CandidateCommitments;
   using PersistedValidationData = runtime::PersistedValidationData;
+
+/// Indicates the relay-parents whose fragment chain a candidate
+/// is present in or can be added in (right now or in the future).
+using HypotheticalMembership = Vec<Hash>;
 
   /// A collection of ancestor candidates of a parachain.
   using Ancestors = HashSet<CandidateHash>;
@@ -54,6 +57,27 @@ namespace kagome::parachain::fragment {
     BlockNumber number;
     /// The storage-root of the relay-chain block.
     Hash storage_root;
+  };
+
+  /// Information about a relay-chain block, to be used when calling this module from prospective
+  /// parachains.
+  struct BlockInfoProspectiveParachains {
+    /// The hash of the relay-chain block.
+    Hash hash;
+    /// The hash of the parent relay-chain block.
+    Hash parent_hash;
+    /// The number of the relay-chain block.
+    BlockNumber number;
+    /// The storage-root of the relay-chain block.
+    Hash storage_root;
+
+    RelayChainBlockInfo as_relay_chain_block_info() const {
+      return RelayChainBlockInfo {
+        .hash = hash,
+        .number = number, 
+        .storage_root = storage_root,
+      };
+    }
   };
 
   struct ProspectiveCandidate {

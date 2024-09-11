@@ -512,7 +512,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
 //
 //  void introduce_candidate(const network::CommittedCandidateReceipt &candidate,
 //                           const runtime::PersistedValidationData &pvd) {
-//    [[maybe_unused]] const auto _ = prospective_parachain_->introduceCandidate(
+//    [[maybe_unused]] const auto _ = prospective_parachain_->introduce_seconded_candidate(
 //        candidate.descriptor.para_id,
 //        candidate,
 //        crypto::Hashed<const runtime::PersistedValidationData &,
@@ -544,7 +544,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
 //        .receipt = receipt,
 //        .persisted_validation_data = persisted_validation_data,
 //    }};
-//    auto resp = prospective_parachain_->answerHypotheticalFrontierRequest(
+//    auto resp = prospective_parachain_->answer_hypothetical_membership_request(
 //        std::span<const HypotheticalCandidate>{&hypothetical_candidate, 1},
 //        {{fragment_tree_relay_parent}},
 //        backed_in_path_only);

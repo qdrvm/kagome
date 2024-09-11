@@ -2810,7 +2810,7 @@ namespace kagome::parachain {
       hypotheticals.emplace_back(known_hypotheticals->get());
     }
 
-    auto frontier = prospective_parachains_->answerHypotheticalFrontierRequest(
+    auto frontier = prospective_parachains_->answer_hypothetical_membership_request(
         hypotheticals, active_leaf_hash, false);
     for (const auto &[hypo, membership] : frontier) {
       if (membership.empty()) {
@@ -4084,10 +4084,10 @@ namespace kagome::parachain {
       auto &candidate = seconded->get().committed_receipt;
       if (rp_state.prospective_parachains_mode) {
         fragment::FragmentTreeMembership membership =
-            prospective_parachains_->introduceCandidate(
+            prospective_parachains_->introduce_seconded_candidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &,
+                crypto::Hashed<runtime::PersistedValidationData,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},
@@ -5483,7 +5483,7 @@ namespace kagome::parachain {
 
         std::vector<size_t> r;
         for (auto &&[candidate, memberships] :
-             prospective_parachains_->answerHypotheticalFrontierRequest(
+             prospective_parachains_->answer_hypothetical_membership_request(
                  std::span<const HypotheticalCandidate>{&hypothetical_candidate,
                                                         1},
                  {{head}},

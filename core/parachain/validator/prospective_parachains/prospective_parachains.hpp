@@ -49,6 +49,15 @@ namespace kagome::parachain {
       std::unordered_set<Hash> active_leaves;
       // The backing implicit view.
       ImplicitView implicit_view;
+
+        // Get the fragment chains of this leaf.
+        std::optional<std::reference_wrapper<const std::unordered_map<ParachainId, fragment::FragmentChain>>> get_fragment_chains(const Hash &leaf) const {
+            auto view_data = utils::get(per_relay_parent, leaf);
+            if (view_data) {
+                return std::cref((*view_data)->second.fragment_chains);
+            }
+            return std::nullopt;
+        }
     };
 
     struct ImportablePendingAvailability {
@@ -64,7 +73,7 @@ namespace kagome::parachain {
     log::Logger logger =
         log::createLogger("ProspectiveParachains", "parachain");
 
-    View &view() const;
+    View &view();
 
    public:
     ProspectiveParachains(
@@ -78,7 +87,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> getBlockTree();
 
     std::vector<std::pair<ParachainId, BlockNumber>>
-    answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const;
+    answerMinimumRelayParentsRequest(const RelayHash &relay_parent);
 
     std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
         const RelayHash &relay_parent,
@@ -100,14 +109,14 @@ namespace kagome::parachain {
                   std::vector<fragment::CandidatePendingAvailability>>>>
     fetchBackingState(const RelayHash &relay_parent, ParachainId para_id);
 
-    outcome::result<std::optional<fragment::RelayChainBlockInfo>>
+    outcome::result<std::optional<fragment::BlockInfoProspectiveParachains>>
     fetchBlockInfo(const RelayHash &relay_hash);
 
     outcome::result<std::unordered_set<ParachainId>> fetchUpcomingParas(
         const RelayHash &relay_parent,
         std::unordered_set<CandidateHash> &pending_availability);
 
-    outcome::result<std::vector<fragment::RelayChainBlockInfo>> fetchAncestry(
+    outcome::result<std::vector<fragment::BlockInfoProspectiveParachains>> fetchAncestry(
         const RelayHash &relay_hash, size_t ancestors);
 
     outcome::result<std::vector<ImportablePendingAvailability>>
@@ -119,8 +128,6 @@ namespace kagome::parachain {
     outcome::result<void> onActiveLeavesUpdate(
         const network::ExViewRef &update);
 
-    void prune_view_candidate_storage();
-
     /// @brief calculates hypothetical candidate and fragment tree membership
     /// @param candidates Candidates, in arbitrary order, which should be
     /// checked for possible membership in fragment trees.
@@ -129,27 +136,18 @@ namespace kagome::parachain {
     /// @param backed_in_path_only Only return membership if all candidates in
     /// the path from the root are backed.
     std::vector<
-        std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>>
-    answerHypotheticalFrontierRequest(
+        std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
+    answer_hypothetical_membership_request(
         const std::span<const HypotheticalCandidate> &candidates,
         const std::optional<std::reference_wrapper<const Hash>>
-            &fragment_tree_relay_parent,
-        bool backed_in_path_only);
-
-    fragment::FragmentTreeMembership fragmentTreeMembership(
-        const std::unordered_map<Hash, RelayBlockViewData> &active_leaves,
-        ParachainId para,
-        const CandidateHash &candidate) const;
-
-    void candidateSeconded(ParachainId para,
-                           const CandidateHash &candidate_hash);
+            &fragment_tree_relay_parent);
 
     void candidateBacked(ParachainId para, const CandidateHash &candidate_hash);
 
-    fragment::FragmentTreeMembership introduceCandidate(
+    bool introduce_seconded_candidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &,
+        const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash);
