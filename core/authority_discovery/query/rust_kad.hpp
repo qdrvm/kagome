@@ -11,7 +11,7 @@ namespace boost::asio {
 }  // namespace boost::asio
 
 namespace libp2p::protocol::kademlia {
-  struct Config;
+  class Config;
 }  // namespace libp2p::protocol::kademlia
 
 namespace soralog {
