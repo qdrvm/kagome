@@ -1431,7 +1431,6 @@ namespace kagome::network {
 
     auto cb2 = [weak{weak_from_this()},
                 expected,
-                min,
                 isFinalized,
                 cb{std::move(cb)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
@@ -1487,12 +1486,7 @@ namespace kagome::network {
           break;
         }
       }
-      if (const auto lastBlockNumber = blocks.back().header->number; lastBlockNumber <= min) {
-        return cb(outcome::success());
-      } else {
-        SL_TRACE(self->log_, "Not all headers are fetched, fetching next portion, block #{}", lastBlockNumber);
-        self->fetchHeadersBack(expected, min, isFinalized, std::move(cb));
-      }
+      return cb(outcome::success());
     };
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));

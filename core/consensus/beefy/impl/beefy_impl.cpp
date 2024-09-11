@@ -439,7 +439,7 @@ namespace kagome::network {
     }
 
     if (fetching_headers_) {
-      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, fetching_headers_->number, true,
+      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, *beefy_genesis_, true,
         [WEAK_SELF] (auto&& res) {
           WEAK_LOCK(self);
           if (self->fetching_headers_) {
@@ -449,20 +449,7 @@ namespace kagome::network {
               self->fetching_headers_.reset();
               return;
             }
-            auto blockHeader = self->block_tree_->getBlockHeader(self->fetching_headers_->hash);
-            if (not blockHeader) {
-              SL_ERROR(self->log_, "Failed to get block header for block {}, fetching stopped", self->fetching_headers_->number);
-              self->fetching_headers_.reset();
-              return;
-            }
-            const auto& blockHeaderValue = blockHeader.value();
-            if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
-              self->fetching_headers_ = *parentInfo;
-              self->fetchHeaders();
-            } else {
-              SL_ERROR(self->log_, "Failed to get parent info for block {}, fetching stopped from fetch callback", self->fetching_headers_->number);
-              self->fetching_headers_.reset();
-            }
+            self->fetchHeaders();
           }
         });
     }
