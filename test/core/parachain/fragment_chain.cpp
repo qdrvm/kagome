@@ -156,7 +156,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         == relay_parent_y_info.number) {
       ASSERT_EQ(chain.unconnected_len(), 0);
       ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+                FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE);
       ASSERT_TRUE(
           chain.can_add_candidate_as_potential(candidate_b_entry).has_value());
       ASSERT_TRUE(
@@ -272,7 +272,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_EQ(chain.unconnected_len(), 0);
 
       ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+                FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE);
 
       // However, if taken independently, both B and C still have potential,
       // since we don't know that A doesn't.
@@ -295,9 +295,9 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_EQ(chain.unconnected_len(), 0);
 
       ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+                FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE);
       ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_b_entry).error(),
-                FragmentChain::Error::RELAY_PARENT_NOT_IN_SCOPE);
+                FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE);
       // However, if taken independently, C still has potential, since we
       // don't know that A and B don't
       ASSERT_TRUE(
@@ -343,7 +343,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
       ASSERT_EQ(
           chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
-          FragmentChain::Error::CYCLE);
+          FragmentChainError::CYCLE);
     }
 
     {
@@ -395,7 +395,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
     ASSERT_EQ(
         chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
-        FragmentChain::Error::RELAY_PARENT_MOVED_BACKWARDS);
+        FragmentChainError::RELAY_PARENT_MOVED_BACKWARDS);
   }
 
   // Candidate C is an unconnected candidate.
@@ -499,7 +499,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_EQ(
           chain.can_add_candidate_as_potential(unconnected_candidate_c_entry)
               .error(),
-          FragmentChain::Error::
+          FragmentChainError::
               RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY);
     }
 
@@ -549,7 +549,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_EQ(chain.unconnected_len(), 0);
       ASSERT_EQ(
           chain.can_add_candidate_as_potential(wrong_candidate_c_entry).error(),
-          FragmentChain::Error::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY);
+          FragmentChainError::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY);
     }
   }
 
@@ -742,7 +742,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_EQ(populate_chain_from_previous_storage(scope, storage)
                     .can_add_candidate_as_potential(candidate_a1_entry)
                     .error(),
-                FragmentChain::Error::FORK_CHOICE_RULE);
+                FragmentChainError::FORK_CHOICE_RULE);
       ASSERT_TRUE(storage.add_candidate_entry(candidate_a1_entry).has_value());
 
       // Candidate B1.
@@ -874,10 +874,10 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         // the best chain or in unconnected storage)
         ASSERT_EQ(
             chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-            FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+            FragmentChainError::CANDIDATE_ALREADY_KNOWN);
         ASSERT_EQ(
             chain.can_add_candidate_as_potential(candidate_f_entry).error(),
-            FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+            FragmentChainError::CANDIDATE_ALREADY_KNOWN);
 
         // Simulate a best chain reorg by backing a2.
         {
@@ -896,10 +896,10 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
           // A and A1 will never have potential again.
           ASSERT_EQ(chain_2.can_add_candidate_as_potential(candidate_a1_entry)
                         .error(),
-                    FragmentChain::Error::FORK_CHOICE_RULE);
+                    FragmentChainError::FORK_CHOICE_RULE);
           ASSERT_EQ(
               chain_2.can_add_candidate_as_potential(candidate_a_entry).error(),
-              FragmentChain::Error::FORK_CHOICE_RULE);
+              FragmentChainError::FORK_CHOICE_RULE);
         }
       }
       // Candidate F has an invalid hrmp watermark. however, it was not checked
@@ -976,7 +976,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
       // Cannot add as potential an already pending availability candidate
       ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
-                FragmentChain::Error::CANDIDATE_ALREADY_KNOWN);
+                FragmentChainError::CANDIDATE_ALREADY_KNOWN);
 
       // Simulate the fact that candidates A, B and C have been included.
       EXPECT_OUTCOME_TRUE(
@@ -1011,7 +1011,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
       ASSERT_EQ(
           chain_new.can_add_candidate_as_potential(candidate_f_entry).error(),
-          FragmentChain::Error::CHECK_AGAINST_CONSTRAINTS);
+          FragmentChainError::CHECK_AGAINST_CONSTRAINTS);
     }
   }
 }
