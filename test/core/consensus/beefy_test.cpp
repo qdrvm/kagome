@@ -22,8 +22,8 @@
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/protocols/beefy_protocol_mock.hpp"
-#include "mock/core/runtime/beefy_api.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
+#include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
@@ -61,6 +61,7 @@ using kagome::network::BeefyImpl;
 using kagome::network::BeefyProtocol;
 using kagome::network::BeefyProtocolMock;
 using kagome::network::BeefyThreadPool;
+using kagome::network::SynchronizerMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -71,7 +72,6 @@ using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEnginePtr;
 using kagome::runtime::BeefyApiMock;
 using kagome::storage::InMemorySpacedStorage;
-using kagome::network::SynchronizerMock;
 using testing::_;
 using testing::Return;
 
@@ -79,9 +79,7 @@ struct Timer : libp2p::basic::Scheduler {
   std::chrono::milliseconds now() const override {
     abort();
   }
-  Handle scheduleImpl(Callback &&cb,
-                      std::chrono::milliseconds,
-                      bool) override {
+  Handle scheduleImpl(Callback &&cb, std::chrono::milliseconds, bool) override {
     cb_.emplace(std::move(cb));
     return Handle{};
   }

@@ -119,7 +119,8 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_pool_handler_{poolHandlerReadyMake(app_state_manager, main_thread_pool)},
+        main_pool_handler_{
+            poolHandlerReadyMake(app_state_manager, main_thread_pool)},
         block_storage_{std::move(block_storage)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -1409,8 +1410,10 @@ namespace kagome::network {
     recent_requests_.clear();
   }
 
-  bool SynchronizerImpl::fetchHeadersBack(const primitives::BlockInfo& max, primitives::BlockNumber min,
-    bool isFinalized, CbResultVoid cb) {
+  bool SynchronizerImpl::fetchHeadersBack(const primitives::BlockInfo &max,
+                                          primitives::BlockNumber min,
+                                          bool isFinalized,
+                                          CbResultVoid cb) {
     auto initialBlockNumber = max.number;
     if (initialBlockNumber < min) {
       return false;
@@ -1423,7 +1426,8 @@ namespace kagome::network {
         .max = initialBlockNumber - min + 1,
         .multiple_justifications = false,
     };
-    auto chosen = chooseJustificationPeer(initialBlockNumber, request.fingerprint());
+    auto chosen =
+        chooseJustificationPeer(initialBlockNumber, request.fingerprint());
     if (not chosen) {
       return false;
     }
@@ -1448,33 +1452,37 @@ namespace kagome::network {
       if (blocks.empty()) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      for (auto& b : blocks) {
+      for (auto &b : blocks) {
         auto &header = b.header;
 
         if (not header) {
           return cb(Error::EMPTY_RESPONSE);
         }
 
-        auto& headerValue = header.value();
+        auto &headerValue = header.value();
         primitives::calculateBlockHash(headerValue, *self->hasher_);
-        const auto& headerInfo = headerValue.blockInfo();
+        const auto &headerInfo = headerValue.blockInfo();
 
         if (headerInfo != expected) {
           SL_ERROR(self->log_,
-                  "Header info is different from expected, block #{}", expected.number);
+                   "Header info is different from expected, block #{}",
+                   expected.number);
           return cb(Error::INVALID_HASH);
         }
 
-        if (auto er = self->block_storage_->putBlockHeader(headerValue); er.has_error()) {
+        if (auto er = self->block_storage_->putBlockHeader(headerValue);
+            er.has_error()) {
           SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
           return cb(er.error());
         }
 
         if (isFinalized) {
-            if (auto er = self->block_storage_->assignNumberToHash(headerInfo); er.has_error()) {
-              SL_ERROR(self->log_, "Failed to assign number to hash: {}", er.error());
-              return cb(er.error());
-            }
+          if (auto er = self->block_storage_->assignNumberToHash(headerInfo);
+              er.has_error()) {
+            SL_ERROR(
+                self->log_, "Failed to assign number to hash: {}", er.error());
+            return cb(er.error());
+          }
         }
         const auto headerNumber = headerInfo.number;
         SL_TRACE(self->log_, "Block #{} is successfully stored", headerNumber);
@@ -1483,7 +1491,9 @@ namespace kagome::network {
         } else if (headerNumber == 0) {
           break;
         } else {
-          SL_ERROR(self->log_, "Parent info is not provided for block #{}", headerNumber);
+          SL_ERROR(self->log_,
+                   "Parent info is not provided for block #{}",
+                   headerNumber);
           return cb(Error::EMPTY_RESPONSE);
         }
       }

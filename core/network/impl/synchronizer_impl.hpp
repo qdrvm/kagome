@@ -17,6 +17,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "application/sync_method.hpp"
+#include "blockchain/block_storage.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
 #include "injector/lazy.hpp"
@@ -28,7 +29,6 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
-#include "blockchain/block_storage.hpp"
 
 namespace kagome {
   class PoolHandlerReady;
@@ -41,7 +41,7 @@ namespace kagome::application {
 namespace kagome::blockchain {
   class BlockTree;
   class BlockStorage;
-}
+}  // namespace kagome::blockchain
 
 namespace kagome::common {
   class MainThreadPool;
@@ -156,8 +156,10 @@ namespace kagome::network {
     bool fetchJustificationRange(primitives::BlockNumber min,
                                  FetchJustificationRangeCb cb) override;
 
-    bool fetchHeadersBack(const primitives::BlockInfo& max, primitives::BlockNumber min, bool isFinalized,
-                                  CbResultVoid cb) override;
+    bool fetchHeadersBack(const primitives::BlockInfo &max,
+                          primitives::BlockNumber min,
+                          bool isFinalized,
+                          CbResultVoid cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.

@@ -415,7 +415,7 @@ namespace kagome::network {
       if (not block_hash) {
         break;
       }
-      auto& blockHashOptValue = block_hash.value();
+      auto &blockHashOptValue = block_hash.value();
       if (not blockHashOptValue) {
         break;
       }
@@ -424,7 +424,7 @@ namespace kagome::network {
         break;
       }
 
-      const auto& blockHeaderValue = blockHeader.value();
+      const auto &blockHeaderValue = blockHeader.value();
       if (beefyValidatorsDigest(blockHeaderValue)) {
         beefy_justification_protocol_.get()->fetchJustification(blockNumber);
       }
@@ -432,26 +432,31 @@ namespace kagome::network {
       if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
         fetching_headers_ = *parentInfo;
       } else {
-        SL_ERROR(log_, "Failed to get parent info for block {}, fetching stopped", blockNumber);
+        SL_ERROR(log_,
+                 "Failed to get parent info for block {}, fetching stopped",
+                 blockNumber);
         fetching_headers_.reset();
         return;
       }
     }
 
     if (fetching_headers_) {
-      synchronizer_.get()->fetchHeadersBack(*fetching_headers_, *beefy_genesis_, true,
-        [WEAK_SELF] (auto&& res) {
-          WEAK_LOCK(self);
-          if (self->fetching_headers_) {
-            if (not res) {
-              SL_ERROR(self->log_, "Fetching stopped during previous error {} for block {}",
-                res.error().message(), self->fetching_headers_->number);
-              self->fetching_headers_.reset();
-              return;
+      synchronizer_.get()->fetchHeadersBack(
+          *fetching_headers_, *beefy_genesis_, true, [WEAK_SELF](auto &&res) {
+            WEAK_LOCK(self);
+            if (self->fetching_headers_) {
+              if (not res) {
+                SL_ERROR(
+                    self->log_,
+                    "Fetching stopped during previous error {} for block {}",
+                    res.error().message(),
+                    self->fetching_headers_->number);
+                self->fetching_headers_.reset();
+                return;
+              }
+              self->fetchHeaders();
             }
-            self->fetchHeaders();
-          }
-        });
+          });
     }
   }
 
@@ -493,7 +498,8 @@ namespace kagome::network {
           apply(pending_justifications_.extract(pending_it++).mapped(), false);
     }
     while (next_digest_ <= grandpa_finalized.number) {
-      if (auto r = block_tree_->getBlockHash(next_digest_); not r or not r.value()) {
+      if (auto r = block_tree_->getBlockHash(next_digest_);
+          not r or not r.value()) {
         fetching_headers_ = grandpa_finalized;
         fetchHeaders();
       }
