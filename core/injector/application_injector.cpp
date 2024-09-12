@@ -514,7 +514,7 @@ namespace {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  ModuleFactory>(injector, method, interpreter);
+                  runtime::ModuleFactory>(injector, method, interpreter);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {

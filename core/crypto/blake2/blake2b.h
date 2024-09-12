@@ -19,11 +19,13 @@ namespace kagome::crypto {
 
   // state context
   struct blake2b_ctx {
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     std::array<uint8_t, 128> b;  // input buffer
     std::array<uint64_t, 8> h;   // chained state
     std::array<uint64_t, 2> t;   // total number of bytes
     size_t c;                    // pointer for b[]
     size_t outlen;               // digest size
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
   };
 
   // Initialize the hashing context "ctx" with optional key "key".
