@@ -7,18 +7,18 @@
 #pragma once
 
 #include <optional>
+#include <outcome/outcome.hpp>
 #include <span>
 #include <unordered_map>
 #include <vector>
-#include <outcome/outcome.hpp>
 
+#include "blockchain/block_tree.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "blockchain/block_tree.hpp"
-#include "blockchain/block_tree_error.hpp"
 
 namespace kagome::parachain {
 
@@ -149,9 +149,9 @@ namespace kagome::parachain {
     outcome::result<FetchSummary> fetch_fresh_leaf_and_insert_ancestry(
         const Hash &leaf_hash);
 
-        outcome::result<std::optional<BlockNumber>>
-  fetch_min_relay_parents_for_collator(const Hash &leaf_hash,
-                                       BlockNumber leaf_number);
+    outcome::result<std::optional<BlockNumber>>
+    fetch_min_relay_parents_for_collator(const Hash &leaf_hash,
+                                         BlockNumber leaf_number);
 
     std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
     std::unordered_map<Hash, BlockInfo> block_info_storage;

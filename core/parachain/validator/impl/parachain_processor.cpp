@@ -892,7 +892,7 @@ namespace kagome::parachain {
           f(i);
         }
       }
-    };
+    }
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -4882,7 +4882,8 @@ namespace kagome::parachain {
       }
 
       ActiveLeafState &leaf_data = it->second;
-      add_seconded_candidate(leaf_data, validation_result.candidate.descriptor.para_id);
+      add_seconded_candidate(leaf_data,
+                             validation_result.candidate.descriptor.para_id);
     }
 
     parachain_state.issued_statements.insert(candidate_hash);
@@ -5304,7 +5305,8 @@ namespace kagome::parachain {
 
     for (const auto &[hash, mode] : active_leaves) {
       if (mode) {
-        if (const auto k = implicit_view.known_allowed_relay_parents_under(hash, para_id)) {
+        if (const auto k = implicit_view.known_allowed_relay_parents_under(
+                hash, para_id)) {
           for (const auto &h : *k) {
             if (h == relay_parent) {
               return true;
@@ -5459,11 +5461,13 @@ namespace kagome::parachain {
     const auto candidate_relay_parent = relayParent(hypothetical_candidate);
     const auto candidate_hash = candidateHash(hypothetical_candidate);
 
-    auto proc_response = [&](bool is_member_or_potential,
-                             const Hash &head) {
+    auto proc_response = [&](bool is_member_or_potential, const Hash &head) {
       if (!is_member_or_potential) {
-        SL_TRACE(logger_, "Refusing to second candidate at leaf. Is not a potential member. (candidate_hash={}, leaf_hash={})",
-        candidate_hash.get(), head);
+        SL_TRACE(logger_,
+                 "Refusing to second candidate at leaf. Is not a potential "
+                 "member. (candidate_hash={}, leaf_hash={})",
+                 candidate_hash.get(),
+                 head);
       } else {
         leaves_for_seconding.emplace_back(head);
       }
@@ -5474,10 +5478,11 @@ namespace kagome::parachain {
         const auto allowed_parents_for_para =
             implicit_view.known_allowed_relay_parents_under(
                 head, {candidate_para.get()});
-        if (!allowed_parents_for_para || std::find(allowed_parents_for_para->begin(),
-                      allowed_parents_for_para->end(),
-                      candidate_relay_parent.get())
-            == allowed_parents_for_para->end()) {
+        if (!allowed_parents_for_para
+            || std::find(allowed_parents_for_para->begin(),
+                         allowed_parents_for_para->end(),
+                         candidate_relay_parent.get())
+                   == allowed_parents_for_para->end()) {
           continue;
         }
 
@@ -5487,7 +5492,6 @@ namespace kagome::parachain {
                  std::span<const HypotheticalCandidate>{&hypothetical_candidate,
                                                         1},
                  {{head}})) {
-
           if (candidateHash(candidate).get() != candidate_hash.get()) {
             continue;
           }
@@ -5532,8 +5536,8 @@ namespace kagome::parachain {
     auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
     if (per_relay_parent) {
       if (per_relay_parent->get().prospective_parachains_mode) {
-        if (auto seconding_allowed = seconding_sanity_check(
-                HypotheticalCandidateIncomplete{
+        if (auto seconding_allowed =
+                seconding_sanity_check(HypotheticalCandidateIncomplete{
                     .candidate_hash = candidate_hash,
                     .candidate_para = candidate_para_id,
                     .parent_head_data_hash = parent_head_data_hash,
@@ -5889,6 +5893,6 @@ namespace kagome::parachain {
     auto &peers = *peer_use_count_;
     return SAFE_SHARED(peers) {
       return peers.contains(*audi);
-    };
+    }
   }
 }  // namespace kagome::parachain

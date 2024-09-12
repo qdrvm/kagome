@@ -32,25 +32,26 @@ namespace kagome::parachain {
   using ProspectiveParachainsModeOpt = std::optional<ProspectiveParachainsMode>;
 
   using SecondedList = std::unordered_set<ParachainId>;
-  using ActiveLeafState = boost::variant<ProspectiveParachainsMode, SecondedList>;
+  using ActiveLeafState =
+      boost::variant<ProspectiveParachainsMode, SecondedList>;
 
   inline ProspectiveParachainsModeOpt from(const ActiveLeafState &state) {
     return visit_in_place(
-      state,
-      [](const ProspectiveParachainsMode &v) -> ProspectiveParachainsModeOpt {
-        return v;
-      },
-      [](const SecondedList &) -> ProspectiveParachainsModeOpt {
-        return std::nullopt;
-      });
+        state,
+        [](const ProspectiveParachainsMode &v) -> ProspectiveParachainsModeOpt {
+          return v;
+        },
+        [](const SecondedList &) -> ProspectiveParachainsModeOpt {
+          return std::nullopt;
+        });
   }
 
-	inline void add_seconded_candidate(ActiveLeafState &state, ParachainId para_id) {
+  inline void add_seconded_candidate(ActiveLeafState &state,
+                                     ParachainId para_id) {
     if (auto seconded = if_type<SecondedList>(state)) {
       seconded.value().get().insert(para_id);
     }
-	}
-
+  }
 
   /// The status of the collations.
   enum struct CollationStatus {
@@ -234,35 +235,51 @@ namespace kagome::parachain {
     const std::shared_ptr<kagome::crypto::Hasher> &hasher;
 
     // `HypotheticalOrConcreteCandidate` impl
-    std::optional<std::reference_wrapper<const network::CandidateCommitments>> get_commitments() const {
+    std::optional<std::reference_wrapper<const network::CandidateCommitments>>
+    get_commitments() const {
       return visit_in_place(
           candidate,
-          [&](const HypotheticalCandidateIncomplete &v) -> std::optional<std::reference_wrapper<const network::CandidateCommitments>> {
+          [&](const HypotheticalCandidateIncomplete &v)
+              -> std::optional<
+                  std::reference_wrapper<const network::CandidateCommitments>> {
             return std::nullopt;
           },
-          [&](const HypotheticalCandidateComplete &v) -> std::optional<std::reference_wrapper<const network::CandidateCommitments>> {
+          [&](const HypotheticalCandidateComplete &v)
+              -> std::optional<
+                  std::reference_wrapper<const network::CandidateCommitments>> {
             return std::cref(v.receipt.commitments);
           });
     }
 
-    std::optional<std::reference_wrapper<const runtime::PersistedValidationData>> get_persisted_validation_data() const {
+    std::optional<
+        std::reference_wrapper<const runtime::PersistedValidationData>>
+    get_persisted_validation_data() const {
       return visit_in_place(
           candidate,
-          [&](const HypotheticalCandidateIncomplete &v) -> std::optional<std::reference_wrapper<const runtime::PersistedValidationData>> {
+          [&](const HypotheticalCandidateIncomplete &v)
+              -> std::optional<std::reference_wrapper<
+                  const runtime::PersistedValidationData>> {
             return std::nullopt;
           },
-          [&](const HypotheticalCandidateComplete &v) -> std::optional<std::reference_wrapper<const runtime::PersistedValidationData>> {
+          [&](const HypotheticalCandidateComplete &v)
+              -> std::optional<std::reference_wrapper<
+                  const runtime::PersistedValidationData>> {
             return v.persisted_validation_data;
           });
     }
 
-    std::optional<std::reference_wrapper<const ValidationCodeHash>> get_validation_code_hash() const {
+    std::optional<std::reference_wrapper<const ValidationCodeHash>>
+    get_validation_code_hash() const {
       return visit_in_place(
           candidate,
-          [&](const HypotheticalCandidateIncomplete &v) -> std::optional<std::reference_wrapper<const ValidationCodeHash>> {
+          [&](const HypotheticalCandidateIncomplete &v)
+              -> std::optional<
+                  std::reference_wrapper<const ValidationCodeHash>> {
             return std::nullopt;
           },
-          [&](const HypotheticalCandidateComplete &v) -> std::optional<std::reference_wrapper<const ValidationCodeHash>> {
+          [&](const HypotheticalCandidateComplete &v)
+              -> std::optional<
+                  std::reference_wrapper<const ValidationCodeHash>> {
             return v.receipt.descriptor.validation_code_hash;
           });
     }
@@ -302,17 +319,16 @@ namespace kagome::parachain {
 
     CandidateHash get_candidate_hash() const {
       return visit_in_place(
-          candidate,
-          [&](const auto &v) -> Hash {
-            return v.candidate_hash;
-          });
+          candidate, [&](const auto &v) -> Hash { return v.candidate_hash; });
     }
   };
 
-  inline HypotheticalCandidateWrapper into_wrapper(const HypotheticalCandidate &candidate, const std::shared_ptr<kagome::crypto::Hasher> &hasher) {
-    return HypotheticalCandidateWrapper {
-      .candidate = candidate,
-      .hasher = hasher,
+  inline HypotheticalCandidateWrapper into_wrapper(
+      const HypotheticalCandidate &candidate,
+      const std::shared_ptr<kagome::crypto::Hasher> &hasher) {
+    return HypotheticalCandidateWrapper{
+        .candidate = candidate,
+        .hasher = hasher,
     };
   }
 

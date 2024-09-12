@@ -578,8 +578,8 @@ namespace kagome::parachain {
       view_.emplace(View{
           .per_relay_parent = {},
           .active_leaves = {},
-          .implicit_view =
-              ImplicitView(weak_from_this(), parachain_host_, block_tree_, std::nullopt),
+          .implicit_view = ImplicitView(
+              weak_from_this(), parachain_host_, block_tree_, std::nullopt),
       });
     }
     return *view_;

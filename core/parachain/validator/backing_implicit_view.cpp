@@ -76,9 +76,9 @@ namespace kagome::parachain {
                  math::sat_sub_unsigned(leaf.number, MINIMUM_RETAIN_LENGTH));
 
     leaves.insert_or_assign(leaf.hash,
-                  ActiveLeafPruningInfo{
-                      .retain_minimum = retain_minimum,
-                  });
+                            ActiveLeafPruningInfo{
+                                .retain_minimum = retain_minimum,
+                            });
     AllowedRelayParents allowed_relay_parents{
         .minimum_relay_parents = {},
         .allowed_relay_parents_contiguous = {},
@@ -107,9 +107,11 @@ namespace kagome::parachain {
         });
   }
 
-  std::optional<std::span<const Hash>> ImplicitView::known_allowed_relay_parents_under(
+  std::optional<std::span<const Hash>>
+  ImplicitView::known_allowed_relay_parents_under(
       const Hash &block_hash, const std::optional<ParachainId> &para_id) const {
-    if (auto it = block_info_storage.find(block_hash); it != block_info_storage.end()) {
+    if (auto it = block_info_storage.find(block_hash);
+        it != block_info_storage.end()) {
       const BlockInfo &block_info = it->second;
       if (block_info.maybe_allowed_relay_parents) {
         return block_info.maybe_allowed_relay_parents->allowedRelayParentsFor(
@@ -162,10 +164,11 @@ namespace kagome::parachain {
 
   outcome::result<std::optional<BlockNumber>>
   ImplicitView::fetch_min_relay_parents_for_collator(const Hash &leaf_hash,
-                                       BlockNumber leaf_number) {
+                                                     BlockNumber leaf_number) {
     auto prospective_parachains = prospective_parachains_.lock();
     if (!prospective_parachains) {
-      return outcome::failure(Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS);
+      return outcome::failure(
+          Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS);
     }
 
     size_t allowed_ancestry_len;

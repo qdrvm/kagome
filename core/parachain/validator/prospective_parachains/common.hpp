@@ -43,9 +43,9 @@ namespace kagome::parachain::fragment {
   using CandidateCommitments = network::CandidateCommitments;
   using PersistedValidationData = runtime::PersistedValidationData;
 
-/// Indicates the relay-parents whose fragment chain a candidate
-/// is present in or can be added in (right now or in the future).
-using HypotheticalMembership = Vec<Hash>;
+  /// Indicates the relay-parents whose fragment chain a candidate
+  /// is present in or can be added in (right now or in the future).
+  using HypotheticalMembership = Vec<Hash>;
 
   /// A collection of ancestor candidates of a parachain.
   using Ancestors = HashSet<CandidateHash>;
@@ -59,8 +59,8 @@ using HypotheticalMembership = Vec<Hash>;
     Hash storage_root;
   };
 
-  /// Information about a relay-chain block, to be used when calling this module from prospective
-  /// parachains.
+  /// Information about a relay-chain block, to be used when calling this module
+  /// from prospective parachains.
   struct BlockInfoProspectiveParachains {
     /// The hash of the relay-chain block.
     Hash hash;
@@ -72,10 +72,10 @@ using HypotheticalMembership = Vec<Hash>;
     Hash storage_root;
 
     RelayChainBlockInfo as_relay_chain_block_info() const {
-      return RelayChainBlockInfo {
-        .hash = hash,
-        .number = number, 
-        .storage_root = storage_root,
+      return RelayChainBlockInfo{
+          .hash = hash,
+          .number = number,
+          .storage_root = storage_root,
       };
     }
   };
