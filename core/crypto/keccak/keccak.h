@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 
 #if defined(__cplusplus)
 extern "C" {
