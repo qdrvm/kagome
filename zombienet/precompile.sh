@@ -15,6 +15,12 @@ undying-collator export-genesis-wasm > $DIR/undying-collator.json
 polkadot-parachain export-genesis-wasm > $DIR/polkadot-parachain.json
 polkadot build-spec --chain westend-local --raw > $DIR/westend-local.json
 
+for id in {2000..2002}
+do
+  polkadot-parachain export-genesis-wasm --chain glutton-westend-local-${id} \
+    > $DIR/glutton-parachain-${id}.json
+done
+
 kagome --tmp --chain $DIR/rococo-local.json \
   --precompile-para $DIR/adder-collator.json \
   --precompile-para $DIR/undying-collator.json \
@@ -25,3 +31,9 @@ kagome --tmp --chain $DIR/westend-local.json \
 
 kagome --tmp --chain ./old/0009-basic-warp-sync/gen-db-raw.json \
   --precompile-relay
+
+for id in {2000..2002}
+do
+  kagome --tmp --chain $DIR/rococo-local.json \
+    --precompile-para $DIR/glutton-parachain-${id}.json
+done

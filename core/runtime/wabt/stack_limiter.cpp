@@ -754,7 +754,7 @@ namespace kagome::runtime {
       func_costs[i] = cost;
       SL_TRACE(logger, "cost {} = {}", func->name, cost);
     }
-    KAGOME_PROFILE_END_L(logger, count_costs);
+    KAGOME_PROFILE_END(count_costs);
 
     wabt::Global stack_height_global{""};
     stack_height_global.type = wabt::Type::I32;
@@ -778,7 +778,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(detail::generate_thunks(
         logger, module, stack_height_var, stack_limit, func_costs));
 
-    KAGOME_PROFILE_END_L(logger, instrument_wasm);
+    KAGOME_PROFILE_END(instrument_wasm);
 
     OUTCOME_TRY(wabtValidate(module));
     return outcome::success();
@@ -789,7 +789,7 @@ namespace kagome::runtime {
     auto logger = stackLimiterLog();
     KAGOME_PROFILE_START_L(logger, read_ir);
     OUTCOME_TRY(module, wabtDecode(uncompressed_wasm));
-    KAGOME_PROFILE_END_L(logger, read_ir);
+    KAGOME_PROFILE_END(read_ir);
 
     OUTCOME_TRY(instrumentWithStackLimiter(module, stack_limit));
 
