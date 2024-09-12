@@ -45,6 +45,13 @@ namespace kagome::parachain {
       });
   }
 
+	inline void add_seconded_candidate(ActiveLeafState &state, ParachainId para_id) {
+    if (auto seconded = if_type<SecondedList>(state)) {
+      seconded.value().get().insert(para_id);
+    }
+	}
+
+
   /// The status of the collations.
   enum struct CollationStatus {
     /// We are waiting for a collation to be advertised to us.

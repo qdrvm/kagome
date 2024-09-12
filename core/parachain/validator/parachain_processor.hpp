@@ -1084,9 +1084,8 @@ namespace kagome::parachain {
                    const CandidateHash &candidate_hash,
                    const Hash &parent_head_data_hash);
 
-    ParachainProcessorImpl::SecondingAllowed secondingSanityCheck(
-        const HypotheticalCandidate &hypothetical_candidate,
-        bool backed_in_path_only);
+    ParachainProcessorImpl::SecondingAllowed seconding_sanity_check(
+        const HypotheticalCandidate &hypothetical_candidate);
 
     void printStoragesLoad();
 

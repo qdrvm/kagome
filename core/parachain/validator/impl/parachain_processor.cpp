@@ -209,7 +209,7 @@ namespace kagome::parachain {
     app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(
-        prospective_parachains_, parachain_host_, std::nullopt);
+        prospective_parachains_, parachain_host_, block_tree_, std::nullopt);
     BOOST_ASSERT(our_current_state_.implicit_view);
 
     metrics_registry_->registerGaugeFamily(
@@ -892,7 +892,7 @@ namespace kagome::parachain {
           f(i);
         }
       }
-    }
+    };
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -1041,15 +1041,7 @@ namespace kagome::parachain {
       }
     }
 
-    auto mode =
-        prospective_parachains_->prospectiveParachainsMode(relay_parent);
-    BOOST_ASSERT(mode);
-    if (!mode) {
-      SL_ERROR(logger_,
-               "Prospective parachains are disabled. No sure for correctness");
-    }
     const auto n_cores = cores.size();
-
     std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> out_groups;
     std::optional<CoreIndex> assigned_core;
     std::optional<ParachainId> assigned_para;
@@ -1109,32 +1101,32 @@ namespace kagome::parachain {
     }
 
     std::optional<StatementStore> statement_store;
+    std::optional<LocalValidatorState> local_validator;
     if (mode) {
       statement_store.emplace(per_session_state->value().groups);
+      auto maybe_claim_queue =
+          [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
+        auto r = fetch_claim_queue(relay_parent);
+        if (r.has_value()) {
+          return r.value();
+        }
+        return std::nullopt;
+      }();
+
+      const auto seconding_limit = mode->max_candidate_depth + 1;
+      local_validator = [&]() -> std::optional<LocalValidatorState> {
+        if (validator_index) {
+          return find_active_validator_state(*validator_index,
+                                             per_session_state->value().groups,
+                                             cores,
+                                             group_rotation_info,
+                                             maybe_claim_queue,
+                                             seconding_limit,
+                                             mode->max_candidate_depth);
+        }
+        return LocalValidatorState{};
+      }();
     }
-
-    auto maybe_claim_queue =
-        [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
-      auto r = fetch_claim_queue(relay_parent);
-      if (r.has_value()) {
-        return r.value();
-      }
-      return std::nullopt;
-    }();
-
-    const auto seconding_limit = mode->max_candidate_depth + 1;
-    auto local_validator = [&]() -> std::optional<LocalValidatorState> {
-      if (validator_index) {
-        return find_active_validator_state(*validator_index,
-                                           per_session_state->value().groups,
-                                           cores,
-                                           group_rotation_info,
-                                           maybe_claim_queue,
-                                           seconding_limit,
-                                           mode->max_candidate_depth);
-      }
-      return LocalValidatorState{};
-    }();
 
     std::unordered_set<ValidatorIndex> disabled_validators{
         disabled_validators_.begin(), disabled_validators_.end()};
@@ -1259,7 +1251,7 @@ namespace kagome::parachain {
       if (auto r =
               our_current_state_.implicit_view->activate_leaf(relay_parent);
           r.has_error()) {
-        res = r.as_failure()
+        res = r.as_failure();
       } else {
         res = *mode;
       }
@@ -1310,7 +1302,7 @@ namespace kagome::parachain {
     std::vector<Hash> fresh_relay_parents;
     ProspectiveParachainsModeOpt leaf_mode;
     if (!res) {
-      if (our_current_state_.per_leaf.contains_key(relay_parent)) {
+      if (our_current_state_.per_leaf.contains(relay_parent)) {
         return;
       }
 
@@ -1327,7 +1319,7 @@ namespace kagome::parachain {
                        ->known_allowed_relay_parents_under(relay_parent,
                                                            std::nullopt)) {
         fresh_relay_parents.insert(
-            fresh_relay_parents.end(), f.begin(), f.end());
+            fresh_relay_parents.end(), f->begin(), f->end());
         leaf_mode = res->value();
       } else {
         SL_TRACE(logger_,
@@ -1341,7 +1333,7 @@ namespace kagome::parachain {
           logger_,
           "Failed to load implicit view for leaf. (leaf_hash={}, error={})",
           relay_parent,
-          res.error());
+          res->error());
 
       return;
     }
@@ -1361,7 +1353,7 @@ namespace kagome::parachain {
       auto rps_result = construct_per_relay_parent_state(maybe_new, mode_);
       if (rps_result.has_value()) {
         our_current_state_.state_by_relay_parent.insert_or_assign(
-            relay_parent, std::move(val));
+            relay_parent, std::move(rps_result.value()));
       } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
         SL_TRACE(
             logger_,
@@ -2838,13 +2830,13 @@ namespace kagome::parachain {
 
     auto frontier =
         prospective_parachains_->answer_hypothetical_membership_request(
-            hypotheticals, active_leaf_hash, false);
+            hypotheticals, active_leaf_hash);
     for (const auto &[hypo, membership] : frontier) {
       if (membership.empty()) {
         continue;
       }
 
-      for (const auto &[leaf_hash, _] : membership) {
+      for (const auto &leaf_hash : membership) {
         candidates_.note_importable_under(hypo, leaf_hash);
       }
 
@@ -3855,7 +3847,7 @@ namespace kagome::parachain {
         continue;
       }
 
-      std::vector<CandidateHash> para_ancestors_vec(
+      std::unordered_set<CandidateHash> para_ancestors_vec(
           std::move_iterator(para_ancestors.begin()),
           std::move_iterator(para_ancestors.end()));
       auto response = prospective_parachains_->answerGetBackableCandidates(
@@ -4110,22 +4102,16 @@ namespace kagome::parachain {
                == our_current_state_.per_candidate.end()) {
       auto &candidate = seconded->get().committed_receipt;
       if (rp_state.prospective_parachains_mode) {
-        fragment::FragmentTreeMembership membership =
-            prospective_parachains_->introduce_seconded_candidate(
+        if (!prospective_parachains_->introduce_seconded_candidate(
                 candidate.descriptor.para_id,
                 candidate,
                 crypto::Hashed<runtime::PersistedValidationData,
                                32,
                                crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},
-                candidate_hash);
-        if (membership.empty()) {
-          SL_TRACE(logger_, "`membership` is empty.");
+                candidate_hash)) {
           return Error::REJECTED_BY_PROSPECTIVE_PARACHAINS;
         }
-
-        prospective_parachains_->candidateSeconded(candidate.descriptor.para_id,
-                                                   candidate_hash);
       }
       our_current_state_.per_candidate.insert(
           {candidate_hash,
@@ -4857,10 +4843,8 @@ namespace kagome::parachain {
         .persisted_validation_data = validation_result.pvd,
     };
 
-    fragment::FragmentTreeMembership fragment_tree_membership;
-    TRY_GET_OR_RET(seconding_allowed,
-                   secondingSanityCheck(hypothetical_candidate, false));
-    fragment_tree_membership = std::move(*seconding_allowed);
+    TRY_GET_OR_RET(hypothetical_membership,
+                   seconding_sanity_check(hypothetical_candidate));
 
     auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(
         parachain_state, validation_result);
@@ -4888,7 +4872,7 @@ namespace kagome::parachain {
               candidate_hash);
     }
 
-    for (const auto &[leaf, depths] : fragment_tree_membership) {
+    for (const auto &leaf : *hypothetical_membership) {
       auto it = our_current_state_.per_leaf.find(leaf);
       if (it == our_current_state_.per_leaf.end()) {
         SL_WARN(logger_,
@@ -4898,13 +4882,7 @@ namespace kagome::parachain {
       }
 
       ActiveLeafState &leaf_data = it->second;
-      auto &seconded_at_depth =
-          leaf_data.seconded_at_depth[validation_result.candidate.descriptor
-                                          .para_id];
-
-      for (const auto &depth : depths) {
-        seconded_at_depth.emplace(depth, candidate_hash);
-      }
+      add_seconded_candidate(leaf_data, validation_result.candidate.descriptor.para_id);
     }
 
     parachain_state.issued_statements.insert(candidate_hash);
@@ -5321,15 +5299,16 @@ namespace kagome::parachain {
           &active_leaves,
       ParachainId para_id) {
     if (!relay_parent_mode) {
-      return active_leaves.count(relay_parent) != 0ull;
+      return active_leaves.contains(relay_parent);
     }
 
     for (const auto &[hash, mode] : active_leaves) {
       if (mode) {
-        for (const auto &h :
-             implicit_view.known_allowed_relay_parents_under(hash, para_id)) {
-          if (h == relay_parent) {
-            return true;
+        if (const auto k = implicit_view.known_allowed_relay_parents_under(hash, para_id)) {
+          for (const auto &h : *k) {
+            if (h == relay_parent) {
+              return true;
+            }
           }
         }
       }
@@ -5470,80 +5449,80 @@ namespace kagome::parachain {
   }
 
   ParachainProcessorImpl::SecondingAllowed
-  ParachainProcessorImpl::secondingSanityCheck(
-      const HypotheticalCandidate &hypothetical_candidate,
-      bool backed_in_path_only) {
+  ParachainProcessorImpl::seconding_sanity_check(
+      const HypotheticalCandidate &hypothetical_candidate) {
     const auto &active_leaves = our_current_state_.per_leaf;
     const auto &implicit_view = *our_current_state_.implicit_view;
 
-    fragment::FragmentTreeMembership membership;
+    std::vector<Hash> leaves_for_seconding;
     const auto candidate_para = candidatePara(hypothetical_candidate);
     const auto candidate_relay_parent = relayParent(hypothetical_candidate);
-    [[maybe_unused]] const auto candidate_hash =
-        candidateHash(hypothetical_candidate);
+    const auto candidate_hash = candidateHash(hypothetical_candidate);
 
-    auto proc_response = [&](std::vector<size_t> &&depths,
-                             const Hash &head,
-                             const ActiveLeafState &leaf_state) {
-      for (auto depth : depths) {
-        if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
-            it != leaf_state.seconded_at_depth.end()
-            && it->second.count(depth) != 0ull) {
-          return false;
-        }
+    auto proc_response = [&](bool is_member_or_potential,
+                             const Hash &head) {
+      if (!is_member_or_potential) {
+        SL_TRACE(logger_, "Refusing to second candidate at leaf. Is not a potential member. (candidate_hash={}, leaf_hash={})",
+        candidate_hash, head);
+      } else {
+        leaves_for_seconding.emplace_back(head);
       }
-      membership.emplace_back(head, std::move(depths));
-      return true;
     };
 
     for (const auto &[head, leaf_state] : active_leaves) {
-      if (leaf_state.prospective_parachains_mode) {
+      if (is_type<ProspectiveParachainsMode>(leaf_state)) {
         const auto allowed_parents_for_para =
             implicit_view.known_allowed_relay_parents_under(
                 head, {candidate_para.get()});
-        if (std::find(allowed_parents_for_para.begin(),
-                      allowed_parents_for_para.end(),
+        if (!allowed_parents_for_para || std::find(allowed_parents_for_para->begin(),
+                      allowed_parents_for_para->end(),
                       candidate_relay_parent.get())
-            == allowed_parents_for_para.end()) {
+            == allowed_parents_for_para->end()) {
           continue;
         }
 
-        std::vector<size_t> r;
-        for (auto &&[candidate, memberships] :
+        bool is_member_or_potential = false;
+        for (auto &&[candidate, leaves] :
              prospective_parachains_->answer_hypothetical_membership_request(
                  std::span<const HypotheticalCandidate>{&hypothetical_candidate,
                                                         1},
-                 {{head}},
-                 backed_in_path_only)) {
-          BOOST_ASSERT(candidateHash(candidate).get() == candidate_hash.get());
-          for (auto &&[relay_parent, depths] : memberships) {
-            BOOST_ASSERT(relay_parent == head);
-            r.insert(r.end(), depths.begin(), depths.end());
+                 {{head}})) {
+
+          if (candidateHash(candidate).get() != candidate_hash.get()) {
+            continue;
+          }
+
+          for (const auto &leaf : leaves) {
+            if (leaf == head) {
+              is_member_or_potential = true;
+              break;
+            }
+          }
+
+          if (is_member_or_potential) {
+            break;
           }
         }
 
-        if (!proc_response(std::move(r), head, leaf_state)) {
-          return std::nullopt;
-        }
+        proc_response(is_member_or_potential, head);
       } else {
         if (head == candidate_relay_parent.get()) {
-          if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
-              it != leaf_state.seconded_at_depth.end()
-              && it->second.count(0) != 0ull) {
-            return std::nullopt;
+          if (auto seconded = if_type<const SecondedList>(leaf_state)) {
+            if (seconded->get().contains(candidate_para.get())) {
+              return std::nullopt;
+            }
           }
-          if (!proc_response(std::vector<size_t>{0ull}, head, leaf_state)) {
-            return std::nullopt;
-          }
+
+          proc_response(true, head);
         }
       }
     }
 
-    if (membership.empty()) {
+    if (leaves_for_seconding.empty()) {
       return std::nullopt;
     }
 
-    return membership;
+    return leaves_for_seconding;
   }
 
   bool ParachainProcessorImpl::canSecond(ParachainId candidate_para_id,
@@ -5553,18 +5532,13 @@ namespace kagome::parachain {
     auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
     if (per_relay_parent) {
       if (per_relay_parent->get().prospective_parachains_mode) {
-        if (auto seconding_allowed = secondingSanityCheck(
+        if (auto seconding_allowed = seconding_sanity_check(
                 HypotheticalCandidateIncomplete{
                     .candidate_hash = candidate_hash,
                     .candidate_para = candidate_para_id,
                     .parent_head_data_hash = parent_head_data_hash,
-                    .candidate_relay_parent = relay_parent},
-                true)) {
-          for (const auto &[_, m] : *seconding_allowed) {
-            if (!m.empty()) {
-              return true;
-            }
-          }
+                    .candidate_relay_parent = relay_parent})) {
+          return !seconding_allowed->empty();
         }
       }
     }

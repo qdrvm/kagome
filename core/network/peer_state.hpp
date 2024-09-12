@@ -72,7 +72,9 @@ namespace kagome::network {
       std::unordered_set<common::Hash256> next_implicit;
       for (const auto &x : new_view.heads_) {
         auto t = local_implicit.known_allowed_relay_parents_under(x, std::nullopt);
-        next_implicit.insert(t.begin(), t.end());
+        if (t) {
+          next_implicit.insert(t->begin(), t->end());
+        }
       }
 
       std::vector<common::Hash256> fresh_implicit;

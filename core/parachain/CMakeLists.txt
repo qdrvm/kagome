@@ -51,6 +51,7 @@ target_link_libraries(validator_parachain
     waitable_timer
     kagome_pvf_worker
     runtime_common
+    prospective_parachains
     )
 
 add_library(kagome_pvf_worker

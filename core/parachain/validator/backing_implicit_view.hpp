@@ -10,12 +10,15 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
+#include <outcome/outcome.hpp>
 
 #include "parachain/types.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "blockchain/block_tree.hpp"
+#include "blockchain/block_tree_error.hpp"
 
 namespace kagome::parachain {
 
@@ -51,7 +54,7 @@ namespace kagome::parachain {
     /// This can return the empty slice, which indicates that no relay-parents
     /// are allowed for the para, e.g. if the para is not scheduled at the given
     /// block hash.
-    Option<std::span<const Hash>> known_allowed_relay_parents_under(
+    std::optional<std::span<const Hash>> known_allowed_relay_parents_under(
         const Hash &block_hash,
         const std::optional<ParachainId> &para_id) const;
 
@@ -120,6 +123,7 @@ namespace kagome::parachain {
 
     ImplicitView(std::weak_ptr<ProspectiveParachains> prospective_parachains,
                  std::shared_ptr<runtime::ParachainHost> parachain_host_,
+                 std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::optional<ParachainId> collating_for_);
 
    private:
@@ -145,12 +149,17 @@ namespace kagome::parachain {
     outcome::result<FetchSummary> fetch_fresh_leaf_and_insert_ancestry(
         const Hash &leaf_hash);
 
+        outcome::result<std::optional<BlockNumber>>
+  fetch_min_relay_parents_for_collator(const Hash &leaf_hash,
+                                       BlockNumber leaf_number);
+
     std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
     std::unordered_map<Hash, BlockInfo> block_info_storage;
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::optional<ParachainId> collating_for;
 
     std::weak_ptr<ProspectiveParachains> prospective_parachains_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
   };
 
