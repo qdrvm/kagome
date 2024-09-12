@@ -103,7 +103,7 @@ namespace kagome::parachain::fragment {
       const CandidateHash &candidate_hash) const {
     if (best_chain.contains(candidate_hash)
         || unconnected.contains(candidate_hash)) {
-      return Error::CANDIDATE_ALREADY_KNOWN;
+      return FragmentChainError::CANDIDATE_ALREADY_KNOWN;
     }
     return outcome::success();
   }
@@ -111,11 +111,11 @@ namespace kagome::parachain::fragment {
   outcome::result<void> FragmentChain::check_cycles_or_invalid_tree(
       const Hash &output_head_hash) const {
     if (best_chain.by_parent_head.contains(output_head_hash)) {
-      return Error::CYCLE;
+      return FragmentChainError::CYCLE;
     }
 
     if (best_chain.by_output_head.contains(output_head_hash)) {
-      return Error::MULTIPLE_PATH;
+      return FragmentChainError::MULTIPLE_PATH;
     }
 
     return outcome::success();
@@ -402,99 +402,6 @@ namespace kagome::parachain::fragment {
     }
   }
 
-  outcome::result<void> FragmentChain::check_potential(
-      const HypotheticalOrConcreteCandidate auto &candidate) const {
-    const auto parent_head_hash = candidate.get_parent_head_data_hash();
-
-    if (auto output_head_hash = candidate.get_output_head_data_hash()) {
-      if (parent_head_hash == *output_head_hash) {
-        return Error::ZERO_LENGTH_CYCLE;
-      }
-    }
-
-    auto relay_parent = scope.ancestor(candidate.get_relay_parent());
-    if (!relay_parent) {
-      return Error::RELAY_PARENT_NOT_IN_SCOPE;
-    }
-
-    const auto earliest_rp_of_pending_availability =
-        earliest_relay_parent_pending_availability();
-    if (relay_parent->number < earliest_rp_of_pending_availability.number) {
-      return Error::RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY;
-    }
-
-    if (auto other_candidate =
-            utils::get(best_chain.by_parent_head, parent_head_hash)) {
-      if (scope.get_pending_availability((*other_candidate)->second)) {
-        return Error::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY;
-      }
-
-      if (fork_selection_rule((*other_candidate)->second,
-                              candidate.get_candidate_hash())) {
-        return Error::FORK_CHOICE_RULE;
-      }
-    }
-
-    std::pair<Constraints, Option<BlockNumber>> constraints_and_number;
-    if (auto parent_candidate_ =
-            utils::get(best_chain.by_output_head, parent_head_hash)) {
-      auto parent_candidate = std::find_if(
-          best_chain.chain.begin(), best_chain.chain.end(), [&](const auto &c) {
-            return c.candidate_hash == (*parent_candidate_)->second;
-          });
-      if (parent_candidate == best_chain.chain.end()) {
-        return Error::PARENT_CANDIDATE_NOT_FOUND;
-      }
-
-      auto constraints = scope.base_constraints.apply_modifications(
-          parent_candidate->cumulative_modifications);
-      if (constraints.has_error()) {
-        return Error::COMPUTE_CONSTRAINTS;
-      }
-      constraints_and_number = std::make_pair(
-          std::move(constraints.value()),
-          utils::map(scope.ancestor(parent_candidate->relay_parent()),
-                     [](const auto &rp) { return rp.number; }));
-    } else if (hasher_->blake2b_256(scope.base_constraints.required_parent)
-               == parent_head_hash) {
-      constraints_and_number =
-          std::make_pair(scope.base_constraints, std::nullopt);
-    } else {
-      return outcome::success();
-    }
-    const auto &[constraints, maybe_min_relay_parent_number] =
-        constraints_and_number;
-
-    if (auto output_head_hash = candidate.get_output_head_data_hash()) {
-      OUTCOME_TRY(check_cycles_or_invalid_tree(*output_head_hash));
-    }
-
-    if (candidate.get_commitments() && candidate.get_persisted_validation_data()
-        && candidate.get_validation_code_hash()) {
-      if (Fragment::check_against_constraints(
-              *relay_parent,
-              constraints,
-              candidate.get_commitments()->get(),
-              candidate.get_validation_code_hash()->get(),
-              candidate.get_persisted_validation_data()->get())
-              .has_error()) {
-        return Error::CHECK_AGAINST_CONSTRAINTS;
-      }
-    }
-
-    if (relay_parent->number < constraints.min_relay_parent_number) {
-      return Error::RELAY_PARENT_MOVED_BACKWARDS;
-    }
-
-    if (maybe_min_relay_parent_number) {
-      if (relay_parent->number < *maybe_min_relay_parent_number) {
-        return Error::RELAY_PARENT_MOVED_BACKWARDS;
-      }
-    }
-
-    return outcome::success();
-  }
-
   RelayChainBlockInfo
   FragmentChain::earliest_relay_parent_pending_availability() const {
     for (auto it = best_chain.chain.rbegin(); it != best_chain.chain.rend();
@@ -568,7 +475,7 @@ namespace kagome::parachain::fragment {
   outcome::result<void> FragmentChain::try_adding_seconded_candidate(
       const CandidateEntry &candidate) {
     if (candidate.state == CandidateState::Backed) {
-      return Error::INTRODUCE_BACKED_CANDIDATE;
+      return FragmentChainError::INTRODUCE_BACKED_CANDIDATE;
     }
 
     OUTCOME_TRY(can_add_candidate_as_potential(candidate));

@@ -20,6 +20,7 @@
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/prospective_parachains/fragment_chain.hpp"
+#include "parachain/validator/prospective_parachains/fragment_chain_errors.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"

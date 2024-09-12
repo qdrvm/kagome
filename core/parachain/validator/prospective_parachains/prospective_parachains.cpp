@@ -630,7 +630,7 @@ namespace kagome::parachain {
                                  into_wrapper(candidate, hasher_));
         if (res.has_value()
             || res.error()
-                   == fragment::FragmentChain::CANDIDATE_ALREADY_KNOWN) {
+                   == fragment::FragmentChainError::CANDIDATE_ALREADY_KNOWN) {
           membership.emplace_back(active_leaf);
         } else {
           SL_TRACE(logger,
@@ -750,7 +750,7 @@ namespace kagome::parachain {
         added = true;
       } else {
         if (res.error()
-            == fragment::FragmentChain::Error::CANDIDATE_ALREADY_KNOWN) {
+            == fragment::FragmentChainError::CANDIDATE_ALREADY_KNOWN) {
           SL_TRACE(
               logger,
               "Attempting to introduce an already known candidate. (para={}, "
