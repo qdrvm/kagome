@@ -7,8 +7,6 @@
 #include "api/service/state/requests/get_storage_size.hpp"
 
 #include "common/buffer.hpp"
-#include "primitives/block_id.hpp"
-
 namespace kagome::api::state::request {
 
   outcome::result<void> GetStorageSize::init(
