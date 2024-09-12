@@ -5463,7 +5463,7 @@ namespace kagome::parachain {
                              const Hash &head) {
       if (!is_member_or_potential) {
         SL_TRACE(logger_, "Refusing to second candidate at leaf. Is not a potential member. (candidate_hash={}, leaf_hash={})",
-        candidate_hash, head);
+        candidate_hash.get(), head);
       } else {
         leaves_for_seconding.emplace_back(head);
       }
@@ -5889,6 +5889,6 @@ namespace kagome::parachain {
     auto &peers = *peer_use_count_;
     return SAFE_SHARED(peers) {
       return peers.contains(*audi);
-    }
+    };
   }
 }  // namespace kagome::parachain
