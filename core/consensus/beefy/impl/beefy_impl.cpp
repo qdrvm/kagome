@@ -22,6 +22,7 @@
 #include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/synchronizer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
@@ -29,6 +30,8 @@
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+
+#include "utils/weak_macro.hpp"
 
 // TODO(turuslan): #1651, report equivocation
 
@@ -65,7 +68,8 @@ namespace kagome::network {
           beefy_justification_protocol,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      LazySPtr<network::Synchronizer> synchronizer)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
@@ -82,7 +86,8 @@ namespace kagome::network {
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
-        chain_sub_{std::move(chain_sub_engine)} {
+        chain_sub_{std::move(chain_sub_engine)},
+        synchronizer_{synchronizer} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);
@@ -312,6 +317,7 @@ namespace kagome::network {
       return outcome::success();
     }
     pending_justifications_.emplace(block_number, std::move(justification));
+
     return update();
   }
 
@@ -384,6 +390,7 @@ namespace kagome::network {
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
+    fetching_header_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -398,9 +405,68 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  void BeefyImpl::fetchHeaders() {
+    if (not fetching_header_ or not beefy_genesis_) {
+      return;
+    }
+
+    while (fetching_header_) {
+      const auto blockNumber = fetching_header_->number;
+      if (blockNumber <= *beefy_genesis_) {
+        fetching_header_.reset();
+        return;
+      }
+      auto block_hash = block_tree_->getBlockHash(blockNumber);
+      if (not block_hash) {
+        break;
+      }
+      auto &blockHashOptValue = block_hash.value();
+      if (not blockHashOptValue) {
+        break;
+      }
+      auto blockHeader = block_tree_->getBlockHeader(*blockHashOptValue);
+      if (not blockHeader) {
+        break;
+      }
+
+      const auto &blockHeaderValue = blockHeader.value();
+      if (beefyValidatorsDigest(blockHeaderValue)) {
+        beefy_justification_protocol_.get()->fetchJustification(blockNumber);
+      }
+
+      if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
+        fetching_header_ = *parentInfo;
+      } else {
+        SL_ERROR(log_,
+                 "Failed to get parent info for block {}, fetching stopped",
+                 blockNumber);
+        fetching_header_.reset();
+        return;
+      }
+    }
+
+    if (fetching_header_) {
+      synchronizer_.get()->fetchHeadersBack(
+          *fetching_header_, *beefy_genesis_, true, [WEAK_SELF](auto &&res) {
+            WEAK_LOCK(self);
+            if (self->fetching_header_) {
+              if (not res) {
+                SL_ERROR(
+                    self->log_,
+                    "Fetching stopped during previous error {} for block {}",
+                    res.error().message(),
+                    self->fetching_header_->number);
+                self->fetching_header_.reset();
+                return;
+              }
+              self->fetchHeaders();
+            }
+          });
+    }
+  }
+
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
-
     auto last_genesis = beefy_genesis_;
     BOOST_OUTCOME_TRY(beefy_genesis_,
                       beefy_api_->genesis(grandpa_finalized.hash));
@@ -429,6 +495,7 @@ namespace kagome::network {
     if (grandpa_finalized.number < *beefy_genesis_) {
       return outcome::success();
     }
+
     for (auto pending_it = pending_justifications_.begin();
          pending_it != pending_justifications_.end()
          and pending_it->first <= grandpa_finalized.number;) {
@@ -436,6 +503,12 @@ namespace kagome::network {
           apply(pending_justifications_.extract(pending_it++).mapped(), false);
     }
     while (next_digest_ <= grandpa_finalized.number) {
+      if (auto r = block_tree_->getBlockHash(next_digest_);
+          not r or not r.value()) {
+        fetching_header_ = grandpa_finalized;
+        fetchHeaders();
+      }
+
       OUTCOME_TRY(
           found,
           findValidators(next_digest_,

@@ -263,3 +263,6 @@ test-polkadot-functional-0011-async-backing-6-seconds-rate:
 
 test-polkadot-functional-0013-systematic-chunk-recovery:
 	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0013-systematic-chunk-recovery.zndsl")
+
+test-custom-0001-validators-warp-sync:
+	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/custom/0001-validators-warp-sync.zndsl")

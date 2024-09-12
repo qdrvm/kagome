@@ -174,6 +174,8 @@ jobs:
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
           - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
             test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+          - name: "Warp sync from polkadot node"
+            test: "test-custom-0001-validators-warp-sync"
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4

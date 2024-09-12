@@ -102,7 +102,8 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      common::MainThreadPool &main_thread_pool)
+      common::MainThreadPool &main_thread_pool,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -119,7 +120,8 @@ namespace kagome::network {
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
         main_pool_handler_{
-            poolHandlerReadyMake(app_state_manager, main_thread_pool)} {
+            poolHandlerReadyMake(app_state_manager, main_thread_pool)},
+        block_storage_{std::move(block_storage)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -131,6 +133,7 @@ namespace kagome::network {
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(main_pool_handler_);
+    BOOST_ASSERT(block_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -1413,5 +1416,99 @@ namespace kagome::network {
     generations_.clear();
     ancestry_.clear();
     recent_requests_.clear();
+  }
+
+  bool SynchronizerImpl::fetchHeadersBack(const primitives::BlockInfo &max,
+                                          primitives::BlockNumber min,
+                                          bool isFinalized,
+                                          CbResultVoid cb) {
+    auto initialBlockNumber = max.number;
+    if (initialBlockNumber < min) {
+      return false;
+    }
+
+    BlocksRequest request{
+        .fields = BlockAttribute::HEADER,
+        .from = initialBlockNumber,
+        .direction = Direction::DESCENDING,
+        .max = initialBlockNumber - min + 1,
+        .multiple_justifications = false,
+    };
+    auto chosen =
+        chooseJustificationPeer(initialBlockNumber, request.fingerprint());
+    if (not chosen) {
+      return false;
+    }
+    auto expected = max;
+
+    auto cb2 = [weak{weak_from_this()},
+                expected,
+                isFinalized,
+                cb{std::move(cb)},
+                peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
+      auto self = weak.lock();
+      if (not self) {
+        return cb(Error::SHUTTING_DOWN);
+      }
+
+      self->busy_peers_.erase(peer);
+      if (not r) {
+        return cb(r.error());
+      }
+
+      auto &blocks = r.value().blocks;
+      if (blocks.empty()) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      for (auto &b : blocks) {
+        auto &header = b.header;
+
+        if (not header) {
+          return cb(Error::EMPTY_RESPONSE);
+        }
+
+        auto &headerValue = header.value();
+        primitives::calculateBlockHash(headerValue, *self->hasher_);
+        const auto &headerInfo = headerValue.blockInfo();
+
+        if (headerInfo != expected) {
+          SL_ERROR(self->log_,
+                   "Header info is different from expected, block #{}",
+                   expected.number);
+          return cb(Error::INVALID_HASH);
+        }
+
+        if (auto er = self->block_storage_->putBlockHeader(headerValue);
+            er.has_error()) {
+          SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
+          return cb(er.error());
+        }
+
+        if (isFinalized) {
+          if (auto er = self->block_storage_->assignNumberToHash(headerInfo);
+              er.has_error()) {
+            SL_ERROR(
+                self->log_, "Failed to assign number to hash: {}", er.error());
+            return cb(er.error());
+          }
+        }
+        const auto headerNumber = headerInfo.number;
+        SL_TRACE(self->log_, "Block #{} is successfully stored", headerNumber);
+        if (const auto parentInfo = headerValue.parentInfo(); parentInfo) {
+          expected = *parentInfo;
+        } else if (headerNumber == 0) {
+          break;
+        } else {
+          SL_ERROR(self->log_,
+                   "Parent info is not provided for block #{}",
+                   headerNumber);
+          return cb(Error::EMPTY_RESPONSE);
+        }
+      }
+      return cb(outcome::success());
+    };
+
+    fetch(*chosen, std::move(request), "header", std::move(cb2));
+    return true;
   }
 }  // namespace kagome::network
