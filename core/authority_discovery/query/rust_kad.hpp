@@ -43,8 +43,9 @@ namespace kagome::rust_kad {
     uint32_t connection_idle = 60;
   };
   struct Request {
-    SCALE_TIE(1);
+    SCALE_TIE(2);
     Buffer key;
+    std::optional<Buffer> put_value;
   };
   struct Response {
     SCALE_TIE(2);
@@ -61,6 +62,7 @@ namespace kagome::rust_kad {
         const application::ChainSpec &chain_spec);
 
     void lookup(BufferView key, Cb cb);
+    void put(BufferView key, BufferView value);
 
     void write();
     void read();
