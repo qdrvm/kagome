@@ -1476,14 +1476,15 @@ namespace kagome::network {
               return cb(er.error());
             }
         }
-        SL_TRACE(self->log_, "Block #{} is successfully stored", headerInfo.number);
+        const auto headerNumber = headerInfo.number;
+        SL_TRACE(self->log_, "Block #{} is successfully stored", headerNumber);
         if (const auto parentInfo = headerValue.parentInfo(); parentInfo) {
           expected = *parentInfo;
-        } else if (headerInfo.number != 0) {
-          SL_ERROR(self->log_, "Parent info is not provided for block #{}", headerInfo.number);
-          return cb(Error::EMPTY_RESPONSE);
-        } else {
+        } else if (headerNumber == 0) {
           break;
+        } else {
+          SL_ERROR(self->log_, "Parent info is not provided for block #{}", headerNumber);
+          return cb(Error::EMPTY_RESPONSE);
         }
       }
       return cb(outcome::success());
