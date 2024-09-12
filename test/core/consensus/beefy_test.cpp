@@ -22,6 +22,7 @@
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/protocols/beefy_protocol_mock.hpp"
+#include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
@@ -60,6 +61,7 @@ using kagome::network::BeefyImpl;
 using kagome::network::BeefyProtocol;
 using kagome::network::BeefyProtocolMock;
 using kagome::network::BeefyThreadPool;
+using kagome::network::SynchronizerMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -77,9 +79,7 @@ struct Timer : libp2p::basic::Scheduler {
   std::chrono::milliseconds now() const override {
     abort();
   }
-  Handle scheduleImpl(Callback &&cb,
-                      std::chrono::milliseconds,
-                      bool) override {
+  Handle scheduleImpl(Callback &&cb, std::chrono::milliseconds, bool) override {
     cb_.emplace(std::move(cb));
     return Handle{};
   }
@@ -132,6 +132,8 @@ struct BeefyTest : testing::Test {
       return genesisVoters();
     });
     EXPECT_CALL(*timeline_, wasSynchronized()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*synchronizer, fetchHeadersBack(_, _, _, _))
+        .WillRepeatedly(Return(true));
   }
 
   void makePeers(uint32_t n) {
@@ -213,7 +215,8 @@ struct BeefyTest : testing::Test {
           testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
           nullptr,
           nullptr,
-          peer.chain_sub_);
+          peer.chain_sub_,
+          testutil::sptr_to_lazy<kagome::network::Synchronizer>(synchronizer));
       app_state_manager->start();
     }
   }
@@ -304,6 +307,8 @@ struct BeefyTest : testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
   std::shared_ptr<TimelineMock> timeline_ = std::make_shared<TimelineMock>();
+  std::shared_ptr<SynchronizerMock> synchronizer =
+      std::make_shared<SynchronizerMock>();
 
   std::vector<BlockHeader> blocks_;
   BlockNumber min_delta_ = 1;
