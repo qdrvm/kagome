@@ -51,7 +51,7 @@ namespace kagome::parachain {
     /// This can return the empty slice, which indicates that no relay-parents
     /// are allowed for the para, e.g. if the para is not scheduled at the given
     /// block hash.
-    std::span<const Hash> knownAllowedRelayParentsUnder(
+    Option<std::span<const Hash>> known_allowed_relay_parents_under(
         const Hash &block_hash,
         const std::optional<ParachainId> &para_id) const;
 

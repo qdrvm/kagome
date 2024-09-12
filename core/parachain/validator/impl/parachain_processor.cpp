@@ -48,10 +48,10 @@
 #endif  // TRY_GET_OR_RET
 
 #ifndef CHECK_OR_RET
-#define CHECK_OR_RET(op) \
-  if (!(op)) {           \
+#define CHECK_OR_RET(op)                             \
+  if (!(op)) {                                       \
     SL_TRACE(logger_, "--++---> NO SUMMARY. EXIT."); \
-    return;              \
+    return;                                          \
   }
 #endif  // CHECK_OR_RET
 
@@ -208,7 +208,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(block_tree_);
     app_state_manager.takeControl(*this);
 
-    our_current_state_.implicit_view.emplace(prospective_parachains_);
+    our_current_state_.implicit_view.emplace(
+        prospective_parachains_, parachain_host_, std::nullopt);
     BOOST_ASSERT(our_current_state_.implicit_view);
 
     metrics_registry_->registerGaugeFamily(
@@ -578,8 +579,9 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
     REINVOKE(*main_pool_handler_, onViewUpdated, event);
     CHECK_OR_RET(canProcessParachains().has_value());
-
     const auto &relay_parent = event.new_head.hash();
+
+    /// init `prospective_parachains` subsystem
     if (const auto r =
             prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
                 .new_head = {event.new_head},
@@ -593,8 +595,13 @@ namespace kagome::parachain {
               r.error());
     }
 
+    /// init `backing_store` subsystem
     backing_store_->onActivateLeaf(relay_parent);
-    createBackingTask(relay_parent, event.new_head);
+
+    /// init `backing` subsystem
+    create_backing_task(relay_parent, event.new_head, event.lost);
+
+    /// update our `view` on remote nodes
     SL_TRACE(logger_,
              "Update my view.(new head={}, finalized={}, leaves={})",
              relay_parent,
@@ -603,6 +610,7 @@ namespace kagome::parachain {
     broadcastView(event.view);
     broadcastViewToGroup(relay_parent, event.view);
 
+    /// update `statements_distribution` subsystem
     {
       auto new_relay_parents =
           our_current_state_.implicit_view->all_allowed_relay_parents();
@@ -623,28 +631,11 @@ namespace kagome::parachain {
         }
       }
     }
-    new_leaf_fragment_tree_updates(relay_parent);
+    new_leaf_fragment_chain_updates(relay_parent);
 
     // need to lock removing session infoes
-    std::vector<
-        std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>>
-        _keeper_;
-    _keeper_.reserve(event.lost.size());
-
     for (const auto &lost : event.lost) {
-      SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
-      auto relay_parent_state = tryGetStateByRelayParent(lost);
-      if (relay_parent_state) {
-        _keeper_.emplace_back(relay_parent_state->get().per_session_state);
-      }
-
       our_current_state_.active_leaves.erase(lost);
-
-      std::vector<Hash> pruned =
-          our_current_state_.implicit_view->deactivate_leaf(lost);
-      for (const auto removed : pruned) {
-        our_current_state_.state_by_relay_parent.erase(removed);
-      }
 
       {  /// remove cancelations
         auto &container = our_current_state_.collation_requests_cancel_handles;
@@ -666,97 +657,10 @@ namespace kagome::parachain {
           }
         }
       }
-
-      our_current_state_.per_leaf.erase(lost);
-      our_current_state_.state_by_relay_parent.erase(lost);
     }
+
     our_current_state_.active_leaves[relay_parent] =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
-
-    for (auto it = our_current_state_.per_candidate.begin();
-         it != our_current_state_.per_candidate.end();) {
-      if (our_current_state_.state_by_relay_parent.find(it->second.relay_parent)
-          != our_current_state_.state_by_relay_parent.end()) {
-        ++it;
-      } else {
-        it = our_current_state_.per_candidate.erase(it);
-      }
-    }
-
-    auto it_rp = our_current_state_.state_by_relay_parent.find(relay_parent);
-    if (it_rp == our_current_state_.state_by_relay_parent.end()) {
-      return;
-    }
-
-    std::vector<Hash> fresh_relay_parents;
-    if (!it_rp->second.prospective_parachains_mode) {
-      if (our_current_state_.per_leaf.find(relay_parent)
-          != our_current_state_.per_leaf.end()) {
-        return;
-      }
-
-      our_current_state_.per_leaf.emplace(
-          relay_parent,
-          ActiveLeafState{
-              .prospective_parachains_mode = std::nullopt,
-              .seconded_at_depth = {},
-          });
-      fresh_relay_parents.emplace_back(relay_parent);
-    } else {
-      auto frps =
-          our_current_state_.implicit_view->knownAllowedRelayParentsUnder(
-              relay_parent, std::nullopt);
-
-      std::unordered_map<ParachainId, std::map<size_t, CandidateHash>>
-          seconded_at_depth;
-      for (const auto &[c_hash, cd] : our_current_state_.per_candidate) {
-        if (!cd.seconded_locally) {
-          continue;
-        }
-
-        fragment::FragmentTreeMembership membership =
-            prospective_parachains_->answerTreeMembershipRequest(cd.para_id,
-                                                                 c_hash);
-        for (const auto &[h, depths] : membership) {
-          if (h == relay_parent) {
-            auto &mm = seconded_at_depth[cd.para_id];
-            for (const auto depth : depths) {
-              mm.emplace(depth, c_hash);
-            }
-          }
-        }
-      }
-
-      our_current_state_.per_leaf.emplace(
-          relay_parent,
-          ActiveLeafState{
-              .prospective_parachains_mode =
-                  it_rp->second.prospective_parachains_mode,
-              .seconded_at_depth = std::move(seconded_at_depth),
-          });
-
-      if (frps.empty()) {
-        SL_WARN(logger_,
-                "Implicit view gave no relay-parents. (leaf_hash={})",
-                relay_parent);
-        fresh_relay_parents.emplace_back(relay_parent);
-      } else {
-        fresh_relay_parents.insert(
-            fresh_relay_parents.end(), frps.begin(), frps.end());
-      }
-    }
-
-    for (const auto &maybe_new : fresh_relay_parents) {
-      if (our_current_state_.state_by_relay_parent.find(maybe_new)
-          != our_current_state_.state_by_relay_parent.end()) {
-        continue;
-      }
-      if (auto r = block_tree_->getBlockHeader(maybe_new); r.has_value()) {
-        createBackingTask(maybe_new, r.value());
-      } else {
-        SL_ERROR(logger_, "No header found.(relay parent={})", maybe_new);
-      }
-    }
 
     auto remove_if = [](bool eq, auto &it, auto &cont) {
       if (eq) {
@@ -988,7 +892,7 @@ namespace kagome::parachain {
           f(i);
         }
       }
-    };
+    }
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -1007,8 +911,8 @@ namespace kagome::parachain {
   }
 
   outcome::result<consensus::Randomness>
-  ParachainProcessorImpl::getBabeRandomness(
-      const primitives::BlockHeader &block_header) {
+  ParachainProcessorImpl::getBabeRandomness(const RelayHash &relay_parent) {
+    OUTCOME_TRY(block_header, block_tree_->getBlockHeader(relay_parent));
     OUTCOME_TRY(babe_header, consensus::babe::getBabeBlockHeader(block_header));
     OUTCOME_TRY(epoch,
                 slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
@@ -1020,9 +924,9 @@ namespace kagome::parachain {
   }
 
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
-  ParachainProcessorImpl::initNewBackingTask(
+  ParachainProcessorImpl::construct_per_relay_parent_state(
       const primitives::BlockHash &relay_parent,
-      const network::HashedBlockHeader &block_header) {
+      const ProspectiveParachainsModeOpt &mode) {
     /**
      * It first checks if our node is a parachain validator for the relay
      * parent. If it is not, it returns an error. If the node is a validator, it
@@ -1048,7 +952,7 @@ namespace kagome::parachain {
                 parachain_host_->session_index_for_child(relay_parent));
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(relay_parent, session_index));
-    OUTCOME_TRY(randomness, getBabeRandomness(block_header));
+    OUTCOME_TRY(randomness, getBabeRandomness(relay_parent));
     OUTCOME_TRY(disabled_validators_,
                 parachain_host_->disabled_validators(relay_parent));
     const auto &[validator_groups, group_rotation_info] = groups;
@@ -1091,7 +995,8 @@ namespace kagome::parachain {
       validator_index = validator->validatorIndex();
     }
 
-    OUTCOME_TRY(global_v_index, signer_factory_->getAuthorityValidatorIndex(relay_parent));
+    OUTCOME_TRY(global_v_index,
+                signer_factory_->getAuthorityValidatorIndex(relay_parent));
     if (!global_v_index) {
       SL_TRACE(logger_, "Not a validator, or no para keys.");
       return Error::NOT_A_VALIDATOR;
@@ -1099,9 +1004,9 @@ namespace kagome::parachain {
 
     auto per_session_state = per_session_->get_or_insert(session_index, [&] {
       grid::Views grid_view = grid::makeViews(
-            session_info->validator_groups,
-            grid::shuffle(session_info->discovery_keys.size(), randomness),
-            *global_v_index);
+          session_info->validator_groups,
+          grid::shuffle(session_info->discovery_keys.size(), randomness),
+          *global_v_index);
 
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
@@ -1114,7 +1019,8 @@ namespace kagome::parachain {
 
     std::optional<network::GroupIndex> our_group;
     if (validator_index) {
-      our_group = per_session_state->value().groups.byValidatorIndex(*validator_index);
+      our_group =
+          per_session_state->value().groups.byValidatorIndex(*validator_index);
       if (our_group) {
         /// update peers of our group
         const auto &group = session_info->validator_groups[*our_group];
@@ -1204,8 +1110,6 @@ namespace kagome::parachain {
 
     std::optional<StatementStore> statement_store;
     if (mode) {
-      [[maybe_unused]] const auto _ =
-          our_current_state_.implicit_view->activate_leaf(relay_parent);
       statement_store.emplace(per_session_state->value().groups);
     }
 
@@ -1222,12 +1126,12 @@ namespace kagome::parachain {
     auto local_validator = [&]() -> std::optional<LocalValidatorState> {
       if (validator_index) {
         return find_active_validator_state(*validator_index,
-                                    per_session_state->value().groups,
-                                    cores,
-                                    group_rotation_info,
-                                    maybe_claim_queue,
-                                    seconding_limit,
-                                    mode->max_candidate_depth);
+                                           per_session_state->value().groups,
+                                           cores,
+                                           group_rotation_info,
+                                           maybe_claim_queue,
+                                           seconding_limit,
+                                           mode->max_candidate_depth);
       }
       return LocalValidatorState{};
     }();
@@ -1340,19 +1244,131 @@ namespace kagome::parachain {
     };
   }
 
-  void ParachainProcessorImpl::createBackingTask(
+  void ParachainProcessorImpl::create_backing_task(
       const primitives::BlockHash &relay_parent,
-      const network::HashedBlockHeader &block_header) {
+      const network::HashedBlockHeader &block_header,
+      const std::vector<primitives::BlockHash> &lost) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
-    auto rps_result = initNewBackingTask(relay_parent, block_header);
-    if (rps_result.has_value()) {
-      storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
+
+    using LeafHasProspectiveParachains =
+        std::optional<outcome::result<ProspectiveParachainsMode>>;
+    LeafHasProspectiveParachains res;
+
+    if (auto mode =
+            prospective_parachains_->prospectiveParachainsMode(relay_parent)) {
+      if (auto r =
+              our_current_state_.implicit_view->activate_leaf(relay_parent);
+          r.has_error()) {
+        res = r.as_failure()
+      } else {
+        res = *mode;
+      }
+    } else {
+      res = std::nullopt;
+    }
+
+    for (const auto &deactivated : lost) {
+      our_current_state_.per_leaf.erase(deactivated);
+      our_current_state_.implicit_view->deactivate_leaf(deactivated);
+    }
+
+    std::vector<
+        std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>>
+        _keeper_;
+    _keeper_.reserve(lost.size());
+    {
+      std::unordered_set<Hash> remaining;
+      for (const auto &[h, _] : our_current_state_.per_leaf) {
+        remaining.emplace(h);
+      }
+      for (const auto &h :
+           our_current_state_.implicit_view->all_allowed_relay_parents()) {
+        remaining.emplace(h);
+      }
+
+      for (auto it = our_current_state_.state_by_relay_parent.begin();
+           it != our_current_state_.state_by_relay_parent.end();) {
+        if (remaining.contains(it->first)) {
+          ++it;
+        } else {
+          _keeper_.emplace_back(it->second.per_session_state);
+          it = our_current_state_.state_by_relay_parent.erase(it);
+        }
+      }
+    }
+
+    for (auto it = our_current_state_.per_candidate.begin();
+         it != our_current_state_.per_candidate.end();) {
+      if (our_current_state_.state_by_relay_parent.contains(
+              it->second.relay_parent)) {
+        ++it;
+      } else {
+        it = our_current_state_.per_candidate.erase(it);
+      }
+    }
+
+    std::vector<Hash> fresh_relay_parents;
+    ProspectiveParachainsModeOpt leaf_mode;
+    if (!res) {
+      if (our_current_state_.per_leaf.contains_key(relay_parent)) {
+        return;
+      }
+
+      our_current_state_.per_leaf.insert_or_assign(relay_parent,
+                                                   SecondedList{});
+      fresh_relay_parents.emplace_back(relay_parent);
+      leaf_mode = std::nullopt;
+    } else if (res->has_value()) {
+      const ActiveLeafState active_leaf_state = res->value();
+      our_current_state_.per_leaf.insert_or_assign(relay_parent,
+                                                   active_leaf_state);
+
+      if (auto f = our_current_state_.implicit_view
+                       ->known_allowed_relay_parents_under(relay_parent,
+                                                           std::nullopt)) {
+        fresh_relay_parents.insert(
+            fresh_relay_parents.end(), f.begin(), f.end());
+        leaf_mode = res->value();
+      } else {
+        SL_TRACE(logger_,
+                 "Implicit view gave no relay-parents. (leaf_hash={})",
+                 relay_parent);
+        fresh_relay_parents.emplace_back(relay_parent);
+        leaf_mode = res->value();
+      }
+    } else {
       SL_TRACE(
           logger_,
-          "Relay parent state was not created. (relay parent={}, error={})",
+          "Failed to load implicit view for leaf. (leaf_hash={}, error={})",
           relay_parent,
-          rps_result.error());
+          res.error());
+
+      return;
+    }
+
+    for (const auto &maybe_new : fresh_relay_parents) {
+      if (our_current_state_.state_by_relay_parent.contains(maybe_new)) {
+        continue;
+      }
+
+      ProspectiveParachainsModeOpt mode_;
+      if (auto l = utils::get(our_current_state_.per_leaf, maybe_new)) {
+        mode_ = from((*l)->second);
+      } else {
+        mode_ = leaf_mode;
+      }
+
+      auto rps_result = construct_per_relay_parent_state(maybe_new, mode_);
+      if (rps_result.has_value()) {
+        our_current_state_.state_by_relay_parent.insert_or_assign(
+            relay_parent, std::move(val));
+      } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
+        SL_TRACE(
+            logger_,
+            "Relay parent state was not created. (relay parent={}, error={})",
+            relay_parent,
+            rps_result.error());
+      }
     }
   }
 
@@ -1644,7 +1660,11 @@ namespace kagome::parachain {
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
-      SL_WARN(logger_, "--++---> {} 5  (claimed_group_index={}, grid_view.size={})", __PRETTY_FUNCTION__, manifest_summary.claimed_group_index, grid_topology.size());
+      SL_WARN(logger_,
+              "--++---> {} 5  (claimed_group_index={}, grid_view.size={})",
+              __PRETTY_FUNCTION__,
+              manifest_summary.claimed_group_index,
+              grid_topology.size());
       return {};
     }
 
@@ -1688,7 +1708,12 @@ namespace kagome::parachain {
 
     auto &local_validator = *relay_parent_state->get().local_validator;
 
-    SL_WARN(logger_, "--++---> Import manifest. (peer_id={}, relay_parent={}, candidate_hash={})", peer_id, relay_parent, candidate_hash);
+    SL_WARN(logger_,
+            "--++---> Import manifest. (peer_id={}, relay_parent={}, "
+            "candidate_hash={})",
+            peer_id,
+            relay_parent,
+            candidate_hash);
     auto acknowledge_res = local_validator.grid_tracker.import_manifest(
         grid_topology,
         relay_parent_state->get().per_session_state->value().groups,
@@ -2195,11 +2220,12 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handle_incoming_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessageStatement &stm) {
-    SL_TRACE(logger_,
-             "--++---> `StatementDistributionMessageStatement`. (relay_parent={}, "
-             "candidate_hash={})",
-             stm.relay_parent,
-             candidateHash(getPayload(stm.compact)));
+    SL_TRACE(
+        logger_,
+        "--++---> `StatementDistributionMessageStatement`. (relay_parent={}, "
+        "candidate_hash={})",
+        stm.relay_parent,
+        candidateHash(getPayload(stm.compact)));
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger_,
@@ -2779,25 +2805,25 @@ namespace kagome::parachain {
                                   candidate_hash);
   }
 
-  void ParachainProcessorImpl::new_confirmed_candidate_fragment_tree_updates(
+  void ParachainProcessorImpl::new_confirmed_candidate_fragment_chain_updates(
       const HypotheticalCandidate &candidate) {
-    fragment_tree_update_inner(std::nullopt, std::nullopt, {candidate});
+    fragment_chain_update_inner(std::nullopt, std::nullopt, {candidate});
   }
 
-  void ParachainProcessorImpl::new_leaf_fragment_tree_updates(
+  void ParachainProcessorImpl::new_leaf_fragment_chain_updates(
       const Hash &leaf_hash) {
-    fragment_tree_update_inner({leaf_hash}, std::nullopt, std::nullopt);
+    fragment_chain_update_inner({leaf_hash}, std::nullopt, std::nullopt);
   }
 
-  void
-  ParachainProcessorImpl::prospective_backed_notification_fragment_tree_updates(
-      ParachainId para_id, const Hash &para_head) {
+  void ParachainProcessorImpl::
+      prospective_backed_notification_fragment_chain_updates(
+          ParachainId para_id, const Hash &para_head) {
     std::pair<std::reference_wrapper<const Hash>, ParachainId> p{{para_head},
                                                                  para_id};
-    fragment_tree_update_inner(std::nullopt, p, std::nullopt);
+    fragment_chain_update_inner(std::nullopt, p, std::nullopt);
   }
 
-  void ParachainProcessorImpl::fragment_tree_update_inner(
+  void ParachainProcessorImpl::fragment_chain_update_inner(
       std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
       std::optional<std::pair<std::reference_wrapper<const Hash>, ParachainId>>
           required_parent_info,
@@ -2810,8 +2836,9 @@ namespace kagome::parachain {
       hypotheticals.emplace_back(known_hypotheticals->get());
     }
 
-    auto frontier = prospective_parachains_->answer_hypothetical_membership_request(
-        hypotheticals, active_leaf_hash, false);
+    auto frontier =
+        prospective_parachains_->answer_hypothetical_membership_request(
+            hypotheticals, active_leaf_hash, false);
     for (const auto &[hypo, membership] : frontier) {
       if (membership.empty()) {
         continue;
@@ -2912,7 +2939,7 @@ namespace kagome::parachain {
     send_cluster_candidate_statements(
         candidate_hash, relayParent(post_confirmation.hypothetical));
 
-    new_confirmed_candidate_fragment_tree_updates(
+    new_confirmed_candidate_fragment_chain_updates(
         post_confirmation.hypothetical);
   }
 
@@ -3693,7 +3720,7 @@ namespace kagome::parachain {
     provide_candidate_to_grid(
         candidate_hash, relay_parent_state_opt->get(), confirmed, session_info);
 
-    prospective_backed_notification_fragment_tree_updates(
+    prospective_backed_notification_fragment_chain_updates(
         confirmed.para_id(), confirmed.para_head());
   }
 
@@ -4389,8 +4416,8 @@ namespace kagome::parachain {
               summary->group_id,
               relay_parent);
           if (rp_state.prospective_parachains_mode) {
-            prospective_parachains_->candidateBacked(para_id,
-                                                     summary->candidate);
+            prospective_parachains_->candidate_backed(para_id,
+                                                      summary->candidate);
             unblockAdvertisements(
                 rp_state, para_id, backed->candidate.descriptor.para_head_hash);
             statementDistributionBackedCandidate(summary->candidate);
@@ -5049,7 +5076,7 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
-    
+
     auto p = scale::encode(data).value();
     std::string s = fmt::format("stored data: ");
     for (const auto m : p) {
@@ -5300,7 +5327,7 @@ namespace kagome::parachain {
     for (const auto &[hash, mode] : active_leaves) {
       if (mode) {
         for (const auto &h :
-             implicit_view.knownAllowedRelayParentsUnder(hash, para_id)) {
+             implicit_view.known_allowed_relay_parents_under(hash, para_id)) {
           if (h == relay_parent) {
             return true;
           }
@@ -5472,8 +5499,8 @@ namespace kagome::parachain {
     for (const auto &[head, leaf_state] : active_leaves) {
       if (leaf_state.prospective_parachains_mode) {
         const auto allowed_parents_for_para =
-            implicit_view.knownAllowedRelayParentsUnder(head,
-                                                        {candidate_para.get()});
+            implicit_view.known_allowed_relay_parents_under(
+                head, {candidate_para.get()});
         if (std::find(allowed_parents_for_para.begin(),
                       allowed_parents_for_para.end(),
                       candidate_relay_parent.get())
@@ -5888,6 +5915,6 @@ namespace kagome::parachain {
     auto &peers = *peer_use_count_;
     return SAFE_SHARED(peers) {
       return peers.contains(*audi);
-    };
+    }
   }
 }  // namespace kagome::parachain

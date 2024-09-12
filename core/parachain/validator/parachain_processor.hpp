@@ -39,7 +39,7 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/impl/statements_store.hpp"
-#include "parachain/validator/prospective_parachains.hpp"
+#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
@@ -296,7 +296,7 @@ namespace kagome::parachain {
     using WorkersContext = boost::asio::io_context;
     using WorkGuard = boost::asio::executor_work_guard<
         boost::asio::io_context::executor_type>;
-    using SecondingAllowed = std::optional<fragment::FragmentTreeMembership>;
+    using SecondingAllowed = std::optional<std::vector<Hash>>;
 
     struct ValidateAndSecondResult {
       outcome::result<void> result;
@@ -645,12 +645,12 @@ namespace kagome::parachain {
         ParachainId para_id) const;
     void send_cluster_candidate_statements(const CandidateHash &candidate_hash,
                                            const RelayHash &relay_parent);
-    void new_confirmed_candidate_fragment_tree_updates(
+    void new_confirmed_candidate_fragment_chain_updates(
         const HypotheticalCandidate &candidate);
-    void new_leaf_fragment_tree_updates(const Hash &leaf_hash);
-    void prospective_backed_notification_fragment_tree_updates(
+    void new_leaf_fragment_chain_updates(const Hash &leaf_hash);
+    void prospective_backed_notification_fragment_chain_updates(
         ParachainId para_id, const Hash &para_head);
-    void fragment_tree_update_inner(
+    void fragment_chain_update_inner(
         std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
         std::optional<std::pair<std::reference_wrapper<const Hash>,
                                 ParachainId>> required_parent_info,
@@ -662,7 +662,7 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         GroupIndex group_index);
     outcome::result<consensus::Randomness> getBabeRandomness(
-        const primitives::BlockHeader &block_header);
+        const RelayHash &relay_parent);
     outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
     fetch_claim_queue(const RelayHash &relay_parent);
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
@@ -1005,32 +1005,34 @@ namespace kagome::parachain {
         ParachainProcessorImpl::RelayParentState &relay_parent_state);
 
     /**
-     * The `createBackingTask` function is responsible for creating a new
+     * The `create_backing_task` function is responsible for creating a new
      * backing task for a given relay parent. It first asserts that the function
      * is running in the main thread context. Then, it initializes a new backing
-     * task for the relay parent by calling the `initNewBackingTask` function.
-     * If the initialization is successful, it stores the state of the relay
-     * parent by calling the `storeStateByRelayParent` function. If the
-     * initialization fails and the error is not due to the absence of a key, it
-     * logs an error message.
+     * task for the relay parent by calling the
+     * `construct_per_relay_parent_state` function. If the initialization is
+     * successful, it stores the state of the relay parent by calling the
+     * `storeStateByRelayParent` function. If the initialization fails and the
+     * error is not due to the absence of a key, it logs an error message.
      *
      * @param relay_parent The hash of the relay parent block for which the
      * backing task is to be created.
      */
-    void createBackingTask(const primitives::BlockHash &relay_parent,
-                           const network::HashedBlockHeader &block_header);
+    void create_backing_task(
+        const primitives::BlockHash &relay_parent,
+        const network::HashedBlockHeader &block_header,
+        const std::vector<primitives::BlockHash> &deactivated);
 
     /**
-     * @brief The `initNewBackingTask` function is responsible for initializing
-     * a new backing task for a given relay parent.
+     * @brief The `construct_per_relay_parent_state` function is responsible for
+     * initializing a new backing task for a given relay parent.
      * @param relay_parent The hash of the relay parent block for which the
      * backing task is to be created.
      * @return A `RelayParentState` object that contains the assignment,
      * validator index, required collator, and table context.
      */
-    outcome::result<RelayParentState> initNewBackingTask(
+    outcome::result<RelayParentState> construct_per_relay_parent_state(
         const primitives::BlockHash &relay_parent,
-        const network::HashedBlockHeader &block_header);
+        const ProspectiveParachainsModeOpt &mode);
 
     void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
 

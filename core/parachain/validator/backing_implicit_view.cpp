@@ -103,17 +103,16 @@ namespace kagome::parachain {
         });
   }
 
-  std::span<const Hash> ImplicitView::knownAllowedRelayParentsUnder(
+  Option<std::span<const Hash>> ImplicitView::known_allowed_relay_parents_under(
       const Hash &block_hash, const std::optional<ParachainId> &para_id) const {
-    if (auto it = block_info_storage.find(block_hash);
-        it != block_info_storage.end()) {
+    if (auto it = block_info_storage.find(block_hash); it != block_info_storage.end()) {
       const BlockInfo &block_info = it->second;
       if (block_info.maybe_allowed_relay_parents) {
         return block_info.maybe_allowed_relay_parents->allowedRelayParentsFor(
             para_id, block_info.block_number);
       }
     }
-    return {};
+    return std::nullopt;
   }
 
   std::vector<Hash> ImplicitView::deactivate_leaf(const Hash &leaf_hash) {

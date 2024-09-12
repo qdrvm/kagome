@@ -21,6 +21,7 @@
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "primitives/common.hpp"
 #include "utils/lru.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::network {
 
@@ -70,7 +71,7 @@ namespace kagome::network {
         const View &new_view, const parachain::ImplicitView &local_implicit) {
       std::unordered_set<common::Hash256> next_implicit;
       for (const auto &x : new_view.heads_) {
-        auto t = local_implicit.knownAllowedRelayParentsUnder(x, std::nullopt);
+        auto t = local_implicit.known_allowed_relay_parents_under(x, std::nullopt);
         next_implicit.insert(t.begin(), t.end());
       }
 

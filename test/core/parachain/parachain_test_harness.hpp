@@ -20,7 +20,7 @@
 //#include "parachain/validator/fragment_tree.hpp"
 //#include "parachain/validator/impl/candidates.hpp"
 //#include "parachain/validator/parachain_processor.hpp"
-//#include "parachain/validator/prospective_parachains.hpp"
+//#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"

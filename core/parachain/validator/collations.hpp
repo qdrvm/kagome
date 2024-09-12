@@ -31,18 +31,19 @@ namespace kagome::parachain {
   };
   using ProspectiveParachainsModeOpt = std::optional<ProspectiveParachainsMode>;
 
-  struct ActiveLeafState {
-    ProspectiveParachainsModeOpt prospective_parachains_mode;
-    /// The candidates seconded at various depths under this active
-    /// leaf with respect to parachain id. A candidate can only be
-    /// seconded when its hypothetical frontier under every active leaf
-    /// has an empty entry in this map.
-    ///
-    /// When prospective parachains are disabled, the only depth
-    /// which is allowed is 0.
-    std::unordered_map<ParachainId, std::map<size_t, CandidateHash>>
-        seconded_at_depth;
-  };
+  using SecondedList = std::unordered_set<ParachainId>;
+  using ActiveLeafState = boost::variant<ProspectiveParachainsMode, SecondedList>;
+
+  inline ProspectiveParachainsModeOpt from(const ActiveLeafState &state) {
+    return visit_in_place(
+      state,
+      [](const ProspectiveParachainsMode &v) -> ProspectiveParachainsModeOpt {
+        return v;
+      },
+      [](const SecondedList &) -> ProspectiveParachainsModeOpt {
+        return std::nullopt;
+      });
+  }
 
   /// The status of the collations.
   enum struct CollationStatus {
