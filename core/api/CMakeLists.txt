@@ -27,6 +27,7 @@ add_library(api
     service/state/requests/unsubscribe_storage.cpp
     service/state/requests/get_keys_paged.cpp
     service/state/requests/get_storage.cpp
+    service/state/requests/get_storage_size.cpp
     service/state/requests/subscribe_storage.cpp
     service/state/state_jrpc_processor.cpp
     service/internal/impl/internal_api_impl.cpp
