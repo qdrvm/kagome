@@ -385,7 +385,7 @@ namespace kagome::network {
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
-    fetching_headers_.reset();
+    fetching_header_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -401,14 +401,14 @@ namespace kagome::network {
   }
 
   void BeefyImpl::fetchHeaders() {
-    if (not fetching_headers_ or not beefy_genesis_) {
+    if (not fetching_header_ or not beefy_genesis_) {
       return;
     }
 
-    while (fetching_headers_) {
-      const auto blockNumber = fetching_headers_->number;
+    while (fetching_header_) {
+      const auto blockNumber = fetching_header_->number;
       if (blockNumber <= *beefy_genesis_) {
-        fetching_headers_.reset();
+        fetching_header_.reset();
         return;
       }
       auto block_hash = block_tree_->getBlockHash(blockNumber);
@@ -430,28 +430,28 @@ namespace kagome::network {
       }
 
       if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
-        fetching_headers_ = *parentInfo;
+        fetching_header_ = *parentInfo;
       } else {
         SL_ERROR(log_,
                  "Failed to get parent info for block {}, fetching stopped",
                  blockNumber);
-        fetching_headers_.reset();
+        fetching_header_.reset();
         return;
       }
     }
 
-    if (fetching_headers_) {
+    if (fetching_header_) {
       synchronizer_.get()->fetchHeadersBack(
-          *fetching_headers_, *beefy_genesis_, true, [WEAK_SELF](auto &&res) {
+          *fetching_header_, *beefy_genesis_, true, [WEAK_SELF](auto &&res) {
             WEAK_LOCK(self);
-            if (self->fetching_headers_) {
+            if (self->fetching_header_) {
               if (not res) {
                 SL_ERROR(
                     self->log_,
                     "Fetching stopped during previous error {} for block {}",
                     res.error().message(),
-                    self->fetching_headers_->number);
-                self->fetching_headers_.reset();
+                    self->fetching_header_->number);
+                self->fetching_header_.reset();
                 return;
               }
               self->fetchHeaders();
@@ -500,7 +500,7 @@ namespace kagome::network {
     while (next_digest_ <= grandpa_finalized.number) {
       if (auto r = block_tree_->getBlockHash(next_digest_);
           not r or not r.value()) {
-        fetching_headers_ = grandpa_finalized;
+        fetching_header_ = grandpa_finalized;
         fetchHeaders();
       }
 

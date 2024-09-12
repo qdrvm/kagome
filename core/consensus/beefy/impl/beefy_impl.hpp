@@ -134,6 +134,10 @@ namespace kagome::network {
     outcome::result<void> apply(
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
+    /// Requesting beefy justifications starting from fetching_header_ block (if
+    /// presented) and launching fetching of corresponding block headers if they
+    /// are not presented in db. Process stops when beefy justification is
+    /// received or when beefy_genesis_ block is reached.
     void fetchHeaders();
     outcome::result<void> vote();
     outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
@@ -163,7 +167,9 @@ namespace kagome::network {
     primitives::events::ChainSub chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
-    std::optional<primitives::BlockInfo> fetching_headers_;
+    // Block for which justification and probably header (if not presented in
+    // db) are being fetched as a part of discovering last beefy finalized block
+    std::optional<primitives::BlockInfo> fetching_header_;
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
     primitives::BlockNumber last_voted_ = 0;

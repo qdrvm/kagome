@@ -53,6 +53,14 @@ namespace kagome::network {
     virtual bool fetchJustificationRange(primitives::BlockNumber min,
                                          FetchJustificationRangeCb cb) = 0;
 
+    /// Try to launch fetching and storing block headers process.
+    /// Fetch of full range is not guaranteed, might be limited by block
+    /// response size e.g.
+    /// @param max block to start fetching from
+    /// @param min block to be fetched last and stop process
+    /// @param isFinalized if max is finalized block
+    /// @param cb will be called when the launched process is finished or failed
+    /// @returns true if fetch is successfully started
     virtual bool fetchHeadersBack(const primitives::BlockInfo &max,
                                   primitives::BlockNumber min,
                                   bool isFinalized,
