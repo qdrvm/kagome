@@ -12,6 +12,7 @@ add_library(prospective_parachains
     scope.cpp
     fragment_chain.cpp
     prospective_parachains.cpp
+    fragment_chain_errors.cpp
     )
 
 target_link_libraries(prospective_parachains

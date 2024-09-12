@@ -10,26 +10,11 @@
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
 #include "parachain/validator/prospective_parachains/scope.hpp"
+#include "parachain/validator/prospective_parachains/fragment_chain_errors.hpp"
 
 namespace kagome::parachain::fragment {
 
   struct FragmentChain {
-    enum Error {
-      CANDIDATE_ALREADY_KNOWN = 1,
-      INTRODUCE_BACKED_CANDIDATE,
-      CYCLE,
-      MULTIPLE_PATH,
-      ZERO_LENGTH_CYCLE,
-      RELAY_PARENT_NOT_IN_SCOPE,
-      RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY,
-      FORK_WITH_CANDIDATE_PENDING_AVAILABILITY,
-      FORK_CHOICE_RULE,
-      PARENT_CANDIDATE_NOT_FOUND,
-      COMPUTE_CONSTRAINTS,
-      CHECK_AGAINST_CONSTRAINTS,
-      RELAY_PARENT_MOVED_BACKWARDS,
-    };
-
     // The current scope, which dictates the on-chain operating constraints that
     // all future candidates must adhere to.
     Scope scope;
@@ -187,5 +172,3 @@ namespace kagome::parachain::fragment {
   };
 
 }  // namespace kagome::parachain::fragment
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, FragmentChain::Error)

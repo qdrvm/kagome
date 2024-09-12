@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(validator/prospective_parachains)
+
 add_library(grid_tracker
     backing/grid_tracker.cpp
     )
@@ -90,5 +92,3 @@ target_link_libraries(kagome_pvf_worker
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(kagome_pvf_worker PRIVATE seccomp)
 endif()
-
-add_subdirectory(validator/prospective_parachains)

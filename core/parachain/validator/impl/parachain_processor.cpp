@@ -892,7 +892,7 @@ namespace kagome::parachain {
           f(i);
         }
       }
-    }
+    };
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -5893,6 +5893,6 @@ namespace kagome::parachain {
     auto &peers = *peer_use_count_;
     return SAFE_SHARED(peers) {
       return peers.contains(*audi);
-    }
+    };
   }
 }  // namespace kagome::parachain
