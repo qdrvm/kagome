@@ -22,6 +22,7 @@ clang-tidy-diff.py \
   -iregex '(core|node)\/.*\.(h|c|hpp|cpp)' \
   -clang-tidy-binary ${CLANG_TIDY_BIN} \
   -- \
+    --std=c++20 \
     -I core \
     -I $(cat $BUILD_DIR/_3rdParty/Hunter/install-root-dir)/include \
     -I $BUILD_DIR/pb/authority_discovery_proto/generated \
