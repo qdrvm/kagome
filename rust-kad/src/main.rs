@@ -20,6 +20,7 @@ struct Config {
 #[derive(Decode, Encode)]
 struct Request {
     key: Vec<u8>,
+    put_value: Option<Vec<u8>>,
 }
 #[derive(Decode, Encode)]
 struct Response {
@@ -41,8 +42,10 @@ async fn main() -> anyhow::Result<()> {
     loop {
         tokio::select! {
             request = stdin.read::<Request>() => {
-                let Request { key } = request?;
-                if let Entry::Vacant(entry) = queries.entry(key.clone()) {
+                let Request { key, put_value } = request?;
+                if let Some(value) = put_value {
+                    _ = swarm.behaviour_mut().kad.put_record(kad::Record::new(key.clone(),value.clone()), kad::Quorum::All);
+                } else if let Entry::Vacant(entry) = queries.entry(key.clone()) {
                     let id = swarm.behaviour_mut().kad.get_record(key.clone().into());
                     entry.insert(id);
                     responses.insert(
@@ -63,7 +66,6 @@ async fn main() -> anyhow::Result<()> {
                         ..
                     },
                 )) => {
-                    eprintln!("{id} {step:?}");
                     if let Ok(kad::GetRecordOk::FoundRecord(record)) = result {
                         let mut response = responses.get_mut(&id);
                         if let Some(response) = &mut response {

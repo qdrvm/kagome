@@ -25,12 +25,17 @@ namespace kagome::rust_kad {
 
   void Kad::lookup(BufferView key, Cb cb) {
     requests_.emplace(key, std::move(cb));
-    queue_.emplace_back(scale::encode(Request{key}).value());
+    queue_.emplace_back(scale::encode(Request{key, std::nullopt}).value());
     write();
     if (not reading_) {
       reading_ = true;
       read();
     }
+  }
+
+  void Kad::put(BufferView key, BufferView value) {
+    queue_.emplace_back(scale::encode(Request{key, value}).value());
+    write();
   }
 
   void Kad::write() {
