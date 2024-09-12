@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <qtils/cxx20/lexicographical_compare_three_way.hpp>
 #include <span>

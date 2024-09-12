@@ -93,6 +93,8 @@ CheckOptions:
     value:           '0'
   - key:             bugprone-unused-return-value.CheckedFunctions
     value:           '::std::async;::std::launder;::std::remove;::std::remove_if;::std::unique;::std::unique_ptr::release;::std::basic_string::empty;::std::vector::empty'
+  - key:             cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value:           '1'
   - key:             cppcoreguidelines-no-malloc.Allocations
     value:           '::malloc;::calloc'
   - key:             cppcoreguidelines-no-malloc.Deallocations

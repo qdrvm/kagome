@@ -14,6 +14,7 @@ if [ "${CI}" == "true" ]; then
 fi
 
 cd $(dirname $0)/..
+HUNTER_INCLUDE=$(cat $BUILD_DIR/_3rdParty/Hunter/install-root-dir)/include
 # exclude WAVM because on CI clang-tidy is run on a WasmEdge build
 git diff -U0 origin/master -- . ':!core/runtime/wavm' | \
 clang-tidy-diff.py \
@@ -24,7 +25,8 @@ clang-tidy-diff.py \
   -- \
     --std=c++20 \
     -I core \
-    -I $(cat $BUILD_DIR/_3rdParty/Hunter/install-root-dir)/include \
+    -I $HUNTER_INCLUDE \
+    -I $HUNTER_INCLUDE/binaryen \
     -I $BUILD_DIR/pb/authority_discovery_proto/generated \
     -I $BUILD_DIR/pb/light_api_proto/generated \
     -I $BUILD_DIR/pb/node_api_proto/generated \
