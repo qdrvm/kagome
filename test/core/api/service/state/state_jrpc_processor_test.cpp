@@ -49,6 +49,7 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_UnsubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
+    kCallType_GetStorageSize,
     kCallType_QueryStorage,
     kCallType_QueryStorageAt,
     kCallType_GetReadProof,
