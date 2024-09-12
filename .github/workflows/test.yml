@@ -21,6 +21,14 @@ on:
         options:
           - 'true'
           - 'false'
+      use_cache:
+        description: 'Use cache for build'
+        required: true
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
 env:
   BUILD_DIR: build
@@ -52,6 +60,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4
+      if: ${{ inputs.use_cache == 'true' }}
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -84,6 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ inputs.use_cache == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -123,6 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ inputs.use_cache == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -140,6 +151,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ inputs.use_cache == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -186,6 +198,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ inputs.use_cache == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -224,6 +237,7 @@ jobs:
 
       - name: "Cache dependencies"
         id: cache-restore
+        if: ${{ github.event.inputs.use_cache == 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHE_PATH }}
@@ -309,7 +323,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: env.package_exist == 'False'
+        if:  ${{ env.package_exist == 'False' && github.event.inputs.use_cache == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:

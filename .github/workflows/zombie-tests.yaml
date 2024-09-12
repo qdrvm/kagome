@@ -26,6 +26,14 @@ on:
         options:
           - 'ON'
           - 'OFF'
+      use_cache:
+        description: 'Use cache for build'
+        required: true
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -79,7 +87,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: env.package_exist == 'False'
+        if: ${{ env.package_exist == 'False' && github.event.inputs.use_cache == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:
