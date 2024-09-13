@@ -58,6 +58,11 @@ namespace kagome::api {
     outcome::result<std::optional<common::Buffer>> getStorageAt(
         common::BufferView key, const primitives::BlockHash &at) const override;
 
+    outcome::result<std::optional<uint64_t>> getStorageSize(
+        common::BufferView key,
+        const std::optional<primitives::BlockHash> &block_hash_opt)
+        const override;
+
     outcome::result<std::vector<StorageChangeSet>> queryStorage(
         std::span<const common::Buffer> keys,
         const primitives::BlockHash &from,
