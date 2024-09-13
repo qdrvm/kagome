@@ -48,7 +48,7 @@ namespace kagome::runtime {
      * `std::nullopt` means `path_compiled` stores raw WASM code for
      * interpretation.
      */
-    virtual std::optional<std::string> compilerType() const = 0;
+    virtual std::optional<std::string_view> compilerType() const = 0;
 
     /**
      * Compile `wasm` code to `path_compiled`.

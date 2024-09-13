@@ -226,6 +226,10 @@ namespace kagome::network {
     return grandpa_protocol_.get();
   }
 
+  std::shared_ptr<WarpProtocol> RouterLibp2p::getWarpProtocol() const {
+    return warp_protocol_.get();
+  }
+
   std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
     return sync_protocol_.get();
   }

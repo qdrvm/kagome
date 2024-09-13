@@ -48,7 +48,7 @@ namespace kagome::consensus::grandpa {
       BOOST_ASSERT((first.is<Prevote>() and second.is<Prevote>())
                    or (first.is<Precommit>() and second.is<Precommit>()));
       BOOST_ASSERT(first.id == second.id);
-    };
+    }
 
     AuthorityId offender() const {
       return first.id;

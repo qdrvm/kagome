@@ -1615,6 +1615,7 @@ namespace kagome::parachain {
       const HashedCandidateReceipt &hashed_candidate,
       ValidatorIndex validator_index,
       Hash block_hash,
+      std::optional<CoreIndex> core,
       GroupIndex backing_group) {
     auto on_recover_complete =
         [wself{weak_from_this()},
@@ -1726,6 +1727,7 @@ namespace kagome::parachain {
     recovery_->recover(hashed_candidate,
                        session_index,
                        backing_group,
+                       core,
                        std::move(on_recover_complete));
   }
 
@@ -2830,6 +2832,7 @@ namespace kagome::parachain {
       SessionIndex session,
       const HashedCandidateReceipt &hashed_candidate,
       GroupIndex backing_group,
+      std::optional<CoreIndex> core,
       bool distribute_assignment) {
     /// TODO(iceseer): don't launch approval work if the node is syncing.
     const auto &block_hash = indirect_cert.block_hash;
@@ -2863,6 +2866,7 @@ namespace kagome::parachain {
                       hashed_candidate,
                       validator_index,
                       block_hash,
+                      core,
                       backing_group);
     } else if (*approval_state == ApprovalOutcome::Approved) {
       issue_approval(hashed_candidate.getHash(), validator_index, block_hash);
@@ -3209,6 +3213,15 @@ namespace kagome::parachain {
                candidate_receipt.descriptor.para_id,
                block_hash);
 
+      auto candidate_core_index = [&]() -> std::optional<CoreIndex> {
+        for (const auto &[core_index, h] : block_entry.candidates) {
+          if (candidate_hash == h) {
+            return core_index;
+          }
+        }
+        return std::nullopt;
+      }();
+
       if (auto claimed_core_indices = get_assignment_core_indices(
               indirect_cert.cert.kind, candidate_hash, block_entry)) {
         if (auto claimed_candidate_indices = cores_to_candidate_indices(
@@ -3230,6 +3243,7 @@ namespace kagome::parachain {
                             block_entry.session,
                             candidate_entry.candidate,
                             backing_group,
+                            candidate_core_index,
                             distribute_assignment);
 
         } else {

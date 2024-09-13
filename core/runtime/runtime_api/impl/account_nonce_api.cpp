@@ -21,6 +21,6 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<primitives::AccountNonce>(
         ctx, "AccountNonceApi_account_nonce", account_id);
-  };
+  }
 
 }  // namespace kagome::runtime

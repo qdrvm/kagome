@@ -15,14 +15,14 @@ namespace kagome::network {
 
   template <typename RequestT, typename ResponseT>
   struct ReqCollationProtocolImpl
-      : RequestResponseProtocol<std::decay_t<RequestT>,
-                                std::decay_t<ResponseT>,
-                                ScaleMessageReadWriter>,
+      : RequestResponseProtocolImpl<std::decay_t<RequestT>,
+                                    std::decay_t<ResponseT>,
+                                    ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
-    using Base = RequestResponseProtocol<std::decay_t<RequestT>,
-                                         std::decay_t<ResponseT>,
-                                         ScaleMessageReadWriter>;
+    using Base = RequestResponseProtocolImpl<std::decay_t<RequestT>,
+                                             std::decay_t<ResponseT>,
+                                             ScaleMessageReadWriter>;
 
     ReqCollationProtocolImpl(libp2p::Host &host,
                              const libp2p::peer::ProtocolName &protoname,
@@ -92,7 +92,7 @@ namespace kagome::network {
   void ReqCollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {}
 
   void ReqCollationProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     BOOST_ASSERT_MSG(false, "Must not be called!");
   }

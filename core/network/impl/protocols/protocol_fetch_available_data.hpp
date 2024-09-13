@@ -16,30 +16,34 @@
 #include "parachain/backing/store.hpp"
 
 namespace kagome::network {
-  class FetchAvailableDataProtocol final
-      : public RequestResponseProtocol<FetchAvailableDataRequest,
-                                       FetchAvailableDataResponse,
-                                       ScaleMessageReadWriter> {
+
+  class FetchAvailableDataProtocol
+      : virtual public RequestResponseProtocol<FetchAvailableDataRequest,
+                                               FetchAvailableDataResponse> {};
+
+  class FetchAvailableDataProtocolImpl final
+      : public FetchAvailableDataProtocol,
+        public RequestResponseProtocolImpl<FetchAvailableDataRequest,
+                                           FetchAvailableDataResponse,
+                                           ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchAvailableDataProtocol";
 
-    FetchAvailableDataProtocol(
+    FetchAvailableDataProtocolImpl(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
-        : RequestResponseProtocol<
-              FetchAvailableDataRequest,
-              FetchAvailableDataResponse,
-              ScaleMessageReadWriter>{kName,
-                                      host,
-                                      make_protocols(
-                                          kFetchAvailableDataProtocol,
-                                          genesis_hash,
-                                          kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kName,
-                                          "req_available_data_protocol")},
+        : RequestResponseProtocolImpl<
+            FetchAvailableDataRequest,
+            FetchAvailableDataResponse,
+            ScaleMessageReadWriter>{kName,
+                                    host,
+                                    make_protocols(kFetchAvailableDataProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(
+                                        kName, "req_available_data_protocol")},
           av_store_{std::move(av_store)} {}
 
    private:
@@ -60,9 +64,9 @@ namespace kagome::network {
   };
 
   class StatementFetchingProtocol final
-      : public RequestResponseProtocol<FetchStatementRequest,
-                                       FetchStatementResponse,
-                                       ScaleMessageReadWriter> {
+      : public RequestResponseProtocolImpl<FetchStatementRequest,
+                                           FetchStatementResponse,
+                                           ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchStatementProtocol";
 
@@ -71,16 +75,16 @@ namespace kagome::network {
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
-        : RequestResponseProtocol<
-              FetchStatementRequest,
-              FetchStatementResponse,
-              ScaleMessageReadWriter>{kName,
-                                      host,
-                                      make_protocols(kFetchStatementProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kName, "req_statement_protocol")},
+        : RequestResponseProtocolImpl<
+            FetchStatementRequest,
+            FetchStatementResponse,
+            ScaleMessageReadWriter>{kName,
+                                    host,
+                                    make_protocols(kFetchStatementProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(
+                                        kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}
 
    private:

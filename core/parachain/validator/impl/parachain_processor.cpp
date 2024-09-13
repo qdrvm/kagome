@@ -3078,21 +3078,19 @@ namespace kagome::parachain {
   }
 
   template <typename F>
-  void ParachainProcessorImpl::requestPoV(
-      const libp2p::peer::PeerInfo &peer_info,
-      const CandidateHash &candidate_hash,
-      F &&callback) {
+  void ParachainProcessorImpl::requestPoV(const libp2p::peer::PeerId &peer_id,
+                                          const CandidateHash &candidate_hash,
+                                          F &&callback) {
     /// TODO(iceseer): request PoV from validator, who seconded candidate
     /// But now we can assume, that if we received either `seconded` or `valid`
     /// from some peer, than we expect this peer has valid PoV, which we can
     /// request.
 
-    logger_->info("Requesting PoV.(candidate hash={}, peer={})",
-                  candidate_hash,
-                  peer_info.id);
+    logger_->info(
+        "Requesting PoV.(candidate hash={}, peer={})", candidate_hash, peer_id);
 
     auto protocol = router_->getReqPovProtocol();
-    protocol->request(peer_info, candidate_hash, std::forward<F>(callback));
+    protocol->request(peer_id, candidate_hash, std::forward<F>(callback));
   }
 
   void ParachainProcessorImpl::kickOffValidationWork(
@@ -3120,7 +3118,7 @@ namespace kagome::parachain {
     if (auto peer = query_audi_->get(authority_id)) {
       auto pvd{persisted_validation_data};
       requestPoV(
-          *peer,
+          peer->id,
           candidate_hash,
           [candidate{attesting_data.candidate},
            pvd{std::move(pvd)},
@@ -4429,8 +4427,7 @@ namespace kagome::parachain {
     }
 
     if (!parachain_state->get().our_index) {
-      logger_->template warn(
-          "We are not validators or we have no validator index.");
+      logger_->warn("We are not validators or we have no validator index.");
       return std::nullopt;
     }
 
@@ -4481,7 +4478,7 @@ namespace kagome::parachain {
 
     if (stream_engine->reserveOutgoing(peer_id, protocol)) {
       protocol->newOutgoingStream(
-          libp2p::peer::PeerInfo{.id = peer_id, .addresses = {}},
+          peer_id,
           [callback{std::forward<F>(callback)},
            protocol,
            peer_id,
@@ -4553,7 +4550,7 @@ namespace kagome::parachain {
     logger_->info("Send my view.(peer={}, protocol={})",
                   peer_id,
                   protocol->protocolName());
-    pm_->getStreamEngine()->template send(
+    pm_->getStreamEngine()->send(
         peer_id,
         protocol,
         std::make_shared<

@@ -19,6 +19,16 @@ namespace kagome::runtime {
         const primitives::BlockHash &block) override;
     outcome::result<std::optional<consensus::beefy::ValidatorSet>> validatorSet(
         const primitives::BlockHash &block) override;
+    outcome::result<void> submit_report_double_voting_unsigned_extrinsic(
+        const primitives::BlockHash &block,
+        const consensus::beefy::DoubleVotingProof &equivocation_proof,
+        const primitives::OpaqueKeyOwnershipProof &key_owner_proof)
+        const override;
+    outcome::result<std::optional<primitives::OpaqueKeyOwnershipProof>>
+    generate_key_ownership_proof(
+        const primitives::BlockHash &block,
+        consensus::beefy::AuthoritySetId set_id,
+        const crypto::EcdsaPublicKey &authority_id) const override;
 
    private:
     std::shared_ptr<Executor> executor_;

@@ -21,5 +21,20 @@ namespace kagome::runtime {
                 validatorSet,
                 (const primitives::BlockHash &),
                 (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                submit_report_double_voting_unsigned_extrinsic,
+                (const primitives::BlockHash &,
+                 const consensus::beefy::DoubleVotingProof &,
+                 const primitives::OpaqueKeyOwnershipProof &),
+                (const, override));
+
+    MOCK_METHOD(
+        outcome::result<std::optional<primitives::OpaqueKeyOwnershipProof>>,
+        generate_key_ownership_proof,
+        (const primitives::BlockHash &,
+         consensus::beefy::AuthoritySetId,
+         const crypto::EcdsaPublicKey &),
+        (const, override));
   };
 }  // namespace kagome::runtime

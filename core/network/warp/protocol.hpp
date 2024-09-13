@@ -12,17 +12,26 @@
 #include "network/warp/cache.hpp"
 
 namespace kagome::network {
-  class WarpProtocol : public RequestResponseProtocol<primitives::BlockHash,
-                                                      WarpSyncProof,
-                                                      ScaleMessageReadWriter> {
+
+  using WarpRequest = primitives::BlockHash;
+  using WarpResponse = WarpSyncProof;
+
+  class WarpProtocol
+      : virtual public RequestResponseProtocol<WarpRequest, WarpResponse> {};
+
+  class WarpProtocolImpl
+      : public WarpProtocol,
+        public RequestResponseProtocolImpl<WarpRequest,
+                                           WarpResponse,
+                                           ScaleMessageReadWriter> {
     static constexpr auto kName = "WarpProtocol";
 
    public:
-    WarpProtocol(libp2p::Host &host,
-                 const application::ChainSpec &chain_spec,
-                 const blockchain::GenesisBlockHash &genesis,
-                 std::shared_ptr<WarpSyncCache> cache)
-        : RequestResponseProtocolType(
+    WarpProtocolImpl(libp2p::Host &host,
+                     const application::ChainSpec &chain_spec,
+                     const blockchain::GenesisBlockHash &genesis,
+                     std::shared_ptr<WarpSyncCache> cache)
+        : RequestResponseProtocolImpl(
             kName,
             host,
             make_protocols(kWarpProtocol, genesis, chain_spec),

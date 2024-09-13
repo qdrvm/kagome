@@ -40,6 +40,8 @@ function(add_flag flag)
   check_cxx_compiler_flag(${flag} FLAG${flag_var})
   if(FLAG${flag_var} EQUAL 1)
     add_compile_options(${flag})
+  else()
+    message(AUTHOR_WARNING "Compiler flag ${flag} requested, but not supported by ${CMAKE_CXX_COMPILER}")
   endif()
 endfunction()
 

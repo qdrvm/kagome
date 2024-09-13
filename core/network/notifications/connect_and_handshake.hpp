@@ -21,7 +21,7 @@ namespace kagome::network::notifications {
   template <typename Self, typename Handshake, typename OnHandshake>
   void connectAndHandshake(std::weak_ptr<Self> weak,
                            ProtocolBaseImpl &base,
-                           const PeerInfo &peer,
+                           const PeerId &peer_id,
                            Handshake handshake,
                            OnHandshake on_handshake) {
     auto cb = [weak = std::move(weak),
@@ -64,6 +64,16 @@ namespace kagome::network::notifications {
           std::move(stream), std::move(frame_stream), handshake, std::move(cb));
     };
 
-    base.host().newStream(peer, base.protocolIds(), std::move(cb));
+    auto addresses_res =
+        base.host().getPeerRepository().getAddressRepository().getAddresses(
+            peer_id);
+    if (not addresses_res.has_value()) {
+      cb(addresses_res.as_failure());
+      return;
+    }
+
+    base.host().newStream(PeerInfo{peer_id, std::move(addresses_res.value())},
+                          base.protocolIds(),
+                          std::move(cb));
   }
 }  // namespace kagome::network::notifications

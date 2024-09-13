@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(availability)
+
 addtest(candidate_storage_test
     candidate_storage.cpp
     )

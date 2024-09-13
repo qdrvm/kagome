@@ -18,14 +18,17 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
-#include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
+
+static_assert(std::string_view{WASMEDGE_ID}.size() == 40,
+              "WASMEDGE_ID should be set to WasmEdge repository SHA1 hash");
 
 namespace kagome::runtime::wasm_edge {
   enum class Error {
@@ -81,23 +84,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   inline CompilationOutcome<ConfigureContext> configureCtx() {
@@ -373,11 +373,14 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+  std::optional<std::string_view> ModuleFactoryImpl::compilerType() const {
     if (config_.exec == ExecType::Interpreted) {
       return std::nullopt;
     }
-    return "wasmedge";
+    // version changes rarely, don't need the whole hash
+    static std::string versioned_str =
+        fmt::format("wasmedge_{}", std::string_view{WASMEDGE_ID}.substr(0, 12));
+    return versioned_str;
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(

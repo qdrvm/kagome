@@ -12,7 +12,6 @@
 #include <string>
 #include <system_error>
 #include <vector>
-#include "runtime/wabt/instrument.hpp"
 
 #ifdef __linux__
 #include <linux/landlock.h>
@@ -38,12 +37,14 @@
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
+#include "utils/spdlog_stderr.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/secure_mode.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "runtime/wabt/instrument.hpp"
 #include "utils/mkdirs.hpp"
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
@@ -236,18 +237,6 @@ namespace kagome::parachain {
 
   outcome::result<std::shared_ptr<runtime::ModuleFactory>> createModuleFactory(
       const auto &injector, RuntimeEngine engine) {
-    // class Foo {
-    //  public:Foo(
-    //       crypto::EcdsaProvider&,
-    //       crypto::Secp256k1Provider&) {}
-    // };
-    //
-    // std::ignore = injector.template create<std::shared_ptr<Foo>>();
-    // std::ignore = injector.template create<
-    //     std::shared_ptr<crypto::EcdsaProvider>>();
-    // std::ignore = injector.template create<
-    //     std::shared_ptr<crypto::Secp256k1Provider>>();
-
     switch (engine) {
       case RuntimeEngine::kBinaryen:
         return injector.template create<
@@ -342,8 +331,9 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::Module> module;
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
-      if (auto *code = std::get_if<PvfWorkerInputCode>(&input)) {
-        OUTCOME_TRY(path, chroot_path(*code));
+
+      if (auto *code_path = std::get_if<PvfWorkerInputCodePath>(&input)) {
+        OUTCOME_TRY(path, chroot_path(*code_path));
         BOOST_OUTCOME_TRY(module, factory->loadCompiled(path));
         continue;
       }
@@ -367,6 +357,8 @@ namespace kagome::parachain {
   }
 
   int pvf_worker_main(int argc, const char **argv, const char **env) {
+    spdlogStderr();
+
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));
@@ -387,7 +379,7 @@ namespace kagome::parachain {
     }
 
     if (auto r = pvf_worker_main_outcome(); not r) {
-      SL_ERROR(logger, "{}", r.error());
+      SL_ERROR(logger, "PVF worker process failed: {}", r.error());
       return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

@@ -11,6 +11,8 @@
 #include <optional>
 #include <type_traits>
 
+#include <boost/utility/result_of.hpp>
+
 namespace kagome::utils {
 
   template <typename T, typename F>
@@ -60,7 +62,7 @@ namespace kagome::utils {
       val = opt_ref->get();
     }
     return val;
-  };
+  }
 
 }  // namespace kagome::utils
 

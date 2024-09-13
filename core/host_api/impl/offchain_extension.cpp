@@ -106,14 +106,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -133,14 +130,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -162,14 +156,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -204,14 +195,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");

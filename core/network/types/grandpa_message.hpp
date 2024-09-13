@@ -29,7 +29,7 @@ namespace kagome::network {
 
   struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
-    explicit GrandpaVote(VoteMessage &&vm) noexcept
+    explicit GrandpaVote(VoteMessage &&vm)
         : VoteMessage(std::move(vm)){};
   };
 
@@ -69,7 +69,7 @@ namespace kagome::network {
 
       boost::hash_combine(result, std::hash<VoterSetId>()(voter_set_id));
       return result;
-    };
+    }
   };
 
   struct CatchUpResponse {

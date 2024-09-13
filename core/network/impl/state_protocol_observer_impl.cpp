@@ -5,7 +5,11 @@
  */
 
 #include "network/impl/state_protocol_observer_impl.hpp"
+
 #include <unordered_set>
+
+#include <boost/algorithm/string/predicate.hpp>
+#include <libp2p/outcome/outcome.hpp>
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"

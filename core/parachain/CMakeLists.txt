@@ -68,7 +68,6 @@ target_link_libraries(kagome_pvf_worker
     soralog::soralog
     logger
     log_configurator
-
     binaryen_wasm_memory
     binaryen_wasm_memory_factory
     binaryen_runtime_external_interface
@@ -77,7 +76,6 @@ target_link_libraries(kagome_pvf_worker
     binaryen_instance_environment_factory
     binaryen_module_factory
     wasm_compiler
-
     runtime_properties_cache
     sr25519_provider
     ed25519_provider
@@ -88,6 +86,12 @@ target_link_libraries(kagome_pvf_worker
     p2p::p2p_basic_scheduler
     p2p::p2p_asio_scheduler_backend
     )
+
+if("${WASM_COMPILER}" STREQUAL "WasmEdge")
+    target_link_libraries(kagome_pvf_worker PUBLIC
+        spdlog::spdlog
+    )
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(kagome_pvf_worker PRIVATE seccomp)

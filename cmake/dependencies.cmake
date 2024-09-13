@@ -99,6 +99,8 @@ find_package(zstd CONFIG REQUIRED)
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
   find_package(WasmEdge REQUIRED CONFIG)
+  hunter_add_package(spdlog)
+  find_package(spdlog REQUIRED CONFIG)
 endif ()
 
 hunter_add_package(rocksdb)
