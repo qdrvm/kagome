@@ -129,6 +129,17 @@ namespace kagome::api {
         [](common::BufferOrView &&r) { return r.intoBuffer(); });
   }
 
+  outcome::result<std::optional<uint64_t>> StateApiImpl::getStorageSize(
+      common::BufferView key,
+      const std::optional<primitives::BlockHash> &block_hash_opt) const {
+    auto at = block_hash_opt ? block_hash_opt.value()
+                             : block_tree_->getLastFinalized().hash;
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
+    OUTCOME_TRY(res, trie_reader->tryGet(key));
+    return res ? std::make_optional(res->size()) : std::nullopt;
+  }
+
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
   StateApiImpl::queryStorage(
       std::span<const common::Buffer> keys,

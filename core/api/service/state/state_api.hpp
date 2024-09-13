@@ -37,6 +37,9 @@ namespace kagome::api {
         common::BufferView key) const = 0;
     virtual outcome::result<std::optional<common::Buffer>> getStorageAt(
         common::BufferView key, const primitives::BlockHash &at) const = 0;
+    virtual outcome::result<std::optional<uint64_t>> getStorageSize(
+        common::BufferView key,
+        const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
     struct StorageChangeSet {
       primitives::BlockHash block;
