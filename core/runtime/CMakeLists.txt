@@ -37,7 +37,6 @@ elseif ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       COMMENT "Generate wasm_compiler_definitions.hpp"
       VERBATIM
   )
-  add_dependencies(wasm_compiler wasm_compiler_definitions)
 else()
   fatal_error("Unknown WASM_COMPILER: ${WASM_COMPILER}")
 endif()
