@@ -29,6 +29,7 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "scale/std_variant.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \

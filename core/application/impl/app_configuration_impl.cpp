@@ -32,6 +32,7 @@
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
 #include "log/formatters/filepath.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"

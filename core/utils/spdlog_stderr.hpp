@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+
 #if KAGOME_WASM_COMPILER_WASM_EDGE
 #include <spdlog/sinks/ansicolor_sink.h>
 #include <spdlog/spdlog.h>

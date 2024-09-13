@@ -34,18 +34,18 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
-#include "scale/scale.hpp"
-#include "utils/spdlog_stderr.hpp"
-
-#include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/secure_mode.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "scale/scale.hpp"
 #include "utils/mkdirs.hpp"
+#include "utils/spdlog_stderr.hpp"
 
 // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 

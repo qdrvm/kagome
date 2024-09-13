@@ -190,6 +190,7 @@
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 

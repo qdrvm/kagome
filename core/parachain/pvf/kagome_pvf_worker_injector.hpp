@@ -27,6 +27,7 @@
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie/trie_storage.hpp"
 
