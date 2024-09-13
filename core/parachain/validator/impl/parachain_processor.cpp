@@ -48,10 +48,9 @@
 #endif  // TRY_GET_OR_RET
 
 #ifndef CHECK_OR_RET
-#define CHECK_OR_RET(op)                             \
-  if (!(op)) {                                       \
-    SL_TRACE(logger_, "--++---> NO SUMMARY. EXIT."); \
-    return;                                          \
+#define CHECK_OR_RET(op) \
+  if (!(op)) {           \
+    return;              \
   }
 #endif  // CHECK_OR_RET
 
@@ -1624,12 +1623,10 @@ namespace kagome::parachain {
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
-      SL_WARN(logger_, "--++---> {} 1", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().local_validator) {
-      SL_WARN(logger_, "--++---> {} 2", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1640,23 +1637,16 @@ namespace kagome::parachain {
 
     if (!expected_group
         || *expected_group != manifest_summary.claimed_group_index) {
-      SL_WARN(logger_, "--++---> {} 3", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().per_session_state->value().grid_view) {
-      SL_WARN(logger_, "--++---> {} 4", __PRETTY_FUNCTION__);
       return {};
     }
 
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
-      SL_WARN(logger_,
-              "--++---> {} 5  (claimed_group_index={}, grid_view.size={})",
-              __PRETTY_FUNCTION__,
-              manifest_summary.claimed_group_index,
-              grid_topology.size());
       return {};
     }
 
@@ -1672,7 +1662,6 @@ namespace kagome::parachain {
     }();
 
     if (!sender_index) {
-      SL_WARN(logger_, "--++---> {} 6", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1700,12 +1689,12 @@ namespace kagome::parachain {
 
     auto &local_validator = *relay_parent_state->get().local_validator;
 
-    SL_WARN(logger_,
-            "--++---> Import manifest. (peer_id={}, relay_parent={}, "
-            "candidate_hash={})",
-            peer_id,
-            relay_parent,
-            candidate_hash);
+    SL_TRACE(logger_,
+             "Import manifest. (peer_id={}, relay_parent={}, "
+             "candidate_hash={})",
+             peer_id,
+             relay_parent,
+             candidate_hash);
     auto acknowledge_res = local_validator.grid_tracker.import_manifest(
         grid_topology,
         relay_parent_state->get().per_session_state->value().groups,
@@ -1982,7 +1971,7 @@ namespace kagome::parachain {
       const network::vstaging::BackedCandidateAcknowledgement
           &acknowledgement) {
     SL_TRACE(logger_,
-             "--++---> `BackedCandidateAcknowledgement`. (candidate_hash={})",
+             "`BackedCandidateAcknowledgement`. (candidate_hash={})",
              acknowledgement.candidate_hash);
     const auto &candidate_hash = acknowledgement.candidate_hash;
     SL_TRACE(logger_,
@@ -2057,7 +2046,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
     SL_TRACE(logger_,
-             "--++---> `BackedCandidateManifest`. (relay_parent={}, "
+             "`BackedCandidateManifest`. (relay_parent={}, "
              "candidate_hash={}, para_id={}, parent_head_data_hash={})",
              manifest.relay_parent,
              manifest.candidate_hash,
@@ -2212,12 +2201,11 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handle_incoming_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessageStatement &stm) {
-    SL_TRACE(
-        logger_,
-        "--++---> `StatementDistributionMessageStatement`. (relay_parent={}, "
-        "candidate_hash={})",
-        stm.relay_parent,
-        candidateHash(getPayload(stm.compact)));
+    SL_TRACE(logger_,
+             "`StatementDistributionMessageStatement`. (relay_parent={}, "
+             "candidate_hash={})",
+             stm.relay_parent,
+             candidateHash(getPayload(stm.compact)));
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger_,
@@ -5061,7 +5049,6 @@ namespace kagome::parachain {
     for (const auto m : p) {
       s += fmt::format("{:x}, ", m);
     }
-    logger_->trace("-->>>><<<<----- {}", s);
 
     av_store_->storeData(
         relay_parent, candidate_hash, std::move(chunks), pov, data);
