@@ -6,9 +6,6 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -16,10 +13,10 @@ extern "C" {
 /* 'Words' here refers to uint64_t */
 #define SHA3_KECCAK_SPONGE_WORDS \
   (((1600) / 8 /*bits to byte*/) / sizeof(uint64_t))
-typedef struct sha3_context_ {  // NOLINT(modernize-use-using)
-  uint64_t saved;               /* the portion of the input message that we
-                                 * didn't consume yet */
-  union {                       /* Keccak's state */
+typedef struct sha3_context_ {
+  uint64_t saved; /* the portion of the input message that we
+                   * didn't consume yet */
+  union {         /* Keccak's state */
     uint64_t s[SHA3_KECCAK_SPONGE_WORDS];
     uint8_t sb[SHA3_KECCAK_SPONGE_WORDS * 8];
   };
@@ -31,12 +28,10 @@ typedef struct sha3_context_ {  // NOLINT(modernize-use-using)
                            * words (e.g. 16 for Keccak 512) */
 } sha3_context;
 
-// NOLINTNEXTLINE(performance-enum-size)
 enum SHA3_FLAGS { SHA3_FLAGS_NONE = 0, SHA3_FLAGS_KECCAK = 1 };
 
-// NOLINTNEXTLINE(performance-enum-size)
 enum SHA3_RETURN { SHA3_RETURN_OK = 0, SHA3_RETURN_BAD_PARAMS = 1 };
-typedef enum SHA3_RETURN sha3_return_t;  // NOLINT(modernize-use-using)
+typedef enum SHA3_RETURN sha3_return_t;
 
 /* For Init or Reset call these: */
 sha3_return_t sha3_Init(void *priv, unsigned bitSize);
