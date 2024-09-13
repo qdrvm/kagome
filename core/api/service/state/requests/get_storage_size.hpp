@@ -6,12 +6,11 @@
 
 #pragma once
 
-#include <jsonrpc-lean/request.h>
-
 #include <optional>
 
-#include "api/service/state/state_api.hpp"
+#include <jsonrpc-lean/request.h>
 
+#include "api/service/state/state_api.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::api::state::request {
@@ -24,7 +23,8 @@ namespace kagome::api::state::request {
     GetStorageSize(GetStorageSize &&) = default;
     GetStorageSize &operator=(GetStorageSize &&) = default;
 
-    explicit GetStorageSize(std::shared_ptr<StateApi> api) : api_(std::move(api)){};
+    explicit GetStorageSize(std::shared_ptr<StateApi> api)
+        : api_(std::move(api)) {};
     ~GetStorageSize() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
