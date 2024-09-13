@@ -480,11 +480,11 @@ namespace {
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
 
-  using ModuleFactory = runtime::wavm::ModuleFactoryImpl;
+  using ChosenModuleFactoryImpl = runtime::wavm::ModuleFactoryImpl;
 
 #elif KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
-  using ModuleFactory = runtime::wasm_edge::ModuleFactoryImpl;
+  using ChosenModuleFactoryImpl = runtime::wasm_edge::ModuleFactoryImpl;
 
 #endif
 
@@ -514,7 +514,7 @@ namespace {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  runtime::ModuleFactory>(injector, method, interpreter);
+                  ChosenModuleFactoryImpl>(injector, method, interpreter);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {
