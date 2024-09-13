@@ -6,7 +6,7 @@
 
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
-#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b.hpp"
 #include "log/logger.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"

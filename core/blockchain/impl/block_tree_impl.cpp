@@ -16,7 +16,7 @@
 #include "common/main_thread_pool.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
-#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b.hpp"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"

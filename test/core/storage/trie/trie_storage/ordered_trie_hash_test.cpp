@@ -7,7 +7,7 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"

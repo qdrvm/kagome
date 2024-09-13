@@ -10,7 +10,7 @@
 // blake2b.c
 // A simple BLAKE2b Reference Implementation.
 
-#include "blake2b.h"
+#include "blake2b.hpp"
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)

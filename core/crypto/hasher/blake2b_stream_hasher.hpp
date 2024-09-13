@@ -8,7 +8,7 @@
 
 #include <span>
 #include "common/blob.hpp"
-#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b.hpp"
 
 namespace kagome::crypto {
 

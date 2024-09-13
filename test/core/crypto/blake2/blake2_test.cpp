@@ -7,8 +7,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-#include "crypto/blake2/blake2b.h"
-#include "crypto/blake2/blake2s.h"
+#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2s.hpp"
 #include "testutil/literals.hpp"
 
 // Deterministic sequences (Fibonacci generator).
