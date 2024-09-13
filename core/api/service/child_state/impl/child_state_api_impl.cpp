@@ -12,7 +12,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::api {

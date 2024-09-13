@@ -7,8 +7,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-#include "crypto/blake2/blake2b.hpp"
-#include "crypto/blake2/blake2s.hpp"
+#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2s.h"
 #include "testutil/literals.hpp"
 
 // Deterministic sequences (Fibonacci generator).
@@ -41,7 +41,7 @@ TEST(Blake2b, Correctness) {
   kagome::crypto::blake2b_ctx ctx;
 
   // 256-bit hash for testing
-  if (blake2b_init(ctx, 32, NULL, 0)) {
+  if (blake2b_init(&ctx, 32, NULL, 0)) {
     FAIL() << "Can not init";
   }
 
@@ -52,16 +52,16 @@ TEST(Blake2b, Correctness) {
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
       kagome::crypto::blake2b(md, outlen, nullptr, 0, in, inlen);
-      blake2b_update(ctx, md, outlen);  // hash the hash
+      blake2b_update(&ctx, md, outlen);  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash
       kagome::crypto::blake2b(md, outlen, key, outlen, in, inlen);
-      blake2b_update(ctx, md, outlen);  // hash the hash
+      blake2b_update(&ctx, md, outlen);  // hash the hash
     }
   }
 
   // compute and compare the hash of hashes
-  blake2b_final(ctx, md);
+  blake2b_final(&ctx, md);
 
   EXPECT_EQ(memcmp(md, blake2b_res.data(), 32), 0) << "hashes are different";
 }
@@ -79,7 +79,7 @@ TEST(Blake2s, Correctness) {
   kagome::crypto::blake2s_ctx ctx;
 
   // 256-bit hash for testing.
-  if (blake2s_init(ctx, 32, nullptr, 0)) {
+  if (blake2s_init(&ctx, 32, nullptr, 0)) {
     FAIL() << "Can not init";
   }
 
@@ -90,16 +90,16 @@ TEST(Blake2s, Correctness) {
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
       kagome::crypto::blake2s(md, outlen, nullptr, 0, in, inlen);
-      blake2s_update(ctx, md, outlen);  // hash the hash
+      blake2s_update(&ctx, md, outlen);  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash
       kagome::crypto::blake2s(md, outlen, key, outlen, in, inlen);
-      blake2s_update(ctx, md, outlen);  // hash the hash
+      blake2s_update(&ctx, md, outlen);  // hash the hash
     }
   }
 
   // Compute and compare the hash of hashes.
-  blake2s_final(ctx, md);
+  blake2s_final(&ctx, md);
 
   EXPECT_EQ(memcmp(md, blake2s_res.data(), 32), 0) << "hashes are different";
 }
@@ -107,8 +107,8 @@ TEST(Blake2s, Correctness) {
 TEST(Blake2s, UnkeyedInit) {
   kagome::crypto::blake2s_ctx ctx1, ctx2;
 
-  blake2s_init(ctx1, 32, nullptr, 0);
-  blake2s_256_init(ctx2);
+  blake2s_init(&ctx1, 32, nullptr, 0);
+  blake2s_256_init(&ctx2);
 
   const char *in = "hello";
   size_t len = 5;
@@ -116,11 +116,11 @@ TEST(Blake2s, UnkeyedInit) {
   unsigned char out1[32];
   unsigned char out2[32];
 
-  blake2s_update(ctx1, in, len);
-  blake2s_update(ctx2, in, len);
+  blake2s_update(&ctx1, in, len);
+  blake2s_update(&ctx2, in, len);
 
-  blake2s_final(ctx1, out1);
-  blake2s_final(ctx2, out2);
+  blake2s_final(&ctx1, out1);
+  blake2s_final(&ctx2, out2);
 
   EXPECT_EQ(memcmp(out1, out2, 32), 0) << "hashes are different";
 }

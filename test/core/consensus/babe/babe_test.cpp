@@ -17,7 +17,7 @@
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"

@@ -20,7 +20,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"

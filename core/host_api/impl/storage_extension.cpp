@@ -14,7 +14,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "common/outcome_throw.hpp"
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/hasher.hpp"
 #include "crypto/keccak/keccak.hpp"
 #include "host_api/impl/storage_util.hpp"

@@ -6,7 +6,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/compact_decode.hpp"

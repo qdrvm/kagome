@@ -11,7 +11,7 @@
 #include <string>
 
 #include "codec.hpp"
-#include "crypto/blake2/blake2b.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 
