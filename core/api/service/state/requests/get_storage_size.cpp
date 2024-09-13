@@ -32,7 +32,7 @@ namespace kagome::api::state::request {
         OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
         at_.emplace(at);
       } else if (param1.IsNil()) {
-        at_ = std::nullopt;
+        at_.reset();
       } else {
         throw jsonrpc::InvalidParametersFault(
             "Parameter 'at' must be a hex string or null");

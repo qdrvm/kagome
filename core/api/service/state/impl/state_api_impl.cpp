@@ -136,8 +136,8 @@ namespace kagome::api {
                              : block_tree_->getLastFinalized().hash;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
-    OUTCOME_TRY(res, trie_reader->get(key));
-    return res.size();
+    OUTCOME_TRY(res, trie_reader->tryGet(key));
+    return res ? std::make_optional(res->size()) : std::nullopt;
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
