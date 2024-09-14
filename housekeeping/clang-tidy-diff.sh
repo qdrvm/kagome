@@ -29,5 +29,7 @@ clang-tidy-diff.py \
     -I $BUILD_DIR/pb/authority_discovery_proto/generated \
     -I $BUILD_DIR/pb/light_api_proto/generated \
     -I $BUILD_DIR/pb/node_api_proto/generated \
+    -I $HUNTER_INCLUDE \
+    -I $HUNTER_INCLUDE/binaryen \
 | tee clang-tidy.log
 ! grep ': error:' clang-tidy.log
