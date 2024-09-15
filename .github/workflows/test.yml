@@ -64,12 +64,12 @@ jobs:
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
-        
-        
+
+
   Linux:
     if: false # Need to fix
-      # ${{ 
-      # !(github.ref == 'refs/heads/master' || 
+      # ${{
+      # !(github.ref == 'refs/heads/master' ||
       # startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
@@ -196,7 +196,7 @@ jobs:
 
   kagome_dev_docker_build_tidy:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
     name: "Linux: clang-tidy"
 
     steps:
@@ -346,7 +346,7 @@ jobs:
           KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILD_TYPE=${{ matrix.options.build_type }}
-          
+
       - name: "Push Docker Image to GCR"
         if: env.package_exist == 'False'
         working-directory: ./housekeeping/docker/kagome-dev
@@ -364,7 +364,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          
+
       - name: "Push Docker Image to Docker Hub"
         if: ${{ 
           (env.package_exist == 'False') && 
@@ -388,7 +388,7 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-          
+
       - name: "Versions Info"
         if: always()
         run: |
