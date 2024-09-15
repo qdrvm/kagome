@@ -25,7 +25,7 @@ clang-tidy-diff.py \
   -- \
     --std=c++20 \
     -I core \
-    -I $BUILD_DIR \
+    -I $BUILD_DIR/core \
     -I $BUILD_DIR/pb/authority_discovery_proto/generated \
     -I $BUILD_DIR/pb/light_api_proto/generated \
     -I $BUILD_DIR/pb/node_api_proto/generated \
