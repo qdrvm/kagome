@@ -1705,6 +1705,13 @@ namespace kagome::parachain {
         *sender_index);
 
     if (acknowledge_res.has_error()) {
+      SL_WARN(logger_,
+              "Import manifest failed. (peer_id={}, relay_parent={}, "
+              "candidate_hash={}, error={})",
+              peer_id,
+              relay_parent,
+              candidate_hash,
+              acknowledge_res.error());
       return {};
     }
 
