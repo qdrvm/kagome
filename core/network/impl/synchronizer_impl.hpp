@@ -192,10 +192,9 @@ namespace kagome::network {
 
    private:
     void postApplyBlock(const primitives::BlockHash &hash);
-    void processBlockAdditionResult(
-        outcome::result<void> &&block_addition_result,
-        const primitives::BlockHash &hash,
-        SyncResultHandler &&handler);
+    void processBlockAdditionResult(outcome::result<void> block_addition_result,
+                                    const primitives::BlockHash &hash,
+                                    SyncResultHandler &&handler);
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded
     /// @returns true if subscription is successful
@@ -209,7 +208,7 @@ namespace kagome::network {
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
-    void post_block_addition(outcome::result<void> &&block_addition_result,
+    void post_block_addition(outcome::result<void> block_addition_result,
                              Synchronizer::SyncResultHandler &&handler,
                              const primitives::BlockHash &hash);
 

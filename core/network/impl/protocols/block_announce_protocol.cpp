@@ -15,6 +15,7 @@
 
 namespace kagome::network {
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(BlockAnnounceProtocol);
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(
@@ -54,9 +55,9 @@ namespace kagome::network {
 
   BlockAnnounceHandshake BlockAnnounceProtocol::createHandshake() const {
     return BlockAnnounceHandshake{
-        roles_,
-        block_tree_->bestBlock(),
-        block_tree_->getGenesisBlockHash(),
+        .roles = roles_,
+        .best_block = block_tree_->bestBlock(),
+        .genesis_hash = block_tree_->getGenesisBlockHash(),
     };
   }
 
@@ -86,11 +87,9 @@ namespace kagome::network {
       return true;
     };
     auto on_message = [peer_id](std::shared_ptr<BlockAnnounceProtocol> self,
-                                BlockAnnounce block_announce) {
+                                const BlockAnnounce &block_announce) {
       // Calculate and save hash, 'cause it's just received announce
-      primitives::calculateBlockHash(
-          const_cast<primitives::BlockHeader &>(block_announce.header),
-          *self->hasher_);
+      primitives::calculateBlockHash(block_announce.header, *self->hasher_);
 
       SL_VERBOSE(self->base_.logger(),
                  "Announce of block {} is received from {}",

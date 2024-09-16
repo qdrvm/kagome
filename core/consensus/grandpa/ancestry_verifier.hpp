@@ -25,8 +25,7 @@ namespace kagome::consensus::grandpa {
         // Calculate and save hash, 'cause data
         // has likely just received from network
         if (not block.hash_opt.has_value()) {
-          primitives::calculateBlockHash(
-              const_cast<primitives::BlockHeader &>(block), hasher);
+          primitives::calculateBlockHash(block, hasher);
         }
         parents.emplace(block.blockInfo(), *block.parentInfo());
       }

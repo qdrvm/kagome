@@ -164,7 +164,7 @@ namespace kagome::network {
 
     for (const auto &hash : hash_chain) {
       auto &new_block =
-          response.blocks.emplace_back(primitives::BlockData{hash});
+          response.blocks.emplace_back(primitives::BlockData{.hash = hash});
 
       if (header_needed) {
         auto header_res = blocks_headers_->getBlockHeader(hash);

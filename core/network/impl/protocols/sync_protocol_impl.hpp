@@ -139,7 +139,7 @@ namespace kagome::network {
                        const BlocksResponse &block_response);
 
     void writeRequest(std::shared_ptr<Stream> stream,
-                      BlocksRequest block_request,
+                      const BlocksRequest &block_request,
                       std::function<void(outcome::result<void>)> &&cb);
 
     void readResponse(std::shared_ptr<Stream> stream,

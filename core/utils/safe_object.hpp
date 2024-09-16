@@ -89,7 +89,7 @@ SafeObject(T &&) -> SafeObject<T, M>;
 class WaitForSingleObject final {
   std::condition_variable wait_cv_;
   std::mutex wait_m_;
-  bool flag_;
+  bool flag_ = true;
 
  public:
   WaitForSingleObject(const WaitForSingleObject &) = delete;
@@ -98,7 +98,8 @@ class WaitForSingleObject final {
   WaitForSingleObject(WaitForSingleObject &&) = delete;
   WaitForSingleObject &operator=(WaitForSingleObject &&) = delete;
 
-  WaitForSingleObject() : flag_{true} {}
+  WaitForSingleObject() = default;
+  ~WaitForSingleObject() = default;
 
   bool wait(std::chrono::microseconds wait_timeout) {
     std::unique_lock<std::mutex> _lock(wait_m_);

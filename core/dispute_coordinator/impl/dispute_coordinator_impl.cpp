@@ -95,8 +95,7 @@ namespace kagome::dispute {
                   /// Returns Error if the candidate_hash is not included in the
                   /// list of signed candidate from
                   /// ApprovalCheckingMultipleCandidate.
-                  if (std::find(
-                          candidates.begin(), candidates.end(), candidate_hash)
+                  if (std::ranges::find(candidates, candidate_hash)
                       == candidates.end()) {
                     return ApprovalCheckingMultipleCandidatesError::NotIncluded;
                   }
@@ -110,9 +109,8 @@ namespace kagome::dispute {
                   if (candidates.size() == 1) {
                     return scale::encode(
                         std::tie(magic, candidates.front(), session));
-                  } else {
-                    return scale::encode(std::tie(magic, candidates, session));
                   }
+                  return scale::encode(std::tie(magic, candidates, session));
                 });
           },
           [&](const InvalidDisputeStatement &kind) {
@@ -173,7 +171,7 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{std::move(chain_sub_engine)},
-        timeline_(std::move(timeline)),
+        timeline_(timeline),
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_thread_handler_{poolHandlerReadyMake(
             this, app_state_manager, dispute_thread_pool, log_)},
@@ -462,7 +460,8 @@ namespace kagome::dispute {
     for (auto &vote : votes) {
       auto res = process_on_chain_votes(vote);
       if (res.has_error()) {
-        SL_WARN(log_, "Skipping scraping block due to error: {}", res.error());
+        SL_WARN(
+            log_, "Skipping scraping block (due to error): {}", res.error());
       }
     }
 
@@ -552,7 +551,7 @@ namespace kagome::dispute {
   }
 
   outcome::result<void> DisputeCoordinatorImpl::process_on_chain_votes(
-      ScrapedOnChainVotes votes) {
+      const ScrapedOnChainVotes &votes) {
     const auto &session = votes.session;
     const auto &backing_validators_per_candidate =
         votes.backing_validators_per_candidate;
@@ -830,7 +829,7 @@ namespace kagome::dispute {
     if (not res.has_error()) {
       auto sessions_updated = res.value();
 
-      auto waiting = std::move(waiting_for_active_disputes_);
+      auto waiting = waiting_for_active_disputes_;
       waiting_for_active_disputes_.reset();
       if (not waiting.has_value()) {
         // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L196
@@ -879,12 +878,10 @@ namespace kagome::dispute {
     }
 
     /// Make active sessions correspond to currently active heads.
-    auto sessions_updated =
-        std::equal(active_sessions_.begin(),
-                   active_sessions_.end(),
-                   new_sessions.begin(),
-                   new_sessions.end(),
-                   [](auto it1, auto it2) { return it1.first == it2.first; });
+    auto sessions_updated = std::ranges::equal(
+        active_sessions_, new_sessions, [](auto it1, auto it2) {
+          return it1.first == it2.first;
+        });
 
     // Update in any case, so we use current heads for queries:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L304
@@ -903,7 +900,7 @@ namespace kagome::dispute {
   void DisputeCoordinatorImpl::handle_active_dispute_response(
       outcome::result<OutputDisputes> active_disputes_res) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L184
-    auto state = std::move(waiting_for_active_disputes_);
+    auto state = waiting_for_active_disputes_;
     waiting_for_active_disputes_.reset();
     auto have_new_sessions = state.has_value() and state->have_new_sessions;
 
@@ -918,11 +915,9 @@ namespace kagome::dispute {
     /// Handle new active disputes response.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
     std::unordered_set<CandidateHash> candidates;
-    std::for_each(active_disputes.begin(),
-                  active_disputes.end(),
-                  [&](const auto &active_dispute) {
-                    candidates.emplace(std::get<1>(active_dispute));
-                  });
+    std::ranges::for_each(active_disputes, [&](const auto &active_dispute) {
+      candidates.emplace(std::get<1>(active_dispute));
+    });
 
     // Cleanup obsolete senders
     sending_disputes_.remove_if([&](const auto &x) {
@@ -1095,9 +1090,9 @@ namespace kagome::dispute {
     struct ImportResult {
       CandidateVoteState old_state;
       CandidateVoteState new_state;
-      size_t imported_invalid_votes;
-      size_t imported_valid_votes;
-      size_t imported_approval_votes;
+      size_t imported_invalid_votes{};
+      size_t imported_valid_votes{};
+      size_t imported_approval_votes{};
       std::vector<ValidatorIndex> new_invalid_voters;
     };
 
@@ -1157,9 +1152,8 @@ namespace kagome::dispute {
             if (fresh) {
               if (imported_valid_votes == 0) {
                 // Return postponed statements to process
-                std::move_backward(postponed_statements.begin(),
-                                   postponed_statements.end(),
-                                   statements.end());
+                std::ranges::move_backward(postponed_statements,
+                                           statements.end());
               }
               ++imported_valid_votes;
             }
@@ -1172,9 +1166,8 @@ namespace kagome::dispute {
               new_invalid_voters.push_back(val_index);
               if (imported_invalid_votes == 0) {
                 // Return postponed statements to process
-                std::move_backward(postponed_statements.begin(),
-                                   postponed_statements.end(),
-                                   statements.end());
+                std::ranges::move_backward(postponed_statements,
+                                           statements.end());
               }
               ++imported_invalid_votes;
             }
@@ -1182,13 +1175,13 @@ namespace kagome::dispute {
     }
 
     ImportResult intermediate_result{
-        std::move(old_state),
-        CandidateVoteState::create(
+        .old_state = std::move(old_state),
+        .new_state = CandidateVoteState::create(
             votes, env, disabled_validators, now),  // new_state
-        imported_invalid_votes,
-        imported_valid_votes,
-        0,
-        new_invalid_voters,
+        .imported_invalid_votes = imported_invalid_votes,
+        .imported_valid_votes = imported_valid_votes,
+        .imported_approval_votes = 0,
+        .new_invalid_voters = new_invalid_voters,
     };
 
     // Handle approval vote import:
@@ -1423,7 +1416,7 @@ namespace kagome::dispute {
 
       auto res = participation_->queue_participation(priority, request);
       if (res.has_error()) {
-        SL_ERROR(log_, "participation error: {}", res.error());
+        SL_ERROR(log_, "Error of participation: {}", res.error());
       }
 
     } else {
@@ -1456,11 +1449,13 @@ namespace kagome::dispute {
             auto &pub_key = env.session.validators[validator_index];
 
             SignedDisputeStatement statement{
-                DisputeStatement{ValidDisputeStatement{ApprovalChecking{}}},
-                candidate_hash,
-                pub_key,
-                sig,
-                session};
+                .dispute_statement =
+                    DisputeStatement{ValidDisputeStatement{ApprovalChecking{}}},
+                .candidate_hash = candidate_hash,
+                .validator_public = pub_key,
+                .validator_signature = sig,
+                .session_index = session,
+            };
 
             SL_TRACE(
                 log_,
@@ -1532,11 +1527,11 @@ namespace kagome::dispute {
       if (blocks_including.size() > 0) {
         std::vector<primitives::BlockHash> to_revert;
         to_revert.reserve(blocks_including.size());
-        std::transform(blocks_including.begin(),
-                       blocks_including.end(),
-                       std::back_inserter(to_revert),
-                       [](auto &block_info) { return block_info.hash; });
-        std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
+        std::ranges::transform(
+            blocks_including,
+            std::back_inserter(to_revert),
+            [](auto &block_info) { return block_info.hash; });
+        std::ignore = block_tree_->markAsRevertedBlocks(to_revert);
         SL_DEBUG(
             log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
@@ -1579,7 +1574,9 @@ namespace kagome::dispute {
       metric_disputes_total_->inc();
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     metric_votes_valid_->inc(import_result.imported_valid_votes);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     metric_votes_invalid_->inc(import_result.imported_invalid_votes);
 
     if (is_freshly_concluded_for) {
@@ -1599,7 +1596,7 @@ namespace kagome::dispute {
                                                ValidatorIndex our_index) {
     auto &validators = session_info.validators;
 
-    ValidatorIndex other_index;
+    ValidatorIndex other_index;  // NOLINT(cppcoreguidelines-init-variables)
 
     auto get_other_vote =
         [&](auto &some_kind_votes) -> outcome::result<SignedDisputeStatement> {
@@ -1723,10 +1720,10 @@ namespace kagome::dispute {
     };
 
     return network::DisputeMessage{
-        candidate_receipt,
-        session_index,
-        invalid_vote,
-        valid_vote,
+        .candidate_receipt = candidate_receipt,
+        .session_index = session_index,
+        .invalid_vote = invalid_vote,
+        .valid_vote = valid_vote,
     };
   }
 
@@ -1779,11 +1776,11 @@ namespace kagome::dispute {
       }
 
       SignedDisputeStatement our_vote_signed{
-          dispute_statement,
-          candidate_hash,
-          validator_public,
-          validator_signature,
-          env.session_index,
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = validator_signature,
+          .session_index = env.session_index,
       };
 
       auto msg_res = make_dispute_message(
@@ -1932,7 +1929,7 @@ namespace kagome::dispute {
       CbOutcome<void> &&cb) {
     REINVOKE(*dispute_thread_handler_,
              importStatements,
-             std::move(candidate_receipt),
+             candidate_receipt,
              session,
              std::move(statements),
              std::move(cb));
@@ -1966,9 +1963,8 @@ namespace kagome::dispute {
 
     OutputDisputes output;
     output.reserve(recent_disputes.size());
-    std::transform(
-        recent_disputes.begin(),
-        recent_disputes.end(),
+    std::ranges::transform(
+        recent_disputes,
         std::back_inserter(output),
         [](const auto &p)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
@@ -2044,8 +2040,8 @@ namespace kagome::dispute {
       }
       auto &state_opt = state_res.value();
       if (state_opt.has_value()) {
-        output.push_back(std::make_tuple(
-            session, candidate_hash, std::move(state_opt.value())));
+        output.emplace_back(
+            session, candidate_hash, std::move(state_opt.value()));
       } else {
         SL_DEBUG(log_, "No votes found for candidate");
       }
@@ -2063,7 +2059,7 @@ namespace kagome::dispute {
              issueLocalStatement,
              session,
              candidate_hash,
-             std::move(candidate_receipt),
+             candidate_receipt,
              valid);
 
     SL_TRACE(log_,
@@ -2116,7 +2112,7 @@ namespace kagome::dispute {
       metric_disputes_finality_lag_->set(0);
     }
 
-    cb(std::move(undisputed_chain));
+    cb(undisputed_chain);
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1272
@@ -2162,10 +2158,8 @@ namespace kagome::dispute {
     last = {base_number, base_hash};
 
     for (const auto &description : descriptions) {
-      auto has_disputed_candidate = std::any_of(
-          description.candidates.begin(),
-          description.candidates.end(),
-          [&](const auto &candidate_hash) {
+      auto has_disputed_candidate = std::ranges::any_of(
+          description.candidates, [&](const auto &candidate_hash) {
             return is_possibly_invalid(description.session, candidate_hash);
           });
       if (has_disputed_candidate) {
@@ -2195,7 +2189,7 @@ namespace kagome::dispute {
     auto authority_id_opt = authority_discovery_->get(peer_id);
     if (not authority_id_opt.has_value()) {
       SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
-      // TODO reputation_changes: vec![COST_NOT_A_VALIDATOR],
+      // TODO(xDimon): reputation_changes: vec![COST_NOT_A_VALIDATOR],
       return sendDisputeResponse(DisputeProcessingError::NotAValidator,
                                  std::move(cb));
     }
@@ -2207,7 +2201,7 @@ namespace kagome::dispute {
 
     if (queue.size() >= kPeerQueueCapacity) {
       SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
-      // TODO reputation_changes: vec![COST_APPARENT_FLOOD],
+      // TODO(xDimon): reputation_changes: vec![COST_APPARENT_FLOOD],
       return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
                                  std::move(cb));
     }
@@ -2228,10 +2222,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_pool_handler_,
-             sendDisputeResponse,
-             std::move(res),
-             std::move(cb));
+    REINVOKE(*main_pool_handler_, sendDisputeResponse, res, std::move(cb));
     cb(res);
   }
 
@@ -2287,7 +2278,7 @@ namespace kagome::dispute {
     for (auto &[peer, request, cb] : std::move(heads)) {
       // No early return - we cannot cancel imports of one peer, because the
       // import of another failed:
-      auto res = start_import_or_batch(peer, std::move(request), std::move(cb));
+      auto res = start_import_or_batch(peer, request, std::move(cb));
       if (res.has_error()) {
         SL_ERROR(log_, "Can't start import or batch: {}", res.error());
       }
@@ -2318,7 +2309,7 @@ namespace kagome::dispute {
     {
       const auto &[validator_index, signature, kind] = unchecked_valid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return DisputeMessageCreationError::InvalidValidatorIndex;
       }
       auto validator_public = session_info.validators[validator_index];
@@ -2336,29 +2327,29 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
 
-      checked_valid_vote = {{
-                                dispute_statement,
-                                candidate_hash,
-                                validator_public,
-                                signature,
-                                session_index,
-                            },
-                            validator_index};
+      checked_valid_vote.payload = {
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = signature,
+          .session_index = session_index,
+      };
+      checked_valid_vote.ix = validator_index;
     }
 
     Indexed<SignedDisputeStatement> checked_invalid_vote;
     {
       const auto &[validator_index, signature, kind] = unchecked_invalid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return DisputeMessageCreationError::InvalidValidatorIndex;
       }
       auto validator_public = session_info.validators[validator_index];
@@ -2376,22 +2367,22 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
         return SignatureValidationError::InvalidSignature;
       }
 
-      checked_invalid_vote = {{
-                                  dispute_statement,
-                                  candidate_hash,
-                                  validator_public,
-                                  signature,
-                                  session_index,
-                              },
-                              validator_index};
+      checked_invalid_vote.payload = {
+          .dispute_statement = dispute_statement,
+          .candidate_hash = candidate_hash,
+          .validator_public = validator_public,
+          .validator_signature = signature,
+          .session_index = session_index,
+      };
+      checked_invalid_vote.ix = validator_index;
     }
 
     auto &valid_vote = checked_valid_vote;
@@ -2550,7 +2541,7 @@ namespace kagome::dispute {
 
       auto disputes = selection.select_disputes(relay_parent);
 
-      cb(std::move(disputes));
+      std::move(cb)(std::move(disputes));
       return;
     }
 
@@ -2586,7 +2577,7 @@ namespace kagome::dispute {
     [[maybe_unused]] static const common::Hash64 parachain_host_api_hash =
         hasher_->blake2b_64(common::Buffer::fromString("ParachainHost"));
 
-    auto it = std::find_if(apis.begin(), apis.end(), [](auto &api_version) {
+    auto it = std::ranges::find_if(apis, [](auto &api_version) {
       return api_version.first == parachain_host_api_hash;
     });
     if (it == apis.end()) {

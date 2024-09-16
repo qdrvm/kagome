@@ -11,14 +11,11 @@
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
 
-#include "common/int_serialization.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
-
-using namespace kagome::common::literals;
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, ModuleImpl::Error, e) {
   using Error = kagome::runtime::binaryen::ModuleImpl::Error;

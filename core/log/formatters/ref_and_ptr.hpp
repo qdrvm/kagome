@@ -37,7 +37,7 @@ struct fmt::formatter<std::reference_wrapper<T>> {
       return fmt::format_to(ctx.out(), "{}", ref.value());
     } else {
       static constexpr string_view message("<dangling>");
-      return std::copy(std::begin(message), std::end(message), ctx.out());
+      return std::ranges::copy(message, ctx.out());
     }
   }
 };
@@ -68,7 +68,7 @@ struct fmt::formatter<std::shared_ptr<T>> {
       return fmt::format_to(ctx.out(), "{}", *sptr);
     } else {
       static constexpr string_view message("<nullptr>");
-      return std::copy(std::begin(message), std::end(message), ctx.out());
+      return std::ranges::copy(message, ctx.out());
     }
   }
 };
@@ -99,7 +99,7 @@ struct fmt::formatter<std::unique_ptr<T>> {
       return fmt::format_to(ctx.out(), "{}", *uptr);
     } else {
       static constexpr string_view message("<nullptr>");
-      return std::copy(std::begin(message), std::end(message), ctx.out());
+      return std::ranges::copy(message, ctx.out());
     }
   }
 };
@@ -130,7 +130,7 @@ struct fmt::formatter<std::weak_ptr<T>> {
       return fmt::format_to(ctx.out(), "{}", *wptr.lock());
     } else {
       static constexpr string_view message("<expired>");
-      return std::copy(std::begin(message), std::end(message), ctx.out());
+      return std::ranges::copy(message, ctx.out());
     }
   }
 };

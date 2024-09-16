@@ -25,7 +25,7 @@ namespace kagome::telemetry {
       return uri_;
     }
 
-    uint8_t verbosity() {
+    uint8_t verbosity() const {
       return verbosity_level_;
     }
 

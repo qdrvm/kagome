@@ -15,7 +15,7 @@ namespace kagome::crypto {
 
   class Ed25519ProviderImpl : public Ed25519Provider {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       VERIFICATION_FAILED = 1,
       SIGN_FAILED,
       SOFT_JUNCTION_NOT_SUPPORTED,

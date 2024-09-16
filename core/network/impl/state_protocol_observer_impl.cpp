@@ -86,8 +86,8 @@ namespace kagome::network {
             value_res.has_value()) {
           const auto &value_opt = value_res.value();
           if (value_opt.has_value()) {
-            entry.entries.emplace_back(
-                StateEntry{cursor->key().value(), {*value_opt}});
+            entry.entries.emplace_back(StateEntry{.key = cursor->key().value(),
+                                                  .value = {*value_opt}});
             size += entry.entries.back().key.size()
                   + entry.entries.back().value.size();
           }
@@ -114,7 +114,7 @@ namespace kagome::network {
     OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
     if (not request.no_proof) {
       OUTCOME_TRY(proof, prove(header.state_root, request.start));
-      return StateResponse{{}, proof};
+      return StateResponse{.entries = {}, .proof = proof};
     }
     OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
 
@@ -157,7 +157,8 @@ namespace kagome::network {
           value_res.has_value()) {
         const auto &value = value_res.value();
         auto &entry = response.entries.front();
-        entry.entries.emplace_back(StateEntry{cursor->key().value(), {*value}});
+        entry.entries.emplace_back(
+            StateEntry{.key = cursor->key().value(), .value = {*value}});
         size +=
             entry.entries.back().key.size() + entry.entries.back().value.size();
         // if key is child state storage hash iterate child storage keys

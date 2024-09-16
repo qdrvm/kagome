@@ -80,7 +80,7 @@ namespace kagome::consensus::grandpa {
     log::Logger log_;
 
     using SetAndJustification = std::pair<AuthoritySetId, GrandpaJustification>;
-    AuthoritySetId expected_;
+    AuthoritySetId expected_ = 0;
     std::map<AuthoritySetId, SetAndJustification> verified_;
     std::optional<SetAndJustification> last_;
     std::set<primitives::BlockInfo> required_;

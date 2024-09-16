@@ -55,9 +55,8 @@ namespace test {
     boost::system::error_code ec{};
 
     auto x = buffer.prepare(message.size());
-    std::copy(message.begin(),
-              message.end(),
-              reinterpret_cast<char *>(x.data()));  // NOLINT
+    std::ranges::copy(message,
+                      reinterpret_cast<char *>(x.data()));  // NOLINT
     buffer.commit(message.size());
 
     stream_.write(buffer.data(), ec);

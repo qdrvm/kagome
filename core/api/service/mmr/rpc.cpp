@@ -56,11 +56,11 @@ namespace kagome::api {
       LazySPtr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       LazySPtr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : server_{std::move(server)},
-        mmr_api_{std::move(mmr_api)},
-        block_tree_{std::move(block_tree)},
-        executor_{std::move(executor)},
-        offchain_worker_factory_{std::move(offchain_worker_factory)},
-        offchain_worker_pool_{std::move(offchain_worker_pool)} {}
+        mmr_api_{mmr_api},
+        block_tree_{block_tree},
+        executor_{executor},
+        offchain_worker_factory_{offchain_worker_factory},
+        offchain_worker_pool_{offchain_worker_pool} {}
 
   auto MmrRpc::withOffchain(const primitives::BlockHash &at) {
     // TODO(turuslan): simplify offchain
@@ -98,14 +98,15 @@ namespace kagome::api {
                 at = self->block_tree_.get()->bestBlock().hash;
               }
               auto offchain = self->withOffchain(*at);
-              OUTCOME_TRY(r,
-                          self->mmr_api_.get()->generateProof(
-                              *at, block_numbers, best_known_block_number));
+              OUTCOME_TRY(
+                  r,
+                  self->mmr_api_.get()->generateProof(
+                      *at, std::move(block_numbers), best_known_block_number));
               auto [leaves, proof] = unwrap(std::move(r));
               return primitives::MmrLeavesProof{
-                  *at,
-                  common::Buffer{scale::encode(leaves).value()},
-                  common::Buffer{scale::encode(proof).value()},
+                  .block_hash = *at,
+                  .leaves = common::Buffer{scale::encode(leaves).value()},
+                  .proof = common::Buffer{scale::encode(proof).value()},
               };
             }));
 

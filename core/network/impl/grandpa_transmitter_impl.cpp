@@ -19,6 +19,7 @@ namespace kagome::network {
       GrandpaNeighborMessage &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     protocol->neighbor(std::move(message));
   }
 
@@ -52,6 +53,7 @@ namespace kagome::network {
                                                   CatchUpRequest &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     protocol->catchUpRequest(peer_id, std::move(message));
   }
 

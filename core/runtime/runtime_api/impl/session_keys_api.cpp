@@ -20,7 +20,7 @@ namespace kagome::runtime {
       std::optional<common::Buffer> seed) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
     return executor_->call<common::Buffer, std::optional<common::Buffer>>(
-        ctx, "SessionKeys_generate_session_keys", std::move(seed));
+        ctx, "SessionKeys_generate_session_keys", seed);
   }
 
   outcome::result<std::vector<std::pair<crypto::KeyType, common::Buffer>>>

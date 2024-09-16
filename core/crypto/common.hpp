@@ -61,6 +61,7 @@ namespace kagome::crypto {
   template <size_t N>
   SecureCleanGuard(common::Blob<N> &&) -> SecureCleanGuard<uint8_t, N>;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   inline std::once_flag secure_heap_init_flag{};
 
   // TODO(turuslan): #2129 secure allocator
@@ -88,7 +89,7 @@ namespace kagome::crypto {
       if (p == nullptr) {
         throw std::bad_alloc{};
       }
-
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return reinterpret_cast<T *>(p);
     }
 
@@ -115,6 +116,7 @@ namespace kagome::crypto {
 
    public:
     PrivateKey() : data(Size, 0) {}
+    ~PrivateKey() = default;
 
     PrivateKey(const PrivateKey &) = default;
     PrivateKey &operator=(const PrivateKey &) = default;
@@ -147,7 +149,8 @@ namespace kagome::crypto {
 
     template <size_t OtherSize, typename OtherTag>
       requires(OtherSize >= Size)
-    static PrivateKey from(PrivateKey<OtherSize, OtherTag> &&other_key) {
+    static PrivateKey from(
+        std::add_rvalue_reference<PrivateKey<OtherSize, OtherTag>> other_key) {
       return PrivateKey{std::move(other_key.data)};
     }
 
@@ -191,9 +194,12 @@ namespace kagome::crypto {
     }
 
     static outcome::result<PrivateKey> fromHex(const SecureBuffer<> &hex) {
-      OUTCOME_TRY(bytes,
-                  common::unhex(std::string_view{
-                      reinterpret_cast<const char *>(hex.data()), hex.size()}));
+      OUTCOME_TRY(
+          bytes,
+          common::unhex(std::string_view{
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const char *>(hex.data()),
+              hex.size()}));
       return PrivateKey::from(SecureCleanGuard<uint8_t>{bytes});
     }
 
@@ -214,7 +220,7 @@ namespace kagome::crypto {
 
     template <size_t OtherSize>
       requires(OtherSize >= Size)
-    explicit PrivateKey(SecureBuffer<OtherSize> data)
+    explicit PrivateKey(const SecureBuffer<OtherSize> &data)
         : PrivateKey{data.view().template subspan<0, Size>()} {
       BOOST_ASSERT(this->data.size() == Size);
     }

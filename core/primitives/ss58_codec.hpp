@@ -17,7 +17,10 @@ namespace kagome::crypto {
 
 namespace kagome::primitives {
 
-  enum class Ss58Error { INVALID_LENGTH = 1, INVALID_CHECKSUM };
+  enum class Ss58Error : uint8_t {
+    INVALID_LENGTH = 1,
+    INVALID_CHECKSUM,
+  };
 
   constexpr size_t kSs58ChecksumLength = 2;
 

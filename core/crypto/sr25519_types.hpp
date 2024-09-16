@@ -23,7 +23,7 @@ namespace kagome::crypto {
     /**
      * Important constants to deal with sr25519
      */
-    enum {
+    enum {  // NOLINT(performance-enum-size)
       KEYPAIR_SIZE = SR25519_KEYPAIR_SIZE,
       SECRET_SIZE = SR25519_SECRET_SIZE,
       PUBLIC_SIZE = SR25519_PUBLIC_SIZE,
@@ -35,7 +35,7 @@ namespace kagome::crypto {
       /**
        * Important constants to deal with vrf
        */
-      enum {
+      enum {  // NOLINT(performance-enum-size)
         PROOF_SIZE = SR25519_VRF_PROOF_SIZE,
         OUTPUT_SIZE = SR25519_VRF_OUTPUT_SIZE
       };

@@ -227,10 +227,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
   registerHandlers();
 
   jsonrpc::Value::Array keys_json;
-  std::transform(keys.begin(),
-                 keys.end(),
-                 std::back_inserter(keys_json),
-                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  std::ranges::transform(keys, std::back_inserter(keys_json), [](auto &buffer) {
+    return "0x" + buffer.toHex();
+  });
   jsonrpc::Request::Parameters params{keys_json, "0x" + from.toHex()};
   // WHEN
   auto result = execute(CallType::kCallType_QueryStorage, params);
@@ -270,10 +269,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
   registerHandlers();
 
   jsonrpc::Value::Array keys_json;
-  std::transform(keys.begin(),
-                 keys.end(),
-                 std::back_inserter(keys_json),
-                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  std::ranges::transform(keys, std::back_inserter(keys_json), [](auto &buffer) {
+    return "0x" + buffer.toHex();
+  });
   jsonrpc::Request::Parameters params{keys_json, "0x" + at.toHex()};
   // WHEN
   auto result = execute(CallType::kCallType_QueryStorageAt, params);

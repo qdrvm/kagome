@@ -94,14 +94,15 @@ namespace kagome::transaction_pool {
             -> outcome::result<primitives::Transaction> {
           size_t length = extrinsic.data.size();
 
-          return primitives::Transaction{extrinsic,
-                                         length,
-                                         extrinsic_hash,
-                                         v.priority,
-                                         res.first.number + v.longevity,
-                                         std::move(v.required_tags),
-                                         std::move(v.provided_tags),
-                                         v.propagate};
+          return primitives::Transaction{
+              .ext = extrinsic,
+              .bytes = length,
+              .hash = extrinsic_hash,
+              .priority = v.priority,
+              .valid_till = res.first.number + v.longevity,
+              .required_tags = std::move(v.required_tags),
+              .provided_tags = std::move(v.provided_tags),
+              .should_propagate = v.propagate};
         });
   }
 
@@ -217,7 +218,7 @@ namespace kagome::transaction_pool {
       for (auto &requirement : state->tx->required_tags) {
         auto &pending_status = pool_state.dependency_graph_[requirement];
         if (!pending_status.tag_provided
-            && pending_status.dependents.count(tx_hash) == 0) {
+            and not pending_status.dependents.contains(tx_hash)) {
           ++state->remains_required_txs_count;
           pending_status.dependents[tx_hash] = state;
         }
@@ -383,7 +384,7 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::setReady(PoolState &pool_state,
                                      const std::shared_ptr<Transaction> &tx) {
     if (auto [it, ok] =
-            pool_state.ready_txs_.emplace(tx->hash, ReadyStatus{tx, {}});
+            pool_state.ready_txs_.emplace(tx->hash, ReadyStatus{.tx = tx});
         ok) {
       if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),

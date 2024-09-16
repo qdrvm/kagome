@@ -34,18 +34,20 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
-#include "scale/scale.hpp"
-#include "utils/spdlog_stderr.hpp"
-
-#include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/secure_mode.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "scale/scale.hpp"
 #include "utils/mkdirs.hpp"
+#include "utils/spdlog_stderr.hpp"
+
+// NOLINTBEGIN(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
@@ -60,7 +62,10 @@
   }
 
 namespace kagome::parachain {
-  static kagome::log::Logger logger;
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    static kagome::log::Logger logger;
+  }  // namespace
 
   bool checkEnvVarsEmpty(const char **env) {
     return env != nullptr;
@@ -144,9 +149,7 @@ namespace kagome::parachain {
                   LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE
                       | LANDLOCK_ACCESS_FS_MAKE_REG};
 
-    int abi{};
-
-    abi = ::syscall(
+    auto abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
       return getLastErr("landlock_create_ruleset");
@@ -174,14 +177,14 @@ namespace kagome::parachain {
 #endif
     };
 
-    int ruleset_fd{};
-
-    ruleset_fd = ::syscall(
+    auto ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
     if (ruleset_fd < 0) {
       return getLastErr("landlock_create_ruleset");
     }
-    libp2p::common::FinalAction cleanup = [ruleset_fd]() { close(ruleset_fd); };
+    libp2p::common::FinalAction cleanup = [ruleset_fd]() {
+      close(ruleset_fd);  // NOLINT(cppcoreguidelines-narrowing-conversions)
+    };
 
     for (auto &[path, access_flags] : allowed_exceptions) {
       struct landlock_path_beneath_attr path_beneath = {
@@ -203,13 +206,13 @@ namespace kagome::parachain {
       }
     }
 
-    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
-        == -1) {  // NOLINT(cppcoreguidelines-pro-type-vararg)
+    if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       ::close(ruleset_fd);
       return getLastErr("prctl PR_SET_NO_NEW_PRIVS");
     }
 
-    if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0)) {
+    if (::syscall(SYS_landlock_restrict_self, ruleset_fd, 0) != 0) {
       return getLastErr("landlock_restrict_self");
     }
 
@@ -218,7 +221,11 @@ namespace kagome::parachain {
 #endif
 
   outcome::result<void> readStdin(std::span<uint8_t> out) {
-    std::cin.read(reinterpret_cast<char *>(out.data()), out.size());
+    std::cin.read(
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        reinterpret_cast<char *>(out.data()),
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+        out.size());
     if (not std::cin.good()) {
       return std::errc::io_error;
     }
@@ -227,6 +234,7 @@ namespace kagome::parachain {
 
   template <typename T>
   outcome::result<T> decodeInput() {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
     OUTCOME_TRY(readStdin(length_bytes));
     OUTCOME_TRY(message_length, scale::decode<uint32_t>(length_bytes));
@@ -350,8 +358,17 @@ namespace kagome::parachain {
           instance->callExportFunction(ctx, "validate_block", input_args));
       OUTCOME_TRY(instance->resetEnvironment());
       OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
-      std::cout.write((const char *)len.data(), len.size());
-      std::cout.write((const char *)result.data(), result.size());
+
+      std::cout.write(
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<const char *>(len.data()),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          len.size());
+      std::cout.write(
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<const char *>(result.data()),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          result.size());
       std::cout.flush();
     }
   }
@@ -385,3 +402,5 @@ namespace kagome::parachain {
     return EXIT_SUCCESS;
   }
 }  // namespace kagome::parachain
+
+// NOLINTEND(cppcoreguidelines-pro-type-vararg,hicpp-vararg)

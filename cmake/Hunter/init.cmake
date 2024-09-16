@@ -32,5 +32,11 @@ set(HUNTER_CACHE_SERVERS
 #     CACHE STRING "Disable binary cache"
 # )
 
+# https://hunter.readthedocs.io/en/latest/reference/user-variables.html#hunter-status-debug
+# set(
+#     HUNTER_STATUS_DEBUG ON
+#     CACHE STRING "Enable output lot of info for debugging"
+# )
+
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/hunter-gate-url.cmake)

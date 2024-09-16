@@ -24,10 +24,10 @@ namespace kagome::consensus::babe {
     SlotType slot_assignment_type{};
 
     /// authority index of the producer
-    AuthorityIndex authority_index;
+    AuthorityIndex authority_index{};
 
     /// slot, in which the block was produced
-    SlotNumber slot_number;
+    SlotNumber slot_number{};
 
     /// output of VRF function
     crypto::VRFOutput vrf_output{};

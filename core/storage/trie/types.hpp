@@ -12,7 +12,7 @@ namespace kagome::storage::trie {
 
   using RootHash = common::Hash256;
 
-  enum class StateVersion { V0, V1 };
+  enum class StateVersion : uint8_t { V0, V1 };
 
   /// blake2b_256(0x00)
   constexpr RootHash kEmptyRootHash{{

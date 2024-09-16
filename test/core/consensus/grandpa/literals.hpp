@@ -18,21 +18,21 @@ inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t w) {
 inline kagome::consensus::grandpa::BlockHash makeBlockHash(std::string s) {
   assert(s.size() <= kagome::consensus::grandpa::BlockHash::size());
   kagome::consensus::grandpa::BlockHash hash{};
-  std::copy(s.begin(), s.end(), hash.begin());
+  std::ranges::copy(s, hash.begin());
   return hash;
 }
 
 inline kagome::consensus::grandpa::Id makeId(std::string s) {
   assert(s.size() <= kagome::consensus::grandpa::Id::size());
   kagome::consensus::grandpa::Id id{};
-  std::copy(s.begin(), s.end(), id.begin());
+  std::ranges::copy(s, id.begin());
   return id;
 }
 
 inline kagome::crypto::Ed25519Signature makeSig(std::string s) {
   assert(s.size() <= kagome::crypto::Ed25519Signature::size());
   kagome::crypto::Ed25519Signature sig{};
-  std::copy(s.begin(), s.end(), sig.begin());
+  std::ranges::copy(s, sig.begin());
   return sig;
 }
 

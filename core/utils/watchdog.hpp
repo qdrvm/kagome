@@ -43,6 +43,7 @@ inline uint64_t getPlatformThreadId() {
 #include <unistd.h>
 
 inline uint64_t getPlatformThreadId() {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
   return syscall(SYS_gettid);
 }
 
@@ -118,11 +119,11 @@ namespace kagome {
       std::unique_lock lock{mutex_};
       auto &thread = threads_[std::this_thread::get_id()];
       if (not thread.count) {
-        thread = {Clock::now(),
-                  0,
-                  std::make_shared<Atomic>(),
-                  getPlatformThreadId(),
-                  soralog::util::getThreadName()};
+        thread = {.last_time = Clock::now(),
+                  .last_count = 0,
+                  .count = std::make_shared<Atomic>(),
+                  .platform_id = getPlatformThreadId(),
+                  .name = soralog::util::getThreadName()};
       }
       return Ping{thread.count};
     }

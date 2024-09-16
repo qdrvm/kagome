@@ -42,17 +42,15 @@ namespace kagome::authorship {
     };
 
     // Try to initialize the block with the created header and changes tracker
-    if (auto res =
-            r_core_->initialize_block(header, std::move(changes_tracker));
-        not res) {
+    auto res = r_core_->initialize_block(header, std::move(changes_tracker));
+    if (res.has_error()) {
       logger_->error("Core_initialize_block failed: {}", res.error());
       return res.error();
-    } else {
-      auto &[ctx, mode] = res.value();
-      return std::make_pair(std::make_unique<BlockBuilderImpl>(
-                                header, std::move(ctx), r_block_builder_),
-                            mode);
     }
+    auto &[ctx, mode] = res.value();
+    return std::make_pair(std::make_unique<BlockBuilderImpl>(
+                              header, std::move(ctx), r_block_builder_),
+                          mode);
   }
 
 }  // namespace kagome::authorship

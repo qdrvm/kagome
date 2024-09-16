@@ -15,7 +15,7 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 namespace kagome::crypto::bip39 {
-  enum class MnemonicError {
+  enum class MnemonicError : uint8_t {
     INVALID_MNEMONIC = 1,
     INVALID_SEED_LENGTH,
   };

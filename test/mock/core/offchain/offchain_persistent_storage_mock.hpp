@@ -17,7 +17,12 @@ namespace kagome::offchain {
     MOCK_METHOD(outcome::result<void>,
                 set,
                 (const common::BufferView &, common::Buffer),
-                (override));
+                ());
+
+    outcome::result<void> set(const common::BufferView &key,
+                              common::BufferOrView value) override {
+      return this->set(key, value.intoBuffer());
+    }
 
     MOCK_METHOD(outcome::result<void>,
                 clear,

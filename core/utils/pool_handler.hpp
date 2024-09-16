@@ -79,7 +79,7 @@ namespace kagome {
 }  // namespace kagome
 
 #define REINVOKE(ctx, func, ...)                                               \
-  do {                                                                         \
+  ({                                                                           \
     if (not runningInThisThread(ctx)) {                                        \
       return post(ctx,                                                         \
                   [weak{weak_from_this()},                                     \
@@ -93,13 +93,13 @@ namespace kagome {
                     }                                                          \
                   });                                                          \
     }                                                                          \
-  } while (false)
+  })
 
 /// Reinvokes function once depending on `template <bool kReinvoke>` argument.
 /// If `true` reinvoke takes place, otherwise direct call. After reinvoke called
 /// function has `false` in kReinvoke.
 #define REINVOKE_ONCE(ctx, func, ...)                                         \
-  do {                                                                        \
+  ({                                                                          \
     if constexpr (kReinvoke) {                                                \
       return post(                                                            \
           ctx,                                                                \
@@ -114,4 +114,4 @@ namespace kagome {
             }                                                                 \
           });                                                                 \
     }                                                                         \
-  } while (false)
+  })

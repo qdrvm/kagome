@@ -19,7 +19,10 @@ namespace kagome::blockchain {
   /**
    * Status of a block
    */
-  enum class BlockStatus { InChain, Unknown };
+  enum class BlockStatus : uint8_t {
+    InChain,
+    Unknown,
+  };
 
   /**
    * An interface to a storage with block headers that provides several

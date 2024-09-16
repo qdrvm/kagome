@@ -59,8 +59,9 @@ namespace kagome::runtime {
     child_batches_.clear();
     base_batch_ = batch;
     transaction_stack_.clear();
-    transaction_stack_.emplace_back(
-        Transaction{std::make_shared<TopperTrieBatchImpl>(base_batch_), {}});
+    transaction_stack_.emplace_back(Transaction{
+        .main_batch = std::make_shared<TopperTrieBatchImpl>(base_batch_),
+        .child_batches = {}});
   }
 
   std::shared_ptr<TrieStorageProviderImpl::Batch>
@@ -74,11 +75,9 @@ namespace kagome::runtime {
   outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
   TrieStorageProviderImpl::findChildBatchAt(
       const common::Buffer &root_path) const {
-    for (auto transaction_it = transaction_stack_.rbegin();
-         transaction_it != transaction_stack_.rend();
-         transaction_it++) {
-      if (auto it = transaction_it->child_batches.find(root_path);
-          it != transaction_it->child_batches.end()) {
+    for (auto &transaction : transaction_stack_) {
+      if (auto it = transaction.child_batches.find(root_path);
+          it != transaction.child_batches.end()) {
         return it->second;
       }
     }
@@ -189,7 +188,8 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
     transaction_stack_.emplace_back(Transaction{
-        std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()), {}});
+        .main_batch = std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()),
+        .child_batches = {}});
     SL_TRACE(logger_,
              "Start storage transaction, depth {}",
              transaction_stack_.size());
@@ -233,12 +233,11 @@ namespace kagome::runtime {
     if (not child and starts_with_child_storage_key(prefix)) {
       return result;
     }
-    storage::trie::TrieBatch *overlay;
-    if (child) {
-      overlay = &getMutableChildBatchAt(*child).value().get();
-    } else {
-      overlay = getCurrentBatch().get();
-    }
+
+    storage::trie::TrieBatch *overlay =
+        child ? &getMutableChildBatchAt(*child).value().get()
+              : getCurrentBatch().get();
+
     // https://github.com/paritytech/polkadot-sdk/blob/c973fe86f8c668462186c95655a58fda04508e9a/substrate/primitives/state-machine/src/overlayed_changes/mod.rs#L396-L399
     overlay->clearPrefix(prefix).value();
     std::unique_ptr<storage::BufferStorageCursor> cursor;
