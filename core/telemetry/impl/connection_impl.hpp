@@ -65,7 +65,6 @@ namespace kagome::telemetry {
         delete;
     TelemetryConnectionImpl &operator=(TelemetryConnectionImpl &&) noexcept =
         delete;
-    ~TelemetryConnectionImpl() = default;
 
     /// Initiate connection process
     void connect() override;

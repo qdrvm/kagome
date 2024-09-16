@@ -21,6 +21,7 @@
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
