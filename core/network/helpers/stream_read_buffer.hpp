@@ -151,6 +151,7 @@ namespace kagome::network {
     void read(libp2p::BytesOut out,
               size_t bytes,
               ReadCallbackFunc cb) override {
+      totalBytesRead += bytes;
       check();
       stream_->read(out, bytes, std::move(cb));
     }
@@ -170,13 +171,26 @@ namespace kagome::network {
     void writeSome(libp2p::BytesIn in,
                    size_t bytes,
                    WriteCallbackFunc cb) override {
+      totalBytesWritten += bytes;
       check();
       stream_->writeSome(in, bytes, std::move(cb));
+    }
+
+    static uint64_t getTotalBytesWritten() {
+      return totalBytesWritten;
+    }
+
+    static uint64_t getTotalBytesRead() {
+      return totalBytesRead;
     }
 
     void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) override {
       stream_->deferWriteCallback(ec, std::move(cb));
     }
+
+   private:
+    inline static uint64_t totalBytesWritten = 0;
+    inline static uint64_t totalBytesRead = 0;
   };
 
   /**

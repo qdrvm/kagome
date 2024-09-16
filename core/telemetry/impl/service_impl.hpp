@@ -88,6 +88,12 @@ namespace kagome::telemetry {
     void stop();
 
    private:
+    /// structure to store last calculated bandwidth values
+    struct Bandwidth {
+      rapidjson::Value down;
+      rapidjson::Value up;
+    };
+
     /// parse telemetry endpoints from chain specification
     std::vector<TelemetryEndpoint> chainSpecEndpoints() const;
 
@@ -99,6 +105,9 @@ namespace kagome::telemetry {
 
     /// produces and sends system health notifications
     void delayedNotificationsRoutine();
+
+    /// calculates and returns current bandwidth values
+    Bandwidth getBandwidth();
 
     /**
      * Constructs the main and immutable part of JSON to be serialized later as
