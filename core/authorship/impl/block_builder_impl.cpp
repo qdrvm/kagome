@@ -100,7 +100,7 @@ namespace kagome::authorship {
 
   outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
     OUTCOME_TRY(finalized_header, block_builder_api_->finalize_block(*ctx_));
-    return primitives::Block{finalized_header, extrinsics_};
+    return primitives::Block{.header = finalized_header, .body = extrinsics_};
   }
 
   size_t BlockBuilderImpl::estimateBlockSize() const {

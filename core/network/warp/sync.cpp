@@ -78,8 +78,7 @@ namespace kagome::network {
       auto &fragment = res.proofs[i];
 
       // Calculate and save hash, 'cause it's just received response
-      primitives::calculateBlockHash(
-          const_cast<primitives::BlockHeader &>(fragment.header), *hasher_);
+      primitives::calculateBlockHash(fragment.header, *hasher_);
 
       primitives::BlockInfo block_info = fragment.header.blockInfo();
       if (fragment.justification.block_info != block_info) {
@@ -99,10 +98,10 @@ namespace kagome::network {
         return;
       }
       Op op{
-          block_info,
-          fragment.header,
-          fragment.justification,
-          *authorities,
+          .block_info = block_info,
+          .header = fragment.header,
+          .justification = fragment.justification,
+          .authorities = *authorities,
       };
       db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
       applyInner(op);

@@ -10,8 +10,6 @@
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
-  ChildPrefix::ChildPrefix() : state_{0} {}
-
   ChildPrefix::ChildPrefix(bool v) : state_{v ? kTrue : kFalse} {}
 
   void ChildPrefix::match(uint8_t nibble) {

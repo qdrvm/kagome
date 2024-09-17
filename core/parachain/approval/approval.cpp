@@ -43,14 +43,17 @@ namespace kagome::parachain::approval {
     consensus::babe::prepareTranscript(
         transcript, randomness, slot, epoch_index);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
     if (Sr25519SignatureResult::SR25519_SIGNATURE_RESULT_OK
         != sr25519_vrf_compute_randomness(
             pubkey.data(),
-            (Strobe128 *)(transcript.data().data()),  // NOLINT
-            (VRFCOutput *)&vrf_output.get().output,
+            const_cast<Strobe128 *>(
+                reinterpret_cast<const Strobe128 *>(transcript.data().data())),
+            reinterpret_cast<VRFCOutput *>(&vrf_output.get().output),
             &vrf_story)) {
       return Error::ComputeRandomnessFailed;
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
 
     return outcome::success();
   }

@@ -54,7 +54,8 @@ namespace kagome::dispute {
 
       OUTCOME_TRY(validator_info, get_validator_info(session_info));
 
-      ExtendedSessionInfo ext_session_info{session_info, validator_info};
+      ExtendedSessionInfo ext_session_info{.session_info = session_info,
+                                           .validator_info = validator_info};
       auto ext_session_info_ref =
           session_info_cache_.put(session_index, std::move(ext_session_info));
       return *ext_session_info_ref;

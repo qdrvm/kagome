@@ -117,8 +117,8 @@ namespace kagome {
       }
 
       if constexpr (std::is_same_v<ValueArg, Value>) {
-        auto it =
-            std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+        auto it = std::ranges::find_if(
+            cache_.begin(), cache_.end(), [&](const auto &item) {
               return *item.value == value;
             });
         if (it != cache_.end()) {
@@ -134,8 +134,8 @@ namespace kagome {
       } else {
         auto value_sptr =
             std::make_shared<Value>(std::forward<ValueArg>(value));
-        auto it =
-            std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+        auto it = std::ranges::find_if(
+            cache_.begin(), cache_.end(), [&](const auto &item) {
               return *item.value == *value_sptr;
             });
         if (it != cache_.end()) {
@@ -153,18 +153,19 @@ namespace kagome {
       if (auto opt = get(key); opt.has_value()) {
         return opt.value();
       }
-      if (auto res = func(); res.has_value()) {
+      auto res = func();
+      if (res.has_value()) {
         return put(key, std::move(res.value()));
-      } else {
-        return res.as_failure();
       }
+      return res.as_failure();
     }
 
     void erase(const Key &key) {
       LockGuard lg(*this);
-      auto it = std::find_if(cache_.begin(),
-                             cache_.end(),
-                             [&](const auto &item) { return item.key == key; });
+      auto it = std::ranges::find_if(
+          cache_.begin(), cache_.end(), [&](const auto &item) {
+            return item.key == key;
+          });
       if (it != cache_.end()) {
         cache_.erase(it);
       }

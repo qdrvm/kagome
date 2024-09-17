@@ -49,8 +49,8 @@ export BUILDKIT_PROGRESS=auto
 # (2) test file path
 define run_test
 	@CONTAINER_NAME=$$(openssl rand -hex 6); \
-	START_TIME=$$(date +%s); \
 	echo "Running test in container $$CONTAINER_NAME with params \n image:$(1), test:$(2) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
+	START_TIME=$$(date +%s); \
 	TEST_PATH=$$(echo $(2) | xargs); \
 	docker run --name $$CONTAINER_NAME \
 		--platform $(PLATFORM) \
@@ -63,6 +63,11 @@ define run_test
 		$(1) \
 		-c "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
 			install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) kagome-dev-runtime && \
+			echo \"KAGOME_DEV_VERSION=\$$(apt-cache policy kagome-dev | grep 'Installed:' | awk '{print \$$2}')\" > /tmp/versions.env && \
+			echo \"KAGOME_DEV_RUNTIME_VERSION=\$$(apt-cache policy kagome-dev-runtime | grep 'Installed:' | awk '{print \$$2}')\" >> /tmp/versions.env && \
+			echo \"POLKADOT_VERSION=\$$(polkadot --version | awk '{print \$$2}')\" >> /tmp/versions.env && \
+			echo \"ZOMBIENET_VERSION=\$$(zombienet version)\" >> /tmp/versions.env && \
+			cat /tmp/versions.env && \
 			zombienet-linux-x64 test -p native /home/nonroot/bin/$$TEST_PATH " ; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
@@ -214,6 +219,7 @@ copy_logs_to_host:
 	for DIR in $$DIRS_TO_COPY; do \
 		docker cp "$$FINISHED_CONTAINER_NAME:$$DIR/logs" "$(HOST_LOGS_PATH)/$$(basename $$DIR)"; \
 	done; \
+	docker cp "$$FINISHED_CONTAINER_NAME:/tmp/versions.env" "/tmp/versions.env" ; \
 	echo "Logs copied to $(HOST_LOGS_PATH)"; \
 	echo "Runtime cache directory content:"; \
 	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/" ; \
@@ -257,3 +263,6 @@ test-polkadot-functional-0011-async-backing-6-seconds-rate:
 
 test-polkadot-functional-0013-systematic-chunk-recovery:
 	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0013-systematic-chunk-recovery.zndsl")
+
+test-custom-0001-validators-warp-sync:
+	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/custom/0001-validators-warp-sync.zndsl")

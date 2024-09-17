@@ -29,7 +29,7 @@ namespace kagome::consensus::grandpa {
         grandpa_api_(std::move(grandpa_api)),
         persistent_storage_{
             persistent_storage->getSpace(storage::Space::kDefault)},
-        chain_sub_{chain_events_engine},
+        chain_sub_{std::move(chain_events_engine)},
         indexer_{
             std::make_shared<storage::MapPrefix>(
                 storage::kAuthorityManagerImplIndexerPrefix,
@@ -69,15 +69,16 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
     std::unique_lock lock{mutex_};
-    if (auto r = authoritiesOutcome(target_block, finalized.operator bool())) {
+    auto r = authoritiesOutcome(target_block, finalized.operator bool());
+    if (r.has_value()) {
       return std::move(r.value());
-    } else {
-      SL_WARN(logger_,
-              "authorities {} finalized={} error: {}",
-              target_block,
-              finalized.operator bool(),
-              r.error());
     }
+
+    SL_WARN(logger_,
+            "authorities {} finalized={} error: {}",
+            target_block,
+            (bool)finalized,
+            r.error());
     return std::nullopt;
   }
 
@@ -97,12 +98,16 @@ namespace kagome::consensus::grandpa {
           OUTCOME_TRY(list, grandpa_api_->authorities(info.hash));
           auto genesis = std::make_shared<AuthoritySet>(0, std::move(list));
           GrandpaIndexedValue value{
-              genesis->id,
-              std::nullopt,
-              genesis,
-              genesis,
+              .next_set_id = genesis->id,
+              .state = genesis,
+              .next = genesis,
           };
-          indexer_.put(info, {value, std::nullopt}, true);
+          indexer_.put(info,
+                       {
+                           .value = value,
+                           .prev = std::nullopt,
+                       },
+                       true);
           if (i_first == i_last) {
             return outcome::success();
           }
@@ -154,11 +159,15 @@ namespace kagome::consensus::grandpa {
             }
             auto state = applyDigests(info, value.next_set_id, digests);
             value.next = state;
-            indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
+            indexer_.put(info,
+                         {.value = value, .prev = prev},
+                         block_tree_->isFinalized(info));
             prev = info;
             prev_state = state;
           } else {
-            indexer_.put(info, {std::nullopt, prev, true}, false);
+            indexer_.put(info,
+                         {.value = std::nullopt, .prev = prev, .inherit = true},
+                         false);
           }
           if (i_first == i_last) {
             break;
@@ -232,17 +241,14 @@ namespace kagome::consensus::grandpa {
                                   const AuthoritySet &authorities) {
     std::unique_lock lock{mutex_};
     GrandpaIndexedValue value{
-        authorities.id + 1,
-        std::nullopt,
-        std::nullopt,
-        std::nullopt,
+        .next_set_id = authorities.id + 1,
     };
     HasAuthoritySetChange digests{header};
     if (not digests.scheduled) {
       auto state = std::make_shared<AuthoritySet>(authorities);
-      value = {authorities.id, std::nullopt, state, state};
+      value = {.next_set_id = authorities.id, .state = state, .next = state};
     }
-    indexer_.put(block, {value, std::nullopt}, true);
+    indexer_.put(block, {.value = value}, true);
   }
 
   AuthorityManager::ScheduledParentResult AuthorityManagerImpl::scheduledParent(

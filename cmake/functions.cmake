@@ -40,6 +40,8 @@ function(add_flag flag)
   check_cxx_compiler_flag(${flag} FLAG${flag_var})
   if(FLAG${flag_var} EQUAL 1)
     add_compile_options(${flag})
+  else()
+    message(AUTHOR_WARNING "Compiler flag ${flag} requested, but not supported by ${CMAKE_CXX_COMPILER}")
   endif()
 endfunction()
 
@@ -94,10 +96,6 @@ function(compile_proto_to_cpp PROTO_LIBRARY_NAME PB_H PB_CC PROTO)
   set(${PB_CC} ${SCHEMA_OUT_DIR}/${SCHEMA_REL}/${GEN_PB} PARENT_SCOPE)
 endfunction()
 
-add_custom_target(generated
-    COMMENT "Building generated files..."
-    )
-
 function(add_proto_library NAME)
   set(SOURCES "")
   foreach(PROTO IN ITEMS ${ARGN})
@@ -117,8 +115,14 @@ function(add_proto_library NAME)
       # required for compiling proto targets
       $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/pb/${NAME}/generated>
       )
+  kagome_install(${NAME})
 
   disable_clang_tidy(${NAME})
 
+  if (NOT TARGET generated)
+    add_custom_target(generated
+        COMMENT "Building generated files..."
+    )
+  endif()
   add_dependencies(generated ${NAME})
 endfunction()

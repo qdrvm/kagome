@@ -24,11 +24,14 @@
 
 namespace kagome::consensus {
 
-  metrics::HistogramTimer metric_block_execution_time{
-      "kagome_block_verification_and_import_time",
-      "Time taken to verify and import blocks",
-      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-  };
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::HistogramTimer metric_block_execution_time{
+        "kagome_block_verification_and_import_time",
+        "Time taken to verify and import blocks",
+        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+    };
+  }  // namespace
 
   BlockExecutorImpl::BlockExecutorImpl(
       application::AppStateManager &app_state_manager,
@@ -121,7 +124,7 @@ namespace kagome::consensus {
     auto execute = [this,
                     self{shared_from_this()},
                     block{std::move(block)},
-                    justification,
+                    justification{justification},
                     callback{std::move(callback)},
                     block_info,
                     start_time,
@@ -230,14 +233,12 @@ namespace kagome::consensus {
             }
           }
 
-          BlockAppenderBase::SlotInfo slot_info;
-          if (auto res = self->appender_->getSlotInfo(block.header);
-              res.has_error()) {
+          auto res = self->appender_->getSlotInfo(block.header);
+          if (res.has_error()) {
             callback(res.as_failure());
             return;
-          } else {
-            slot_info = res.value();
           }
+          auto &slot_info = res.value();
 
           auto &[slot_start, slot_duration] = slot_info;
           auto lag = std::chrono::system_clock::now() - slot_start;

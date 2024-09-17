@@ -16,13 +16,13 @@ namespace kagome::dispute {
       log::Logger logger,
       std::shared_ptr<PoolHandler> main_pool_handler,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
-      const network::DisputeMessage &request)
+      const std::shared_ptr<network::SendDisputeProtocol> &dispute_protocol,
+      network::DisputeMessage request)
       : logger_(std::move(logger)),
         main_pool_handler_(std::move(main_pool_handler)),
         authority_discovery_(std::move(authority_discovery)),
-        dispute_protocol_(std::move(dispute_protocol)),
-        request_(request) {
+        dispute_protocol_(dispute_protocol),
+        request_(std::move(request)) {
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
@@ -38,13 +38,11 @@ namespace kagome::dispute {
     // Note this will also contain all authorities for which sending failed
     // previously:
     std::vector<primitives::AuthorityDiscoveryId> add_authorities;
-    std::for_each(new_authorities.begin(),
-                  new_authorities.end(),
-                  [&](const auto &authority) {
-                    if (not deliveries_.contains(authority)) {
-                      add_authorities.emplace_back(authority);
-                    }
-                  });
+    std::ranges::for_each(new_authorities, [&](const auto &authority) {
+      if (not deliveries_.contains(authority)) {
+        add_authorities.emplace_back(authority);
+      }
+    });
 
     // Get rid of dead/irrelevant tasks/statuses:
     SL_TRACE(logger_, "Cleaning up deliveries");

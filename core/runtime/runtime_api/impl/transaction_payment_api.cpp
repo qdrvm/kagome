@@ -28,7 +28,9 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor,
       std::shared_ptr<Core> core_api,
       std::shared_ptr<crypto::Hasher> hasher)
-      : executor_{std::move(executor)}, core_api_{core_api}, hasher_{hasher} {
+      : executor_{std::move(executor)},
+        core_api_{std::move(core_api)},
+        hasher_{std::move(hasher)} {
     BOOST_ASSERT(executor_);
     BOOST_ASSERT(core_api_);
     BOOST_ASSERT(hasher_);
@@ -46,12 +48,10 @@ namespace kagome::runtime {
     const auto &c_transaction_payment_api_hash =
         transaction_payment_api_hash;  // to create memory storage to push in
                                        // lambda
-    auto res = std::find_if(runtime_version.apis.begin(),
-                            runtime_version.apis.end(),
-                            [&](auto &api_version) {
-                              return api_version.first
-                                  == c_transaction_payment_api_hash;
-                            });
+    auto res =
+        std::ranges::find_if(runtime_version.apis, [&](auto &api_version) {
+          return api_version.first == c_transaction_payment_api_hash;
+        });
     if (res == runtime_version.apis.end()) {
       return Error::TRANSACTION_PAYMENT_API_NOT_FOUND;
     }
@@ -64,7 +64,7 @@ namespace kagome::runtime {
         result,
         executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
             ctx, "TransactionPaymentApi_query_info", ext.data, len));
-   
+
     return result;
   }
 

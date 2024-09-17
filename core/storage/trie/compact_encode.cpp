@@ -42,7 +42,11 @@ namespace kagome::storage::trie {
       }
       auto &level = levels.back();
       auto &proof = proofs[levels.size() - 1];
-      level.push({std::move(node), std::nullopt, level.child, proof.size()});
+      level.push({
+          .node = std::move(node),
+          .child = level.child,
+          .t = proof.size(),
+      });
       proof.emplace_back();
       if (compact) {
         proof.back().putUint8(kEscapeCompactHeader);

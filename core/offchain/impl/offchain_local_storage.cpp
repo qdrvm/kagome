@@ -29,7 +29,7 @@ namespace kagome::offchain {
   }
 
   outcome::result<void> OffchainLocalStorageImpl::set(
-      const common::BufferView &key, common::Buffer value) {
+      const common::BufferView &key, common::BufferOrView value) {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
     //  Specification in not enough to implement it now.

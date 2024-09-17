@@ -14,7 +14,7 @@
 namespace kagome::storage::trie {
   struct TrieNode;
 
-  enum class CompactDecodeError {
+  enum class CompactDecodeError : uint8_t {
     INCOMPLETE_PROOF = 1,
   };
 

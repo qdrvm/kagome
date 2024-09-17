@@ -11,7 +11,8 @@
 
 namespace scale {
 
-  PeerInfoSerializable::PeerInfoSerializable() : PeerInfo{dummyPeerId(), {}} {}
+  PeerInfoSerializable::PeerInfoSerializable()
+      : PeerInfo{.id = dummyPeerId(), .addresses = {}} {}
 
   libp2p::peer::PeerId PeerInfoSerializable::dummyPeerId() {
     // some valid dummy peer id
@@ -24,6 +25,7 @@ namespace scale {
   scale::ScaleEncoderStream &operator<<(
       scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info) {
     std::vector<std::string> addresses;
+    addresses.reserve(peer_info.addresses.size());
     for (const auto &addr : peer_info.addresses) {
       addresses.emplace_back(addr.getStringAddress());
     }
@@ -39,14 +41,13 @@ namespace scale {
     peer_info.id = std::move(peer_id_res.value());
     std::vector<libp2p::multi::Multiaddress> multi_addrs;
     multi_addrs.reserve(addresses.size());
-    std::for_each(
-        addresses.begin(), addresses.end(), [&multi_addrs](const auto &addr) {
-          // filling in only supported kinds of addresses
-          auto res = libp2p::multi::Multiaddress::create(addr);
-          if (res) {
-            multi_addrs.emplace_back(std::move(res.value()));
-          }
-        });
+    std::ranges::for_each(addresses, [&multi_addrs](const auto &addr) {
+      // filling in only supported kinds of addresses
+      auto res = libp2p::multi::Multiaddress::create(addr);
+      if (res) {
+        multi_addrs.emplace_back(std::move(res.value()));
+      }
+    });
     peer_info.addresses = std::move(multi_addrs);
     return s;
   }

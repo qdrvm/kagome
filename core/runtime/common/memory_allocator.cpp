@@ -50,7 +50,7 @@ namespace kagome::runtime {
     size = std::max(size, kMinAllocate);
     size = math::nextHighPowerOf2(size);
     uint32_t order = std::countr_zero(size) - std::countr_zero(kMinAllocate);
-    uint32_t head_ptr;
+    uint32_t head_ptr;  // NOLINT(cppcoreguidelines-init-variables)
     if (auto &list = free_lists_.at(order)) {
       head_ptr = *list;
       if (*list + sizeof(Header) + size > memory_->size()) {

@@ -105,10 +105,9 @@ namespace kagome::crypto::bandersnatch::vrf {
     RingProver prover(std::span<const crypto::BandersnatchPublicKey> keys,
                       size_t index) const {
       std::vector<const uint8_t *> ptrs;
-      std::transform(keys.begin(),
-                     keys.end(),
-                     std::back_inserter(ptrs),
-                     [](const auto &key) { return key.data(); });
+      std::ranges::transform(keys,
+                             std::back_inserter(ptrs),
+                             [](const auto &key) { return key.data(); });
       auto prover =
           ::bandersnatch_ring_prover(ptr_, ptrs.data(), ptrs.size(), index);
       return RingProver(prover);
@@ -117,10 +116,9 @@ namespace kagome::crypto::bandersnatch::vrf {
     RingVerifier verifier(std::span<const crypto::BandersnatchPublicKey> keys,
                           size_t index) const {
       std::vector<const uint8_t *> ptrs;
-      std::transform(keys.begin(),
-                     keys.end(),
-                     std::back_inserter(ptrs),
-                     [](const auto &key) { return key.data(); });
+      std::ranges::transform(keys,
+                             std::back_inserter(ptrs),
+                             [](const auto &key) { return key.data(); });
       auto verifier =
           ::bandersnatch_ring_verifier(ptr_, ptrs.data(), ptrs.size());
       return RingVerifier(verifier);

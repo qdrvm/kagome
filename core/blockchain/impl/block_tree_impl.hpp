@@ -75,7 +75,7 @@ namespace kagome::blockchain {
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
-        primitives::BlockId target_block_id,
+        const primitives::BlockId &target_block_id,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage,

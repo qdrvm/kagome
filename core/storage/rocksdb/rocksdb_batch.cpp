@@ -15,7 +15,7 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbBatch::put(const BufferView &key,
                                           BufferOrView &&value) {
-    batch_.Put(db_.column_, make_slice(key), make_slice(value));
+    batch_.Put(db_.column_, make_slice(key), make_slice(std::move(value)));
     return outcome::success();
   }
 

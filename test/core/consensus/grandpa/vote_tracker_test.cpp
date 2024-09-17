@@ -109,7 +109,7 @@ TEST_F(VoteTrackerTest, GetMessages) {
 
   for (auto &m : expected) {
     ASSERT_TRUE(
-        std::find_if(
+        std::ranges::find_if(
             messages.begin(),
             messages.end(),
             [&m](auto &v) {

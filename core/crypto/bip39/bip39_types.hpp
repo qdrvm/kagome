@@ -22,7 +22,7 @@ namespace kagome::crypto::bip39 {
   using Bip39Seed = PrivateKey<constants::BIP39_SEED_LEN_512, Bip39Tag>;
 
   struct RawJunction {
-    bool hard;
+    bool hard = false;
     common::Hash256 cc;
   };
 

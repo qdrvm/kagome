@@ -36,10 +36,10 @@ namespace kagome::runtime::binaryen {
     auto rei = std::make_shared<RuntimeExternalInterface>(host_api);
     new_memory_provider->setExternalInterface(rei);
     return BinaryenInstanceEnvironment{
-        InstanceEnvironment{std::move(new_memory_provider),
-                            std::move(new_storage_provider),
-                            std::move(host_api),
-                            [](auto &) {}},
-        std::move(rei)};
+        .env = InstanceEnvironment{std::move(new_memory_provider),
+                                   std::move(new_storage_provider),
+                                   std::move(host_api),
+                                   [](auto &) {}},
+        .rei = std::move(rei)};
   }
 }  // namespace kagome::runtime::binaryen

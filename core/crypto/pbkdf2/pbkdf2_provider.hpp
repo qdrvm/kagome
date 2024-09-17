@@ -15,7 +15,7 @@
 
 namespace kagome::crypto {
 
-  enum class Pbkdf2ProviderError { KEY_DERIVATION_FAILED = 1 };
+  enum class Pbkdf2ProviderError : uint8_t { KEY_DERIVATION_FAILED = 1 };
 
   /**
    * @class Pbkdf2Provider provides key derivation functionality

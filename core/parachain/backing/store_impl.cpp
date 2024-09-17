@@ -96,7 +96,7 @@ namespace kagome::parachain {
     }
 
     const CandidateHash digest = candidateHash(*hasher_, candidate);
-    bool new_proposal;
+    bool new_proposal;  // NOLINT(cppcoreguidelines-init-variables)
     if (auto it = state.authority_data_.find(authority);
         it != state.authority_data_.end()) {
       auto &existing = it->second;
@@ -107,12 +107,12 @@ namespace kagome::parachain {
         }
         new_proposal = false;
       } else if (allow_multiple_seconded
-                 && std::find_if(existing.proposals.begin(),
-                                 existing.proposals.end(),
-                                 [&digest](const auto &hash_and_sig) {
-                                   const auto &[h, _] = hash_and_sig;
-                                   return h == digest;
-                                 })
+                 && std::ranges::find_if(existing.proposals.begin(),
+                                         existing.proposals.end(),
+                                         [&digest](const auto &hash_and_sig) {
+                                           const auto &[h, _] = hash_and_sig;
+                                           return h == digest;
+                                         })
                         != existing.proposals.end()) {
         new_proposal = false;
       } else {

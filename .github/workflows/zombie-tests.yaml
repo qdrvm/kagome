@@ -59,7 +59,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
@@ -132,6 +132,14 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Kagome Images: "
+          cat /tmp/docker_image.env || true
+          cat /tmp/dockerhub_image.env || true
 
 
   Zombie-Tests:
@@ -166,6 +174,8 @@ jobs:
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
           - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
             test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+          - name: "Warp sync from polkadot node"
+            test: "test-custom-0001-validators-warp-sync"
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -195,7 +205,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
         
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
         
@@ -230,7 +240,15 @@ jobs:
         with:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
-  
+
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
+          echo "Zombie Tests Versions: "
+          cat /tmp/versions.env || true
+
       - name: "Show system info"
         if: always()
         run: |

@@ -14,21 +14,17 @@ extern "C" {
 #include "crypto/common.hpp"
 #include "scale/tie.hpp"
 
-namespace kagome::crypto {
-
-  namespace constants::ed25519 {
-    /**
-     * Important constants to deal with ed25519
-     */
-    enum {
-      PRIVKEY_SIZE = ED25519_SECRET_KEY_LENGTH,
-      PUBKEY_SIZE = ED25519_PUBLIC_KEY_LENGTH,
-      SIGNATURE_SIZE = ED25519_SIGNATURE_LENGTH,
-      SEED_SIZE = PRIVKEY_SIZE,
-    };
-  }  // namespace constants::ed25519
-
-}  // namespace kagome::crypto
+namespace kagome::crypto::constants::ed25519 {
+  /**
+   * Important constants to deal with ed25519
+   */
+  enum {  // NOLINT(performance-enum-size)
+    PRIVKEY_SIZE = ED25519_SECRET_KEY_LENGTH,
+    PUBKEY_SIZE = ED25519_PUBLIC_KEY_LENGTH,
+    SIGNATURE_SIZE = ED25519_SIGNATURE_LENGTH,
+    SEED_SIZE = PRIVKEY_SIZE,
+  };
+}  // namespace kagome::crypto::constants::ed25519
 
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Ed25519PublicKey,

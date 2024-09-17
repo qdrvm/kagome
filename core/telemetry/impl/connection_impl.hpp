@@ -55,12 +55,16 @@ namespace kagome::telemetry {
      */
     TelemetryConnectionImpl(
         std::shared_ptr<boost::asio::io_context> io_context,
-        const TelemetryEndpoint &endpoint,
+        TelemetryEndpoint endpoint,
         OnConnectedCallback callback,
         std::shared_ptr<MessagePool> message_pool,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
     TelemetryConnectionImpl(const TelemetryConnectionImpl &) = delete;
-    TelemetryConnectionImpl(TelemetryConnectionImpl &&) = delete;
+    TelemetryConnectionImpl(TelemetryConnectionImpl &&) noexcept = delete;
+    TelemetryConnectionImpl &operator=(const TelemetryConnectionImpl &) =
+        delete;
+    TelemetryConnectionImpl &operator=(TelemetryConnectionImpl &&) noexcept =
+        delete;
 
     /// Initiate connection process
     void connect() override;
@@ -102,11 +106,12 @@ namespace kagome::telemetry {
     void write(WsStreamT &ws, MessageHandle message_handle);
 
     void onResolve(boost::beast::error_code ec,
-                   boost::asio::ip::tcp::resolver::results_type results);
+                   const boost::asio::ip::tcp::resolver::results_type &results);
 
     void onConnect(
         boost::beast::error_code ec,
-        boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint);
+        const boost::asio::ip::tcp::resolver::results_type::endpoint_type
+            &endpoint);
 
     template <typename WsStreamT>
     void setOptionsAndRunWsHandshake(WsStreamT &ws);

@@ -66,6 +66,9 @@ namespace kagome::network {
         OUTCOME_TRY(trie.get().tryGet(key));
       }
     }
-    return LightProtocolResponse{proof.vec(), call != nullptr};
+    return LightProtocolResponse{
+        .proof = proof.vec(),
+        .call = call != nullptr,
+    };
   }
 }  // namespace kagome::network

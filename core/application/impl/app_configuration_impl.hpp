@@ -342,7 +342,7 @@ namespace kagome::application {
     std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
     bool is_telemetry_enabled_;
     uint16_t p2p_port_;
-    bool p2p_port_explicitly_defined_ = false;
+    bool p2p_port_explicitly_defined_;
     boost::asio::ip::tcp::endpoint rpc_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
     std::vector<std::string> logger_tuning_config_;

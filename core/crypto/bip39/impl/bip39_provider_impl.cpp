@@ -88,9 +88,8 @@ namespace kagome::crypto {
         }
         OUTCOME_TRY(entropy, calculateEntropy(*words));
         return makeSeed(entropy, mnemonic.password);
-      } else {
-        return std::get<bip39::Bip39Seed>(std::move(mnemonic.seed));
       }
+      return std::get<bip39::Bip39Seed>(std::move(mnemonic.seed));
     }();
     OUTCOME_TRY(seed, seed_res);
     bip39::Bip39SeedAndJunctions result{

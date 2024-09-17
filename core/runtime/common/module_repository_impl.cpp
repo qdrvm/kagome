@@ -39,12 +39,13 @@ namespace kagome::runtime {
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         trie_storage_{std::move(trie_storage)},
         module_factory_{std::move(module_factory)},
-        code_provider_{code_provider},
+        code_provider_{std::move(code_provider)},
         cache_{4},
         logger_{log::createLogger("Module Repository", "runtime")} {
     BOOST_ASSERT(runtime_instances_pool_);
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(code_provider_);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>

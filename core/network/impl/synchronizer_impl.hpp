@@ -17,6 +17,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "application/sync_method.hpp"
+#include "blockchain/block_storage.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
 #include "injector/lazy.hpp"
@@ -39,7 +40,8 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class BlockStorage;
+}  // namespace kagome::blockchain
 
 namespace kagome::common {
   class MainThreadPool;
@@ -124,7 +126,8 @@ namespace kagome::network {
         LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        common::MainThreadPool &main_thread_pool);
+        common::MainThreadPool &main_thread_pool,
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -152,6 +155,11 @@ namespace kagome::network {
 
     bool fetchJustificationRange(primitives::BlockNumber min,
                                  FetchJustificationRangeCb cb) override;
+
+    bool fetchHeadersBack(const primitives::BlockInfo &max,
+                          primitives::BlockNumber min,
+                          bool isFinalized,
+                          CbResultVoid cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
@@ -184,10 +192,9 @@ namespace kagome::network {
 
    private:
     void postApplyBlock(const primitives::BlockHash &hash);
-    void processBlockAdditionResult(
-        outcome::result<void> &&block_addition_result,
-        const primitives::BlockHash &hash,
-        SyncResultHandler &&handler);
+    void processBlockAdditionResult(outcome::result<void> block_addition_result,
+                                    const primitives::BlockHash &hash,
+                                    SyncResultHandler &&handler);
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded
     /// @returns true if subscription is successful
@@ -201,7 +208,7 @@ namespace kagome::network {
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
-    void post_block_addition(outcome::result<void> &&block_addition_result,
+    void post_block_addition(outcome::result<void> block_addition_result,
                              Synchronizer::SyncResultHandler &&handler,
                              const primitives::BlockHash &hash);
 
@@ -253,6 +260,7 @@ namespace kagome::network {
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
 
     application::SyncMethod sync_method_;
 

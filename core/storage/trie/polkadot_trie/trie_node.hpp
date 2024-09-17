@@ -87,7 +87,8 @@ namespace kagome::storage::trie {
       if (size == common::Hash256::size()) {
         return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
                            size};
-      } else if (size < common::Hash256::size()) {
+      }
+      if (size < common::Hash256::size()) {
         common::Hash256 hash;
         std::copy_n(merkle_value.begin(), size, hash.begin());
         return MerkleValue{hash, size};
@@ -174,7 +175,7 @@ namespace kagome::storage::trie {
     TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
-    enum class Type {
+    enum class Type : uint8_t {
       Special,                 // -
       Leaf,                    // 01
       BranchEmptyValue,        // 10
@@ -231,6 +232,7 @@ namespace kagome::storage::trie {
 
     uint8_t getNextChildIdxFrom(uint8_t child_idx) const {
       while (child_idx < kMaxChildren) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         if (children[child_idx]) {
           return child_idx;
         }
