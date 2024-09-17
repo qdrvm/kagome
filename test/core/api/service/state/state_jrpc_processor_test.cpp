@@ -34,7 +34,7 @@ using testing::Return;
 using testing::Truly;
 
 auto operator==(const std::span<const Buffer> lhs,
-                const std::span<const Buffer> rhs) noexcept {
+                const std::span<const Buffer> rhs) {
   return std::equal(
       lhs.begin(), lhs.end(), rhs.begin(), [](const auto &le, const auto &re) {
         return std::equal(le.begin(), le.end(), re.begin());
@@ -49,6 +49,7 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_UnsubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
+    kCallType_GetStorageSize,
     kCallType_QueryStorage,
     kCallType_QueryStorageAt,
     kCallType_GetReadProof,
@@ -113,6 +114,11 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
+        }));
+    EXPECT_CALL((*server), registerHandler("state_getStorageSize", _, _))
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_GetStorageSize, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_queryStorage", _, _))
         .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
@@ -221,10 +227,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
   registerHandlers();
 
   jsonrpc::Value::Array keys_json;
-  std::transform(keys.begin(),
-                 keys.end(),
-                 std::back_inserter(keys_json),
-                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  std::ranges::transform(keys, std::back_inserter(keys_json), [](auto &buffer) {
+    return "0x" + buffer.toHex();
+  });
   jsonrpc::Request::Parameters params{keys_json, "0x" + from.toHex()};
   // WHEN
   auto result = execute(CallType::kCallType_QueryStorage, params);
@@ -264,10 +269,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
   registerHandlers();
 
   jsonrpc::Value::Array keys_json;
-  std::transform(keys.begin(),
-                 keys.end(),
-                 std::back_inserter(keys_json),
-                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  std::ranges::transform(keys, std::back_inserter(keys_json), [](auto &buffer) {
+    return "0x" + buffer.toHex();
+  });
   jsonrpc::Request::Parameters params{keys_json, "0x" + at.toHex()};
   // WHEN
   auto result = execute(CallType::kCallType_QueryStorageAt, params);

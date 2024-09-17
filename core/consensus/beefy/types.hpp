@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <boost/container_hash/hash.hpp>
+
 #include "common/unused.hpp"
 #include "consensus/beefy/types/authority.hpp"
 #include "crypto/ecdsa_types.hpp"
@@ -124,4 +126,25 @@ namespace kagome::consensus::beefy {
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;
 
   using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
+
+  struct DoubleVotingProof {
+    SCALE_TIE(2);
+
+    VoteMessage first;
+    VoteMessage second;
+  };
 }  // namespace kagome::consensus::beefy
+
+template <>
+struct std::hash<kagome::consensus::beefy::Commitment> {
+  size_t operator()(const kagome::consensus::beefy::Commitment &v) const {
+    size_t h = 0;
+    boost::hash_combine(h, v.validator_set_id);
+    boost::hash_combine(h, v.block_number);
+    for (auto &p : v.payload) {
+      boost::hash_combine(h, p.first);
+      boost::hash_combine(h, p.second);
+    }
+    return h;
+  }
+};

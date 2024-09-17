@@ -48,6 +48,11 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
+
 namespace kagome::runtime {
   class BeefyApi;
 }
@@ -59,25 +64,31 @@ namespace kagome::storage {
 namespace kagome::network {
   class BeefyProtocol;
   class BeefyThreadPool;
+  class Synchronizer;
 
   class BeefyImpl : public Beefy,
                     public std::enable_shared_from_this<BeefyImpl> {
    public:
-    BeefyImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
-              const application::ChainSpec &chain_spec,
-              std::shared_ptr<blockchain::BlockTree> block_tree,
-              std::shared_ptr<runtime::BeefyApi> beefy_api,
-              std::shared_ptr<crypto::EcdsaProvider> ecdsa,
-              std::shared_ptr<storage::SpacedStorage> db,
-              common::MainThreadPool &main_thread_pool,
-              BeefyThreadPool &beefy_thread_pool,
-              std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-              LazySPtr<consensus::Timeline> timeline,
-              std::shared_ptr<crypto::SessionKeys> session_keys,
-              LazySPtr<BeefyProtocol> beefy_protocol,
-              LazySPtr<consensus::beefy::FetchJustification>
-                  beefy_justification_protocol,
-              primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+    BeefyImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        const application::ChainSpec &chain_spec,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<runtime::BeefyApi> beefy_api,
+        std::shared_ptr<crypto::EcdsaProvider> ecdsa,
+        std::shared_ptr<storage::SpacedStorage> db,
+        common::MainThreadPool &main_thread_pool,
+        BeefyThreadPool &beefy_thread_pool,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        LazySPtr<consensus::Timeline> timeline,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
+        LazySPtr<BeefyProtocol> beefy_protocol,
+        LazySPtr<consensus::beefy::FetchJustification>
+            beefy_justification_protocol,
+        std::shared_ptr<offchain::OffchainWorkerFactory>
+            offchain_worker_factory,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        LazySPtr<network::Synchronizer> synchronizer);
 
     bool tryStart();
 
@@ -92,10 +103,21 @@ namespace kagome::network {
     void onMessage(consensus::beefy::BeefyGossipMessage message) override;
 
    private:
+    struct DoubleVoting {
+      consensus::beefy::VoteMessage first;
+      bool reported = false;
+    };
+    struct Round {
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L87
+      std::unordered_map<consensus::beefy::Commitment,
+                         consensus::beefy::SignedCommitment>
+          justifications;
+      // https://github.com/paritytech/polkadot-sdk/blob/efdc1e9b1615c5502ed63ffc9683d99af6397263/substrate/client/consensus/beefy/src/round.rs#L88
+      std::unordered_map<size_t, DoubleVoting> double_voting;
+    };
     struct Session {
       consensus::beefy::ValidatorSet validators;
-      std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
-          rounds;
+      std::map<primitives::BlockNumber, Round> rounds;
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
@@ -112,6 +134,11 @@ namespace kagome::network {
     outcome::result<void> apply(
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
+    /// Requesting beefy justifications starting from fetching_header_ block (if
+    /// presented) and launching fetching of corresponding block headers if they
+    /// are not presented in db. Process stops when beefy justification is
+    /// received or when beefy_genesis_ block is reached.
+    void fetchHeaders();
     outcome::result<void> vote();
     outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
         consensus::beefy::AuthoritySetId validator_set_id,
@@ -119,7 +146,8 @@ namespace kagome::network {
     void metricValidatorSetId();
     void broadcast(consensus::beefy::BeefyGossipMessage message);
     void setTimer();
-
+    outcome::result<void> reportDoubleVoting(
+        const consensus::beefy::DoubleVotingProof &votes);
     log::Logger log_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
@@ -133,10 +161,15 @@ namespace kagome::network {
     LazySPtr<BeefyProtocol> beefy_protocol_;
     LazySPtr<consensus::beefy::FetchJustification>
         beefy_justification_protocol_;
+    std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
     primitives::BlockNumber min_delta_;
     primitives::events::ChainSub chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
+    // Block for which justification and probably header (if not presented in
+    // db) are being fetched as a part of discovering last beefy finalized block
+    std::optional<primitives::BlockInfo> fetching_header_;
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
     primitives::BlockNumber last_voted_ = 0;
@@ -145,5 +178,6 @@ namespace kagome::network {
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
     libp2p::basic::Scheduler::Handle timer_;
+    LazySPtr<network::Synchronizer> synchronizer_;
   };
 }  // namespace kagome::network

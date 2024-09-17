@@ -6,9 +6,11 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace kagome::application {
 
-  enum class SyncMethod {
+  enum class SyncMethod : uint8_t {
     /// Full sync.
     /// Download blocks fully and execute all of them
     Full,

@@ -69,7 +69,7 @@ namespace kagome::consensus {
         hasher_(std::move(hasher)),
         block_announce_transmitter_(std::move(block_announce_transmitter)),
         warp_sync_(std::move(warp_sync)),
-        warp_protocol_(std::move(warp_protocol)),
+        warp_protocol_(warp_protocol),
         justification_observer_(std::move(justification_observer)),
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
@@ -421,7 +421,7 @@ namespace kagome::consensus {
             }
           }
         });
-  };
+  }
 
   bool TimelineImpl::updateSlot(TimePoint now) {
     best_block_ = block_tree_->bestBlock();

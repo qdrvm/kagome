@@ -79,11 +79,10 @@ namespace kagome::storage::trie {
                 if (child_data->merkle_value.isHash()) {
                   return batch->put(child_data->merkle_value.asBuffer(),
                                     std::move(child_data->encoding));
-                } else {
-                  return outcome::success();  // nodes which encoding is shorter
-                                              // than its hash are not stored in
-                                              // the DB separately
                 }
+                return outcome::success();  // nodes which encoding is shorter
+                                            // than its hash are not stored in
+                                            // the DB separately
               }
               auto value_data = std::get<Codec::ValueData>(visitee);
               // value_data.value is a reference to a buffer stored outside of
@@ -136,7 +135,7 @@ namespace kagome::storage::trie {
                                   if (on_node_loaded) {
                                     on_node_loaded(hash, value);
                                   }
-                                  return value.intoBuffer();
+                                  return std::move(value).intoBuffer();
                                 });
   }
 

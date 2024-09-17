@@ -167,7 +167,7 @@ namespace kagome::consensus::grandpa {
      */
     std::shared_ptr<VotingRound> getPreviousRound() const override {
       return previous_round_;
-    };
+    }
 
     /**
      * Removes previous round to limit chain of rounds
@@ -226,7 +226,7 @@ namespace kagome::consensus::grandpa {
      */
     const std::optional<BlockInfo> &finalizedBlock() const override {
       return finalized_;
-    };
+    }
 
     /**
      * @return state containing round number, last finalized block, votes, and
@@ -304,9 +304,10 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;                      // supermajority threshold
-    const std::optional<Id> id_;            // id of current peer
-    std::chrono::milliseconds start_time_;  // time of start round to play
+    size_t threshold_;  // supermajority threshold
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::optional<Id> id_;              // id of current peer
+    std::chrono::milliseconds start_time_{};  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<crypto::Hasher> hasher_;

@@ -15,6 +15,7 @@
 
 namespace kagome::network {
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(BlockAnnounceProtocol);
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(
@@ -54,9 +55,9 @@ namespace kagome::network {
 
   BlockAnnounceHandshake BlockAnnounceProtocol::createHandshake() const {
     return BlockAnnounceHandshake{
-        roles_,
-        block_tree_->bestBlock(),
-        block_tree_->getGenesisBlockHash(),
+        .roles = roles_,
+        .best_block = block_tree_->bestBlock(),
+        .genesis_hash = block_tree_->getGenesisBlockHash(),
     };
   }
 
@@ -86,11 +87,9 @@ namespace kagome::network {
       return true;
     };
     auto on_message = [peer_id](std::shared_ptr<BlockAnnounceProtocol> self,
-                                BlockAnnounce block_announce) {
+                                const BlockAnnounce &block_announce) {
       // Calculate and save hash, 'cause it's just received announce
-      primitives::calculateBlockHash(
-          const_cast<primitives::BlockHeader &>(block_announce.header),
-          *self->hasher_);
+      primitives::calculateBlockHash(block_announce.header, *self->hasher_);
 
       SL_VERBOSE(self->base_.logger(),
                  "Announce of block {} is received from {}",
@@ -110,14 +109,14 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     SL_DEBUG(base_.logger(),
              "Connect for {} stream with {}",
              protocolName(),
-             peer_info.id);
+             peer_id);
 
-    auto on_handshake = [peer_id = peer_info.id, cb = std::move(cb)](
+    auto on_handshake = [peer_id, cb = std::move(cb)](
                             std::shared_ptr<BlockAnnounceProtocol> self,
                             outcome::result<notifications::ConnectAndHandshake<
                                 BlockAnnounceHandshake>> r) mutable {
@@ -135,7 +134,7 @@ namespace kagome::network {
     };
     notifications::connectAndHandshake(weak_from_this(),
                                        base_,
-                                       peer_info,
+                                       peer_id,
                                        createHandshake(),
                                        std::move(on_handshake));
   }

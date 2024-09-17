@@ -19,7 +19,7 @@ namespace kagome::runtime {
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
   constexpr uint8_t kAlignment = 8;
   constexpr size_t kDefaultHeapBase = [] {
-    using namespace kagome::common::literals;
+    using kagome::common::literals::operator""_MB;
     return 1_MB;  // 1Mb
   }();
 

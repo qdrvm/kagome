@@ -18,7 +18,7 @@
 #include "utils/mkdirs.hpp"
 
 namespace kagome::storage {
-  namespace fs = filesystem;
+  namespace fs = std::filesystem;
 
   RocksDb::RocksDb() : logger_(log::createLogger("RocksDB", "storage")) {
     ro_.fill_cache = false;
@@ -56,15 +56,17 @@ namespace kagome::storage {
 
     // calculate state cache size per space
     const auto memory_budget = memory_budget_mib * 1024 * 1024;
-    const uint32_t trie_space_cache_size = memory_budget * 0.9;
+    const auto trie_space_cache_size =
+        static_cast<uint32_t>(memory_budget * 0.9);
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
+    column_family_descriptors.reserve(Space::kTotal);
     for (auto i = 0; i < Space::kTotal; ++i) {
-      column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
+      column_family_descriptors.emplace_back(
           spaceName(static_cast<Space>(i)),
           configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
-                                                : trie_space_cache_size)});
+                                                : trie_space_cache_size));
     }
 
     std::vector<std::string> existing_families;
@@ -78,14 +80,14 @@ namespace kagome::storage {
       return status_as_error(res);
     }
     for (auto &family : existing_families) {
-      if (std::find_if(column_family_descriptors.begin(),
-                       column_family_descriptors.end(),
-                       [&family](rocksdb::ColumnFamilyDescriptor &desc) {
-                         return desc.name == family;
-                       })
+      if (std::ranges::find_if(
+              column_family_descriptors,
+              [&family](rocksdb::ColumnFamilyDescriptor &desc) {
+                return desc.name == family;
+              })
           == column_family_descriptors.end()) {
-        column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
-            family, configureColumn(other_spaces_cache_size)});
+        column_family_descriptors.emplace_back(
+            family, configureColumn(other_spaces_cache_size));
       }
     }
 
@@ -113,12 +115,11 @@ namespace kagome::storage {
       return spaces_[space];
     }
     auto space_name = spaceName(space);
-    auto column =
-        std::find_if(column_family_handles_.begin(),
-                     column_family_handles_.end(),
-                     [&space_name](const ColumnFamilyHandlePtr &handle) {
-                       return handle->GetName() == space_name;
-                     });
+    auto column = std::ranges::find_if(
+        column_family_handles_,
+        [&space_name](const ColumnFamilyHandlePtr &handle) {
+          return handle->GetName() == space_name;
+        });
     if (column_family_handles_.end() == column) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
@@ -130,17 +131,16 @@ namespace kagome::storage {
 
   void RocksDb::dropColumn(kagome::storage::Space space) {
     auto space_name = spaceName(space);
-    auto column_it =
-        std::find_if(column_family_handles_.begin(),
-                     column_family_handles_.end(),
-                     [&space_name](const ColumnFamilyHandlePtr &handle) {
-                       return handle->GetName() == space_name;
-                     });
+    auto column_it = std::ranges::find_if(
+        column_family_handles_,
+        [&space_name](const ColumnFamilyHandlePtr &handle) {
+          return handle->GetName() == space_name;
+        });
     if (column_family_handles_.end() == column_it) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
     auto &handle = *column_it;
-    auto e = [this](rocksdb::Status status) {
+    auto e = [this](const rocksdb::Status &status) {
       if (!status.ok()) {
         logger_->error("DB operation failed: {}", status.ToString());
         throw status_as_error(status);
@@ -267,7 +267,7 @@ namespace kagome::storage {
                                           BufferOrView &&value) {
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Put(
-        rocks->wo_, column_, make_slice(key), make_slice(value));
+        rocks->wo_, column_, make_slice(key), make_slice(std::move(value)));
     if (status.ok()) {
       return outcome::success();
     }

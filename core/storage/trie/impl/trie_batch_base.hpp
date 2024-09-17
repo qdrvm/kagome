@@ -25,10 +25,12 @@ namespace kagome::storage::trie {
                   std::shared_ptr<PolkadotTrie> trie);
 
     TrieBatchBase(const TrieBatchBase &) = delete;
-    TrieBatchBase(TrieBatchBase &&) = default;
+    TrieBatchBase(TrieBatchBase &&) noexcept = default;
+
+    ~TrieBatchBase() override = default;
 
     TrieBatchBase &operator=(const TrieBatchBase &) = delete;
-    TrieBatchBase &operator=(TrieBatchBase &&) = default;
+    TrieBatchBase &operator=(TrieBatchBase &&) noexcept = default;
 
     outcome::result<BufferOrView> get(const BufferView &key) const override;
     outcome::result<std::optional<BufferOrView>> tryGet(
@@ -36,8 +38,8 @@ namespace kagome::storage::trie {
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     outcome::result<bool> contains(const BufferView &key) const override;
 
-    virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
-    createChildBatch(common::BufferView path) override;
+    outcome::result<std::optional<std::shared_ptr<TrieBatch>>> createChildBatch(
+        common::BufferView path) override;
 
    protected:
     virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(

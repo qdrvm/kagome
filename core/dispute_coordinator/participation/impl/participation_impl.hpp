@@ -22,7 +22,8 @@ namespace kagome::parachain {
 
 namespace kagome::dispute {
   class DisputeCoordinator;
-}
+  class RuntimeInfo;
+}  // namespace kagome::dispute
 
 namespace kagome::dispute {
 
@@ -36,6 +37,7 @@ namespace kagome::dispute {
                           block_header_repository,
                       std::shared_ptr<crypto::Hasher> hasher,
                       std::shared_ptr<runtime::ParachainHost> api,
+                      std::shared_ptr<RuntimeInfo> runtime_info,
                       std::shared_ptr<parachain::Recovery> recovery,
                       std::shared_ptr<parachain::Pvf> pvf,
                       std::shared_ptr<PoolHandlerReady> dispute_thread_handler,
@@ -64,8 +66,9 @@ namespace kagome::dispute {
     struct ParticipationContext {
       ParticipationRequest request;
       primitives::BlockHash block_hash;
-      std::optional<runtime::AvailableData> available_data{};
-      std::optional<runtime::ValidationCode> validation_code{};
+      std::optional<runtime::AvailableData> available_data;
+      std::optional<runtime::ValidationCode> validation_code;
+      std::optional<runtime::GroupIndex> group_index;
     };
     using ParticipationContextPtr = std::shared_ptr<ParticipationContext>;
     using ParticipationCallback = std::function<void(ParticipationOutcome)>;
@@ -83,6 +86,7 @@ namespace kagome::dispute {
 
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<runtime::ParachainHost> api_;
+    std::shared_ptr<RuntimeInfo> runtime_info_;
     std::shared_ptr<parachain::Recovery> recovery_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<PoolHandlerReady> dispute_thread_handler_;

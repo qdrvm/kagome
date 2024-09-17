@@ -13,6 +13,7 @@
 #include "api/service/state/requests/get_read_proof.hpp"
 #include "api/service/state/requests/get_runtime_version.hpp"
 #include "api/service/state/requests/get_storage.hpp"
+#include "api/service/state/requests/get_storage_size.hpp"
 #include "api/service/state/requests/query_storage.hpp"
 #include "api/service/state/requests/subscribe_runtime_version.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
@@ -44,6 +45,9 @@ namespace kagome::api::state {
     // some client
     server_->registerHandler("state_getStorageAt",
                              Handler<request::GetStorage>(api_));
+
+    server_->registerHandler("state_getStorageSize",
+                             Handler<request::GetStorageSize>(api_));
 
     server_->registerHandlerUnsafe("state_queryStorage",
                                    Handler<request::QueryStorage>(api_));

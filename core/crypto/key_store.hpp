@@ -30,7 +30,7 @@
 
 namespace kagome::crypto {
 
-  enum class KeyStoreError {
+  enum class KeyStoreError : uint8_t {
     UNSUPPORTED_KEY_TYPE = 1,
     UNSUPPORTED_CRYPTO_TYPE,
     WRONG_SEED_SIZE,
@@ -49,11 +49,11 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyStoreError);
 namespace kagome::crypto {
   template <typename T>
   concept Suite = requires() {
-                    typename T::Keypair;
-                    typename T::PrivateKey;
-                    typename T::PublicKey;
-                    typename T::Seed;
-                  };
+    typename T::Keypair;
+    typename T::PrivateKey;
+    typename T::PublicKey;
+    typename T::Seed;
+  };
 
   template <Suite T>
   class KeySuiteStore {

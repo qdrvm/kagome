@@ -124,7 +124,7 @@ namespace kagome::network {
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
-        const PeerInfo &peer_info,
+        const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
@@ -139,7 +139,7 @@ namespace kagome::network {
                        const BlocksResponse &block_response);
 
     void writeRequest(std::shared_ptr<Stream> stream,
-                      BlocksRequest block_request,
+                      const BlocksRequest &block_request,
                       std::function<void(outcome::result<void>)> &&cb);
 
     void readResponse(std::shared_ptr<Stream> stream,

@@ -148,15 +148,11 @@ namespace kagome::primitives {
           current_state_{*(buffer_ + kBufferSize + 2ull)} {}
 
     Strobe(const Strobe &other) : Strobe() {
-      std::copy(std::begin(other.raw_data),
-                std::end(other.raw_data),
-                std::begin(raw_data));
-    };
+      std::ranges::copy(other.raw_data, std::begin(raw_data));
+    }
 
     Strobe &operator=(const Strobe &other) {
-      std::copy(std::begin(other.raw_data),
-                std::end(other.raw_data),
-                std::begin(raw_data));
+      std::ranges::copy(other.raw_data, std::begin(raw_data));
       return *this;
     }
 

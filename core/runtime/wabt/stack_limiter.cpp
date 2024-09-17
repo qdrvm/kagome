@@ -109,9 +109,7 @@ namespace kagome::runtime {
                                         wabt::ExprList::iterator>;
 
       explicit Stack(log::Logger logger)
-          : height_{ACTIVATION_FRAME_COST},
-            frames_{},
-            logger_{std::move(logger)} {}
+          : height_{ACTIVATION_FRAME_COST}, logger_{std::move(logger)} {}
 
       WabtOutcome<void> unreachable() {
         if (frames_.empty()) {
@@ -207,9 +205,8 @@ namespace kagome::runtime {
         if (height_ - num < frames_.back().start_height) {
           if (!frames_.back().is_polymorphic) {
             return WabtError{"Popping values not pushed in the current frame"};
-          } else {
-            return outcome::success();
           }
+          return outcome::success();
         }
         if (height_ < num) {
           return WabtError{"Stack underflow"};
@@ -224,7 +221,7 @@ namespace kagome::runtime {
 
       WabtOutcome<void> advance() {
         bool is_over = false;
-        do {
+        do {  // NOLINT(cppcoreguidelines-avoid-do-while)
           auto &frame = frames_.back();
           is_over = frame.getExprList().end() == frame.current_expr;
           if (!is_over) {
@@ -236,7 +233,7 @@ namespace kagome::runtime {
                     frame.top_expr)) {
               auto &branch =
                   std::get<typename StackFrame::Branch>(frame.top_expr);
-              if (branch.curr_branch == true && !branch.expr->false_.empty()) {
+              if (branch.curr_branch and not branch.expr->false_.empty()) {
                 branch.curr_branch = false;
                 frame.current_expr = branch.expr->false_.begin();
                 break;
@@ -276,7 +273,7 @@ namespace kagome::runtime {
 
      private:
       uint32_t height_ = ACTIVATION_FRAME_COST;
-      std::vector<StackFrame> frames_;
+      std::vector<StackFrame> frames_{};
       log::Logger logger_;
     };
 
@@ -495,6 +492,7 @@ namespace kagome::runtime {
     }
 
     struct InstrumentCallCtx {
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       const wabt::Var &stack_height;
       wabt::Var callee_idx;
       uint32_t callee_stack_cost;
@@ -522,6 +520,7 @@ namespace kagome::runtime {
                    std::make_unique<wabt::BinaryExpr>(wabt::Opcode::I32GtU));
 
       auto if_it = exprs.insert(call_it, std::make_unique<wabt::IfExpr>());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
       auto &if_expr = static_cast<wabt::IfExpr &>(*if_it);
       wabt::ExprList if_exprs;
       if_exprs.push_back(std::make_unique<wabt::UnreachableExpr>());
@@ -592,10 +591,10 @@ namespace kagome::runtime {
             if (auto cost = stack_costs.at(call->var.index()); cost != 0) {
               top_frame.current_expr = instrument_call(
                   InstrumentCallCtx{
-                      stack_height,
-                      call->var,
-                      stack_costs.at(call->var.index()),
-                      stack_limit,
+                      .stack_height = stack_height,
+                      .callee_idx = call->var,
+                      .callee_stack_cost = stack_costs.at(call->var.index()),
+                      .stack_limit = stack_limit,
                   },
                   top_frame.getExprList(),
                   top_frame.current_expr);
@@ -643,6 +642,7 @@ namespace kagome::runtime {
           using wabt::ExprType;
           switch (expr.type()) {
             case ExprType::RefFunc: {
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               auto &ref = static_cast<wabt::RefFuncExpr &>(expr);
               assert(ref.var.is_index());
               if (!module.IsImport(wabt::ExternalKind::Func, ref.var)) {
@@ -681,8 +681,10 @@ namespace kagome::runtime {
         wabt::Var v{thunked, {}};
         thunk.push_back(std::make_unique<wabt::CallExpr>(v));
         instrument_call(
-            InstrumentCallCtx{
-                stack_height, v, stack_costs.at(thunked), stack_limit},
+            InstrumentCallCtx{.stack_height = stack_height,
+                              .callee_idx = v,
+                              .callee_stack_cost = stack_costs.at(thunked),
+                              .stack_limit = stack_limit},
             thunk,
             std::prev(thunk.end()));
 
@@ -713,6 +715,7 @@ namespace kagome::runtime {
           using wabt::ExprType;
           switch (expr.type()) {
             case ExprType::RefFunc: {
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               auto &ref = static_cast<wabt::RefFuncExpr &>(expr);
               if (!module.IsImport(wabt::ExternalKind::Func, ref.var)) {
                 ref.var.set_index(thunked_to_thunk.at(ref.var.index()));
@@ -754,7 +757,7 @@ namespace kagome::runtime {
       func_costs[i] = cost;
       SL_TRACE(logger, "cost {} = {}", func->name, cost);
     }
-    KAGOME_PROFILE_END_L(logger, count_costs);
+    KAGOME_PROFILE_END(count_costs);
 
     wabt::Global stack_height_global{""};
     stack_height_global.type = wabt::Type::I32;
@@ -778,7 +781,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(detail::generate_thunks(
         logger, module, stack_height_var, stack_limit, func_costs));
 
-    KAGOME_PROFILE_END_L(logger, instrument_wasm);
+    KAGOME_PROFILE_END(instrument_wasm);
 
     OUTCOME_TRY(wabtValidate(module));
     return outcome::success();
@@ -789,7 +792,7 @@ namespace kagome::runtime {
     auto logger = stackLimiterLog();
     KAGOME_PROFILE_START_L(logger, read_ir);
     OUTCOME_TRY(module, wabtDecode(uncompressed_wasm));
-    KAGOME_PROFILE_END_L(logger, read_ir);
+    KAGOME_PROFILE_END(read_ir);
 
     OUTCOME_TRY(instrumentWithStackLimiter(module, stack_limit));
 

@@ -34,7 +34,7 @@ namespace kagome::primitives {
   }
 
   outcome::result<AccountId> decodeSs58(std::string_view account_address,
-                                        const crypto::Hasher &hasher) noexcept {
+                                        const crypto::Hasher &hasher) {
     // decode SS58 address: base58(<address-type><address><checksum>)
     // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
     OUTCOME_TRY(ss58_account_id,
@@ -52,7 +52,7 @@ namespace kagome::primitives {
       return Ss58Error::INVALID_CHECKSUM;
     }
 
-    size_t type_size = (ss58_account_id[0] < 64) ? 1 : 2;
+    auto type_size = (ss58_account_id[0] < 64) ? 1 : 2;
 
     if (ss58_account_id.size() - kSs58ChecksumLength - type_size
         != AccountId::size()) {
@@ -69,7 +69,7 @@ namespace kagome::primitives {
 
   std::string encodeSs58(uint8_t account_type,
                          const AccountId &id,
-                         const crypto::Hasher &hasher) noexcept {
+                         const crypto::Hasher &hasher) {
     common::Buffer ss58_bytes;
     ss58_bytes.reserve(2 + id.size() + kSs58ChecksumLength);
     if (account_type < 64) {

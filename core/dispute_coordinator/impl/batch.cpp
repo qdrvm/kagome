@@ -8,18 +8,18 @@
 
 namespace kagome::dispute {
 
-  Batch::Batch(CandidateHash candidate_hash,
-               CandidateReceipt candidate_receipt,
+  Batch::Batch(const CandidateHash &candidate_hash,
+               const CandidateReceipt &candidate_receipt,
                TimePoint now)
-      : candidate_hash(std::move(candidate_hash)),
-        candidate_receipt(std::move(candidate_receipt)),
+      : candidate_hash(candidate_hash),
+        candidate_receipt(candidate_receipt),
         best_before_(now + kMaxBatchLifetime),
         log_(log::createLogger(fmt::format("Batch:{}", candidate_hash),
                                "dispute")) {}
 
   std::optional<CbOutcome<void>> Batch::add_votes(
-      Indexed<SignedDisputeStatement> valid_vote,
-      Indexed<SignedDisputeStatement> invalid_vote,
+      const Indexed<SignedDisputeStatement> &valid_vote,
+      const Indexed<SignedDisputeStatement> &invalid_vote,
       const libp2p::peer::PeerId &peer,
       CbOutcome<void> &&cb) {
     BOOST_ASSERT(valid_vote.payload.candidate_hash == candidate_hash);
@@ -48,7 +48,7 @@ namespace kagome::dispute {
       return std::move(cb);
     }
 
-    requesters_.push_back(std::make_tuple(peer, std::move(cb)));
+    requesters_.emplace_back(peer, std::move(cb));
     return std::nullopt;
   }
 

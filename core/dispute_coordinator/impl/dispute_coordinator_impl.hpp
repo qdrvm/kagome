@@ -196,7 +196,8 @@ namespace kagome::dispute {
         SessionIndex session,
         primitives::BlockHash relay_parent);
 
-    outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
+    outcome::result<void> process_on_chain_votes(
+        const ScrapedOnChainVotes &votes);
 
     outcome::result<void> process_active_leaves_update(
         const ActiveLeavesUpdate &update);
@@ -336,7 +337,7 @@ namespace kagome::dispute {
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
-    std::unique_ptr<RuntimeInfo> runtime_info_;
+    std::shared_ptr<RuntimeInfo> runtime_info_;
 
     /// Currently active batches of imports per candidate.
     std::unique_ptr<Batches> batches_;

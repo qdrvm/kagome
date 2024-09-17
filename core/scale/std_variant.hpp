@@ -31,12 +31,13 @@ namespace scale {
   template <typename Stream, typename... Options>
     requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, std::variant<Options...> &variant) {
-    uint8_t index;
+    uint8_t index;  // NOLINT(cppcoreguidelines-init-variables)
     stream >> index;
-    using Decoder =
-        void (*)(Stream & stream, std::variant<Options...> & variant);
+    using Decoder = void (*)(Stream &stream, std::variant<Options...> &variant);
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     constexpr Decoder decoders[]{
         make_decoder<Options, Stream, Options...>()...};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     decoders[index](stream, variant);
     return stream;
   }

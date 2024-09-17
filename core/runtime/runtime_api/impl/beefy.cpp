@@ -21,7 +21,7 @@ namespace kagome::runtime {
     auto r = executor_->call<std::optional<primitives::BlockNumber>>(
         ctx, "BeefyApi_beefy_genesis");
     if (r) {
-      return std::move(r.value());
+      return r.value();
     }
     if (r.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
       return std::nullopt;
@@ -34,5 +34,28 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<std::optional<consensus::beefy::ValidatorSet>>(
         ctx, "BeefyApi_validator_set");
+  }
+
+  outcome::result<void>
+  BeefyApiImpl::submit_report_double_voting_unsigned_extrinsic(
+      const primitives::BlockHash &block,
+      const consensus::beefy::DoubleVotingProof &equivocation_proof,
+      const primitives::OpaqueKeyOwnershipProof &key_owner_proof) const {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<void>(
+        ctx,
+        "BeefyApi_submit_report_double_voting_unsigned_extrinsic",
+        equivocation_proof,
+        key_owner_proof);
+  }
+
+  outcome::result<std::optional<primitives::OpaqueKeyOwnershipProof>>
+  BeefyApiImpl::generate_key_ownership_proof(
+      const primitives::BlockHash &block,
+      consensus::beefy::AuthoritySetId set_id,
+      const crypto::EcdsaPublicKey &authority_id) const {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<primitives::OpaqueKeyOwnershipProof>>(
+        ctx, "BeefyApi_generate_key_ownership_proof", set_id, authority_id);
   }
 }  // namespace kagome::runtime

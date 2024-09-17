@@ -39,9 +39,9 @@ namespace kagome::api::chain::request {
       param.reserve(array.size());
       for (const auto &v : array) {
         if (v.IsInteger32()) {
-          param.emplace_back(VectorParam(v.AsInteger32()));
+          param.emplace_back(v.AsInteger32());
         } else if (v.IsString()) {
-          param.emplace_back(VectorParam(v.AsString()));
+          param.emplace_back(v.AsString());
         } else {
           throw jsonrpc::InvalidParametersFault("invalid argument");
         }
@@ -89,6 +89,6 @@ namespace kagome::api::chain::request {
 
           return results;
         });
-  };
+  }
 
 }  // namespace kagome::api::chain::request

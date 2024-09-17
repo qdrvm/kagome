@@ -24,7 +24,7 @@ class example {
   example(aggregate a, const ctor &c) {
     EXPECT_EQ(87.0, a.d);
     EXPECT_EQ(42, c.i);
-  };
+  }
 
   virtual void func() {}
 };

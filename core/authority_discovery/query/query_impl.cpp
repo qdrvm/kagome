@@ -52,7 +52,7 @@ namespace kagome::authority_discovery {
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
         key_marshaller_{std::move(key_marshaller)},
         host_{host},
-        kademlia_{std::move(kademlia)},
+        kademlia_{kademlia},
         scheduler_{[&] {
           BOOST_ASSERT(scheduler != nullptr);
           return std::move(scheduler);
@@ -126,7 +126,7 @@ namespace kagome::authority_discovery {
     }
     auto it = auth_to_peer_cache_.find(*id);
     if (it != auth_to_peer_cache_.end()) {
-      auto it_value = std::find(values.begin(), values.end(), it->second.raw);
+      auto it_value = std::ranges::find(values, it->second.raw);
       if (it_value != values.end()) {
         return it_value - values.begin();
       }
@@ -166,19 +166,15 @@ namespace kagome::authority_discovery {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
-    auto has =
-        [](const std::unordered_set<primitives::AuthorityDiscoveryId> &keys,
-           const primitives::AuthorityDiscoveryId &key) {
-          return keys.contains(key);
-        };
-    auto has_in_vec =
-        [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
-           const primitives::AuthorityDiscoveryId &key) {
-          return std::find(keys.begin(), keys.end(), key) != keys.end();
-        };
-
+    OUTCOME_TRY(local_keys,
+                key_store_->sr25519().getPublicKeys(
+                    crypto::KeyTypes::AUTHORITY_DISCOVERY));
+    auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
+                  const primitives::AuthorityDiscoveryId &key) {
+      return std::ranges::find(keys, key) != keys.end();
+    };
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
-      return not has_in_vec(local_keys, id);
+      return not has(local_keys, id);
     });
     for (auto it = auth_to_peer_cache_.begin();
          it != auth_to_peer_cache_.end();) {
@@ -196,13 +192,8 @@ namespace kagome::authority_discovery {
         it = peer_to_auth_cache_.erase(it);
       }
     }
-
-    std::vector<primitives::AuthorityDiscoveryId> a{
-        std::make_move_iterator(authorities.begin()),
-        std::make_move_iterator(authorities.end())};
-    std::shuffle(a.begin(), a.end(), random_);
-    queue_ = std::move(a);
-
+    std::shuffle(authorities.begin(), authorities.end(), random_);
+    queue_ = std::move(authorities);
     pop();
     return outcome::success();
   }
@@ -227,14 +218,16 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
-      common::Buffer hash{crypto::sha256(authority)};
-      scheduler_->schedule([=, this, wp{weak_from_this()}] {
+      scheduler_->schedule([wp{weak_from_this()},
+                            hash = common::Buffer{crypto::sha256(authority)}] {
         if (auto self = wp.lock()) {
-          std::ignore = kademlia_.get()->getValue(
-              hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
-                std::unique_lock lock{mutex_};
-                --active_;
-                pop();
+          std::ignore = self->kademlia_.get()->getValue(
+              hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
+                if (auto self = wp.lock()) {
+                  std::unique_lock lock{self->mutex_};
+                  --self->active_;
+                  self->pop();
+                }
               });
         }
       });
@@ -251,8 +244,10 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
     ::authority_discovery_v3::SignedAuthorityRecord signed_record;
-    if (not signed_record.ParseFromArray(signed_record_pb.data(),
-                                         signed_record_pb.size())) {
+    if (not signed_record.ParseFromArray(
+            signed_record_pb.data(),
+            // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+            signed_record_pb.size())) {
       return Error::DECODE_ERROR;
     }
 
@@ -285,7 +280,7 @@ namespace kagome::authority_discovery {
         return outcome::success();
       }
     }
-    libp2p::peer::PeerInfo peer{std::move(peer_id), {}};
+    libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
@@ -316,12 +311,15 @@ namespace kagome::authority_discovery {
     }
 
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
-        peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
+        peer.id, peer.addresses, libp2p::peer::ttl::kDay);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
-    auth_to_peer_cache_.insert_or_assign(
-        authority,
-        Authority{std::move(signed_record_pb), time, std::move(peer)});
+    auth_to_peer_cache_.insert_or_assign(authority,
+                                         Authority{
+                                             .raw = std::move(signed_record_pb),
+                                             .time = time,
+                                             .peer = std::move(peer),
+                                         });
 
     return outcome::success();
   }

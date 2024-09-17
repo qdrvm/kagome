@@ -12,13 +12,14 @@
 
 namespace kagome::log {
 
-  extern Logger profiling_logger;
+  extern Logger profiling_logger;  // NOLINT
 
   struct ProfileScope {
     using Clock = ::kagome::clock::SteadyClockImpl;
 
-    ProfileScope(std::string_view scope, log::Logger logger)
-        : scope{scope}, logger{logger} {
+    explicit ProfileScope(std::string_view scope,
+                          log::Logger logger = profiling_logger)
+        : scope{scope}, logger{std::move(logger)} {
       BOOST_ASSERT(logger != nullptr);
       start = Clock{}.now();
     }
@@ -47,7 +48,7 @@ namespace kagome::log {
 
    private:
     bool done = false;
-    std::string_view scope{};
+    std::string_view scope;
     Clock::TimePoint start;
     log::Logger logger;
   };
@@ -58,12 +59,9 @@ namespace kagome::log {
 #define KAGOME_PROFILE_START_L(logger, scope) \
   auto _profiling_scope_##scope = ::kagome::log::ProfileScope{#scope, logger};
 
-#define KAGOME_PROFILE_END_L(logger, scope) _profiling_scope_##scope.end();
-
 #define KAGOME_PROFILE_START(scope) \
   KAGOME_PROFILE_START_L(::kagome::log::profiling_logger, scope)
-#define KAGOME_PROFILE_END(scope) \
-  KAGOME_PROFILE_END_L(::kagome::log::profiling_logger, scope)
+#define KAGOME_PROFILE_END(scope) _profiling_scope_##scope.end();
 
 #else
 
@@ -71,6 +69,5 @@ namespace kagome::log {
 #define KAGOME_PROFILE_END(scope)
 
 #define KAGOME_PROFILE_START_L(logger, scope)
-#define KAGOME_PROFILE_END_L(logger, scope)
 
 #endif

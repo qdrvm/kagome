@@ -52,20 +52,21 @@ namespace kagome::telemetry {
 
   MessagePool::RefCount MessagePool::add_ref(MessageHandle handle) {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       return 0;  // zero references for bad handle
     }
     std::lock_guard lock(mutex_);
     // allowed to call only over already occupied slots
-    BOOST_ASSERT(free_slots_.count(handle) == 0);
+    BOOST_ASSERT(not free_slots_.contains(handle));
     auto &entry = pool_[handle];
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     return ++entry.ref_count;
   }
 
   MessagePool::RefCount MessagePool::release(MessageHandle handle) {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       return 0;  // zero references for bad handle
     }
@@ -76,13 +77,14 @@ namespace kagome::telemetry {
       entry.data_size = 0;
       free_slots_.emplace(handle);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     return entry.ref_count;
   }
 
   boost::asio::mutable_buffer MessagePool::operator[](
       MessageHandle handle) const {
     bool handle_is_valid =
-        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+        (handle < pool_.size()) and not free_slots_.contains(handle);
     if (not handle_is_valid) {
       throw std::runtime_error("Bad access through invalid handle");
     }
@@ -92,9 +94,9 @@ namespace kagome::telemetry {
     // The buffer will remain valid till all holders request its release.
     // The handle cannot be reassigned prior to complete release.
     // => There is no chance to get dangling pointers inside boost buffers.
-    auto &entry = pool_[handle];
-    return boost::asio::buffer(const_cast<uint8_t *>(entry.data.data()),
-                               entry.data_size);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    auto &entry = const_cast<Record &>(pool_[handle]);
+    return boost::asio::buffer(entry.data.data(), entry.data_size);
   }
 
   std::size_t MessagePool::capacity() const {

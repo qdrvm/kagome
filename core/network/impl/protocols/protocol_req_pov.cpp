@@ -13,16 +13,17 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl : RequestResponseProtocol<RequestPov,
-                                                      ResponsePov,
-                                                      ScaleMessageReadWriter>,
-                              NonCopyable,
-                              NonMovable {
+  struct ReqPovProtocolImpl
+      : RequestResponseProtocolImpl<RequestPov,
+                                    ResponsePov,
+                                    ScaleMessageReadWriter>,
+        NonCopyable,
+        NonMovable {
     ReqPovProtocolImpl(libp2p::Host &host,
                        const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
-        : RequestResponseProtocol<
+        : RequestResponseProtocolImpl<
             RequestPov,
             ResponsePov,
             ScaleMessageReadWriter>{kReqPovProtocolName,
@@ -39,7 +40,7 @@ namespace kagome::network {
         RequestPov request, std::shared_ptr<Stream> /*stream*/) override {
       BOOST_ASSERT(observer_);
       base().logger()->info("Received PoV request(candidate hash={})", request);
-      auto response = observer_->OnPovRequest(std::move(request));
+      auto response = observer_->OnPovRequest(request);
       if (response.has_error()) {
         base().logger()->warn(
             "Our PoV response has error.(candidate hash={}, error={})",
@@ -88,18 +89,17 @@ namespace kagome::network {
   }
 
   void ReqPovProtocol::newOutgoingStream(
-      const PeerInfo &,
+      const PeerId &,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
   void ReqPovProtocol::request(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       RequestPov request,
       std::function<void(outcome::result<ResponsePov>)> &&response_handler) {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
-    return impl_->doRequest(
-        peer_info, std::move(request), std::move(response_handler));
+    return impl_->doRequest(peer_id, request, std::move(response_handler));
   }
 
 }  // namespace kagome::network

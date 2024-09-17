@@ -17,8 +17,8 @@ namespace kagome::api {
       LazySPtr<network::Beefy> beefy,
       LazySPtr<blockchain::BlockHeaderRepository> block_header_repository)
       : server_{std::move(server)},
-        beefy_{std::move(beefy)},
-        block_header_repository_{std::move(block_header_repository)} {}
+        beefy_{beefy},
+        block_header_repository_{block_header_repository} {}
 
   void BeefyRpc::registerHandlers() {
     server_->registerHandler(

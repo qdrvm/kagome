@@ -17,6 +17,8 @@
 #include "network/types/roles.hpp"
 
 namespace kagome::network {
+
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(GrandpaProtocol);
 
   GrandpaProtocol::GrandpaProtocol(
@@ -75,7 +77,7 @@ namespace kagome::network {
   }
 
   void GrandpaProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
+      const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto on_handshake =
         [cb = std::move(cb)](
@@ -96,7 +98,7 @@ namespace kagome::network {
           cb(std::move(stream));
         };
     notifications::connectAndHandshake(
-        weak_from_this(), base_, peer_info, roles_, std::move(on_handshake));
+        weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
   }
 
   void GrandpaProtocol::onMessage(const PeerId &peer_id,
@@ -125,9 +127,11 @@ namespace kagome::network {
                        "NeighborMessage has received from {}",
                        peer_id);
             auto info = peer_manager_->getPeerState(peer_id);
-            grandpa_observer_->onNeighborMessage(peer_id,
-                                                 compactFromRefToOwn(info),
-                                                 std::move(neighbor_message));
+            grandpa_observer_->onNeighborMessage(
+                peer_id,
+                compactFromRefToOwn(info),
+                // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+                std::move(neighbor_message));
           }
         },
         [&](network::CatchUpRequest &&catch_up_request) {
@@ -135,7 +139,10 @@ namespace kagome::network {
               base_.logger(), "CatchUpRequest has received from {}", peer_id);
           auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onCatchUpRequest(
-              peer_id, compactFromRefToOwn(info), std::move(catch_up_request));
+              peer_id,
+              compactFromRefToOwn(info),
+              // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+              std::move(catch_up_request));
         },
         [&](network::CatchUpResponse &&catch_up_response) {
           SL_VERBOSE(
@@ -154,6 +161,7 @@ namespace kagome::network {
 
     auto filter = [&, &msg = vote_message](const PeerId &peer_id,
                                            const PeerState &info) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (info.roles.flags.light != 0) {
         return false;
       }
@@ -255,6 +263,7 @@ namespace kagome::network {
       }
       const auto &info = info_opt.value().get();
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (not set_changed and info.roles.flags.light) {
         return false;
       }
@@ -443,7 +452,7 @@ namespace kagome::network {
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
-    (*shared_msg) = GrandpaMessage(std::move(catch_up_request));
+    (*shared_msg) = GrandpaMessage(catch_up_request);
 
     stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
   }
@@ -529,6 +538,7 @@ namespace kagome::network {
         if (not predicate(peer, info)) {
           return;
         }
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         (info.roles.flags.authority != 0 ? authorities : any)
             .emplace_back(peer);
       }

@@ -37,7 +37,7 @@ namespace {
   }
 
   void checkIfKeyIsSupported(kagome::crypto::KeyType key_type,
-                             kagome::log::Logger log) {
+                             const kagome::log::Logger &log) {
     if (not key_type.is_supported()) {
       log->warn("key type {} is not officially supported", key_type);
     }
@@ -211,9 +211,8 @@ namespace kagome::host_api {
       if (seed_opt.has_value()) {
         return key_store_.value()->ed25519().generateKeypair(key_type,
                                                              seed_opt.value());
-      } else {
-        return key_store_.value()->ed25519().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->ed25519().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -336,13 +335,12 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::Sr25519Keypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->sr25519().generateKeypair(
             key_type, bip39_seed.value());
-      } else {
-        return key_store_.value()->sr25519().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->sr25519().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -426,7 +424,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_batch_verify_version_1(
@@ -437,7 +435,7 @@ namespace kagome::host_api {
         logger_,
         "Deprecated API method ext_crypto_sr25519_batch_verify_version_1 being "
         "called. Passing call to ext_crypto_sr25519_verify_version_1");
-    return batchVerify(
+    return batchVerify(  // NOLINT(cppcoreguidelines-narrowing-conversions)
         ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data));
   }
 
@@ -596,7 +594,7 @@ namespace kagome::host_api {
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
 
     crypto::EcdsaPublicKey pk;
-    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    std::ranges::copy(public_buffer, pk.begin());
     auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
@@ -629,7 +627,7 @@ namespace kagome::host_api {
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
 
     crypto::EcdsaPublicKey pk;
-    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    std::ranges::copy(public_buffer, pk.begin());
     auto key_pair = key_store_.value()->ecdsa().findKeypair(key_type, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
@@ -638,7 +636,7 @@ namespace kagome::host_api {
     }
 
     crypto::EcdsaPrehashedMessage digest;
-    std::copy(msg_buffer.begin(), msg_buffer.end(), digest.begin());
+    std::ranges::copy(msg_buffer, digest.begin());
     auto sign =
         ecdsa_provider_->signPrehashed(digest, key_pair.value().secret_key);
     if (!sign) {
@@ -664,13 +662,12 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::EcdsaKeypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->ecdsa().generateKeypair(key_type,
                                                            bip39_seed.value());
-      } else {
-        return key_store_.value()->ecdsa().generateKeypairOnDisk(key_type);
       }
+      return key_store_.value()->ecdsa().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(
@@ -711,7 +708,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_1(
@@ -755,7 +752,7 @@ namespace kagome::host_api {
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
-    return res;
+    return res;  // NOLINT(cppcoreguidelines-narrowing-conversions)
   }
 
   void CryptoExtension::reset() {
@@ -783,14 +780,12 @@ namespace kagome::host_api {
     }
 
     outcome::result<crypto::BandersnatchKeypair> kp_res = [&]() {
-      auto bip39_seed = seed_res.value();
+      auto &bip39_seed = seed_res.value();
       if (bip39_seed.has_value()) {
         return key_store_.value()->bandersnatch().generateKeypair(
             key_type, bip39_seed.value());
-      } else {
-        return key_store_.value()->bandersnatch().generateKeypairOnDisk(
-            key_type);
       }
+      return key_store_.value()->bandersnatch().generateKeypairOnDisk(key_type);
     }();
     if (!kp_res) {
       throw_with_error(logger_,

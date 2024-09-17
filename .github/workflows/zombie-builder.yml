@@ -80,6 +80,11 @@ jobs:
         if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
         run: make polkadot_builder_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+        
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Polkadot Builder Image: ${{ steps.check-tag.outputs.polkadot_builder_image }}"
   
   
   building_binaries:
@@ -219,3 +224,7 @@ jobs:
         run: make zombie_tester_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Zombie Tester Image: ${{ steps.check-tag.outputs.zombie_tester_image }}"

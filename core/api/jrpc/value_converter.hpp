@@ -102,6 +102,13 @@ namespace kagome::api {
     return ret;
   }
 
+  inline jsonrpc::Value makeValue(const primitives::Weight &val) {
+    jStruct data;
+    data["ref_time"] = static_cast<int64_t>(*val.ref_time);
+    data["proof_size"] = static_cast<int64_t>(*val.proof_size);
+    return data;
+  }
+
   inline jsonrpc::Value makeValue(const primitives::OldWeight &val) {
     jsonrpc::Value ret(static_cast<int64_t>(*val));
     return ret;
@@ -199,15 +206,13 @@ namespace kagome::api {
     data["stateVersion"] = makeValue(val.state_version);
 
     jArray apis;
-    std::transform(val.apis.begin(),
-                   val.apis.end(),
-                   std::back_inserter(apis),
-                   [](const auto &api) {
-                     jArray api_data;
-                     api_data.emplace_back(hex_lower_0x(api.first));
-                     api_data.emplace_back(makeValue(api.second));
-                     return api_data;
-                   });
+    std::ranges::transform(
+        val.apis, std::back_inserter(apis), [](const auto &api) {
+          jArray api_data;
+          api_data.emplace_back(hex_lower_0x(api.first));
+          api_data.emplace_back(makeValue(api.second));
+          return api_data;
+        });
 
     data["apis"] = std::move(apis);
     return data;
@@ -306,11 +311,10 @@ namespace kagome::api {
             -> jsonrpc::Value {
           jArray peers;
           peers.resize(params.peers.size());
-          std::transform(
-              params.peers.begin(),
-              params.peers.end(),
-              peers.begin(),
-              [](const auto &peer_id) { return makeValue(peer_id.toHex()); });
+          std::ranges::transform(
+              params.peers, peers.begin(), [](const auto &peer_id) {
+                return makeValue(peer_id.toHex());
+              });
           return jStruct{std::pair{"broadcast", std::move(peers)}};
         },
         [](const primitives::events::InBlockEventParams &params) {

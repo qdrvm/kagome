@@ -67,7 +67,7 @@ namespace kagome::host_api {
     }
     auto &xt = xt_res.value();
 
-    auto result = worker->submitTransaction(std::move(xt));
+    auto result = worker->submitTransaction(xt);
 
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -84,7 +84,7 @@ namespace kagome::host_api {
   runtime::WasmI64 OffchainExtension::ext_offchain_timestamp_version_1() {
     auto worker = getWorker();
     auto result = worker->timestamp();
-    return result;
+    return static_cast<runtime::WasmI64>(result);
   }
 
   void OffchainExtension::ext_offchain_sleep_until_version_1(
@@ -106,14 +106,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -133,14 +130,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -162,14 +156,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -204,14 +195,11 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
-    if (kind == 1) {
+    if (kind == 1 || kind == 0) {  // 0 is needed due to the bug in the runtime
+                                   // that sends 0 instead of 1
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
-    } else if (kind == 0) {
-      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
-      //  issue: https://github.com/soramitsu/kagome/issues/997
-      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -296,7 +284,8 @@ namespace kagome::host_api {
     auto value_buffer = memory.loadN(value_ptr, value_size);
     auto value = value_buffer.toStringView();
 
-    auto result = worker->httpRequestAddHeader(request_id, name, value);
+    auto result = worker->httpRequestAddHeader(
+        static_cast<RequestId>(request_id), name, value);
 
     if (result.isSuccess()) {
       SL_TRACE_FUNC_CALL(log_, "Success", name, value);
@@ -335,8 +324,8 @@ namespace kagome::host_api {
     }
     auto &deadline = deadline_res.value();
 
-    auto result =
-        worker->httpRequestWriteBody(request_id, chunk_buffer, deadline);
+    auto result = worker->httpRequestWriteBody(
+        static_cast<RequestId>(request_id), chunk_buffer, deadline);
 
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -377,7 +366,8 @@ namespace kagome::host_api {
 
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    auto result = worker->httpResponseHeaders(request_id);
+    auto result =
+        worker->httpResponseHeaders(static_cast<RequestId>(request_id));
 
     SL_TRACE_FUNC_CALL(
         log_, fmt::format("<{} headers>", result.size()), request_id);
@@ -407,7 +397,8 @@ namespace kagome::host_api {
     common::Buffer buffer;
     buffer.resize(dst_buffer.size);
 
-    auto result = worker->httpResponseReadBody(request_id, buffer, deadline);
+    auto result = worker->httpResponseReadBody(
+        static_cast<RequestId>(request_id), buffer, deadline);
 
     if (result.isSuccess()) {
       memory.storeBuffer(dst_buffer.ptr, buffer);
@@ -455,7 +446,7 @@ namespace kagome::host_api {
     auto [value_ptr, value_size] = runtime::PtrSize(value);
     auto value_buffer = memory.loadN(value_ptr, value_size);
 
-    auto result = offchain_storage_->set(key_buffer, std::move(value_buffer));
+    auto result = offchain_storage_->set(key_buffer, value_buffer);
     if (result.has_error()) {
       SL_WARN(log_, "Can't set value in storage: {}", result.error());
     }

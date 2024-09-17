@@ -69,11 +69,13 @@ namespace kagome::primitives {
   };
 
   struct BlockHeaderReflection {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockHash &parent_hash;
     const BlockNumber &number;
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
     std::span<const DigestItem> digest;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     BlockHeaderReflection(const BlockHeader &origin)
         : parent_hash(origin.parent_hash),
@@ -96,12 +98,14 @@ namespace kagome::primitives {
   };
 
   struct GenesisBlockHeader {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockHeader header;
     const BlockHash hash;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
     return s << bhr.parent_hash << CompactInteger(bhr.number) << bhr.state_root
              << bhr.extrinsics_root << bhr.digest;
@@ -114,8 +118,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
     return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
              << bh.extrinsics_root << bh.digest;
@@ -128,8 +132,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     CompactInteger number_compact;
     s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root

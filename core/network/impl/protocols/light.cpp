@@ -22,7 +22,7 @@ namespace kagome::network {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
       std::shared_ptr<runtime::Executor> executor)
-      : RequestResponseProtocolType{
+      : RequestResponseProtocolImpl{
           kName,
           host,
           make_protocols(kLightProtocol, genesis, chain_spec),
@@ -66,6 +66,9 @@ namespace kagome::network {
         OUTCOME_TRY(trie.get().tryGet(key));
       }
     }
-    return LightProtocolResponse{proof.vec(), call != nullptr};
+    return LightProtocolResponse{
+        .proof = proof.vec(),
+        .call = call != nullptr,
+    };
   }
 }  // namespace kagome::network

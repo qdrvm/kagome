@@ -19,14 +19,17 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/predefined_keys.hpp"
 
-#define FFI \
-  Ffi ffi { memory_provider_->getCurrentMemory().value().get() }
+#define FFI                                            \
+  Ffi ffi {                                            \
+    memory_provider_->getCurrentMemory().value().get() \
+  }
 
 namespace kagome::host_api {
   /**
    * Helps reading arguments from wasm and writing result to wasm.
    */
   struct Ffi {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     runtime::Memory &memory;
 
     /**
@@ -243,7 +246,7 @@ namespace kagome::host_api {
     return crypto_ext_.ext_crypto_start_batch_verify_version_1();
   }
 
-  int32_t HostApiImpl::ext_crypto_finish_batch_verify_version_1() {
+  runtime::WasmSize HostApiImpl::ext_crypto_finish_batch_verify_version_1() {
     return crypto_ext_.ext_crypto_finish_batch_verify_version_1();
   }
 

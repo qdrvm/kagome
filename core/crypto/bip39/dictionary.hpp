@@ -13,7 +13,7 @@
 
 namespace kagome::crypto::bip39 {
 
-  enum class DictionaryError {
+  enum class DictionaryError : uint8_t {
     ENTRY_NOT_FOUND = 1,
   };
 

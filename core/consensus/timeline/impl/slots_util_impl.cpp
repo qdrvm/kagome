@@ -115,7 +115,6 @@ namespace kagome ::consensus {
     // Trying to get slot from consensus (internally it happens by runtime call)
     if (not slot1.has_value()) {
       auto consensus = consensus_selector_->getProductionConsensus(parent_info);
-      // TODO consensus->getTheFirstSlot();
       if (trie_storage_->getEphemeralBatchAt(parent.state_root)) {
         if (auto epoch_res = babe_api_->next_epoch(parent_info.hash);
             epoch_res.has_value()) {

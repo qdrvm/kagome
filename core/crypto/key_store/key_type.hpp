@@ -12,7 +12,7 @@
 
 namespace kagome::crypto {
 
-  enum class KeyTypeError {
+  enum class KeyTypeError : uint8_t {
     UNSUPPORTED_KEY_TYPE = 1,
   };
 

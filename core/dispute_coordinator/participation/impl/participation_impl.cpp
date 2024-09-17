@@ -9,6 +9,7 @@
 #include <future>
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/impl/runtime_info.hpp"
 #include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/queues.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
@@ -23,12 +24,14 @@ namespace kagome::dispute {
           block_header_repository,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ParachainHost> api,
+      std::shared_ptr<RuntimeInfo> runtime_info,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<PoolHandlerReady> dispute_thread_handler,
       std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),
+        runtime_info_(std::move(runtime_info)),
         recovery_(std::move(recovery)),
         pvf_(std::move(pvf)),
         dispute_thread_handler_(std::move(dispute_thread_handler)),
@@ -37,6 +40,7 @@ namespace kagome::dispute {
             block_header_repository_, std::move(hasher), api_)) {
     BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(runtime_info_ != nullptr);
     BOOST_ASSERT(recovery_ != nullptr);
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(dispute_thread_handler_ != nullptr);
@@ -46,7 +50,7 @@ namespace kagome::dispute {
   outcome::result<void> ParticipationImpl::queue_participation(
       ParticipationPriority priority, ParticipationRequest request) {
     // Participation already running - we can ignore that request:
-    if (running_participations_.count(request.candidate_hash)) {
+    if (running_participations_.contains(request.candidate_hash)) {
       return outcome::success();
     }
 
@@ -66,13 +70,12 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      dispute_thread_handler_->execute([wp{weak_from_this()},
-                                        request{std::move(request)},
-                                        recent_head{std::move(recent_head)}]() {
-        if (auto self = wp.lock()) {
-          self->participate(std::move(request), std::move(recent_head));
-        }
-      });
+      dispute_thread_handler_->execute(
+          [wp{weak_from_this()}, request, recent_head]() {
+            if (auto self = wp.lock()) {
+              self->participate(request, recent_head);
+            }
+          });
     }
     return outcome::success();
   }
@@ -137,8 +140,14 @@ namespace kagome::dispute {
 
   void ParticipationImpl::participate(ParticipationRequest request,
                                       primitives::BlockHash block_hash) {
-    auto ctx = std::make_shared<ParticipationContext>(
-        ParticipationContext{std::move(request), std::move(block_hash)});
+    auto info = runtime_info_->get_session_info_by_index(
+        request.candidate_receipt.descriptor.relay_parent, request.session);
+
+    auto ctx = std::make_shared<ParticipationContext>(ParticipationContext{
+        .request = request,
+        .block_hash = block_hash,
+        .group_index = info.has_value() ? info.value().validator_info.our_group
+                                        : std::nullopt});
 
     participate_stage1(
         ctx, [request, wp = dispute_coordinator_](ParticipationOutcome res) {
@@ -164,7 +173,8 @@ namespace kagome::dispute {
     recovery_->recover(
         ctx->request.candidate_receipt,
         ctx->request.session,
-        std::nullopt,
+        ctx->group_index,
+        std::nullopt,  // core_index
         [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
           if (auto self = wp.lock()) {
             if (not res_opt.has_value()) {
@@ -238,22 +248,22 @@ namespace kagome::dispute {
     BOOST_ASSERT(ctx->available_data.has_value());
     BOOST_ASSERT(ctx->validation_code.has_value());
 
-    pvf_->pvfValidate(
-        ctx->available_data->validation_data,
-        ctx->available_data->pov,
-        ctx->request.candidate_receipt,
-        ctx->validation_code.value(),
-        [cb{std::move(cb)}](outcome::result<parachain::Pvf::Result> &&res) {
-          // we cast votes (either positive or negative)
-          // depending on the outcome of the validation and if
-          // valid, whether the commitments hash matches
+    pvf_->pvfValidate(ctx->available_data->validation_data,
+                      ctx->available_data->pov,
+                      ctx->request.candidate_receipt,
+                      ctx->validation_code.value(),
+                      [cb{std::move(cb)}](
+                          const outcome::result<parachain::Pvf::Result> &res) {
+                        // we cast votes (either positive or negative)
+                        // depending on the outcome of the validation and if
+                        // valid, whether the commitments hash matches
 
-          if (res.has_value()) {
-            cb(ParticipationOutcome::Valid);
-            return;
-          }
-          cb(ParticipationOutcome::Invalid);
-        });
+                        if (res.has_value()) {
+                          cb(ParticipationOutcome::Valid);
+                          return;
+                        }
+                        cb(ParticipationOutcome::Invalid);
+                      });
   }
 
 }  // namespace kagome::dispute

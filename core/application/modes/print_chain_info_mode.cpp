@@ -8,7 +8,7 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-  typedef ::std::size_t SizeType;
+  using SizeType = size_t;
 }
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
@@ -43,7 +43,8 @@ namespace kagome::application::mode {
     rapidjson::OStreamWrapper stream = std::cout;
     rapidjson::Writer writer(stream);
     document.Accept(writer);
-    std::cout << std::endl;
+    std::cout << '\n';
+    std::cout.flush();
 
     return EXIT_SUCCESS;
   }

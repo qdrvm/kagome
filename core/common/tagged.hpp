@@ -34,6 +34,7 @@ namespace kagome {
 
     Tagged(T value) : Base(std::move(value)) {}
 
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     Tagged &operator=(T &&value) noexcept(
         not std::is_lvalue_reference_v<decltype(value)>) {
       if constexpr (std::is_scalar_v<T>) {
@@ -46,6 +47,7 @@ namespace kagome {
 
     template <typename Out>
     explicit operator Out() const {
+      // NOLINTNEXTLINE(readability-else-after-return)
       if constexpr (std::is_scalar_v<T>) {
         return this->Wrapper<T>::value;
       } else {
@@ -66,10 +68,11 @@ namespace kagome {
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, Tagged<T, Tag> &tagged) {
       if constexpr (std::is_scalar_v<T>) {
-        return s >> tagged.Wrapper<T>::value;
+        s >> tagged.Wrapper<T>::value;
       } else {
-        return s >> static_cast<T &>(tagged);
+        s >> static_cast<T &>(tagged);
       }
+      return s;
     }
   };
 

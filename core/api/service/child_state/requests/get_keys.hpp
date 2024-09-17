@@ -30,7 +30,7 @@ namespace kagome::api::child_state::request {
     explicit GetKeys(std::shared_ptr<ChildStateApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
-    };
+    }
     ~GetKeys() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);

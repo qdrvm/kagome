@@ -37,7 +37,7 @@ namespace kagome::network {
   };
 
   inline std::string to_string(Roles r) {
-    switch (r.value) {
+    switch (r.value) {  // NOLINT(cppcoreguidelines-pro-type-union-access)
       case 0:
         return "none";
       case 1:
@@ -47,6 +47,7 @@ namespace kagome::network {
       case 4:
         return "authority";
     }
-    return to_string(r.value);
+    return to_string(
+        r.value);  // NOLINT(cppcoreguidelines-pro-type-union-access)
   }
 }  // namespace kagome::network

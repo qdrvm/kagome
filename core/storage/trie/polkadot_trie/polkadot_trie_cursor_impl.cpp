@@ -149,10 +149,9 @@ namespace kagome::storage::trie {
                    (int)child_idx);
           if (child_idx > sought_nibbles[mismatch_pos]) {
             return nextNodeWithValueInSubTree(*child);
-          } else {
-            return seekLowerBoundInternal(
-                *child, sought_nibbles.subspan(mismatch_pos + 1));
           }
+          return seekLowerBoundInternal(
+              *child, sought_nibbles.subspan(mismatch_pos + 1));
         }
       }
     }
@@ -314,9 +313,8 @@ namespace kagome::storage::trie {
     for (const auto &node_idx : search_state.getPath()) {
       const auto &node = node_idx.parent;
       auto idx = node_idx.child_idx;
-      std::copy(node.getKeyNibbles().begin(),
-                node.getKeyNibbles().end(),
-                std::back_inserter<Buffer>(key_nibbles));
+      std::ranges::copy(node.getKeyNibbles(),
+                        std::back_inserter<Buffer>(key_nibbles));
       key_nibbles.putUint8(idx);
     }
     key_nibbles.put(search_state.getCurrent().getKeyNibbles());
@@ -337,9 +335,9 @@ namespace kagome::storage::trie {
       const auto &value_opt = search_state->getCurrent().getValue();
       if (value_opt) {
         // TODO(turuslan): #1470, return error
-        if (auto r =
-                trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
-            !r) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        auto r = trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
+        if (r.has_error()) {
           SL_WARN(log_,
                   "PolkadotTrieCursorImpl::value {}: {}",
                   common::hex_lower_0x(collectKey()),

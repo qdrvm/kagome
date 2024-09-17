@@ -15,14 +15,18 @@ namespace kagome {
   template <typename T>
   class OptRef {
    public:
-    OptRef() : data{nullptr} {}
+    OptRef() = default;
+    OptRef(const OptRef &) = default;
+    OptRef(OptRef &&) noexcept = default;
+
     OptRef(T &data) : data{&data} {}
     OptRef(T &&) = delete;
-    OptRef(std::nullopt_t) : data{nullptr} {}
+    OptRef(std::nullopt_t) {}
 
-    OptRef(const OptRef &) = default;
+    ~OptRef() = default;
 
     OptRef &operator=(const OptRef &) = default;
+    OptRef &operator=(OptRef &&) noexcept = default;
 
     T &operator*() {
       BOOST_ASSERT(data);
@@ -54,15 +58,15 @@ namespace kagome {
       return *data;
     }
 
-    explicit operator bool() const noexcept {
+    explicit operator bool() const {
       return data != nullptr;
     }
 
-    bool operator!() const noexcept {
+    bool operator!() const {
       return data == nullptr;
     }
 
-    bool has_value() const noexcept {
+    bool has_value() const {
       return data != nullptr;
     }
 
@@ -73,6 +77,6 @@ namespace kagome {
     }
 
    private:
-    T *data;
+    T *data = nullptr;
   };
 }  // namespace kagome

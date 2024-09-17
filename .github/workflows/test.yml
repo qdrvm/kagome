@@ -43,7 +43,6 @@ env:
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
-  CI: true
 
 
 jobs:
@@ -65,12 +64,12 @@ jobs:
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
-        
-        
+
+
   Linux:
     if: false # Need to fix
-      # ${{ 
-      # !(github.ref == 'refs/heads/master' || 
+      # ${{
+      # !(github.ref == 'refs/heads/master' ||
       # startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
@@ -131,29 +130,6 @@ jobs:
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
-
-  clang-tidy:
-    name: "Linux: clang-tidy"
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: clang-tidy
-        env:
-          # build only generated files, so clang-tidy will work correctly
-          BUILD_FINAL_TARGET: generated
-        # run build for both WAVM and WasmEdge to download both, otherwise clang-tidy
-        # isn't able to find headers
-        run: |
-          ./housekeeping/make_build.sh 
-          ./housekeeping/clang-tidy-diff.sh
 
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
@@ -217,6 +193,64 @@ jobs:
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
+
+  kagome_dev_docker_build_tidy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
+    name: "Linux: clang-tidy"
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Check version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+
+      - name: "Cache dependencies"
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-tidy-${{ env.short_commit_hash }}
+          restore-keys: |
+            ${{ github.job }}-${{ env.CACHE_VERSION }}-tidy-
+
+      - name: "Build target"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run:
+          make kagome_dev_docker_build_tidy \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          CI="true"
+
+      - name: "Cleaning cache"
+        run: |
+          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
+
+      - name: "Always Save Cache"
+        id: cache-save
+        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   kagome_dev_docker_build:
     runs-on: [ actions-runner-controller ]
@@ -312,11 +346,31 @@ jobs:
           KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILD_TYPE=${{ matrix.options.build_type }}
-          
-      - name: "Push Docker Image"
+
+      - name: "Push Docker Image to GCR"
         if: env.package_exist == 'False'
         working-directory: ./housekeeping/docker/kagome-dev
         run: make kagome_image_push \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          BUILD_TYPE=${{ matrix.options.build_type }} \
+          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
+          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
+
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        if: ${{
+          (env.package_exist == 'False') &&
+          (matrix.options.build_type == 'Release') }}
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: "Push Docker Image to Docker Hub"
+        if: ${{ 
+          (env.package_exist == 'False') && 
+          (matrix.options.build_type == 'Release') }}
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make kagome_image_push_dockerhub \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILD_TYPE=${{ matrix.options.build_type }} \
           GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
@@ -335,11 +389,23 @@ jobs:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Kagome Images: "
+          cat /tmp/docker_image.env || true
+          cat /tmp/dockerhub_image.env || true
+
 
   Zombie-Tests:
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
+    if: ${{
+      github.ref == 'refs/heads/master' ||
+      startsWith( github.ref, 'refs/tags/') ||
+      github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -368,6 +434,8 @@ jobs:
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
           - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
             test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+          - name: "Warp sync from polkadot node"
+            test: "test-custom-0001-validators-warp-sync"
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -432,6 +500,14 @@ jobs:
         with:
           name: logs-${{ matrix.options.test }}
           path: /tmp/test_logs
+
+      - name: "Versions Info"
+        if: always()
+        run: |
+          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
+          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
+          echo "Zombie Tests Versions: "
+          cat /tmp/versions.env || true
 
       - name: "Show system info"
         if: always()

@@ -66,13 +66,13 @@ namespace kagome::host_api {
 
   template <typename Arg>
   auto loadBuffer(runtime::Memory &memory, Arg &&span) {
-    auto [span_ptr, span_size] = runtime::PtrSize(span);
+    auto [span_ptr, span_size] = runtime::PtrSize(std::forward<Arg>(span));
     return memory.loadN(span_ptr, span_size);
   }
 
   template <typename... Args>
-  auto loadBuffer(runtime::Memory &memory, Args &&...spans) {
-    return std::make_tuple(loadBuffer(memory, std::forward<Args>(spans))...);
+  auto loadBuffer(runtime::Memory &memory, const Args &...spans) {
+    return std::make_tuple(loadBuffer(memory, spans)...);
   }
 
   void ChildStorageExtension::ext_default_child_storage_set_version_1(

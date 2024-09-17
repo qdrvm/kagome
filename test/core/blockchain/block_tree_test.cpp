@@ -323,7 +323,7 @@ struct BlockTreeTest : public testing::Test {
     digest.emplace_back(Seal{{primitives::kBabeEngineId, encoded_seal}});
 
     return digest;
-  };
+  }
 
   const BlockInfo kGenesisBlockInfo{
       0ul, BlockHash::fromString("genesis_block___________________").value()};
@@ -361,9 +361,10 @@ struct BlockTreeTest : public testing::Test {
     num_to_hash_.emplace(b.number, b.hash);
   }
   void delNumToHash(BlockHash hash) {
-    auto it = std::find_if(num_to_hash_.begin(),
-                           num_to_hash_.end(),
-                           [&](const auto &it) { return it.second == hash; });
+    auto it = std::ranges::find_if(
+        num_to_hash_.begin(), num_to_hash_.end(), [&](const auto &it) {
+          return it.second == hash;
+        });
     if (it == num_to_hash_.end()) {
       return;
     }

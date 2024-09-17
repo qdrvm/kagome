@@ -18,9 +18,9 @@ namespace kagome::runtime {
   using primitives::Version;
   class GetVersion : public RestrictedCore {
    public:
-    GetVersion(const Version &version) : version_{version} {}
+    GetVersion(Version version) : version_{std::move(version)} {}
 
-    outcome::result<Version> version() {
+    outcome::result<Version> version() override {
       return version_;
     }
 
@@ -31,7 +31,7 @@ namespace kagome::runtime {
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
       LazySPtr<RuntimeInstancesPool> instance_pool)
-      : hasher_{std::move(hasher)}, instance_pool_{std::move(instance_pool)} {}
+      : hasher_{std::move(hasher)}, instance_pool_{instance_pool} {}
 
   outcome::result<std::unique_ptr<RestrictedCore>> CoreApiFactoryImpl::make(
       BufferView code_zstd,

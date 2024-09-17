@@ -18,7 +18,7 @@ namespace kagome::runtime {
   /**
    * @brief type of wasm log levels
    */
-  enum class WasmLogLevel {
+  enum class WasmLogLevel : uint8_t {
     Off,
     Error,
     Warn,
@@ -75,7 +75,7 @@ namespace kagome::runtime {
     return {minor_part, major_part};
   }
 
-  enum class Error {
+  enum class Error : uint8_t {
     COMPILATION_FAILED = 1,
     INSTRUMENTATION_FAILED,
   };

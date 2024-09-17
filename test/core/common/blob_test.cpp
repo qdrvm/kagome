@@ -122,7 +122,7 @@ TEST(BlobTest, ToStringTest) {
   std::array<byte_t, 5> expected{'a', 's', 'd', 'f', 'g'};
 
   Blob<5> blob;
-  std::copy(expected.begin(), expected.end(), blob.begin());
+  std::ranges::copy(expected, blob.begin());
 
   ASSERT_EQ(blob.toString(), std::string(expected.begin(), expected.end()));
 }

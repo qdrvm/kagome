@@ -55,7 +55,7 @@ namespace {
           (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...));
     } else {
       (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...);
-      return wasm::Literal();
+      return {};
     }
   }
 
@@ -289,9 +289,8 @@ namespace kagome::runtime::binaryen {
     }
     if (func->imported()) {
       return callImport(func, arguments);
-    } else {
-      return instance.callFunctionInternal(func->name, arguments);
     }
+    return instance.callFunctionInternal(func->name, arguments);
   }
 
 }  // namespace kagome::runtime::binaryen

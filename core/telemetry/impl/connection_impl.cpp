@@ -16,12 +16,12 @@ namespace kagome::telemetry {
 
   TelemetryConnectionImpl::TelemetryConnectionImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
-      const TelemetryEndpoint &endpoint,
+      TelemetryEndpoint endpoint,
       OnConnectedCallback callback,
       std::shared_ptr<MessagePool> message_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{std::move(io_context)},
-        endpoint_{endpoint},
+        endpoint_{std::move(endpoint)},
         callback_{std::move(callback)},
         message_pool_{std::move(message_pool)},
         scheduler_{std::move(scheduler)},
@@ -150,8 +150,8 @@ namespace kagome::telemetry {
     }
   }
 
-  boost::beast::lowest_layer_type<TelemetryConnectionImpl::SslStream>
-      &TelemetryConnectionImpl::stream_lowest_layer() {
+  boost::beast::lowest_layer_type<TelemetryConnectionImpl::SslStream> &
+  TelemetryConnectionImpl::stream_lowest_layer() {
     return secure_ ? boost::beast::get_lowest_layer(
                *boost::relaxed_get<WsSslStreamPtr>(ws_))
                    : boost::beast::get_lowest_layer(
@@ -188,7 +188,7 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onResolve(
       boost::beast::error_code ec,
-      boost::asio::ip::tcp::resolver::results_type results) {
+      const boost::asio::ip::tcp::resolver::results_type &results) {
     if (ec) {
       SL_ERROR(log_, "Unable to resolve host: {}", ec);
       reconnect();
@@ -204,7 +204,8 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onConnect(
       boost::beast::error_code ec,
-      boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint) {
+      const boost::asio::ip::tcp::resolver::results_type::endpoint_type
+          &endpoint) {
     if (ec) {
       SL_ERROR(log_, "Unable to connect to endpoint: {}", ec);
       reconnect();

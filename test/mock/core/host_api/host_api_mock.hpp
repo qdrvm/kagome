@@ -249,7 +249,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void, ext_crypto_start_batch_verify_version_1, (), (override));
 
-    MOCK_METHOD(int32_t,
+    MOCK_METHOD(runtime::WasmSize,
                 ext_crypto_finish_batch_verify_version_1,
                 (),
                 (override));

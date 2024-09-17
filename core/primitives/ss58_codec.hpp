@@ -17,7 +17,10 @@ namespace kagome::crypto {
 
 namespace kagome::primitives {
 
-  enum class Ss58Error { INVALID_LENGTH = 1, INVALID_CHECKSUM };
+  enum class Ss58Error : uint8_t {
+    INVALID_LENGTH = 1,
+    INVALID_CHECKSUM,
+  };
 
   constexpr size_t kSs58ChecksumLength = 2;
 
@@ -26,11 +29,11 @@ namespace kagome::primitives {
    * verified in the process.
    */
   outcome::result<AccountId> decodeSs58(std::string_view account_address,
-                                        const crypto::Hasher &hasher) noexcept;
+                                        const crypto::Hasher &hasher);
 
   std::string encodeSs58(uint8_t account_type,
                          const AccountId &id,
-                         const crypto::Hasher &hasher) noexcept;
+                         const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
 

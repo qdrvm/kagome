@@ -29,9 +29,9 @@ namespace kagome::consensus::grandpa {
       : main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
-        synchronizer_{std::move(synchronizer)},
-        timeline_{std::move(timeline)},
-        chain_sub_{chain_sub_engine},
+        synchronizer_{synchronizer},
+        timeline_{timeline},
+        chain_sub_{std::move(chain_sub_engine)},
         log_{log::createLogger("VerifiedJustificationQueue", "grandpa")} {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);

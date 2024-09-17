@@ -24,7 +24,9 @@
 
 namespace kagome::application {
 
-  enum class Subcommand { ChainInfo };
+  enum class Subcommand : uint8_t {
+    ChainInfo,
+  };
 
   struct BlockBenchmarkConfig {
     primitives::BlockNumber from;
@@ -211,15 +213,15 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint>
-        &telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint> &
+    telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
      */
     virtual SyncMethod syncMethod() const = 0;
 
-    enum class RuntimeExecutionMethod {
+    enum class RuntimeExecutionMethod : uint8_t {
       Compile,
       Interpret,
     };
@@ -229,7 +231,7 @@ namespace kagome::application {
      */
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
-    enum class RuntimeInterpreter {
+    enum class RuntimeInterpreter : uint8_t {
       WasmEdge,
       Binaryen,
     };
@@ -271,7 +273,11 @@ namespace kagome::application {
      */
     virtual bool disableSecureMode() const = 0;
 
-    enum class OffchainWorkerMode { WhenValidating, Always, Never };
+    enum class OffchainWorkerMode : uint8_t {
+      WhenValidating,
+      Always,
+      Never,
+    };
     /**
      * @return enum constant of the mode of run offchain workers
      */
@@ -283,7 +289,9 @@ namespace kagome::application {
 
     virtual std::optional<primitives::BlockId> recoverState() const = 0;
 
-    enum class StorageBackend { RocksDB };
+    enum class StorageBackend : uint8_t {
+      RocksDB,
+    };
 
     /**
      * @return enum constant of the chosen storage backend

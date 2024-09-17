@@ -22,7 +22,12 @@ namespace kagome::offchain {
 
   using RandomSeed = common::Blob<32>;
 
-  enum class StorageType : int32_t { Undefined = 0, Persistent = 1, Local = 2 };
+  // https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/primitives/core/src/offchain/mod.rs#L63
+  enum class StorageType : int32_t {
+    Undefined = 0,  // shouldn't be used
+    Persistent = 1,
+    Local = 2
+  };
 
   enum class HttpMethod { Undefined = 0, Get = 1, Post = 2 };
 
@@ -94,8 +99,8 @@ namespace kagome::offchain {
                 .value()) {}
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
     s << v.peer_id.toVector();
 
@@ -108,8 +113,8 @@ namespace kagome::offchain {
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, OpaqueNetworkState &v) {
     common::Buffer buff;
 

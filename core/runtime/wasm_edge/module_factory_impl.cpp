@@ -18,17 +18,21 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
-#include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
+static_assert(std::string_view{WASMEDGE_ID}.size() == 40,
+              "WASMEDGE_ID should be set to WasmEdge repository SHA1 hash");
+
 namespace kagome::runtime::wasm_edge {
-  enum class Error {
+  enum class Error : uint8_t {
     INVALID_VALUE_TYPE = 1,
 
   };
@@ -49,7 +53,7 @@ namespace kagome::runtime::wasm_edge {
 
   static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
-  class WasmEdgeErrCategory final : public std::error_category {
+  static const class final : public std::error_category {
    public:
     const char *name() const noexcept override {
       return "WasmEdge";
@@ -59,9 +63,7 @@ namespace kagome::runtime::wasm_edge {
       auto res = WasmEdge_ResultGen(WasmEdge_ErrCategory_WASM, code);
       return WasmEdge_ResultGetMessage(res);
     }
-  };
-
-  WasmEdgeErrCategory wasm_edge_err_category;
+  } wasm_edge_err_category;
 
   std::error_code make_error_code(WasmEdge_Result res) {
     BOOST_ASSERT(WasmEdge_ResultGetCategory(res) == WasmEdge_ErrCategory_WASM);
@@ -69,6 +71,7 @@ namespace kagome::runtime::wasm_edge {
                            wasm_edge_err_category};
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define WasmEdge_UNWRAP(expr)                                             \
   if (auto _wasm_edge_res = (expr); !WasmEdge_ResultOK(_wasm_edge_res)) { \
     return make_error_code(_wasm_edge_res);                               \
@@ -81,23 +84,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsI32(v.Type)) {
+      return WasmEdge_ValueGetI32(v);
     }
-    BOOST_UNREACHABLE_RETURN({});
+    if (WasmEdge_ValTypeIsI64(v.Type)) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsF32(v.Type)) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsF64(v.Type)) {
+      return WasmEdge_ValueGetF64(v);
+    }
+
+    return Error::INVALID_VALUE_TYPE;
   }
 
   inline CompilationOutcome<ConfigureContext> configureCtx() {
@@ -117,10 +117,10 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<ModuleInstanceContext> host_instance,
         InstanceEnvironment env,
         const common::Hash256 &code_hash)
-        : module_{module},
+        : module_{std::move(module)},
           instance_{std::move(instance_ctx)},
-          host_instance_{host_instance},
-          executor_{executor},
+          host_instance_{std::move(host_instance)},
+          executor_{std::move(executor)},
           env_{std::move(env)},
           code_hash_{code_hash} {
       BOOST_ASSERT(module_ != nullptr);
@@ -149,8 +149,9 @@ namespace kagome::runtime::wasm_edge {
                                    .get()
                                    .storeBuffer(encoded_args)};
       }
-      std::array params{WasmEdge_ValueGenI32(args_ptrsize.ptr),
-                        WasmEdge_ValueGenI32(args_ptrsize.size)};
+      std::array params{
+          WasmEdge_ValueGenI32(static_cast<int32_t>(args_ptrsize.ptr)),
+          WasmEdge_ValueGenI32(static_cast<int32_t>(args_ptrsize.size))};
       std::array returns{WasmEdge_ValueGenI64(0)};
       String wasm_name =
           WasmEdge_StringCreateByBuffer(name.data(), name.size());
@@ -225,6 +226,8 @@ namespace kagome::runtime::wasm_edge {
     std::shared_ptr<ExecutorContext> executor_;
     log::Logger log_ = log::createLogger("ModuleInstance", "runtime");
     InstanceEnvironment env_;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const common::Hash256 code_hash_;
   };
 
@@ -235,10 +238,10 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer)
-        : core_factory_{core_factory},
-          host_api_factory_{host_api_factory},
-          storage_{storage},
-          serializer_{serializer} {}
+        : core_factory_{std::move(core_factory)},
+          host_api_factory_{std::move(host_api_factory)},
+          storage_{std::move(storage)},
+          serializer_{std::move(serializer)} {}
 
     InstanceEnvironment make(std::shared_ptr<MemoryProvider> memory_provider) {
       auto storage_provider =
@@ -321,6 +324,8 @@ namespace kagome::runtime::wasm_edge {
         auto memory_ctx =
             WasmEdge_ModuleInstanceFindMemory(instance_ctx.raw(), kMemoryName);
         BOOST_ASSERT(memory_ctx);
+
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         static_cast<InternalMemoryProviderImpl *>(memory_provider.get())
             ->setMemory(memory_ctx);
       }
@@ -339,6 +344,8 @@ namespace kagome::runtime::wasm_edge {
     log::Logger log_ = log::createLogger("Module", "runtime");
     const WasmEdge_MemoryTypeContext *memory_type_;
     ASTModuleContext module_;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const common::Hash256 code_hash_;
 
     friend class ModuleInstanceImpl;
@@ -362,10 +369,10 @@ namespace kagome::runtime::wasm_edge {
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<CoreApiFactory> core_factory,
       Config config)
-      : hasher_{hasher},
-        host_api_factory_{host_api_factory},
-        storage_{storage},
-        serializer_{serializer},
+      : hasher_{std::move(hasher)},
+        host_api_factory_{std::move(host_api_factory)},
+        storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         core_factory_{std::move(core_factory)},
         log_{log::createLogger("ModuleFactory", "runtime")},
         config_{config} {
@@ -373,11 +380,14 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  std::optional<std::string> ModuleFactoryImpl::compilerType() const {
+  std::optional<std::string_view> ModuleFactoryImpl::compilerType() const {
     if (config_.exec == ExecType::Interpreted) {
       return std::nullopt;
     }
-    return "wasmedge";
+    // version changes rarely, don't need the whole hash
+    static std::string versioned_str =
+        fmt::format("wasmedge_{}", std::string_view{WASMEDGE_ID}.substr(0, 12));
+    return versioned_str;
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
@@ -409,6 +419,7 @@ namespace kagome::runtime::wasm_edge {
     auto code_hash = hasher_->blake2b_256(code);
     OUTCOME_TRY(configure_ctx, configureCtx());
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     WasmEdge_ASTModuleContext *module_ctx;
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
         loader_ctx.raw(), &module_ctx, path_compiled.c_str()));
@@ -443,11 +454,11 @@ namespace kagome::runtime::wasm_edge {
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
         core_factory_, host_api_factory_, storage_, serializer_);
 
-    return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
-                                                      std::move(executor),
-                                                      env_factory,
-                                                      import_memory_type,
-                                                      code_hash}};
+    return std::make_shared<ModuleImpl>(std::move(module),
+                                        std::move(executor),
+                                        std::move(env_factory),
+                                        import_memory_type,
+                                        code_hash);
   }
 
 }  // namespace kagome::runtime::wasm_edge

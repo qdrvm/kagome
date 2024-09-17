@@ -28,17 +28,18 @@ namespace kagome::network {
 
     streams_.exclusiveAccess([&](PeerMap &streams) {
       bool existing = false;
-      forPeerProtocol(peer_id, streams, protocol, [&](auto type, auto &descr) {
-        existing = true;
-        if (is_incoming) {
-          uploadStream(
-              descr.incoming.stream, stream, protocol, Direction::INCOMING);
-        }
-        if (is_outgoing) {
-          uploadStream(
-              descr.outgoing.stream, stream, protocol, Direction::OUTGOING);
-        }
-      });
+      forPeerProtocol(
+          peer_id, streams, protocol, [&](const auto &type, auto &descr) {
+            existing = true;
+            if (is_incoming) {
+              uploadStream(
+                  descr.incoming.stream, stream, protocol, Direction::INCOMING);
+            }
+            if (is_outgoing) {
+              uploadStream(
+                  descr.outgoing.stream, stream, protocol, Direction::OUTGOING);
+            }
+          });
 
       if (not existing) {
         auto &proto_map = streams[peer_id];
@@ -132,7 +133,7 @@ namespace kagome::network {
     BOOST_ASSERT(protocol);
     return streams_.exclusiveAccess([&](auto &streams) {
       forPeerProtocol(
-          peer_id, streams, protocol, [&](auto, ProtocolDescr &descr) {
+          peer_id, streams, protocol, [&](const auto &, ProtocolDescr &descr) {
             return descr.dropReserved();
           });
     });
@@ -176,7 +177,7 @@ namespace kagome::network {
       ProtocolDescr &descr) {
     if (descr.tryReserveOutgoing()) {
       protocol->newOutgoingStream(
-          PeerInfo{peer_id, {}},
+          peer_id,
           [wp(weak_from_this()), protocol, peer_id](auto &&stream_res) mutable {
             auto self = wp.lock();
             if (not self) {
@@ -192,7 +193,7 @@ namespace kagome::network {
 
               self->streams_.exclusiveAccess([&](auto &streams) {
                 self->forPeerProtocol(
-                    peer_id, streams, protocol, [&](auto, auto &descr) {
+                    peer_id, streams, protocol, [&](const auto &, auto &descr) {
                       descr.deferred_messages.clear();
                       descr.dropReserved();
                     });
@@ -214,7 +215,7 @@ namespace kagome::network {
             self->streams_.exclusiveAccess([&](auto &streams) {
               [[maybe_unused]] bool existing = false;
               self->forPeerProtocol(
-                  peer_id, streams, protocol, [&](auto, auto &descr) {
+                  peer_id, streams, protocol, [&](const auto &, auto &descr) {
                     existing = true;
                     self->uploadStream(descr.outgoing.stream,
                                        stream,

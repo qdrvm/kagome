@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <qtils/cxx20/lexicographical_compare_three_way.hpp>
 #include <span>
@@ -32,10 +33,9 @@ auto operator<=>(const SpanAdl<T> &l_, const auto &r_)
     auto n = std::min(l.size(), r.size());
     auto c = std::memcmp(l.data(), r.data(), n) <=> 0;
     return c != 0 ? c : l.size() <=> r.size();
-  } else {
-    return qtils::cxx20::lexicographical_compare_three_way(
-        l.begin(), l.end(), r.begin(), r.end());
   }
+  return qtils::cxx20::lexicographical_compare_three_way(
+      l.begin(), l.end(), r.begin(), r.end());
 }
 
 template <typename T>

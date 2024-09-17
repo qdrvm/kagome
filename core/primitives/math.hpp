@@ -51,8 +51,8 @@ namespace kagome::math {
     return e;
   }
 
-  template <typename T,
-            std::enable_if_t<std::is_integral_v<std::decay_t<T>>, bool> = true>
+  template <typename T>
+    requires std::is_integral_v<std::decay_t<T>>
   constexpr auto toLE(const T &value) {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     constexpr size_t size = sizeof(std::decay_t<T>);

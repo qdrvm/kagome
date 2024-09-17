@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "common/uri.hpp"
 
 namespace kagome::telemetry {
@@ -21,11 +23,11 @@ namespace kagome::telemetry {
 
     const common::Uri &uri() const {
       return uri_;
-    };
+    }
 
-    uint8_t verbosity() {
+    uint8_t verbosity() const {
       return verbosity_level_;
-    };
+    }
 
     bool operator==(const TelemetryEndpoint &other) const {
       return uri_.to_string() == other.uri_.to_string()

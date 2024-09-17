@@ -129,7 +129,7 @@ namespace kagome::parachain::grid {
 
   /// Routing mode
   struct RequiredRouting {
-    enum {
+    enum {  // NOLINT(performance-enum-size)
       /// We don't know yet, because we're waiting for topology info
       /// (race condition between learning about the first blocks in a new
       /// session
