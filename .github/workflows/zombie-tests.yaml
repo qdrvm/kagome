@@ -53,6 +53,11 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get master branch"
+        run: git fetch origin master:master
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'

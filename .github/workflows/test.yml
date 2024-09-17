@@ -215,9 +215,11 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: "Get master branch"
-        run: git fetch origin master:master --depth=1
+        run: git fetch origin master:master
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -232,11 +234,15 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make get_versions
+
       - name: "Check version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" | tee $GITHUB_ENV
 
       - name: "Cache dependencies"
         id: cache-restore
@@ -292,9 +298,11 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+
       - name: "Get master branch"
-        run: git fetch origin master:master --depth=1
+        run: git fetch origin master:master
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -459,9 +467,11 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
+          
       - name: "Get master branch"
-        run: git fetch origin master:master --depth=1
+        run: git fetch origin master:master
 
 #      - name: Create and enable swap
 #        run: |
