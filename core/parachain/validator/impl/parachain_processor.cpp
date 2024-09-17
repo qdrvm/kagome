@@ -1116,26 +1116,6 @@ namespace kagome::parachain {
           *global_v_index);
       Groups groups{session_info->validator_groups, minimum_backing_votes};
 
-      std::unordered_set<primitives::AuthorityDiscoveryId> peers;
-      if (validator_index) {
-        auto our_group = groups.byValidatorIndex(*validator_index);
-        if (our_group) {
-          const auto &group = session_info->validator_groups[*our_group];
-          for (const auto vi : group) {
-            peers.insert(session_info->discovery_keys[vi]);
-          }
-        }
-      }
-      for (const auto &view : grid_view) {
-        for (const auto vi : view.sending) {
-          peers.insert(session_info->discovery_keys[vi]);
-        }
-        for (const auto vi : view.receiving) {
-          peers.insert(session_info->discovery_keys[vi]);
-        }
-      }
-
-      std::ignore = query_audi_->merge(peers);
       return RefCache<SessionIndex, PerSessionState>::RefObj(
           session_index,
           *session_info,
