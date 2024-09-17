@@ -69,7 +69,6 @@ namespace kagome::authority_discovery {
         const std::vector<libp2p::protocol::kademlia::Value> &) override;
 
     outcome::result<void> update();
-    outcome::result<void> merge(std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>> &&authorities) override;
 
    private:
     struct Authority {
@@ -105,8 +104,7 @@ namespace kagome::authority_discovery {
         peer_to_auth_cache_;
     std::vector<primitives::AuthorityDiscoveryId> queue_;
     size_t active_ = 0;
-    std::unordered_set<primitives::AuthorityDiscoveryId> authorities_;
-    
+
     log::Logger log_;
   };
 }  // namespace kagome::authority_discovery

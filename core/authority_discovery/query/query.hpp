@@ -7,7 +7,6 @@
 #pragma once
 
 #include <libp2p/peer/peer_info.hpp>
-#include <unordered_set>
 
 #include "primitives/authority_discovery_id.hpp"
 
@@ -30,10 +29,5 @@ namespace kagome::authority_discovery {
      */
     virtual std::optional<primitives::AuthorityDiscoveryId> get(
         const libp2p::peer::PeerId &peer_id) const = 0;
-
-    /**
-     * Updates authority discovery set with the givens.
-     */
-    virtual outcome::result<void> merge(std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>> &&authorities) = 0;
   };
 }  // namespace kagome::authority_discovery

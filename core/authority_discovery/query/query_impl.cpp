@@ -134,33 +134,11 @@ namespace kagome::authority_discovery {
     return Error::KADEMLIA_OUTDATED_VALUE;
   }
 
-  outcome::result<void> QueryImpl::merge(
-      std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
-          &&authorities) {
-    {
-      std::unique_lock lock{mutex_};
-      if (authorities) {
-        authorities_.insert(authorities->begin(), authorities->end());
-      } else {
-        authorities_.clear();
-      }
-    }
-    return update();
-  }
-
   outcome::result<void> QueryImpl::update() {
-    OUTCOME_TRY(
-        cur_authorities,
-        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
-    OUTCOME_TRY(local_keys,
-                key_store_->sr25519().getPublicKeys(
-                    crypto::KeyTypes::AUTHORITY_DISCOVERY));
-
     std::unique_lock lock{mutex_};
-    std::unordered_set<primitives::AuthorityDiscoveryId> authorities =
-        authorities_;
-    authorities.insert(cur_authorities.begin(), cur_authorities.end());
-
+    OUTCOME_TRY(
+        authorities,
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     for (auto &id : authorities) {
       if (not hash_to_auth_.contains(id)) {
         hash_to_auth_.emplace(crypto::sha256(id), id);
