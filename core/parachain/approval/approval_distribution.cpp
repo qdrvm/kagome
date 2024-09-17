@@ -3036,6 +3036,37 @@ namespace kagome::parachain {
                            status.block_tick,
                            tick_now,
                            status.required_tranches);
+
+    if (is_approved && is_remote_approval(transition)) {
+      for (const auto &[fork_block_hash, fork_approval_entry] :
+           candidate_entry.block_assignments) {
+        if (fork_block_hash == block_hash) {
+          continue;
+        }
+
+        bool assigned_on_fork_block = false;
+        if (validator_index) {
+          assigned_on_fork_block =
+              fork_approval_entry.is_assigned(*validator_index);
+        }
+
+        if (!wakeup_for(fork_block_hash, candidate_hash)
+            && !fork_approval_entry.approved && assigned_on_fork_block) {
+          auto opt_fork_block_entry = storedBlockEntries().get(fork_block_hash);
+          if (!opt_fork_block_entry) {
+            SL_TRACE(logger_,
+                     "Failed to load block entry. (fork_block_hash={})",
+                     fork_block_hash);
+          } else {
+            runScheduleWakeup(fork_block_hash,
+                              opt_fork_block_entry->get().block_number,
+                              candidate_hash,
+                              tick_now + 1);
+          }
+        }
+      }
+    }
+
     if (approval::is_local_approval(transition) || newly_approved
         || (already_approved_by && !*already_approved_by)) {
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
@@ -3106,6 +3137,12 @@ namespace kagome::parachain {
         },
         std::chrono::milliseconds(ms_wakeup_after));
     target_block[candidate_hash].emplace_back(tick, std::move(handle));
+  }
+
+  bool ApprovalDistribution::wakeup_for(const primitives::BlockHash &block_hash,
+                                        const CandidateHash &candidate_hash) {
+    auto it = active_tranches_.find(block_hash);
+    return it != active_tranches_.end() && it->second.contains(candidate_hash);
   }
 
   void ApprovalDistribution::handleTranche(

@@ -208,6 +208,9 @@ namespace kagome::parachain::approval {
   inline bool is_local_approval(const ApprovalStateTransition &val) {
     return boost::get<LocalApproval>(&val) != nullptr;
   }
+  inline bool is_remote_approval(const ApprovalStateTransition &val) {
+    return boost::get<RemoteApproval>(&val) != nullptr;
+  }
 
   /// Metadata about a block which is now live in the approval protocol.
   struct BlockApprovalMeta {
