@@ -48,6 +48,7 @@ env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   CACHE_PATH: ./build/cache
+  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
@@ -60,7 +61,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4
-      if: ${{ inputs.use_cache == 'true' }}
+      if: ${{ env.USE_CACHE == 'true' }}
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -93,7 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
-        if: ${{ inputs.use_cache == 'true' }}
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -133,7 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
-        if: ${{ inputs.use_cache == 'true' }}
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -151,7 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
-        if: ${{ inputs.use_cache == 'true' }}
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -198,7 +199,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
-        if: ${{ inputs.use_cache == 'true' }}
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -246,7 +247,7 @@ jobs:
 
       - name: "Cache dependencies"
         id: cache-restore
-        if: ${{ github.event.inputs.use_cache == 'true' }}
+        if: ${{ env.USE_CACHE == 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHE_PATH }}
@@ -337,7 +338,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if:  ${{ env.package_exist == 'False' && github.event.inputs.use_cache == 'true' }}
+        if:  ${{ env.package_exist == 'False' && env.USE_CACHE == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:

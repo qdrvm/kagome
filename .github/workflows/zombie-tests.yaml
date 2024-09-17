@@ -44,6 +44,7 @@ env:
 
   CACHE_VERSION: v01
   CACHE_PATH: ./build/cache
+  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
 
 jobs:
   kagome_dev_docker_build:
@@ -92,7 +93,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: ${{ env.package_exist == 'False' && github.event.inputs.use_cache == 'true' }}
+        if: ${{ env.package_exist == 'False' && env.USE_CACHE == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:
