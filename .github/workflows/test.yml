@@ -216,6 +216,9 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
+      - name: "Get master branch"
+        run: git fetch origin master:master --depth=1
+
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
         with:
@@ -289,6 +292,9 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        
+      - name: "Get master branch"
+        run: git fetch origin master:master --depth=1
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -303,7 +309,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
@@ -454,6 +460,9 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
+      - name: "Get master branch"
+        run: git fetch origin master:master --depth=1
+
 #      - name: Create and enable swap
 #        run: |
 #          free -h
@@ -479,7 +488,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
