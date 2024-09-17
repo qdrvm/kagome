@@ -22,9 +22,9 @@ namespace kagome {
 
   struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
     AsyncPipe pipe_stdin;
-    boost::asio::buffered_write_stream<AsyncPipe &> writer;
+    AsyncPipe &writer;
     AsyncPipe pipe_stdout;
-    boost::asio::buffered_read_stream<AsyncPipe &> reader;
+    AsyncPipe &reader;
     boost::process::child process;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
@@ -69,13 +69,7 @@ namespace kagome {
                   if (ec) {
                     return cb(ec);
                   }
-                  self->writer.async_flush(
-                      [cb](boost::system::error_code ec, size_t) mutable {
-                        if (ec) {
-                          return cb(ec);
-                        }
-                        cb(outcome::success());
-                      });
+                  cb(outcome::success());
                 });
           });
     }
