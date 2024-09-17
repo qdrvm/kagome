@@ -37,7 +37,8 @@ namespace kagome::runtime {
     RuntimeContext(const RuntimeContext &) = delete;
     RuntimeContext &operator=(const RuntimeContext &) = delete;
 
-    RuntimeContext(RuntimeContext &&) = default;
+    RuntimeContext(RuntimeContext &&) noexcept = default;
+    RuntimeContext &operator=(RuntimeContext &&) noexcept = delete;
 
     ~RuntimeContext();
 
@@ -103,33 +104,33 @@ namespace kagome::runtime {
         std::shared_ptr<ModuleRepository> module_repo,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
 
-    virtual outcome::result<RuntimeContext> fromBatch(
+    outcome::result<RuntimeContext> fromBatch(
         std::shared_ptr<ModuleInstance> module_instance,
         std::shared_ptr<storage::trie::TrieBatch> batch) const override;
 
-    virtual outcome::result<RuntimeContext> persistent(
+    outcome::result<RuntimeContext> persistent(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
             changes_tracker_opt) const override;
 
-    virtual outcome::result<RuntimeContext> persistentAt(
+    outcome::result<RuntimeContext> persistentAt(
         const primitives::BlockHash &block_hash,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
             changes_tracker_opt = {}) const override;
 
-    virtual outcome::result<RuntimeContext> ephemeral(
+    outcome::result<RuntimeContext> ephemeral(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state) const override;
 
-    virtual outcome::result<RuntimeContext> ephemeralAt(
+    outcome::result<RuntimeContext> ephemeralAt(
         const primitives::BlockHash &block_hash) const override;
 
-    virtual outcome::result<RuntimeContext> ephemeralAt(
+    outcome::result<RuntimeContext> ephemeralAt(
         const primitives::BlockHash &block_hash,
         const storage::trie::RootHash &state) const override;
 
-    virtual outcome::result<RuntimeContext> ephemeralAtGenesis() const override;
+    outcome::result<RuntimeContext> ephemeralAtGenesis() const override;
 
    private:
     std::shared_ptr<class ModuleRepository> module_repo_;

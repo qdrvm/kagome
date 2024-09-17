@@ -26,6 +26,7 @@ namespace kagome::storage {
       std::optional<Buffer> key() const override;
       std::optional<BufferOrView> value() const override;
 
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       MapPrefix &map;
       std::unique_ptr<BufferStorageCursor> cursor;
     };
@@ -39,6 +40,7 @@ namespace kagome::storage {
       outcome::result<void> commit() override;
       void clear() override;
 
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       MapPrefix &map;
       std::unique_ptr<BufferBatch> batch;
     };

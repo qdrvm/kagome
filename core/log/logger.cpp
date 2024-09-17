@@ -45,27 +45,33 @@ namespace kagome::log {
   outcome::result<Level> str2lvl(std::string_view str) {
     if (str == "trace") {
       return Level::TRACE;
-    } else if (str == "debug") {
-      return Level::DEBUG;
-    } else if (str == "verbose") {
-      return Level::VERBOSE;
-    } else if (str == "info" or str == "inf") {
-      return Level::INFO;
-    } else if (str == "warning" or str == "warn") {
-      return Level::WARN;
-    } else if (str == "error" or str == "err") {
-      return Level::ERROR;
-    } else if (str == "critical" or str == "crit") {
-      return Level::CRITICAL;
-    } else if (str == "off" or str == "no") {
-      return Level::OFF;
-    } else {
-      return Error::WRONG_LEVEL;
     }
+    if (str == "debug") {
+      return Level::DEBUG;
+    }
+    if (str == "verbose") {
+      return Level::VERBOSE;
+    }
+    if (str == "info" or str == "inf") {
+      return Level::INFO;
+    }
+    if (str == "warning" or str == "warn") {
+      return Level::WARN;
+    }
+    if (str == "error" or str == "err") {
+      return Level::ERROR;
+    }
+    if (str == "critical" or str == "crit") {
+      return Level::CRITICAL;
+    }
+    if (str == "off" or str == "no") {
+      return Level::OFF;
+    }
+    return Error::WRONG_LEVEL;
   }
 
   void setLoggingSystem(std::weak_ptr<soralog::LoggingSystem> logging_system) {
-    logging_system_ = logging_system;
+    logging_system_ = std::move(logging_system);
     libp2p::log::setLoggingSystem(logging_system_.lock());
     profiling_logger = createLogger("Profiler", "profile");
   }
@@ -91,18 +97,21 @@ namespace kagome::log {
         std::cerr << "Can't read group";
       }
       if (not logging_system->getGroup(group_name)) {
-        std::cerr << "Unknown group: " << group_name << std::endl;
+        std::cerr << "Unknown group: " << group_name
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
 
       std::string level_string;
       if (not std::getline(iss2, level_string)) {
-        std::cerr << "Can't read level for group '" << group_name << "'";
+        std::cerr << "Can't read level for group '" << group_name << "'"
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
       auto res = str2lvl(level_string);
       if (not res.has_value()) {
-        std::cerr << "Invalid level: " << level_string << std::endl;
+        std::cerr << "Invalid level: " << level_string
+                  << std::endl;  // NOLINT(performance-avoid-endl)
         continue;
       }
       auto level = res.value();

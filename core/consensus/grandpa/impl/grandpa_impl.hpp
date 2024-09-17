@@ -187,7 +187,7 @@ namespace kagome::consensus::grandpa {
     void startCurrentRound();
 
     void callbackCall(ApplyJustificationCb &&callback,
-                      outcome::result<void> &&result);
+                      const outcome::result<void> &result);
     /**
      * Selects round by provided number and voter set id
      * @param round_number number of round to be selected

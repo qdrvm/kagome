@@ -43,8 +43,8 @@ namespace kagome::api {
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
-        api_service_{std::move(api_service)},
-        block_tree_{std::move(block_tree)},
+        api_service_{api_service},
+        block_tree_{block_tree},
         logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(keys_api_ != nullptr, "session keys api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
@@ -63,8 +63,7 @@ namespace kagome::api {
   outcome::result<void> AuthorApiImpl::insertKey(crypto::KeyType key_type_id,
                                                  crypto::SecureBuffer<> seed,
                                                  const BufferView &public_key) {
-    if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
-        == kKeyTypes.end()) {
+    if (std::ranges::find(kKeyTypes, key_type_id) == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
         types.append(type.toString());
@@ -112,8 +111,6 @@ namespace kagome::api {
   // it could be extended by reading config from chainspec palletSession/keys
   // value
   outcome::result<bool> AuthorApiImpl::hasSessionKeys(const BufferView &keys) {
-    scale::ScaleDecoderStream stream(keys);
-    std::array<uint8_t, 32> key;
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
       SL_WARN(logger_,
               "not valid key sequence, author_hasSessionKeys RPC call expects "
@@ -121,16 +118,19 @@ namespace kagome::api {
               "be 32 byte in size");
       return false;
     }
+    scale::ScaleDecoderStream stream(keys);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+    std::array<uint8_t, 32> key;
     stream >> key;
     if (store_->ed25519().findKeypair(
             crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
-      unsigned count = 1;
+      auto it = crypto::polkadot_key_order.begin();
       while (stream.currentIndex() < keys.size()) {
+        ++it;
         stream >> key;
         if (not store_->sr25519().findKeypair(
-                crypto::polkadot_key_order[count++],
-                crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
+                *it, crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
           return false;
         }
       }

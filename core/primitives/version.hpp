@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <array>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "common/blob.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   /**
@@ -44,6 +44,8 @@ namespace kagome::primitives {
    * `impl_version` since they change the semantics of the runtime.
    */
   struct Version {
+    SCALE_TIE(8);
+
     /**
      * Identifies the different Substrate runtimes. There'll be at least
      * polkadot and node.
@@ -82,14 +84,7 @@ namespace kagome::primitives {
     /// Version of the state implementation used by this runtime.
     uint8_t state_version = 0u;
 
-    bool operator==(const Version &rhs) const {
-      return spec_name == rhs.spec_name and impl_name == rhs.impl_name
-         and authoring_version == rhs.authoring_version
-         and impl_version == rhs.impl_version and apis == rhs.apis
-         and spec_version == rhs.spec_version
-         and transaction_version == rhs.transaction_version
-         and state_version == rhs.state_version;
-    }
+    bool operator==(const Version &rhs) const = default;
 
     /**
      * `Decode` while giving a "version hint"
@@ -105,6 +100,13 @@ namespace kagome::primitives {
      */
     static outcome::result<Version> decode(
         scale::ScaleDecoderStream &s, std::optional<uint32_t> core_version);
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 Version &v) {
+      // `.value()` may throw, `scale::decode` will catch that
+      v = Version::decode(s, std::nullopt).value();
+      return s;
+    }
   };
 
   namespace detail {
@@ -116,33 +118,4 @@ namespace kagome::primitives {
     std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis);
   }  // namespace detail
 
-  /**
-   * @brief outputs object of type Version to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Version &v) {
-    return s << v.spec_name << v.impl_name << v.authoring_version
-             << v.spec_version << v.impl_version << v.apis
-             << v.transaction_version << v.state_version;
-  }
-
-  /**
-   * @brief decodes object of type Version from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Version &v) {
-    // `.value()` may throw, `scale::decode` will catch that
-    v = Version::decode(s, std::nullopt).value();
-    return s;
-  }
 }  // namespace kagome::primitives

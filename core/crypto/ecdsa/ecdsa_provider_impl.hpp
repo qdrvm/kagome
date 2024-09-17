@@ -18,7 +18,7 @@ namespace kagome::crypto {
 
   class EcdsaProviderImpl : public EcdsaProvider {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       VERIFICATION_FAILED = 1,
       SIGN_FAILED,
       DERIVE_FAILED,

@@ -30,7 +30,7 @@
 
 namespace kagome::crypto {
 
-  enum class KeyStoreError {
+  enum class KeyStoreError : uint8_t {
     UNSUPPORTED_KEY_TYPE = 1,
     UNSUPPORTED_CRYPTO_TYPE,
     WRONG_SEED_SIZE,

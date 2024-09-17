@@ -14,8 +14,6 @@ namespace kagome::storage::trie {
 
   class TrieBatch : public BufferStorage {
    public:
-    ~TrieBatch() override = default;
-
     std::unique_ptr<Cursor> cursor() final {
       return trieCursor();
     }

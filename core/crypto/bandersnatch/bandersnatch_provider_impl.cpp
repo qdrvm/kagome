@@ -55,12 +55,13 @@ namespace kagome::crypto {
     }
 
     BandersnatchKeypair keypair{
-        BandersnatchSecretKey::from(SecureCleanGuard{
+        .secret_key = BandersnatchSecretKey::from(SecureCleanGuard{
             std::span(kp).subspan<0, constants::bandersnatch::SECRET_SIZE>()}),
-        BandersnatchPublicKey::fromSpan(
-            std::span(kp).subspan(constants::bandersnatch::SECRET_SIZE,
-                                  constants::bandersnatch::PUBLIC_SIZE))
-            .value()};
+        .public_key =
+            BandersnatchPublicKey::fromSpan(
+                std::span(kp).subspan(constants::bandersnatch::SECRET_SIZE,
+                                      constants::bandersnatch::PUBLIC_SIZE))
+                .value()};
     return keypair;
   }
 

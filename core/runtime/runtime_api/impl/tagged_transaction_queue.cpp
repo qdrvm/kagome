@@ -15,7 +15,7 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor,
       LazySPtr<blockchain::BlockTree> block_tree)
       : executor_{std::move(executor)},
-        block_tree_(std::move(block_tree)),
+        block_tree_(block_tree),
         logger_{log::createLogger("TaggedTransactionQueue", "runtime")} {
     BOOST_ASSERT(executor_);
   }

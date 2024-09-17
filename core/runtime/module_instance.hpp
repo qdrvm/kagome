@@ -34,7 +34,7 @@ namespace kagome::runtime {
    */
   class ModuleInstance {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       ABSENT_HEAP_BASE = 1,
       HEAP_BASE_TOO_LOW,
       INVALID_CALL_RESULT,
@@ -54,7 +54,7 @@ namespace kagome::runtime {
     static outcome::result<Result> decodedCall(
         [[maybe_unused]] std::string_view method_name,
         outcome::result<common::Buffer> &&result) {
-      OUTCOME_TRY(value, result);
+      OUTCOME_TRY(value, std::move(result));
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

@@ -43,7 +43,7 @@ namespace kagome::consensus::babe {
   constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
   inline static NextConfigDataV1 getConfig(const BabeConfiguration &state) {
-    return {state.leadership_rate, state.allowed_slots};
+    return {.ratio = state.leadership_rate, .second_slot = state.allowed_slots};
   }
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
@@ -71,11 +71,11 @@ namespace kagome::consensus::babe {
             block_tree_,
         },
         header_repo_(std::move(header_repo)),
-        consensus_selector_(std::move(consensus_selector)),
+        consensus_selector_(consensus_selector),
         babe_api_(std::move(babe_api)),
         trie_storage_(std::move(trie_storage)),
-        chain_sub_{chain_events_engine},
-        slots_util_(std::move(slots_util)),
+        chain_sub_{std::move(chain_events_engine)},
+        slots_util_(slots_util),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -97,12 +97,12 @@ namespace kagome::consensus::babe {
         if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
-          SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
+          SL_ERROR(logger_, "Can't decode genesis slot: {}", res.error());
           std::ignore = persistent_storage_->remove(storage::kFirstBlockSlot);
         }
       }
     } else {
-      SL_ERROR(logger_, "genesis slot db read error: {}", res.error());
+      SL_ERROR(logger_, "Can't retrieve genesis slot from DB: {}", res.error());
       return false;
     }
 
@@ -140,7 +140,7 @@ namespace kagome::consensus::babe {
         return config(indexer_, best, true);
       };
       if (not res and not config_warp_sync_) {
-        SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
+        SL_ERROR(logger_, "Can't get config at best {}: {}", best, res.error());
         auto best_header = block_tree_->getBlockHeader(best.hash).value();
         if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
           SL_ERROR(logger_,
@@ -245,22 +245,23 @@ namespace kagome::consensus::babe {
         if (not prev) {
           OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
           auto state = std::make_shared<BabeConfiguration>(std::move(_state));
-          BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
+          BabeIndexedValue value{
+              .config = getConfig(*state), .state = state, .next_state = state};
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
             BOOST_ASSERT(state->epoch_length == next.duration);
             value.next_state_warp =
                 std::make_shared<BabeConfiguration>(BabeConfiguration{
-                    state->slot_duration,
-                    next.duration,
-                    next.leadership_rate,
-                    std::move(next.authorities),
-                    next.randomness,
-                    next.allowed_slots,
+                    .slot_duration = state->slot_duration,
+                    .epoch_length = next.duration,
+                    .leadership_rate = next.leadership_rate,
+                    .authorities = std::move(next.authorities),
+                    .randomness = next.randomness,
+                    .allowed_slots = next.allowed_slots,
                 });
             value.next_state = value.next_state_warp;
           }
-          indexer_.put(info, {value, std::nullopt}, true);
+          indexer_.put(info, {.value = value}, true);
           if (i_first == i_last) {
             return outcome::success();
           }
@@ -277,16 +278,16 @@ namespace kagome::consensus::babe {
             }
             auto state = applyDigests(getConfig(*prev_state), digests);
             BabeIndexedValue value{
-                getConfig(*state),
-                std::nullopt,
-                std::nullopt,
-                state,
+                .config = getConfig(*state),
+                .next_state = state,
             };
-            indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
+            indexer_.put(info,
+                         {.value = value, .prev = prev},
+                         block_tree_->isFinalized(info));
             prev = info;
             prev_state = state;
           } else {
-            indexer_.put(info, {std::nullopt, prev, true}, false);
+            indexer_.put(info, {.prev = prev, .inherit = true}, false);
           }
           if (i_first == i_last) {
             break;

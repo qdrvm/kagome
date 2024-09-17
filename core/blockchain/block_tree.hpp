@@ -158,7 +158,10 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block,
         const primitives::Justification &justification) = 0;
 
-    enum class GetChainDirection { ASCEND, DESCEND };
+    enum class GetChainDirection : uint8_t {
+      ASCEND,
+      DESCEND,
+    };
 
     /**
      * Get a chain of blocks from provided block to best block direction

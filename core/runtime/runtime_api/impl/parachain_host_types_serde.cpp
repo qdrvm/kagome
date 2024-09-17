@@ -50,7 +50,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateBacked &val) {
-    s << static_cast<Candidate>(val) << val.group_index;
+    s << static_cast<const Candidate &>(val) << val.group_index;
     return s;
   }
 
@@ -61,7 +61,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateIncluded &val) {
-    s << static_cast<Candidate>(val);
+    s << static_cast<const Candidate &>(val);
     s << val.group_index;
     return s;
   }

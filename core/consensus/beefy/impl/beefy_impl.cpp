@@ -22,6 +22,7 @@
 #include "crypto/key_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/synchronizer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
@@ -30,19 +31,25 @@
 #include "utils/block_number_key.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
+#include "utils/weak_macro.hpp"
+
 // TODO(turuslan): #1651, report equivocation
 
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
 
-  metrics::GaugeHelper metric_validator_set_id{
-      "kagome_beefy_validator_set_id",
-      "Current BEEFY active validator set id.",
-  };
-  metrics::GaugeHelper metric_finalized{
-      "kagome_beefy_best_block",
-      "Best block finalized by BEEFY",
-  };
+  namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::GaugeHelper metric_validator_set_id{
+        "kagome_beefy_validator_set_id",
+        "Current BEEFY active validator set id.",
+    };
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::GaugeHelper metric_finalized{
+        "kagome_beefy_best_block",
+        "Best block finalized by BEEFY",
+    };
+  }  // namespace
 
   BeefyImpl::BeefyImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -61,7 +68,8 @@ namespace kagome::network {
           beefy_justification_protocol,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      LazySPtr<network::Synchronizer> synchronizer)
       : log_{log::createLogger("Beefy")},
         block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
@@ -71,14 +79,15 @@ namespace kagome::network {
         beefy_pool_handler_{poolHandlerReadyMake(
             this, app_state_manager, beefy_thread_pool, log_)},
         scheduler_{std::move(scheduler)},
-        timeline_{std::move(timeline)},
+        timeline_{timeline},
         session_keys_{std::move(session_keys)},
-        beefy_protocol_{std::move(beefy_protocol)},
-        beefy_justification_protocol_{std::move(beefy_justification_protocol)},
+        beefy_protocol_{beefy_protocol},
+        beefy_justification_protocol_{beefy_justification_protocol},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         min_delta_{chain_spec.beefyMinDelta()},
-        chain_sub_{std::move(chain_sub_engine)} {
+        chain_sub_{std::move(chain_sub_engine)},
+        synchronizer_{synchronizer} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);
@@ -202,7 +211,8 @@ namespace kagome::network {
           SL_WARN(log_, "won't report own double woting");
           return;
         }
-        auto r = reportDoubleVoting({vote_it->second.first, vote});
+        auto r = reportDoubleVoting(
+            {.first = vote_it->second.first, .second = vote});
         if (not r) {
           SL_WARN(log_, "reportDoubleVoting: {}", r.error());
         }
@@ -216,14 +226,14 @@ namespace kagome::network {
     if (round == session.rounds.end()) {
       round = session.rounds.emplace(block_number, Round{}).first;
     }
-    round->second.double_voting.emplace(*index, DoubleVoting{vote});
+    round->second.double_voting.emplace(*index, DoubleVoting{.first = vote});
     auto justification = round->second.justifications.find(vote.commitment);
     if (justification == round->second.justifications.end()) {
-      justification =
-          round->second.justifications
-              .emplace(vote.commitment,
-                       consensus::beefy::SignedCommitment{vote.commitment, {}})
-              .first;
+      justification = round->second.justifications
+                          .emplace(vote.commitment,
+                                   consensus::beefy::SignedCommitment{
+                                       .commitment = vote.commitment})
+                          .first;
     }
     justification->second.signatures.resize(total);
     justification->second.signatures[*index] = vote.signature;
@@ -307,6 +317,7 @@ namespace kagome::network {
       return outcome::success();
     }
     pending_justifications_.emplace(block_number, std::move(justification));
+
     return update();
   }
 
@@ -355,7 +366,7 @@ namespace kagome::network {
     OUTCOME_TRY(db_->put(BlockNumberKey::encode(block_number),
                          scale::encode(justification_v1).value()));
     if (beefy_finalized_ > *beefy_genesis_
-        and sessions_.count(beefy_finalized_) == 0) {
+        and not sessions_.contains(beefy_finalized_)) {
       OUTCOME_TRY(last_hash, block_tree_->getBlockHash(beefy_finalized_));
       if (last_hash) {
         if (auto r = block_tree_->getBlockHeader(*last_hash)) {
@@ -375,10 +386,11 @@ namespace kagome::network {
           session->second.rounds.upper_bound(block_number));
     }
     if (found) {
-      sessions_.emplace(first, Session{std::move(validators), {}});
+      sessions_.emplace(first, Session{.validators = std::move(validators)});
       metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
+    fetching_header_.reset();
     beefy_finalized_ = block_number;
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
@@ -393,9 +405,68 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  void BeefyImpl::fetchHeaders() {
+    if (not fetching_header_ or not beefy_genesis_) {
+      return;
+    }
+
+    while (fetching_header_) {
+      const auto blockNumber = fetching_header_->number;
+      if (blockNumber <= *beefy_genesis_) {
+        fetching_header_.reset();
+        return;
+      }
+      auto block_hash = block_tree_->getBlockHash(blockNumber);
+      if (not block_hash) {
+        break;
+      }
+      auto &blockHashOptValue = block_hash.value();
+      if (not blockHashOptValue) {
+        break;
+      }
+      auto blockHeader = block_tree_->getBlockHeader(*blockHashOptValue);
+      if (not blockHeader) {
+        break;
+      }
+
+      const auto &blockHeaderValue = blockHeader.value();
+      if (beefyValidatorsDigest(blockHeaderValue)) {
+        beefy_justification_protocol_.get()->fetchJustification(blockNumber);
+      }
+
+      if (const auto parentInfo = blockHeaderValue.parentInfo(); parentInfo) {
+        fetching_header_ = *parentInfo;
+      } else {
+        SL_ERROR(log_,
+                 "Failed to get parent info for block {}, fetching stopped",
+                 blockNumber);
+        fetching_header_.reset();
+        return;
+      }
+    }
+
+    if (fetching_header_) {
+      synchronizer_.get()->fetchHeadersBack(
+          *fetching_header_, *beefy_genesis_, true, [WEAK_SELF](auto &&res) {
+            WEAK_LOCK(self);
+            if (self->fetching_header_) {
+              if (not res) {
+                SL_ERROR(
+                    self->log_,
+                    "Fetching stopped during previous error {} for block {}",
+                    res.error().message(),
+                    self->fetching_header_->number);
+                self->fetching_header_.reset();
+                return;
+              }
+              self->fetchHeaders();
+            }
+          });
+    }
+  }
+
   outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
-
     auto last_genesis = beefy_genesis_;
     BOOST_OUTCOME_TRY(beefy_genesis_,
                       beefy_api_->genesis(grandpa_finalized.hash));
@@ -424,6 +495,7 @@ namespace kagome::network {
     if (grandpa_finalized.number < *beefy_genesis_) {
       return outcome::success();
     }
+
     for (auto pending_it = pending_justifications_.begin();
          pending_it != pending_justifications_.end()
          and pending_it->first <= grandpa_finalized.number;) {
@@ -431,12 +503,19 @@ namespace kagome::network {
           apply(pending_justifications_.extract(pending_it++).mapped(), false);
     }
     while (next_digest_ <= grandpa_finalized.number) {
+      if (auto r = block_tree_->getBlockHash(next_digest_);
+          not r or not r.value()) {
+        fetching_header_ = grandpa_finalized;
+        fetchHeaders();
+      }
+
       OUTCOME_TRY(
           found,
           findValidators(next_digest_,
                          sessions_.empty() ? *beefy_genesis_ : next_digest_));
       if (found) {
-        sessions_.emplace(found->first, Session{std::move(found->second), {}});
+        sessions_.emplace(found->first,
+                          Session{.validators = std::move(found->second)});
         metricValidatorSetId();
       }
       ++next_digest_;
@@ -510,8 +589,9 @@ namespace kagome::network {
     OUTCOME_TRY(sig,
                 ecdsa_->signPrehashed(consensus::beefy::prehash(*commitment),
                                       key->first->secret_key));
-    consensus::beefy::VoteMessage vote{
-        std::move(*commitment), key->first->public_key, sig};
+    consensus::beefy::VoteMessage vote{.commitment = std::move(*commitment),
+                                       .id = key->first->public_key,
+                                       .signature = sig};
     onVote(vote, true);
     last_voted_ = target;
     last_vote_ = std::move(vote);
@@ -534,9 +614,9 @@ namespace kagome::network {
       return std::nullopt;
     }
     return consensus::beefy::Commitment{
-        {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
-        block_number,
-        validator_set_id,
+        .payload = {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
+        .block_number = block_number,
+        .validator_set_id = validator_set_id,
     };
   }
 

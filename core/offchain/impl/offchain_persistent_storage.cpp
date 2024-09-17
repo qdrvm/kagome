@@ -29,7 +29,7 @@ namespace kagome::offchain {
   }
 
   outcome::result<void> OffchainPersistentStorageImpl::set(
-      const common::BufferView &key, common::Buffer value) {
+      const common::BufferView &key, common::BufferOrView value) {
     auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);
     return storage_->put(iKey, std::move(value));

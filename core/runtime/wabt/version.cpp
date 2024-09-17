@@ -13,9 +13,8 @@ namespace kagome::runtime {
       BufferView wasm) {
     OUTCOME_TRY(module, wabtDecode(wasm));
     auto custom_section_contents = [&](std::string_view name) {
-      auto it = std::find_if(
-          module.customs.begin(),
-          module.customs.end(),
+      auto it = std::ranges::find_if(
+          module.customs,
           [&](const wabt::Custom &section) { return section.name == name; });
       return it != module.customs.end()
                ? std::make_optional(BufferView{it->data})

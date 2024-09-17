@@ -8,7 +8,7 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::runtime {
-  enum class MemoryError {
+  enum class MemoryError : uint8_t {
     ERROR,
   };
 }  // namespace kagome::runtime

@@ -1,0 +1,35 @@
+[settings]
+enable_tracing = false
+
+[relaychain]
+default_command = "polkadot"
+chain_spec_path = "kagome/zombienet/custom/relay.json"
+chain = "rococo_dev"
+
+  [[relaychain.nodes]]
+  name = "alice"
+  validator = true
+  args = ["--sync warp"]
+
+  [[relaychain.nodes]]
+  name = "bob"
+  validator = true
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = ["--sync Warp"]
+
+  #we need at least 3 nodes for warp sync
+  [[relaychain.nodes]]
+  name = "charlie"
+  validator = true
+  db_snapshot = "https://www.googleapis.com/drive/v3/files/1Af9XRSXpVUPObCJH_4HE8HFY3K7HE5Q0?alt=media&key=AIzaSyBuxBOn182JNSqH2u347poSwA-d-ttaZPs"
+
+  [[relaychain.nodes]]
+  name = "dave"
+  validator = false
+  db_snapshot = "https://www.googleapis.com/drive/v3/files/1Af9XRSXpVUPObCJH_4HE8HFY3K7HE5Q0?alt=media&key=AIzaSyBuxBOn182JNSqH2u347poSwA-d-ttaZPs"
+
+  [[relaychain.nodes]]
+  name = "eve"
+  validator = false
+  db_snapshot = "https://www.googleapis.com/drive/v3/files/1Af9XRSXpVUPObCJH_4HE8HFY3K7HE5Q0?alt=media&key=AIzaSyBuxBOn182JNSqH2u347poSwA-d-ttaZPs"

@@ -23,7 +23,7 @@ namespace kagome::crypto {
    */
   class KeyFileStorage {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       WRONG_KEYFILE_NAME = 1,
       NOT_REGULAR_FILE,
       FAILED_OPEN_FILE,

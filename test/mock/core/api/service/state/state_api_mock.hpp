@@ -38,6 +38,12 @@ namespace kagome::api {
                 (common::BufferView key),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<std::optional<uint64_t>>,
+                getStorageSize,
+                (common::BufferView key,
+                 const std::optional<primitives::BlockHash> &block_hash_opt),
+                (const, override));
+
     outcome::result<std::optional<common::Buffer>> getStorage(
         common::Buffer key) const {
       return getStorage(common::BufferView{key});

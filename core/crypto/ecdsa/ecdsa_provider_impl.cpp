@@ -47,7 +47,7 @@ namespace kagome::crypto {
       SecureCleanGuard g{bytes};
       auto _ = hasher_->blake2b_256(bytes);
       seed = EcdsaSeed::from(
-          SecureCleanGuard(static_cast<std::array<uint8_t, 32>>(_)));
+          SecureCleanGuard(static_cast<std::array<uint8_t, 32> &>(_)));
     }
     EcdsaKeypair keys{
         .secret_key = EcdsaPrivateKey::from(seed),

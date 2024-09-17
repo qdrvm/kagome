@@ -100,7 +100,7 @@ namespace kagome::common {
   /**
    * Error codes for exceptions that may occur during blob initialization
    */
-  enum class BlobError { INCORRECT_LENGTH = 1 };
+  enum class BlobError : uint8_t { INCORRECT_LENGTH = 1 };
 
   using byte_t = uint8_t;
 
@@ -120,8 +120,10 @@ namespace kagome::common {
     // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = true;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     using const_narref = const byte_t (&)[size_];
     using const_narptr = const byte_t (*)[size_];
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     /**
      * Initialize blob value
      */
@@ -169,7 +171,7 @@ namespace kagome::common {
       }
 
       Blob<size_> b;
-      std::copy(data.begin(), data.end(), b.begin());
+      std::ranges::copy(data, b.begin());
 
       return b;
     }
@@ -206,7 +208,7 @@ namespace kagome::common {
       }
 
       Blob<size_> blob;
-      std::copy(span.begin(), span.end(), blob.begin());
+      std::ranges::copy(span, blob.begin());
       return blob;
     }
   };

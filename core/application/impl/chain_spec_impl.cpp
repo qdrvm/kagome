@@ -185,21 +185,20 @@ namespace kagome::application {
 
   outcome::result<primitives::BlockId> ChainSpecImpl::parseBlockId(
       const std::string_view block_id_str) const {
-    primitives::BlockId block_id;
     if (block_id_str.rfind("0x", 0) != std::string::npos) {  // Is it hash?
       OUTCOME_TRY(block_hash, common::Hash256::fromHexWithPrefix(block_id_str));
-      block_id = block_hash;
-    } else {
-      primitives::BlockNumber block_num;
-      auto res = std::from_chars(block_id_str.data(),
-                                 block_id_str.data() + block_id_str.size(),
-                                 block_num);
-      if (res.ec != std::errc()) {
-        return Error::PARSER_ERROR;
-      }
-      block_id = block_num;
+      return primitives::BlockId{block_hash};
     }
-    return block_id;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+    primitives::BlockNumber block_num;
+    auto res = std::from_chars(block_id_str.data(),
+                               block_id_str.data() + block_id_str.size(),
+                               block_num);
+    if (res.ec != std::errc()) {
+      return Error::PARSER_ERROR;
+    }
+    return primitives::BlockId{block_num};
   }
 
   outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByBlockInfo(

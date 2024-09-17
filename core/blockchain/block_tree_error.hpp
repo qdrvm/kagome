@@ -13,7 +13,7 @@ namespace kagome::blockchain {
    * Errors of the block tree are here, so that other modules can use them, for
    * example, to compare a received error with those
    */
-  enum class BlockTreeError {
+  enum class BlockTreeError : uint8_t {
     NO_PARENT = 1,
     BLOCK_EXISTS,
     // target block number is past the given maximum number

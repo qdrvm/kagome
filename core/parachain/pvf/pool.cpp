@@ -12,35 +12,38 @@
 #include "runtime/common/uncompress_code_if_needed.hpp"
 
 namespace kagome::parachain {
-  inline auto &metric_pvf_preparation_time() {
-    static metrics::HistogramTimer metric{
-        "kagome_pvf_preparation_time",
-        "Time spent in preparing PVF artifacts in seconds",
-        {
-            0.1,
-            0.5,
-            1.0,
-            2.0,
-            3.0,
-            10.0,
-            20.0,
-            30.0,
-            60.0,
-            120.0,
-            240.0,
-            360.0,
-            480.0,
-        },
-    };
-    return metric;
-  }
+  namespace {
+    inline auto &metric_pvf_preparation_time() {
+      static metrics::HistogramTimer metric{
+          "kagome_pvf_preparation_time",
+          "Time spent in preparing PVF artifacts in seconds",
+          {
+              0.1,
+              0.5,
+              1.0,
+              2.0,
+              3.0,
+              10.0,
+              20.0,
+              30.0,
+              60.0,
+              120.0,
+              240.0,
+              360.0,
+              480.0,
+          },
+      };
+      return metric;
+    }
 
-  metrics::HistogramHelper metric_code_size{
-      "kagome_parachain_candidate_validation_code_size",
-      "The size of the decompressed WASM validation blob used for checking a "
-      "candidate",
-      metrics::exponentialBuckets(16384, 2, 10),
-  };
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    metrics::HistogramHelper metric_code_size{
+        "kagome_parachain_candidate_validation_code_size",
+        "The size of the decompressed WASM validation blob used for checking a "
+        "candidate",
+        metrics::exponentialBuckets(16384, 2, 10),
+    };
+  }  // namespace
 
   PvfPool::PvfPool(const application::AppConfiguration &app_config,
                    std::shared_ptr<runtime::ModuleFactory> module_factory,
@@ -60,6 +63,7 @@ namespace kagome::parachain {
         code_hash,
         [&]() mutable -> runtime::RuntimeCodeProvider::Result {
           OUTCOME_TRY(code, runtime::uncompressCodeIfNeeded(code_zstd));
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           metric_code_size.observe(code.size());
           return std::make_shared<Buffer>(code);
         },

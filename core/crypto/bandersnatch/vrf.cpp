@@ -11,7 +11,7 @@ namespace kagome::crypto::bandersnatch::vrf {
   VrfInput vrf_input(BytesIn domain, BytesIn data) {
     auto vrf_input = ::bandersnatch_vrf_input(
         domain.data(), domain.size(), data.data(), data.size());
-    return VrfInput(vrf_input);
+    return vrf_input;
   }
 
   VrfInput vrf_input_from_data(BytesIn domain, std::span<BytesIn> data) {
@@ -86,7 +86,7 @@ namespace kagome::crypto::bandersnatch::vrf {
                                             data.size(),
                                             input_ptrs.data(),
                                             input_ptrs.size());
-    return VrfSignData(res);
+    return res;
   }
 
   template <>

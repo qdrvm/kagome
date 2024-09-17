@@ -32,11 +32,13 @@ namespace kagome::primitives {
 
   struct BlockDataFlags {
     static BlockDataFlags allSet(primitives::BlockHash hash) {
-      return BlockDataFlags{std::move(hash), true, true, true, true, true};
+      // NOLINTNEXTLINE(modernize-use-designated-initializers)
+      return BlockDataFlags{hash, true, true, true, true, true};
     }
 
     static BlockDataFlags allUnset(primitives::BlockHash hash) {
-      return BlockDataFlags{std::move(hash), false, false, false, false, false};
+      // NOLINTNEXTLINE(modernize-use-designated-initializers)
+      return BlockDataFlags{hash, false, false, false, false, false};
     }
 
     primitives::BlockHash hash;

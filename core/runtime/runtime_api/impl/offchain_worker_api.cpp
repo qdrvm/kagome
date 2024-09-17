@@ -42,6 +42,7 @@ namespace kagome::runtime {
     // but offchain workers runs when node is validating
     if (app_config_.offchainWorkerMode()
         == application::AppConfiguration::OffchainWorkerMode::WhenValidating) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (app_config_.roles().flags.authority != 1) {
         return outcome::success();
       }
@@ -49,9 +50,7 @@ namespace kagome::runtime {
 
     auto label = fmt::format("#{}", block);
 
-    auto func = [block = std::move(block),
-                 header = std::move(header),
-                 executor = executor_] {
+    auto func = [block, header, executor = executor_] {
       auto res = [&]() -> outcome::result<void> {
         OUTCOME_TRY(ctx, executor->ctx().ephemeralAt(block));
         return executor->call<void>(

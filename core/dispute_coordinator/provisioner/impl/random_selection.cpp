@@ -57,13 +57,13 @@ namespace kagome::dispute {
 
     // Load all votes for all disputes from the coordinator.
     auto dispute_candidate_votes =
-        request_votes(dispute_coordinator_, std::move(disputes));
+        request_votes(dispute_coordinator_, disputes);
 
     // Transform all `CandidateVotes` into `MultiDisputeStatementSet`.
     MultiDisputeStatementSet result;
     for (auto &[session, candidate, votes] : dispute_candidate_votes) {
-      auto &statement_set =
-          result.emplace_back(DisputeStatementSet{candidate, session, {}});
+      auto &statement_set = result.emplace_back(
+          DisputeStatementSet{.candidate_hash = candidate, .session = session});
 
       for (auto &[validator_index, value] : votes.valid) {
         auto &[statement, validator_signature] = value;
@@ -126,7 +126,7 @@ namespace kagome::dispute {
 
     std::unordered_set<std::tuple<SessionIndex, CandidateHash>> unique_new;
     for (auto &ext : std::move(extension)) {
-      if (lut.count(ext) == 0) {
+      if (not lut.contains(ext)) {
         unique_new.emplace(ext);
       }
     }

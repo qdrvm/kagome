@@ -19,7 +19,7 @@ namespace kagome::common {
   /**
    * @brief error codes for exceptions that may occur during unhexing
    */
-  enum class UnhexError {
+  enum class UnhexError : uint8_t {
     NOT_ENOUGH_INPUT = 1,
     NON_HEX_INPUT,
     VALUE_OUT_OF_RANGE,
@@ -100,7 +100,8 @@ namespace kagome::common {
    * @param value source hex string
    * @return unhexed value
    */
-  template <class T, typename = std::enable_if<std::is_unsigned_v<T>>>
+  template <class T>
+    requires std::is_unsigned_v<T>
   outcome::result<T> unhexNumber(std::string_view value) {
     std::vector<uint8_t> bytes;
     OUTCOME_TRY(bts, common::unhexWith0x(value));
@@ -111,14 +112,14 @@ namespace kagome::common {
     }
 
     T result{0u};
-    for (auto b : bytes) {
+    for (auto byte : bytes) {
       // check if `multiply by 10` will cause overflow
       if constexpr (sizeof(T) > 1) {
         result <<= 8u;
       } else {
         result = 0;
       }
-      result += b;
+      result += byte;
     }
 
     return result;

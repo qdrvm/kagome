@@ -25,13 +25,17 @@ namespace kagome::runtime {
    public:
     BorrowedInstance(std::weak_ptr<RuntimeInstancesPoolImpl> pool,
                      const common::Hash256 &hash,
-                     const RuntimeContext::ContextParams &config,
+                     RuntimeContext::ContextParams config,
                      std::shared_ptr<ModuleInstance> instance)
         : pool_{std::move(pool)},
           hash_{hash},
-          config_{config},
+          config_{std::move(config)},
           instance_{std::move(instance)} {}
-    ~BorrowedInstance() {
+    BorrowedInstance(const BorrowedInstance &) = delete;
+    BorrowedInstance(BorrowedInstance &&) = delete;
+    BorrowedInstance &operator=(const BorrowedInstance &) = delete;
+    BorrowedInstance &operator=(BorrowedInstance &&) = delete;
+    ~BorrowedInstance() override {
       if (auto pool = pool_.lock()) {
         pool->release(hash_, config_, std::move(instance_));
       }
@@ -172,7 +176,7 @@ namespace kagome::runtime {
       lock.lock();
       pool_opt = pools_.get(key);
       if (!pool_opt) {
-        pool_opt = std::ref(pools_.put(key, InstancePool{module, {}}));
+        pool_opt = std::ref(pools_.put(key, InstancePool{.module = module}));
       }
     }
     BOOST_ASSERT(pool_opt);
@@ -228,7 +232,7 @@ namespace kagome::runtime {
     Key key{code_hash, config};
     auto entry = pools_.get(key);
     if (not entry) {
-      entry = pools_.put(key, {instance->getModule(), {}});
+      entry = pools_.put(key, {.module = instance->getModule()});
     }
     entry->get().instances.emplace_back(std::move(instance));
   }

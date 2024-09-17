@@ -34,15 +34,15 @@ using ScaleRPC = RPC<ScaleMessageReadWriter>;
 
 namespace kagome::network {
   /// outputs object of type BlockResponse to stream
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlocksResponse &v) {
     return s << v.blocks;
   }
 
   /// decodes object of type BlockResponse from stream
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <typename Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, BlocksResponse &v) {
     return s >> v.blocks;
   }

@@ -6,6 +6,8 @@
 
 #include "runtime/wabt/instrument.hpp"
 
+#include <algorithm>
+
 #include "runtime/wabt/stack_limiter.hpp"
 #include "runtime/wabt/util.hpp"
 
@@ -20,6 +22,7 @@ namespace kagome::runtime {
       if (not memory) {
         continue;
       }
+      // NOLINTNEXTLINE(modernize-use-ranges,boost-use-ranges)
       if (std::any_of(module.fields.begin(),
                       module.fields.end(),
                       [&](const wabt::ModuleField &field) {
@@ -27,13 +30,11 @@ namespace kagome::runtime {
                       })) {
         return WabtError{"unexpected MemoryModuleField"};
       }
-      auto import_it = std::find(
-          module.imports.begin(), module.imports.end(), import->import.get());
+      auto import_it = std::ranges::find(module.imports, import->import.get());
       if (import_it == module.imports.end()) {
         return WabtError{"inconsistent Module.imports"};
       }
-      auto memory_it = std::find(
-          module.memories.begin(), module.memories.end(), &memory->memory);
+      auto memory_it = std::ranges::find(module.memories, &memory->memory);
       if (memory_it == module.memories.end()) {
         return WabtError{"inconsistent Module.memories"};
       }
@@ -41,9 +42,9 @@ namespace kagome::runtime {
       memory2->memory.page_limits = memory->memory.page_limits;
       auto export_ = std::make_unique<wabt::ExportModuleField>();
       export_->export_ = {
-          import->import->field_name,
-          wabt::ExternalKind::Memory,
-          wabt::Var{0, {}},
+          .name = import->import->field_name,
+          .kind = wabt::ExternalKind::Memory,
+          .var = wabt::Var{0, {}},
       };
       module.imports.erase(import_it);
       module.memories.erase(memory_it);
@@ -58,8 +59,8 @@ namespace kagome::runtime {
 
   WabtOutcome<void> setupMemoryAccordingToHeapAllocStrategy(
       wabt::Module &module, const HeapAllocStrategy &config) {
-    for (auto it = module.fields.begin(); it != module.fields.end(); ++it) {
-      auto memory = dynamic_cast<wabt::MemoryModuleField *>(&*it);
+    for (auto &field : module.fields) {
+      auto memory = dynamic_cast<wabt::MemoryModuleField *>(&field);
       if (not memory) {
         continue;
       }

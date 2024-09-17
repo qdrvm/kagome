@@ -91,10 +91,10 @@ namespace kagome::primitives {
         msg.digest = std::move(payload);
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
-        msg.digest = std::move(payload);
+        msg.digest = payload;
       } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
-        msg.digest = std::move(payload);
+        msg.digest = payload;
       } else {
         BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
       }

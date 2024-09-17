@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
   class JustificationObserver {
    public:
     virtual ~JustificationObserver() = default;
-    using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
+    using ApplyJustificationCb = std::function<void(outcome::result<void>)>;
 
     /**
      * Validate {@param justification} with {@param authorities}.

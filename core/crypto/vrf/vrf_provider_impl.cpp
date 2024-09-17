@@ -23,12 +23,13 @@ namespace kagome::crypto {
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
     Sr25519Keypair keypair{
-        Sr25519SecretKey::from(SecureCleanGuard(
+        .secret_key = Sr25519SecretKey::from(SecureCleanGuard(
             std::span(kp).subspan<0, constants::sr25519::SECRET_SIZE>())),
-        Sr25519PublicKey::fromSpan(
-            std::span(kp.begin() + constants::sr25519::SECRET_SIZE,
-                      constants::sr25519::PUBLIC_SIZE))
-            .value()};
+        .public_key =
+            Sr25519PublicKey::fromSpan(
+                std::span(kp.begin() + constants::sr25519::SECRET_SIZE,
+                          constants::sr25519::PUBLIC_SIZE))
+                .value()};
     return keypair;
   }
 

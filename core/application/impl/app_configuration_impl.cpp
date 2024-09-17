@@ -6,7 +6,6 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <boost/program_options/value_semantic.hpp>
 #include <charconv>
 #include <limits>
 #include <regex>
@@ -18,8 +17,10 @@
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+#include <boost/program_options/value_semantic.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <libp2p/common/final_action.hpp>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
@@ -31,6 +32,7 @@
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
 #include "log/formatters/filepath.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "utils/mkdirs.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
@@ -82,6 +84,7 @@ namespace {
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     roles.flags.full = 1;
     return roles;
   }();
@@ -164,12 +167,14 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+  static constexpr std::array<std::string_view, 2> execution_methods{
+      "Interpreted", "Compiled"};
 
-  std::string execution_methods_str =
+  static const std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
 
-  std::array<std::string_view, 1 + KAGOME_WASM_COMPILER_WASM_EDGE>
+  static constexpr std::array<std::string_view,
+                              1 + KAGOME_WASM_COMPILER_WASM_EDGE>
       interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     "WasmEdge",
@@ -177,7 +182,7 @@ namespace {
         "Binaryen"
   };
 
-  std::string interpreters_str =
+  static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
@@ -323,8 +328,7 @@ namespace kagome::application {
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
       const std::string &filepath) {
     assert(!filepath.empty());
-    return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
-                                         &std::fclose);
+    return {std::fopen(filepath.c_str(), "r"), &std::fclose};
   }
 
   bool AppConfigurationImpl::load_ms(const rapidjson::Value &val,
@@ -398,7 +402,7 @@ namespace kagome::application {
   bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
                                       const char *name,
                                       uint16_t &target) {
-    uint32_t i;
+    uint32_t i;  // NOLINT(cppcoreguidelines-init-variables)
     if (load_u32(val, name, i)
         && (i & ~std::numeric_limits<uint16_t>::max()) == 0) {
       target = static_cast<uint16_t>(i);
@@ -437,7 +441,9 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.full = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.authority = 1;
     }
 
@@ -778,14 +784,18 @@ namespace kagome::application {
   bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
 
+    libp2p::common::FinalAction flush([] { std::cout.flush(); });
+
     std::optional<std::string> command;
     std::optional<std::string> subcommand;
 
     using std::string_view_literals::operator""sv;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (argc > 0 && argv[0] == "benchmark"sv) {
       command = "benchmark";
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       if (argc > 1 && argv[1] == "block"sv) {
         subcommand = "block";
       } else {
@@ -796,7 +806,7 @@ namespace kagome::application {
     }
     if (subcommand) {
       argc--;
-      argv++;
+      argv++;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // clang-format off
@@ -863,7 +873,7 @@ namespace kagome::application {
         ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
         ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
         ("unsafe-rpc-external", po::bool_switch(), "alias for \"--rpc-host 0.0.0.0\"")
-        ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
+        ("rpc-methods", po::value<std::string>(), R"("auto" (default), "unsafe", "safe")")
         ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
         ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
         ;
@@ -886,7 +896,7 @@ namespace kagome::application {
         ("parachain-precompilation-thread-num",
          po::value<uint32_t>()->default_value(parachain_precompilation_thread_num_),
          "Number of threads that precompile parachain runtime modules at node startup")
-        ("parachain-single-process", po::bool_switch(), 
+        ("parachain-single-process", po::bool_switch(),
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
         "Pvf check subprocess execution deadline in milliseconds")
@@ -941,11 +951,11 @@ namespace kagome::application {
     if (vm.count("help") > 0) {
       std::cout
           << "Available subcommands: storage-explorer db-editor benchmark\n";
-      std::cout << desc << std::endl;
+      std::cout << desc << '\n';
       return false;
     }
     if (vm.count("version") > 0) {
-      std::cout << "Kagome version " << buildVersion() << std::endl;
+      std::cout << "Kagome version " << buildVersion() << '\n';
       return false;
     }
 
@@ -957,8 +967,7 @@ namespace kagome::application {
       po::notify(vm);
     } catch (const std::exception &e) {
       std::cerr << "Error: " << e.what() << '\n'
-                << "Try run with option '--help' for more information"
-                << std::endl;
+                << "Try run with option '--help' for more information" << '\n';
       return false;
     }
 
@@ -975,7 +984,7 @@ namespace kagome::application {
         std::cerr << "Warning: developers mode is not available. "
                      "Application was built without developers embeddings "
                      "(EMBEDDINGS option is OFF)."
-                  << std::endl;
+                  << '\n';
         return false;
       } else {
         dev_mode_ = true;
@@ -1000,14 +1009,14 @@ namespace kagome::application {
 
           if (not chain_spec.has_value()) {
             std::cerr << "Warning: developers mode chain spec is corrupted."
-                      << std::endl;
+                      << '\n';
             return false;
           }
 
           if (chain_spec.value()->bootNodes().empty()) {
             std::cerr
                 << "Warning: developers mode chain spec bootnodes is empty."
-                << std::endl;
+                << '\n';
             return false;
           }
 
@@ -1021,7 +1030,9 @@ namespace kagome::application {
           }
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.full = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         rpc_host_ = def_rpc_host;
@@ -1043,7 +1054,9 @@ namespace kagome::application {
         node_name_ = name;
         dev_mnemonic_phrase_ = dev;
         // if dev account is passed node is considered as validator
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.full = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         roles_.flags.authority = 1;
       }
     }
@@ -1065,14 +1078,16 @@ namespace kagome::application {
     find_argument<std::string>(vm, "config-file", [&](const std::string &path) {
       if (dev_mode_) {
         std::cerr << "Warning: config file has ignored because dev mode"
-                  << std::endl;
+                  << '\n';
       } else {
         read_config_from_file(path);
       }
     });
 
     if (vm.end() != vm.find("validator")) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.full = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       roles_.flags.authority = 1;
     }
 
@@ -1080,7 +1095,7 @@ namespace kagome::application {
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
     if (not chainspecExists(chain_spec_path_)) {
       std::cerr << "Specified chain spec " << chain_spec_path_
-                << " does not exist." << std::endl;
+                << " does not exist." << '\n';
     }
 
     if (vm.end() != vm.find("tmp")) {
@@ -1126,14 +1141,14 @@ namespace kagome::application {
           auto err_msg = fmt::format(
               "Bootnode '{}' is invalid: {}", addr_str, ma_res.error());
           SL_ERROR(logger_, "{}", err_msg);
-          std::cout << err_msg << std::endl;
+          std::cout << err_msg << '\n';
           return false;
         }
         auto peer_id_base58_opt = ma_res.value().getPeerId();
         if (not peer_id_base58_opt) {
           auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
           SL_ERROR(logger_, "{}", err_msg);
-          std::cout << err_msg << std::endl;
+          std::cout << err_msg << '\n';
           return false;
         }
         boot_nodes_.emplace_back(std::move(ma_res.value()));
@@ -1150,7 +1165,7 @@ namespace kagome::application {
         auto err_msg = fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
         SL_ERROR(logger_, "{}", err_msg);
-        std::cout << err_msg << std::endl;
+        std::cout << err_msg << '\n';
         return false;
       }
       node_key_.emplace(std::move(key_res.value()));
@@ -1625,7 +1640,7 @@ namespace kagome::application {
 
     // if something wrong with config print help message
     if (not validate_config()) {
-      std::cout << desc << std::endl;
+      std::cout << desc << '\n';
       return false;
     }
     return true;

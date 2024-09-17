@@ -25,7 +25,7 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl final : public TrieBatchBase {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       NO_TRIE = 1,
     };
 
@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const BufferView &key) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
+    outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) override;
 
    private:

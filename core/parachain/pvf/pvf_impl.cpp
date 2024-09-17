@@ -29,6 +29,7 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "scale/std_variant.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
@@ -81,6 +82,7 @@ namespace kagome::parachain {
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   metrics::HistogramTimer metric_pvf_execution_time{
       "kagome_pvf_execution_time",
       "Time spent in executing PVFs",
@@ -116,18 +118,17 @@ namespace kagome::parachain {
       if (app_conf.runtimeInterpreter()
           == application::AppConfiguration::RuntimeInterpreter::WasmEdge) {
         return RuntimeEngine::kWasmEdgeInterpreted;
-      } else {
-        return RuntimeEngine::kBinaryen;
       }
-    } else {  // Execution method Compiled while WasmEdge is compile-enabled
-      return RuntimeEngine::kWasmEdgeCompiled;
+      return RuntimeEngine::kBinaryen;
     }
+    // Execution method Compiled while WasmEdge is compile-enabled
+    return RuntimeEngine::kWasmEdgeCompiled;
+
 #else
     if (interpreted) {  // WasmEdge is compile-disabled
       return RuntimeEngine::kBinaryen;
-    } else {
-      return RuntimeEngine::kWAVM;
     }
+    return RuntimeEngine::kWAVM;
 #endif
   }
 
@@ -136,7 +137,7 @@ namespace kagome::parachain {
 
     HeadData parent_head;
     ParachainBlock block_data;
-    BlockNumber relay_parent_number;
+    BlockNumber relay_parent_number{};
     Hash256 relay_parent_storage_root;
   };
 
@@ -179,6 +180,7 @@ namespace kagome::parachain {
     };
     SL_INFO(log_,
             "pvf runtime engine {}",
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 
@@ -342,14 +344,15 @@ namespace kagome::parachain {
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        pvf_pool_->getCachePath(code_hash, executor_params),
-        scale::encode(params).value(),
-        [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
-          if (r.has_error()) {
-            return cb(r.error());
-          }
-          cb(scale::decode<ValidationResult>(r.value()));
-        },
+        .code_path = pvf_pool_->getCachePath(code_hash, executor_params),
+        .args = scale::encode(params).value(),
+        .cb =
+            [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+              if (r.has_error()) {
+                return cb(r.error());
+              }
+              cb(scale::decode<ValidationResult>(r.value()));
+            },
     });
   }
 

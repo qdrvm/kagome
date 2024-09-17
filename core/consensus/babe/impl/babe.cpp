@@ -58,6 +58,7 @@ namespace {
   constexpr const char *kIsRelayChainValidator =
       "kagome_node_is_active_validator";
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   kagome::metrics::HistogramTimer metric_block_proposal_time{
       "kagome_proposer_block_constructed",
       "Time taken to construct new block",
@@ -96,7 +97,7 @@ namespace kagome::consensus::babe {
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         config_repo_(std::move(config_repo)),
         timings_(timings),
         session_keys_(std::move(session_keys)),
@@ -117,6 +118,7 @@ namespace kagome::consensus::babe {
         offchain_worker_pool_(std::move(offchain_worker_pool)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -180,9 +182,7 @@ namespace kagome::consensus::babe {
       }
       const auto &disabled_validators = disabled_validators_res.value();
 
-      if (std::binary_search(disabled_validators.begin(),
-                             disabled_validators.end(),
-                             authority_index)) {
+      if (std::ranges::binary_search(disabled_validators, authority_index)) {
         return ValidatorStatus::DisabledValidator;
       }
 
@@ -403,22 +403,23 @@ namespace kagome::consensus::babe {
     common::Buffer pre_runtime_data{std::move(encode_res.value())};
 
     return primitives::PreRuntime{
-        {primitives::kBabeEngineId, std::move(pre_runtime_data)}};
+        {.consensus_engine_id = primitives::kBabeEngineId,
+         .data = std::move(pre_runtime_data)}};
   }
 
   outcome::result<primitives::Seal> Babe::makeSeal(
       const primitives::Block &block) const {
     // Calculate and save hash, 'cause it's new produced block
     // Note: it is temporary hash significant for signing
-    primitives::calculateBlockHash(
-        const_cast<primitives::BlockHeader &>(block.header), *hasher_);
+    primitives::calculateBlockHash(block.header, *hasher_);
 
     auto signature_res =
         sr25519_provider_->sign(*slot_leadership_.keypair, block.header.hash());
     if (signature_res.has_value()) {
       Seal seal{.signature = signature_res.value()};
       auto encoded_seal = common::Buffer(scale::encode(seal).value());
-      return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
+      return primitives::Seal{{.consensus_engine_id = primitives::kBabeEngineId,
+                               .data = std::move(encoded_seal)}};
     }
 
     SL_ERROR(log_, "Error signing a block seal: {}", signature_res.error());
@@ -504,7 +505,7 @@ namespace kagome::consensus::babe {
                pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    const auto &pre_digest = pre_digest_res.value();
+    auto &pre_digest = pre_digest_res.value();
 
     auto propose = [wp{weak_from_this()},
                     inherent_data{std::move(inherent_data)},
@@ -622,12 +623,11 @@ namespace kagome::consensus::babe {
     telemetry_->pushBlockStats();
 
     // finally, broadcast the sealed block
-    announce_transmitter_->blockAnnounce(network::BlockAnnounce{
-        block.header,
-        block_info == block_tree_->bestBlock() ? network::BlockState::Best
-                                               : network::BlockState::Normal,
-        common::Buffer{},
-    });
+    announce_transmitter_->blockAnnounce(
+        {.header = block.header,
+         .state = block_info == block_tree_->bestBlock()
+                    ? network::BlockState::Best
+                    : network::BlockState::Normal});
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",

@@ -36,11 +36,11 @@ namespace kagome::storage::trie {
 
     static outcome::result<std::unique_ptr<OpaqueNodeStorage>> createAt(
         std::shared_ptr<OpaqueTrieNode> root,
-        PolkadotTrie::NodeRetrieveFunction node_retriever,
+        const PolkadotTrie::NodeRetrieveFunction &node_retriever,
         PolkadotTrie::ValueRetrieveFunction value_retriever) {
       OUTCOME_TRY(root_node, node_retriever(root));
-      return std::unique_ptr<OpaqueNodeStorage>{
-          new OpaqueNodeStorage{node_retriever, value_retriever, root_node}};
+      return std::make_unique<OpaqueNodeStorage>(
+          node_retriever, std::move(value_retriever), std::move(root_node));
     }
 
     [[nodiscard]] const std::shared_ptr<TrieNode> &getRoot() {
@@ -60,6 +60,7 @@ namespace kagome::storage::trie {
       // SAFETY: changing a parent's opaque child node from a handle to a node
       // to the actual node doesn't break it's const correctness, because opaque
       // nodes are meant to hide their content
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       auto &mut_parent = const_cast<BranchNode &>(parent);
       auto &opaque_child = parent.children.at(idx);
       OUTCOME_TRY(child, retrieve_node_(opaque_child));
@@ -84,12 +85,12 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace {
+  // NOLINTNEXTLINE(google-build-using-namespace)
   using namespace kagome::storage::trie;
 
   uint32_t getCommonPrefixLength(const NibblesView &first,
                                  const NibblesView &second) {
-    auto &&[it, _] =
-        std::mismatch(first.begin(), first.end(), second.begin(), second.end());
+    auto &&[it, _] = std::ranges::mismatch(first, second);
     return it - first.begin();
   }
 
@@ -177,6 +178,7 @@ namespace {
             logger, "deleteNode: go to child {:x}", (int)sought_key[length]);
         OUTCOME_TRY(deleteNode(
             logger, child, sought_key.subspan(length + 1), node_storage));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         branch.children[sought_key[length]] = child;
       }
       OUTCOME_TRY(handleDeletion(logger, node, node_storage));
@@ -220,8 +222,7 @@ namespace {
       return outcome::success();
     }
 
-    if (std::greater_equal<size_t>()(parent->getKeyNibbles().size(),
-                                     prefix.size())) {
+    if (std::greater_equal<>()(parent->getKeyNibbles().size(), prefix.size())) {
       // if this is the node to be detached -- detach it
       if (std::equal(
               prefix.begin(), prefix.end(), parent->getKeyNibbles().begin())) {
@@ -230,6 +231,7 @@ namespace {
           auto &branch = dynamic_cast<BranchNode &>(*parent);
           for (uint8_t child_idx = 0; child_idx < branch.kMaxChildren;
                child_idx++) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             if (branch.children[child_idx] != nullptr) {
               OUTCOME_TRY(child_node, node_storage.getChild(branch, child_idx));
               OUTCOME_TRY(detachNode(logger,
@@ -241,6 +243,7 @@ namespace {
                                      callback,
                                      trie,
                                      node_storage));
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
               branch.children[child_idx] = child_node;
             }
           }
@@ -287,6 +290,7 @@ namespace {
                                callback,
                                trie,
                                node_storage));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         branch.children[prefix[length]] = child_node;
         OUTCOME_TRY(handleDeletion(logger, parent, node_storage));
       }
@@ -297,8 +301,9 @@ namespace {
 }  // namespace
 
 namespace kagome::storage::trie {
-  PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) = default;
-  PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl &&) = default;
+  //  PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) noexcept =
+  //  default; PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl
+  //  &&) = default;
 
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::createEmpty(
       RetrieveFunctions retrieve_functions) {
@@ -309,7 +314,7 @@ namespace kagome::storage::trie {
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::create(
       NodePtr root, RetrieveFunctions retrieve_functions) {
     return std::shared_ptr<PolkadotTrieImpl>(
-        new PolkadotTrieImpl{root, std::move(retrieve_functions)});
+        new PolkadotTrieImpl{std::move(root), std::move(retrieve_functions)});
   }
 
   PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
@@ -324,10 +329,10 @@ namespace kagome::storage::trie {
       : nodes_{std::make_unique<OpaqueNodeStorage>(
           std::move(retrieve_functions.retrieve_node),
           std::move(retrieve_functions.retrieve_value),
-          root)},
+          std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
-  PolkadotTrieImpl::~PolkadotTrieImpl() {}
+  //  PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
     return nodes_->getRoot();
@@ -349,7 +354,8 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(n,
                 insert(root,
                        k_enc,
-                       std::make_shared<LeafNode>(k_enc, value.intoBuffer())));
+                       std::make_shared<LeafNode>(
+                           k_enc, std::move(value).intoBuffer())));
     nodes_->setRoot(n);
 
     return outcome::success();
@@ -487,6 +493,7 @@ namespace kagome::storage::trie {
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->getValue()) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->getValue())));
       return BufferView{*node->getValue().value};
     }
