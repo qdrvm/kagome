@@ -134,10 +134,6 @@ namespace kagome::parachain {
     active.cb.emplace_back(std::move(cb));
     active.validators = session->validators;
     if (backing_group) {
-      SL_TRACE(logger_,
-               "-->>>><<<<----- 0 (ec={}, candidate={})",
-               active.erasure_encoding_root,
-               candidate_hash);
       active.order = session->validator_groups.at(*backing_group);
       std::shuffle(active.order.begin(), active.order.end(), random_);
     }
@@ -220,12 +216,10 @@ namespace kagome::parachain {
           _data = r.error();
         }
       }
-      SL_TRACE(logger_, "-->>>><<<<----- Data out");
       return done(lock, it, _data);
     }
     if (active.chunks.size() + active.chunks_active + active.order.size()
         < active.chunks_required) {
-      SL_TRACE(logger_, "-->>>><<<<----- No enough data at all");
       return done(lock, it, std::nullopt);
     }
     auto max = std::min(kParallelRequests,
@@ -338,13 +332,7 @@ namespace kagome::parachain {
         network::ErasureChunk chunk{
             std::move(chunk2->data), index, std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
-          SL_TRACE(logger_,
-                   "-->>>><<<<----- 5 (ec={}, candidate={})",
-                   active.erasure_encoding_root,
-                   candidate_hash);
           active.chunks.emplace_back(std::move(chunk));
-        } else {
-          SL_TRACE(logger_, "-->>>><<<<----- Check proof failed");
         }
       }
     }
@@ -358,9 +346,10 @@ namespace kagome::parachain {
     auto root = makeTrieProof(chunks);
     if (root != active.erasure_encoding_root) {
       SL_TRACE(logger_,
-               "-->>>><<<<----- Trie root mismatch. (root={}, ref root={}, n_validators={})",
+               "Trie root mismatch. (root={}, ref root={}, n_validators={})",
                root,
-               active.erasure_encoding_root, active.validators.size());
+               active.erasure_encoding_root,
+               active.validators.size());
       return ErasureCodingRootError::MISMATCH;
     }
     return outcome::success();

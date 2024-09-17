@@ -577,7 +577,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-          this, app_state_manager, approval_thread_pool, logger_)},
+            this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
@@ -619,7 +619,8 @@ namespace kagome::parachain {
 
     metrics_registry_->registerCounterFamily(
         kMetricNoShowsTotal,
-        "Number of assignments which became no-shows in the approval voting subsystem");
+        "Number of assignments which became no-shows in the approval voting "
+        "subsystem");
     metric_no_shows_total_ =
         metrics_registry_->registerCounterMetric(kMetricNoShowsTotal);
   }
@@ -2890,9 +2891,10 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
@@ -3126,14 +3128,6 @@ namespace kagome::parachain {
 
     auto &block_entry = opt_block_entry->get();
     auto &candidate_entry = opt_candidate_entry->get();
-
-
-    logger_->warn(
-        "-->>>><<<<----- Hashes: candidate_hash={}, Hashed={}, hash={}, ec={}",
-        candidate_hash,
-        candidate_entry.candidate.getHash(),
-        candidate_entry.candidate.get().hash(*hasher_),
-        candidate_entry.candidate.get().descriptor.erasure_encoding_root);
 
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(

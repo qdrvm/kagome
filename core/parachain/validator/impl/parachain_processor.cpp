@@ -50,7 +50,6 @@
 #ifndef CHECK_OR_RET
 #define CHECK_OR_RET(op) \
   if (!(op)) {           \
-    SL_TRACE(logger_, "--++---> NO SUMMARY. EXIT."); \
     return;              \
   }
 #endif  // CHECK_OR_RET
@@ -562,10 +561,11 @@ namespace kagome::parachain {
         ValidatorIndex vi = it->second;
 
         SL_TRACE(logger_,
-                "Send pending cluster/grid messages. (peer={}. validator index={}, relay_parent={})",
-                peer_id,
-                vi,
-                relay_parent);
+                 "Send pending cluster/grid messages. (peer={}. validator "
+                 "index={}, relay_parent={})",
+                 peer_id,
+                 vi,
+                 relay_parent);
         send_pending_cluster_statements(
             relay_parent, peer_id, version, vi, parachain_state->get());
 
@@ -913,7 +913,8 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  void ParachainProcessorImpl::spawn_and_update_peer(std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
+  void ParachainProcessorImpl::spawn_and_update_peer(
+      std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
       const primitives::AuthorityDiscoveryId &id) {
     if (cache.contains(id)) {
       return;
@@ -1102,7 +1103,8 @@ namespace kagome::parachain {
       validator_index = validator->validatorIndex();
     }
 
-    OUTCOME_TRY(global_v_index, signer_factory_->getAuthorityValidatorIndex(relay_parent));
+    OUTCOME_TRY(global_v_index,
+                signer_factory_->getAuthorityValidatorIndex(relay_parent));
     if (!global_v_index) {
       SL_TRACE(logger_, "Not a validator, or no para keys.");
       return Error::NOT_A_VALIDATOR;
@@ -1147,7 +1149,8 @@ namespace kagome::parachain {
     std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
     std::optional<network::GroupIndex> our_group;
     if (validator_index) {
-      our_group = per_session_state->value().groups.byValidatorIndex(*validator_index);
+      our_group =
+          per_session_state->value().groups.byValidatorIndex(*validator_index);
       if (our_group) {
         /// update peers of our group
         const auto &group = session_info->validator_groups[*our_group];
@@ -1161,7 +1164,10 @@ namespace kagome::parachain {
     const auto &grid_view = *per_session_state->value().grid_view;
     SL_TRACE(logger_, "++>>> groups={}", grid_view.size());
     for (const auto &view : grid_view) {
-      SL_TRACE(logger_, "++>>> group_size(s)={}, group_size(r)={}", view.sending.size(), view.receiving.size());
+      SL_TRACE(logger_,
+               "++>>> group_size(s)={}, group_size(r)={}",
+               view.sending.size(),
+               view.receiving.size());
       for (const auto vi : view.sending) {
         spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
       }
@@ -1256,12 +1262,12 @@ namespace kagome::parachain {
     auto local_validator = [&]() -> std::optional<LocalValidatorState> {
       if (validator_index) {
         return find_active_validator_state(*validator_index,
-                                    per_session_state->value().groups,
-                                    cores,
-                                    group_rotation_info,
-                                    maybe_claim_queue,
-                                    seconding_limit,
-                                    mode->max_candidate_depth);
+                                           per_session_state->value().groups,
+                                           cores,
+                                           group_rotation_info,
+                                           maybe_claim_queue,
+                                           seconding_limit,
+                                           mode->max_candidate_depth);
       }
       return LocalValidatorState{};
     }();
@@ -1586,9 +1592,9 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
 
-//    SL_TRACE(logger_,
-//             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
-//             bd->relay_parent);
+    SL_TRACE(logger_,
+             "Incoming `BitfieldDistributionMessage`. (relay_parent={})",
+             bd->relay_parent);
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(bd->relay_parent));
 
     const auto &session_info =
@@ -1650,12 +1656,10 @@ namespace kagome::parachain {
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
-      SL_WARN(logger_, "--++---> {} 1", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().local_validator) {
-      SL_WARN(logger_, "--++---> {} 2", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1666,19 +1670,16 @@ namespace kagome::parachain {
 
     if (!expected_group
         || *expected_group != manifest_summary.claimed_group_index) {
-      SL_WARN(logger_, "--++---> {} 3", __PRETTY_FUNCTION__);
       return {};
     }
 
     if (!relay_parent_state->get().per_session_state->value().grid_view) {
-      SL_WARN(logger_, "--++---> {} 4", __PRETTY_FUNCTION__);
       return {};
     }
 
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
-      SL_WARN(logger_, "--++---> {} 5  (claimed_group_index={}, grid_view.size={})", __PRETTY_FUNCTION__, manifest_summary.claimed_group_index, grid_topology.size());
       return {};
     }
 
@@ -1694,7 +1695,6 @@ namespace kagome::parachain {
     }();
 
     if (!sender_index) {
-      SL_WARN(logger_, "--++---> {} 6", __PRETTY_FUNCTION__);
       return {};
     }
 
@@ -1722,7 +1722,12 @@ namespace kagome::parachain {
 
     auto &local_validator = *relay_parent_state->get().local_validator;
 
-    SL_WARN(logger_, "--++---> Import manifest. (peer_id={}, relay_parent={}, candidate_hash={})", peer_id, relay_parent, candidate_hash);
+    SL_TRACE(
+        logger_,
+        "Import manifest. (peer_id={}, relay_parent={}, candidate_hash={})",
+        peer_id,
+        relay_parent,
+        candidate_hash);
     auto acknowledge_res = local_validator.grid_tracker.import_manifest(
         grid_topology,
         relay_parent_state->get().per_session_state->value().groups,
@@ -1733,6 +1738,13 @@ namespace kagome::parachain {
         *sender_index);
 
     if (acknowledge_res.has_error()) {
+      SL_WARN(logger_,
+              "Import manifest failed. (peer_id={}, relay_parent={}, "
+              "candidate_hash={}, error={})",
+              peer_id,
+              relay_parent,
+              candidate_hash,
+              acknowledge_res.error());
       return {};
     }
 
@@ -1999,7 +2011,7 @@ namespace kagome::parachain {
       const network::vstaging::BackedCandidateAcknowledgement
           &acknowledgement) {
     SL_TRACE(logger_,
-             "--++---> `BackedCandidateAcknowledgement`. (candidate_hash={})",
+             "`BackedCandidateAcknowledgement`. (candidate_hash={})",
              acknowledgement.candidate_hash);
     const auto &candidate_hash = acknowledgement.candidate_hash;
     SL_TRACE(logger_,
@@ -2074,7 +2086,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
     SL_TRACE(logger_,
-             "--++---> `BackedCandidateManifest`. (relay_parent={}, "
+             "`BackedCandidateManifest`. (relay_parent={}, "
              "candidate_hash={}, para_id={}, parent_head_data_hash={})",
              manifest.relay_parent,
              manifest.candidate_hash,
@@ -2230,7 +2242,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessageStatement &stm) {
     SL_TRACE(logger_,
-             "--++---> `StatementDistributionMessageStatement`. (relay_parent={}, "
+             "`StatementDistributionMessageStatement`. (relay_parent={}, "
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
@@ -4592,10 +4604,12 @@ namespace kagome::parachain {
         std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{
-              .view = network::View {
-                          .heads_ = block_tree_->getLeaves(),
-                          .finalized_number_ = block_tree_->getLastFinalized().number,
-                        },
+                .view =
+                    network::View{
+                        .heads_ = block_tree_->getLeaves(),
+                        .finalized_number_ =
+                            block_tree_->getLastFinalized().number,
+                    },
             }));
   }
 
@@ -4620,8 +4634,7 @@ namespace kagome::parachain {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
-                      peer_id,
-                      self->router_->getCollationProtocolVStaging());
+                      peer_id, self->router_->getCollationProtocolVStaging());
                 } break;
                 default: {
                   UNREACHABLE;
@@ -4648,16 +4661,13 @@ namespace kagome::parachain {
 
     peer_state->get().collation_version = version;
     if (tryOpenOutgoingValidationStream(
-            peer_id,
-            version,
-            [wptr{weak_from_this()}, peer_id, version]() {
+            peer_id, version, [wptr{weak_from_this()}, peer_id, version]() {
               TRY_GET_OR_RET(self, wptr.lock());
               switch (version) {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
-                      peer_id,
-                      self->router_->getValidationProtocolVStaging());
+                      peer_id, self->router_->getValidationProtocolVStaging());
                 } break;
                 default: {
                   UNREACHABLE;
@@ -5086,13 +5096,6 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
-    
-    auto p = scale::encode(data).value();
-    std::string s = fmt::format("stored data: ");
-    for (const auto m : p) {
-      s += fmt::format("{:x}, ", m);
-    }
-    logger_->trace("-->>>><<<<----- {}", s);
 
     av_store_->storeData(
         relay_parent, candidate_hash, std::move(chunks), pov, data);

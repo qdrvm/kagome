@@ -134,7 +134,9 @@ namespace kagome::authority_discovery {
     return Error::KADEMLIA_OUTDATED_VALUE;
   }
 
-  outcome::result<void> QueryImpl::merge(std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>> &&authorities) {
+  outcome::result<void> QueryImpl::merge(
+      std::optional<std::unordered_set<primitives::AuthorityDiscoveryId>>
+          &&authorities) {
     {
       std::unique_lock lock{mutex_};
       if (authorities) {
@@ -145,7 +147,7 @@ namespace kagome::authority_discovery {
     }
     return update();
   }
-  
+
   outcome::result<void> QueryImpl::update() {
     OUTCOME_TRY(
         cur_authorities,
@@ -155,7 +157,8 @@ namespace kagome::authority_discovery {
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
 
     std::unique_lock lock{mutex_};
-    std::unordered_set<primitives::AuthorityDiscoveryId> authorities = authorities_;
+    std::unordered_set<primitives::AuthorityDiscoveryId> authorities =
+        authorities_;
     authorities.insert(cur_authorities.begin(), cur_authorities.end());
 
     for (auto &id : authorities) {
@@ -163,14 +166,16 @@ namespace kagome::authority_discovery {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
-    auto has = [](const std::unordered_set<primitives::AuthorityDiscoveryId> &keys,
-                  const primitives::AuthorityDiscoveryId &key) {
-      return keys.contains(key);
-    };
-    auto has_in_vec = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
-                  const primitives::AuthorityDiscoveryId &key) {
-      return std::find(keys.begin(), keys.end(), key) != keys.end();
-    };
+    auto has =
+        [](const std::unordered_set<primitives::AuthorityDiscoveryId> &keys,
+           const primitives::AuthorityDiscoveryId &key) {
+          return keys.contains(key);
+        };
+    auto has_in_vec =
+        [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
+           const primitives::AuthorityDiscoveryId &key) {
+          return std::find(keys.begin(), keys.end(), key) != keys.end();
+        };
 
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return not has_in_vec(local_keys, id);
@@ -192,7 +197,9 @@ namespace kagome::authority_discovery {
       }
     }
 
-    std::vector<primitives::AuthorityDiscoveryId> a {std::make_move_iterator(authorities.begin()), std::make_move_iterator(authorities.end())};
+    std::vector<primitives::AuthorityDiscoveryId> a{
+        std::make_move_iterator(authorities.begin()),
+        std::make_move_iterator(authorities.end())};
     std::shuffle(a.begin(), a.end(), random_);
     queue_ = std::move(a);
 
@@ -223,11 +230,9 @@ namespace kagome::authority_discovery {
       common::Buffer hash{crypto::sha256(authority)};
       scheduler_->schedule([=, this, wp{weak_from_this()}] {
         if (auto self = wp.lock()) {
-          SL_INFO(log_, "-+-+> Begin auth discovery id: {}", authority);
           std::ignore = kademlia_.get()->getValue(
               hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
-                SL_INFO(log_, "-+-+> Finished auth discovery id: {}", authority);
                 --active_;
                 pop();
               });
@@ -239,7 +244,6 @@ namespace kagome::authority_discovery {
   outcome::result<void> QueryImpl::add(
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
-    SL_INFO(log_, "-+-+> Add auth discovery id: {}", authority);
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -314,7 +318,6 @@ namespace kagome::authority_discovery {
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
         peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
 
-    SL_INFO(log_, "-+-+> Added key;{} peer:{}", authority, peer.id);
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(
         authority,
