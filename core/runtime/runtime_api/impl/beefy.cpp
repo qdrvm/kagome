@@ -21,7 +21,7 @@ namespace kagome::runtime {
     auto r = executor_->call<std::optional<primitives::BlockNumber>>(
         ctx, "BeefyApi_beefy_genesis");
     if (r) {
-      return std::move(r.value());
+      return r.value();
     }
     if (r.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
       return std::nullopt;

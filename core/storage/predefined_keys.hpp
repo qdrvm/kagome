@@ -11,7 +11,7 @@
 #include <fmt/format.h>
 
 namespace kagome::storage {
-  using namespace common::literals;
+  using common::literals::operator""_buf;
 
   inline const common::Buffer kRuntimeCodeKey = ":code"_buf;
   inline const common::Buffer kRuntimeHeappagesKey = ":heappages"_buf;

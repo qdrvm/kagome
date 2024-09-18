@@ -34,6 +34,8 @@ namespace kagome::common {
     spin_lock() = default;
     spin_lock(const spin_lock &) = delete;
     spin_lock(spin_lock &&) = delete;
+    ~spin_lock() = default;
+
     spin_lock &operator=(const spin_lock &) = delete;
     spin_lock &operator=(spin_lock &&) = delete;
 

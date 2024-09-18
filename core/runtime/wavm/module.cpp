@@ -88,11 +88,12 @@ namespace kagome::runtime::wavm {
 #pragma GCC diagnostic pop
 #endif
     bool imports_memory =
-        std::find_if(ir_module.imports.cbegin(),
-                     ir_module.imports.cend(),
-                     [](auto &import) {
-                       return import.kind == WAVM::IR::ExternKind::memory;
-                     })
+        std::ranges::find_if(ir_module.imports.cbegin(),
+                             ir_module.imports.cend(),
+                             [](auto &import) {
+                               return import.kind
+                                   == WAVM::IR::ExternKind::memory;
+                             })
         != ir_module.imports.cend();
     auto memory_origin = imports_memory
                            ? InstanceEnvironmentFactory::MemoryOrigin::EXTERNAL

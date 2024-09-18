@@ -48,7 +48,12 @@ namespace kagome::storage::trie {
           db.emplace(hash, std::make_pair(std::move(value), nullptr));
           node->setValue({std::nullopt, hash});
         }
-        cursor.push({node, 0, false, {}});
+        cursor.push({
+            .node = node,
+            .branch = 0,
+            .child = false,
+            .t = {},
+        });
         return outcome::success();
       };
       OUTCOME_TRY(push());

@@ -46,13 +46,13 @@ namespace kagome::parachain {
               std::move(collation_msg),
               [&](network::CollatorDeclaration &&collation_decl) {
                 onDeclare(peer_id,
-                          std::move(collation_decl.collator_id),
-                          std::move(collation_decl.para_id),
-                          std::move(collation_decl.signature));
+                          collation_decl.collator_id,
+                          collation_decl.para_id,
+                          collation_decl.signature);
               },
               [&](network::CollatorAdvertisement &&collation_adv) {
                 onAdvertise(peer_id,
-                            std::move(collation_adv.relay_parent),
+                            collation_adv.relay_parent,
                             std::nullopt,
                             network::CollationVersion::V1);
               },
@@ -69,19 +69,18 @@ namespace kagome::parachain {
                 [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
                         &&collation_decl) {
                   onDeclare(peer_id,
-                            std::move(collation_decl.collator_id),
-                            std::move(collation_decl.para_id),
-                            std::move(collation_decl.signature));
+                            collation_decl.collator_id,
+                            collation_decl.para_id,
+                            collation_decl.signature);
                 },
                 [&](kagome::network::vstaging::
                         CollatorProtocolMessageAdvertiseCollation
                             &&collation_adv) {
                   onAdvertise(
                       peer_id,
-                      std::move(collation_adv.relay_parent),
-                      std::make_pair(
-                          std::move(collation_adv.candidate_hash),
-                          std::move(collation_adv.parent_head_data_hash)),
+                      collation_adv.relay_parent,
+                      std::make_pair(collation_adv.candidate_hash,
+                                     collation_adv.parent_head_data_hash),
                       network::CollationVersion::VStaging);
                 },
                 [&](auto &&) {
@@ -117,6 +116,7 @@ namespace kagome::parachain {
 
   outcome::result<network::ResponsePov> ParachainObserverImpl::OnPovRequest(
       network::RequestPov request) {
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     return processor_->getPov(std::move(request));
   }
 

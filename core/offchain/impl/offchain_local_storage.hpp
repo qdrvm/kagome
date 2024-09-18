@@ -19,7 +19,7 @@ namespace kagome::offchain {
         std::shared_ptr<storage::SpacedStorage> storage);
 
     outcome::result<void> set(const common::BufferView &key,
-                              common::Buffer value) override;
+                              common::BufferOrView value) override;
 
     outcome::result<void> clear(const common::BufferView &key) override;
 

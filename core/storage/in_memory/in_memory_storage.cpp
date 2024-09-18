@@ -41,7 +41,7 @@ namespace kagome::storage {
       size_ -= old_value_size;
     }
     size_ += value.size();
-    storage[key.toHex()] = value.intoBuffer();
+    storage[key.toHex()] = std::move(value).intoBuffer();
     return outcome::success();
   }
 

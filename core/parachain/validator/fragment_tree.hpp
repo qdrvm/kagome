@@ -415,12 +415,12 @@ namespace kagome::parachain::fragment {
 
     Option<NodePointer> candidateChild(
         const CandidateHash &candidate_hash) const {
-      auto it =
-          std::find_if(children.begin(),
-                       children.end(),
-                       [&](const std::pair<NodePointer, CandidateHash> &p) {
-                         return p.second == candidate_hash;
-                       });
+      auto it = std::ranges::find_if(
+          children.begin(),
+          children.end(),
+          [&](const std::pair<NodePointer, CandidateHash> &p) {
+            return p.second == candidate_hash;
+          });
       if (it != children.end()) {
         return it->first;
       }
@@ -465,11 +465,12 @@ namespace kagome::parachain::fragment {
 
     Option<std::reference_wrapper<const PendingAvailability>>
     getPendingAvailability(const CandidateHash &candidate_hash) const {
-      auto it = std::find_if(pending_availability.begin(),
-                             pending_availability.end(),
-                             [&](const PendingAvailability &c) {
-                               return c.candidate_hash == candidate_hash;
-                             });
+      auto it =
+          std::ranges::find_if(pending_availability.begin(),
+                               pending_availability.end(),
+                               [&](const PendingAvailability &c) {
+                                 return c.candidate_hash == candidate_hash;
+                               });
       if (it != pending_availability.end()) {
         return {{*it}};
       }
@@ -872,13 +873,13 @@ namespace kagome::parachain::fragment {
                 || is_type<NodePointerRoot>(nodes.back().parent)) {
               nodes.emplace_back(std::move(node));
             } else {
-              nodes.insert(
-                  std::find_if(nodes.begin(),
+              nodes.insert(std::ranges::find_if(
+                               nodes.begin(),
                                nodes.end(),
                                [](const auto &item) {
                                  return !is_type<NodePointerRoot>(item.parent);
                                }),
-                  std::move(node));
+                           std::move(node));
             }
           },
           [&](const NodePointerStorage &ptr) {

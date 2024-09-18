@@ -117,7 +117,7 @@ namespace kagome::runtime::binaryen {
       return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
-    WasmSpan span;
+    WasmSpan span;  // NOLINT(cppcoreguidelines-init-variables)
     try {
       span = module_instance_->callExport(wasm::Name{name.data()}, args_list)
                  .geti64();
@@ -177,10 +177,12 @@ namespace kagome::runtime::binaryen {
           > parent_->module_->memory.initial * wasm::Memory::kPageSize) {
         throw std::runtime_error("invalid offset when initializing memory");
       }
-      callback(offset,
-               common::BufferView(
-                   reinterpret_cast<const uint8_t *>(segment.data.data()),
-                   segment.data.size()));
+      callback(
+          offset,
+          common::BufferView(
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const uint8_t *>(segment.data.data()),
+              segment.data.size()));
     }
   }
 

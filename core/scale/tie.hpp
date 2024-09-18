@@ -45,6 +45,7 @@ namespace scale {
             typename = decltype(std::declval<std::remove_const_t<
                                     std::remove_reference_t<T>>>()
                                     .as_tie())>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto as_tie(T &&v, F &&f) {
     return f(const_cast<std::remove_const_t<std::remove_reference_t<T>> &>(v)
                  .as_tie());
@@ -54,6 +55,7 @@ namespace scale {
   template <typename T,
             typename F,
             size_t N = std::remove_reference_t<T>::scale_tie>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   auto as_tie(T &&v, F &&f) {
     if constexpr (N == 0) {
       return std::tie();

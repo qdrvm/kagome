@@ -111,10 +111,10 @@ namespace kagome::parachain {
         accepted = res.has_value();
       }
       PvfCheckStatement statement{
-          *accepted,
-          code_hash,
-          signer->getSessionIndex(),
-          signer->validatorIndex(),
+          .accept = accepted.value(),
+          .subject = code_hash,
+          .session_index = signer->getSessionIndex(),
+          .validator_index = signer->validatorIndex(),
       };
       OUTCOME_TRY(signature, signer->signRaw(statement.signable()));
       offchain_worker_pool_->addWorker(offchain_worker_factory_->make());

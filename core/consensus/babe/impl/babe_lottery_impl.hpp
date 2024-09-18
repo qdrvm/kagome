@@ -55,9 +55,9 @@ namespace kagome::consensus::babe {
     // Data of actual epoch
     EpochNumber epoch_;
     Randomness randomness_;
-    AuthorityIndex auth_number_;
+    AuthorityIndex auth_number_{};
     KeypairWithIndexOpt keypair_;
     Threshold threshold_;
-    AllowedSlots allowed_slots_;
+    AllowedSlots allowed_slots_{};
   };
 }  // namespace kagome::consensus::babe

@@ -27,6 +27,7 @@ namespace kagome::storage {
     outcome::result<void> remove(const BufferView &key) override;
 
    private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     RocksDbSpace &db_;
     rocksdb::WriteBatch batch_;
   };

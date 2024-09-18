@@ -24,15 +24,15 @@ namespace kagome::network {
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocolImpl<
-              RequestPov,
-              ResponsePov,
-              ScaleMessageReadWriter>{kReqPovProtocolName,
-                                      host,
-                                      make_protocols(kReqPovProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(kReqPovProtocolName,
-                                                        "req_pov_protocol")},
+            RequestPov,
+            ResponsePov,
+            ScaleMessageReadWriter>{kReqPovProtocolName,
+                                    host,
+                                    make_protocols(kReqPovProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kReqPovProtocolName,
+                                                      "req_pov_protocol")},
           observer_{std::move(observer)} {}
 
    protected:
@@ -40,7 +40,7 @@ namespace kagome::network {
         RequestPov request, std::shared_ptr<Stream> /*stream*/) override {
       BOOST_ASSERT(observer_);
       base().logger()->info("Received PoV request(candidate hash={})", request);
-      auto response = observer_->OnPovRequest(std::move(request));
+      auto response = observer_->OnPovRequest(request);
       if (response.has_error()) {
         base().logger()->warn(
             "Our PoV response has error.(candidate hash={}, error={})",
@@ -72,7 +72,7 @@ namespace kagome::network {
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqPovObserver> observer)
       : impl_{std::make_shared<ReqPovProtocolImpl>(
-            host, chain_spec, genesis_hash, std::move(observer))} {}
+          host, chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqPovProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");

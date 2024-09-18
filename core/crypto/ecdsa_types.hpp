@@ -9,16 +9,14 @@
 #include "crypto/common.hpp"
 #include "crypto/secp256k1_types.hpp"
 
-namespace kagome::crypto {
-  namespace constants::ecdsa {
-    enum {
-      PRIVKEY_SIZE = 32,
-      PUBKEY_SIZE = secp256k1::constants::kCompressedPublicKeySize,
-      SIGNATURE_SIZE = secp256k1::constants::kCompactSignatureSize,
-      SEED_SIZE = PRIVKEY_SIZE,
-    };
-  }
-}  // namespace kagome::crypto
+namespace kagome::crypto::constants::ecdsa {
+  enum {  // NOLINT(performance-enum-size)
+    PRIVKEY_SIZE = 32,
+    PUBKEY_SIZE = secp256k1::constants::kCompressedPublicKeySize,
+    SIGNATURE_SIZE = secp256k1::constants::kCompactSignatureSize,
+    SEED_SIZE = PRIVKEY_SIZE,
+  };
+}
 
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            EcdsaPublicKey,

@@ -27,9 +27,11 @@ namespace kagome::parachain {
 
   struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
     AsyncPipe pipe_stdin;
-    boost::asio::buffered_write_stream<AsyncPipe &> writer;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    AsyncPipe &writer;
     AsyncPipe pipe_stdout;
-    boost::asio::buffered_read_stream<AsyncPipe &> reader;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    AsyncPipe &reader;
     boost::process::child process;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
@@ -66,13 +68,7 @@ namespace kagome::parachain {
                   if (ec) {
                     return cb(ec);
                   }
-                  self->writer.async_flush(
-                      [cb](boost::system::error_code ec, size_t) mutable {
-                        if (ec) {
-                          return cb(ec);
-                        }
-                        cb(outcome::success());
-                      });
+                  cb(outcome::success());
                 });
           });
     }
@@ -121,10 +117,10 @@ namespace kagome::parachain {
         max_{app_config.pvfMaxWorkers()},
         timeout_{app_config.pvfSubprocessDeadline()},
         worker_config_{
-            pvf_runtime_engine(app_config),
-            app_config.runtimeCacheDirPath(),
-            app_config.log(),
-            app_config.disableSecureMode(),
+            .engine = pvf_runtime_engine(app_config),
+            .cache_dir = app_config.runtimeCacheDirPath(),
+            .log_params = app_config.log(),
+            .force_disable_secure_mode = app_config.disableSecureMode(),
         } {}
 
   void PvfWorkers::execute(Job &&job) {
@@ -155,10 +151,9 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::findFree(Job &&job) {
-    auto it =
-        std::find_if(free_.begin(), free_.end(), [&](const Worker &worker) {
-          return worker.code_path == job.code_path;
-        });
+    auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
+      return worker.code_path == job.code_path;
+    });
     if (it == free_.end()) {
       it = free_.begin();
     }

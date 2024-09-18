@@ -84,9 +84,8 @@ namespace scale {
   template <typename T>
   using Compact = IntWrapper<CompactTag, T>;
 
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <typename Stream, typename N>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, Fixed<N> &fixed) {
     for (size_t i = 0; i < Fixed<N>::kByteSize * 8; i += 8) {
       *fixed |= N(stream.nextByte()) << i;
@@ -94,9 +93,8 @@ namespace scale {
     return stream;
   }
 
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <typename Stream, typename N>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &stream, const Fixed<N> &fixed) {
     constexpr size_t bits = Fixed<N>::kByteSize * 8;
     for (size_t i = 0; i < bits; i += 8) {
@@ -105,9 +103,8 @@ namespace scale {
     return stream;
   }
 
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <typename Stream, typename N>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, Compact<N> &compact) {
     scale::CompactInteger n;
     stream >> n;
@@ -115,9 +112,8 @@ namespace scale {
     return stream;
   }
 
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <typename Stream, typename N>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &stream, const Compact<N> &compact) {
     scale::CompactInteger n = *compact;
     stream << n;

@@ -6,30 +6,32 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace kagome::common::literals {
 
-  constexpr size_t operator""_kB(long long unsigned int kilobytes) {
-    return kilobytes << 10u;
+  constexpr std::size_t operator""_kB(long long unsigned int kilobytes) {
+    return static_cast<std::size_t>(kilobytes << 10u);
   }
 
-  constexpr size_t operator""_kB(long double kilobytes) {
-    return (1ull << 10) * kilobytes;
+  constexpr std::size_t operator""_kB(long double kilobytes) {
+    return static_cast<std::size_t>((1ull << 10ull) * kilobytes);
   }
 
-  constexpr size_t operator""_MB(long long unsigned int megabytes) {
-    return megabytes << 20u;
+  constexpr std::size_t operator""_MB(long long unsigned int megabytes) {
+    return static_cast<std::size_t>(megabytes << 20ull);
   }
 
-  constexpr size_t operator""_MB(long double megabytes) {
-    return (1ull << 20) * megabytes;
+  constexpr std::size_t operator""_MB(long double megabytes) {
+    return static_cast<std::size_t>((1ull << 20ull) * megabytes);
   }
 
-  constexpr size_t operator""_GB(long long unsigned int gigabytes) {
-    return gigabytes << 30u;
+  constexpr std::size_t operator""_GB(long long unsigned int gigabytes) {
+    return static_cast<std::size_t>(gigabytes << 30ull);
   }
 
-  constexpr size_t operator""_GB(long double gigabytes) {
-    return (1ull << 30) * gigabytes;
+  constexpr std::size_t operator""_GB(long double gigabytes) {
+    return static_cast<std::size_t>((1ull << 30ull) * gigabytes);
   }
 
 }  // namespace kagome::common::literals

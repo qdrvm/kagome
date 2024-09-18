@@ -18,7 +18,7 @@ namespace kagome::storage {
 
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override {
-      entries[key.toHex()] = value.intoBuffer();
+      entries[key.toHex()] = std::move(value).intoBuffer();
       return outcome::success();
     }
 
@@ -41,6 +41,7 @@ namespace kagome::storage {
 
    private:
     std::map<std::string, Buffer> entries;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     InMemoryStorage &db;
   };
 }  // namespace kagome::storage

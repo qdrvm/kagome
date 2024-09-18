@@ -14,7 +14,7 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-  typedef ::std::size_t SizeType;
+  using SizeType = ::std::size_t;
 }  // namespace rapidjson
 
 #include <rapidjson/reader.h>

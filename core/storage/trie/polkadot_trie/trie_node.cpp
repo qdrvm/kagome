@@ -6,6 +6,8 @@
 
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
+#include <boost/range/algorithm.hpp>
+
 namespace kagome::storage::trie {
   uint16_t BranchNode::childrenBitmap() const {
     uint16_t bitmap = 0u;
@@ -18,8 +20,7 @@ namespace kagome::storage::trie {
   }
 
   uint8_t BranchNode::childrenNum() const {
-    return std::count_if(children.begin(),
-                         children.end(),
-                         [](const auto &child) { return child; });
+    return boost::range::count_if(children,
+                                  [](const auto &child) { return child; });
   }
 }  // namespace kagome::storage::trie

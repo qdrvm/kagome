@@ -52,7 +52,7 @@ namespace kagome::blockchain {
       }
     }
     reorg.common = to->info;
-    std::reverse(reorg.apply.begin(), reorg.apply.end());
+    std::ranges::reverse(reorg.apply);
     return reorg;
   }
 
@@ -244,7 +244,7 @@ namespace kagome::blockchain {
       parent->children.clear();
       nodes_.erase(parent->info.hash);
     }
-    std::reverse(changes.prune.begin(), changes.prune.end());
+    std::ranges::reverse(changes.prune);
     root_ = new_finalized;
     root_->weak_parent.reset();
     if (changes.reorg) {
@@ -255,8 +255,10 @@ namespace kagome::blockchain {
             changes.reorg->apply.emplace_back(node->info);
           });
       BOOST_ASSERT(ok);
-      std::reverse(changes.reorg->apply.begin() + offset,
-                   changes.reorg->apply.end());
+      std::reverse(
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          changes.reorg->apply.begin() + offset,
+          changes.reorg->apply.end());
     }
     return changes;
   }
@@ -304,7 +306,7 @@ namespace kagome::blockchain {
       }
       parent->children.clear();
     }
-    std::reverse(changes.prune.begin(), changes.prune.end());
+    std::ranges::reverse(changes.prune);
     *this = CachedTree{root_->info};
     return changes;
   }

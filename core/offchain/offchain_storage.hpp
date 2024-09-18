@@ -8,7 +8,7 @@
 
 #include <boost/optional.hpp>
 
-#include "common/buffer.hpp"
+#include "common/buffer_or_view.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::offchain {
@@ -28,7 +28,7 @@ namespace kagome::offchain {
      * @return success or error
      */
     virtual outcome::result<void> set(const common::BufferView &key,
-                                      common::Buffer value) = 0;
+                                      common::BufferOrView value) = 0;
 
     /**
      * @brief Remove a value from the local storage

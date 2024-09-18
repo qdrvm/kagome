@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -58,7 +59,7 @@ namespace kagome::application {
     using OnLaunch = Action;
     using OnShutdown = Action;
 
-    enum class State {
+    enum class State : uint8_t {
       Init,
       Prepare,
       ReadyToStart,

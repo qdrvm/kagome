@@ -54,7 +54,7 @@ namespace kagome::common {
     explicit SLBuffer(const std::array<typename Base::value_type, N> &other)
         : Base(other.begin(), other.end()) {}
 
-    SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
+    SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end) {};
 
     using Base::Base;
     using Base::operator=;
@@ -91,6 +91,7 @@ namespace kagome::common {
       n = htobe32(n);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
       Base::insert(this->end(), begin, end);
       return *this;
@@ -105,6 +106,7 @@ namespace kagome::common {
       n = htobe64(n);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
       Base::insert(this->end(), begin, end);
       return *this;
@@ -227,8 +229,9 @@ namespace kagome::common {
     /// creates a buffer filled with characters from the original string
     /// mind that it does not perform unhexing, there is ""_unhex for it
     inline Buffer operator""_buf(const char *c, size_t s) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       std::vector<uint8_t> chars(c, c + s);
-      return Buffer(std::move(chars));
+      return {std::move(chars)};
     }
 
     inline Buffer operator""_hex2buf(const char *hex, unsigned long size) {

@@ -12,10 +12,12 @@
 #include "utils/retain_if.hpp"
 #include "utils/wptr.hpp"
 
-using namespace prometheus;
+using prometheus::Collectable;
+using prometheus::MetricFamily;
+using prometheus::TextSerializer;
 
 std::vector<MetricFamily> CollectMetrics(
-    const std::vector<std::weak_ptr<prometheus::Collectable>> &collectables) {
+    const std::vector<std::weak_ptr<Collectable>> &collectables) {
   auto collected_metrics = std::vector<MetricFamily>{};
 
   for (auto &&wcollectable : collectables) {
@@ -54,7 +56,7 @@ namespace kagome::metrics {
   }
 
   std::size_t PrometheusHandler::writeResponse(std::shared_ptr<Session> session,
-                                               Session::Request request,
+                                               const Session::Request &request,
                                                const std::string &body) {
     Session::Response res{boost::beast::http::status::ok, request.version()};
     res.set(boost::beast::http::field::content_type,

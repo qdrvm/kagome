@@ -414,7 +414,7 @@ namespace kagome::parachain {
       std::shared_ptr<PeerUseCount> peers;
 
       PerSessionState(SessionIndex _session,
-                      const runtime::SessionInfo &_session_info,
+                      runtime::SessionInfo _session_info,
                       Groups &&_groups,
                       grid::Views &&_grid_view,
                       ValidatorIndex _our_index,
@@ -523,7 +523,7 @@ namespace kagome::parachain {
      * @param n_validators The number of validators in the network.
      */
     template <ParachainProcessorImpl::ValidationTaskType kMode>
-    void validateAsync(network::CandidateReceipt &&candidate,
+    void validateAsync(network::CandidateReceipt candidate,
                        network::ParachainBlock &&pov,
                        runtime::PersistedValidationData &&pvd,
                        const primitives::BlockHash &relay_parent);

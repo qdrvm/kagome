@@ -95,6 +95,7 @@ namespace kagome::storage::trie {
     if (auto dummy = dynamic_cast<const DummyNode *>(&node); dummy != nullptr) {
       return dummy->db_key;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
     OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
     return merkleValue(enc);
@@ -127,9 +128,6 @@ namespace kagome::storage::trie {
       return Error::TOO_MANY_NIBBLES;
     }
 
-    uint8_t head;
-    uint8_t partial_length_mask;  // max partial key length
-
     auto type = getType(node);
     if (shouldBeHashed(node.getValue(), version)) {
       if (node.isBranch()) {
@@ -138,6 +136,11 @@ namespace kagome::storage::trie {
         type = TrieNode::Type::LeafContainingHashes;
       }
     }
+
+    uint8_t head;  // NOLINT(cppcoreguidelines-init-variables)
+
+    // max partial key length
+    uint8_t partial_length_mask;  // NOLINT(cppcoreguidelines-init-variables)
 
     // set bits of type
     switch (type) {
@@ -315,7 +318,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::pair<TrieNode::Type, size_t>>
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
-    TrieNode::Type type;
+    TrieNode::Type type;  // NOLINT(cppcoreguidelines-init-variables)
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }
@@ -351,7 +354,7 @@ namespace kagome::storage::trie {
 
     if (pk_length == partial_key_length_mask) {
       uint8_t read_length{};
-      do {
+      do {  // NOLINT(cppcoreguidelines-avoid-do-while)
         if (not stream.hasMore(1)) {
           return Error::INPUT_TOO_SMALL;
         }

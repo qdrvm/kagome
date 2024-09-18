@@ -23,6 +23,6 @@ namespace kagome::runtime {
   Executor::Executor(
       std::shared_ptr<RuntimeContextFactory> ctx_factory,
       std::optional<std::shared_ptr<RuntimePropertiesCache>> cache)
-      : cache_{cache}, ctx_factory_{ctx_factory} {}
+      : cache_{std::move(cache)}, ctx_factory_{std::move(ctx_factory)} {}
 
 }  // namespace kagome::runtime

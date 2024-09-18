@@ -133,9 +133,8 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(testing::Return(module_instance));
     if (type == CallType::Persistent) {
       return ctx_factory_->persistentAt(blockchain_state.hash);
-    } else {
-      return ctx_factory_->ephemeralAt(blockchain_state.hash, storage_state);
     }
+    return ctx_factory_->ephemeralAt(blockchain_state.hash, storage_state);
   }
 
  protected:

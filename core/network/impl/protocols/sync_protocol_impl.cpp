@@ -57,8 +57,7 @@ namespace kagome::network {
       // peer record in cache is valid and not expired
       entry->valid_till = now + expiration_time_;  // prolong expiry time
       auto &requests = entry->fingerprints;
-      if (std::count(requests.begin(), requests.end(), request_fingerprint)
-          >= 2) {
+      if (std::ranges::count(requests, request_fingerprint) >= 2) {
         return true;
       }
       requests.push_back(request_fingerprint);
@@ -69,7 +68,7 @@ namespace kagome::network {
         const PeerId &peer_id,
         BlocksRequest::Fingerprint request_fingerprint,
         std::optional<CacheRecordIndex> target_slot) {
-      CacheRecordIndex slot;
+      CacheRecordIndex slot;  // NOLINT(cppcoreguidelines-init-variables)
       if (target_slot) {
         slot = *target_slot;
       } else {
@@ -264,7 +263,7 @@ namespace kagome::network {
           logmsg += fmt::format(", max {}", block_request.max.value());
         }
 
-        self->base_.logger()->verbose(std::move(logmsg));
+        self->base_.logger()->verbose(logmsg);
       }
 
       auto block_response_res = self->sync_observer_->onBlocksRequest(
@@ -344,7 +343,7 @@ namespace kagome::network {
 
   void SyncProtocolImpl::writeRequest(
       std::shared_ptr<Stream> stream,
-      BlocksRequest block_request,
+      const BlocksRequest &block_request,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
@@ -465,7 +464,7 @@ namespace kagome::network {
         logmsg += fmt::format(", max {}", block_request.max.value());
       }
 
-      base_.logger()->debug(std::move(logmsg));
+      base_.logger()->debug(logmsg);
     }
 
     newOutgoingStream(
@@ -492,7 +491,7 @@ namespace kagome::network {
                    stream->remotePeerId().value());
 
           self->writeRequest(stream,
-                             std::move(block_request),
+                             block_request,
                              [stream,
                               wp = std::move(wp),
                               response_handler = std::move(response_handler)](
