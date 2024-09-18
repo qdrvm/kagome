@@ -87,7 +87,7 @@ namespace kagome {
       std::unique_lock lock{mutex_};
       auto now = Clock::now();
       for (auto it = threads_.begin(); it != threads_.end();) {
-        if (it->second.count.unique()) {
+        if (it->second.count.use_count() == 1) {
           it = threads_.erase(it);
         } else {
           auto count = it->second.count->load();
@@ -129,7 +129,7 @@ namespace kagome {
 
     void run(std::shared_ptr<boost::asio::io_context> io) {
       auto ping = add();
-      while (not stopped_ and not io.unique()) {
+      while (not stopped_ and io.use_count() != 1) {
 #define WAIT_FOR_BETTER_BOOST_IMPLEMENTATION
 #ifndef WAIT_FOR_BETTER_BOOST_IMPLEMENTATION
         // this is the desired implementation
