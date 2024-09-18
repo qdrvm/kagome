@@ -10,6 +10,25 @@
 #define COMPONENT ProspectiveParachains
 #define COMPONENT_NAME STRINGIFY(COMPONENT)
 
+template <>
+struct fmt::formatter<std::vector<kagome::parachain::fragment::BlockInfoProspectiveParachains>> {
+  constexpr auto parse(format_parse_context &ctx)
+      -> format_parse_context::iterator {
+    return ctx.end();
+  }
+
+  template <typename FormatContext>
+  auto format(const std::vector<kagome::parachain::fragment::BlockInfoProspectiveParachains> &data, FormatContext &ctx) const -> decltype(ctx.out()) {
+    std::string out = "[";
+    for (const auto &i : data) {
+      out += fmt::format("BlockInfoProspectiveParachains {{ hash = {}, parent_hash = {}, number = {}, storage_root = {} }}, ", 
+        i.hash, i.parent_hash, i.number, i.storage_root);
+    }
+    out += "]";
+    return fmt::format_to(ctx.out(), "{}", out);
+  }
+};
+
 namespace kagome::parachain {
   ProspectiveParachains::ProspectiveParachains(
       std::shared_ptr<crypto::Hasher> hasher,
@@ -503,10 +522,10 @@ namespace kagome::parachain {
 
         SL_TRACE(logger,
                  "Creating fragment chain. "
-                 "(relay_parent={}, para={}, min_relay_parent={})",
+                 "(relay_parent={}, para={}, min_relay_parent={}, ancestors={})",
                  hash,
                  para,
-                 scope.value().earliest_relay_parent().number);
+                 scope.value().earliest_relay_parent().number, ancestry);
         const auto number_of_pending_candidates =
             pending_availability_storage.len();
         auto chain = fragment::FragmentChain::init(

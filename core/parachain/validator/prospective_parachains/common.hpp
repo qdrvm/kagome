@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <vector>
 #include "outcome/outcome.hpp"
+#include <fmt/format.h>
 
 #include "network/types/collator_messages.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
