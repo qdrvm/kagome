@@ -3,6 +3,7 @@ timeout = 1000
 
 [relaychain]
 chain = "rococo-local"
+chain_spec_path = "./rococo-local-raw.json"
 
 [relaychain.default_resources]
 limits = { memory = "4G", cpu = "2" }
