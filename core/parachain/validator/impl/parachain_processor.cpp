@@ -4524,7 +4524,9 @@ namespace kagome::parachain {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        SL_TRACE(logger_,
+                 "No PeerState of peer {}. Default one has created",
+                 peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
@@ -4559,7 +4561,9 @@ namespace kagome::parachain {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        SL_TRACE(logger_,
+                 "No PeerState of peer {}. Default one has created",
+                 peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
