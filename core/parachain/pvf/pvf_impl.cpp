@@ -353,6 +353,7 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
+        .timeout = executor_params.pvf_executor_timeout_ms,
     });
   }
 
