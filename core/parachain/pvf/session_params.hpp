@@ -31,7 +31,7 @@ namespace kagome::parachain {
           config.memory_limits.heap_alloc_strategy = HeapAllocStrategyDynamic{
               kDefaultHeapPagesEstimate + pages_max->limit};
         } else if (auto *pvfExecTimeout = get_if<runtime::PvfExecTimeout>(&param)) {
-          config.pvfExecutorTimeoutMs = pvfExecTimeout->msec;
+          config.pvf_executor_timeout_ms = pvfExecTimeout->msec;
         }
       }
     }

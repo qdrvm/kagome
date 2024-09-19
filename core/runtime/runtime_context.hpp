@@ -45,9 +45,12 @@ namespace kagome::runtime {
     // https://github.com/paritytech/polkadot-sdk/blob/e16ef0861f576dd260487d78b57949b18795ed77/polkadot/primitives/src/v6/executor_params.rs#L32
     static constexpr size_t DEFAULT_STACK_MAX = 65536;
 
+    static constexpr uint64_t DEFAULT_PVF_EXECUTOR_TIMEOUT_MS = 2000;
+
     struct ContextParams {
-      SCALE_TIE(1);
+      SCALE_TIE(2);
       MemoryLimits memory_limits;
+      uint64_t pvf_executor_timeout_ms = DEFAULT_PVF_EXECUTOR_TIMEOUT_MS;
     };
 
     const std::shared_ptr<ModuleInstance> module_instance;
