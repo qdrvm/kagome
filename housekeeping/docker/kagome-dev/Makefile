@@ -107,6 +107,7 @@ kagome_dev_docker_build:
 		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
 		mkdir -p /tmp/kagome && \
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
+		cp /opt/kagome/$(BUILD_DIR)/node/kagome-rust-kad /tmp/kagome/. && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		./build_apt_package.sh \
 			\"$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)\" \

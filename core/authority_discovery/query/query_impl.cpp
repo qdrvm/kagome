@@ -11,6 +11,7 @@
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
 #include "utils/retain_if.hpp"
+#include "utils/weak_macro.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
   using E = decltype(e);
@@ -37,6 +38,7 @@ namespace kagome::authority_discovery {
   QueryImpl::QueryImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<rust_kad::Kad> rust_kad,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
@@ -46,6 +48,7 @@ namespace kagome::authority_discovery {
       LazySPtr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : block_tree_{std::move(block_tree)},
+        rust_kad_{std::move(rust_kad)},
         authority_discovery_api_{std::move(authority_discovery_api)},
         key_store_{std::move(key_store)},
         sr_crypto_provider_{std::move(sr_crypto_provider)},
@@ -199,6 +202,22 @@ namespace kagome::authority_discovery {
       scheduler_->schedule([wp{weak_from_this()},
                             hash = common::Buffer{crypto::sha256(authority)}] {
         if (auto self = wp.lock()) {
+          return rust_kad_->lookup(
+              hash, [authority, WEAK_SELF](std::vector<Buffer> values) {
+                WEAK_LOCK(self);
+                std::unique_lock lock{self->mutex_};
+                --self->active_;
+                self->pop();
+                for (auto &value : values) {
+                  auto r = self->add(authority, value);
+                  if (not r) {
+                    SL_WARN(self->log_,
+                            "add({}): {}",
+                            common::hex_lower(authority),
+                            r.error());
+                  }
+                }
+              });
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {

@@ -97,7 +97,10 @@ namespace kagome::network {
     const std::thread::id this_id_{std::this_thread::get_id()};
 
     void check() const {
-      // BOOST_ASSERT(this_id_ == std::this_thread::get_id());
+      if (this_id_ != std::this_thread::get_id()) {
+        logger_->error("StreamWrapper used from different thread");
+        std::abort();
+      }
     }
 
     StreamWrapper(std::shared_ptr<libp2p::connection::StreamReadBuffer> stream)

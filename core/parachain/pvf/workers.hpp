@@ -22,6 +22,7 @@ namespace libp2p::basic {
 
 namespace kagome {
   class PoolHandler;
+  struct ProcessAndPipes;
 }  // namespace kagome
 
 namespace kagome::application {
@@ -33,8 +34,6 @@ namespace kagome::common {
 }  // namespace kagome::common
 
 namespace kagome::parachain {
-  struct ProcessAndPipes;
-
   class PvfWorkers : public std::enable_shared_from_this<PvfWorkers> {
    public:
     PvfWorkers(const application::AppConfiguration &app_config,

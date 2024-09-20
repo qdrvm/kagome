@@ -6,18 +6,14 @@
 
 #include "parachain/pvf/workers.hpp"
 
-#include <boost/asio/buffered_read_stream.hpp>
-#include <boost/asio/buffered_write_stream.hpp>
-#include <boost/process.hpp>
 #include <libp2p/basic/scheduler.hpp>
-#include <libp2p/common/asio_buffer.hpp>
 #include <qtils/option_take.hpp>
 
 #include "application/app_configuration.hpp"
 #include "common/main_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "utils/get_exe_path.hpp"
-#include "utils/weak_macro.hpp"
+#include "utils/process.hpp"
 
 namespace kagome::parachain {
   struct AsyncPipe : boost::process::async_pipe {
@@ -131,7 +127,7 @@ namespace kagome::parachain {
         return;
       }
       auto used = std::make_shared<Used>(*this);
-      auto process = std::make_shared<ProcessAndPipes>(*io_context_, exe_);
+      auto process = ProcessAndPipes::make(*io_context_, exe_, {"pvf-worker"});
       process->writeScale(
           worker_config_,
           [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](

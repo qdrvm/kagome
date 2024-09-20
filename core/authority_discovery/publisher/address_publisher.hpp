@@ -8,6 +8,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/interval.hpp"
+#include "authority_discovery/query/rust_kad.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/key_store/session_keys.hpp"
@@ -33,6 +34,7 @@ namespace kagome::authority_discovery {
         network::Roles roles,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<rust_kad::Kad> rust_kad,
         std::shared_ptr<crypto::SessionKeys> keys,
         const libp2p::crypto::KeyPair &libp2p_key,
         const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
@@ -50,6 +52,7 @@ namespace kagome::authority_discovery {
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
     network::Roles roles_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<rust_kad::Kad> rust_kad_;
 
     std::shared_ptr<crypto::SessionKeys> keys_;
 
