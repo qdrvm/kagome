@@ -4513,7 +4513,7 @@ namespace kagome::parachain {
           });
       return true;
     }
-    std::forward<F>(callback)();
+    std::forward<F>(callback)(std::move(stream));
     return false;
   }
 

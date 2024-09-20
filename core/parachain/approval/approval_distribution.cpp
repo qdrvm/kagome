@@ -2579,17 +2579,36 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
+    auto msg = std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::vstaging::ApprovalDistributionMessage{
                 network::vstaging::Assignments{
                     .assignments = {network::vstaging::Assignment{
                         .indirect_assignment_cert = indirect_cert,
                         .candidate_bitfield = candidate_indices,
-                    }}}}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+                    }}}});
+
+    for (const auto &peer : peers) {
+      parachain_processor_->tryOpenOutgoingValidationStream(
+          peer,
+          network::CollationVersion::VStaging,
+          [WEAK_SELF, peer{peer}, se, msg](auto &&stream) {
+            WEAK_LOCK(self);
+            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
+          });
+    }
+
+//    se->broadcast(
+//        router_->getValidationProtocolVStaging(),
+//        std::make_shared<
+//            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+//            network::vstaging::ApprovalDistributionMessage{
+//                network::vstaging::Assignments{
+//                    .assignments = {network::vstaging::Assignment{
+//                        .indirect_assignment_cert = indirect_cert,
+//                        .candidate_bitfield = candidate_indices,
+//                    }}}}),
+//        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2700,15 +2719,22 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
+    auto msg = std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::vstaging::ApprovalDistributionMessage{
                 network::vstaging::Approvals{
                     .approvals = {vote},
-                }}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+                }});
+
+    for (const auto &peer : peers) {
+      parachain_processor_->tryOpenOutgoingValidationStream(
+          peer,
+          network::CollationVersion::VStaging,
+          [WEAK_SELF, peer{peer}, se, msg](auto &&stream) {
+            WEAK_LOCK(self);
+            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
+          });
+    }
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
