@@ -1012,6 +1012,24 @@ namespace kagome::parachain {
                    peer_id,
                    chunk->chunk_index,
                    res.error());
+
+          for (ValidatorIndex vi = 0; vi < 4; ++vi) {
+            erasure_chunk.index = vi;
+            auto res =
+                checkTrieProof(erasure_chunk, active.erasure_encoding_root);
+            if (res.has_value()) {
+              SL_TRACE(logger_,
+                       "DEBUG!!! Candidate {}. success for chunk index {}",
+                       candidate_hash,
+                       erasure_chunk.index);
+            } else {
+              SL_TRACE(logger_,
+                       "DEBUG!!! Candidate {}. fail for chunk index {}: {}",
+                       candidate_hash,
+                       erasure_chunk.index,
+                       res.error());
+            }
+          }
         }
       } else {
         SL_TRACE(logger_,

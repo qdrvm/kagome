@@ -801,7 +801,7 @@ namespace kagome::parachain {
                lost.number);
 
       backing_store_->onDeactivateLeaf(lost.hash);
-      av_store_->remove(lost.hash);
+      // av_store_->remove(lost.hash);
       bitfield_store_->remove(lost.hash);
     }
 
@@ -4466,6 +4466,7 @@ namespace kagome::parachain {
           });
       return true;
     }
+    std::forward<F>(callback)(std::move(stream));
     return false;
   }
 
