@@ -48,9 +48,14 @@ namespace kagome::runtime {
     static constexpr uint64_t DEFAULT_PVF_EXECUTOR_TIMEOUT_MS = 2000;
 
     struct ContextParams {
-      SCALE_TIE(2);
+      SCALE_TIE(1);
       MemoryLimits memory_limits;
-      uint64_t pvf_executor_timeout_ms = DEFAULT_PVF_EXECUTOR_TIMEOUT_MS;
+    };
+
+    struct RuntimeParams {
+        SCALE_TIE(2);
+        ContextParams context_params;
+        uint64_t pvf_exec_timeout_backing_ms = DEFAULT_PVF_EXECUTOR_TIMEOUT_MS;
     };
 
     const std::shared_ptr<ModuleInstance> module_instance;
@@ -143,3 +148,4 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 SCALE_TIE_HASH_STD(kagome::runtime::RuntimeContext::ContextParams);
+SCALE_TIE_HASH_STD(kagome::runtime::RuntimeContext::RuntimeParams);
