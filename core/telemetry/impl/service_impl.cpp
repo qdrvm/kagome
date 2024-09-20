@@ -23,6 +23,7 @@ namespace rapidjson {
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 
 #include <network/helpers/stream_read_buffer.hpp>
 #include "common/uri.hpp"
@@ -454,9 +455,12 @@ namespace kagome::telemetry {
     peers_count.SetInt(peer_manager_->activePeersNumber());
 
     auto bandwidth = getBandwidth();
+    rapidjson::Value upBandwidth, downBandwidth;
+    upBandwidth.SetInt(bandwidth.up);
+    downBandwidth.SetInt(bandwidth.down);
     // fields order is preserved the same way substrate orders it
-    payload.AddMember("bandwidth_download", bandwidth.down, allocator)
-        .AddMember("bandwidth_upload", bandwidth.up, allocator)
+    payload.AddMember("bandwidth_download", downBandwidth, allocator)
+        .AddMember("bandwidth_upload", upBandwidth, allocator)
         .AddMember("msg", str_val("system.interval"), allocator)
         .AddMember("peers", peers_count, allocator);
 
@@ -481,38 +485,36 @@ namespace kagome::telemetry {
   }
 
   TelemetryServiceImpl::Bandwidth TelemetryServiceImpl::getBandwidth() {
-    static uint64_t previousBytesRead = 0;
-    static uint64_t previousBytesWritten = 0;
-
-    static auto previousTimeSent = std::chrono::high_resolution_clock::now();
+    if (not previous_bandwidth_calculated_.has_value()) {
+      previous_bandwidth_calculated_ = std::chrono::high_resolution_clock::now();
+    }
 
     auto calculateBandwidth = [](uint64_t &previousBytes,
                                  uint64_t totalBytes,
                                  auto &bandwidth,
                                  const std::chrono::seconds &timeElapsed) {
       if (timeElapsed.count() > 0) {
-        bandwidth.SetInt((totalBytes - previousBytes) / timeElapsed.count());
+        bandwidth = (totalBytes - previousBytes) / timeElapsed.count();
       } else {
-        bandwidth.SetInt(0);
+        bandwidth = 0;
       }
       previousBytes = totalBytes;
     };
 
     const auto currentTime = std::chrono::high_resolution_clock::now();
     const auto timeElapsed = std::chrono::duration_cast<std::chrono::seconds>(
-        currentTime - previousTimeSent);
+        currentTime - *previous_bandwidth_calculated_);
 
     Bandwidth bandwidth;
-    const auto totalBytesRead = network::StreamWrapper::getTotalBytesRead();
+    const auto totalBytesRead = libp2p::transport::TcpConnection::getBytesRead();
     calculateBandwidth(
-        previousBytesRead, totalBytesRead, bandwidth.down, timeElapsed);
+        previous_bytes_read_, totalBytesRead, bandwidth.down, timeElapsed);
 
-    const auto totalBytesWritten =
-        network::StreamWrapper::getTotalBytesWritten();
+    const auto totalBytesWritten = libp2p::transport::TcpConnection::getBytesWritten();
     calculateBandwidth(
-        previousBytesWritten, totalBytesWritten, bandwidth.up, timeElapsed);
+        previous_bytes_written_, totalBytesWritten, bandwidth.up, timeElapsed);
 
-    previousTimeSent = currentTime;
+    previous_bandwidth_calculated_ = currentTime;
 
     return bandwidth;
   }

@@ -90,8 +90,8 @@ namespace kagome::telemetry {
    private:
     /// structure to store last calculated bandwidth values
     struct Bandwidth {
-      rapidjson::Value down;
-      rapidjson::Value up;
+      uint64_t down{0};
+      uint64_t up{0};
     };
 
     /// parse telemetry endpoints from chain specification
@@ -178,6 +178,11 @@ namespace kagome::telemetry {
     std::string genesis_hash_;
     std::shared_ptr<MessagePool> message_pool_;
     bool was_synchronized_ = false;
+
+    uint64_t previous_bytes_read_{0};
+    uint64_t previous_bytes_written_{0};
+    std::optional<std::chrono::system_clock::time_point>
+        previous_bandwidth_calculated_;
   };
 
 }  // namespace kagome::telemetry
