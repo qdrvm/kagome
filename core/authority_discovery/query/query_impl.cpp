@@ -200,9 +200,11 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       scheduler_->schedule([wp{weak_from_this()},
-                            hash = common::Buffer{crypto::sha256(authority)}] {
+                            hash = common::Buffer{crypto::sha256(authority)},
+                            authority,
+                            this] {
         if (auto self = wp.lock()) {
-          return rust_kad_->lookup(
+          return self->rust_kad_->lookup(
               hash, [authority, WEAK_SELF](std::vector<Buffer> values) {
                 WEAK_LOCK(self);
                 std::unique_lock lock{self->mutex_};

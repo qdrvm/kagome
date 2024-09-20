@@ -127,7 +127,8 @@ namespace kagome::parachain {
         return;
       }
       auto used = std::make_shared<Used>(*this);
-      auto process = ProcessAndPipes::make(*io_context_, exe_, {"pvf-worker"});
+      auto process =
+          kagome::ProcessAndPipes::make(*io_context_, exe_, {"pvf-worker"});
       process->writeScale(
           worker_config_,
           [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](
