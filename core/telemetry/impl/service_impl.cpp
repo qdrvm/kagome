@@ -456,8 +456,8 @@ namespace kagome::telemetry {
 
     auto bandwidth = getBandwidth();
     rapidjson::Value upBandwidth, downBandwidth;
-    upBandwidth.SetInt(bandwidth.up);
-    downBandwidth.SetInt(bandwidth.down);
+    downBandwidth.SetUint64(bandwidth.down);
+    upBandwidth.SetUint64(bandwidth.up);
     // fields order is preserved the same way substrate orders it
     payload.AddMember("bandwidth_download", downBandwidth, allocator)
         .AddMember("bandwidth_upload", upBandwidth, allocator)
