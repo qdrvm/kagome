@@ -4459,13 +4459,13 @@ namespace kagome::parachain {
             }
 
             auto stream = stream_result.value();
-            stream_engine->addOutgoing(std::move(stream_result.value()),
-                                       protocol);
+            stream_engine->addOutgoing(std::move(stream), protocol);
 
-            std::forward<F>(callback)(std::move(stream));
+            std::forward<F>(callback)();
           });
       return true;
     }
+    std::forward<F>(callback)();
     return false;
   }
 
