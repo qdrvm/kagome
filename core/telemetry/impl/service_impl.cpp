@@ -23,7 +23,7 @@ namespace rapidjson {
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/multi/multiaddress.hpp>
-#include <libp2p/transport/tcp/tcp_connection.hpp>
+#include <libp2p/transport/tcp/bytes_counter.hpp>
 
 #include <network/helpers/stream_read_buffer.hpp>
 #include "common/uri.hpp"
@@ -452,7 +452,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType);
 
     rapidjson::Value peers_count;
-    peers_count.SetInt(peer_manager_->activePeersNumber());
+    peers_count.SetUint(peer_manager_->activePeersNumber());
 
     auto bandwidth = getBandwidth();
     rapidjson::Value upBandwidth, downBandwidth;
@@ -485,18 +485,20 @@ namespace kagome::telemetry {
   }
 
   TelemetryServiceImpl::Bandwidth TelemetryServiceImpl::getBandwidth() {
-    if (not previous_bandwidth_calculated_.has_value()) {
-      previous_bandwidth_calculated_ = std::chrono::high_resolution_clock::now();
+    if (not previous_bandwidth_calculated_) {
+      previous_bandwidth_calculated_ =
+          std::chrono::high_resolution_clock::now();
     }
 
     auto calculateBandwidth = [](uint64_t &previousBytes,
                                  uint64_t totalBytes,
                                  auto &bandwidth,
                                  const std::chrono::seconds &timeElapsed) {
-      if (timeElapsed.count() > 0) {
-        bandwidth = (totalBytes - previousBytes) / timeElapsed.count();
+      const auto bytesDiff = totalBytes - previousBytes;
+      if (const auto secondsElapsed = timeElapsed.count(); secondsElapsed > 0) {
+        bandwidth = bytesDiff / secondsElapsed;
       } else {
-        bandwidth = 0;
+        bandwidth = bytesDiff;
       }
       previousBytes = totalBytes;
     };
@@ -506,13 +508,16 @@ namespace kagome::telemetry {
         currentTime - *previous_bandwidth_calculated_);
 
     Bandwidth bandwidth;
-    const auto totalBytesRead = libp2p::transport::TcpConnection::getBytesRead();
-    calculateBandwidth(
-        previous_bytes_read_, totalBytesRead, bandwidth.down, timeElapsed);
+    const auto &bytesCounter = libp2p::transport::ByteCounter::getInstance();
+    calculateBandwidth(previous_bytes_read_,
+                       bytesCounter.getBytesRead(),
+                       bandwidth.down,
+                       timeElapsed);
 
-    const auto totalBytesWritten = libp2p::transport::TcpConnection::getBytesWritten();
-    calculateBandwidth(
-        previous_bytes_written_, totalBytesWritten, bandwidth.up, timeElapsed);
+    calculateBandwidth(previous_bytes_written_,
+                       bytesCounter.getBytesWritten(),
+                       bandwidth.up,
+                       timeElapsed);
 
     previous_bandwidth_calculated_ = currentTime;
 
