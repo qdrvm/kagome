@@ -23,9 +23,11 @@
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
 #include "network/can_disconnect.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
+#include "network/router.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
@@ -1046,15 +1048,72 @@ namespace kagome::parachain {
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
+
                                         F &&callback);
+
+   public:
     template <typename F>
     bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
                                          network::CollationVersion version,
-                                         F &&callback);
+                                         F &&callback) {
+      //      std::shared_ptr<network::ProtocolBase> protocol;
+      //      switch (version) {
+      //        case network::CollationVersion::V1:
+      //        case network::CollationVersion::VStaging: {
+      auto protocol = router_->getValidationProtocolVStaging();
+      //        } break;
+      //        default: {
+      //          UNREACHABLE;
+      //        } break;
+      //      }
+      BOOST_ASSERT(protocol);
+
+      return tryOpenOutgoingStream(
+          peer_id, std::move(protocol), std::forward<F>(callback));
+    }
+
+   private:
     template <typename F>
     bool tryOpenOutgoingStream(const libp2p::peer::PeerId &peer_id,
                                std::shared_ptr<network::ProtocolBase> protocol,
-                               F &&callback);
+                               F &&callback) {
+      auto stream_engine = pm_->getStreamEngine();
+      BOOST_ASSERT(stream_engine);
+
+      if (stream_engine->reserveOutgoing(peer_id, protocol)) {
+        protocol->newOutgoingStream(
+            peer_id,
+            [callback = std::forward<F>(callback),
+             protocol,
+             peer_id,
+             wptr{weak_from_this()}](auto &&stream_result) mutable {
+              auto self = wptr.lock();
+              if (not self) {
+                return;
+              }
+
+              auto stream_engine = self->pm_->getStreamEngine();
+              stream_engine->dropReserveOutgoing(peer_id, protocol);
+
+              if (!stream_result.has_value()) {
+                self->logger_->verbose("Unable to create stream {} with {}: {}",
+                                       protocol->protocolName(),
+                                       peer_id,
+                                       stream_result.error());
+                return;
+              }
+
+              auto stream = stream_result.value();
+              stream_engine->addOutgoing(std::move(stream_result.value()),
+                                         protocol);
+
+              std::forward<F>(callback)();
+            });
+        return true;
+      }
+      std::forward<F>(callback)();
+      return false;
+    }
 
     outcome::result<void> enqueueCollation(
         const RelayHash &relay_parent,

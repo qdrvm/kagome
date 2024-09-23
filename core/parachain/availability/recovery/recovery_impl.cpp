@@ -9,6 +9,7 @@
 #include "application/chain_spec.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_tree.hpp"
+#include "log/formatters/optional.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
@@ -153,15 +154,34 @@ namespace kagome::parachain {
     active.chunks_total = session->validators.size();
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
-    active.validators = session->discovery_keys;
-    active.val2chunk = [n_validators{session->validators.size()}, start_pos](
+    active.discovery_keys = session->discovery_keys;
+    active.val2chunk = [n_validators{active.chunks_total}, start_pos](
                            ValidatorIndex validator_index) -> ChunkIndex {
       return (start_pos + validator_index) % n_validators;
     };
 
     if (backing_group.has_value()) {
-      active.validators_of_group = session->validator_groups.at(*backing_group);
+      const auto group = backing_group.value();
+      BOOST_ASSERT(group < session->validator_groups.size());
+      active.validators_of_group = session->validator_groups[group];
     }
+
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Start recovery. "
+             "Total chunks: {}, required for EC: {}, "
+             "discovery keys: {}, "
+             "baking group: {}, "
+             "validators of group: [{}], "
+             "start_pos for mapping: {}",
+             candidate_hash,
+             active.chunks_total,
+             active.chunks_required,
+             active.discovery_keys.size(),
+             backing_group,
+             fmt::join(active.validators_of_group, ", "),
+             start_pos);
+
     active_.emplace(candidate_hash, std::move(active));
 
     lock.unlock();
@@ -182,16 +202,30 @@ namespace kagome::parachain {
     active.order = std::move(active.validators_of_group);
     std::shuffle(active.order.begin(), active.order.end(), random_);
 
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Recovery from bakers preparation. "
+             "{} validators of group",
+             candidate_hash,
+             active.order.size());
+
     // Is it possible to full recover from bakers
     auto is_possible_to_recovery_from_bakers = not active.order.empty();
 
     lock.unlock();
 
-    if (is_possible_to_recovery_from_bakers) {
-      full_from_bakers_recovery(candidate_hash);
-    } else {
+    if (not is_possible_to_recovery_from_bakers) {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Impossible to recover from bakers. "
+               "No available validators of group. "
+               "Trying to do systematic chunks recovery",
+               candidate_hash);
       systematic_chunks_recovery_prepare(candidate_hash);
+      return;
     }
+
+    full_from_bakers_recovery(candidate_hash);
   }
 
   void RecoveryImpl::full_from_bakers_recovery(
@@ -204,17 +238,50 @@ namespace kagome::parachain {
     }
     auto &active = it->second;
 
-    // Send requests
-    while (not active.order.empty()) {
-      auto peer = query_audi_->get(active.validators[active.order.back()]);
-      active.order.pop_back();
-      if (peer) {
-        send_fetch_available_data_request(
-            peer->id, candidate_hash, &RecoveryImpl::full_from_bakers_recovery);
-        return;
+    // Is it possible to full recover from bakers
+    auto is_possible_to_recovery_from_bakers = not active.order.empty();
+
+    if (is_possible_to_recovery_from_bakers) {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Remain {} validators to recover from bakers. "
+               "Trying to ask next one",
+               candidate_hash,
+               active.order.size());
+
+      // Send requests
+      while (not active.order.empty()) {
+        auto validator_index = active.order.back();
+        auto peer = query_audi_->get(active.discovery_keys[validator_index]);
+        active.order.pop_back();
+        if (peer.has_value()) {
+          SL_TRACE(logger_,
+                   "Candidate {}. "
+                   "Asking validator #{} aka peer {}",
+                   candidate_hash,
+                   validator_index,
+                   peer->id);
+          send_fetch_available_data_request(
+              peer->id,
+              candidate_hash,
+              &RecoveryImpl::full_from_bakers_recovery);
+          return;
+        }
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "PeerId of validator #{} is not discovered. Skipping... ",
+                 candidate_hash,
+                 validator_index);
       }
     }
     lock.unlock();
+
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Impossible to recover from bakers. "
+             "No available validators from group anymore. "
+             "Trying to do systematic chunks recovery",
+             candidate_hash);
 
     // No known peer anymore to do full recovery
     systematic_chunks_recovery_prepare(candidate_hash);
@@ -232,12 +299,25 @@ namespace kagome::parachain {
 
     // Refill request order basing chunks
     active.chunks = av_store_->getChunks(candidate_hash);
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Systematic recovery preparation. "
+             "Already collected {} any chunks",
+             candidate_hash,
+             active.chunks.size());
+
     for (size_t validator_index = 0; validator_index < active.chunks_total;
          ++validator_index) {
       auto chunk_index = active.val2chunk(validator_index);
 
       // Filter non systematic chunks
       if (chunk_index >= active.chunks_required) {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Systematic recovery preparation. "
+                 "Validator #{} has ignored as non-holder of systematic chunk",
+                 candidate_hash,
+                 validator_index);
         continue;
       }
 
@@ -246,12 +326,26 @@ namespace kagome::parachain {
               active.chunks,
               [&](network::ErasureChunk &c) { return c.index == chunk_index; })
           != active.chunks.end()) {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Systematic recovery preparation. "
+                 "Validator #{} has ignored because such chunk already exists",
+                 candidate_hash,
+                 validator_index);
         continue;
       }
       active.order.emplace_back(validator_index);
     }
     std::shuffle(active.order.begin(), active.order.end(), random_);
     active.queried.clear();
+    active.chunks_active = 0;
+
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Systematic recovery preparation. "
+             "{} validators in order for asking",
+             candidate_hash,
+             active.order.size());
 
     size_t systematic_chunk_count = [&] {
       std::set<ChunkIndex> sci;
@@ -263,6 +357,13 @@ namespace kagome::parachain {
       return sci.size();
     }();
 
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Systematic recovery preparation. "
+             "Already collected {} systematic chunks",
+             candidate_hash,
+             systematic_chunk_count);
+
     // Is it possible to collect all systematic chunks?
     bool is_possible_to_collect_systematic_chunks =
         systematic_chunk_count + active.chunks_active + active.order.size()
@@ -270,11 +371,21 @@ namespace kagome::parachain {
 
     lock.unlock();
 
-    if (is_possible_to_collect_systematic_chunks) {
-      systematic_chunks_recovery(candidate_hash);
-    } else {
+    if (not is_possible_to_collect_systematic_chunks) {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Impossible to do systematic chunk recovery "
+               "({} chunks + {} in order < {} required). "
+               "Trying to do regular chunks recovery",
+               candidate_hash,
+               systematic_chunk_count,
+               active.order.size(),
+               active.chunks_required);
       regular_chunks_recovery_prepare(candidate_hash);
+      return;
     }
+
+    systematic_chunks_recovery(candidate_hash);
   }
 
   void RecoveryImpl::systematic_chunks_recovery(
@@ -302,10 +413,24 @@ namespace kagome::parachain {
       return sci.size();
     }();
 
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Systematic recovery progress. "
+             "Collected {} systematic chunks",
+             candidate_hash,
+             systematic_chunk_count);
+
     // All systematic chunks are collected
     if (systematic_chunk_count >= active.chunks_required) {
-      auto data_res =
-          fromSystematicChunks(active.validators.size(), active.chunks);
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Systematic recovery progress. "
+               "Collected all required chunks ({} of {})",
+               candidate_hash,
+               systematic_chunk_count,
+               active.chunks_required);
+
+      auto data_res = fromSystematicChunks(active.chunks_total, active.chunks);
       [[unlikely]] if (data_res.has_error()) {
         active.systematic_chunk_failed = true;
         SL_DEBUG(logger_,
@@ -338,6 +463,12 @@ namespace kagome::parachain {
         }
       }
       lock.unlock();
+
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Systematic chunk recovery has failed. "
+               "Trying to do regular chunks recovery",
+               candidate_hash);
       return regular_chunks_recovery_prepare(candidate_hash);
     }
 
@@ -359,6 +490,12 @@ namespace kagome::parachain {
           active.chunks_required);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
+
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Systematic chunk recovery is not possible. "
+               "Trying to do regular chunks recovery",
+               candidate_hash);
       return regular_chunks_recovery_prepare(candidate_hash);
     }
 
@@ -368,15 +505,29 @@ namespace kagome::parachain {
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
-      auto peer = query_audi_->get(active.validators[validator_index]);
-      if (peer) {
+      auto peer = query_audi_->get(active.discovery_keys[validator_index]);
+      if (peer.has_value()) {
         ++active.chunks_active;
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Systematic recovery progress. "
+                 "Asking validator #{} aka peer {}",
+                 candidate_hash,
+                 validator_index,
+                 peer->id);
         active.queried.emplace(validator_index);
         send_fetch_chunk_request(
             peer->id,
             candidate_hash,
             active.val2chunk(validator_index),  // chunk_index
             &RecoveryImpl::systematic_chunks_recovery);
+      } else {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Systematic recovery progress. "
+                 "PeerId of validator #{} is not discovered. Skipping... ",
+                 candidate_hash,
+                 validator_index);
       }
     }
 
@@ -394,6 +545,12 @@ namespace kagome::parachain {
           active.chunks_required);
       incFullRecoveriesFinished("systematic_chunks", "failure");
       lock.unlock();
+
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Systematic chunk recovery is not possible. "
+               "Trying to do regular chunks recovery",
+               candidate_hash);
       return regular_chunks_recovery_prepare(candidate_hash);
     }
   }
@@ -418,9 +575,23 @@ namespace kagome::parachain {
         active.chunks.emplace_back(std::move(chunk));
       }
     }
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Regular recovery preparation. "
+             "Already collected {} chunks",
+             candidate_hash,
+             active.chunks.size());
 
     // If existing chunks are already enough for regular chunk recovery
     if (active.chunks.size() >= active.chunks_required) {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Regular recovery preparation. "
+               "Already collected enough chunks ({} of {})",
+               candidate_hash,
+               active.chunks.size(),
+               active.chunks_required);
+
       auto data_res = fromChunks(active.chunks_total, active.chunks);
       [[unlikely]] if (data_res.has_error()) {
         active.systematic_chunk_failed = true;
@@ -461,6 +632,12 @@ namespace kagome::parachain {
          ++validator_index) {
       // Filter queried
       if (active.queried.contains(validator_index)) {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Regular recovery preparation. "
+                 "Validator #{} has ignored as already queried",
+                 candidate_hash,
+                 validator_index);
         continue;
       }
 
@@ -473,6 +650,13 @@ namespace kagome::parachain {
                   return c.index == chunk_index;
                 })
             != active.chunks.end()) {
+          SL_TRACE(
+              logger_,
+              "Candidate {}. "
+              "Regular recovery preparation. "
+              "Validator #{} has ignored because such chunk already exists",
+              candidate_hash,
+              validator_index);
           continue;
         }
       }
@@ -480,6 +664,12 @@ namespace kagome::parachain {
       active.order.emplace_back(validator_index);
     }
     std::shuffle(active.order.begin(), active.order.end(), random_);
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Regular recovery preparation. "
+             "{} validators in order for asking",
+             candidate_hash,
+             active.order.size());
 
     // Is it possible to collect enough chunks for recovery?
     auto is_possible_to_collect_required_chunks =
@@ -515,6 +705,14 @@ namespace kagome::parachain {
 
     // If existing chunks are already enough for regular chunk recovery
     if (active.chunks.size() >= active.chunks_required) {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Regular recovery progress. "
+               "Already collected enough chunks ({} of {})",
+               candidate_hash,
+               active.chunks.size(),
+               active.chunks_required);
+
       auto data_res = fromChunks(active.chunks_total, active.chunks);
       [[unlikely]] if (data_res.has_error()) {
         SL_DEBUG(logger_,
@@ -573,14 +771,28 @@ namespace kagome::parachain {
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
-      auto peer = query_audi_->get(active.validators[validator_index]);
+      auto peer = query_audi_->get(active.discovery_keys[validator_index]);
       if (peer.has_value()) {
         ++active.chunks_active;
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Regular recovery progress. "
+                 "Asking validator #{} aka peer {}",
+                 candidate_hash,
+                 validator_index,
+                 peer->id);
         active.queried.emplace(validator_index);
         send_fetch_chunk_request(peer->id,
                                  candidate_hash,
                                  active.val2chunk(validator_index),
                                  &RecoveryImpl::regular_chunks_recovery);
+      } else {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Regular recovery progress. "
+                 "PeerId of validator #{} is not discovered. Skipping... ",
+                 candidate_hash,
+                 validator_index);
       }
     }
 
@@ -605,33 +817,28 @@ namespace kagome::parachain {
       const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       SelfCb next_iteration) {
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Send available data request to peer {}",
+             candidate_hash,
+             peer_id);
+
     router_->getFetchAvailableDataProtocol()->doRequest(
         peer_id,
         candidate_hash,
         [weak{weak_from_this()}, candidate_hash, peer_id, next_iteration](
             outcome::result<network::FetchAvailableDataResponse> response_res) {
           if (auto self = weak.lock()) {
-            if (response_res.has_error()) {
-              SL_TRACE(self->logger_,
-                       "Fetching available data for candidate {} from {} "
-                       "returned error: {}",
-                       candidate_hash,
-                       peer_id,
-                       response_res.error());
-            } else if (boost::get<network::Empty>(&response_res.value())) {
-              SL_TRACE(self->logger_,
-                       "Fetching available data for candidate {} from {} "
-                       "returned empty",
-                       candidate_hash,
-                       peer_id);
-            }
-            self->handle_fetch_available_data_response(
-                candidate_hash, std::move(response_res), next_iteration);
+            self->handle_fetch_available_data_response(peer_id,
+                                                       candidate_hash,
+                                                       std::move(response_res),
+                                                       next_iteration);
           }
         });
   }
 
   void RecoveryImpl::handle_fetch_available_data_response(
+      const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       outcome::result<network::FetchAvailableDataResponse> response_res,
       SelfCb next_iteration) {
@@ -648,12 +855,36 @@ namespace kagome::parachain {
       if (auto data = boost::get<AvailableData>(&response_res.value())) {
         auto res = check(active, *data);
         [[unlikely]] if (res.has_error()) {
+          SL_TRACE(logger_,
+                   "Candidate {}. "
+                   "Peer {} returns INVALID data: {}",
+                   candidate_hash,
+                   peer_id,
+                   res.error());
           incFullRecoveriesFinished("full_from_backers", "invalid");
         } else {
+          SL_TRACE(logger_,
+                   "Candidate {}. "
+                   "Peer {} returns valid data",
+                   candidate_hash,
+                   peer_id);
           incFullRecoveriesFinished("full_from_backers", "success");
-          return done(lock, it, std::move(*data));
+          // return done(lock, it, std::move(*data));
         }
+      } else {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Peer {} returns Empty for available data request",
+                 candidate_hash,
+                 peer_id);
       }
+    } else {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Fetch available data request to peer {} was failed: {}",
+               candidate_hash,
+               peer_id,
+               response_res.error());
     }
 
     lock.unlock();
@@ -669,7 +900,9 @@ namespace kagome::parachain {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        SL_TRACE(logger_,
+                 "No PeerState of peer {}. Default one has created",
+                 peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
@@ -678,42 +911,25 @@ namespace kagome::parachain {
     auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
         network::ReqChunkVersion::V1_obsolete);
 
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Send chunk #{} request to peer {}",
+             candidate_hash,
+             chunk_index,
+             peer_id);
+
     switch (req_chunk_version) {
       case network::ReqChunkVersion::V2: {
-        SL_DEBUG(logger_,
-                 "Sent request of chunk {} of candidate {} to peer {}",
-                 chunk_index,
-                 candidate_hash,
-                 peer_id);
         router_->getFetchChunkProtocol()->doRequest(
             peer_id,
             {candidate_hash, chunk_index},
-            [weak{weak_from_this()},
-             candidate_hash,
-             chunk_index,
-             peer_id,
-             next_iteration](
+            [weak{weak_from_this()}, candidate_hash, peer_id, next_iteration](
                 outcome::result<network::FetchChunkResponse> response_res) {
               if (auto self = weak.lock()) {
-                if (response_res.has_value()) {
-                  SL_DEBUG(self->logger_,
-                           "Result of request chunk {} of candidate {} to "
-                           "peer {}: success",
-                           chunk_index,
-                           candidate_hash,
-                           peer_id);
-                } else {
-                  SL_DEBUG(self->logger_,
-                           "Result of request chunk {} of candidate {} to "
-                           "peer {}: {}",
-                           chunk_index,
-                           candidate_hash,
-                           peer_id,
-                           response_res.error());
-                }
-
-                self->handle_fetch_chunk_response(
-                    candidate_hash, std::move(response_res), next_iteration);
+                self->handle_fetch_chunk_response(peer_id,
+                                                  candidate_hash,
+                                                  std::move(response_res),
+                                                  next_iteration);
               }
             });
       } break;
@@ -739,10 +955,13 @@ namespace kagome::parachain {
                             .proof = std::move(chunk_obsolete.proof),
                         };
                       });
-                  self->handle_fetch_chunk_response(
-                      candidate_hash, std::move(response), next_iteration);
+                  self->handle_fetch_chunk_response(peer_id,
+                                                    candidate_hash,
+                                                    std::move(response),
+                                                    next_iteration);
                 } else {
-                  self->handle_fetch_chunk_response(candidate_hash,
+                  self->handle_fetch_chunk_response(peer_id,
+                                                    candidate_hash,
                                                     response_res.as_failure(),
                                                     next_iteration);
                 }
@@ -755,6 +974,7 @@ namespace kagome::parachain {
   }
 
   void RecoveryImpl::handle_fetch_chunk_response(
+      const libp2p::PeerId &peer_id,
       const CandidateHash &candidate_hash,
       outcome::result<network::FetchChunkResponse> response_res,
       SelfCb next_iteration) {
@@ -775,10 +995,56 @@ namespace kagome::parachain {
             .index = chunk->chunk_index,
             .proof = std::move(chunk->proof),
         };
-        if (checkTrieProof(erasure_chunk, active.erasure_encoding_root)) {
+        auto res = checkTrieProof(erasure_chunk, active.erasure_encoding_root);
+        if (res.has_value()) {
+          SL_TRACE(logger_,
+                   "Candidate {}. "
+                   "Peer {} returns valid chunk #{}",
+                   candidate_hash,
+                   peer_id,
+                   chunk->chunk_index);
           active.chunks.emplace_back(std::move(erasure_chunk));
+        } else {
+          SL_TRACE(logger_,
+                   "Candidate {}. "
+                   "Peer {} returns INVALID chunk #{}: {}",
+                   candidate_hash,
+                   peer_id,
+                   chunk->chunk_index,
+                   res.error());
+
+          for (ValidatorIndex vi = 0; vi < 4; ++vi) {
+            erasure_chunk.index = vi;
+            auto res =
+                checkTrieProof(erasure_chunk, active.erasure_encoding_root);
+            if (res.has_value()) {
+              SL_TRACE(logger_,
+                       "DEBUG!!! Candidate {}. success for chunk index {}",
+                       candidate_hash,
+                       erasure_chunk.index);
+            } else {
+              SL_TRACE(logger_,
+                       "DEBUG!!! Candidate {}. fail for chunk index {}: {}",
+                       candidate_hash,
+                       erasure_chunk.index,
+                       res.error());
+            }
+          }
         }
+      } else {
+        SL_TRACE(logger_,
+                 "Candidate {}. "
+                 "Peer {} returns Empty for chunk request",
+                 candidate_hash,
+                 peer_id);
       }
+    } else {
+      SL_TRACE(logger_,
+               "Candidate {}. "
+               "Fetch chunk request to peer {} was failed: {}",
+               candidate_hash,
+               peer_id,
+               response_res.error());
     }
 
     lock.unlock();
@@ -791,11 +1057,6 @@ namespace kagome::parachain {
     OUTCOME_TRY(chunks, toChunks(active.chunks_total, data));
     auto root = makeTrieProof(chunks);
     if (root != active.erasure_encoding_root) {
-      SL_TRACE(logger_,
-               "Trie root mismatch. (root={}, ref root={}, n_validators={})",
-               root,
-               active.erasure_encoding_root,
-               active.validators.size());
       return ErasureCodingRootError::MISMATCH;
     }
     return outcome::success();
@@ -811,6 +1072,16 @@ namespace kagome::parachain {
     }
 
     auto node = active_.extract(it);
+
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Stop recovery. "
+             "has result: {}, "
+             "has data: {}",
+             it->first,
+             result_op.has_value(),
+             result_op.has_value() ? result_op.value().has_value() : false);
+
     lock.unlock();
     for (auto &cb : node.mapped().cb) {
       cb(result_op);

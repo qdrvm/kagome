@@ -74,7 +74,7 @@ namespace kagome::parachain {
       ChunkIndex chunks_total = 0;
       ChunkIndex chunks_required = 0;
       std::vector<Cb> cb;
-      std::vector<primitives::AuthorityDiscoveryId> validators;
+      std::vector<primitives::AuthorityDiscoveryId> discovery_keys;
       std::vector<ValidatorIndex> validators_of_group;
       std::vector<ValidatorIndex> order;
       std::set<ValidatorIndex> queried;
@@ -100,10 +100,11 @@ namespace kagome::parachain {
     void regular_chunks_recovery(const CandidateHash &candidate_hash);
 
     // Fetch available data protocol communication
-    void send_fetch_available_data_request(const libp2p::PeerId &response_res,
+    void send_fetch_available_data_request(const libp2p::PeerId &peer_id,
                                            const CandidateHash &candidate_hash,
                                            SelfCb next_iteration);
     void handle_fetch_available_data_response(
+        const libp2p::PeerId &peer_id,
         const CandidateHash &candidate_hash,
         outcome::result<network::FetchAvailableDataResponse> response_res,
         SelfCb next_iteration);
@@ -114,6 +115,7 @@ namespace kagome::parachain {
                                   ChunkIndex chunk_index,
                                   SelfCb next_iteration);
     void handle_fetch_chunk_response(
+        const libp2p::PeerId &peer_id,
         const CandidateHash &candidate_hash,
         outcome::result<network::FetchChunkResponse> response_res,
         SelfCb next_iteration);

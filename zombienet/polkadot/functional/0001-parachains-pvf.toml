@@ -8,45 +8,78 @@ chain = "rococo-local"
 limits = { memory = "4G", cpu = "2" }
 requests = { memory = "2G", cpu = "1" }
 
+#  [[relaychain.nodes]]
+#  name = "alice"
+#  args = [ "--alice", "-lparachain=debug,runtime=debug" ]
+
+#  [[relaychain.nodes]]
+#  name = "bob"
+#  command = "kagome"
+#  prometheus_prefix = "kagome"
+#  args = [ "--bob", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=debug"]
+
+
+#  [[relaychain.nodes]]
+#  name = "bob"
+#  args = [ "--bob", "-lparachain=debug,runtime=debug" ]
+
   [[relaychain.nodes]]
   name = "alice"
-  args = [ "--alice", "-lparachain=debug,runtime=debug" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--alice", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "bob"
-  args = [ "--bob", "-lparachain=debug,runtime=debug" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--bob", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "charlie"
-  args = [ "--charlie", "-lparachain=debug,runtime=debug" ]
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = [ "--charlie", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "dave"
-  args = [ "--dave", "-lparachain=debug,runtime=debug" ]
-
-  [[relaychain.nodes]]
-  name = "ferdie"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--ferdie", "--wasm-execution Compiled", "-lparachain=debug", "-lnetwork=debug"]
+  args = [ "--dave", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
-  [[relaychain.nodes]]
-  name = "eve"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--eve", "--wasm-execution Compiled", "-lparachain=debug", "-lnetwork=debug"]
 
-  [[relaychain.nodes]]
-  name = "one"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--one", "--wasm-execution Compiled", "-lparachain=debug", "-lnetwork=debug"]
 
-  [[relaychain.nodes]]
-  name = "two"
-  command = "kagome"
-  prometheus_prefix = "kagome"
-  args = [ "--two", "--wasm-execution Compiled", "-lparachain=debug", "-lruntime=debug", "-lreq_chunk_protocol=trace"]
+#  [[relaychain.nodes]]
+#  name = "charlie"
+#  args = [ "--charlie", "-lparachain=debug,runtime=debug" ]
+#
+#  [[relaychain.nodes]]
+#  name = "dave"
+#  args = [ "--dave", "-lparachain=debug,runtime=debug" ]
+#
+#  [[relaychain.nodes]]
+#  name = "ferdie"
+#  command = "kagome"
+#  prometheus_prefix = "kagome"
+#  args = [ "--ferdie", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=debug", "-lnetwork=debug"]
+#
+#  [[relaychain.nodes]]
+#  name = "eve"
+#  command = "kagome"
+#  prometheus_prefix = "kagome"
+#  args = [ "--eve", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=debug", "-lnetwork=debug"]
+#
+#  [[relaychain.nodes]]
+#  name = "one"
+#  command = "kagome"
+#  prometheus_prefix = "kagome"
+#  args = [ "--one", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace" ]
+#
+#  [[relaychain.nodes]]
+#  name = "two"
+#  command = "kagome"
+#  prometheus_prefix = "kagome"
+#  args = [ "--two", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=debug", "-lruntime=debug", "-lreq_chunk_protocol=trace"]
 
 [[parachains]]
 id = 2000
@@ -88,45 +121,45 @@ genesis_state_generator = "undying-collator export-genesis-state --pov-size=2000
   command = "undying-collator"
   args = ["-lparachain=debug", "--pov-size=20000", "--parachain-id=2003", "--pvf-complexity=300"]
 
-[[parachains]]
-id = 2004
-addToGenesis = true
-genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
-
-  [parachains.collator]
-  name = "collator05"
-  command = "undying-collator"
-  args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2004", "--pvf-complexity=300"]
-
-[[parachains]]
-id = 2005
-addToGenesis = true
-genesis_state_generator = "undying-collator export-genesis-state --pov-size=20000 --pvf-complexity=400"
-
-  [parachains.collator]
-  name = "collator06"
-  command = "undying-collator"
-  args = ["-lparachain=debug", "--pov-size=20000",  "--pvf-complexity=400", "--parachain-id=2005"]
-
-[[parachains]]
-id = 2006
-addToGenesis = true
-genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
-
-  [parachains.collator]
-  name = "collator07"
-  command = "undying-collator"
-  args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2006"]
-
-[[parachains]]
-id = 2007
-addToGenesis = true
-genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
-
-  [parachains.collator]
-  name = "collator08"
-  command = "undying-collator"
-  args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2007"]
+#[[parachains]]
+#id = 2004
+#addToGenesis = true
+#genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
+#
+#  [parachains.collator]
+#  name = "collator05"
+#  command = "undying-collator"
+#  args = ["-lparachain=debug", "--pov-size=100000", "--parachain-id=2004", "--pvf-complexity=300"]
+#
+#[[parachains]]
+#id = 2005
+#addToGenesis = true
+#genesis_state_generator = "undying-collator export-genesis-state --pov-size=20000 --pvf-complexity=400"
+#
+#  [parachains.collator]
+#  name = "collator06"
+#  command = "undying-collator"
+#  args = ["-lparachain=debug", "--pov-size=20000",  "--pvf-complexity=400", "--parachain-id=2005"]
+#
+#[[parachains]]
+#id = 2006
+#addToGenesis = true
+#genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
+#
+#  [parachains.collator]
+#  name = "collator07"
+#  command = "undying-collator"
+#  args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2006"]
+#
+#[[parachains]]
+#id = 2007
+#addToGenesis = true
+#genesis_state_generator = "undying-collator export-genesis-state --pov-size=100000 --pvf-complexity=300"
+#
+#  [parachains.collator]
+#  name = "collator08"
+#  command = "undying-collator"
+#  args = ["-lparachain=debug", "--pov-size=100000",  "--pvf-complexity=300", "--parachain-id=2007"]
 
 [types.Header]
 number = "u64"
