@@ -1475,25 +1475,55 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
+    std::unordered_set<libp2p::peer::PeerId> active_peers;
+    pm_->enumeratePeerState(
+        [&](const libp2p::peer::PeerId &peer, network::PeerState &_) {
+          active_peers.insert(peer);
+          return true;
+        });
+
+    network::View our_current_view{
+        .heads_ = block_tree_->getLeaves(),
+        .finalized_number_ = block_tree_->getLastFinalized().number,
+    };
+
     approval_thread_handler_->execute([wself{weak_from_this()},
+                                       our_current_view{
+                                           std::move(our_current_view)},
+                                       active_peers{std::move(active_peers)},
                                        new_hash,
-                                       finalized_block_number,
                                        meta{std::move(meta)}]() {
       if (auto self = wself.lock()) {
         SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
-        for (const auto &[peed_id, view] : self->peer_views_) {
-          for (const auto &h : view.heads_) {
-            if (h == meta.hash) {
-              self->unify_with_peer(
-                  self->storedDistribBlockEntries(),
-                  peed_id,
-                  network::View{
-                      .heads_ = {h},
-                      .finalized_number_ = finalized_block_number,
-                  },
-                  false);
-            }
+        // std::unordered_map<libp2p::peer::PeerId, network::View>
+        // peer_views(std::move(self->peer_views_));
+        for (auto it = self->peer_views_.begin();
+             it != self->peer_views_.end();) {
+          if (active_peers.contains(it->first)) {
+            ++it;
+          } else {
+            it = self->peer_views_.erase(it);
           }
+        }
+
+        for (const auto &p : active_peers) {
+          std::ignore = self->peer_views_[p];
+        }
+
+        for (const auto &[peed_id, view] : self->peer_views_) {
+          network::View view_intersection{
+              .heads_ = {},
+              .finalized_number_ = view.finalized_number_,
+          };
+
+          if (new_hash && view.contains(*new_hash)) {
+            view_intersection.heads_.emplace_back(*new_hash);
+          }
+
+          self->unify_with_peer(self->storedDistribBlockEntries(),
+                                peed_id,
+                                view_intersection,
+                                false);
         }
 
         for (auto it = self->pending_known_.begin();
@@ -2140,8 +2170,10 @@ namespace kagome::parachain {
             ApprovalRouting{
                 .required_routing =
                     grid::RequiredRouting{
-                        .value = grid::RequiredRouting::
-                            GridXY},  /// TODO(iceseer): calculate based on grid
+                        .value =
+                            grid::RequiredRouting::All},  /// TODO(iceseer):
+                                                          /// calculate
+                                                          /// based on grid
                 .local = local,
                 .random_routing = {},
                 .peers_randomly_routed = {},
