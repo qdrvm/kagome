@@ -181,7 +181,7 @@ namespace kagome::telemetry {
 
     uint64_t previous_bytes_read_{0};
     uint64_t previous_bytes_written_{0};
-    std::optional<std::chrono::system_clock::time_point>
+    std::optional<std::chrono::high_resolution_clock::time_point>
         previous_bandwidth_calculated_;
   };
 
