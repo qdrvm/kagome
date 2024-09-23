@@ -27,25 +27,25 @@ requests = { memory = "2G", cpu = "1" }
   name = "alice"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--alice", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace"]
+  args = [ "--alice", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--bob", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace"]
+  args = [ "--bob", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "charlie"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--charlie", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace"]
+  args = [ "--charlie", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "dave"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--dave", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace"]
+  args = [ "--dave", "--wasm-execution Compiled", "--parachain-single-process", "-lparachain=trace", "-ldispute=trace", "-lnetwork=trace", "-lgrandpa=trace"]
 
 
 
