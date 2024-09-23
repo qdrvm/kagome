@@ -241,6 +241,11 @@ namespace kagome::parachain {
     void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
                                     network::CollationVersion version);
 
+    template <typename F>
+    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
+                                         network::CollationVersion version,
+                                         F &&callback);
+
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
@@ -1049,10 +1054,6 @@ namespace kagome::parachain {
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
                                         F &&callback);
-    template <typename F>
-    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
-                                         network::CollationVersion version,
-                                         F &&callback);
     template <typename F>
     bool tryOpenOutgoingStream(const libp2p::peer::PeerId &peer_id,
                                std::shared_ptr<network::ProtocolBase> protocol,

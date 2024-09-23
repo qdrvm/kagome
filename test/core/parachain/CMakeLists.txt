@@ -47,6 +47,7 @@ addtest(prospective_parachains_test
     )
 
 target_link_libraries(prospective_parachains_test
+    validator_parachain
     prospective_parachains
     log_configurator
     base_fs_test

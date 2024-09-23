@@ -37,10 +37,6 @@ class FragmentChainTest : public ProspectiveParachainsTestHarness {
         [&](const auto &c) { unconnected.insert(c.candidate_hash); });
     return unconnected;
   }
-
-  Hash hash(const network::CommittedCandidateReceipt &data) {
-    return network::candidateHash(*hasher_, data);
-  }
 };
 
 TEST_F(FragmentChainTest, init_and_populate_from_empty) {

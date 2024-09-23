@@ -19,13 +19,12 @@ struct fmt::formatter<std::vector<kagome::parachain::fragment::BlockInfoProspect
 
   template <typename FormatContext>
   auto format(const std::vector<kagome::parachain::fragment::BlockInfoProspectiveParachains> &data, FormatContext &ctx) const -> decltype(ctx.out()) {
-    std::string out = "[";
+    auto out = fmt::format_to(ctx.out(), "[ ");
     for (const auto &i : data) {
-      out += fmt::format("BlockInfoProspectiveParachains {{ hash = {}, parent_hash = {}, number = {}, storage_root = {} }}, ", 
+      out = fmt::format_to(out, "BlockInfoProspectiveParachains {{ hash = {}, parent_hash = {}, number = {}, storage_root = {} }}, ", 
         i.hash, i.parent_hash, i.number, i.storage_root);
     }
-    out += "]";
-    return fmt::format_to(ctx.out(), "{}", out);
+    return fmt::format_to(ctx.out(), "]");
   }
 };
 

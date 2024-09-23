@@ -136,6 +136,10 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     return ghashFromStrData(hasher_, data);
   }
 
+  Hash hash(const network::CommittedCandidateReceipt &data) {
+    return network::candidateHash(*hasher_, data);
+  }
+
   fragment::Constraints make_constraints(
       BlockNumber min_relay_parent_number,
       std::vector<BlockNumber> valid_watermarks,
