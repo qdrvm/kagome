@@ -869,7 +869,7 @@ namespace kagome::parachain {
                    candidate_hash,
                    peer_id);
           incFullRecoveriesFinished("full_from_backers", "success");
-          return done(lock, it, std::move(*data));
+          // return done(lock, it, std::move(*data));
         }
       } else {
         SL_TRACE(logger_,
