@@ -320,7 +320,7 @@ namespace kagome::parachain {
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
-    const auto& context_params = executor_params.context_params;
+    const auto &context_params = executor_params.context_params;
 
     constexpr auto name = "validate_block";
     CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, context_params));
@@ -354,7 +354,9 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
-        .timeout = executor_params.pvf_exec_timeout_backing_ms,
+        .timeout =
+            std::chrono::milliseconds{
+                executor_params.pvf_exec_timeout_backing_ms},
     });
   }
 

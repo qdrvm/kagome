@@ -46,7 +46,7 @@ namespace kagome::parachain {
       PvfWorkerInputCodePath code_path;
       Buffer args;
       Cb cb;
-      uint64_t timeout = 0;
+      std::chrono::milliseconds timeout{0};
     };
     void execute(Job &&job);
 

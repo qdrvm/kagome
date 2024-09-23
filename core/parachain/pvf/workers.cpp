@@ -215,8 +215,7 @@ namespace kagome::parachain {
       timeout->reset();
     };
     *timeout = scheduler_->scheduleWithHandle(
-        [cb]() mutable { cb(std::errc::timed_out); },
-        std::chrono::milliseconds{job.timeout});
+        [cb]() mutable { cb(std::errc::timed_out); }, job.timeout);
     worker.process->writeScale(PvfWorkerInput{job.args},
                                [cb](outcome::result<void> r) mutable {
                                  if (not r) {
