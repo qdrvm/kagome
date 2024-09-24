@@ -44,7 +44,6 @@ namespace kagome::runtime {
 
     // https://github.com/paritytech/polkadot-sdk/blob/e16ef0861f576dd260487d78b57949b18795ed77/polkadot/primitives/src/v6/executor_params.rs#L32
     static constexpr size_t DEFAULT_STACK_MAX = 65536;
-
     struct ContextParams {
       SCALE_TIE(1);
       MemoryLimits memory_limits;
