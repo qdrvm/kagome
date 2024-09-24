@@ -32,6 +32,7 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "utils/weak_macro.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
@@ -2592,7 +2593,7 @@ namespace kagome::parachain {
       parachain_processor_->tryOpenOutgoingValidationStream(
           peer,
           network::CollationVersion::VStaging,
-          [WEAK_SELF, peer{peer}, se, msg](auto &&stream) {
+          [WEAK_SELF, peer{peer}, se, msg]() {
             WEAK_LOCK(self);
             se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
           });
@@ -2718,7 +2719,7 @@ namespace kagome::parachain {
       parachain_processor_->tryOpenOutgoingValidationStream(
           peer,
           network::CollationVersion::VStaging,
-          [WEAK_SELF, peer{peer}, se, msg](auto &&stream) {
+          [WEAK_SELF, peer{peer}, se, msg]() {
             WEAK_LOCK(self);
             se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
           });
