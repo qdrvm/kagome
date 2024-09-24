@@ -20,7 +20,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_params,
                 api.session_executor_params(relay_parent, session_index));
     RuntimeParams config;
-    auto& contextParams = config.context_params;
+    auto &contextParams = config.context_params;
     contextParams.memory_limits.max_stack_values_num =
         runtime::RuntimeContext::DEFAULT_STACK_MAX;
     contextParams.memory_limits.heap_alloc_strategy =
@@ -28,13 +28,23 @@ namespace kagome::parachain {
     if (session_params) {
       for (auto &param : *session_params) {
         if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
-          contextParams.memory_limits.max_stack_values_num = stack_max->max_values_num;
+          contextParams.memory_limits.max_stack_values_num =
+              stack_max->max_values_num;
         } else if (auto *pages_max = get_if<runtime::MaxMemoryPages>(&param)) {
-          contextParams.memory_limits.heap_alloc_strategy = HeapAllocStrategyDynamic{
-              kDefaultHeapPagesEstimate + pages_max->limit};
-        } else if (auto *pvfExecTimeout = get_if<runtime::PvfExecTimeout>(&param)) {
-          if (pvfExecTimeout->kind == runtime::PvfExecTimeoutKind::Backing) {
-            config.pvf_exec_timeout_backing_ms = pvfExecTimeout->msec;
+          contextParams.memory_limits.heap_alloc_strategy =
+              HeapAllocStrategyDynamic{kDefaultHeapPagesEstimate
+                                       + pages_max->limit};
+        } else if (auto *pvfExecTimeout =
+                       get_if<runtime::PvfExecTimeout>(&param)) {
+          switch (pvfExecTimeout->kind) {
+            case runtime::PvfExecTimeoutKind::Backing:
+              config.pvf_exec_timeout_backing_ms = pvfExecTimeout->msec;
+              break;
+            case runtime::PvfExecTimeoutKind::Approval:
+              config.pvf_exec_timeout_approval_ms = pvfExecTimeout->msec;
+              break;
+            default:
+              break;
           }
         }
       }
