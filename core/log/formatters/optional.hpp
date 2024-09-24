@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <optional>
 #include <ranges>
@@ -24,7 +24,7 @@ struct fmt::formatter<Optional<T>> {
 
     // Check if reached the end of the range:
     if (it != end && *it != '}') {
-      throw fmt::format_error("invalid format");
+      throw format_error("invalid format");
     }
 
     // Return an iterator past the end of the parsed range:
