@@ -78,7 +78,7 @@ namespace kagome::application::mode {
       auto code_hash = hasher_->blake2b_256(bytes);
       OUTCOME_TRY(config,
                   parachain::sessionParams(*parachain_api_, block.hash));
-      OUTCOME_TRY(module_factory_->precompile(code_hash, bytes, config));
+      OUTCOME_TRY(module_factory_->precompile(code_hash, bytes, config.context_params));
     }
     return outcome::success();
   }

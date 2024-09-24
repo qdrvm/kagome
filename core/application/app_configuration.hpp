@@ -258,12 +258,6 @@ namespace kagome::application {
     virtual bool usePvfSubprocess() const = 0;
 
     /**
-     * Timeout for Pvf check calls execution.
-     * Effective only when usePvfSubprocess() == true.
-     */
-    virtual std::chrono::milliseconds pvfSubprocessDeadline() const = 0;
-
-    /**
      * Max PVF execution threads or processes.
      */
     virtual size_t pvfMaxWorkers() const = 0;
