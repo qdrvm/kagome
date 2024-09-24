@@ -388,7 +388,13 @@ namespace {
             boost::get<kagome::parachain::approval::ExactRequiredTranche>(
                 &required)}) {
       auto assigned_mask = approval.assignments_up_to(exact->needed);
-      const auto &approvals = candidate.approvals;
+      kagome::log::Logger logger_ =
+          kagome::log::createLogger("ApprovalDistribution", "parachain");
+      SL_TRACE(logger_,
+               "assigned_mask=[{}] approvals=[{}] (candidate={})",
+               fmt::join(assigned_mask.bits, ","),
+               fmt::join(approvals.bits, ","),
+               candidate.candidate.getHash());
       const auto n_assigned =
           kagome::parachain::approval::count_ones(assigned_mask);
       filter(assigned_mask, approvals);
