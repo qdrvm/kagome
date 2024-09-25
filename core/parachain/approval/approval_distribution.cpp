@@ -32,6 +32,7 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "utils/weak_macro.hpp"
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
@@ -387,7 +388,13 @@ namespace {
             boost::get<kagome::parachain::approval::ExactRequiredTranche>(
                 &required)}) {
       auto assigned_mask = approval.assignments_up_to(exact->needed);
-      const auto &approvals = candidate.approvals;
+      kagome::log::Logger logger_ =
+          kagome::log::createLogger("ApprovalDistribution", "parachain");
+      SL_TRACE(logger_,
+               "assigned_mask=[{}] approvals=[{}] (candidate={})",
+               fmt::join(assigned_mask.bits, ","),
+               fmt::join(approvals.bits, ","),
+               candidate.candidate.getHash());
       const auto n_assigned =
           kagome::parachain::approval::count_ones(assigned_mask);
       filter(assigned_mask, approvals);
@@ -1469,25 +1476,55 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
+    std::unordered_set<libp2p::peer::PeerId> active_peers;
+    pm_->enumeratePeerState(
+        [&](const libp2p::peer::PeerId &peer, network::PeerState &_) {
+          active_peers.insert(peer);
+          return true;
+        });
+
+    network::View our_current_view{
+        .heads_ = block_tree_->getLeaves(),
+        .finalized_number_ = block_tree_->getLastFinalized().number,
+    };
+
     approval_thread_handler_->execute([wself{weak_from_this()},
+                                       our_current_view{
+                                           std::move(our_current_view)},
+                                       active_peers{std::move(active_peers)},
                                        new_hash,
-                                       finalized_block_number,
                                        meta{std::move(meta)}]() {
       if (auto self = wself.lock()) {
         SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
-        for (const auto &[peed_id, view] : self->peer_views_) {
-          for (const auto &h : view.heads_) {
-            if (h == meta.hash) {
-              self->unify_with_peer(
-                  self->storedDistribBlockEntries(),
-                  peed_id,
-                  network::View{
-                      .heads_ = {h},
-                      .finalized_number_ = finalized_block_number,
-                  },
-                  false);
-            }
+        // std::unordered_map<libp2p::peer::PeerId, network::View>
+        // peer_views(std::move(self->peer_views_));
+        for (auto it = self->peer_views_.begin();
+             it != self->peer_views_.end();) {
+          if (active_peers.contains(it->first)) {
+            ++it;
+          } else {
+            it = self->peer_views_.erase(it);
           }
+        }
+
+        for (const auto &p : active_peers) {
+          std::ignore = self->peer_views_[p];
+        }
+
+        for (const auto &[peed_id, view] : self->peer_views_) {
+          network::View view_intersection{
+              .heads_ = {},
+              .finalized_number_ = view.finalized_number_,
+          };
+
+          if (new_hash && view.contains(*new_hash)) {
+            view_intersection.heads_.emplace_back(*new_hash);
+          }
+
+          self->unify_with_peer(self->storedDistribBlockEntries(),
+                                peed_id,
+                                view_intersection,
+                                false);
         }
 
         for (auto it = self->pending_known_.begin();
@@ -2134,8 +2171,10 @@ namespace kagome::parachain {
             ApprovalRouting{
                 .required_routing =
                     grid::RequiredRouting{
-                        .value = grid::RequiredRouting::
-                            GridXY},  /// TODO(iceseer): calculate based on grid
+                        .value =
+                            grid::RequiredRouting::All},  /// TODO(iceseer):
+                                                          /// calculate
+                                                          /// based on grid
                 .local = local,
                 .random_routing = {},
                 .peers_randomly_routed = {},
@@ -2547,17 +2586,24 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Assignments{
-                    .assignments = {network::vstaging::Assignment{
-                        .indirect_assignment_cert = indirect_cert,
-                        .candidate_bitfield = candidate_indices,
-                    }}}}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    auto msg = std::make_shared<
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Assignments{
+                .assignments = {network::vstaging::Assignment{
+                    .indirect_assignment_cert = indirect_cert,
+                    .candidate_bitfield = candidate_indices,
+                }}}});
+
+    for (const auto &peer : peers) {
+      parachain_processor_->tryOpenOutgoingValidationStream(
+          peer,
+          network::CollationVersion::VStaging,
+          [WEAK_SELF, peer{peer}, se, msg]() {
+            WEAK_LOCK(self);
+            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
+          });
+    }
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2668,15 +2714,22 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Approvals{
-                    .approvals = {vote},
-                }}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    auto msg = std::make_shared<
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Approvals{
+                .approvals = {vote},
+            }});
+
+    for (const auto &peer : peers) {
+      parachain_processor_->tryOpenOutgoingValidationStream(
+          peer,
+          network::CollationVersion::VStaging,
+          [WEAK_SELF, peer{peer}, se, msg]() {
+            WEAK_LOCK(self);
+            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
+          });
+    }
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
@@ -3036,6 +3089,37 @@ namespace kagome::parachain {
                            status.block_tick,
                            tick_now,
                            status.required_tranches);
+
+    if (is_approved && is_remote_approval(transition)) {
+      for (const auto &[fork_block_hash, fork_approval_entry] :
+           candidate_entry.block_assignments) {
+        if (fork_block_hash == block_hash) {
+          continue;
+        }
+
+        bool assigned_on_fork_block = false;
+        if (validator_index) {
+          assigned_on_fork_block =
+              fork_approval_entry.is_assigned(*validator_index);
+        }
+
+        if (!wakeup_for(fork_block_hash, candidate_hash)
+            && !fork_approval_entry.approved && assigned_on_fork_block) {
+          auto opt_fork_block_entry = storedBlockEntries().get(fork_block_hash);
+          if (!opt_fork_block_entry) {
+            SL_TRACE(logger_,
+                     "Failed to load block entry. (fork_block_hash={})",
+                     fork_block_hash);
+          } else {
+            runScheduleWakeup(fork_block_hash,
+                              opt_fork_block_entry->get().block_number,
+                              candidate_hash,
+                              tick_now + 1);
+          }
+        }
+      }
+    }
+
     if (approval::is_local_approval(transition) || newly_approved
         || (already_approved_by && !*already_approved_by)) {
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
@@ -3106,6 +3190,12 @@ namespace kagome::parachain {
         },
         std::chrono::milliseconds(ms_wakeup_after));
     target_block[candidate_hash].emplace_back(tick, std::move(handle));
+  }
+
+  bool ApprovalDistribution::wakeup_for(const primitives::BlockHash &block_hash,
+                                        const CandidateHash &candidate_hash) {
+    auto it = active_tranches_.find(block_hash);
+    return it != active_tranches_.end() && it->second.contains(candidate_hash);
   }
 
   void ApprovalDistribution::handleTranche(
