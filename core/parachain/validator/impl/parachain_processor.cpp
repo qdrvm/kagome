@@ -671,6 +671,7 @@ namespace kagome::parachain {
         }
       }
 
+      av_store_->remove(lost);
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.state_by_relay_parent.erase(lost);
     }
@@ -807,7 +808,6 @@ namespace kagome::parachain {
                lost.number);
 
       backing_store_->onDeactivateLeaf(lost.hash);
-      // av_store_->remove(lost.hash);
       bitfield_store_->remove(lost.hash);
     }
 
