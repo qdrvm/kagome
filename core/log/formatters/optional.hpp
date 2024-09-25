@@ -19,16 +19,7 @@ template <template <typename> class Optional, typename T>
         or std::is_same_v<Optional<T>, boost::optional<T>>
 struct fmt::formatter<Optional<T>> {
   constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
-    // Parse the presentation format and store it in the formatter:
-    auto it = ctx.begin(), end = ctx.end();
-
-    // Check if reached the end of the range:
-    if (it != end && *it != '}') {
-      throw format_error("invalid format");
-    }
-
-    // Return an iterator past the end of the parsed range:
-    return it;
+    return ctx.begin();
   }
 
   template <typename FormatContext>
