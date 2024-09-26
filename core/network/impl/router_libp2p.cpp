@@ -129,7 +129,7 @@ namespace kagome::network {
     // lazyStart(validation_protocol_);
 
     lazyStart(collation_protocol_vstaging_);
-    lazyStart(validation_protocol_vstaging_);
+//    lazyStart(validation_protocol_vstaging_);
     lazyStart(req_collation_protocol_);
     lazyStart(req_pov_protocol_);
     lazyStart(fetch_chunk_protocol_);
