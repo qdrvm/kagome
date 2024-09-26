@@ -284,6 +284,7 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onVoted(RoundNumber round,
                                 VoterSetId set_id,
                                 const SignedMessage &vote) {
+    return;
     main_pool_handler_->execute(
         [wself{weak_from_this()}, round, set_id, vote]() mutable {
           if (auto self = wself.lock()) {
