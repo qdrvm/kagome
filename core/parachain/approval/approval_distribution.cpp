@@ -1726,17 +1726,19 @@ namespace kagome::parachain {
           auto cb = [weak_self{wself},
                      hashed_candidate,
                      session_index,
-                     validator_index,
-                     relay_block_hash](outcome::result<Pvf::Result> outcome) {
+                     validator_index](outcome::result<Pvf::Result> outcome) {
             auto self = weak_self.lock();
             if (not self) {
               return;
             }
             const auto &candidate_receipt = hashed_candidate.get();
+
+            std::vector<Hash> advence_hashes;
             self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
               if (auto it = approvals_cache.find(hashed_candidate.getHash());
                   it != approvals_cache.end()) {
                 ApprovalCache &ac = it->second;
+                advence_hashes.assign(ac.blocks_.begin(), ac.blocks_.end());
                 ac.approval_result = outcome.has_error()
                                        ? ApprovalOutcome::Failed
                                        : ApprovalOutcome::Approved;
@@ -1755,9 +1757,11 @@ namespace kagome::parachain {
                   candidate_receipt,
                   false);
             } else {
+             for (const auto &b : advence_hashes) {
               self->issue_approval(hashed_candidate.getHash(),
                                    validator_index,
-                                   relay_block_hash);
+                                   b);
+             }
             }
           };
           self->pvf_->pvfValidate(available_data.validation_data,
