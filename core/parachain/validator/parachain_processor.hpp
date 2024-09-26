@@ -1052,6 +1052,10 @@ namespace kagome::parachain {
                                         F &&callback);
 
    public:
+    std::shared_ptr<authority_discovery::Query> get_audi() {
+        return query_audi_;
+    }
+    
     template <typename F>
     bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
                                          network::CollationVersion version,
