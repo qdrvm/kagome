@@ -312,6 +312,7 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
                                   const MovableRoundState &state,
                                   VoterSetId voter_set_id) {
+    return;
     main_pool_handler_->execute(
         [wself{weak_from_this()}, peer_id, voter_set_id, state]() mutable {
           if (auto self = wself.lock()) {
