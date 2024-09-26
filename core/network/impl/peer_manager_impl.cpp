@@ -833,6 +833,11 @@ namespace kagome::network {
     }
 
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
+    if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
+      connecting_peers_.erase(peer_info.id);
+      disconnectFromPeer(peer_info.id);
+      return;
+    }
     openBlockAnnounceProtocol(
         peer_info,
         connection,
