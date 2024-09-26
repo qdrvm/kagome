@@ -58,6 +58,12 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   )
 
   hunter_config(
+      libp2p
+      URL  https://github.com/libp2p/cpp-libp2p/archive/0f8c412f6e033adfd6b098de45167f5cef97bc0e.zip
+      SHA1 f195933b742a0cae4dc8529c94ee67cf8d3d1949
+  )
+
+  hunter_config(
       WasmEdge
       URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
       SHA1 ${WASMEDGE_ID}
