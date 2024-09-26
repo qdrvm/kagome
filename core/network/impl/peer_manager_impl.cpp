@@ -331,9 +331,9 @@ namespace kagome::network {
 
     for (const auto &[peer_id, desc] : active_peers_) {
       // Skip peer having immunity
-      if (not can_disconnect_.get()->canDisconnect(peer_id)) {
-        continue;
-      }
+      //      if (not can_disconnect_.get()->canDisconnect(peer_id)) {
+      //        continue;
+      //      }
 
       const uint64_t last_activity_ms =
           std::chrono::time_point_cast<std::chrono::milliseconds>(
