@@ -34,6 +34,22 @@ namespace kagome::network {
 
     Roles() : value(0) {}
     Roles(uint8_t v) : value(v) {}
+
+    // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L101
+    bool isFull() const {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+      return flags.full != 0 or isAuthority();
+    }
+
+    bool isAuthority() const {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+      return flags.authority != 0;
+    }
+
+    // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L111
+    bool isLight() const {
+      return not isFull();
+    }
   };
 
   inline std::string to_string(Roles r) {

@@ -18,8 +18,7 @@ namespace kagome::crypto {
       const KeySuiteStore<T> &store,
       const std::vector<A> &authorities,
       const Eq &eq) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    if (not roles_.flags.authority) {
+    if (not roles_.isAuthority()) {
       return std::nullopt;
     }
     if (cache) {

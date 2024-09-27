@@ -123,10 +123,8 @@ namespace kagome::application {
     }
 
 #ifdef __linux__
-    if (!app_config_->disableSecureMode()
-        && app_config_->usePvfSubprocess()
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        && app_config_->roles().flags.authority) {
+    if (not app_config_->disableSecureMode() and app_config_->usePvfSubprocess()
+        and app_config_->roles().isAuthority()) {
       auto res = parachain::runSecureModeCheckProcess(
           *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
       if (!res) {
