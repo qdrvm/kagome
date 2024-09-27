@@ -161,8 +161,7 @@ namespace kagome::network {
 
     auto filter = [&, &msg = vote_message](const PeerId &peer_id,
                                            const PeerState &info) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      if (info.roles.flags.light != 0) {
+      if (info.roles.isLight()) {
         return false;
       }
 
@@ -263,8 +262,7 @@ namespace kagome::network {
       }
       const auto &info = info_opt.value().get();
 
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      if (not set_changed and info.roles.flags.light) {
+      if (not set_changed and info.roles.isLight()) {
         return false;
       }
 
@@ -538,9 +536,7 @@ namespace kagome::network {
         if (not predicate(peer, info)) {
           return;
         }
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        (info.roles.flags.authority != 0 ? authorities : any)
-            .emplace_back(peer);
+        (info.roles.isAuthority() ? authorities : any).emplace_back(peer);
       }
     });
     auto hash = getHash(*message);

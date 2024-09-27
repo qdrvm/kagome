@@ -2584,7 +2584,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::broadcastToAllPeers(const Hash &block_hash, const std::shared_ptr<network::WireMessage<network::vstaging::ValidatorProtocolMessage>> &msg) {
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);             
+    BOOST_ASSERT(se);
 
     const auto header = block_tree_->getBlockHeader(block_hash);
     if (header.has_value()) {
@@ -2643,7 +2643,7 @@ namespace kagome::parachain {
                     .assignments = {network::vstaging::Assignment{
                         .indirect_assignment_cert = indirect_cert,
                         .candidate_bitfield = candidate_indices,
-                    }}}});          
+                    }}}});
     broadcastToAllPeers(indirect_cert.block_hash, msg);
   }
 

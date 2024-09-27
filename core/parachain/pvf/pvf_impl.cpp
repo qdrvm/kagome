@@ -320,14 +320,15 @@ namespace kagome::parachain {
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
+    const auto &context_params = executor_params.context_params;
 
     constexpr auto name = "validate_block";
-    CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, executor_params));
+    CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, context_params));
     if (not app_configuration_->usePvfSubprocess()) {
       // Reusing instances for PVF calls doesn't work, runtime calls start to
       // crash on access out of memory bounds
       KAGOME_PROFILE_START_L(log_, single_process_runtime_instantitation);
-      auto module_opt = pvf_pool_->getModule(code_hash, executor_params);
+      auto module_opt = pvf_pool_->getModule(code_hash, context_params);
       if (!module_opt) {
         SL_ERROR(log_,
                  "Runtime module supposed to be precompiled for parachain ID "
@@ -344,7 +345,7 @@ namespace kagome::parachain {
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        .code_path = pvf_pool_->getCachePath(code_hash, executor_params),
+        .code_path = pvf_pool_->getCachePath(code_hash, context_params),
         .args = scale::encode(params).value(),
         .cb =
             [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
@@ -353,6 +354,9 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
+        .timeout =
+            std::chrono::milliseconds{
+                executor_params.pvf_exec_timeout_backing_ms},
     });
   }
 

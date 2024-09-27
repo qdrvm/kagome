@@ -120,9 +120,32 @@ int main(int argc, const char **argv, const char **env) {
 
   soralog::util::setThreadName("kagome");
 
-  auto logging_system = std::make_shared<soralog::LoggingSystem>(
-      std::make_shared<kagome::log::Configurator>(
-          std::make_shared<libp2p::log::Configurator>()));
+  // Logging system
+  auto logging_system = [&] {
+    auto custom_log_config_path =
+        kagome::log::Configurator::getLogConfigFile(argc - 1, argv + 1);
+    if (custom_log_config_path.has_value()) {
+      if (not std::filesystem::is_regular_file(
+              custom_log_config_path.value())) {
+        std::cerr << "Provided wrong path to config file of logging\n";
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    auto libp2p_log_configurator =
+        std::make_shared<libp2p::log::Configurator>();
+
+    auto kagome_log_configurator =
+        custom_log_config_path.has_value()
+            ? std::make_shared<kagome::log::Configurator>(
+                std::move(libp2p_log_configurator),
+                custom_log_config_path.value())
+            : std::make_shared<kagome::log::Configurator>(
+                std::move(libp2p_log_configurator));
+
+    return std::make_shared<soralog::LoggingSystem>(
+        std::move(kagome_log_configurator));
+  }();
 
   auto r = logging_system->configure();
   if (not r.message.empty()) {
@@ -162,7 +185,7 @@ int main(int argc, const char **argv, const char **env) {
     }
 
     else if (name.substr(0, 1) == "-") {
-      // The first argument is not subcommand, run as node
+      // The first argument isn't subcommand, run as node
       exit_code = run_node(argc, argv);
 
     } else {

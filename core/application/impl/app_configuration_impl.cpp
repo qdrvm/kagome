@@ -814,6 +814,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("version,v", "show version information")
+        ("logcfg", po::value<std::string>(), "optional, path to config file of logger")
         ("log,l", po::value<std::vector<std::string>>(),
           "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
@@ -898,8 +899,6 @@ namespace kagome::application {
          "Number of threads that precompile parachain runtime modules at node startup")
         ("parachain-single-process", po::bool_switch(),
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
-        ("parachain-check-deadline", po::value<uint32_t>()->default_value(2000),
-        "Pvf check subprocess execution deadline in milliseconds")
         ("pvf-max-workers", po::value<size_t>()->default_value(pvf_max_workers_),
         "Max PVF execution threads or processes.")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
@@ -1519,11 +1518,6 @@ namespace kagome::application {
       use_pvf_subprocess_ = false;
     }
     logger_->info("Parachain multi process: {}", use_pvf_subprocess_);
-
-    if (auto arg = find_argument<uint32_t>(vm, "parachain-check-deadline");
-        arg.has_value()) {
-      pvf_subprocess_deadline_ = std::chrono::milliseconds(*arg);
-    }
 
     if (auto arg = find_argument<size_t>(vm, "pvf-max-workers")) {
       pvf_max_workers_ = *arg;
