@@ -212,6 +212,7 @@ namespace kagome::parachain {
                             const ParachainBlock &pov,
                             const CandidateReceipt &receipt,
                             const ParachainRuntime &code_zstd,
+                            runtime::PvfExecTimeoutKind timeout_kind,
                             Cb cb) const {
     REINVOKE(*pvf_thread_handler_,
              pvfValidate,
@@ -219,6 +220,7 @@ namespace kagome::parachain {
              pov,
              receipt,
              code_zstd,
+             timeout_kind,
              std::move(cb));
     CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
@@ -251,6 +253,7 @@ namespace kagome::parachain {
              code_hash,
              code_zstd,
              params,
+             timeout_kind,
              libp2p::SharedFn{[weak_self{weak_from_this()},
                                data,
                                receipt,
@@ -284,7 +287,12 @@ namespace kagome::parachain {
     }
 
     CB_TRY(auto code, getCode(receipt.descriptor));
-    pvfValidate(pvd, pov, receipt, code, std::move(cb));
+    pvfValidate(pvd,
+                pov,
+                receipt,
+                code,
+                runtime::PvfExecTimeoutKind::Backing,
+                std::move(cb));
   }
 
   outcome::result<ParachainRuntime> PvfImpl::getCode(
@@ -317,6 +325,7 @@ namespace kagome::parachain {
                          const common::Hash256 &code_hash,
                          const ParachainRuntime &code_zstd,
                          const ValidationParams &params,
+                         runtime::PvfExecTimeoutKind timeout_kind,
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
@@ -356,7 +365,9 @@ namespace kagome::parachain {
             },
         .timeout =
             std::chrono::milliseconds{
-                executor_params.pvf_exec_timeout_backing_ms},
+                timeout_kind == runtime::PvfExecTimeoutKind::Backing
+                    ? executor_params.pvf_exec_timeout_backing_ms
+                    : executor_params.pvf_exec_timeout_approval_ms},
     });
   }
 
