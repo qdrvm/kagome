@@ -36,17 +36,17 @@ namespace kagome::network {
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocolImpl<
-            vstaging::AttestedCandidateRequest,
-            vstaging::AttestedCandidateResponse,
-            ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
-                                    host,
-                                    make_protocols(
-                                        kFetchAttestedCandidateProtocol,
-                                        genesis_hash,
-                                        kProtocolPrefixPolkadot),
-                                    log::createLogger(
-                                        kFetchAttestedCandidateProtocolName,
-                                        "req_attested_candidate_protocol")},
+              vstaging::AttestedCandidateRequest,
+              vstaging::AttestedCandidateResponse,
+              ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
+                                      host,
+                                      make_protocols(
+                                          kFetchAttestedCandidateProtocol,
+                                          genesis_hash,
+                                          kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kFetchAttestedCandidateProtocolName,
+                                          "req_attested_candidate_protocol")},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }

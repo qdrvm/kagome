@@ -66,9 +66,13 @@ namespace kagome::parachain {
     };
   }
 
-  outcome::result<std::optional<ValidatorIndex>> ValidatorSignerFactory::getAuthorityValidatorIndex(const primitives::BlockHash &relay_parent) {
-    OUTCOME_TRY(session_index, parachain_api_->session_index_for_child(relay_parent));
-    OUTCOME_TRY(session_info, parachain_api_->session_info(relay_parent, session_index));
+  outcome::result<std::optional<ValidatorIndex>>
+  ValidatorSignerFactory::getAuthorityValidatorIndex(
+      const primitives::BlockHash &relay_parent) {
+    OUTCOME_TRY(session_index,
+                parachain_api_->session_index_for_child(relay_parent));
+    OUTCOME_TRY(session_info,
+                parachain_api_->session_info(relay_parent, session_index));
 
     if (!session_info) {
       return std::nullopt;

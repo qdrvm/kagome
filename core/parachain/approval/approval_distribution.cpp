@@ -2555,13 +2555,13 @@ namespace kagome::parachain {
     BOOST_ASSERT(se);
 
     auto msg = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Assignments{
-                    .assignments = {network::vstaging::Assignment{
-                        .indirect_assignment_cert = indirect_cert,
-                        .candidate_bitfield = candidate_indices,
-                    }}}});
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Assignments{
+                .assignments = {network::vstaging::Assignment{
+                    .indirect_assignment_cert = indirect_cert,
+                    .candidate_bitfield = candidate_indices,
+                }}}});
 
     for (const auto &peer : peers) {
       parachain_processor_->tryOpenOutgoingValidationStream(
@@ -2573,17 +2573,18 @@ namespace kagome::parachain {
           });
     }
 
-//    se->broadcast(
-//        router_->getValidationProtocolVStaging(),
-//        std::make_shared<
-//            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-//            network::vstaging::ApprovalDistributionMessage{
-//                network::vstaging::Assignments{
-//                    .assignments = {network::vstaging::Assignment{
-//                        .indirect_assignment_cert = indirect_cert,
-//                        .candidate_bitfield = candidate_indices,
-//                    }}}}),
-//        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
+    //    se->broadcast(
+    //        router_->getValidationProtocolVStaging(),
+    //        std::make_shared<
+    //            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+    //            network::vstaging::ApprovalDistributionMessage{
+    //                network::vstaging::Assignments{
+    //                    .assignments = {network::vstaging::Assignment{
+    //                        .indirect_assignment_cert = indirect_cert,
+    //                        .candidate_bitfield = candidate_indices,
+    //                    }}}}),
+    //        [&](const libp2p::peer::PeerId &p) { return peers.count(p) !=
+    //        0ull; });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2695,11 +2696,11 @@ namespace kagome::parachain {
     BOOST_ASSERT(se);
 
     auto msg = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Approvals{
-                    .approvals = {vote},
-                }});
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Approvals{
+                .approvals = {vote},
+            }});
 
     for (const auto &peer : peers) {
       parachain_processor_->tryOpenOutgoingValidationStream(
