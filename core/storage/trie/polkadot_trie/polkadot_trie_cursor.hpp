@@ -15,8 +15,6 @@ namespace kagome::storage::trie {
 
   class PolkadotTrieCursor : public BufferStorageCursor {
    public:
-    virtual ~PolkadotTrieCursor() override = default;
-
     /**
      * Seek the first element with key not less than \arg key
      * @return true if the trie is not empty

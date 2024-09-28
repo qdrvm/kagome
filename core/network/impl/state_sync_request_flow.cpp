@@ -21,22 +21,20 @@ namespace kagome::network {
       : node_db_{std::move(node_db)},
         block_info_{block_info},
         block_{block},
+        done_(isKnown(block.state_root)),
         log_{log::createLogger("StateSync")} {
-    done_ = isKnown(block.state_root);
     if (not done_) {
-      auto &level = levels_.emplace_back();
-      level.child = {};
-      level.branch_hash = block.state_root;
+      levels_.emplace_back(Level{.branch_hash = block.state_root});
     }
-  }
-
-  bool StateSyncRequestFlow::complete() const {
-    return done_;
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
     BOOST_ASSERT(not complete());
-    StateRequest req{block_info_.hash, {}, false};
+    StateRequest req{
+        .hash = block_info_.hash,
+        .start = {},
+        .no_proof = false,
+    };
     for (auto &level : levels_) {
       storage::trie::KeyNibbles nibbles;
       for (auto &item : level.stack) {
@@ -78,8 +76,16 @@ namespace kagome::network {
           // when trie node is contained in other node value
           BOOST_OUTCOME_TRY(node, codec.decodeNode(raw));
         }
-        level.push(
-            {node, std::nullopt, level.child, {it->first, std::move(raw)}});
+        level.push({
+            .node = node,
+            .branch = std::nullopt,
+            .child = level.child,
+            .t =
+                {
+                    .hash = it->first,
+                    .encoded = std::move(raw),
+                },
+        });
         nodes.erase(it);
         return outcome::success();
       };

@@ -50,8 +50,8 @@ namespace kagome::dispute {
     /// This ensures a timely import of batches.
     static constexpr uint32_t kMinKeepBatchAliveVotes = 10;
 
-    Batch(CandidateHash candidate_hash,
-          CandidateReceipt candidate_receipt,
+    Batch(const CandidateHash &candidate_hash,
+          const CandidateReceipt &candidate_receipt,
           TimePoint now);
 
     /// Add votes from a validator into the batch.
@@ -65,8 +65,8 @@ namespace kagome::dispute {
     /// case both votes are known already, we return the response sender as an
     /// `Err` value.
     std::optional<CbOutcome<void>> add_votes(
-        Indexed<SignedDisputeStatement> valid_vote,
-        Indexed<SignedDisputeStatement> invalid_vote,
+        const Indexed<SignedDisputeStatement> &valid_vote,
+        const Indexed<SignedDisputeStatement> &invalid_vote,
         const libp2p::peer::PeerId &peer,
         CbOutcome<void> &&cb);
 

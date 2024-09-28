@@ -136,7 +136,7 @@ namespace kagome::parachain {
       }
 
       /// Whether a validator is already assigned.
-      bool is_assigned(ValidatorIndex validator_index) {
+      bool is_assigned(ValidatorIndex validator_index) const {
         if (validator_index < assignments.bits.size()) {
           return assignments.bits[validator_index];
         }
@@ -233,8 +233,9 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(
-              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
+          : CandidateEntry(HashedCandidateReceipt{receipt},
+                           session_index,
+                           approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -444,10 +445,9 @@ namespace kagome::parachain {
           const {
         std::vector<approval::IndirectSignedApprovalVoteV2> out;
         out.reserve(approvals.size());
-        std::transform(approvals.begin(),
-                       approvals.end(),
-                       std::back_inserter(out),
-                       [](const auto it) { return it.second; });
+        std::ranges::transform(approvals,
+                               std::back_inserter(out),
+                               [](const auto &it) { return it.second; });
         return out;
       }
 
@@ -792,6 +792,9 @@ namespace kagome::parachain {
 
     void scheduleTranche(const primitives::BlockHash &head,
                          BlockImportedCandidates &&candidate);
+
+    bool wakeup_for(const primitives::BlockHash &block_hash,
+                    const CandidateHash &candidate_hash);
 
     void runDistributeAssignment(
         const approval::IndirectAssignmentCertV2 &indirect_cert,

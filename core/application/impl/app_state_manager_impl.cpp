@@ -13,6 +13,7 @@ namespace kagome::application {
   std::atomic_bool AppStateManagerImpl::signals_enabled{false};
 
   void AppStateManagerImpl::signalsEnable() {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     struct sigaction act;
     memset(&act, 0, sizeof(act));
     act.sa_handler = shuttingDownSignalsHandler;
@@ -33,6 +34,7 @@ namespace kagome::application {
     if (not signals_enabled.compare_exchange_strong(expected, false)) {
       return;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     struct sigaction act;
     memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;

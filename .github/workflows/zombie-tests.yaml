@@ -26,6 +26,14 @@ on:
         options:
           - 'ON'
           - 'OFF'
+      use_cache:
+        description: 'Use cache for build'
+        required: true
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -36,6 +44,7 @@ env:
 
   CACHE_VERSION: v01
   CACHE_PATH: ./build/cache
+  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
 
 jobs:
   kagome_dev_docker_build:
@@ -45,6 +54,12 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
+        run: git fetch origin master:master || true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -79,7 +94,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: env.package_exist == 'False'
+        if: ${{ env.package_exist == 'False' && env.USE_CACHE == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:

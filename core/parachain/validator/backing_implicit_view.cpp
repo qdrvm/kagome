@@ -35,7 +35,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::optional<ParachainId> collating_for_)
       : parachain_host(std::move(parachain_host_)),
-        collating_for{std::move(collating_for_)},
+        collating_for{collating_for_},
         prospective_parachains_{std::move(prospective_parachains)},
         block_tree_{std::move(block_tree)} {
     BOOST_ASSERT(!prospective_parachains_.expired());
@@ -171,7 +171,7 @@ namespace kagome::parachain {
           Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS);
     }
 
-    size_t allowed_ancestry_len;
+    size_t allowed_ancestry_len = 0;
     if (auto mode =
             prospective_parachains->prospectiveParachainsMode(leaf_hash)) {
       allowed_ancestry_len = mode->allowed_ancestry_len;

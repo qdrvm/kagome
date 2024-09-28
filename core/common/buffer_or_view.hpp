@@ -24,6 +24,7 @@ namespace kagome::common {
 
    public:
     BufferOrView() = default;
+    ~BufferOrView() = default;
 
     BufferOrView(const BufferView &view) : variant{view} {}
 
@@ -36,7 +37,7 @@ namespace kagome::common {
         : variant{Buffer{std::move(vector)}} {}
 
     BufferOrView(const BufferOrView &) = delete;
-    BufferOrView(BufferOrView &&) = default;
+    BufferOrView(BufferOrView &&) noexcept = default;
 
     BufferOrView &operator=(const BufferOrView &) = delete;
     BufferOrView &operator=(BufferOrView &&) = default;
@@ -92,10 +93,15 @@ namespace kagome::common {
     }
 
     /// Move buffer away. Copy once if view.
-    Buffer intoBuffer() {
+    Buffer intoBuffer() & {
       auto buffer = std::move(mut());
       variant = Moved{};
       return buffer;
+    }
+
+    /// Move buffer away. Copy once if view.
+    Buffer intoBuffer() && {
+      return std::move(mut());
     }
 
    private:

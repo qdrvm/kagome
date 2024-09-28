@@ -35,6 +35,7 @@ namespace kagome::storage::trie {
      */
     auto vec() {
       std::vector<common::Buffer> vec;
+      vec.reserve(db.size());
       for (auto &p : db) {
         vec.emplace_back(std::move(p.second));
       }

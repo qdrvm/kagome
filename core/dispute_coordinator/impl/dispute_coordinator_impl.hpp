@@ -196,7 +196,8 @@ namespace kagome::dispute {
         SessionIndex session,
         primitives::BlockHash relay_parent);
 
-    outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
+    outcome::result<void> process_on_chain_votes(
+        const ScrapedOnChainVotes &votes);
 
     outcome::result<void> process_active_leaves_update(
         const ActiveLeavesUpdate &update);

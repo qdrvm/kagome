@@ -153,12 +153,12 @@ namespace kagome::consensus::grandpa {
 
     // Find first (best) ancestor among those presented in the entries,
     // and take corresponding entry
-    auto ancestry_it = std::find_if(ancestry.begin() + 1,
-                                    ancestry.end(),
-                                    [this, &entry_it](auto &ancestor) {
-                                      return entry_it = entries_.find(ancestor),
-                                             entry_it != entries_.end();
-                                    });
+    auto ancestry_it = std::ranges::find_if(
+        ancestry.begin() + 1,
+        ancestry.end(),
+        [this, &entry_it](auto &ancestor) {
+          return entry_it = entries_.find(ancestor), entry_it != entries_.end();
+        });
     BOOST_ASSERT_MSG(ancestry_it != ancestry.end(),
                      "at least one entry presents ancestor of appending block");
 
@@ -212,7 +212,9 @@ namespace kagome::consensus::grandpa {
       if (not filled) {
         // `[offset_size..end)` elements
         new_entry.ancestors = std::vector<BlockHash>{
-            entry.ancestors.begin() + offset_size, entry.ancestors.end()};
+            // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+            entry.ancestors.begin() + offset_size,
+            entry.ancestors.end()};
 
         auto last_it = entry.ancestors.rbegin();
         if (last_it != entry.ancestors.rend()) {
@@ -225,7 +227,9 @@ namespace kagome::consensus::grandpa {
 
       // `[0..offset_size)` elements
       entry.ancestors = std::vector<BlockHash>{
-          entry.ancestors.begin(), entry.ancestors.begin() + offset_size};
+          entry.ancestors.begin(),
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          entry.ancestors.begin() + offset_size};
 
       new_entry.descendants.push_back(descendant);
 
@@ -286,7 +290,7 @@ namespace kagome::consensus::grandpa {
     /// entries to be processed
     std::stack<std::reference_wrapper<const Entry>> nodes;
 
-    nodes.push(active_node);
+    nodes.emplace(active_node);
     while (not nodes.empty()) {
       auto &node = nodes.top().get();
       nodes.pop();
@@ -311,7 +315,7 @@ namespace kagome::consensus::grandpa {
           node_key = descendant_hash;
           active_node = descendant;
 
-          nodes.push(descendant);
+          nodes.emplace(descendant);
         }
       }
 
@@ -402,7 +406,7 @@ namespace kagome::consensus::grandpa {
       hashes.push_back(*new_best);
     }
 
-    return Subchain{hashes, best_number};
+    return Subchain{.hashes = hashes, .best_number = best_number};
   }
 
   void VoteGraphImpl::adjustBase(const std::vector<BlockHash> &ancestry_proof) {
@@ -452,10 +456,10 @@ namespace kagome::consensus::grandpa {
         // Not enough weight, check the parent block.
         if (node.ancestors.empty()) {
           return std::nullopt;
-        } else {
-          block.hash = node.ancestors[0];
-          block.number = node.number - 1;
         }
+        block.hash = node.ancestors[0];
+        block.number = node.number - 1;
+
       } else {
         const auto &children = nodes_opt.value();
 

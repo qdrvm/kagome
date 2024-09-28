@@ -50,7 +50,7 @@ namespace kagome::dispute {
   outcome::result<void> ParticipationImpl::queue_participation(
       ParticipationPriority priority, ParticipationRequest request) {
     // Participation already running - we can ignore that request:
-    if (running_participations_.count(request.candidate_hash)) {
+    if (running_participations_.contains(request.candidate_hash)) {
       return outcome::success();
     }
 
@@ -70,13 +70,12 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      dispute_thread_handler_->execute([wp{weak_from_this()},
-                                        request{std::move(request)},
-                                        recent_head{std::move(recent_head)}]() {
-        if (auto self = wp.lock()) {
-          self->participate(std::move(request), std::move(recent_head));
-        }
-      });
+      dispute_thread_handler_->execute(
+          [wp{weak_from_this()}, request, recent_head]() {
+            if (auto self = wp.lock()) {
+              self->participate(request, recent_head);
+            }
+          });
     }
     return outcome::success();
   }
@@ -249,22 +248,22 @@ namespace kagome::dispute {
     BOOST_ASSERT(ctx->available_data.has_value());
     BOOST_ASSERT(ctx->validation_code.has_value());
 
-    pvf_->pvfValidate(
-        ctx->available_data->validation_data,
-        ctx->available_data->pov,
-        ctx->request.candidate_receipt,
-        ctx->validation_code.value(),
-        [cb{std::move(cb)}](outcome::result<parachain::Pvf::Result> &&res) {
-          // we cast votes (either positive or negative)
-          // depending on the outcome of the validation and if
-          // valid, whether the commitments hash matches
+    pvf_->pvfValidate(ctx->available_data->validation_data,
+                      ctx->available_data->pov,
+                      ctx->request.candidate_receipt,
+                      ctx->validation_code.value(),
+                      [cb{std::move(cb)}](
+                          const outcome::result<parachain::Pvf::Result> &res) {
+                        // we cast votes (either positive or negative)
+                        // depending on the outcome of the validation and if
+                        // valid, whether the commitments hash matches
 
-          if (res.has_value()) {
-            cb(ParticipationOutcome::Valid);
-            return;
-          }
-          cb(ParticipationOutcome::Invalid);
-        });
+                        if (res.has_value()) {
+                          cb(ParticipationOutcome::Valid);
+                          return;
+                        }
+                        cb(ParticipationOutcome::Invalid);
+                      });
   }
 
 }  // namespace kagome::dispute

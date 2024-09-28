@@ -28,9 +28,9 @@ namespace kagome::consensus {
         babe_config_repo_{std::move(babe_config_repo)},
         timings_(timings),
         grandpa_environment_{std::move(grandpa_environment)},
-        slots_util_{std::move(slots_util)},
+        slots_util_{slots_util},
         hasher_{std::move(hasher)},
-        consensus_selector_(std::move(consensus_selector)) {
+        consensus_selector_(consensus_selector) {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(babe_config_repo_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
@@ -51,14 +51,14 @@ namespace kagome::consensus {
           block_info,
           opt_justification.value(),
           [logger{logger_}, block_info, callback{std::move(callback)}](
-              outcome::result<void> result) {
+              const outcome::result<void> &result) {
             if (result.has_error()) {
               SL_ERROR(logger,
                        "Error while applying justification of block {}: {}",
                        block_info,
                        result.error());
             }
-            callback(std::move(result));
+            callback(result);
           });
     } else {
       callback(outcome::success());
@@ -80,7 +80,7 @@ namespace kagome::consensus {
     OUTCOME_TRY(slot_number, consensus->getSlot(header));
     auto start_time = slots_util_.get()->slotStartTime(slot_number);
     auto slot_duration = timings_.slot_duration;
-    return outcome::success(SlotInfo{start_time, slot_duration});
+    return SlotInfo{.start = start_time, .duration = slot_duration};
   }
 
 }  // namespace kagome::consensus

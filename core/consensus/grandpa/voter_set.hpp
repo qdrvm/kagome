@@ -91,14 +91,14 @@ namespace kagome::consensus::grandpa {
     friend Stream &operator>>(Stream &s, VoterSet &voters);
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const VoterSet &voters) {
     return s << voters.list_ << voters.id_;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, VoterSet &voters) {
     voters.list_.clear();
     voters.map_.clear();

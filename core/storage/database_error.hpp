@@ -13,7 +13,7 @@ namespace kagome::storage {
   /**
    * @brief universal database interface error
    */
-  enum class DatabaseError : int {
+  enum class DatabaseError : int {  // NOLINT(performance-enum-size)
     OK = 0,
     NOT_FOUND = 1,
     CORRUPTION = 2,

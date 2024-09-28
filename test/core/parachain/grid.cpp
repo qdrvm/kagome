@@ -28,7 +28,11 @@ TEST(GridTest, Shuffle) {
   std::vector<std::vector<ValidatorIndex>> groups;
   groups.emplace_back(count);
   auto randomness = kagome::common::Hash256::fromHex(randomness_hex).value();
-  auto indices = shuffle(groups, randomness);
+  size_t n = 0;
+  for (auto &group : groups) {
+    n += group.size();
+  }
+  auto indices = shuffle(n, randomness);
   std::vector<ValidatorIndex> expected{
       48, 29, 17, 25, 16, 62, 97, 83, 89, 21, 42, 77, 93, 45, 84, 27, 91,
       65, 79, 82, 11, 99, 92, 68, 41, 28, 59, 69, 6,  80, 72, 33, 78, 20,

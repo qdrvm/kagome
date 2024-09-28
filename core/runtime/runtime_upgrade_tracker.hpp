@@ -31,7 +31,9 @@ namespace kagome::runtime {
         const storage::trie::RootHash &state) const = 0;
   };
 
-  enum class RuntimeUpgradeTrackerError { NOT_FOUND = 1 };
+  enum class RuntimeUpgradeTrackerError : uint8_t {
+    NOT_FOUND = 1,
+  };
 
 }  // namespace kagome::runtime
 

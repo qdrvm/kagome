@@ -28,7 +28,7 @@ namespace kagome::network {
       : public StateProtocolObserver,
         public std::enable_shared_from_this<StateProtocolObserverImpl> {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       INVALID_CHILD_ROOTHASH = 1,
       NOTFOUND_CHILD_ROOTHASH,
       VALUE_NOT_FOUND,

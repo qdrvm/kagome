@@ -296,7 +296,7 @@ namespace kagome::parachain::grid {
         result.push_back(statement);
       }
     }
-    std::sort(result.begin(), result.end(), [](auto &a, auto &b) {
+    std::ranges::sort(result, [](auto &a, auto &b) {
       return visit_in_place(
           a.second.inner_value,
           [](const network::vstaging::SecondedCandidateHash &) { return true; },
@@ -557,19 +557,12 @@ namespace kagome::parachain::grid {
       auto &prev = it->second;
       if (prev.claimed_group_index != manifest_summary.claimed_group_index
           || prev.claimed_parent_hash != manifest_summary.claimed_parent_hash
-          || !std::includes(
-              manifest_summary.statement_knowledge.seconded_in_group.bits
-                  .begin(),
-              manifest_summary.statement_knowledge.seconded_in_group.bits.end(),
-              prev.statement_knowledge.seconded_in_group.bits.begin(),
-              prev.statement_knowledge.seconded_in_group.bits.end())
-          || !std::includes(
-              manifest_summary.statement_knowledge.validated_in_group.bits
-                  .begin(),
-              manifest_summary.statement_knowledge.validated_in_group.bits
-                  .end(),
-              prev.statement_knowledge.validated_in_group.bits.begin(),
-              prev.statement_knowledge.validated_in_group.bits.end())) {
+          || !std::ranges::includes(
+              manifest_summary.statement_knowledge.seconded_in_group.bits,
+              prev.statement_knowledge.seconded_in_group.bits)
+          || !std::ranges::includes(
+              manifest_summary.statement_knowledge.validated_in_group.bits,
+              prev.statement_knowledge.validated_in_group.bits)) {
         return GridTracker::Error::CONFLICTING;
       }
       auto fresh_seconded =

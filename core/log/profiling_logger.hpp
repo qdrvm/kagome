@@ -12,7 +12,7 @@
 
 namespace kagome::log {
 
-  extern Logger profiling_logger;
+  extern Logger profiling_logger;  // NOLINT
 
   struct ProfileScope {
     using Clock = ::kagome::clock::SteadyClockImpl;
@@ -48,7 +48,7 @@ namespace kagome::log {
 
    private:
     bool done = false;
-    std::string_view scope{};
+    std::string_view scope;
     Clock::TimePoint start;
     log::Logger logger;
   };

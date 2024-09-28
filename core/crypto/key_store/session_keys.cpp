@@ -18,7 +18,7 @@ namespace kagome::crypto {
       const KeySuiteStore<T> &store,
       const std::vector<A> &authorities,
       const Eq &eq) {
-    if (not roles_.flags.authority) {
+    if (not roles_.isAuthority()) {
       return std::nullopt;
     }
     if (cache) {
@@ -26,7 +26,7 @@ namespace kagome::crypto {
           && eq(cache->first->public_key, authorities[cache->second])) {
         return cache;
       }
-      auto it = std::find_if(
+      auto it = std::ranges::find_if(
           authorities.begin(), authorities.end(), [&](const A &authority) {
             return eq(cache->first->public_key, authority);
           });
@@ -41,7 +41,7 @@ namespace kagome::crypto {
     }
     auto &keys = keys_res.value();
     for (auto &pubkey : keys) {
-      auto it = std::find_if(
+      auto it = std::ranges::find_if(
           authorities.begin(), authorities.end(), [&](const A &authority) {
             return eq(pubkey, authority);
           });

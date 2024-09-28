@@ -16,7 +16,8 @@ namespace kagome::consensus::babe {
                                AuthorityIndex authority_index) {
     BOOST_ASSERT(authority_index < authorities.size());
 
-    double float_point_ratio = double(ratio.first) / ratio.second;
+    double float_point_ratio =
+        static_cast<double>(ratio.first) / static_cast<double>(ratio.second);
 
     using boost::adaptors::transformed;
     double theta = double(authorities[authority_index].weight)

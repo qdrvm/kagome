@@ -65,7 +65,7 @@ namespace kagome::consensus::grandpa {
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
         approved_ancestor_(std::move(approved_ancestor)),
-        justification_observer_(std::move(justification_observer)),
+        justification_observer_(justification_observer),
         verified_justification_queue_(std::move(verified_justification_queue)),
         grandpa_api_(std::move(grandpa_api)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -109,7 +109,7 @@ namespace kagome::consensus::grandpa {
     }
 
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    std::reverse(chain.begin(), chain.end());
+    std::ranges::reverse(chain);
     return chain;
   }
 
@@ -252,6 +252,7 @@ namespace kagome::consensus::grandpa {
         *main_pool_handler_, onCatchUpRequested, peer_id, set_id, round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
   }
 
@@ -283,72 +284,70 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onVoted(RoundNumber round,
                                 VoterSetId set_id,
                                 const SignedMessage &vote) {
-    main_pool_handler_->execute([wself{weak_from_this()},
-                                 round{std::move(round)},
-                                 set_id{std::move(set_id)},
-                                 vote]() mutable {
-      if (auto self = wself.lock()) {
-        SL_VERBOSE(
-            self->logger_,
-            "Round #{}: Send {} signed by {} for block {}",
-            round,
-            visit_in_place(
-                vote.message,
-                [&](const Prevote &) { return "prevote"; },
-                [&](const Precommit &) { return "precommit"; },
-                [&](const PrimaryPropose &) { return "primary propose"; }),
-            vote.id,
-            vote.getBlockInfo());
+    main_pool_handler_->execute(
+        [wself{weak_from_this()}, round, set_id, vote]() mutable {
+          if (auto self = wself.lock()) {
+            SL_VERBOSE(
+                self->logger_,
+                "Round #{}: Send {} signed by {} for block {}",
+                round,
+                visit_in_place(
+                    vote.message,
+                    [&](const Prevote &) { return "prevote"; },
+                    [&](const Precommit &) { return "precommit"; },
+                    [&](const PrimaryPropose &) { return "primary propose"; }),
+                vote.id,
+                vote.getBlockInfo());
 
-        self->transmitter_->sendVoteMessage(
-            network::GrandpaVote{{.round_number = std::move(round),
-                                  .counter = std::move(set_id),
-                                  .vote = std::move(vote)}});
-      }
-    });
+            self->transmitter_->sendVoteMessage(network::GrandpaVote{{
+                .round_number = round,
+                .counter = set_id,
+                .vote = vote,
+            }});
+          }
+        });
   }
 
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
                                   const MovableRoundState &state,
                                   VoterSetId voter_set_id) {
-    main_pool_handler_->execute([wself{weak_from_this()},
-                                 peer_id,
-                                 voter_set_id{std::move(voter_set_id)},
-                                 state]() mutable {
-      if (auto self = wself.lock()) {
-        auto send = [&](const SignedMessage &vote) {
-          SL_DEBUG(
-              self->logger_,
-              "Round #{}: Send {} signed by {} for block {} (as send "
-              "state)",
-              state.round_number,
+    main_pool_handler_->execute(
+        [wself{weak_from_this()}, peer_id, voter_set_id, state]() mutable {
+          if (auto self = wself.lock()) {
+            auto send = [&](const SignedMessage &vote) {
+              SL_DEBUG(self->logger_,
+                       "Round #{}: Send {} signed by {} for block {} (as send "
+                       "state)",
+                       state.round_number,
+                       visit_in_place(
+                           vote.message,
+                           [&](const Prevote &) { return "prevote"; },
+                           [&](const Precommit &) { return "precommit"; },
+                           [&](const PrimaryPropose &) {
+                             return "primary propose";
+                           }),
+                       vote.id,
+                       vote.getBlockInfo());
+
+              ;
+              self->transmitter_->sendVoteMessage(
+                  peer_id,
+                  network::GrandpaVote{{.round_number = state.round_number,
+                                        .counter = voter_set_id,
+                                        .vote = vote}});
+            };
+
+            for (const auto &vv : state.votes) {
               visit_in_place(
-                  vote.message,
-                  [&](const Prevote &) { return "prevote"; },
-                  [&](const Precommit &) { return "precommit"; },
-                  [&](const PrimaryPropose &) { return "primary propose"; }),
-              vote.id,
-              vote.getBlockInfo());
-
-          ;
-          self->transmitter_->sendVoteMessage(
-              peer_id,
-              network::GrandpaVote{{.round_number = state.round_number,
-                                    .counter = voter_set_id,
-                                    .vote = vote}});
-        };
-
-        for (const auto &vv : state.votes) {
-          visit_in_place(
-              vv,
-              [&](const SignedMessage &vote) { send(vote); },
-              [&](const EquivocatorySignedMessage &pair_vote) {
-                send(pair_vote.first);
-                send(pair_vote.second);
-              });
-        }
-      }
-    });
+                  vv,
+                  [&](const SignedMessage &vote) { send(vote); },
+                  [&](const EquivocatorySignedMessage &pair_vote) {
+                    send(pair_vote.first);
+                    send(pair_vote.second);
+                  });
+            }
+          }
+        });
   }
 
   void EnvironmentImpl::onCommitted(RoundNumber round,
@@ -390,9 +389,12 @@ namespace kagome::consensus::grandpa {
              last_finalized);
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
-    network::GrandpaNeighborMessage message{.round_number = round,
-                                            .voter_set_id = set_id,
-                                            .last_finalized = last_finalized};
+    network::GrandpaNeighborMessage message{
+        .round_number = round,
+        .voter_set_id = set_id,
+        .last_finalized = last_finalized,
+    };
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     transmitter_->sendNeighborMessage(std::move(message));
   }
 
@@ -486,7 +488,7 @@ namespace kagome::consensus::grandpa {
     // submit an equivocation report at **best** block
     EquivocationProof equivocation_proof{
         .set_id = authority_set_id,
-        .equivocation = std::move(equivocation),
+        .equivocation = equivocation,
     };
 
     offchain_worker_pool_->addWorker(offchain_worker_factory_->make());

@@ -130,7 +130,8 @@ namespace kagome::consensus::beefy {
   struct DoubleVotingProof {
     SCALE_TIE(2);
 
-    VoteMessage first, second;
+    VoteMessage first;
+    VoteMessage second;
   };
 }  // namespace kagome::consensus::beefy
 

@@ -32,8 +32,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
 }
 
 namespace kagome::runtime {
-  using namespace kagome::common::literals;
-
   RuntimeContext::RuntimeContext(
       std::shared_ptr<ModuleInstance> module_instance)
       : module_instance{std::move(module_instance)} {

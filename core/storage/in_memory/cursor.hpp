@@ -66,6 +66,7 @@ namespace kagome::storage {
       return isValid();
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     InMemoryStorage &db;
     std::optional<std::pair<Buffer, Buffer>> kv;
   };

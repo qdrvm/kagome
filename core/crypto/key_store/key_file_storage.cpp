@@ -39,7 +39,8 @@ namespace kagome::crypto {
 
   outcome::result<std::unique_ptr<KeyFileStorage>> KeyFileStorage::createAt(
       Path keystore_path) {
-    std::unique_ptr<KeyFileStorage> kfs{new KeyFileStorage(keystore_path)};
+    std::unique_ptr<KeyFileStorage> kfs{
+        new KeyFileStorage(std::move(keystore_path))};
     OUTCOME_TRY(kfs->initialize());
     return kfs;
   }

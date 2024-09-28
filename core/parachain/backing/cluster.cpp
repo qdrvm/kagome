@@ -23,7 +23,9 @@ namespace kagome::parachain {
       return RejectIncoming::NotInGroup;
     }
 
-    if (they_sent(sender, SpecificKnowledge{statement, originator})) {
+    if (they_sent(
+            sender,
+            SpecificKnowledge{.statement = statement, .index = originator})) {
       return RejectIncoming::Duplicate;
     }
 
@@ -111,8 +113,8 @@ namespace kagome::parachain {
         pending[cluster_member].insert({originator, statement});
       }
     }
-    knowledge[sender].insert(
-        IncomingP2P{SpecificKnowledge{statement, originator}});
+    knowledge[sender].insert(IncomingP2P{
+        SpecificKnowledge{.statement = statement, .index = originator}});
     if (auto *seconded =
             std::get_if<network::CompactStatementSeconded>(&statement)) {
       knowledge[sender].insert(IncomingP2P{GeneralKnowledge{*seconded}});
@@ -153,8 +155,8 @@ namespace kagome::parachain {
   void ClusterTracker::note_sent(ValidatorIndex target,
                                  ValidatorIndex originator,
                                  network::CompactStatement statement) {
-    knowledge[target].insert(
-        OutgoingP2P{SpecificKnowledge{statement, originator}});
+    knowledge[target].insert(OutgoingP2P{
+        SpecificKnowledge{.statement = statement, .index = originator}});
     if (auto *seconded =
             std::get_if<network::CompactStatementSeconded>(&statement)) {
       knowledge[target].insert(OutgoingP2P{GeneralKnowledge{*seconded}});
@@ -233,7 +235,7 @@ namespace kagome::parachain {
       ValidatorIndex validator,
       ValidatorIndex originator,
       network::CompactStatement statement) const {
-    SpecificKnowledge knowledge{statement, originator};
+    SpecificKnowledge knowledge{.statement = statement, .index = originator};
     return we_sent(validator, knowledge) || they_sent(validator, knowledge);
   }
 

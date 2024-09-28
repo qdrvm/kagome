@@ -226,9 +226,6 @@ namespace kagome::application {
     bool usePvfSubprocess() const override {
       return use_pvf_subprocess_;
     }
-    std::chrono::milliseconds pvfSubprocessDeadline() const override {
-      return pvf_subprocess_deadline_;
-    }
     size_t pvfMaxWorkers() const override {
       return pvf_max_workers_;
     }
@@ -342,7 +339,7 @@ namespace kagome::application {
     std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
     bool is_telemetry_enabled_;
     uint16_t p2p_port_;
-    bool p2p_port_explicitly_defined_ = false;
+    bool p2p_port_explicitly_defined_;
     boost::asio::ip::tcp::endpoint rpc_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
     std::vector<std::string> logger_tuning_config_;
@@ -387,7 +384,6 @@ namespace kagome::application {
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
     bool use_pvf_subprocess_{true};
-    std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};

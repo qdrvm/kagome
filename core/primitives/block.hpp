@@ -27,7 +27,8 @@ namespace kagome::primitives {
     SCALE_TIE(2);
 
     BlockHeaderReflection header;  ///< block header
-    const BlockBody &body;         ///< extrinsics collection
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const BlockBody &body;  ///< extrinsics collection
   };
 
 }  // namespace kagome::primitives

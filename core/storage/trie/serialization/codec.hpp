@@ -19,6 +19,7 @@ namespace kagome::storage::trie {
    */
   class Codec {
    public:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     struct ChildData {
       const TrieNode &child;
       const MerkleValue &merkle_value;
@@ -29,11 +30,15 @@ namespace kagome::storage::trie {
       common::Hash256 hash;
       const common::Buffer &value;
     };
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
     using Visitee = std::variant<ChildData, ValueData>;
     using ChildVisitor = std::function<outcome::result<void>(Visitee)>;
 
     static constexpr auto NoopChildVisitor =
-        [](Visitee) -> outcome::result<void> { return outcome::success(); };
+        [](const Visitee &) -> outcome::result<void> {
+      return outcome::success();
+    };
 
     virtual ~Codec() = default;
 

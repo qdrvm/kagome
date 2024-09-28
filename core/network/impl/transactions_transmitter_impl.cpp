@@ -20,6 +20,6 @@ namespace kagome::network {
     auto protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide propagate transactions protocol");
-    protocol->propagateTransactions(std::move(txs));
+    protocol->propagateTransactions(txs);
   }
 }  // namespace kagome::network

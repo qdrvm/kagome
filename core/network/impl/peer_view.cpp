@@ -19,7 +19,7 @@ namespace kagome::network {
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
             std::make_shared<PeerViewSubscriptionEngine>()},
-        block_tree_(std::move(block_tree)) {
+        block_tree_(block_tree) {
     app_state_manager->takeControl(*this);
   }
 
@@ -58,7 +58,7 @@ namespace kagome::network {
 
   void PeerView::updateMyView(network::ExView &&view) {
     BOOST_ASSERT(my_view_update_observable_);
-    std::sort(view.view.heads_.begin(), view.view.heads_.end());
+    std::ranges::sort(view.view.heads_);
     if (!my_view_ || my_view_->view != view.view
         || my_view_->new_head != view.new_head) {
       if (my_view_) {
@@ -94,7 +94,7 @@ namespace kagome::network {
 
     if (ref) {
       remote_view_update_observable_->notify(
-          EventType::kPeerRemoved, peer_id, std::move(*ref));
+          EventType::kPeerRemoved, peer_id, *ref);
     }
   }
 

@@ -66,13 +66,13 @@ namespace kagome::dispute {
                                           const CandidateHash &candidate_hash,
                                           const CandidateVotes &votes) {
     candidate_votes_[std::tie(session, candidate_hash)] = votes;
-    // TODO save to DB
+    // TODO(xDimon): save to DB
   }
 
   void StorageImpl::write_recent_disputes(RecentDisputes recent_disputes) {
     recent_disputes_ = std::move(recent_disputes);
 
-    // TODO save to DB
+    // TODO(xDimon): save to DB
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/backend.rs#L136
   }
 

@@ -16,10 +16,18 @@
 
 namespace kagome::common {
 
+  template <typename Container, typename T>
+  concept MutIter = std::is_same_v<T, typename Container::iterator>;
+  template <typename Container, typename T>
+  concept ConstIter = std::is_same_v<T, typename Container::const_iterator>;
+  template <typename Container, typename T>
+  concept Iter = MutIter<Container, T> or ConstIter<Container, T>;
+
   class MaxSizeException : public std::length_error {
    public:
     template <typename Format, typename... Args>
-    MaxSizeException(const Format &format, Args &&...args)
+    // cppcoreguidelines-missing-std-forward
+    MaxSizeException(const Format &format, const Args &...args)
         : std::length_error(
             fmt::vformat(format, fmt::make_format_args(args...))) {}
   };
@@ -95,10 +103,10 @@ namespace kagome::common {
             return std::move(other);
           }()) {}
 
-    template <typename Iter,
-              typename = std::enable_if_t<std::is_base_of_v<
-                  std::input_iterator_tag,
-                  typename std::iterator_traits<Iter>::iterator_category>>>
+    template <typename Iter>
+      requires std::is_base_of_v<
+          std::input_iterator_tag,
+          typename std::iterator_traits<Iter>::iterator_category>
     SizeLimitedContainer(Iter begin, Iter end)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
@@ -170,10 +178,10 @@ namespace kagome::common {
       return Base::assign(size, value);
     }
 
-    template <typename Iter,
-              typename = std::enable_if_t<std::is_base_of_v<
-                  std::input_iterator_tag,
-                  typename std::iterator_traits<Iter>::iterator_category>>>
+    template <typename Iter>
+      requires std::is_base_of_v<
+          std::input_iterator_tag,
+          typename std::iterator_traits<Iter>::iterator_category>
     void assign(Iter begin, Iter end) {
       if constexpr (size_check_is_enabled) {
         const size_t size = std::distance(begin, end);
@@ -212,13 +220,9 @@ namespace kagome::common {
       return Base::emplace_back(std::forward<Args>(args)...);
     }
 
-    template <
-        typename Iter,
-        typename... Args,
-        bool isIter = std::is_same_v<Iter, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator emplace(Iter pos, Args &&...args) {
+    template <typename It, typename... Args>
+      requires Iter<Base, It>
+    typename Base::iterator emplace(It pos, Args &&...args) {
       if constexpr (size_check_is_enabled) {
         [[unlikely]] if (Base::size() >= max_size()) {
           throw MaxSizeException(
@@ -230,12 +234,9 @@ namespace kagome::common {
       return Base::emplace(std::move(pos), std::forward<Args>(args)...);
     }
 
-    template <
-        typename Iter,
-        bool isIter = std::is_same_v<Iter, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator insert(Iter pos,
+    template <typename It, typename... Args>
+      requires Iter<Base, It>
+    typename Base::iterator insert(It pos,
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
         [[unlikely]] if (Base::size() >= max_size()) {
@@ -248,12 +249,9 @@ namespace kagome::common {
       return Base::insert(std::move(pos), value);
     }
 
-    template <
-        typename Iter,
-        bool isIter = std::is_same_v<Iter, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator insert(Iter pos,
+    template <typename It, typename... Args>
+      requires Iter<Base, It>
+    typename Base::iterator insert(It pos,
                                    typename Base::size_type size,
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
@@ -268,15 +266,11 @@ namespace kagome::common {
       return Base::insert(std::move(pos), size, value);
     }
 
-    template <
-        typename OutIt,
-        typename InIt,
-        bool isIter = std::is_same_v<OutIt, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<OutIt, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>,
-        typename = std::enable_if_t<std::is_base_of_v<
-            std::input_iterator_tag,
-            typename std::iterator_traits<InIt>::iterator_category>>>
+    template <typename OutIt, typename InIt>
+      requires Iter<Base, OutIt>
+           and std::is_base_of_v<
+                   std::input_iterator_tag,
+                   typename std::iterator_traits<InIt>::iterator_category>
     typename Base::iterator insert(OutIt pos, InIt begin, InIt end) {
       if constexpr (size_check_is_enabled) {
         const size_t size = std::distance(begin, end);
@@ -293,13 +287,10 @@ namespace kagome::common {
       return Base::insert(std::move(pos), std::move(begin), std::move(end));
     }
 
-    template <
-        typename Iter,
-        bool isIter = std::is_same_v<Iter, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>>
+    template <typename It, typename... Args>
+      requires Iter<Base, It>
     typename Base::iterator insert(
-        Iter pos, std::initializer_list<typename Base::value_type> &&list) {
+        It pos, std::initializer_list<typename Base::value_type> &&list) {
       if constexpr (size_check_is_enabled) {
         const auto available = max_size() - Base::size();
         [[unlikely]] if (available < list.size()) {

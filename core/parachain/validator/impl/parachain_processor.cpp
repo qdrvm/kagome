@@ -43,7 +43,6 @@
   auto name = (op);              \
   if (!name) {                   \
     return;                      \
-  } else {                       \
   }
 #endif  // TRY_GET_OR_RET
 
@@ -180,7 +179,7 @@ namespace kagome::parachain {
         per_session_(RefCache<SessionIndex, PerSessionState>::create()),
         peer_use_count_(
             std::make_shared<decltype(peer_use_count_)::element_type>()),
-        slots_util_(std::move(slots_util)),
+        slots_util_(slots_util),
         babe_config_repo_(std::move(babe_config_repo)),
         chain_sub_{std::move(chain_sub_engine)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
@@ -656,6 +655,8 @@ namespace kagome::parachain {
           }
         }
       }
+
+      av_store_->remove(lost);
     }
 
     our_current_state_.active_leaves[relay_parent] =
@@ -706,7 +707,6 @@ namespace kagome::parachain {
                lost.number);
 
       backing_store_->onDeactivateLeaf(lost.hash);
-      av_store_->remove(lost.hash);
       bitfield_store_->remove(lost.hash);
     }
 
@@ -817,10 +817,9 @@ namespace kagome::parachain {
       tryOpenOutgoingValidationStream(
           peer->id,
           network::CollationVersion::VStaging,
-          [WEAK_SELF, peer_id{peer->id}](auto &&stream) {
+          [WEAK_SELF, peer_id{peer->id}]() {
             WEAK_LOCK(self);
             self->sendMyView(peer_id,
-                             stream,
                              self->router_->getValidationProtocolVStaging());
           });
     }
@@ -828,13 +827,13 @@ namespace kagome::parachain {
 
   ParachainProcessorImpl::PerSessionState::PerSessionState(
       SessionIndex _session,
-      const runtime::SessionInfo &_session_info,
+      runtime::SessionInfo _session_info,
       Groups &&_groups,
       grid::Views &&_grid_view,
       std::optional<ValidatorIndex> _our_index,
       std::shared_ptr<PeerUseCount> peers)
       : session{_session},
-        session_info{_session_info},
+        session_info{std::move(_session_info)},
         groups{std::move(_groups)},
         grid_view{std::move(_grid_view)},
         our_index{_our_index},
@@ -1404,7 +1403,7 @@ namespace kagome::parachain {
 
           return network::PendingCollationFetch{
               .collation_event = std::move(collation_event),
-              .candidate_receipt = std::move(value.receipt),
+              .candidate_receipt = value.receipt,
               .pov = std::move(value.pov),
               .maybe_parent_head_data = std::nullopt,
           };
@@ -1430,7 +1429,7 @@ namespace kagome::parachain {
 
           return network::PendingCollationFetch{
               .collation_event = std::move(collation_event),
-              .candidate_receipt = std::move(value.receipt),
+              .candidate_receipt = value.receipt,
               .pov = std::move(value.pov),
               .maybe_parent_head_data = std::move(value.parent_head_data),
           };
@@ -1785,13 +1784,14 @@ namespace kagome::parachain {
     }();
 
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
-      if (group_set.count(peer) == 0) {
+      if (not group_set.contains(peer)) {
         any.emplace_back(peer);
       }
     });
     auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
     if (lucky != 0) {
       std::shuffle(any.begin(), any.end(), random_);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       any.erase(any.begin() + std::min(any.size(), lucky), any.end());
     } else {
       any.clear();
@@ -1936,14 +1936,12 @@ namespace kagome::parachain {
 
           switch (version) {
             case network::CollationVersion::VStaging: {
-              messages.emplace_back(network::VersionedValidatorProtocolMessage{
-                  network::vstaging::ValidatorProtocolMessage{
-                      network::vstaging::StatementDistributionMessage{
-                          network::vstaging::
-                              StatementDistributionMessageStatement{
-                                  .relay_parent = relay_parent,
-                                  .compact = statement,
-                              }}}});
+              messages.emplace_back(network::vstaging::ValidatorProtocolMessage{
+                  network::vstaging::StatementDistributionMessage{
+                      network::vstaging::StatementDistributionMessageStatement{
+                          .relay_parent = relay_parent,
+                          .compact = statement,
+                      }}});
             } break;
             default: {
               SL_ERROR(
@@ -2411,7 +2409,7 @@ namespace kagome::parachain {
     const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
 
     CHECK_OR_RET(relay_parent_state.local_validator);
-    enum DirectTargetKind {
+    enum DirectTargetKind : uint8_t {
       Cluster,
       Grid,
     };
@@ -2456,11 +2454,9 @@ namespace kagome::parachain {
                relay_parent_state.per_session_state->value().groups,
                originator,
                compact_statement)) {
-        const auto can_use_grid =
-            !cluster_relevant
-            || std::find(
-                   all_cluster_targets.begin(), all_cluster_targets.end(), v)
-                   == all_cluster_targets.end();
+        const auto can_use_grid = !cluster_relevant
+                               || std::ranges::find(all_cluster_targets, v)
+                                      == all_cluster_targets.end();
         if (!can_use_grid) {
           continue;
         }
@@ -3164,10 +3160,7 @@ namespace kagome::parachain {
                 candidate_hash,
                 peer_id);
             self->validateAsync<ValidationTaskType::kAttest>(
-                std::move(candidate),
-                std::move(*p),
-                std::move(pvd),
-                relay_parent);
+                candidate, std::move(*p), std::move(pvd), relay_parent);
           });
     }
   }
@@ -3209,48 +3202,39 @@ namespace kagome::parachain {
     }
 
     auto &active = local_validator->active;
-    auto [validator_id, is_cluster] =
-        [&]() -> std::pair<std::optional<ValidatorIndex>, bool> {
-      std::optional<ValidatorIndex> validator_id;
-      bool is_cluster = false;
+    std::optional<ValidatorIndex> validator_id;
+    bool is_cluster;  // NOLINT(cppcoreguidelines-init-variables)
+    [&] {
+      auto audi = query_audi_->get(peer_id);
+      if (not audi.has_value()) {
+        SL_TRACE(logger_, "No audi. (peer={})", peer_id);
+        return;
+      }
 
-      do {
-        auto audi = query_audi_->get(peer_id);
-        if (!audi) {
-          SL_TRACE(logger_, "No audi. (peer={})", peer_id);
+      ValidatorIndex v = 0;
+      for (; v < session_info.discovery_keys.size(); ++v) {
+        if (session_info.discovery_keys[v] == audi.value()) {
+          SL_TRACE(logger_,
+                   "Captured validator. (relay_parent={}, candidate_hash={})",
+                   confirmed->get().relay_parent(),
+                   request.candidate_hash);
           break;
         }
+      }
 
-        ValidatorIndex v = 0;
-        for (; v < session_info.discovery_keys.size(); ++v) {
-          if (session_info.discovery_keys[v] == *audi) {
-            SL_TRACE(logger_,
-                     "Captured validator. (relay_parent={}, candidate_hash={})",
-                     confirmed->get().relay_parent(),
-                     request.candidate_hash);
-            break;
-          }
-        }
+      if (v >= session_info.discovery_keys.size()) {
+        return;
+      }
 
-        if (v >= session_info.discovery_keys.size()) {
-          break;
-        }
+      if (active
+          and active->cluster_tracker.can_request(v, request.candidate_hash)) {
+        validator_id = v;
+        is_cluster = true;
 
-        if (active
-            && active->cluster_tracker.can_request(v, request.candidate_hash)) {
-          validator_id = v;
-          is_cluster = true;
-          break;
-        }
-
-        if (local_validator->grid_tracker.can_request(v,
-                                                      request.candidate_hash)) {
-          validator_id = v;
-          break;
-        }
-      } while (false);
-
-      return {validator_id, is_cluster};
+      } else if (local_validator->grid_tracker.can_request(
+                     v, request.candidate_hash)) {
+        validator_id = v;
+      }
     }();
 
     if (!validator_id) {
@@ -3766,13 +3750,11 @@ namespace kagome::parachain {
       return backing_store_->get(relay_parent);
     }
 
-    BlockNumber block_number;
-    if (auto r = get_block_number_under_construction(relay_parent);
-        r.has_error()) {
+    auto r = get_block_number_under_construction(relay_parent);
+    if (r.has_error()) {
       return {};
-    } else {
-      block_number = r.value();
     }
+    BlockNumber block_number = r.value();
 
     using Ancestors = std::unordered_set<CandidateHash>;
     const auto &availability_cores =
@@ -3920,9 +3902,8 @@ namespace kagome::parachain {
         if (candidate.candidate.commitments.opt_para_runtime) {
           if (with_validation_code) {
             break;
-          } else {
-            with_validation_code = true;
           }
+          with_validation_code = true;
         }
 
         merged_candidates.emplace_back(candidate);
@@ -3963,14 +3944,14 @@ namespace kagome::parachain {
           validity_vote,
           [](const BackingStore::ValidityVoteIssued &val) {
             return network::ValidityAttestation{
-                network::ValidityAttestation::Implicit{},
-                ((ValidatorSignature &)val),
+                .kind = network::ValidityAttestation::Implicit{},
+                .signature = ((ValidatorSignature &)val),
             };
           },
           [](const BackingStore::ValidityVoteValid &val) {
             return network::ValidityAttestation{
-                network::ValidityAttestation::Explicit{},
-                ((ValidatorSignature &)val),
+                .kind = network::ValidityAttestation::Explicit{},
+                .signature = ((ValidatorSignature &)val),
             };
           });
 
@@ -4008,9 +3989,9 @@ namespace kagome::parachain {
 
       const auto v_threshold = std::min(len, size_t(minimum_backing_votes));
       return attested(data.candidate, data, v_threshold);
-    } else {
-      SL_TRACE(logger_, "No candidate info. (relay_parent={})", relay_parent);
     }
+
+    SL_TRACE(logger_, "No candidate info. (relay_parent={})", relay_parent);
     return std::nullopt;
   }
 
@@ -4054,9 +4035,9 @@ namespace kagome::parachain {
         return std::nullopt;
       }
     }
-    std::sort(vote_positions.begin(),
-              vote_positions.end(),
-              [](const auto &l, const auto &r) { return l.second < r.second; });
+    std::ranges::sort(vote_positions, [](const auto &l, const auto &r) {
+      return l.second < r.second;
+    });
 
     std::vector<network::ValidityAttestation> validity_votes;
     validity_votes.reserve(vote_positions.size());
@@ -4464,7 +4445,7 @@ namespace kagome::parachain {
     /// TODO(iceseer):
     /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
     auto sign_result =
-        parachain_state.table_context.validator->sign(std::move(payload));
+        parachain_state.table_context.validator->sign(std::forward<T>(payload));
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",
@@ -4473,49 +4454,6 @@ namespace kagome::parachain {
     }
 
     return sign_result.value();
-  }
-
-  template <typename F>
-  bool ParachainProcessorImpl::tryOpenOutgoingStream(
-      const libp2p::peer::PeerId &peer_id,
-      std::shared_ptr<network::ProtocolBase> protocol,
-      F &&callback) {
-    auto stream_engine = pm_->getStreamEngine();
-    BOOST_ASSERT(stream_engine);
-
-    if (stream_engine->reserveOutgoing(peer_id, protocol)) {
-      protocol->newOutgoingStream(
-          peer_id,
-          [callback{std::forward<F>(callback)},
-           protocol,
-           peer_id,
-           wptr{weak_from_this()}](auto &&stream_result) mutable {
-            auto self = wptr.lock();
-            if (not self) {
-              return;
-            }
-
-            auto stream_engine = self->pm_->getStreamEngine();
-            stream_engine->dropReserveOutgoing(peer_id, protocol);
-
-            if (!stream_result.has_value()) {
-              self->logger_->verbose("Unable to create stream {} with {}: {}",
-                                     protocol->protocolName(),
-                                     peer_id,
-                                     stream_result.error());
-              return;
-            }
-
-            auto stream = stream_result.value();
-            stream_engine->addOutgoing(std::move(stream_result.value()),
-                                       protocol);
-
-            std::forward<F>(callback)(std::move(stream));
-          });
-      return true;
-    }
-    std::forward<F>(callback)(std::move(stream));
-    return false;
   }
 
   template <typename F>
@@ -4528,30 +4466,8 @@ namespace kagome::parachain {
         peer_id, std::move(protocol), std::forward<F>(callback));
   }
 
-  template <typename F>
-  bool ParachainProcessorImpl::tryOpenOutgoingValidationStream(
-      const libp2p::peer::PeerId &peer_id,
-      network::CollationVersion version,
-      F &&callback) {
-    std::shared_ptr<network::ProtocolBase> protocol;
-    switch (version) {
-      case network::CollationVersion::V1:
-      case network::CollationVersion::VStaging: {
-        protocol = router_->getValidationProtocolVStaging();
-      } break;
-      default: {
-        UNREACHABLE;
-      } break;
-    }
-    BOOST_ASSERT(protocol);
-
-    return tryOpenOutgoingStream(
-        peer_id, std::move(protocol), std::forward<F>(callback));
-  }
-
   void ParachainProcessorImpl::sendMyView(
       const libp2p::peer::PeerId &peer_id,
-      const std::shared_ptr<network::Stream> &stream,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
     TRY_GET_OR_RET(my_view, peer_view_->getMyView());
     BOOST_ASSERT(protocol);
@@ -4573,7 +4489,9 @@ namespace kagome::parachain {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        SL_TRACE(logger_,
+                 "No PeerState of peer {}. Default one has created",
+                 peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
@@ -4581,15 +4499,13 @@ namespace kagome::parachain {
 
     peer_state->get().collation_version = version;
     if (tryOpenOutgoingCollatingStream(
-            peer_id, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
+            peer_id, [wptr{weak_from_this()}, peer_id, version]() {
               TRY_GET_OR_RET(self, wptr.lock());
               switch (version) {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
-                      peer_id,
-                      stream,
-                      self->router_->getCollationProtocolVStaging());
+                      peer_id, self->router_->getCollationProtocolVStaging());
                 } break;
                 default: {
                   UNREACHABLE;
@@ -4608,7 +4524,9 @@ namespace kagome::parachain {
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        SL_TRACE(logger_,
+                 "No PeerState of peer {}. Default one has created",
+                 peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
@@ -4616,17 +4534,13 @@ namespace kagome::parachain {
 
     peer_state->get().collation_version = version;
     if (tryOpenOutgoingValidationStream(
-            peer_id,
-            version,
-            [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
+            peer_id, version, [wptr{weak_from_this()}, peer_id, version]() {
               TRY_GET_OR_RET(self, wptr.lock());
               switch (version) {
                 case network::CollationVersion::V1:
                 case network::CollationVersion::VStaging: {
                   self->sendMyView(
-                      peer_id,
-                      stream,
-                      self->router_->getValidationProtocolVStaging());
+                      peer_id, self->router_->getValidationProtocolVStaging());
                 } break;
                 default: {
                   UNREACHABLE;
@@ -4792,7 +4706,7 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
-    return (app_config_.roles().flags.authority == 1);
+    return app_config_.roles().isAuthority();
   }
 
   void ParachainProcessorImpl::onValidationComplete(
@@ -5080,21 +4994,21 @@ namespace kagome::parachain {
     parachain_state->get().awaiting_validation.erase(candidate_hash);
     auto q{std::move(validate_and_second_result)};
     if constexpr (kMode == ValidationTaskType::kSecond) {
-      onValidationComplete(std::move(q));
+      onValidationComplete(q);
     } else {
-      onAttestComplete(std::move(q));
+      onAttestComplete(q);
     }
   }
 
   template <ParachainProcessorImpl::ValidationTaskType kMode>
   void ParachainProcessorImpl::validateAsync(
-      network::CandidateReceipt &&candidate,
+      network::CandidateReceipt candidate,
       network::ParachainBlock &&pov,
       runtime::PersistedValidationData &&pvd,
       const primitives::BlockHash &relay_parent) {
     REINVOKE(*main_pool_handler_,
              validateAsync<kMode>,
-             std::move(candidate),
+             candidate,
              std::move(pov),
              std::move(pvd),
              relay_parent);
@@ -5204,7 +5118,7 @@ namespace kagome::parachain {
     const auto candidate_hash = result.candidate.hash(*hasher_);
     parachain_state->get().fallbacks.erase(candidate_hash);
 
-    if (parachain_state->get().issued_statements.count(candidate_hash) == 0) {
+    if (not parachain_state->get().issued_statements.contains(candidate_hash)) {
       if (result.result) {
         if (const auto r =
                 sign_import_and_distribute_statement<StatementType::kValid>(
@@ -5332,8 +5246,7 @@ namespace kagome::parachain {
     }
 
     if (!relay_parent_mode) {
-      if (peer_data.collator_state->advertisements.count(on_relay_parent)
-          != 0ull) {
+      if (peer_data.collator_state->advertisements.contains(on_relay_parent)) {
         return Error::DUPLICATE;
       }
 
@@ -5432,7 +5345,7 @@ namespace kagome::parachain {
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
-        std::move(pending_collation_fetch.candidate_receipt),
+        pending_collation_fetch.candidate_receipt,
         std::move(pending_collation_fetch.pov),
         std::move(pvd),
         relay_parent);
@@ -5720,7 +5633,7 @@ namespace kagome::parachain {
         .relay_parent = relay_parent,
         .para_id = para_id,
         .peer_id = peer_id,
-        .prospective_candidate = std::move(pc),
+        .prospective_candidate = pc,
         .commitments_hash = {},
     };
 
@@ -5738,14 +5651,13 @@ namespace kagome::parachain {
                                               collator_id);
       } break;
       case CollationStatus::Waiting: {
-        std::ignore = fetchCollation(std::move(pending_collation), collator_id);
+        std::ignore = fetchCollation(pending_collation, collator_id);
       } break;
       case CollationStatus::Seconded: {
         if (relay_parent_mode) {
           // Limit is not reached, it's allowed to second another
           // collation.
-          std::ignore =
-              fetchCollation(std::move(pending_collation), collator_id);
+          std::ignore = fetchCollation(pending_collation, collator_id);
         } else {
           SL_TRACE(logger_,
                    "A collation has already been seconded. (peer_id={}, para "
@@ -5789,8 +5701,7 @@ namespace kagome::parachain {
       const PendingCollation &pc,
       const CollatorId &id,
       network::CollationVersion version) {
-    if (our_current_state_.collation_requests_cancel_handles.count(pc)
-        != 0ull) {
+    if (our_current_state_.collation_requests_cancel_handles.contains(pc)) {
       SL_WARN(logger_,
               "Already requested. (relay parent={}, para id={})",
               pc.relay_parent,
@@ -5843,7 +5754,7 @@ namespace kagome::parachain {
              pc.para_id,
              pc.relay_parent);
 
-    our_current_state_.collation_requests_cancel_handles.insert(std::move(pc));
+    our_current_state_.collation_requests_cancel_handles.insert(pc);
     const auto maybe_candidate_hash =
         utils::map(pc.prospective_candidate,
                    [](const auto &v) { return std::cref(v.candidate_hash); });
@@ -5857,9 +5768,7 @@ namespace kagome::parachain {
           .para_id = pc.para_id,
       };
       router_->getReqCollationProtocol()->request(
-          peer_id,
-          std::move(fetch_collation_request),
-          std::move(response_callback));
+          peer_id, fetch_collation_request, std::move(response_callback));
     } else if (network::CollationVersion::VStaging == version
                && maybe_candidate_hash) {
       network::vstaging::CollationFetchingRequest fetch_collation_request{
@@ -5868,9 +5777,7 @@ namespace kagome::parachain {
           .candidate_hash = maybe_candidate_hash->get(),
       };
       router_->getReqCollationProtocol()->request(
-          peer_id,
-          std::move(fetch_collation_request),
-          std::move(response_callback));
+          peer_id, fetch_collation_request, std::move(response_callback));
     } else {
       UNREACHABLE;
     }

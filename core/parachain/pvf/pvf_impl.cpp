@@ -29,6 +29,7 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 #include "scale/std_variant.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
@@ -81,6 +82,7 @@ namespace kagome::parachain {
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   metrics::HistogramTimer metric_pvf_execution_time{
       "kagome_pvf_execution_time",
       "Time spent in executing PVFs",
@@ -116,18 +118,17 @@ namespace kagome::parachain {
       if (app_conf.runtimeInterpreter()
           == application::AppConfiguration::RuntimeInterpreter::WasmEdge) {
         return RuntimeEngine::kWasmEdgeInterpreted;
-      } else {
-        return RuntimeEngine::kBinaryen;
       }
-    } else {  // Execution method Compiled while WasmEdge is compile-enabled
-      return RuntimeEngine::kWasmEdgeCompiled;
+      return RuntimeEngine::kBinaryen;
     }
+    // Execution method Compiled while WasmEdge is compile-enabled
+    return RuntimeEngine::kWasmEdgeCompiled;
+
 #else
     if (interpreted) {  // WasmEdge is compile-disabled
       return RuntimeEngine::kBinaryen;
-    } else {
-      return RuntimeEngine::kWAVM;
     }
+    return RuntimeEngine::kWAVM;
 #endif
   }
 
@@ -136,7 +137,7 @@ namespace kagome::parachain {
 
     HeadData parent_head;
     ParachainBlock block_data;
-    BlockNumber relay_parent_number;
+    BlockNumber relay_parent_number{};
     Hash256 relay_parent_storage_root;
   };
 
@@ -179,6 +180,7 @@ namespace kagome::parachain {
     };
     SL_INFO(log_,
             "pvf runtime engine {}",
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 
@@ -318,14 +320,15 @@ namespace kagome::parachain {
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
+    const auto &context_params = executor_params.context_params;
 
     constexpr auto name = "validate_block";
-    CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, executor_params));
+    CB_TRYV(pvf_pool_->precompile(code_hash, code_zstd, context_params));
     if (not app_configuration_->usePvfSubprocess()) {
       // Reusing instances for PVF calls doesn't work, runtime calls start to
       // crash on access out of memory bounds
       KAGOME_PROFILE_START_L(log_, single_process_runtime_instantitation);
-      auto module_opt = pvf_pool_->getModule(code_hash, executor_params);
+      auto module_opt = pvf_pool_->getModule(code_hash, context_params);
       if (!module_opt) {
         SL_ERROR(log_,
                  "Runtime module supposed to be precompiled for parachain ID "
@@ -342,14 +345,18 @@ namespace kagome::parachain {
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     workers_->execute({
-        pvf_pool_->getCachePath(code_hash, executor_params),
-        scale::encode(params).value(),
-        [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
-          if (r.has_error()) {
-            return cb(r.error());
-          }
-          cb(scale::decode<ValidationResult>(r.value()));
-        },
+        .code_path = pvf_pool_->getCachePath(code_hash, context_params),
+        .args = scale::encode(params).value(),
+        .cb =
+            [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+              if (r.has_error()) {
+                return cb(r.error());
+              }
+              cb(scale::decode<ValidationResult>(r.value()));
+            },
+        .timeout =
+            std::chrono::milliseconds{
+                executor_params.pvf_exec_timeout_backing_ms},
     });
   }
 

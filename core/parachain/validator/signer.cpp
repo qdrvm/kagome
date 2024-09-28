@@ -12,7 +12,8 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent) {
     OUTCOME_TRY(session_index,
                 parachain_api->session_index_for_child(relay_parent));
-    return SigningContext{session_index, relay_parent};
+    return SigningContext{.session_index = session_index,
+                          .relay_parent = relay_parent};
   }
 
   ValidatorSigner::ValidatorSigner(

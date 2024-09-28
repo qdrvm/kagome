@@ -47,24 +47,25 @@ namespace kagome::crypto {
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
     ed25519_keypair_from_seed(kp_bytes.data(), seed.unsafeBytes().data());
     Ed25519Keypair kp{
-        Ed25519PrivateKey::from(SecureCleanGuard{
+        .secret_key = Ed25519PrivateKey::from(SecureCleanGuard{
             std::span(kp_bytes).subspan<0, ED25519_SECRET_KEY_LENGTH>()}),
-        Ed25519PublicKey::fromSpan(std::span(kp_bytes)
-                                       .subspan<ED25519_SECRET_KEY_LENGTH,
-                                                ED25519_PUBLIC_KEY_LENGTH>())
-            .value()};
+        .public_key = Ed25519PublicKey::fromSpan(
+                          std::span(kp_bytes)
+                              .subspan<ED25519_SECRET_KEY_LENGTH,
+                                       ED25519_PUBLIC_KEY_LENGTH>())
+                          .value()};
     return kp;
   }
 
   outcome::result<Ed25519Signature> Ed25519ProviderImpl::sign(
       const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
     SecureCleanGuard g{keypair_bytes};
     std::ranges::copy(keypair.secret_key.unsafeBytes(), keypair_bytes.begin());
-    std::copy(keypair.public_key.begin(),
-              keypair.public_key.end(),
-              keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
+    std::ranges::copy(keypair.public_key,
+                      keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
     if (res != ED25519_RESULT_OK) {

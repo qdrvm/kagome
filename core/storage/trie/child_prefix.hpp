@@ -13,7 +13,7 @@ namespace kagome::storage::trie {
    * ":child_storage:" prefix matcher
    */
   struct ChildPrefix {
-    ChildPrefix();
+    ChildPrefix() = default;
     ChildPrefix(bool v);
 
     void match(uint8_t nibble);

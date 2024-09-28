@@ -82,11 +82,10 @@ namespace kagome::metrics {
 
   void ExposerImpl::acceptOnce() {
     new_session_ = std::make_shared<SessionImpl>(*context_, session_config_);
-    new_session_->connectOnRequest(std::bind(&Handler::onSessionRequest,
-                                             handler_.get(),
-                                             std::placeholders::_1,
-                                             std::placeholders::_2));
-
+    new_session_->connectOnRequest(
+        [handler = handler_.get()](auto request, auto session) {
+          handler->onSessionRequest(std::move(request), std::move(session));
+        });
     auto on_accept = [wp{weak_from_this()}](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {

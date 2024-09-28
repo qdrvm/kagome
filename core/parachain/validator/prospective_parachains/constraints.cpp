@@ -116,17 +116,17 @@ namespace kagome::parachain::fragment {
     if (modifications.dmp_messages_processed
         > new_constraint.dmp_remaining_messages.size()) {
       return Error::DMP_MESSAGE_UNDERFLOW;
-    } else {
-      new_constraint.dmp_remaining_messages.erase(
-          new_constraint.dmp_remaining_messages.begin(),
-          new_constraint.dmp_remaining_messages.begin()
-              + modifications.dmp_messages_processed);
     }
+
+    new_constraint.dmp_remaining_messages.erase(
+        new_constraint.dmp_remaining_messages.begin(),
+        new_constraint.dmp_remaining_messages.begin()
+            + modifications.dmp_messages_processed);
 
     if (modifications.code_upgrade_applied) {
       if (auto new_code = std::move(new_constraint.future_validation_code)) {
         BOOST_ASSERT(!new_constraint.future_validation_code);
-        new_constraint.validation_code_hash = std::move(new_code->second);
+        new_constraint.validation_code_hash = new_code->second;
       } else {
         return Error::APPLIED_NONEXISTENT_CODE_UPGRADE;
       }

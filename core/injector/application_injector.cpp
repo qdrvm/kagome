@@ -190,6 +190,7 @@
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
+#include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
@@ -245,15 +246,15 @@ namespace {
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::SpacedStorage> spaced_storage) {
-    auto backend =
-        std::make_shared<storage::trie::TrieStorageBackendImpl>(spaced_storage);
+    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
+        std::move(spaced_storage));
 
     return backend;
   }
 
   sptr<storage::SpacedStorage> get_rocks_db(
       const application::AppConfiguration &app_config,
-      sptr<application::ChainSpec> chain_spec) {
+      const sptr<application::ChainSpec> &chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
 
@@ -268,6 +269,7 @@ namespace {
     if (!soft_limit) {
       exit(EXIT_FAILURE);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
     auto db_res =
@@ -308,7 +310,7 @@ namespace {
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       const application::AppConfiguration &config,
-      sptr<application::ChainSpec> chain_spec) {
+      const sptr<application::ChainSpec> &chain_spec) {
     auto path = config.keystorePath(chain_spec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
@@ -479,11 +481,11 @@ namespace {
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
 
-  using ModuleFactory = runtime::wavm::ModuleFactoryImpl;
+  using ChosenModuleFactoryImpl = runtime::wavm::ModuleFactoryImpl;
 
 #elif KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
-  using ModuleFactory = runtime::wasm_edge::ModuleFactoryImpl;
+  using ChosenModuleFactoryImpl = runtime::wasm_edge::ModuleFactoryImpl;
 
 #endif
 
@@ -513,7 +515,7 @@ namespace {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  ModuleFactory>(injector, method, interpreter);
+                  ChosenModuleFactoryImpl>(injector, method, interpreter);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {
@@ -699,7 +701,7 @@ namespace {
             di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
             di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
             bind_by_lambda<storage::SpacedStorage>([](const auto &injector) {
-              const application::AppConfiguration &config =
+              auto& config =
                   injector
                       .template create<application::AppConfiguration const &>();
               auto chain_spec =
@@ -721,7 +723,7 @@ namespace {
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
                           sptr<runtime::RuntimePropertiesCache>>());
-              if (!root_res) {
+              if (root_res.has_error()) {
                 throw std::runtime_error{fmt::format("Failed to calculate genesis state: {}", root_res.error())};
               }
               const auto &hasher =
@@ -814,7 +816,7 @@ namespace {
             bind_by_lambda<storage::trie_pruner::TriePruner>(
                 [](const auto &injector)
                     -> sptr<storage::trie_pruner::TriePruner> {
-                  const application::AppConfiguration &config =
+                  auto &config =
                       injector.template create<
                           application::AppConfiguration const &>();
                   if (config.statePruningDepth() == std::nullopt
@@ -828,7 +830,7 @@ namespace {
             di::bind<runtime::RuntimeContextFactory>.template to<runtime::RuntimeContextFactoryImpl>(),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {
-              const application::AppConfiguration &config =
+              auto &config =
                   injector
                       .template create<application::AppConfiguration const &>();
               return get_chain_spec(config);
@@ -898,7 +900,7 @@ namespace {
   auto makeKagomeNodeInjector(sptr<application::AppConfiguration> app_config,
                               Ts &&...args) {
     return di::make_injector<boost::di::extension::shared_config>(
-        makeApplicationInjector(app_config),
+        makeApplicationInjector(std::move(app_config)),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -921,7 +923,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

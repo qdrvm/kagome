@@ -75,7 +75,7 @@ namespace kagome::blockchain {
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
-        primitives::BlockId target_block_id,
+        const primitives::BlockId &target_block_id,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
@@ -274,9 +274,9 @@ namespace kagome::blockchain {
 
     } block_tree_data_;
 
-    primitives::events::ExtrinsicSubscriptionEnginePtr
-        extrinsic_events_engine_ = {};
-    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_ = {};
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
+    std::shared_ptr<PoolHandler> main_pool_handler_;
+    primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
     log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
     // Metrics
@@ -284,7 +284,6 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    std::shared_ptr<PoolHandler> main_pool_handler_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

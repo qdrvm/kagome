@@ -15,7 +15,7 @@ namespace kagome::common {
     inline std::array<uint8_t, size> uint_to_le_bytes(uint &&i) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(i, res.begin(), 8, false);
+      export_bits(std::forward<uint>(i), res.begin(), 8, false);
       return res;
     }
 
@@ -23,7 +23,7 @@ namespace kagome::common {
     inline std::array<uint8_t, size> uint_to_be_bytes(uint &&i) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(i, res.rbegin(), 8, false);
+      export_bits(std::forward<uint>(i), res.rbegin(), 8, false);
       return res;
     }
 
@@ -46,26 +46,28 @@ namespace kagome::common {
 
   std::array<uint8_t, 8> uint64_to_le_bytes(uint64_t number) {
     std::array<uint8_t, 8> result{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     *reinterpret_cast<uint64_t *>(result.data()) = htole64(number);
     return result;
   }
 
   uint64_t le_bytes_to_uint64(BufferView bytes) {
     BOOST_ASSERT(bytes.size() >= 8);
-    uint64_t number;
+    uint64_t number;  // NOLINT(cppcoreguidelines-init-variables)
     memcpy(&number, bytes.data(), 8);
     return le64toh(number);
   }
 
   std::array<uint8_t, 8> uint64_to_be_bytes(uint64_t number) {
     std::array<uint8_t, 8> result{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     *reinterpret_cast<uint64_t *>(result.data()) = htobe64(number);
     return result;
   }
 
   uint64_t be_bytes_to_uint64(BufferView bytes) {
     BOOST_ASSERT(bytes.size() >= 8);
-    uint64_t number;
+    uint64_t number;  // NOLINT(cppcoreguidelines-init-variables)
     memcpy(&number, bytes.data(), 8);
     return be64toh(number);
   }

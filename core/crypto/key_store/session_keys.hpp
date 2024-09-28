@@ -31,7 +31,7 @@ namespace kagome::crypto {
   // otherwise it could be read from chainspec palletSession/keys
   // nevertheless they are hardcoded in polkadot
   // https://github.com/paritytech/polkadot/blob/634520cd3cf4b2b850db807daaaa32e480099981/node/service/src/chain_spec.rs#L230
-  constexpr KeyType polkadot_key_order[6] = {
+  constexpr std::array<KeyType, 6> polkadot_key_order{
       KeyTypes::GRANDPA,
       KeyTypes::BABE,
       KeyTypes::IM_ONLINE,

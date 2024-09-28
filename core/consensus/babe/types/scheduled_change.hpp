@@ -16,7 +16,7 @@ namespace kagome::consensus::babe {
   struct NextConfigDataV1 final {
     SCALE_TIE(2);
     std::pair<uint64_t, uint64_t> ratio;
-    AllowedSlots second_slot;
+    AllowedSlots second_slot{};
   };
   using NextConfigData = std::variant<Unused<0>, NextConfigDataV1>;
 
