@@ -801,7 +801,11 @@ namespace kagome::parachain {
         const scale::BitVec &candidate_indices,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
-    void broadcastToAllPeers(const Hash &block_hash, const std::shared_ptr<network::WireMessage<network::vstaging::ValidatorProtocolMessage>> &msg);
+    void broadcastToAllPeers(
+        const Hash &block_hash,
+        const std::shared_ptr<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>
+            &msg);
 
     void send_assignments_batched(
         std::deque<network::vstaging::Assignment> &&assignments,

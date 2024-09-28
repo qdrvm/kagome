@@ -1034,7 +1034,9 @@ namespace kagome::parachain {
         const primitives::BlockHash &relay_parent,
         const network::HashedBlockHeader &block_header);
 
-    void spawn_and_update_peer(std::unordered_set<primitives::AuthorityDiscoveryId> &cache, const primitives::AuthorityDiscoveryId &id);
+    void spawn_and_update_peer(
+        std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
+        const primitives::AuthorityDiscoveryId &id);
 
     std::optional<ParachainProcessorImpl::LocalValidatorState>
     find_active_validator_state(
@@ -1053,9 +1055,9 @@ namespace kagome::parachain {
 
    public:
     std::shared_ptr<authority_discovery::Query> get_audi() {
-        return query_audi_;
+      return query_audi_;
     }
-    
+
     template <typename F>
     bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
                                          network::CollationVersion version,

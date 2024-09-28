@@ -1523,8 +1523,10 @@ namespace kagome::parachain {
           }
 
           if (new_hash) {
-            if (auto opt_entry = self->storedDistribBlockEntries().get(*new_hash)) {
-              for (const auto &[peer_id, knowledge] : opt_entry->get().known_by) {
+            if (auto opt_entry =
+                    self->storedDistribBlockEntries().get(*new_hash)) {
+              for (const auto &[peer_id, knowledge] :
+                   opt_entry->get().known_by) {
                 SL_TRACE(self->logger_, "Known_by contains peer={}", peer_id);
               }
             }
@@ -1757,11 +1759,10 @@ namespace kagome::parachain {
                   candidate_receipt,
                   false);
             } else {
-             for (const auto &b : advence_hashes) {
-              self->issue_approval(hashed_candidate.getHash(),
-                                   validator_index,
-                                   b);
-             }
+              for (const auto &b : advence_hashes) {
+                self->issue_approval(
+                    hashed_candidate.getHash(), validator_index, b);
+              }
             }
           };
           self->pvf_->pvfValidate(available_data.validation_data,
@@ -2098,11 +2099,11 @@ namespace kagome::parachain {
         }
       } else {
         SL_TRACE(logger_,
-                "Assignment from a peer is out of view. (peer id={}, "
-                "block_hash={}, validator index={})",
-                peer_id,
-                std::get<0>(message_subject),
-                std::get<2>(message_subject));
+                 "Assignment from a peer is out of view. (peer id={}, "
+                 "block_hash={}, validator index={})",
+                 peer_id,
+                 std::get<0>(message_subject),
+                 std::get<2>(message_subject));
       }
 
       /// if the assignment is known to be valid, reward the peer
@@ -2582,15 +2583,21 @@ namespace kagome::parachain {
         [&](const auto &) { UNREACHABLE; });
   }
 
-  void ApprovalDistribution::broadcastToAllPeers(const Hash &block_hash, const std::shared_ptr<network::WireMessage<network::vstaging::ValidatorProtocolMessage>> &msg) {
+  void ApprovalDistribution::broadcastToAllPeers(
+      const Hash &block_hash,
+      const std::shared_ptr<
+          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>
+          &msg) {
     auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);             
+    BOOST_ASSERT(se);
 
     const auto header = block_tree_->getBlockHeader(block_hash);
     if (header.has_value()) {
-      const auto session_index = parachain_host_->session_index_for_child(header.value().parent_hash);
+      const auto session_index =
+          parachain_host_->session_index_for_child(header.value().parent_hash);
       if (session_index.has_value()) {
-        const auto session = parachain_host_->session_info(header.value().parent_hash, session_index.value());
+        const auto session = parachain_host_->session_info(
+            header.value().parent_hash, session_index.value());
         if (session.has_value() && session.value()) {
           for (const auto &id : session.value()->discovery_keys) {
             if (auto peer = parachain_processor_->get_audi()->get(id)) {
@@ -2599,7 +2606,9 @@ namespace kagome::parachain {
                   network::CollationVersion::VStaging,
                   [WEAK_SELF, peer{peer->id}, se, msg]() {
                     WEAK_LOCK(self);
-                    se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
+                    se->send(peer,
+                             self->router_->getValidationProtocolVStaging(),
+                             msg);
                   });
             } else {
               SL_TRACE(logger_, "No audi for {}.", id);
@@ -2607,18 +2616,21 @@ namespace kagome::parachain {
           }
         } else {
           SL_TRACE(logger_,
-                  "No session. (block hash={}, error={})",
-                  block_hash, session.error());
+                   "No session. (block hash={}, error={})",
+                   block_hash,
+                   session.error());
         }
       } else {
         SL_TRACE(logger_,
-                "No session index. (block hash={}, error={})",
-                block_hash, session_index.error());
+                 "No session index. (block hash={}, error={})",
+                 block_hash,
+                 session_index.error());
       }
     } else {
       SL_TRACE(logger_,
-              "No block header in block tree. (block hash={}, error={})",
-              block_hash, header.error());
+               "No block header in block tree. (block hash={}, error={})",
+               block_hash,
+               header.error());
     }
   }
 
@@ -2637,13 +2649,13 @@ namespace kagome::parachain {
              indirect_cert.block_hash);
 
     auto msg = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Assignments{
-                    .assignments = {network::vstaging::Assignment{
-                        .indirect_assignment_cert = indirect_cert,
-                        .candidate_bitfield = candidate_indices,
-                    }}}});          
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Assignments{
+                .assignments = {network::vstaging::Assignment{
+                    .indirect_assignment_cert = indirect_cert,
+                    .candidate_bitfield = candidate_indices,
+                }}}});
     broadcastToAllPeers(indirect_cert.block_hash, msg);
   }
 
@@ -2753,11 +2765,11 @@ namespace kagome::parachain {
             peers.size());
 
     auto msg = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Approvals{
-                    .approvals = {vote},
-                }});
+        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+        network::vstaging::ApprovalDistributionMessage{
+            network::vstaging::Approvals{
+                .approvals = {vote},
+            }});
     broadcastToAllPeers(vote.payload.payload.block_hash, msg);
   }
 
