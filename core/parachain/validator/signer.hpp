@@ -112,7 +112,8 @@ namespace kagome::parachain {
     outcome::result<std::optional<ValidatorSigner>> at(
         const primitives::BlockHash &relay_parent);
 
-    outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(const primitives::BlockHash &relay_parent);
+    outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(
+        const primitives::BlockHash &relay_parent);
 
    private:
     std::shared_ptr<runtime::ParachainHost> parachain_api_;

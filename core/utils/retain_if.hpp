@@ -7,8 +7,8 @@
 #pragma once
 
 #include <algorithm>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace kagome {
   template <typename T>

@@ -74,8 +74,6 @@ namespace kagome::parachain {
   std::optional<AvailabilityStore::AvailableData>
   AvailabilityStoreImpl::getPovAndData(
       const CandidateHash &candidate_hash) const {
-    SL_DEBUG(logger, "{}. candidate: {})", __PRETTY_FUNCTION__, candidate_hash);
-
     return state_.sharedAccess(
         [&](const auto &state)
             -> std::optional<AvailabilityStore::AvailableData> {
@@ -120,8 +118,6 @@ namespace kagome::parachain {
                                         std::vector<ErasureChunk> &&chunks,
                                         const ParachainBlock &pov,
                                         const PersistedValidationData &data) {
-    SL_DEBUG(logger, "{}. candidate: {})", __PRETTY_FUNCTION__, candidate_hash);
-
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
       auto &candidate_data = state.per_candidate_[candidate_hash];
@@ -136,9 +132,6 @@ namespace kagome::parachain {
   void AvailabilityStoreImpl::putChunk(const network::RelayHash &relay_parent,
                                        const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
-    //    SL_DEBUG(logger, "{}. candidate: {})", __PRETTY_FUNCTION__,
-    //    candidate_hash);
-
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
       state.per_candidate_[candidate_hash].chunks[chunk.index] =
@@ -151,8 +144,6 @@ namespace kagome::parachain {
       if (auto it = state.candidates_.find(relay_parent);
           it != state.candidates_.end()) {
         for (auto const &l : it->second) {
-          SL_DEBUG(logger, "{}. candidate: {})", __PRETTY_FUNCTION__, l);
-
           state.per_candidate_.erase(l);
         }
         state.candidates_.erase(it);

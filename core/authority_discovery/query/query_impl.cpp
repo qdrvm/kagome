@@ -108,9 +108,7 @@ namespace kagome::authority_discovery {
     }
     auto r = add(*id, value);
     if (not r) {
-      SL_WARN(log_, "Can't add: {}", r.error());
-    } else {
-      SL_INFO(log_, "Added or updated success: {}", *id);
+      SL_DEBUG(log_, "Can't add: {}", r.error());
     }
     return r;
   }

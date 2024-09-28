@@ -674,8 +674,6 @@ namespace kagome::parachain {
       av_store_->remove(lost);
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.state_by_relay_parent.erase(lost);
-
-      av_store_->remove(lost);
     }
     our_current_state_.active_leaves[relay_parent] =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
@@ -1143,12 +1141,7 @@ namespace kagome::parachain {
 
     /// update peers in grid view
     const auto &grid_view = *per_session_state->value().grid_view;
-    SL_TRACE(logger_, "++>>> groups={}", grid_view.size());
     for (const auto &view : grid_view) {
-      SL_TRACE(logger_,
-               "++>>> group_size(s)={}, group_size(r)={}",
-               view.sending.size(),
-               view.receiving.size());
       for (const auto vi : view.sending) {
         spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
       }
@@ -4490,9 +4483,12 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
     BOOST_ASSERT(protocol);
-    logger_->info("Send my view.(peer={}, protocol={})",
-                  peer_id,
-                  protocol->protocolName());
+    CHECK_OR_RET(canProcessParachains().has_value());
+
+    SL_INFO(logger_,
+            "Send my view.(peer={}, protocol={})",
+            peer_id,
+            protocol->protocolName());
     pm_->getStreamEngine()->send(
         peer_id,
         protocol,

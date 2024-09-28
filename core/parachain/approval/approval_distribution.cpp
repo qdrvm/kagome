@@ -2572,57 +2572,6 @@ namespace kagome::parachain {
         [&](const auto &) { UNREACHABLE; });
   }
 
-  void ApprovalDistribution::broadcastToAllPeers(
-      const Hash &block_hash,
-      const std::shared_ptr<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>
-          &msg) {
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    const auto header = block_tree_->getBlockHeader(block_hash);
-    if (header.has_value()) {
-      const auto session_index =
-          parachain_host_->session_index_for_child(header.value().parent_hash);
-      if (session_index.has_value()) {
-        const auto session = parachain_host_->session_info(
-            header.value().parent_hash, session_index.value());
-        if (session.has_value() && session.value()) {
-          for (const auto &id : session.value()->discovery_keys) {
-            if (auto peer = parachain_processor_->get_audi()->get(id)) {
-              parachain_processor_->tryOpenOutgoingValidationStream(
-                  peer->id,
-                  network::CollationVersion::VStaging,
-                  [WEAK_SELF, peer{peer->id}, se, msg]() {
-                    WEAK_LOCK(self);
-                    se->send(peer,
-                             self->router_->getValidationProtocolVStaging(),
-                             msg);
-                  });
-            } else {
-              SL_TRACE(logger_, "No audi for {}.", id);
-            }
-          }
-        } else {
-          SL_TRACE(logger_,
-                   "No session. (block hash={}, error={})",
-                   block_hash,
-                   session.error());
-        }
-      } else {
-        SL_TRACE(logger_,
-                 "No session index. (block hash={}, error={})",
-                 block_hash,
-                 session_index.error());
-      }
-    } else {
-      SL_TRACE(logger_,
-               "No block header in block tree. (block hash={}, error={})",
-               block_hash,
-               header.error());
-    }
-  }
-
   void ApprovalDistribution::runDistributeAssignment(
       const approval::IndirectAssignmentCertV2 &indirect_cert,
       const scale::BitVec &candidate_indices,
@@ -2637,15 +2586,20 @@ namespace kagome::parachain {
              "Distributing assignment on candidate (block hash={})",
              indirect_cert.block_hash);
 
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::vstaging::ApprovalDistributionMessage{
-            network::vstaging::Assignments{
-                .assignments = {network::vstaging::Assignment{
-                    .indirect_assignment_cert = indirect_cert,
-                    .candidate_bitfield = candidate_indices,
-                }}}});
-    broadcastToAllPeers(indirect_cert.block_hash, msg);
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    se->broadcast(
+        router_->getValidationProtocolVStaging(),
+        std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Assignments{
+                    .assignments = {network::vstaging::Assignment{
+                        .indirect_assignment_cert = indirect_cert,
+                        .candidate_bitfield = candidate_indices,
+                    }}}}),
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2753,13 +2707,18 @@ namespace kagome::parachain {
             vote.payload.payload.block_hash,
             peers.size());
 
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::vstaging::ApprovalDistributionMessage{
-            network::vstaging::Approvals{
-                .approvals = {vote},
-            }});
-    broadcastToAllPeers(vote.payload.payload.block_hash, msg);
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    se->broadcast(
+        router_->getValidationProtocolVStaging(),
+        std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Approvals{
+                    .approvals = {vote},
+                }}),
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
