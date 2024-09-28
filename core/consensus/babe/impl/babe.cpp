@@ -118,8 +118,7 @@ namespace kagome::consensus::babe {
         offchain_worker_pool_(std::move(offchain_worker_pool)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        is_validator_by_config_(app_config.roles().flags.authority != 0),
+        is_validator_by_config_(app_config.roles().isAuthority()),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(config_repo_);

@@ -21,5 +21,6 @@ add_library(log_configurator
     )
 target_link_libraries(log_configurator
     soralog::configurator_yaml
+    Boost::program_options
     )
 kagome_install(log_configurator)

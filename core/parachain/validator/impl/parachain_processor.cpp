@@ -674,6 +674,8 @@ namespace kagome::parachain {
       av_store_->remove(lost);
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.state_by_relay_parent.erase(lost);
+
+      av_store_->remove(lost);
     }
     our_current_state_.active_leaves[relay_parent] =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
@@ -4474,50 +4476,6 @@ namespace kagome::parachain {
     return sign_result.value();
   }
 
-  //  template <typename F>
-  //  bool ParachainProcessorImpl::tryOpenOutgoingStream(
-  //      const libp2p::peer::PeerId &peer_id,
-  //      std::shared_ptr<network::ProtocolBase> protocol,
-  //      F &&callback) {
-  //    auto stream_engine = pm_->getStreamEngine();
-  //    BOOST_ASSERT(stream_engine);
-  //
-  //    if (stream_engine->reserveOutgoing(peer_id, protocol)) {
-  //      protocol->newOutgoingStream(
-  //          peer_id,
-  //          [callback = std::forward<F>(callback),
-  //           protocol,
-  //           peer_id,
-  //           wptr{weak_from_this()}](auto &&stream_result) mutable {
-  //            auto self = wptr.lock();
-  //            if (not self) {
-  //              return;
-  //            }
-  //
-  //            auto stream_engine = self->pm_->getStreamEngine();
-  //            stream_engine->dropReserveOutgoing(peer_id, protocol);
-  //
-  //            if (!stream_result.has_value()) {
-  //              self->logger_->verbose("Unable to create stream {} with {}:
-  //              {}",
-  //                                     protocol->protocolName(),
-  //                                     peer_id,
-  //                                     stream_result.error());
-  //              return;
-  //            }
-  //
-  //            auto stream = stream_result.value();
-  //            stream_engine->addOutgoing(std::move(stream_result.value()),
-  //                                       protocol);
-  //
-  //            std::forward<F>(callback)(std::move(stream));
-  //          });
-  //      return true;
-  //    }
-  //    std::forward<F>(callback)(std::move(stream));
-  //    return false;
-  //  }
-
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingCollatingStream(
       const libp2p::peer::PeerId &peer_id, F &&callback) {
@@ -4527,27 +4485,6 @@ namespace kagome::parachain {
     return tryOpenOutgoingStream(
         peer_id, std::move(protocol), std::forward<F>(callback));
   }
-
-  //  template <typename F>
-  //  bool ParachainProcessorImpl::tryOpenOutgoingValidationStream(
-  //      const libp2p::peer::PeerId &peer_id,
-  //      network::CollationVersion version,
-  //      F &&callback) {
-  //    std::shared_ptr<network::ProtocolBase> protocol;
-  //    switch (version) {
-  //      case network::CollationVersion::V1:
-  //      case network::CollationVersion::VStaging: {
-  //        protocol = router_->getValidationProtocolVStaging();
-  //      } break;
-  //      default: {
-  //        UNREACHABLE;
-  //      } break;
-  //    }
-  //    BOOST_ASSERT(protocol);
-  //
-  //    return tryOpenOutgoingStream(
-  //        peer_id, std::move(protocol), std::forward<F>(callback));
-  //  }
 
   void ParachainProcessorImpl::sendMyView(
       const libp2p::peer::PeerId &peer_id,
@@ -4795,8 +4732,7 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    return (app_config_.roles().flags.authority == 1);
+    return app_config_.roles().isAuthority();
   }
 
   void ParachainProcessorImpl::onValidationComplete(

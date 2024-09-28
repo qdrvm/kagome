@@ -260,10 +260,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType);
     payload
         .AddMember(
-            "authority",
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-            static_cast<bool>(app_configuration_.roles().flags.authority),
-            allocator)
+            "authority", app_configuration_.roles().isAuthority(), allocator)
         .AddMember("chain", str_val(chain_spec_.name()), allocator)
         .AddMember("config", str_val(""), allocator)
         .AddMember("genesis_hash", str_val(genesis_hash_), allocator)

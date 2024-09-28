@@ -139,11 +139,6 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, usePvfSubprocess, (), (const, override));
 
-    MOCK_METHOD(std::chrono::milliseconds,
-                pvfSubprocessDeadline,
-                (),
-                (const, override));
-
     MOCK_METHOD(size_t, pvfMaxWorkers, (), (const, override));
 
     MOCK_METHOD(bool, disableSecureMode, (), (const, override));

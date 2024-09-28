@@ -1054,24 +1054,11 @@ namespace kagome::parachain {
                                         F &&callback);
 
    public:
-    std::shared_ptr<authority_discovery::Query> get_audi() {
-      return query_audi_;
-    }
-
     template <typename F>
     bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
                                          network::CollationVersion version,
                                          F &&callback) {
-      //      std::shared_ptr<network::ProtocolBase> protocol;
-      //      switch (version) {
-      //        case network::CollationVersion::V1:
-      //        case network::CollationVersion::VStaging: {
       auto protocol = router_->getValidationProtocolVStaging();
-      //        } break;
-      //        default: {
-      //          UNREACHABLE;
-      //        } break;
-      //      }
       BOOST_ASSERT(protocol);
 
       return tryOpenOutgoingStream(

@@ -115,7 +115,6 @@ namespace kagome::parachain {
         scheduler_{std::move(scheduler)},
         exe_{exePath()},
         max_{app_config.pvfMaxWorkers()},
-        timeout_{app_config.pvfSubprocessDeadline()},
         worker_config_{
             .engine = pvf_runtime_engine(app_config),
             .cache_dir = app_config.runtimeCacheDirPath(),
@@ -216,7 +215,7 @@ namespace kagome::parachain {
       timeout->reset();
     };
     *timeout = scheduler_->scheduleWithHandle(
-        [cb]() mutable { cb(std::errc::timed_out); }, timeout_);
+        [cb]() mutable { cb(std::errc::timed_out); }, job.timeout);
     worker.process->writeScale(PvfWorkerInput{job.args},
                                [cb](outcome::result<void> r) mutable {
                                  if (not r) {

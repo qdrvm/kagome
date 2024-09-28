@@ -226,9 +226,6 @@ namespace kagome::application {
     bool usePvfSubprocess() const override {
       return use_pvf_subprocess_;
     }
-    std::chrono::milliseconds pvfSubprocessDeadline() const override {
-      return pvf_subprocess_deadline_;
-    }
     size_t pvfMaxWorkers() const override {
       return pvf_max_workers_;
     }
@@ -387,7 +384,6 @@ namespace kagome::application {
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
     bool use_pvf_subprocess_{true};
-    std::chrono::milliseconds pvf_subprocess_deadline_{2000};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};

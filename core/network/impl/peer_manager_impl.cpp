@@ -759,8 +759,7 @@ namespace kagome::network {
       network::CollationVersion
           proto_version) {  // network::CollationVersion::VStaging
     /// If validator start validation protocol
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    if (peer_state.roles.flags.authority) {
+    if (peer_state.roles.isAuthority()) {
       auto validation_protocol = [&]() -> std::shared_ptr<ProtocolBase> {
         return router_->getValidationProtocolVStaging();
       }();
@@ -842,16 +841,14 @@ namespace kagome::network {
           if (peer_state.has_value()) {
             auto &state = peer_state->get();
             if (not out) {
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-              if (state.roles.flags.full == 1) {
+              if (state.roles.isFull()) {
                 if (self->countPeers(PeerType::PEER_TYPE_IN)
                     >= self->app_config_.inPeers()) {
                   self->connecting_peers_.erase(peer_info.id);
                   self->disconnectFromPeer(peer_info.id);
                   return;
                 }
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-              } else if (state.roles.flags.light == 1) {
+              } else {
                 if (self->countPeers(PeerType::PEER_TYPE_IN, IsLight(true))
                     >= self->app_config_.inPeersLight()) {
                   self->connecting_peers_.erase(peer_info.id);
@@ -887,9 +884,7 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    if (auto ps = getPeerState(peer_id);
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        ps && ps->get().roles.flags.authority) {
+    if (auto ps = getPeerState(peer_id); ps && ps->get().roles.isAuthority()) {
       auto proto_val_vstaging = router_->getValidationProtocolVStaging();
       BOOST_ASSERT_MSG(proto_val_vstaging,
                        "Router did not provide validation protocol vstaging");

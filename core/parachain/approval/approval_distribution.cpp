@@ -1508,7 +1508,6 @@ namespace kagome::parachain {
         }
 
         for (const auto &p : active_peers) {
-          SL_TRACE(self->logger_, "Active peer = {}", p);
           std::ignore = self->peer_views_[p];
         }
 
@@ -1520,16 +1519,6 @@ namespace kagome::parachain {
 
           if (new_hash && view.contains(*new_hash)) {
             view_intersection.heads_.emplace_back(*new_hash);
-          }
-
-          if (new_hash) {
-            if (auto opt_entry =
-                    self->storedDistribBlockEntries().get(*new_hash)) {
-              for (const auto &[peer_id, knowledge] :
-                   opt_entry->get().known_by) {
-                SL_TRACE(self->logger_, "Known_by contains peer={}", peer_id);
-              }
-            }
           }
 
           self->unify_with_peer(self->storedDistribBlockEntries(),
