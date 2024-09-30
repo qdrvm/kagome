@@ -127,7 +127,7 @@ int main(int argc, const char **argv, const char **env) {
     if (custom_log_config_path.has_value()) {
       if (not std::filesystem::is_regular_file(
               custom_log_config_path.value())) {
-        std::cerr << "Provided wrong path to config file of logging\n";
+        std::cerr << "Provided wrong path to logger config file\n";
         exit(EXIT_FAILURE);
       }
     }

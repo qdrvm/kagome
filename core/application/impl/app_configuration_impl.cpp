@@ -814,7 +814,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("version,v", "show version information")
-        ("logcfg", po::value<std::string>(), "optional, path to config file of logger")
+        ("logcfg", po::value<std::string>(), "optional, path to logger config file")
         ("log,l", po::value<std::vector<std::string>>(),
           "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
