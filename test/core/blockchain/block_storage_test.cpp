@@ -48,6 +48,9 @@ class BlockStorageTest : public testing::Test {
   void SetUp() override {
     root_hash.fill(1);
 
+    hasher = std::make_shared<HasherMock>();
+    spaced_storage = std::make_shared<SpacedStorageMock>();
+
     std::set<Space> required_spaces = {Space::kDefault,
                                        Space::kHeader,
                                        Space::kJustification,
@@ -77,8 +80,7 @@ class BlockStorageTest : public testing::Test {
 
   std::shared_ptr<BlockStorageImpl> createWithGenesis() {
     // calculate hash of genesis block at put block header
-    BlockHeader header{};
-    auto encoded_header = Buffer(scale::encode(header).value());
+    static auto encoded_header = Buffer(scale::encode(BlockHeader{}).value());
     ON_CALL(*hasher, blake2b_256(encoded_header.view()))
         .WillByDefault(Return(genesis_block_hash));
 
