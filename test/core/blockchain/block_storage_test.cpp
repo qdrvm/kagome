@@ -77,8 +77,10 @@ class BlockStorageTest : public testing::Test {
 
   std::shared_ptr<BlockStorageImpl> createWithGenesis() {
     // calculate hash of genesis block at put block header
-    EXPECT_CALL(*hasher, blake2b_256(_))
-        .WillRepeatedly(Return(genesis_block_hash));
+    BlockHeader header{};
+    auto encoded_header = Buffer(scale::encode(header).value());
+    ON_CALL(*hasher, blake2b_256(encoded_header.view()))
+        .WillByDefault(Return(genesis_block_hash));
 
     EXPECT_OUTCOME_TRUE(
         new_block_storage,
@@ -105,10 +107,6 @@ TEST_F(BlockStorageTest, CreateWithGenesis) {
  */
 TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
   auto empty_storage = std::make_shared<BufferStorageMock>();
-
-  // calculate hash of genesis block at put block header
-  EXPECT_CALL(*hasher, blake2b_256(_))
-      .WillRepeatedly(Return(genesis_block_hash));
 
   // check if storage contained genesis block
   EXPECT_CALL(*empty_storage, tryGetMock(_))
@@ -169,7 +167,6 @@ TEST_F(BlockStorageTest, PutBlock) {
   Block block;
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
-  block.header.hash_opt = regular_block_hash;
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
 }
@@ -184,9 +181,12 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   auto block_storage = createWithGenesis();
 
   Block block;
-  block.header.number = 666;
+  block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
-  block.header.hash_opt = regular_block_hash;
+
+  auto encoded_header = Buffer(scale::encode(block.header).value());
+  ON_CALL(*hasher, blake2b_256(encoded_header.view()))
+      .WillByDefault(Return(regular_block_hash));
 
   Buffer key{regular_block_hash};
 
