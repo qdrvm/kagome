@@ -88,6 +88,12 @@ namespace kagome::telemetry {
     void stop();
 
    private:
+    /// structure to store last calculated bandwidth values
+    struct Bandwidth {
+      uint64_t down{0};
+      uint64_t up{0};
+    };
+
     /// parse telemetry endpoints from chain specification
     std::vector<TelemetryEndpoint> chainSpecEndpoints() const;
 
@@ -99,6 +105,9 @@ namespace kagome::telemetry {
 
     /// produces and sends system health notifications
     void delayedNotificationsRoutine();
+
+    /// calculates and returns current bandwidth values
+    Bandwidth getBandwidth();
 
     /**
      * Constructs the main and immutable part of JSON to be serialized later as
@@ -169,6 +178,11 @@ namespace kagome::telemetry {
     std::string genesis_hash_;
     std::shared_ptr<MessagePool> message_pool_;
     bool was_synchronized_ = false;
+
+    uint64_t previous_bytes_read_{0};
+    uint64_t previous_bytes_written_{0};
+    std::optional<std::chrono::high_resolution_clock::time_point>
+        previous_bandwidth_calculated_;
   };
 
 }  // namespace kagome::telemetry
