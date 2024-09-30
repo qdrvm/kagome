@@ -25,7 +25,6 @@ namespace rapidjson {
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/transport/tcp/bytes_counter.hpp>
 
-#include <network/helpers/stream_read_buffer.hpp>
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 #include "telemetry/impl/telemetry_thread_pool.hpp"
