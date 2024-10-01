@@ -28,7 +28,10 @@ namespace kagome::parachain {
   constexpr BlockNumber MINIMUM_RETAIN_LENGTH = 2ull;
 
   struct ImplicitView {
-    enum Error { ALREADY_KNOWN, NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS };
+    enum Error : uint8_t {
+      ALREADY_KNOWN,
+      NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS
+    };
 
     struct FetchSummary {
       BlockNumber minimum_ancestor_number;

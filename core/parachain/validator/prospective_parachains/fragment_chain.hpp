@@ -9,8 +9,8 @@
 #include "parachain/validator/prospective_parachains/backed_chain.hpp"
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
-#include "parachain/validator/prospective_parachains/scope.hpp"
 #include "parachain/validator/prospective_parachains/fragment_chain_errors.hpp"
+#include "parachain/validator/prospective_parachains/scope.hpp"
 
 namespace kagome::parachain::fragment {
 
@@ -40,7 +40,7 @@ namespace kagome::parachain::fragment {
     /// Create a new [`FragmentChain`] with the given scope and populate it with
     /// the candidates pending availability.
     static FragmentChain init(std::shared_ptr<crypto::Hasher> hasher,
-                              const Scope scope,
+                              const Scope &scope,
                               CandidateStorage candidates_pending_availability);
 
     /// Populate the [`FragmentChain`] given the new candidates pending
@@ -141,98 +141,102 @@ namespace kagome::parachain::fragment {
     // the future. It works both with concrete candidates for which we have the
     // full PVD and committed receipt, but also does some more basic checks for
     // incomplete candidates (before even fetching them).
-  outcome::result<void> check_potential(
-      const HypotheticalOrConcreteCandidate auto &candidate) const {
-    const auto parent_head_hash = candidate.get_parent_head_data_hash();
+    outcome::result<void> check_potential(
+        const HypotheticalOrConcreteCandidate auto &candidate) const {
+      const auto parent_head_hash = candidate.get_parent_head_data_hash();
 
-    if (auto output_head_hash = candidate.get_output_head_data_hash()) {
-      if (parent_head_hash == *output_head_hash) {
-        return FragmentChainError::ZERO_LENGTH_CYCLE;
-      }
-    }
-
-    auto relay_parent = scope.ancestor(candidate.get_relay_parent());
-    if (!relay_parent) {
-      return FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE;
-    }
-
-    const auto earliest_rp_of_pending_availability =
-        earliest_relay_parent_pending_availability();
-    if (relay_parent->number < earliest_rp_of_pending_availability.number) {
-      return FragmentChainError::RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY;
-    }
-
-    if (auto other_candidate =
-            utils::get(best_chain.by_parent_head, parent_head_hash)) {
-      if (scope.get_pending_availability((*other_candidate)->second)) {
-        return FragmentChainError::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY;
+      if (auto output_head_hash = candidate.get_output_head_data_hash()) {
+        if (parent_head_hash == *output_head_hash) {
+          return FragmentChainError::ZERO_LENGTH_CYCLE;
+        }
       }
 
-      if (fork_selection_rule((*other_candidate)->second,
-                              candidate.get_candidate_hash())) {
-        return FragmentChainError::FORK_CHOICE_RULE;
-      }
-    }
-
-    std::pair<Constraints, Option<BlockNumber>> constraints_and_number;
-    if (auto parent_candidate_ =
-            utils::get(best_chain.by_output_head, parent_head_hash)) {
-      auto parent_candidate = std::find_if(
-          best_chain.chain.begin(), best_chain.chain.end(), [&](const auto &c) {
-            return c.candidate_hash == (*parent_candidate_)->second;
-          });
-      if (parent_candidate == best_chain.chain.end()) {
-        return FragmentChainError::PARENT_CANDIDATE_NOT_FOUND;
+      auto relay_parent = scope.ancestor(candidate.get_relay_parent());
+      if (!relay_parent) {
+        return FragmentChainError::RELAY_PARENT_NOT_IN_SCOPE;
       }
 
-      auto constraints = scope.base_constraints.apply_modifications(
-          parent_candidate->cumulative_modifications);
-      if (constraints.has_error()) {
-        return FragmentChainError::COMPUTE_CONSTRAINTS;
+      const auto earliest_rp_of_pending_availability =
+          earliest_relay_parent_pending_availability();
+      if (relay_parent->number < earliest_rp_of_pending_availability.number) {
+        return FragmentChainError::
+            RELAY_PARENT_PRECEDES_CANDIDATE_PENDING_AVAILABILITY;
       }
-      constraints_and_number = std::make_pair(
-          std::move(constraints.value()),
-          utils::map(scope.ancestor(parent_candidate->relay_parent()),
-                     [](const auto &rp) { return rp.number; }));
-    } else if (hasher_->blake2b_256(scope.base_constraints.required_parent)
-               == parent_head_hash) {
-      constraints_and_number =
-          std::make_pair(scope.base_constraints, std::nullopt);
-    } else {
-      return outcome::success();
-    }
-    const auto &[constraints, maybe_min_relay_parent_number] =
-        constraints_and_number;
 
-    if (auto output_head_hash = candidate.get_output_head_data_hash()) {
-      OUTCOME_TRY(check_cycles_or_invalid_tree(*output_head_hash));
-    }
+      if (auto other_candidate =
+              utils::get(best_chain.by_parent_head, parent_head_hash)) {
+        if (scope.get_pending_availability((*other_candidate)->second)) {
+          return FragmentChainError::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY;
+        }
 
-    if (candidate.get_commitments() && candidate.get_persisted_validation_data()
-        && candidate.get_validation_code_hash()) {
-      if (Fragment::check_against_constraints(
-              *relay_parent,
-              constraints,
-              candidate.get_commitments()->get(),
-              candidate.get_validation_code_hash()->get(),
-              candidate.get_persisted_validation_data()->get())
-              .has_error()) {
-        return FragmentChainError::CHECK_AGAINST_CONSTRAINTS;
+        if (fork_selection_rule((*other_candidate)->second,
+                                candidate.get_candidate_hash())) {
+          return FragmentChainError::FORK_CHOICE_RULE;
+        }
       }
-    }
 
-    if (relay_parent->number < constraints.min_relay_parent_number) {
-      return FragmentChainError::RELAY_PARENT_MOVED_BACKWARDS;
-    }
+      std::pair<Constraints, Option<BlockNumber>> constraints_and_number;
+      if (auto parent_candidate_ =
+              utils::get(best_chain.by_output_head, parent_head_hash)) {
+        auto parent_candidate = std::ranges::find_if(
+            best_chain.chain.begin(),
+            best_chain.chain.end(),
+            [&](const auto &c) {
+              return c.candidate_hash == (*parent_candidate_)->second;
+            });
+        if (parent_candidate == best_chain.chain.end()) {
+          return FragmentChainError::PARENT_CANDIDATE_NOT_FOUND;
+        }
 
-    if (maybe_min_relay_parent_number) {
-      if (relay_parent->number < *maybe_min_relay_parent_number) {
+        auto constraints = scope.base_constraints.apply_modifications(
+            parent_candidate->cumulative_modifications);
+        if (constraints.has_error()) {
+          return FragmentChainError::COMPUTE_CONSTRAINTS;
+        }
+        constraints_and_number = std::make_pair(
+            std::move(constraints.value()),
+            utils::map(scope.ancestor(parent_candidate->relay_parent()),
+                       [](const auto &rp) { return rp.number; }));
+      } else if (hasher_->blake2b_256(scope.base_constraints.required_parent)
+                 == parent_head_hash) {
+        constraints_and_number =
+            std::make_pair(scope.base_constraints, std::nullopt);
+      } else {
+        return outcome::success();
+      }
+      const auto &[constraints, maybe_min_relay_parent_number] =
+          constraints_and_number;
+
+      if (auto output_head_hash = candidate.get_output_head_data_hash()) {
+        OUTCOME_TRY(check_cycles_or_invalid_tree(*output_head_hash));
+      }
+
+      if (candidate.get_commitments()
+          && candidate.get_persisted_validation_data()
+          && candidate.get_validation_code_hash()) {
+        if (Fragment::check_against_constraints(
+                *relay_parent,
+                constraints,
+                candidate.get_commitments()->get(),
+                candidate.get_validation_code_hash()->get(),
+                candidate.get_persisted_validation_data()->get())
+                .has_error()) {
+          return FragmentChainError::CHECK_AGAINST_CONSTRAINTS;
+        }
+      }
+
+      if (relay_parent->number < constraints.min_relay_parent_number) {
         return FragmentChainError::RELAY_PARENT_MOVED_BACKWARDS;
       }
-    }
 
-    return outcome::success();
-  }
+      if (maybe_min_relay_parent_number) {
+        if (relay_parent->number < *maybe_min_relay_parent_number) {
+          return FragmentChainError::RELAY_PARENT_MOVED_BACKWARDS;
+        }
+      }
+
+      return outcome::success();
+    }
 
     // Once the backable chain was populated, trim the forks generated by
     // candidates which are not present in the best chain. Fan this out into a

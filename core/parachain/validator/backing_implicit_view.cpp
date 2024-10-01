@@ -225,10 +225,8 @@ namespace kagome::parachain {
           prospective_parachains->answerMinimumRelayParentsRequest(leaf_hash);
     }
 
-    BlockNumber min_min;
-    if (min_relay_parents.empty()) {
-      min_min = leaf_header.number;
-    } else {
+    BlockNumber min_min = leaf_header.number;
+    if (!min_relay_parents.empty()) {
       min_min = min_relay_parents.front().second;
       for (const auto &[_, x] : min_relay_parents) {
         min_min = std::min(x, min_min);

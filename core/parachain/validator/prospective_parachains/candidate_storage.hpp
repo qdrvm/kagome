@@ -22,7 +22,7 @@ namespace kagome::parachain::fragment {
   /// The state of a candidate.
   ///
   /// Candidates aren't even considered until they've at least been seconded.
-  enum CandidateState {
+  enum CandidateState : uint8_t {
     /// The candidate has been seconded.
     Seconded,
     /// The candidate has been completely backed by the group.
@@ -69,7 +69,7 @@ namespace kagome::parachain::fragment {
   };
 
   struct CandidateStorage {
-    enum class Error {
+    enum class Error : uint8_t {
       CANDIDATE_ALREADY_KNOWN,
       PERSISTED_VALIDATION_DATA_MISMATCH,
       ZERO_LENGTH_CYCLE,

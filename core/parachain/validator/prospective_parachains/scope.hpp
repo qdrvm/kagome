@@ -21,7 +21,7 @@ namespace kagome::parachain::fragment {
 
   /// The scope of a [`FragmentChain`].
   struct Scope {
-    enum class Error {
+    enum class Error : uint8_t {
       UNEXPECTED_ANCESTOR,
     };
 

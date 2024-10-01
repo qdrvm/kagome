@@ -403,21 +403,23 @@ namespace kagome::parachain {
       }
 
       const auto &b = *relay_parent;
-      importable.push_back(
-          ImportablePendingAvailability{network::CommittedCandidateReceipt{
-                                            pending.descriptor,
-                                            pending.commitments,
-                                        },
-                                        runtime::PersistedValidationData{
-                                            required_parent_copy.get(),
-                                            b.number,
-                                            b.storage_root,
-                                            pending.max_pov_size,
-                                        },
-                                        fragment::PendingAvailability{
-                                            pending.candidate_hash,
-                                            b.as_relay_chain_block_info(),
-                                        }});
+      importable.push_back(ImportablePendingAvailability{
+          .candidate =
+              network::CommittedCandidateReceipt{
+                  .descriptor = pending.descriptor,
+                  .commitments = pending.commitments,
+              },
+          .persisted_validation_data =
+              runtime::PersistedValidationData{
+                  .parent_head = required_parent_copy.get(),
+                  .relay_parent_number = b.number,
+                  .relay_parent_storage_root = b.storage_root,
+                  .max_pov_size = pending.max_pov_size,
+              },
+          .compact = fragment::PendingAvailability{
+              .candidate_hash = pending.candidate_hash,
+              .relay_parent = b.as_relay_chain_block_info(),
+          }});
       required_parent_copy = pending.commitments.para_head;
     }
     return importable;
@@ -540,9 +542,7 @@ namespace kagome::parachain {
         const auto number_of_pending_candidates =
             pending_availability_storage.len();
         auto chain = fragment::FragmentChain::init(
-            hasher_,
-            std::move(scope.value()),
-            std::move(pending_availability_storage));
+            hasher_, scope.value(), std::move(pending_availability_storage));
 
         if (chain.best_chain_len() < number_of_pending_candidates) {
           SL_WARN(
@@ -626,14 +626,13 @@ namespace kagome::parachain {
         response;
     response.reserve(candidates.size());
 
-    std::transform(candidates.begin(),
-                   candidates.end(),
-                   std::back_inserter(response),
-                   [](const HypotheticalCandidate &candidate)
-                       -> std::pair<HypotheticalCandidate,
-                                    fragment::HypotheticalMembership> {
-                     return {candidate, {}};
-                   });
+    std::ranges::transform(candidates,
+                           std::back_inserter(response),
+                           [](const HypotheticalCandidate &candidate)
+                               -> std::pair<HypotheticalCandidate,
+                                            fragment::HypotheticalMembership> {
+                             return {candidate, {}};
+                           });
 
     const auto &required_active_leaf = fragment_chain_relay_parent;
     for (const auto &active_leaf : view().active_leaves) {

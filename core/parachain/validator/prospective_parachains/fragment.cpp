@@ -128,9 +128,7 @@ namespace kagome::parachain::fragment {
     HashMap<ParachainId, OutboundHrmpChannelModification> outbound_hrmp;
     {
       Option<ParachainId> last_recipient;
-      for (size_t i = 0; i < commitments.outbound_hor_msgs.size(); ++i) {
-        const network::OutboundHorizontal &message =
-            commitments.outbound_hor_msgs[i];
+      for (const auto &message : commitments.outbound_hor_msgs) {
         if (last_recipient && *last_recipient >= message.recipient) {
           return Error::HRMP_MESSAGE_DESCENDING_OR_DUPLICATE;
         }

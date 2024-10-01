@@ -12,7 +12,7 @@
 namespace kagome::parachain::fragment {
 
   struct Fragment {
-    enum Error {
+    enum Error : uint8_t {
       HRMP_MESSAGE_DESCENDING_OR_DUPLICATE = 1,
       PERSISTED_VALIDATION_DATA_MISMATCH,
       VALIDATION_CODE_MISMATCH,

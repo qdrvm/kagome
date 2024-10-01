@@ -55,7 +55,7 @@ namespace kagome::parachain::fragment {
     /// The hash of the relay-chain block.
     Hash hash;
     /// The number of the relay-chain block.
-    BlockNumber number;
+    BlockNumber number = 0;
     /// The storage-root of the relay-chain block.
     Hash storage_root;
   };
@@ -68,7 +68,7 @@ namespace kagome::parachain::fragment {
     /// The hash of the parent relay-chain block.
     Hash parent_hash;
     /// The number of the relay-chain block.
-    BlockNumber number;
+    BlockNumber number = 0;
     /// The storage-root of the relay-chain block.
     Hash storage_root;
 
@@ -97,8 +97,8 @@ namespace kagome::parachain::fragment {
                          ValidationCodeHash v)
         : commitments{std::move(c)},
           persisted_validation_data{std::move(p)},
-          pov_hash{std::move(h)},
-          validation_code_hash{std::move(v)} {}
+          pov_hash{h},
+          validation_code_hash{v} {}
   };
 
   template <typename T>

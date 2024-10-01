@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "crypto/type_hasher.hpp"
 #include "log/logger.hpp"
@@ -232,14 +233,14 @@ namespace kagome::parachain {
                                                HypotheticalCandidateIncomplete>;
 
   struct HypotheticalCandidateWrapper {
-    const HypotheticalCandidate &candidate;
-    const std::shared_ptr<kagome::crypto::Hasher> &hasher;
+    std::reference_wrapper<const HypotheticalCandidate> candidate;
+    std::shared_ptr<kagome::crypto::Hasher> hasher;
 
     // `HypotheticalOrConcreteCandidate` impl
     std::optional<std::reference_wrapper<const network::CandidateCommitments>>
     get_commitments() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v)
               -> std::optional<
                   std::reference_wrapper<const network::CandidateCommitments>> {
@@ -256,7 +257,7 @@ namespace kagome::parachain {
         std::reference_wrapper<const runtime::PersistedValidationData>>
     get_persisted_validation_data() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v)
               -> std::optional<std::reference_wrapper<
                   const runtime::PersistedValidationData>> {
@@ -272,7 +273,7 @@ namespace kagome::parachain {
     std::optional<std::reference_wrapper<const ValidationCodeHash>>
     get_validation_code_hash() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v)
               -> std::optional<
                   std::reference_wrapper<const ValidationCodeHash>> {
@@ -287,7 +288,7 @@ namespace kagome::parachain {
 
     std::optional<Hash> get_output_head_data_hash() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v) -> std::optional<Hash> {
             return std::nullopt;
           },
@@ -298,7 +299,7 @@ namespace kagome::parachain {
 
     Hash get_parent_head_data_hash() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v) -> Hash {
             return v.parent_head_data_hash;
           },
@@ -309,7 +310,7 @@ namespace kagome::parachain {
 
     Hash get_relay_parent() const {
       return visit_in_place(
-          candidate,
+          candidate.get(),
           [&](const HypotheticalCandidateIncomplete &v) -> Hash {
             return v.candidate_relay_parent;
           },
@@ -319,8 +320,9 @@ namespace kagome::parachain {
     }
 
     CandidateHash get_candidate_hash() const {
-      return visit_in_place(
-          candidate, [&](const auto &v) -> Hash { return v.candidate_hash; });
+      return visit_in_place(candidate.get(), [&](const auto &v) -> Hash {
+        return v.candidate_hash;
+      });
     }
   };
 

@@ -34,24 +34,26 @@ namespace kagome::parachain::fragment {
     for (const auto &ancestor : ancestors) {
       if (prev == 0) {
         return Scope::Error::UNEXPECTED_ANCESTOR;
-      } else if (ancestor.number != prev - 1) {
-        return Scope::Error::UNEXPECTED_ANCESTOR;
-      } else if (prev == base_constraints.min_relay_parent_number) {
-        break;
-      } else {
-        prev = ancestor.number;
-        ancestors_by_hash[ancestor.hash] = ancestor;
-        ancestors_map[ancestor.number] = ancestor;
       }
+      if (ancestor.number != prev - 1) {
+        return Scope::Error::UNEXPECTED_ANCESTOR;
+      }
+      if (prev == base_constraints.min_relay_parent_number) {
+        break;
+      }
+
+      prev = ancestor.number;
+      ancestors_by_hash[ancestor.hash] = ancestor;
+      ancestors_map[ancestor.number] = ancestor;
     }
 
     return Scope{
-        relay_parent,
-        ancestors_map,
-        ancestors_by_hash,
-        pending_availability,
-        base_constraints,
-        max_depth,
+        .relay_parent = relay_parent,
+        .ancestors = ancestors_map,
+        .ancestors_by_hash = ancestors_by_hash,
+        .pending_availability = pending_availability,
+        .base_constraints = base_constraints,
+        .max_depth = max_depth,
     };
   }
 
@@ -68,11 +70,11 @@ namespace kagome::parachain::fragment {
 
   Option<std::reference_wrapper<const PendingAvailability>>
   Scope::get_pending_availability(const CandidateHash &candidate_hash) const {
-    auto it = std::find_if(pending_availability.begin(),
-                           pending_availability.end(),
-                           [&](const PendingAvailability &c) {
-                             return c.candidate_hash == candidate_hash;
-                           });
+    auto it = std::ranges::find_if(pending_availability.begin(),
+                                   pending_availability.end(),
+                                   [&](const PendingAvailability &c) {
+                                     return c.candidate_hash == candidate_hash;
+                                   });
     if (it != pending_availability.end()) {
       return {{*it}};
     }

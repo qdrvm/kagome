@@ -199,7 +199,7 @@ namespace kagome::parachain::fragment {
   template <typename F>
   void CandidateStorage::retain(F &&pred /*bool(CandidateHash)*/) {
     for (auto it = by_candidate_hash.begin(); it != by_candidate_hash.end();) {
-      if (pred(it->first)) {
+      if (std::forward<F>(pred)(it->first)) {
         ++it;
       } else {
         it = by_candidate_hash.erase(it);
@@ -211,7 +211,7 @@ namespace kagome::parachain::fragment {
       for (; it != container.end();) {
         auto &[_, c] = *it;
         for (auto it_c = c.begin(); it_c != c.end();) {
-          if (pred(*it_c)) {
+          if (std::forward<F>(pred)(*it_c)) {
             ++it_c;
           } else {
             it_c = c.erase(it_c);

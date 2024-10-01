@@ -11,10 +11,10 @@ namespace kagome::parachain::fragment {
 
   FragmentChain FragmentChain::init(
       std::shared_ptr<crypto::Hasher> hasher,
-      const Scope scope,
+      const Scope &scope,
       CandidateStorage candidates_pending_availability) {
     FragmentChain fragment_chain{
-        .scope = std::move(scope),
+        .scope = scope,
         .best_chain = {},
         .unconnected = {},
         .hasher_ = std::move(hasher),
@@ -48,7 +48,7 @@ namespace kagome::parachain::fragment {
     auto prev_storage{std::move(unconnected)};
     populate_chain(prev_storage);
 
-    trim_uneligible_forks(prev_storage, std::move(parent_head_hash));
+    trim_uneligible_forks(prev_storage, parent_head_hash);
     populate_unconnected_potential_candidates(std::move(prev_storage));
   }
 
@@ -136,7 +136,9 @@ namespace kagome::parachain::fragment {
         if (candidate.parent_head_data_hash == head_data_hash) {
           return candidate.fragment.get_candidate()
               .persisted_validation_data.parent_head;
-        } else if (candidate.output_head_data_hash == head_data_hash) {
+        }
+
+        if (candidate.output_head_data_hash == head_data_hash) {
           return candidate.fragment.get_candidate().commitments.para_head;
         }
       }
@@ -182,7 +184,7 @@ namespace kagome::parachain::fragment {
       return;
     }
 
-    do {
+    for (;;) {
       if (best_chain.chain.size() > scope.max_depth) {
         break;
       }
@@ -304,19 +306,17 @@ namespace kagome::parachain::fragment {
 
       best_chain.push(FragmentNode{
           .fragment = std::move(best_candidate->fragment),
-          .candidate_hash = std::move(best_candidate->candidate_hash),
+          .candidate_hash = best_candidate->candidate_hash,
           .cumulative_modifications = cumulative_modifications,
-          .parent_head_data_hash =
-              std::move(best_candidate->parent_head_data_hash),
-          .output_head_data_hash =
-              std::move(best_candidate->output_head_data_hash),
+          .parent_head_data_hash = best_candidate->parent_head_data_hash,
+          .output_head_data_hash = best_candidate->output_head_data_hash,
       });
-    } while (true);
+    }
   }
 
   bool FragmentChain::fork_selection_rule(const CandidateHash &hash1,
                                           const CandidateHash &hash2) {
-    return std::less<CandidateHash>()(hash1, hash2);
+    return std::less<>()(hash1, hash2);
   }
 
   bool FragmentChain::revert_to(const Hash &parent_head_hash) {
@@ -404,10 +404,7 @@ namespace kagome::parachain::fragment {
 
   RelayChainBlockInfo
   FragmentChain::earliest_relay_parent_pending_availability() const {
-    for (auto it = best_chain.chain.rbegin(); it != best_chain.chain.rend();
-         ++it) {
-      const auto &candidate = *it;
-
+    for (const auto &candidate : std::ranges::reverse_view(best_chain.chain)) {
       auto item =
           utils::map(scope.get_pending_availability(candidate.candidate_hash),
                      [](const auto &v) { return v.get().relay_parent; });
