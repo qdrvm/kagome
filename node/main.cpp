@@ -25,6 +25,8 @@
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 
+#include <log_conn.hpp>
+
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 using kagome::application::AppConfiguration;
@@ -43,6 +45,10 @@ namespace {
 
     if (not configuration->initializeFromArgs(argc, argv)) {
       return EXIT_FAILURE;
+    }
+
+    if (auto path = getenv("LOG_CONN")) {
+      log_conn::open(path);
     }
 
     kagome::log::tuneLoggingSystem(configuration->log());
