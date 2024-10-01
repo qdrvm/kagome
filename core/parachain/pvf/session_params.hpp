@@ -46,6 +46,8 @@ namespace kagome::parachain {
             default:
               break;
           }
+        } else if (get_if<runtime::WasmExtBulkMemory>(&param)) {
+          config.wasm_ext_bulk_memory = true;
         }
       }
     }
