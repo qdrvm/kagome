@@ -199,6 +199,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(encoded_header, scale::encode(header));
+    header.updateHash(*hasher_);
     const auto &block_hash = header.hash();
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));

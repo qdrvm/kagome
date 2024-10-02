@@ -1717,17 +1717,19 @@ namespace kagome::parachain {
           auto cb = [weak_self{wself},
                      hashed_candidate,
                      session_index,
-                     validator_index,
-                     relay_block_hash](outcome::result<Pvf::Result> outcome) {
+                     validator_index](outcome::result<Pvf::Result> outcome) {
             auto self = weak_self.lock();
             if (not self) {
               return;
             }
             const auto &candidate_receipt = hashed_candidate.get();
+
+            std::vector<Hash> advence_hashes;
             self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
               if (auto it = approvals_cache.find(hashed_candidate.getHash());
                   it != approvals_cache.end()) {
                 ApprovalCache &ac = it->second;
+                advence_hashes.assign(ac.blocks_.begin(), ac.blocks_.end());
                 ac.approval_result = outcome.has_error()
                                        ? ApprovalOutcome::Failed
                                        : ApprovalOutcome::Approved;
@@ -1746,9 +1748,10 @@ namespace kagome::parachain {
                   candidate_receipt,
                   false);
             } else {
-              self->issue_approval(hashed_candidate.getHash(),
-                                   validator_index,
-                                   relay_block_hash);
+              for (const auto &b : advence_hashes) {
+                self->issue_approval(
+                    hashed_candidate.getHash(), validator_index, b);
+              }
             }
           };
           self->pvf_->pvfValidate(available_data.validation_data,
@@ -2084,12 +2087,12 @@ namespace kagome::parachain {
           return;
         }
       } else {
-        SL_WARN(logger_,
-                "Assignment from a peer is out of view. (peer id={}, "
-                "block_hash={}, validator index={})",
-                peer_id,
-                std::get<0>(message_subject),
-                std::get<2>(message_subject));
+        SL_TRACE(logger_,
+                 "Assignment from a peer is out of view. (peer id={}, "
+                 "block_hash={}, validator index={})",
+                 peer_id,
+                 std::get<0>(message_subject),
+                 std::get<2>(message_subject));
       }
 
       /// if the assignment is known to be valid, reward the peer
@@ -2586,24 +2589,17 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::vstaging::ApprovalDistributionMessage{
-            network::vstaging::Assignments{
-                .assignments = {network::vstaging::Assignment{
-                    .indirect_assignment_cert = indirect_cert,
-                    .candidate_bitfield = candidate_indices,
-                }}}});
-
-    for (const auto &peer : peers) {
-      parachain_processor_->tryOpenOutgoingValidationStream(
-          peer,
-          network::CollationVersion::VStaging,
-          [WEAK_SELF, peer{peer}, se, msg]() {
-            WEAK_LOCK(self);
-            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
-          });
-    }
+    se->broadcast(
+        router_->getValidationProtocolVStaging(),
+        std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Assignments{
+                    .assignments = {network::vstaging::Assignment{
+                        .indirect_assignment_cert = indirect_cert,
+                        .candidate_bitfield = candidate_indices,
+                    }}}}),
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2714,22 +2710,15 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::vstaging::ApprovalDistributionMessage{
-            network::vstaging::Approvals{
-                .approvals = {vote},
-            }});
-
-    for (const auto &peer : peers) {
-      parachain_processor_->tryOpenOutgoingValidationStream(
-          peer,
-          network::CollationVersion::VStaging,
-          [WEAK_SELF, peer{peer}, se, msg]() {
-            WEAK_LOCK(self);
-            se->send(peer, self->router_->getValidationProtocolVStaging(), msg);
-          });
-    }
+    se->broadcast(
+        router_->getValidationProtocolVStaging(),
+        std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            network::vstaging::ApprovalDistributionMessage{
+                network::vstaging::Approvals{
+                    .approvals = {vote},
+                }}),
+        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
@@ -2879,7 +2868,10 @@ namespace kagome::parachain {
       GroupIndex backing_group,
       std::optional<CoreIndex> core,
       bool distribute_assignment) {
-    /// TODO(iceseer): don't launch approval work if the node is syncing.
+    if (!parachain_processor_->canProcessParachains()) {
+      return;
+    }
+
     const auto &block_hash = indirect_cert.block_hash;
     const auto validator_index = indirect_cert.validator;
 

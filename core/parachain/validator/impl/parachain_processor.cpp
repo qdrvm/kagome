@@ -560,6 +560,12 @@ namespace kagome::parachain {
           it != parachain_state->get().authority_lookup.end()) {
         ValidatorIndex vi = it->second;
 
+        SL_TRACE(logger_,
+                 "Send pending cluster/grid messages. (peer={}. validator "
+                 "index={}, relay_parent={})",
+                 peer_id,
+                 vi,
+                 relay_parent);
         send_pending_cluster_statements(
             relay_parent, peer_id, version, vi, parachain_state->get());
 
@@ -812,7 +818,13 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::spawn_and_update_peer(
+      std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
       const primitives::AuthorityDiscoveryId &id) {
+    if (cache.contains(id)) {
+      return;
+    }
+
+    cache.insert(id);
     if (auto peer = query_audi_->get(id)) {
       tryOpenOutgoingValidationStream(
           peer->id,
@@ -822,6 +834,8 @@ namespace kagome::parachain {
             self->sendMyView(peer_id,
                              self->router_->getValidationProtocolVStaging());
           });
+    } else {
+      SL_TRACE(logger_, "No audi for {}.", id);
     }
   }
 
@@ -1015,6 +1029,7 @@ namespace kagome::parachain {
           peer_use_count_);
     });
 
+    std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
     std::optional<network::GroupIndex> our_group;
     if (validator_index) {
       our_group =
@@ -1023,19 +1038,19 @@ namespace kagome::parachain {
         /// update peers of our group
         const auto &group = session_info->validator_groups[*our_group];
         for (const auto vi : group) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
+          spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
         }
+      }
+    }
 
-        /// update peers in grid view
-        const auto &grid_view = *per_session_state->value().grid_view;
-        BOOST_ASSERT(*our_group < grid_view.size());
-        const auto &view = grid_view[*our_group];
-        for (const auto vi : view.sending) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
-        for (const auto vi : view.receiving) {
-          spawn_and_update_peer(session_info->discovery_keys[vi]);
-        }
+    /// update peers in grid view
+    const auto &grid_view = *per_session_state->value().grid_view;
+    for (const auto &view : grid_view) {
+      for (const auto vi : view.sending) {
+        spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
+      }
+      for (const auto vi : view.receiving) {
+        spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
       }
     }
 
@@ -1084,7 +1099,6 @@ namespace kagome::parachain {
          ++group_idx) {
       const auto &validator_group = validator_groups[group_idx];
       for (const auto v : validator_group.validators) {
-        SL_TRACE(logger_, "Bind {} -> {}", v, group_idx);
         validator_to_group[v] = group_idx;
       }
     }
@@ -1113,6 +1127,9 @@ namespace kagome::parachain {
 
       const auto seconding_limit = mode->max_candidate_depth + 1;
       local_validator = [&]() -> std::optional<LocalValidatorState> {
+        if (!global_v_index) {
+          return std::nullopt;
+        }
         if (validator_index) {
           return find_active_validator_state(*validator_index,
                                              per_session_state->value().groups,
@@ -1140,7 +1157,7 @@ namespace kagome::parachain {
                "parent={})",
                assigned_para,
                assigned_core,
-               validator_index,
+               global_v_index,
                our_group,
                relay_parent);
 
@@ -1688,12 +1705,12 @@ namespace kagome::parachain {
 
     auto &local_validator = *relay_parent_state->get().local_validator;
 
-    SL_TRACE(logger_,
-             "Import manifest. (peer_id={}, relay_parent={}, "
-             "candidate_hash={})",
-             peer_id,
-             relay_parent,
-             candidate_hash);
+    SL_TRACE(
+        logger_,
+        "Import manifest. (peer_id={}, relay_parent={}, candidate_hash={})",
+        peer_id,
+        relay_parent,
+        candidate_hash);
     auto acknowledge_res = local_validator.grid_tracker.import_manifest(
         grid_topology,
         relay_parent_state->get().per_session_state->value().groups,
@@ -4469,17 +4486,26 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::sendMyView(
       const libp2p::peer::PeerId &peer_id,
       const std::shared_ptr<network::ProtocolBase> &protocol) {
-    TRY_GET_OR_RET(my_view, peer_view_->getMyView());
     BOOST_ASSERT(protocol);
-    logger_->info("Send my view.(peer={}, protocol={})",
-                  peer_id,
-                  protocol->protocolName());
+    CHECK_OR_RET(canProcessParachains().has_value());
+
+    SL_INFO(logger_,
+            "Send my view.(peer={}, protocol={})",
+            peer_id,
+            protocol->protocolName());
     pm_->getStreamEngine()->send(
         peer_id,
         protocol,
         std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::ViewUpdate{.view = my_view->get().view}));
+            network::ViewUpdate{
+                .view =
+                    network::View{
+                        .heads_ = block_tree_->getLeaves(),
+                        .finalized_number_ =
+                            block_tree_->getLastFinalized().number,
+                    },
+            }));
   }
 
   void ParachainProcessorImpl::onIncomingCollationStream(
@@ -4962,12 +4988,6 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
-
-    auto p = scale::encode(data).value();
-    std::string s = fmt::format("stored data: ");
-    for (const auto m : p) {
-      s += fmt::format("{:x}, ", m);
-    }
 
     av_store_->storeData(
         relay_parent, candidate_hash, std::move(chunks), pov, data);

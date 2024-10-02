@@ -1036,7 +1036,9 @@ namespace kagome::parachain {
         const primitives::BlockHash &relay_parent,
         const ProspectiveParachainsModeOpt &mode);
 
-    void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
+    void spawn_and_update_peer(
+        std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
+        const primitives::AuthorityDiscoveryId &id);
 
     std::optional<ParachainProcessorImpl::LocalValidatorState>
     find_active_validator_state(
@@ -1050,6 +1052,7 @@ namespace kagome::parachain {
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
+
                                         F &&callback);
 
    public:

@@ -64,7 +64,7 @@ namespace kagome::network {
             "Fetching attested candidate response failed.(error={})",
             res.error());
       } else {
-        base().logger()->trace("Fetching attested candidate response.");
+        SL_TRACE(base().logger(), "Fetching attested candidate response.");
       }
       return res;
     }

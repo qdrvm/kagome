@@ -51,8 +51,9 @@ namespace kagome::network {
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType candidate_hash, std::shared_ptr<Stream>) override {
-      base().logger()->trace("Fetch available data .(candidate hash={})",
-                             candidate_hash);
+      SL_TRACE(base().logger(),
+               "Fetch available data .(candidate hash={})",
+               candidate_hash);
 
       if (auto r = av_store_->getPovAndData(candidate_hash)) {
         return std::move(*r);
@@ -92,11 +93,11 @@ namespace kagome::network {
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override {
-      base().logger()->trace(
-          "Statement fetch request received.(relay parent={}, candidate "
-          "hash={})",
-          req.relay_parent,
-          req.candidate_hash);
+      SL_TRACE(base().logger(),
+               "Statement fetch request received.(relay parent={}, candidate "
+               "hash={})",
+               req.relay_parent,
+               req.candidate_hash);
 
       if (auto res = backing_store_->getCadidateInfo(req.relay_parent,
                                                      req.candidate_hash)) {

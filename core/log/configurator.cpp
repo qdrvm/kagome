@@ -149,7 +149,8 @@ groups:
     po::options_description desc("General options");
     desc.add_options()
         // clang-format off
-        ("logcfg", po::value<std::string>(), "optional, path to logging config file")
+        ("logcfg", po::value<std::string>())
+        ("log", po::value<std::string>())  // needed to avoid mix `--logcfg` and `--log`
         // clang-format on
         ;
 

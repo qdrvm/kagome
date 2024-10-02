@@ -101,7 +101,9 @@ namespace kagome::parachain::grid {
 
   /// View for one group
   struct View {
-    std::unordered_set<ValidatorIndex> receiving, sending;
+    std::unordered_set<ValidatorIndex> sending, receiving;
+
+    bool operator==(const View &r) const = default;
 
     bool canReceive(bool full, ValidatorIndex from) const {
       return (full ? receiving : sending).contains(from);

@@ -613,7 +613,7 @@ namespace kagome::parachain::grid {
     auto it = seconded_counts.find(group_index);
     if (it == seconded_counts.end()) {
       auto i = seconded_counts.emplace(group_index,
-                                       std::vector<size_t>{group_size, 0});
+                                       std::vector<size_t>(group_size, 0));
       counts = i.first->second;
     } else {
       counts = it->second;
