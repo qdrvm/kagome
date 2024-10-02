@@ -101,7 +101,9 @@ namespace kagome::parachain::grid {
 
   /// View for one group
   struct View {
-    std::unordered_set<ValidatorIndex> receiving, sending;
+    std::unordered_set<ValidatorIndex> sending, receiving;
+
+    bool operator==(const View &r) const = default;
 
     bool canReceive(bool full, ValidatorIndex from) const {
       return (full ? receiving : sending).contains(from);
@@ -237,12 +239,7 @@ namespace kagome::parachain::grid {
   }
 
   inline std::vector<ValidatorIndex> shuffle(
-      const std::vector<std::vector<ValidatorIndex>> &groups,
-      std::span<const uint8_t, 32> babe_randomness) {
-    size_t n = 0;
-    for (auto &group : groups) {
-      n += group.size();
-    }
+      size_t n, std::span<const uint8_t, 32> babe_randomness) {
     std::vector<ValidatorIndex> validators;
     validators.resize(n);
     std::iota(validators.begin(), validators.end(), 0);

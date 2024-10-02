@@ -124,11 +124,11 @@ int main(int argc, const char **argv) {
   // Logging system
   auto logging_system = [&] {
     auto custom_log_config_path =
-        kagome::log::Configurator::getLogConfigFile(argc - 1, argv + 1);
+        kagome::log::Configurator::getLogConfigFile(argc, argv);
     if (custom_log_config_path.has_value()) {
       if (not std::filesystem::is_regular_file(
               custom_log_config_path.value())) {
-        std::cerr << "Provided wrong path to config file of logging\n";
+        std::cerr << "Provided wrong path to logger config file\n";
         exit(EXIT_FAILURE);
       }
     }
