@@ -157,7 +157,12 @@ class PvfTest : public testing::Test {
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
         EXPECT_OUTCOME_TRUE_1(r);
       });
-      pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
+      pvf_->pvfValidate(pvd,
+                        pov,
+                        receipt,
+                        code,
+                        runtime::PvfExecTimeoutKind::Approval,
+                        cb.AsStdFunction());
       io_->restart();
       io_->run();
     };
