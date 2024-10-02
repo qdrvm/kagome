@@ -1234,6 +1234,9 @@ namespace kagome::parachain {
 
     const auto seconding_limit = mode->max_candidate_depth + 1;
     auto local_validator = [&]() -> std::optional<LocalValidatorState> {
+      if (!global_v_index) {
+        return std::nullopt;
+      }
       if (validator_index) {
         return find_active_validator_state(*validator_index,
                                            per_session_state->value().groups,
@@ -1260,7 +1263,7 @@ namespace kagome::parachain {
                "parent={})",
                assigned_para,
                assigned_core,
-               validator_index,
+               global_v_index,
                our_group,
                relay_parent);
 
