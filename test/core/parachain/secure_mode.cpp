@@ -19,6 +19,10 @@
 
 using namespace kagome::parachain;
 
+extern "C" int __lsan_is_turned_off(void) {
+  return 1;
+}
+
 template <typename... Ts>
 void test_syscall_works(int call, Ts... args) {
   EXPECT_EXIT(([=]() {

@@ -94,7 +94,7 @@ namespace {
 
 }  // namespace
 
-int main(int argc, const char **argv, const char **env) {
+int main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -111,7 +111,8 @@ int main(int argc, const char **argv, const char **env) {
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "pvf-worker") {
-      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1, env);
+      return kagome::parachain::pvf_worker_main(
+          argc - 1, argv + 1, const_cast<const char **>(environ));
     }
     if (name == "check-secure-mode") {
       return kagome::parachain::secureModeCheckMain(argc, argv);
@@ -138,10 +139,10 @@ int main(int argc, const char **argv, const char **env) {
     auto kagome_log_configurator =
         custom_log_config_path.has_value()
             ? std::make_shared<kagome::log::Configurator>(
-                std::move(libp2p_log_configurator),
-                custom_log_config_path.value())
+                  std::move(libp2p_log_configurator),
+                  custom_log_config_path.value())
             : std::make_shared<kagome::log::Configurator>(
-                std::move(libp2p_log_configurator));
+                  std::move(libp2p_log_configurator));
 
     return std::make_shared<soralog::LoggingSystem>(
         std::move(kagome_log_configurator));

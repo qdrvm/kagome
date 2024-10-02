@@ -67,8 +67,16 @@ namespace kagome::parachain {
     static kagome::log::Logger logger;
   }  // namespace
 
-  bool checkEnvVarsEmpty(const char **env) {
-    return env != nullptr;
+  bool checkEnvVarsEmpty(const char *env[]) {
+#ifdef KAGOME_WITH_ASAN
+    // explicitly allow to disable LSAN, because LSAN doesn't work in secure
+    // mode, since it wants to access /proc
+    if (env != nullptr
+        && "ASAN_OPTIONS=detect_leaks=0" == std::string_view{env[0]}) {
+      env++;
+    }
+#endif
+    return env == nullptr;
   }
 
 #ifdef __linux__
@@ -388,6 +396,12 @@ namespace kagome::parachain {
     }
     kagome::log::setLoggingSystem(logging_system);
     logger = kagome::log::createLogger("PVF Worker", "parachain");
+
+    std::stringstream ss;
+    for (const char *var = env[0]; var != nullptr; var++) {
+      ss << var << " ";
+    }
+    logger->info("env: {}", ss.str());
 
     if (!checkEnvVarsEmpty(env)) {
       logger->error(

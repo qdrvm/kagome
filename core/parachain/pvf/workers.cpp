@@ -44,9 +44,15 @@ namespace kagome::parachain {
           process{
               exe,
               boost::process::args({"pvf-worker"}),
+              boost::process::env(boost::process::environment()),
+// LSAN doesn't work in secure mode
+#ifdef KAGOME_WITH_ASAN
+              boost::process::env["ASAN_OPTIONS"] = "detect_leaks=0",
+#endif
               boost::process::std_out > pipe_stdout,
               boost::process::std_in < pipe_stdin,
-          } {}
+          } {
+    }
 
     void write(Buffer data, auto cb) {
       auto len = std::make_shared<common::Buffer>(
