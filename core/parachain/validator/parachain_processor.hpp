@@ -419,7 +419,7 @@ namespace kagome::parachain {
                       runtime::SessionInfo _session_info,
                       Groups &&_groups,
                       grid::Views &&_grid_view,
-                      ValidatorIndex _our_index,
+                      std::optional<ValidatorIndex> _our_index,
                       std::shared_ptr<PeerUseCount> peers);
       ~PerSessionState();
       void updatePeers(bool add) const;
@@ -1034,7 +1034,9 @@ namespace kagome::parachain {
         const primitives::BlockHash &relay_parent,
         const network::HashedBlockHeader &block_header);
 
-    void spawn_and_update_peer(const primitives::AuthorityDiscoveryId &id);
+    void spawn_and_update_peer(
+        std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
+        const primitives::AuthorityDiscoveryId &id);
 
     std::optional<ParachainProcessorImpl::LocalValidatorState>
     find_active_validator_state(
@@ -1048,6 +1050,7 @@ namespace kagome::parachain {
 
     template <typename F>
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
+
                                         F &&callback);
 
    public:
