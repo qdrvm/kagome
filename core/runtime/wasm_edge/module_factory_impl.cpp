@@ -391,7 +391,9 @@ namespace kagome::runtime::wasm_edge {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     if (config_.exec == ExecType::Interpreted) {
       OUTCOME_TRY(writeFileTmp(path_compiled, code));
       return outcome::success();
@@ -399,6 +401,10 @@ namespace kagome::runtime::wasm_edge {
     OUTCOME_TRY(configure_ctx, configureCtx());
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
         configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
+    if (config.wasm_ext_bulk_memory) {
+      WasmEdge_ConfigureAddProposal(configure_ctx.raw(),
+                                    WasmEdge_Proposal_BulkMemoryOperations);
+    }
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(

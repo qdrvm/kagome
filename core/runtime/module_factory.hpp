@@ -10,6 +10,7 @@
 
 #include "common/buffer_view.hpp"
 #include "outcome/custom.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
@@ -54,7 +55,9 @@ namespace kagome::runtime {
      * Compile `wasm` code to `path_compiled`.
      */
     virtual CompilationOutcome<void> compile(
-        std::filesystem::path path_compiled, BufferView wasm) const = 0;
+        std::filesystem::path path_compiled,
+        BufferView wasm,
+        const RuntimeContext::ContextParams &config) const = 0;
 
     /**
      * Load compiled code from `path_compiled`.

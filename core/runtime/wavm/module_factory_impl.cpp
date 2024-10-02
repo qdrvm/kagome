@@ -78,7 +78,9 @@ namespace kagome::runtime::wavm {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     WAVM::IR::Module ir;
     WAVM::WASM::LoadError error;
     if (not WAVM::WASM::loadBinaryModule(

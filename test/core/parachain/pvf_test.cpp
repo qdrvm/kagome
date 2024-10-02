@@ -125,7 +125,7 @@ class PvfTest : public testing::Test {
     auto code_hash = hasher_->blake2b_256(code);
     EXPECT_CALL(*module_factory_, compilerType())
         .WillRepeatedly(Return(std::nullopt));
-    EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code)))
+    EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code), _))
         .WillRepeatedly(Return(outcome::success()));
     EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=] {
       auto module = std::make_shared<ModuleMock>();

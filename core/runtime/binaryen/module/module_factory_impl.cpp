@@ -32,7 +32,9 @@ namespace kagome::runtime::binaryen {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     OUTCOME_TRY(writeFileTmp(path_compiled, code));
     return outcome::success();
   }

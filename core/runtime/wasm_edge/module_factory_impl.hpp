@@ -55,8 +55,10 @@ namespace kagome::runtime::wasm_edge {
         Config config);
 
     std::optional<std::string_view> compilerType() const override;
-    CompilationOutcome<void> compile(std::filesystem::path path_compiled,
-                                     BufferView code) const override;
+    CompilationOutcome<void> compile(
+        std::filesystem::path path_compiled,
+        BufferView code,
+        const RuntimeContext::ContextParams &config) const override;
     CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
         std::filesystem::path path_compiled) const override;
 

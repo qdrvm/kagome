@@ -66,7 +66,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
 
   EXPECT_CALL(*module_factory, compilerType())
       .WillRepeatedly(Return(std::nullopt));
-  EXPECT_CALL(*module_factory, compile(_, _))
+  EXPECT_CALL(*module_factory, compile(_, _, _))
       .Times(POOL_SIZE)
       .WillRepeatedly([&] {
         std::this_thread::sleep_for(1s);
