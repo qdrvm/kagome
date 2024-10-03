@@ -202,9 +202,22 @@ namespace kagome::authority_discovery {
                             authority,
                             this] {
         if (auto self = wp.lock()) {
+          SL_INFO(self->log_,
+                  "start lookup({})",
+                  common::hex_lower(authority));
           return self->rust_kad_->lookup(
               hash, [authority, WEAK_SELF](std::vector<Buffer> values) {
                 WEAK_LOCK(self);
+                if (values.empty()) {
+                  SL_WARN(self->log_,
+                          "lookup({}): no values",
+                          common::hex_lower(authority));
+                } else {
+                  SL_INFO(self->log_,
+                          "lookup({}) finished: {} values",
+                          common::hex_lower(authority),
+                          values.size());
+                }
                 std::unique_lock lock{self->mutex_};
                 --self->active_;
                 self->pop();
