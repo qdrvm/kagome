@@ -28,6 +28,9 @@ namespace kagome::storage {
     for (auto *handle : column_family_handles_) {
       db_->DestroyColumnFamilyHandle(handle);
     }
+    for (auto *handle : column_family_handles_ttl_) {
+      db_ttl_->DestroyColumnFamilyHandle(handle);
+    }
     delete db_;
   }
 
@@ -37,9 +40,12 @@ namespace kagome::storage {
       uint32_t memory_budget_mib,
       bool prevent_destruction) {
     OUTCOME_TRY(mkdirs(path));
+    const auto ttl_path = path / "ttl";
+    OUTCOME_TRY(mkdirs(ttl_path));
 
     auto log = log::createLogger("RocksDB", "storage");
     auto absolute_path = fs::absolute(path);
+    auto absolute_ttl_path = fs::absolute(ttl_path);
 
     std::error_code ec;
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
@@ -53,6 +59,18 @@ namespace kagome::storage {
                  absolute_path.native());
       return DatabaseError::IO_ERROR;
     }
+    if (not fs::create_directory(absolute_ttl_path.native(), ec)
+        and ec.value()) {
+      log->error("Can't create directory {} for database: {}",
+                 absolute_ttl_path.native(),
+                 ec);
+      return DatabaseError::IO_ERROR;
+    }
+    if (not fs::is_directory(absolute_ttl_path.native())) {
+      log->error("Can't open {} for database: is not a directory",
+                 absolute_ttl_path.native());
+      return DatabaseError::IO_ERROR;
+    }
 
     // calculate state cache size per space
     const auto memory_budget = memory_budget_mib * 1024 * 1024;
@@ -60,13 +78,22 @@ namespace kagome::storage {
         static_cast<uint32_t>(memory_budget * 0.9);
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
-    std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
-    column_family_descriptors.reserve(Space::kTotal);
+    std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors,
+        column_family_descriptors_ttl;
+    std::vector<int32_t> ttls;
+    constexpr int32_t avaliabilityStorageTTLSecs = 60 * 60 * 25;  // 25 hours
     for (auto i = 0; i < Space::kTotal; ++i) {
-      column_family_descriptors.emplace_back(
-          spaceName(static_cast<Space>(i)),
-          configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
-                                                : trie_space_cache_size));
+      if (i == Space::kAvaliabilityStorage) {
+        column_family_descriptors_ttl.emplace_back(
+            spaceName(static_cast<Space>(i)),
+            configureColumn(other_spaces_cache_size));
+        ttls.push_back(avaliabilityStorageTTLSecs);
+      } else {
+        column_family_descriptors.emplace_back(
+            spaceName(static_cast<Space>(i)),
+            configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
+                                                  : trie_space_cache_size));
+      }
     }
 
     std::vector<std::string> existing_families;
@@ -98,16 +125,29 @@ namespace kagome::storage {
                                     column_family_descriptors,
                                     &rocks_db->column_family_handles_,
                                     &rocks_db->db_);
-    if (status.ok()) {
-      return rocks_db;
+    if (not status.ok()) {
+      SL_ERROR(log,
+               "Can't open database in {}: {}",
+               absolute_path.native(),
+               status.ToString());
+      return status_as_error(status);
     }
 
-    SL_ERROR(log,
-             "Can't open database in {}: {}",
-             absolute_path.native(),
-             status.ToString());
+    status = rocksdb::DBWithTTL::Open(options,
+                                      ttl_path.native(),
+                                      column_family_descriptors_ttl,
+                                      &rocks_db->column_family_handles_ttl_,
+                                      &rocks_db->db_ttl_,
+                                      ttls);
+    if (not status.ok()) {
+      SL_ERROR(log,
+               "Can't open ttl database in {}: {}",
+               absolute_ttl_path.native(),
+               status.ToString());
+      return status_as_error(status);
+    }
 
-    return status_as_error(status);
+    return rocks_db;
   }
 
   std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
@@ -115,12 +155,18 @@ namespace kagome::storage {
       return spaces_[space];
     }
     auto space_name = spaceName(space);
-    auto column = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column) {
+    const auto find_column_in_handles = [&space_name](const auto &handles) {
+      return std::ranges::find_if(
+          handles, [&space_name](const ColumnFamilyHandlePtr &handle) {
+            return handle->GetName() == space_name;
+          });
+    };
+    auto column = find_column_in_handles(column_family_handles_);
+    auto not_found_in_regular = column == column_family_handles_.end();
+    if (not_found_in_regular) {
+      column = find_column_in_handles(column_family_handles_ttl_);
+    }
+    if (not_found_in_regular and column == column_family_handles_ttl_.end()) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
     auto space_ptr =
@@ -131,12 +177,18 @@ namespace kagome::storage {
 
   void RocksDb::dropColumn(kagome::storage::Space space) {
     auto space_name = spaceName(space);
-    auto column_it = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column_it) {
+    const auto find_column_in_handles = [&space_name](auto &handles) {
+      return std::ranges::find_if(
+          handles, [&space_name](const ColumnFamilyHandlePtr &handle) {
+            return handle->GetName() == space_name;
+          });
+    };
+    auto column_it = find_column_in_handles(column_family_handles_);
+    const auto not_found_in_regular = column_it == column_family_handles_.end();
+    if (not_found_in_regular) {
+      column_it = find_column_in_handles(column_family_handles_ttl_);
+    }
+    if (not_found_in_regular and column_it == column_family_handles_ttl_.end()) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
     auto &handle = *column_it;

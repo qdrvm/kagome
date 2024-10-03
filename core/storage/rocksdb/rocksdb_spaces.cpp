@@ -23,6 +23,7 @@ namespace kagome::storage {
         "trie_value",
         "dispute_data",
         "beefy_justification",
+        "avaliability_storage"
     };
     static_assert(kNames.size() == Space::kTotal - 1);
 

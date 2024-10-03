@@ -7,6 +7,12 @@
 #include "parachain/availability/store/store_impl.hpp"
 
 namespace kagome::parachain {
+  AvailabilityStoreImpl::AvailabilityStoreImpl(
+      std::shared_ptr<storage::SpacedStorage> storage)
+      : storage_{std::move(storage)} {
+    BOOST_ASSERT(storage_ != nullptr);
+  }
+
   bool AvailabilityStoreImpl::hasChunk(const CandidateHash &candidate_hash,
                                        ValidatorIndex index) const {
     return state_.sharedAccess([&](const auto &state) {
@@ -135,8 +141,10 @@ namespace kagome::parachain {
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
       state.per_candidate_[candidate_hash].chunks[chunk.index] =
-          std::move(chunk);
+          chunk;
     });
+    storage_->getSpace(storage::Space::kAvaliabilityStorage)
+        ->put(candidate_hash, scale::encode(chunk).value());
   }
 
   void AvailabilityStoreImpl::remove(const network::RelayHash &relay_parent) {
