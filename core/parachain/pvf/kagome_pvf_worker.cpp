@@ -285,12 +285,6 @@ namespace kagome::parachain {
     OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>());
     kagome::log::tuneLoggingSystem(input_config.log_params);
 
-    std::stringstream ss;
-    for (const char *var = environ[0]; var != nullptr; var++) {
-      ss << var << " ";
-    }
-    logger->info("env: {}", ss.str());
-
     SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
     if (not std::filesystem::path{input_config.cache_dir}.is_absolute()) {
       SL_ERROR(
