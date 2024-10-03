@@ -68,7 +68,6 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
-            level: trace
             children:
              - name: pvf_executor
              - name: fragment_chain
