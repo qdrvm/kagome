@@ -3220,7 +3220,7 @@ namespace kagome::parachain {
 
     auto &active = local_validator->active;
     std::optional<ValidatorIndex> validator_id;
-    bool is_cluster;  // NOLINT(cppcoreguidelines-init-variables)
+    bool is_cluster = false;
     [&] {
       auto audi = query_audi_->get(peer_id);
       if (not audi.has_value()) {
