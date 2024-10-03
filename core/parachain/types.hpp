@@ -103,9 +103,11 @@ namespace kagome::network {
   struct OutboundHorizontal {
     SCALE_TIE(2);
 
-    parachain::ParachainId para_id;  /// Parachain Id is recepient id
-    parachain::UpwardMessage
-        upward_msg;  /// upward message for parallel parachain
+    /// The para that will get this message in its downward message queue.
+    parachain::ParachainId recipient;
+
+    /// The message payload.
+    common::Buffer data;
   };
 
   struct InboundDownwardMessage {
@@ -324,10 +326,11 @@ namespace kagome::parachain::fragment {
     std::optional<std::pair<BlockNumber, ValidationCodeHash>>
         future_validation_code;
 
-    outcome::result<Constraints> applyModifications(
+    outcome::result<Constraints> apply_modifications(
         const ConstraintModifications &modifications) const;
 
-    bool checkModifications(const ConstraintModifications &modifications) const;
+    outcome::result<void> check_modifications(
+        const ConstraintModifications &modifications) const;
   };
 
   struct BackingState {
@@ -357,3 +360,5 @@ namespace kagome::parachain::fragment {
   };
 
 }  // namespace kagome::parachain::fragment
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Constraints::Error);

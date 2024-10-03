@@ -5,27 +5,42 @@
  */
 
 #include "parachain/validator/backing_implicit_view.hpp"
+#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 
 #include <span>
 
 #include "parachain/types.hpp"
 #include "primitives/math.hpp"
+#include "utils/stringify.hpp"
+
+#define COMPONENT BackingImplicitView
+#define COMPONENT_NAME STRINGIFY(COMPONENT)
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
   using E = decltype(e);
   switch (e) {
     case E::ALREADY_KNOWN:
-      return "Already known leaf";
+      return COMPONENT_NAME ": Already known leaf";
+    case E::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS:
+      return COMPONENT_NAME ": Not initialized with prospective parachains";
   }
-  return "ImplicitView failed.";
+  return COMPONENT_NAME ": unknown error";
 }
 
 namespace kagome::parachain {
 
   ImplicitView::ImplicitView(
-      std::shared_ptr<ProspectiveParachains> prospective_parachains)
-      : prospective_parachains_{std::move(prospective_parachains)} {
-    BOOST_ASSERT(prospective_parachains_);
+      std::weak_ptr<ProspectiveParachains> prospective_parachains,
+      std::shared_ptr<runtime::ParachainHost> parachain_host_,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::optional<ParachainId> collating_for_)
+      : parachain_host(std::move(parachain_host_)),
+        collating_for{collating_for_},
+        prospective_parachains_{std::move(prospective_parachains)},
+        block_tree_{std::move(block_tree)} {
+    BOOST_ASSERT(!prospective_parachains_.expired());
+    BOOST_ASSERT(parachain_host);
+    BOOST_ASSERT(block_tree_);
   }
 
   std::span<const Hash>
@@ -49,7 +64,51 @@ namespace kagome::parachain {
     return {};
   }
 
-  std::span<const Hash> ImplicitView::knownAllowedRelayParentsUnder(
+  void ImplicitView::activate_leaf_from_prospective_parachains(
+      fragment::BlockInfoProspectiveParachains leaf,
+      const std::vector<fragment::BlockInfoProspectiveParachains> &ancestors) {
+    if (leaves.contains(leaf.hash)) {
+      return;
+    }
+
+    const auto retain_minimum =
+        std::min(ancestors.empty() ? 0 : ancestors.back().number,
+                 math::sat_sub_unsigned(leaf.number, MINIMUM_RETAIN_LENGTH));
+
+    leaves.insert_or_assign(leaf.hash,
+                            ActiveLeafPruningInfo{
+                                .retain_minimum = retain_minimum,
+                            });
+    AllowedRelayParents allowed_relay_parents{
+        .minimum_relay_parents = {},
+        .allowed_relay_parents_contiguous = {},
+    };
+    allowed_relay_parents.allowed_relay_parents_contiguous.reserve(
+        ancestors.size());
+
+    for (const auto &ancestor : ancestors) {
+      block_info_storage.insert_or_assign(
+          ancestor.hash,
+          BlockInfo{
+              .block_number = ancestor.number,
+              .maybe_allowed_relay_parents = {},
+              .parent_hash = ancestor.parent_hash,
+          });
+      allowed_relay_parents.allowed_relay_parents_contiguous.emplace_back(
+          ancestor.hash);
+    }
+
+    block_info_storage.insert_or_assign(
+        leaf.hash,
+        BlockInfo{
+            .block_number = leaf.number,
+            .maybe_allowed_relay_parents = allowed_relay_parents,
+            .parent_hash = leaf.parent_hash,
+        });
+  }
+
+  std::optional<std::span<const Hash>>
+  ImplicitView::known_allowed_relay_parents_under(
       const Hash &block_hash, const std::optional<ParachainId> &para_id) const {
     if (auto it = block_info_storage.find(block_hash);
         it != block_info_storage.end()) {
@@ -59,7 +118,7 @@ namespace kagome::parachain {
             para_id, block_info.block_number);
       }
     }
-    return {};
+    return std::nullopt;
   }
 
   std::vector<Hash> ImplicitView::deactivate_leaf(const Hash &leaf_hash) {
@@ -88,8 +147,7 @@ namespace kagome::parachain {
     return removed;
   }
 
-  outcome::result<std::vector<ParachainId>> ImplicitView::activate_leaf(
-      const Hash &leaf_hash) {
+  outcome::result<void> ImplicitView::activate_leaf(const Hash &leaf_hash) {
     if (leaves.contains(leaf_hash)) {
       return Error::ALREADY_KNOWN;
     }
@@ -99,28 +157,80 @@ namespace kagome::parachain {
         fetched.minimum_ancestor_number,
         math::sat_sub_unsigned(fetched.leaf_number, MINIMUM_RETAIN_LENGTH));
 
-    leaves.emplace(leaf_hash,
-                   ActiveLeafPruningInfo{.retain_minimum = retain_minimum});
-    return fetched.relevant_paras;
+    leaves.insert_or_assign(
+        leaf_hash, ActiveLeafPruningInfo{.retain_minimum = retain_minimum});
+    return outcome::success();
+  }
+
+  outcome::result<std::optional<BlockNumber>>
+  ImplicitView::fetch_min_relay_parents_for_collator(const Hash &leaf_hash,
+                                                     BlockNumber leaf_number) {
+    auto prospective_parachains = prospective_parachains_.lock();
+    if (!prospective_parachains) {
+      return outcome::failure(
+          Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS);
+    }
+
+    size_t allowed_ancestry_len = 0;
+    if (auto mode =
+            prospective_parachains->prospectiveParachainsMode(leaf_hash)) {
+      allowed_ancestry_len = mode->allowed_ancestry_len;
+    } else {
+      return std::nullopt;
+    }
+
+    BlockNumber min = leaf_number;
+    OUTCOME_TRY(required_session,
+                parachain_host->session_index_for_child(leaf_hash));
+    OUTCOME_TRY(hashes,
+                block_tree_->getDescendingChainToBlock(
+                    leaf_hash, allowed_ancestry_len + 1));
+
+    for (size_t i = 1; i < hashes.size(); ++i) {
+      const auto &hash = hashes[i];
+      OUTCOME_TRY(session, parachain_host->session_index_for_child(hash));
+
+      if (session == required_session) {
+        min = math::sat_sub_unsigned(min, BlockNumber(1));
+      } else {
+        break;
+      }
+    }
+
+    return min;
   }
 
   outcome::result<ImplicitView::FetchSummary>
   ImplicitView::fetch_fresh_leaf_and_insert_ancestry(const Hash &leaf_hash) {
-    std::vector<std::pair<ParachainId, BlockNumber>> min_relay_parents_raw =
-        prospective_parachains_->answerMinimumRelayParentsRequest(leaf_hash);
+    auto prospective_parachains = prospective_parachains_.lock();
+    if (!prospective_parachains) {
+      return Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS;
+    }
+
     std::shared_ptr<blockchain::BlockTree> block_tree =
-        prospective_parachains_->getBlockTree();
+        prospective_parachains->getBlockTree();
 
     OUTCOME_TRY(leaf_header, block_tree->getBlockHeader(leaf_hash));
-    BlockNumber min_min = min_relay_parents_raw.empty()
-                            ? leaf_header.number
-                            : min_relay_parents_raw[0].second;
-    std::vector<ParachainId> relevant_paras;
-    relevant_paras.reserve(min_relay_parents_raw.size());
 
-    for (auto &min_relay_parent : min_relay_parents_raw) {
-      min_min = std::min(min_relay_parent.second, min_min);
-      relevant_paras.emplace_back(min_relay_parent.first);
+    std::vector<std::pair<ParachainId, BlockNumber>> min_relay_parents;
+    if (collating_for) {
+      OUTCOME_TRY(
+          mrp,
+          fetch_min_relay_parents_for_collator(leaf_hash, leaf_header.number));
+      if (mrp) {
+        min_relay_parents.emplace_back(*collating_for, *mrp);
+      }
+    } else {
+      min_relay_parents =
+          prospective_parachains->answerMinimumRelayParentsRequest(leaf_hash);
+    }
+
+    BlockNumber min_min = leaf_header.number;
+    if (!min_relay_parents.empty()) {
+      min_min = min_relay_parents.front().second;
+      for (const auto &[_, x] : min_relay_parents) {
+        min_min = std::min(x, min_min);
+      }
     }
 
     const size_t expected_ancestry_len =
@@ -168,8 +278,8 @@ namespace kagome::parachain {
             .block_number = leaf_header.number,
             .maybe_allowed_relay_parents =
                 AllowedRelayParents{
-                    .minimum_relay_parents = {min_relay_parents_raw.begin(),
-                                              min_relay_parents_raw.end()},
+                    .minimum_relay_parents = {min_relay_parents.begin(),
+                                              min_relay_parents.end()},
                     .allowed_relay_parents_contiguous = std::move(ancestry),
                 },
             .parent_hash = leaf_header.parent_hash,
@@ -177,7 +287,6 @@ namespace kagome::parachain {
     return FetchSummary{
         .minimum_ancestor_number = min_min,
         .leaf_number = leaf_header.number,
-        .relevant_paras = relevant_paras,
     };
   }
 

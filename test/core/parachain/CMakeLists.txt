@@ -6,10 +6,58 @@
 
 add_subdirectory(availability)
 
+addtest(candidate_storage_test
+    candidate_storage.cpp
+    )
+
+target_link_libraries(candidate_storage_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
+addtest(scope_test
+    scope.cpp
+    )
+
+target_link_libraries(scope_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
+addtest(fragment_chain_test
+    fragment_chain.cpp
+    )
+
+target_link_libraries(fragment_chain_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
+addtest(prospective_parachains_test
+    prospective_parachains.cpp
+    )
+
+target_link_libraries(prospective_parachains_test
+    validator_parachain
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(parachain_test
     pvf_test.cpp
     assignments.cpp
-    prospective_parachains.cpp
     cluster_test.cpp
     grid.cpp
     )
