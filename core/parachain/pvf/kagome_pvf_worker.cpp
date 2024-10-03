@@ -285,7 +285,6 @@ namespace kagome::parachain {
     OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>());
     kagome::log::tuneLoggingSystem(input_config.log_params);
 
-
     std::stringstream ss;
     for (const char *var = environ[0]; var != nullptr; var++) {
       ss << var << " ";

@@ -147,7 +147,8 @@ namespace kagome::parachain {
 #if defined(__linux__) && defined(KAGOME_WITH_ASAN)
       config.disable_lsan = !worker_config_.force_disable_secure_mode;
 #endif
-      auto process = std::make_shared<ProcessAndPipes>(*io_context_, exe_, config);
+      auto process =
+          std::make_shared<ProcessAndPipes>(*io_context_, exe_, config);
       process->writeScale(
           worker_config_,
           [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](
