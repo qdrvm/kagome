@@ -153,7 +153,7 @@ std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
       std::cerr << "Invalid block hash!\n";
       return std::nullopt;
     }
-    id = std::move(id_hash);
+    id = id_hash;
   } else {
     try {
       id = std::stoi(string);
@@ -170,12 +170,13 @@ class PrintHelpCommand final : public Command {
   explicit PrintHelpCommand(const CommandParser &parser)
       : Command{"help", "print help message"}, parser{parser} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 1, 1);
     parser.printCommands(out);
   }
 
  private:
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   const CommandParser &parser;
 };
 
@@ -185,9 +186,9 @@ class InspectBlockCommand : public Command {
       : Command{"inspect-block",
                 "# or hash - print info about the block with the given number "
                 "or hash"},
-        block_storage{block_storage} {}
+        block_storage{std::move(block_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
     auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
@@ -237,9 +238,9 @@ class RemoveBlockCommand : public Command {
   explicit RemoveBlockCommand(std::shared_ptr<BlockStorage> block_storage)
       : Command{"remove-block",
                 "# or hash - remove the block from the block tree"},
-        block_storage{block_storage} {}
+        block_storage{std::move(block_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
     auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
@@ -269,9 +270,9 @@ class QueryStateCommand : public Command {
   explicit QueryStateCommand(std::shared_ptr<TrieStorage> trie_storage)
       : Command{"query-state",
                 "state_hash, key - query value at a given key and state"},
-        trie_storage{trie_storage} {}
+        trie_storage{std::move(trie_storage)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 3, 3);
 
     kagome::storage::trie::RootHash state_root{};
@@ -328,9 +329,13 @@ class SearchChainCommand : public Command {
     BOOST_ASSERT(hasher != nullptr);
   }
 
-  enum class Target { Justification, AuthorityUpdate, LastBlock };
+  enum class Target : uint8_t {
+    Justification,
+    AuthorityUpdate,
+    LastBlock,
+  };
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
@@ -477,7 +482,6 @@ class SearchChainCommand : public Command {
   void reportAuthorityUpdate(std::ostream &out,
                              BlockNumber digest_origin,
                              const GrandpaDigest &digest) const {
-    using namespace kagome::primitives;
     if (auto *scheduled_change = std::get_if<ScheduledChange>(&digest);
         scheduled_change) {
       out << "ScheduledChange at #" << digest_origin << " for ";
@@ -519,11 +523,11 @@ class ChainInfoCommand final : public Command {
  public:
   ChainInfoCommand(std::shared_ptr<kagome::blockchain::BlockTree> block_tree)
       : Command{"chain-info", "Print general info about the current chain. "},
-        block_tree{block_tree} {
+        block_tree{std::move(block_tree)} {
     BOOST_ASSERT(block_tree);
   }
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     if (args.size() > 1) {
       throwError("No arguments expected, {} arguments received", args.size());
     }
@@ -547,11 +551,11 @@ class ChainInfoCommand final : public Command {
 class DbStatsCommand : public Command {
  public:
   DbStatsCommand(std::filesystem::path db_path)
-      : Command("db-stats", "Print RocksDb stats"), db_path{db_path} {}
+      : Command("db-stats", "Print RocksDb stats"),
+        db_path{std::move(db_path)} {}
 
-  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+  void execute(std::ostream &out, const ArgumentList &args) override {
     rocksdb::Options options;
-    rocksdb::DB *db;
 
     std::vector<std::string> existing_families;
     auto res = rocksdb::DB::ListColumnFamilies(
@@ -562,10 +566,13 @@ class DbStatsCommand : public Command {
                  res.ToString());
     }
     std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+    column_families.reserve(existing_families.size());
     for (auto &family : existing_families) {
       column_families.emplace_back(rocksdb::ColumnFamilyDescriptor{family, {}});
     }
     std::vector<rocksdb::ColumnFamilyHandle *> column_handles;
+
+    rocksdb::DB *db;  // NOLINT(cppcoreguidelines-init-variables)
     auto status = rocksdb::DB::OpenForReadOnly(
         options, db_path, column_families, &column_handles, &db);
     if (!status.ok()) {
@@ -586,21 +593,23 @@ class DbStatsCommand : public Command {
                5);
     for (auto column_data : columns_data) {
       constexpr std::array sizes{"B ", "KB", "MB", "GB", "TB"};
-      double size = column_data.size;
+      auto size = static_cast<double>(column_data.size);
       int idx = 0;
       while (size > 1024.0) {
         size /= 1024.0;
         idx++;
       }
-      fmt::print(out,
-                 "{:{}} | {:{}.2f} {} | {:{}} |\n",
-                 column_data.name,
-                 30,
-                 size,
-                 10,
-                 sizes[idx],
-                 column_data.file_count,
-                 5);
+      fmt::print(
+          out,
+          "{:{}} | {:{}.2f} {} | {:{}} |\n",
+          column_data.name,
+          30,
+          size,
+          10,
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+          sizes[idx],
+          column_data.file_count,
+          5);
     }
   }
 
@@ -621,20 +630,24 @@ int storage_explorer_main(int argc, const char **argv) {
   auto configuration =
       std::make_shared<kagome::application::AppConfigurationImpl>();
 
-  int kagome_args_start = -1;
+  size_t kagome_args_start;  // NOLINT(cppcoreguidelines-init-variables)
+  bool is_found = false;
   for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
+      is_found = true;
     }
   }
-  if (kagome_args_start == -1) {
+  if (not is_found) {
     std::cerr
         << "You must specify arguments for kagome initialization after '--'\n";
     return -1;
   }
 
   if (!configuration->initializeFromArgs(
-          argc - kagome_args_start, args.subspan(kagome_args_start).data())) {
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+          argc - kagome_args_start,
+          args.subspan(kagome_args_start).data())) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }

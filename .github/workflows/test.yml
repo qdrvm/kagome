@@ -21,6 +21,14 @@ on:
         options:
           - 'true'
           - 'false'
+      use_cache:
+        description: 'Use cache for build'
+        required: true
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
 env:
   BUILD_DIR: build
@@ -40,6 +48,7 @@ env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   CACHE_PATH: ./build/cache
+  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
@@ -52,6 +61,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4
+      if: ${{ env.USE_CACHE == 'true' }}
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -64,12 +74,12 @@ jobs:
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
-        
-        
+
+
   Linux:
     if: false # Need to fix
-      # ${{ 
-      # !(github.ref == 'refs/heads/master' || 
+      # ${{
+      # !(github.ref == 'refs/heads/master' ||
       # startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
@@ -84,6 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -123,6 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -140,6 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -186,6 +199,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        if: ${{ env.USE_CACHE == 'true' }}
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -196,12 +210,18 @@ jobs:
 
   kagome_dev_docker_build_tidy:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
     name: "Linux: clang-tidy"
 
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
+        run: git fetch origin master:master || true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -216,14 +236,19 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make get_versions
+
       - name: "Check version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" | tee $GITHUB_ENV
 
       - name: "Cache dependencies"
         id: cache-restore
+        if: ${{ env.USE_CACHE == 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHE_PATH }}
@@ -275,6 +300,12 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
+        run: git fetch origin master:master || true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -289,7 +320,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 
@@ -309,7 +340,7 @@ jobs:
           echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
 
       - name: "Cache dependencies"
-        if: env.package_exist == 'False'
+        if:  ${{ env.package_exist == 'False' && env.USE_CACHE == 'true' }}
         id: cache-restore
         uses: actions/cache/restore@v4
         with:
@@ -346,7 +377,7 @@ jobs:
           KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILD_TYPE=${{ matrix.options.build_type }}
-          
+
       - name: "Push Docker Image to GCR"
         if: env.package_exist == 'False'
         working-directory: ./housekeeping/docker/kagome-dev
@@ -364,7 +395,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          
+
       - name: "Push Docker Image to Docker Hub"
         if: ${{ 
           (env.package_exist == 'False') && 
@@ -388,7 +419,7 @@ jobs:
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-          
+
       - name: "Versions Info"
         if: always()
         run: |
@@ -434,9 +465,17 @@ jobs:
             test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
           - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
             test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+          - name: "Warp sync from polkadot node"
+            test: "test-custom-0001-validators-warp-sync"
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
+        run: git fetch origin master:master || true
 
 #      - name: Create and enable swap
 #        run: |
@@ -463,7 +502,7 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get Polkadot and Zombienet versions"
+      - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
 

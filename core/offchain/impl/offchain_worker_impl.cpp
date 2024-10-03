@@ -68,14 +68,13 @@ namespace kagome::offchain {
 
     SL_TRACE(log_, "Offchain worker with label {} is started", label);
 
-    func();
+    std::move(func)();
 
     SL_TRACE(log_, "Offchain worker with label {} is finished", label);
   }
 
   bool OffchainWorkerImpl::isValidator() const {
-    bool isValidator = app_config_.roles().flags.authority == 1;
-    return isValidator;
+    return app_config_.roles().isAuthority();
   }
 
   Result<Success, Failure> OffchainWorkerImpl::submitTransaction(
@@ -254,7 +253,7 @@ namespace kagome::offchain {
       }
       auto &request = it->second;
 
-      HttpStatus status;
+      HttpStatus status;  // NOLINT(cppcoreguidelines-init-variables)
       while ((status = request->status()) == 0) {
         if (deadline.has_value()
             and (clock_->zero() + std::chrono::milliseconds(deadline.value()))

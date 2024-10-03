@@ -105,11 +105,11 @@ namespace kagome::runtime {
       }
       lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         lru_.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
-          return std::find_if(blocks.begin(),
-                              blocks.end(),
-                              [&](const primitives::BlockHash &block) {
-                                return block == std::get<0>(key);
-                              })
+          return std::ranges::find_if(blocks.begin(),
+                                      blocks.end(),
+                                      [&](const primitives::BlockHash &block) {
+                                        return block == std::get<0>(key);
+                                      })
               != blocks.end();
         });
       });

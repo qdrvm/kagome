@@ -107,10 +107,10 @@ namespace kagome::benchmark {
       std::shared_ptr<runtime::ModuleRepository> module_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage)
       : logger_{log::createLogger("BlockExecutionBenchmark", "benchmark")},
-        core_api_{core_api},
-        block_tree_{block_tree},
-        module_repo_{module_repo},
-        trie_storage_{trie_storage} {
+        core_api_{std::move(core_api)},
+        block_tree_{std::move(block_tree)},
+        module_repo_{std::move(module_repo)},
+        trie_storage_{std::move(trie_storage)} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);
@@ -223,7 +223,7 @@ namespace kagome::benchmark {
   using ConsumedWeight = PerDispatchClass<primitives::Weight>;
 
   // Hard-coded key for System::BlockWeight.
-  auto BLOCK_WEIGHT_KEY =
+  static const auto BLOCK_WEIGHT_KEY =
       "26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"_hex2buf;
 
   constexpr uint64_t WEIGHT_REF_TIME_PER_NANOS = 1000;
@@ -272,8 +272,8 @@ namespace kagome::benchmark {
                       block_tree_->getBlockBody(current_block_info.hash),
                       "block {}",
                       current_block_info);
-      primitives::Block current_block{std::move(current_block_header),
-                                      std::move(current_block_body)};
+      primitives::Block current_block{.header = std::move(current_block_header),
+                                      .body = std::move(current_block_body)};
       current_block.header.digest.pop_back();
       block_hashes.emplace_back(current_block_info.hash);
       blocks.emplace_back(std::move(current_block));
@@ -295,9 +295,10 @@ namespace kagome::benchmark {
     std::chrono::steady_clock clock;
 
     std::vector<Stats<std::chrono::nanoseconds>> duration_stats;
+    duration_stats.reserve(blocks.size());
     for (size_t i = 0; i < blocks.size(); i++) {
-      duration_stats.emplace_back(Stats<std::chrono::nanoseconds>{
-          primitives::BlockInfo{block_hashes[i], blocks[i].header.number}});
+      duration_stats.emplace_back(
+          primitives::BlockInfo{block_hashes[i], blocks[i].header.number});
     }
     auto duration_stat_it = duration_stats.begin();
     for (size_t block_i = 0; block_i < blocks.size(); block_i++) {

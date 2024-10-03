@@ -39,7 +39,9 @@ namespace {
     std::optional<kagome::api::Session::SessionId> fetchSessionId() {
       return bound_session_id_;
     }
-  } threaded_info;
+  }
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  threaded_info;
 
   template <typename Func>
   auto withThisSession(Func &&f) {
@@ -53,7 +55,9 @@ namespace {
 }  // namespace
 
 namespace {
-  using namespace kagome::api;
+  using kagome::api::JRpcServer;
+  using kagome::api::makeValue;
+  using kagome::api::Session;
 
   /**
    * Method to format json-data event into json-string representation.
@@ -67,7 +71,7 @@ namespace {
    */
   template <typename F>
   inline void forJsonData(std::shared_ptr<JRpcServer> server,
-                          kagome::log::Logger logger,
+                          const kagome::log::Logger &logger,
                           uint32_t set_id,
                           std::string_view name,
                           jsonrpc::Value &&value,
@@ -81,7 +85,7 @@ namespace {
     response["subscription"] = makeValue(set_id);
 
     jsonrpc::Request::Parameters params;
-    params.push_back(std::move(response));
+    params.emplace_back(std::move(response));
 
     server->processJsonData(name.data(), params, [&](const auto &response) {
       if (response.has_value()) {
@@ -93,7 +97,7 @@ namespace {
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
                         std::shared_ptr<Session> session,
-                        kagome::log::Logger logger,
+                        const kagome::log::Logger &logger,
                         uint32_t set_id,
                         std::string_view name,
                         jsonrpc::Value &&value) {
@@ -114,6 +118,8 @@ namespace {
 }  // namespace
 
 namespace kagome::api {
+
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   KAGOME_DEFINE_CACHE(api_service);
 
   const std::string kRpcEventRuntimeVersion = "state_runtimeVersion";
@@ -127,6 +133,7 @@ namespace kagome::api {
       application::AppStateManager &app_state_manager,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
+      // NOLINTNEXTLINE(performance-unnecessary-value-param)
       std::vector<std::shared_ptr<JRpcProcessor>> processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
@@ -151,10 +158,8 @@ namespace kagome::api {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);
-    BOOST_ASSERT(
-        std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
-          return listener != nullptr;
-        }));
+    BOOST_ASSERT(std::ranges::all_of(
+        listeners_, [](auto &listener) { return listener != nullptr; }));
     BOOST_ASSERT(server_);
     for (auto &processor : processors) {
       BOOST_ASSERT(processor != nullptr);
@@ -182,10 +187,10 @@ namespace kagome::api {
     jsonrpc::Value::Array changes;
     changes.reserve(key_value_pairs.size());
     for (auto &[key, value] : key_value_pairs) {
-      changes.emplace_back(jsonrpc::Value{jsonrpc::Value::Array{
+      changes.emplace_back(jsonrpc::Value::Array{
           api::makeValue(key),
           value.has_value() ? api::makeValue(hex_lower_0x(value.value()))
-                            : api::makeValue(std::nullopt)}});
+                            : api::makeValue(std::nullopt)});
     }
 
     jsonrpc::Value::Struct result;

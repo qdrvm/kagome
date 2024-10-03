@@ -26,9 +26,9 @@ namespace kagome::parachain {
       std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_{config},
-        parachain_api_{parachain_api},
+        parachain_api_{std::move(parachain_api)},
         pvf_pool_{std::move(pvf_pool)},
-        hasher_{hasher} {
+        hasher_{std::move(hasher)} {
     if (getThreadsNum() > std::thread::hardware_concurrency() - 1) {
       SL_WARN(
           log_,
@@ -40,9 +40,9 @@ namespace kagome::parachain {
 
   struct ModulePrecompiler::PrecompilationStats {
     const size_t total_count{};
-    std::atomic_int occupied_precompiled_count{};
-    std::atomic_int scheduled_precompiled_count{};
-    std::atomic_int total_code_size{};
+    std::atomic_size_t occupied_precompiled_count{};
+    std::atomic_size_t scheduled_precompiled_count{};
+    std::atomic_size_t total_code_size{};
   };
 
   std::optional<ParachainId> get_para_id(runtime::CoreState core) {
@@ -104,7 +104,7 @@ namespace kagome::parachain {
             cores.pop_back();
           }
           auto res = self->precompileModulesForCore(
-              stats, last_finalized, executor_params, ParachainCore{core});
+              stats, last_finalized, executor_params.context_params, ParachainCore{core});
           if (!res) {
             using namespace std::string_literals;
             auto id = get_para_id(core);
@@ -149,8 +149,8 @@ namespace kagome::parachain {
     auto &core = _core.state;
     if (std::holds_alternative<runtime::FreeCore>(core)) {
       return outcome::success();
-
-    } else if (std::holds_alternative<runtime::OccupiedCore>(core)) {
+    }
+    if (std::holds_alternative<runtime::OccupiedCore>(core)) {
       SL_TRACE(log_, "Precompile for occupied availability core");
       stats.occupied_precompiled_count++;
     } else if (std::holds_alternative<runtime::ScheduledCore>(core)) {

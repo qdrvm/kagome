@@ -23,6 +23,9 @@ namespace kagome::log {
 
     explicit Configurator(std::shared_ptr<PrevConfigurator> previous,
                           filesystem::path path);
+
+    static std::optional<filesystem::path> getLogConfigFile(int argc,
+                                                            const char **argv);
   };
 
 }  // namespace kagome::log

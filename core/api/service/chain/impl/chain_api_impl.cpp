@@ -34,7 +34,7 @@ namespace kagome::api {
       LazySPtr<api::ApiService> api_service)
       : header_repo_{std::move(block_repo)},
         block_tree_{std::move(block_tree)},
-        api_service_{std::move(api_service)},
+        api_service_{api_service},
         block_storage_{std::move(block_storage)} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr,
                      "block repo parameter is nullptr");

@@ -24,12 +24,15 @@ namespace kagome::crypto {
 
   namespace {
     ::BytesVec convert(common::BufferView view) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       return {.data = const_cast<uint8_t *>(view.data()), .size = view.size()};
     }
     outcome::result<common::Buffer> convert(::Result res) {
       if (res.tag == ::RESULT_OK) {
-        // TODO avoid coping to runtime
+        // TODO(xDimon): avoid coping to runtime
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         common::Buffer buf(res.ok.data, res.ok.data + res.ok.size);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         ::AWCR_deallocate_bytesvec(&res.ok);
         return buf;
       }

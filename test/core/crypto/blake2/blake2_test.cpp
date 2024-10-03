@@ -51,7 +51,7 @@ TEST(Blake2b, Correctness) {
       inlen = b2b_in_len[j];
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
-      kagome::crypto::blake2b(md, outlen, NULL, 0, in, inlen);
+      kagome::crypto::blake2b(md, outlen, nullptr, 0, in, inlen);
       blake2b_update(&ctx, md, outlen);  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash

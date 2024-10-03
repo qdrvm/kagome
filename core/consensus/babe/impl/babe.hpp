@@ -197,15 +197,15 @@ namespace kagome::consensus::babe {
     std::shared_ptr<PoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
-    bool is_active_validator_;
+    bool is_active_validator_{};
 
     using KeypairWithIndexOpt = std::optional<
         std::pair<std::shared_ptr<crypto::Sr25519Keypair>, AuthorityIndex>>;
 
     primitives::BlockInfo parent_;
     TimePoint slot_timestamp_;
-    SlotNumber slot_;
-    EpochNumber epoch_;
+    SlotNumber slot_{};
+    EpochNumber epoch_{};
     SlotLeadership slot_leadership_;
 
     // Metrics

@@ -6,9 +6,11 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace kagome::consensus {
 
-  enum class SyncState {
+  enum class SyncState : uint8_t {
     /// Node is just launched and waits status of remote peer to sync missing
     /// blocks
     WAIT_REMOTE_STATUS,

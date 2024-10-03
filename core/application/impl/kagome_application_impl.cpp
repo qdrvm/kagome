@@ -108,6 +108,7 @@ namespace kagome::application {
                                             "The roles the node is running as");
       auto metric_node_roles =
           metrics_registry->registerGaugeMetric(nodeRolesMetricName);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       metric_node_roles->set(app_config_->roles().value);
 
       constexpr auto buildInfoMetricName = "kagome_build_info";
@@ -122,8 +123,8 @@ namespace kagome::application {
     }
 
 #ifdef __linux__
-    if (!app_config_->disableSecureMode() && app_config_->usePvfSubprocess()
-        && app_config_->roles().flags.authority) {
+    if (not app_config_->disableSecureMode() and app_config_->usePvfSubprocess()
+        and app_config_->roles().isAuthority()) {
       auto res = parachain::runSecureModeCheckProcess(
           *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
       if (!res) {

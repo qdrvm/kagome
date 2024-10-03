@@ -23,6 +23,7 @@ RUST_VERSION ?= 1.79.0
 # kagome_dev_docker_build Variables
 BUILD_DIR ?= build
 CACHE_DIR := $(shell pwd)/../../../../kagome/$(BUILD_DIR)/cache
+WORKING_DIR := $(shell pwd)/../../../../kagome
 DEPENDENCIES ?= libstdc++6, zlib1g, libgcc-s1, libc6, libtinfo6, libseccomp2, libatomic1
 GITHUB_HUNTER_USERNAME ?=
 GITHUB_HUNTER_TOKEN ?=
@@ -50,6 +51,7 @@ export BUILDKIT_PROGRESS=auto
 get_versions:
 	@echo "full_commit_hash: `git rev-parse HEAD`" | tee commit_hash.txt
 	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
+	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
 
 kagome_builder_deb:
 	docker build --platform $(PLATFORM) \

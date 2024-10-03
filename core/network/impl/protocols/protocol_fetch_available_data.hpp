@@ -35,20 +35,26 @@ namespace kagome::network {
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocolImpl<
-            FetchAvailableDataRequest,
-            FetchAvailableDataResponse,
-            ScaleMessageReadWriter>{kName,
-                                    host,
-                                    make_protocols(kFetchAvailableDataProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(
-                                        kName, "req_available_data_protocol")},
+              FetchAvailableDataRequest,
+              FetchAvailableDataResponse,
+              ScaleMessageReadWriter>{kName,
+                                      host,
+                                      make_protocols(
+                                          kFetchAvailableDataProtocol,
+                                          genesis_hash,
+                                          kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kName,
+                                          "req_available_data_protocol")},
           av_store_{std::move(av_store)} {}
 
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType candidate_hash, std::shared_ptr<Stream>) override {
+      SL_TRACE(base().logger(),
+               "Fetch available data .(candidate hash={})",
+               candidate_hash);
+
       if (auto r = av_store_->getPovAndData(candidate_hash)) {
         return std::move(*r);
       }
@@ -73,25 +79,25 @@ namespace kagome::network {
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocolImpl<
-            FetchStatementRequest,
-            FetchStatementResponse,
-            ScaleMessageReadWriter>{kName,
-                                    host,
-                                    make_protocols(kFetchStatementProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(
-                                        kName, "req_statement_protocol")},
+              FetchStatementRequest,
+              FetchStatementResponse,
+              ScaleMessageReadWriter>{kName,
+                                      host,
+                                      make_protocols(kFetchStatementProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}
 
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override {
-      base().logger()->trace(
-          "Statement fetch request received.(relay parent={}, candidate "
-          "hash={})",
-          req.relay_parent,
-          req.candidate_hash);
+      SL_TRACE(base().logger(),
+               "Statement fetch request received.(relay parent={}, candidate "
+               "hash={})",
+               req.relay_parent,
+               req.candidate_hash);
 
       if (auto res = backing_store_->getCadidateInfo(req.relay_parent,
                                                      req.candidate_hash)) {

@@ -635,14 +635,14 @@ namespace kagome::parachain {
           std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>>
           response;
       response.reserve(candidates.size());
-      std::transform(candidates.begin(),
-                     candidates.end(),
-                     std::back_inserter(response),
-                     [](const HypotheticalCandidate &candidate)
-                         -> std::pair<HypotheticalCandidate,
-                                      fragment::FragmentTreeMembership> {
-                       return {candidate, {}};
-                     });
+      std::ranges::transform(
+          candidates,
+          std::back_inserter(response),
+          [](const HypotheticalCandidate &candidate)
+              -> std::pair<HypotheticalCandidate,
+                           fragment::FragmentTreeMembership> {
+            return {candidate, {}};
+          });
 
       const auto &required_active_leaf = fragment_tree_relay_parent;
       for (const auto &[active_leaf, leaf_view] : view.active_leaves) {

@@ -34,7 +34,7 @@ namespace kagome::metrics {
     static void cleanupStalePointers(
         std::vector<std::weak_ptr<prometheus::Collectable>> &collectables);
     std::size_t writeResponse(std::shared_ptr<Session> session,
-                              Session::Request request,
+                              const Session::Request &request,
                               const std::string &body);
 
     std::mutex collectables_mutex_;

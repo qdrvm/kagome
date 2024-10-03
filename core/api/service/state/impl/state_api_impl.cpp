@@ -50,7 +50,7 @@ namespace kagome::api {
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
-        api_service_{std::move(api_service)},
+        api_service_{api_service},
         metadata_{std::move(metadata)},
         executor_{std::move(executor)} {
     BOOST_ASSERT(nullptr != header_repo_);
@@ -126,7 +126,18 @@ namespace kagome::api {
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
         std::move(res),
-        [](common::BufferOrView &&r) { return r.intoBuffer(); });
+        [](common::BufferOrView &&r) { return std::move(r).intoBuffer(); });
+  }
+
+  outcome::result<std::optional<uint64_t>> StateApiImpl::getStorageSize(
+      common::BufferView key,
+      const std::optional<primitives::BlockHash> &block_hash_opt) const {
+    auto at = block_hash_opt ? block_hash_opt.value()
+                             : block_tree_->getLastFinalized().hash;
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
+    OUTCOME_TRY(res, trie_reader->tryGet(key));
+    return res ? std::make_optional(res->size()) : std::nullopt;
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
@@ -160,15 +171,16 @@ namespace kagome::api {
     for (auto &block : range) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
-      StorageChangeSet change{block, {}};
+      StorageChangeSet change{.block = block};
       for (auto &key : keys) {
         OUTCOME_TRY(opt_get, batch->tryGet(key));
         auto opt_value = common::map_optional(
             std::move(opt_get),
-            [](common::BufferOrView &&r) { return r.intoBuffer(); });
+            [](common::BufferOrView &&r) { return std::move(r).intoBuffer(); });
         auto it = last_values.find(key);
         if (it == last_values.end() || it->second != opt_value) {
-          change.changes.push_back(StorageChangeSet::Change{key, opt_value});
+          change.changes.push_back(
+              StorageChangeSet::Change{.key = key, .data = opt_value});
         }
         last_values[key] = std::move(opt_value);
       }
@@ -200,7 +212,7 @@ namespace kagome::api {
     for (auto &key : keys) {
       OUTCOME_TRY(trie->tryGet(key));
     }
-    return ReadProof{at, db.vec()};
+    return ReadProof{.at = at, .proof = db.vec()};
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(

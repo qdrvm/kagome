@@ -120,6 +120,7 @@ namespace kagome::storage {
     outcome::result<std::shared_ptr<RocksDb>> use() const;
 
     std::weak_ptr<RocksDb> storage_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const RocksDb::ColumnFamilyHandlePtr &column_;
     log::Logger logger_;
   };

@@ -22,7 +22,7 @@ namespace kagome::primitives {
   /**
    * @brief inherent data encode/decode error codes
    */
-  enum class InherentDataError {
+  enum class InherentDataError : uint8_t {
     IDENTIFIER_ALREADY_EXISTS = 1,
     IDENTIFIER_DOES_NOT_EXIST
   };
@@ -48,8 +48,7 @@ namespace kagome::primitives {
     template <typename T>
     outcome::result<void> putData(InherentIdentifier identifier,
                                   const T &inherent) {
-      auto [it, inserted] =
-          data.try_emplace(std::move(identifier), common::Buffer());
+      auto [it, inserted] = data.try_emplace(identifier, common::Buffer());
       if (inserted) {
         it->second = common::Buffer(::scale::encode(inherent).value());
         return outcome::success();
@@ -93,8 +92,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream>
+    requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const InherentData &v) {
     const auto &data = v.data;
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
@@ -113,8 +112,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  template <class Stream>
+    requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, InherentData &v) {
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
     s >> vec;

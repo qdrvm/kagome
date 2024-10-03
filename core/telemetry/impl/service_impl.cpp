@@ -12,7 +12,7 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-  typedef ::std::size_t SizeType;
+  using SizeType = size_t;
 }
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -23,6 +23,7 @@ namespace rapidjson {
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/transport/tcp/bytes_counter.hpp>
 
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
@@ -194,11 +195,13 @@ namespace kagome::telemetry {
         last_imported_.is_set = false;
         auto msg =
             blockNotification(last_imported_.block, last_imported_.origin);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         last_imported_msg = message_pool_->push(msg, refs);
       }
       // prepare last finalized message if there is a need to
       if (last_finalized_.reported < last_finalized_.block.number) {
         auto msg = blockNotification(last_finalized_.block, std::nullopt);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         last_finalized_msg = message_pool_->push(msg, refs);
         last_finalized_.reported = last_finalized_.block.number;
       }
@@ -222,7 +225,9 @@ namespace kagome::telemetry {
     }
     std::optional<MessageHandle> system_msg_1, system_msg_2;
     auto refs = connections_.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     system_msg_1 = message_pool_->push(systemIntervalMessage1(), refs);
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     system_msg_2 = message_pool_->push(systemIntervalMessage2(), refs);
 
     for (auto &conn : connections_) {
@@ -256,9 +261,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType);
     payload
         .AddMember(
-            "authority",
-            static_cast<bool>(app_configuration_.roles().flags.authority),
-            allocator)
+            "authority", app_configuration_.roles().isAuthority(), allocator)
         .AddMember("chain", str_val(chain_spec_.name()), allocator)
         .AddMember("config", str_val(""), allocator)
         .AddMember("genesis_hash", str_val(genesis_hash_), allocator)
@@ -344,6 +347,7 @@ namespace kagome::telemetry {
         "best", str_val(fmt::format("{:l}", info.hash)), allocator);
 
     if (origin.has_value()) {
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       height.SetInt(info.number);
       rapidjson::Value origin_val;
       using o = BlockOrigin;
@@ -404,9 +408,13 @@ namespace kagome::telemetry {
         finalized_hash;
     {
       std::lock_guard lock(cache_mutex_);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       height.SetInt(last_imported_.block.number);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       finalized_height.SetInt(last_finalized_.block.number);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       tx_count.SetInt(tx_pool_->getStatus().ready_num);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       state_size.SetInt(buffer_storage_->byteSizeHint().value_or(0));
       best_hash = str_val(fmt::format("{:l}", last_imported_.block.hash));
       finalized_hash = str_val(fmt::format("{:l}", last_finalized_.block.hash));
@@ -442,18 +450,16 @@ namespace kagome::telemetry {
 
     rapidjson::Value payload(rapidjson::kObjectType);
 
-    rapidjson::Value bandwidth_down, bandwidth_up, peers_count;
-    auto active_peers = peer_manager_->activePeersNumber();
-    // we are not actually measuring bandwidth. the following will just let us
-    // see the history of active peers count change in the telemetry UI
-    auto peers_to_bandwidth = active_peers * 1'000'000;
-    bandwidth_down.SetInt(peers_to_bandwidth);
-    bandwidth_up.SetInt(peers_to_bandwidth);
-    peers_count.SetInt(active_peers);
+    rapidjson::Value peers_count;
+    peers_count.SetUint(peer_manager_->activePeersNumber());
 
+    auto bandwidth = getBandwidth();
+    rapidjson::Value upBandwidth, downBandwidth;
+    downBandwidth.SetUint64(bandwidth.down);
+    upBandwidth.SetUint64(bandwidth.up);
     // fields order is preserved the same way substrate orders it
-    payload.AddMember("bandwidth_download", bandwidth_down, allocator)
-        .AddMember("bandwidth_upload", bandwidth_up, allocator)
+    payload.AddMember("bandwidth_download", downBandwidth, allocator)
+        .AddMember("bandwidth_upload", upBandwidth, allocator)
         .AddMember("msg", str_val("system.interval"), allocator)
         .AddMember("peers", peers_count, allocator);
 
@@ -475,5 +481,45 @@ namespace kagome::telemetry {
 
   bool TelemetryServiceImpl::isEnabled() const {
     return enabled_;
+  }
+
+  TelemetryServiceImpl::Bandwidth TelemetryServiceImpl::getBandwidth() {
+    if (not previous_bandwidth_calculated_) {
+      previous_bandwidth_calculated_ =
+          std::chrono::high_resolution_clock::now();
+    }
+
+    auto calculateBandwidth = [](uint64_t &previousBytes,
+                                 uint64_t totalBytes,
+                                 auto &bandwidth,
+                                 const std::chrono::seconds &timeElapsed) {
+      const auto bytesDiff = totalBytes - previousBytes;
+      if (const auto secondsElapsed = timeElapsed.count(); secondsElapsed > 0) {
+        bandwidth = bytesDiff / secondsElapsed;
+      } else {
+        bandwidth = bytesDiff;
+      }
+      previousBytes = totalBytes;
+    };
+
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const auto timeElapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        currentTime - *previous_bandwidth_calculated_);
+
+    Bandwidth bandwidth;
+    const auto &bytesCounter = libp2p::transport::ByteCounter::getInstance();
+    calculateBandwidth(previous_bytes_read_,
+                       bytesCounter.getBytesRead(),
+                       bandwidth.down,
+                       timeElapsed);
+
+    calculateBandwidth(previous_bytes_written_,
+                       bytesCounter.getBytesWritten(),
+                       bandwidth.up,
+                       timeElapsed);
+
+    previous_bandwidth_calculated_ = currentTime;
+
+    return bandwidth;
   }
 }  // namespace kagome::telemetry

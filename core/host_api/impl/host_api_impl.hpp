@@ -118,7 +118,8 @@ namespace kagome::host_api {
 
     void ext_crypto_start_batch_verify_version_1() override;
 
-    [[nodiscard]] int32_t ext_crypto_finish_batch_verify_version_1() override;
+    [[nodiscard]] runtime::WasmSize ext_crypto_finish_batch_verify_version_1()
+        override;
 
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;

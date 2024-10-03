@@ -25,6 +25,7 @@ namespace kagome::runtime {
   // @see
   // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/maybe-compressed-blob/src/lib.rs#L28
   constexpr uint8_t kZstdPrefixSize = 8;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
   constexpr uint8_t kZstdPrefix[kZstdPrefixSize] = {
       0x52, 0xBC, 0x53, 0x76, 0x46, 0xDB, 0x8E, 0x05};
   // @see

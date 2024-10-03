@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <qtils/enum_error_code.hpp>
 
 #include "common/empty.hpp"
@@ -13,7 +15,7 @@
 
 namespace kagome {
 
-  enum UnusedError {
+  enum UnusedError : uint8_t {
     AttemptToEncodeUnused = 1,
     AttemptToDecodeUnused,
   };

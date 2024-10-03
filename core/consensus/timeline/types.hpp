@@ -69,7 +69,7 @@ namespace kagome::consensus {
 
     friend ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, SlotDuration &duration) {
-      uint64_t v;
+      uint64_t v;  // NOLINT(cppcoreguidelines-init-variables)
       s >> v;
       duration = {v};
       return s;

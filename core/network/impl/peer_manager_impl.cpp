@@ -110,7 +110,7 @@ namespace kagome::network {
         storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
-        can_disconnect_{std::move(can_disconnect)},
+        can_disconnect_{can_disconnect},
         peer_view_{std::move(peer_view)} {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
@@ -289,7 +289,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::forOnePeer(
       const PeerId &peer_id, std::function<void(const PeerId &)> func) const {
-    if (active_peers_.count(peer_id)) {
+    if (active_peers_.contains(peer_id)) {
       func(peer_id);
     }
   }
@@ -349,19 +349,19 @@ namespace kagome::network {
       // disconnect from peers with negative reputation
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
       if (peer_reputation < kDisconnectReputation) {
-        peers_list.push_back(
-            std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
+        peers_list.emplace_back(std::numeric_limits<PriorityType>::min(),
+                                peer_id);
         // we have to store peers somewhere first due to inability to iterate
         // over active_peers_ and do disconnectFromPeers (which modifies
         // active_peers_) at the same time
       } else {
-        peers_list.push_back(std::make_pair(peer_reputation, peer_id));
+        peers_list.emplace_back(peer_reputation, peer_id);
       }
     }
 
-    std::sort(peers_list.begin(),
-              peers_list.end(),
-              [](const auto &l, const auto &r) { return r.first < l.first; });
+    std::ranges::sort(peers_list, [](const auto &l, const auto &r) {
+      return r.first < l.first;
+    });
 
     for (; !peers_list.empty()
            && (peers_list.size() > hard_limit
@@ -453,7 +453,7 @@ namespace kagome::network {
     }
 
     SL_DEBUG(log_, "Try to connect to peer {}", peer_info.id);
-    for (auto addr : peer_info.addresses) {
+    for (auto &addr : peer_info.addresses) {
       SL_DEBUG(log_, "  address: {}", addr.getStringAddress());
     }
 
@@ -653,20 +653,20 @@ namespace kagome::network {
       const PeerInfo &peer_info,
       const libp2p::network::ConnectionManager::ConnectionSPtr &connection,
       F &&opened_callback) {
-    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-    BOOST_ASSERT_MSG(block_announce_protocol,
+    auto protocol = router_->getBlockAnnounceProtocol();
+    BOOST_ASSERT_MSG(protocol,
                      "Router did not provide block announce protocol");
 
     if (!openOutgoing(
             stream_engine_,
-            block_announce_protocol,
+            protocol,
             peer_info,
             [wp{weak_from_this()},
              peer_info,
-             protocol = block_announce_protocol,
+             protocol,
              connection,
-             opened_callback{std::forward<F>(opened_callback)}](
-                auto &&stream_res) mutable {
+             opened_callback =
+                 std::forward<F>(opened_callback)](auto &&stream_res) mutable {
               auto self = wp.lock();
               if (not self) {
                 return;
@@ -690,19 +690,21 @@ namespace kagome::network {
 
               // Add to the active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
-                      peer_id, PeerDescriptor{peer_type, self->clock_->now()});
+                      peer_id,
+                      PeerDescriptor{.peer_type = peer_type,
+                                     .time_point = self->clock_->now()});
                   added) {
                 self->recently_active_peers_.insert(peer_id);
 
                 // And remove from queue
                 if (auto piq_it = self->peers_in_queue_.find(peer_id);
                     piq_it != self->peers_in_queue_.end()) {
-                  auto qtc_it =
-                      std::find_if(self->queue_to_connect_.cbegin(),
-                                   self->queue_to_connect_.cend(),
-                                   [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item;
-                                   });
+                  auto qtc_it = std::ranges::find_if(
+                      self->queue_to_connect_.cbegin(),
+                      self->queue_to_connect_.cend(),
+                      [&peer_id = peer_id](const auto &item) {
+                        return peer_id == item;
+                      });
                   self->queue_to_connect_.erase(qtc_it);
                   self->peers_in_queue_.erase(piq_it);
                   BOOST_ASSERT(self->queue_to_connect_.size()
@@ -728,7 +730,7 @@ namespace kagome::network {
             })) {
       SL_DEBUG(log_,
                "Stream {} with {} is alive or connecting",
-               block_announce_protocol->protocolName(),
+               protocol->protocolName(),
                peer_info.id);
     }
   }
@@ -757,7 +759,7 @@ namespace kagome::network {
       network::CollationVersion
           proto_version) {  // network::CollationVersion::VStaging
     /// If validator start validation protocol
-    if (peer_state.roles.flags.authority) {
+    if (peer_state.roles.isAuthority()) {
       auto validation_protocol = [&]() -> std::shared_ptr<ProtocolBase> {
         return router_->getValidationProtocolVStaging();
       }();
@@ -839,14 +841,14 @@ namespace kagome::network {
           if (peer_state.has_value()) {
             auto &state = peer_state->get();
             if (not out) {
-              if (state.roles.flags.full == 1) {
+              if (state.roles.isFull()) {
                 if (self->countPeers(PeerType::PEER_TYPE_IN)
                     >= self->app_config_.inPeers()) {
                   self->connecting_peers_.erase(peer_info.id);
                   self->disconnectFromPeer(peer_info.id);
                   return;
                 }
-              } else if (state.roles.flags.light == 1) {
+              } else {
                 if (self->countPeers(PeerType::PEER_TYPE_IN, IsLight(true))
                     >= self->app_config_.inPeersLight()) {
                   self->connecting_peers_.erase(peer_info.id);
@@ -863,11 +865,12 @@ namespace kagome::network {
                 network::CollationVersion::VStaging);
             auto beefy_protocol = std::static_pointer_cast<BeefyProtocolImpl>(
                 self->router_->getBeefyProtocol());
-            openOutgoing(self->stream_engine_,
-                         beefy_protocol,
-                         peer_info,
-                         [](outcome::result<
-                             std::shared_ptr<libp2p::connection::Stream>>) {});
+            openOutgoing(
+                self->stream_engine_,
+                beefy_protocol,
+                peer_info,
+                [](const outcome::result<
+                    std::shared_ptr<libp2p::connection::Stream>> &) {});
           }
         });
 
@@ -881,8 +884,7 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    if (auto ps = getPeerState(peer_id);
-        ps && ps->get().roles.flags.authority) {
+    if (auto ps = getPeerState(peer_id); ps && ps->get().roles.isAuthority()) {
       auto proto_val_vstaging = router_->getValidationProtocolVStaging();
       BOOST_ASSERT_MSG(proto_val_vstaging,
                        "Router did not provide validation protocol vstaging");
@@ -976,22 +978,22 @@ namespace kagome::network {
   }
 
   size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
-    return std::count_if(active_peers_.begin(),
-                         active_peers_.end(),
-                         [&](const decltype(active_peers_)::value_type &x) {
-                           if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
-                             return in_out == PeerType::PEER_TYPE_OUT;
-                           }
-                           if (in_out == PeerType::PEER_TYPE_OUT) {
-                             return false;
-                           }
-                           auto it = peer_states_.find(x.first);
-                           if (it == peer_states_.end()) {
-                             return false;
-                           }
-                           auto &roles = it->second.roles.flags;
-                           return (in_light ? roles.light : roles.full) == 1;
-                         });
+    return std::ranges::count_if(
+        active_peers_, [&](const decltype(active_peers_)::value_type &x) {
+          if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
+            return in_out == PeerType::PEER_TYPE_OUT;
+          }
+          if (in_out == PeerType::PEER_TYPE_OUT) {
+            return false;
+          }
+          auto it = peer_states_.find(x.first);
+          if (it == peer_states_.end()) {
+            return false;
+          }
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+          const auto &roles = it->second.roles.flags;
+          return (in_light ? roles.light : roles.full) == 1;
+        });
   }
 
   std::optional<PeerId> PeerManagerImpl::peerFinalized(

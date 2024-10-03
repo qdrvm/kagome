@@ -61,10 +61,10 @@ namespace kagome::network {
     void readRequest(std::shared_ptr<Stream> stream);
 
     void writeResponse(std::shared_ptr<Stream> stream,
-                       StateResponse state_response);
+                       const StateResponse &state_response);
 
     void writeRequest(std::shared_ptr<Stream> stream,
-                      StateRequest state_request,
+                      const StateRequest &state_request,
                       std::function<void(outcome::result<void>)> &&cb);
 
     void readResponse(

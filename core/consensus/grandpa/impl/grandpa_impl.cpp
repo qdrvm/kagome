@@ -43,7 +43,7 @@ namespace {
       "kagome_finality_grandpa_round";
 
   template <typename D>
-  auto toMilliseconds(D &&duration) {
+  auto toMilliseconds(const D &duration) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
   }
 }  // namespace
@@ -100,8 +100,8 @@ namespace kagome::consensus::grandpa {
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
-        timeline_{std::move(timeline)},
-        chain_sub_{chain_sub_engine},
+        timeline_{timeline},
+        chain_sub_{std::move(chain_sub_engine)},
         db_{db.getSpace(storage::Space::kDefault)},
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         grandpa_pool_handler_{poolHandlerReadyMake(
@@ -282,7 +282,8 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }
     OUTCOME_TRY(voters, VoterSet::make(**authorities));
-    MovableRoundState state{1, finalized, {}, std::nullopt};
+    MovableRoundState state{.round_number = 1,
+                            .last_finalized_block = finalized};
     if (finalized.number != 0) {
       OUTCOME_TRY(raw_justification,
                   block_tree_->getBlockJustification(finalized.hash));
@@ -357,7 +358,9 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onNeighborMessage,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info),
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(msg));
 
     BOOST_ASSERT(grandpa_pool_handler_->isInCurrentThread());
@@ -435,7 +438,8 @@ namespace kagome::consensus::grandpa {
           }
           pending_catchup_request_.emplace(
               peer_id,
-              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
+              network::CatchUpRequest{.round_number = msg.round_number - 1,
+                                      .voter_set_id = msg.voter_set_id});
           catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
               [wp{weak_from_this()}] {
                 auto self = wp.lock();
@@ -470,7 +474,9 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onCatchUpRequest,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info_opt),
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(msg));
 
     if (not info_opt.has_value() or not info_opt->set_id.has_value()
@@ -739,7 +745,7 @@ namespace kagome::consensus::grandpa {
     }
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*round, grandpa_context};
+    VotingRoundUpdate update{.round = *round, .ctx = grandpa_context};
     for (auto &vote : msg.prevote_justification) {
       update.vote(vote);
     }
@@ -767,9 +773,10 @@ namespace kagome::consensus::grandpa {
                 * grandpa_context.checked_signature_counter);
       }
       if (allow_missing_blocks) {
-        loadMissingBlocks({peer_id,
-                           std::move(msg),
-                           std::move(grandpa_context.missing_blocks)});
+        loadMissingBlocks(
+            {.peer = peer_id,
+             .msg = std::move(msg),
+             .blocks = std::move(grandpa_context.missing_blocks)});
       }
       return;
     }
@@ -789,7 +796,12 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       std::optional<network::PeerStateCompact> &&info,
       VoteMessage &&msg) {
-    onVoteMessage(peer_id, std::move(info), std::move(msg), true);
+    onVoteMessage(
+        peer_id,
+        // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
+        std::move(info),
+        std::move(msg),
+        true);
   }
 
   void GrandpaImpl::onVoteMessage(
@@ -800,6 +812,7 @@ namespace kagome::consensus::grandpa {
     REINVOKE(*grandpa_pool_handler_,
              onVoteMessage,
              peer_id,
+             // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
              std::move(info),
              msg,
              allow_missing_blocks);
@@ -944,7 +957,8 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     GrandpaContext grandpa_context;
-    VotingRoundUpdate update{*target_round, grandpa_context, true};
+    VotingRoundUpdate update{
+        .round = *target_round, .ctx = grandpa_context, .propagate = true};
     update.vote(msg.vote);
     update.update();
 
@@ -971,9 +985,10 @@ namespace kagome::consensus::grandpa {
 
     if (not target_round->finalizedBlock().has_value()) {
       if (allow_missing_blocks) {
-        loadMissingBlocks({peer_id,
-                           std::move(msg),
-                           std::move(grandpa_context.missing_blocks)});
+        loadMissingBlocks(
+            {.peer = peer_id,
+             .msg = std::move(msg),
+             .blocks = std::move(grandpa_context.missing_blocks)});
       }
       return;
     }
@@ -993,7 +1008,7 @@ namespace kagome::consensus::grandpa {
              msg,
              allow_missing_blocks);
 
-    // TODO check if height of commit less then previous one
+    // TODO(xDimon) check if height of commit less then previous one
     // if (new_commit_height < last_commit_height) {
     //   reputation_repository_->change(
     //       peer_id, network::reputation::cost::INVALID_VIEW_CHANGE);
@@ -1105,7 +1120,9 @@ namespace kagome::consensus::grandpa {
         }
       }
       if (not missing_blocks.empty()) {
-        loadMissingBlocks({peer_id, std::move(msg), std::move(missing_blocks)});
+        loadMissingBlocks({.peer = peer_id,
+                           .msg = std::move(msg),
+                           .blocks = std::move(missing_blocks)});
         return;
       }
     }
@@ -1124,11 +1141,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
-                                 outcome::result<void> &&result) {
+                                 const outcome::result<void> &result) {
     main_pool_handler_->execute(
-        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
-          callback(std::move(result));
-        });
+        [callback{std::move(callback)}, result]() { callback(result); });
   }
 
   outcome::result<void> GrandpaImpl::verifyJustification(
@@ -1139,7 +1154,8 @@ namespace kagome::consensus::grandpa {
     state.round_number = justification.round_number;
     auto round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
-        GrandpaConfig{voters, justification.round_number, {}, {}},
+        GrandpaConfig{.voters = voters,
+                      .round_number = justification.round_number},
         hasher_,
         environment_,
         std::make_shared<VoteCryptoProviderImpl>(
@@ -1184,7 +1200,7 @@ namespace kagome::consensus::grandpa {
       } else {
         r = environment_->finalize(authority_set->id, justification);
       }
-      callbackCall(std::move(callback), std::move(r));
+      callbackCall(std::move(callback), r);
       return;
     }
     std::shared_ptr<VotingRound> round;
@@ -1386,8 +1402,7 @@ namespace kagome::consensus::grandpa {
              vote,
              set_index);
     auto &[votes, dirty] = historicalVotes(set, round);
-    if (std::find(votes.seen.begin(), votes.seen.end(), vote)
-        != votes.seen.end()) {
+    if (std::ranges::find(votes.seen, vote) != votes.seen.end()) {
       return;
     }
     if (set_index) {
@@ -1449,7 +1464,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::applyHistoricalVotes(VotingRound &round) {
     auto &votes =
         historicalVotes(round.voterSetId(), round.roundNumber()).first;
-    VotingRoundUpdate update{round};
+    VotingRoundUpdate update{.round = round};
     for (auto &vote : votes.seen) {
       update.vote(vote);
     }

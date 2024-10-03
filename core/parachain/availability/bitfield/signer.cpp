@@ -56,20 +56,6 @@ namespace kagome::parachain {
     for (auto &candidate : candidates) {
       bitfield.bits.push_back(
           candidate && store_->hasChunk(*candidate, signer.validatorIndex()));
-      if (candidate) {
-        SL_TRACE(logger_,
-                 "Signing bitfields.(relay_parent={}, validator index={}, has "
-                 "chunk={})",
-                 relay_parent,
-                 signer.validatorIndex(),
-                 bitfield.bits.back() ? 1 : 0);
-      } else {
-        SL_TRACE(logger_,
-                 "Signing bitfields.(relay_parent={}, validator index={}, NOT "
-                 "OCCUPIED)",
-                 relay_parent,
-                 signer.validatorIndex());
-      }
     }
 
     OUTCOME_TRY(signed_bitfield, signer.sign(bitfield));

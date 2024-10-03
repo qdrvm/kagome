@@ -24,12 +24,11 @@ namespace kagome::parachain {
         scheduler_{std::move(scheduler)},
         exe_{exePath()},
         max_{app_config.pvfMaxWorkers()},
-        timeout_{app_config.pvfSubprocessDeadline()},
         worker_config_{
-            pvf_runtime_engine(app_config),
-            app_config.runtimeCacheDirPath(),
-            app_config.log(),
-            app_config.disableSecureMode(),
+            .engine = pvf_runtime_engine(app_config),
+            .cache_dir = app_config.runtimeCacheDirPath(),
+            .log_params = app_config.log(),
+            .force_disable_secure_mode = app_config.disableSecureMode(),
         } {}
 
   void PvfWorkers::execute(Job &&job) {
@@ -60,10 +59,9 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::findFree(Job &&job) {
-    auto it =
-        std::find_if(free_.begin(), free_.end(), [&](const Worker &worker) {
-          return worker.code_path == job.code_path;
-        });
+    auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
+      return worker.code_path == job.code_path;
+    });
     if (it == free_.end()) {
       it = free_.begin();
     }
@@ -126,7 +124,7 @@ namespace kagome::parachain {
       timeout->reset();
     };
     *timeout = scheduler_->scheduleWithHandle(
-        [cb]() mutable { cb(std::errc::timed_out); }, timeout_);
+        [cb]() mutable { cb(std::errc::timed_out); }, job.timeout);
     worker.process->writeScale(PvfWorkerInput{job.args},
                                [cb](outcome::result<void> r) mutable {
                                  if (not r) {

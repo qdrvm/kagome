@@ -36,7 +36,7 @@ set(CMAKE_TOOLCHAIN_FILE
     CACHE FILEPATH "Default toolchain")
 
 # SHA1 hash of the WasmEdge repository archive.
-# Required to separate cached runtimes 
+# Required to separate cached runtimes
 # compiled with different WasmEdge versions.
 set(WASMEDGE_ID 58aea400de9179ad3e314c7e84fd4da345b8a643)
 
@@ -195,7 +195,9 @@ include(GNUInstallDirs)
 include(cmake/install.cmake)
 
 include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>)
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/core> # for generated file
+)
 
 add_subdirectory(core)
 

@@ -100,7 +100,7 @@ namespace kagome::parachain {
         auto &code_zstd = *code_zstd_res.value();
         auto res = [&]() -> outcome::result<void> {
           OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
-          OUTCOME_TRY(pvf_pool_->precompile(code_hash, code_zstd, config));
+          OUTCOME_TRY(pvf_pool_->precompile(code_hash, code_zstd, config.context_params));
           return outcome::success();
         }();
         if (res) {
@@ -111,10 +111,10 @@ namespace kagome::parachain {
         accepted = res.has_value();
       }
       PvfCheckStatement statement{
-          *accepted,
-          code_hash,
-          signer->getSessionIndex(),
-          signer->validatorIndex(),
+          .accept = accepted.value(),
+          .subject = code_hash,
+          .session_index = signer->getSessionIndex(),
+          .validator_index = signer->validatorIndex(),
       };
       OUTCOME_TRY(signature, signer->signRaw(statement.signable()));
       offchain_worker_pool_->addWorker(offchain_worker_factory_->make());

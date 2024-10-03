@@ -46,7 +46,9 @@ namespace kagome::network {
       return block_.state_root;
     }
 
-    bool complete() const;
+    bool complete() const {
+      return done_;
+    }
 
     StateRequest nextRequest() const;
 
@@ -60,11 +62,13 @@ namespace kagome::network {
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;
 
-    bool done_ = false;
     std::vector<Level> levels_;
     std::unordered_set<common::Hash256> known_;
 
     size_t stat_count_ = 0, stat_size_ = 0;
+
+    bool done_ = false;
+
     log::Logger log_;
   };
 }  // namespace kagome::network

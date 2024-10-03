@@ -35,11 +35,12 @@
 #include "utils/profiler.hpp"
 
 namespace di = boost::di;
-using namespace std::chrono_literals;
-using namespace kagome;
-using namespace storage::trie;
+using namespace kagome;         // NOLINT(google-build-using-namespace)
+using namespace storage::trie;  // NOLINT(google-build-using-namespace)
 using common::BufferOrView;
 using common::BufferView;
+
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 struct TrieTracker : TrieStorageBackend {
   TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
@@ -76,7 +77,7 @@ struct TrieTracker : TrieStorageBackend {
     keys.emplace(common::Hash256::fromSpan(key).value());
   }
   bool tracked(BufferView key) const {
-    return keys.count(common::Hash256::fromSpan(key).value());
+    return keys.contains(common::Hash256::fromSpan(key).value());
   }
 
   std::shared_ptr<TrieStorageBackend> inner;
@@ -105,7 +106,7 @@ inline auto check(T &&res) {
 }
 
 namespace {
-  std::string embedded_config(R"(
+  static const std::string embedded_config(R"(
 # ----------------
 sinks:
   - name: console
@@ -194,8 +195,9 @@ void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
 }
 
 auto is_hash(const char *s) {
-  return std::strlen(s) == common::Hash256::size() * 2 + 2
-      && std::equal(s, s + 2, "0x");
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  return s[0] == '0' and s[1] == 'x'
+     and std::strlen(s) == common::Hash256::size();
 }
 
 int db_editor_main(int argc, const char **argv) {
@@ -203,7 +205,12 @@ int db_editor_main(int argc, const char **argv) {
   backward::SignalHandling sh;
 #endif
 
-  Command cmd;
+  libp2p::common::FinalAction flush_std_streams_at_exit([] {
+    std::cout.flush();
+    std::cerr.flush();
+  });
+
+  Command cmd;  // NOLINT(cppcoreguidelines-init-variables)
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
       or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
     cmd = COMPACT;
@@ -340,8 +347,8 @@ int db_editor_main(int argc, const char **argv) {
                last_finalized_block,
                last_finalized_block_state_root);
 
-    for (auto it = to_remove.rbegin(); it != to_remove.rend(); ++it) {
-      check(block_storage->removeBlock(it->hash)).value();
+    for (auto &block : std::ranges::reverse_view(to_remove)) {
+      check(block_storage->removeBlock(block.hash)).value();
     }
 
     SL_TRACE(log, "Save {} as single leaf", last_finalized_block);
@@ -480,3 +487,5 @@ int db_editor_main(int argc, const char **argv) {
 
   return 0;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)

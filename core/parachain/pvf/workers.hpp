@@ -45,6 +45,7 @@ namespace kagome::parachain {
       PvfWorkerInputCodePath code_path;
       Buffer args;
       Cb cb;
+      std::chrono::milliseconds timeout{0};
     };
     void execute(Job &&job);
 
@@ -72,7 +73,6 @@ namespace kagome::parachain {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::filesystem::path exe_;
     size_t max_;
-    std::chrono::milliseconds timeout_;
     PvfWorkerInputConfig worker_config_;
     std::list<Worker> free_;
     size_t used_ = 0;

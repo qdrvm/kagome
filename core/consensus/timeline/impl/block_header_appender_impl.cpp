@@ -23,7 +23,7 @@ namespace kagome::consensus {
       : block_tree_{std::move(block_tree)},
         hasher_{std::move(hasher)},
         appender_{std::move(appender)},
-        timeline_{std::move(timeline)},
+        timeline_{timeline},
         logger_{log::createLogger("BlockHeaderAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);

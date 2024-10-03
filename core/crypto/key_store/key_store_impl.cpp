@@ -47,12 +47,12 @@ namespace kagome::crypto {
     const auto &secret_key = kp.secret_key;
     const auto &public_key = kp.public_key;
     libp2p::crypto::PublicKey lp2p_public{
-        {libp2p::crypto::Key::Type::Ed25519,
-         std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
+        {.type = libp2p::crypto::Key::Type::Ed25519,
+         .data = std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
     libp2p::crypto::PrivateKey lp2p_private{
-        {libp2p::crypto::Key::Type::Ed25519,
-         std::vector<uint8_t>{secret_key.unsafeBytes().begin(),
-                              secret_key.unsafeBytes().end()}}};
+        {.type = libp2p::crypto::Key::Type::Ed25519,
+         .data = std::vector<uint8_t>{secret_key.unsafeBytes().begin(),
+                                      secret_key.unsafeBytes().end()}}};
     return libp2p::crypto::KeyPair{
         .publicKey = lp2p_public,
         .privateKey = lp2p_private,

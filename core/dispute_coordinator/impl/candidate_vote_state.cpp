@@ -57,7 +57,7 @@ namespace kagome::dispute {
         return not std::binary_search(
             disabled_validators.begin(), disabled_validators.end(), vote.first);
       };
-      return std::find_if(votes.begin(), votes.end(), is_not_disabled)
+      return std::ranges::find_if(votes.begin(), votes.end(), is_not_disabled)
           != votes.end();
     };
 

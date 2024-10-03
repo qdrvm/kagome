@@ -14,7 +14,7 @@
 
 namespace kagome::crypto::bip39 {
 
-  enum class Bip39EntropyError {
+  enum class Bip39EntropyError : uint8_t {
     WRONG_WORDS_COUNT = 1,
     STORAGE_NOT_COMPLETE,
     STORAGE_IS_FULL,
@@ -68,8 +68,10 @@ namespace kagome::crypto::bip39 {
     EntropyAccumulator(size_t bits_count, size_t checksum_bits_count);
 
     std::vector<uint8_t> bits_;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const size_t total_bits_count_;
     const size_t checksum_bits_count_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 }  // namespace kagome::crypto::bip39
 

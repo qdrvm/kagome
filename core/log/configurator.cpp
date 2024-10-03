@@ -6,9 +6,12 @@
 
 #include "log/configurator.hpp"
 
+#include <boost/program_options.hpp>
+
 namespace kagome::log {
 
   namespace {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::string embedded_config(R"(
 # ----------------
 sinks:
@@ -125,7 +128,7 @@ groups:
           - name: debug
 # ----------------
   )");
-  }
+  }  // namespace
 
   Configurator::Configurator(std::shared_ptr<PrevConfigurator> previous)
       : ConfiguratorFromYAML(std::move(previous), embedded_config) {}
@@ -136,6 +139,34 @@ groups:
 
   Configurator::Configurator(std::shared_ptr<PrevConfigurator> previous,
                              filesystem::path path)
-      : ConfiguratorFromYAML(std::move(previous),
-                             filesystem::path(path.string())) {}
+      : ConfiguratorFromYAML(std::move(previous), std::move(path)) {}
+
+  std::optional<filesystem::path> Configurator::getLogConfigFile(
+      int argc, const char **argv) {
+    namespace po = boost::program_options;
+    po::options_description desc("General options");
+    desc.add_options()
+        // clang-format off
+        ("logcfg", po::value<std::string>())
+        ("log", po::value<std::string>())  // needed to avoid mix `--logcfg` and `--log`
+        // clang-format on
+        ;
+
+    po::variables_map vm;
+
+    po::parsed_options parsed = po::command_line_parser(argc, argv)
+                                    .options(desc)
+                                    .allow_unregistered()
+                                    .run();
+    po::store(parsed, vm);
+    po::notify(vm);
+
+    if (auto it = vm.find("logcfg"); it != vm.end()) {
+      if (not it->second.defaulted()) {
+        return it->second.as<std::string>();
+      }
+    }
+    return std::nullopt;
+  }
+
 }  // namespace kagome::log

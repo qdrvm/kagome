@@ -75,8 +75,8 @@ namespace kagome::dispute {
       auto &dispute_status = std::get<2>(recent_dispute);
 
       if (is_type<Active>(dispute_status)  // is_confirmed_concluded
-          or onchain.count(std::tie(std::get<0>(recent_dispute),
-                                    std::get<1>(recent_dispute)))) {
+          or onchain.contains(std::tie(std::get<0>(recent_dispute),
+                                       std::get<1>(recent_dispute)))) {
         recent_disputes.emplace_back(std::move(recent_dispute));
       }
     }
@@ -107,8 +107,8 @@ namespace kagome::dispute {
                session_index,
                candidate_hash);
 
-      auto &statement_set = result.emplace_back(
-          DisputeStatementSet{candidate_hash, session_index, {}});
+      auto &statement_set = result.emplace_back(DisputeStatementSet{
+          .candidate_hash = candidate_hash, .session = session_index});
 
       for (auto &[validator_index, value] : votes.valid) {
         auto &[statement, validator_signature] = value;
@@ -226,6 +226,7 @@ namespace kagome::dispute {
           return result;
         };
         result.emplace(std::tie(session_index, candidate_hash), selected_votes);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
         total_votes_len += votes_len;
       }
     }
@@ -288,14 +289,15 @@ namespace kagome::dispute {
       auto &dispute_state = it->second;
 
       const auto size = dispute_state.validators_against.bits.size();
-      ssize_t supermajority = size - (std::min<size_t>(1, size) - 1) / 3;
+      auto supermajority =
+          static_cast<ssize_t>(size - (std::min<size_t>(1, size) - 1) / 3);
 
       // Check if there are enough onchain votes for or against to conclude
       // the dispute
       bool concluded_onchain = false;
       for (const auto &bits : {dispute_state.validators_for.bits,
                                dispute_state.validators_against.bits}) {
-        if (std::count(bits.begin(), bits.end(), true) >= supermajority) {
+        if (std::ranges::count(bits, true) >= supermajority) {
           concluded_onchain = true;
           break;
         }

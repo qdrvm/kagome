@@ -27,27 +27,27 @@ namespace kagome::consensus::grandpa {
 
   namespace {
     template <typename T>
-    auto convertToPrimaryPropose(T &&vote) {
+    auto convertToPrimaryPropose(const T &vote) {
       return PrimaryPropose(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToPrevote(T &&vote) {
+    auto convertToPrevote(const T &vote) {
       return Prevote(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToPrecommit(T &&vote) {
+    auto convertToPrecommit(const T &vote) {
       return Precommit(vote.number, vote.hash);
     }
 
     template <typename T>
-    auto convertToBlockInfo(T &&vote) {
+    auto convertToBlockInfo(const T &vote) {
       return BlockInfo(vote.number, vote.hash);
     }
 
     template <typename D>
-    auto toMilliseconds(D &&duration) {
+    auto toMilliseconds(const D &duration) {
       return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
     }
   }  // namespace
@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> vote_graph,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : voter_set_{std::move(config.voters)},
+      : voter_set_{config.voters},
         round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},
@@ -149,7 +149,7 @@ namespace kagome::consensus::grandpa {
     last_finalized_block_ = round_state.last_finalized_block;
 
     if (round_number_ != 0) {
-      VotingRoundUpdate update{*this};
+      VotingRoundUpdate update{.round = *this};
       for (auto &vote : round_state.votes) {
         update.vote(vote);
       }
@@ -653,7 +653,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              justification.block_info);
 
-    VotingRoundUpdate update{*this};
+    VotingRoundUpdate update{.round = *this};
     for (auto &vote : justification.items) {
       update.vote(vote);
     }
@@ -1055,7 +1055,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    bool can_start_next_round;
+    bool can_start_next_round;  // NOLINT(cppcoreguidelines-init-variables)
 
     // Start next round only when previous round estimate is finalized
     if (previous_round_) {
@@ -1281,6 +1281,7 @@ namespace kagome::consensus::grandpa {
     const auto tolerated_equivocations = voter_set_->totalWeight() - threshold_;
 
     // get total weight of all equivocators
+    // NOLINTNEXTLINE(boost-use-ranges)
     const auto current_equivocations = std::accumulate(
         precommit_equivocators_.begin(),
         precommit_equivocators_.end(),
@@ -1411,15 +1412,14 @@ namespace kagome::consensus::grandpa {
 
     auto precommits = precommits_->getMessages();
     round_state.votes.reserve(round_state.votes.size() + precommits.size());
-    std::move(precommits.begin(),
-              precommits.end(),
-              std::back_inserter(round_state.votes));
+    std::ranges::move(precommits, std::back_inserter(round_state.votes));
 
     return round_state;
   }
 
   std::vector<SignedPrevote> VotingRoundImpl::getPrevoteJustification(
       const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const {
+    // NOLINTNEXTLINE(boost-use-ranges)
     auto result = std::accumulate(
         votes.begin(),
         votes.end(),
@@ -1433,16 +1433,21 @@ namespace kagome::consensus::grandpa {
                   if (env_->hasAncestry(estimate.hash,
                                         voting_message.getBlockHash())) {
                     prevotes.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                         static_cast<const SignedPrevote &>(voting_message));
                   }
                 }
               },
               [&prevotes](const EquivocatorySignedMessage
                               &equivocatory_voting_message) {
-                prevotes.push_back(static_cast<const SignedPrevote &>(
-                    equivocatory_voting_message.first));
-                prevotes.push_back(static_cast<const SignedPrevote &>(
-                    equivocatory_voting_message.second));
+                prevotes.push_back(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                    static_cast<const SignedPrevote &>(
+                        equivocatory_voting_message.first));
+                prevotes.push_back(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                    static_cast<const SignedPrevote &>(
+                        equivocatory_voting_message.second));
               });
           return std::move(prevotes);
         });
@@ -1455,6 +1460,7 @@ namespace kagome::consensus::grandpa {
     VoteWeight::Weight weight = 0;
 
     // Collect equivocations first (until threshold is reached)
+    // NOLINTNEXTLINE(boost-use-ranges)
     result = std::accumulate(
         votes.begin(),
         votes.end(),
@@ -1465,16 +1471,21 @@ namespace kagome::consensus::grandpa {
                 voting_variant,
                 [this, &precommits, &weight](const EquivocatorySignedMessage
                                                  &equivocatory_voting_message) {
+                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                   auto &signed_precommit = static_cast<const SignedPrecommit &>(
                       equivocatory_voting_message.first);
                   auto voter_weight =
                       voter_set_->voterWeight(signed_precommit.id);
                   if (voter_weight.has_value() and voter_weight.value() > 0) {
                     weight += voter_weight.value();
-                    precommits.push_back(static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.first));
-                    precommits.push_back(static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.second));
+                    precommits.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                        static_cast<const SignedPrecommit &>(
+                            equivocatory_voting_message.first));
+                    precommits.push_back(
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+                        static_cast<const SignedPrecommit &>(
+                            equivocatory_voting_message.second));
                   }
                 },
                 [](const auto &) {});
@@ -1483,6 +1494,7 @@ namespace kagome::consensus::grandpa {
         });
 
     // Then collect valid precommits (until threshold is reached)
+    // NOLINTNEXTLINE(boost-use-ranges)
     result = std::accumulate(
         votes.begin(),
         votes.end(),
@@ -1500,6 +1512,7 @@ namespace kagome::consensus::grandpa {
                       and env_->hasAncestry(estimate.hash,
                                             voting_message.getBlockHash())) {
                     auto &signed_precommit =
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                         static_cast<const SignedPrecommit &>(voting_message);
                     weight +=
                         voter_set_->voterWeight(signed_precommit.id).value();
