@@ -81,6 +81,13 @@ namespace kagome::authority_discovery {
 
     std::optional<primitives::AuthorityDiscoveryId> hashToAuth(
         BufferView key) const;
+    /**
+     * @brief Removes the oldest authority from the queue.
+     *
+     * This method is responsible for removing the oldest authority from the
+     * `queue_` of authorities. It ensures that the queue does not grow
+     * indefinitely by periodically removing the oldest entries.
+     */
     void pop();
     outcome::result<void> add(const primitives::AuthorityDiscoveryId &authority,
                               outcome::result<std::vector<uint8_t>> _res);

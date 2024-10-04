@@ -70,6 +70,15 @@ namespace kagome::authority_discovery {
     app_state_manager->takeControl(*this);
   }
 
+  /**
+   * @brief Starts the query process.
+   *
+   * This method initiates the periodic update process by starting the interval
+   * timer. The `update` method is called at each interval, and any errors
+   * encountered during the update are logged.
+   *
+   * @return true if the process starts successfully.
+   */
   bool QueryImpl::start() {
     interval_.start([this] {
       auto r = update();
@@ -80,6 +89,19 @@ namespace kagome::authority_discovery {
     return true;
   }
 
+  /**
+   * @brief Retrieves the peer information for a given authority.
+   *
+   * This method looks up the peer information associated with the specified
+   * authority in the `auth_to_peer_cache_`. If the authority is found, it
+   * returns the corresponding peer information. Otherwise, it returns
+   * `std::nullopt`.
+   *
+   * @param authority The authority discovery ID for which to retrieve the peer
+   * information.
+   * @return An optional containing the peer information if found, or
+   * `std::nullopt` if not found.
+   */
   std::optional<libp2p::peer::PeerInfo> QueryImpl::get(
       const primitives::AuthorityDiscoveryId &authority) const {
     std::unique_lock lock{mutex_};
@@ -135,26 +157,51 @@ namespace kagome::authority_discovery {
     return Error::KADEMLIA_OUTDATED_VALUE;
   }
 
+  /**
+   * @brief Updates the authority discovery information.
+   *
+   * This method retrieves the latest authority discovery information from the
+   * blockchain and updates the internal caches. It ensures that the caches are
+   * consistent with the current state of the blockchain and removes any
+   * outdated entries. The method also shuffles the list of authorities and
+   * prepares the queue for processing.
+   *
+   * @return outcome::result<void> indicating the success or failure of the
+   * update operation.
+   */
   outcome::result<void> QueryImpl::update() {
+    // Acquire a unique lock to ensure thread safety
     std::unique_lock lock{mutex_};
+
+    // Retrieve the list of authorities from the blockchain
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
+
+    // Update the hash-to-authority mapping
     for (auto &id : authorities) {
       if (not hash_to_auth_.contains(id)) {
         hash_to_auth_.emplace(crypto::sha256(id), id);
       }
     }
+
+    // Retrieve the local keys from the key store
     OUTCOME_TRY(local_keys,
                 key_store_->sr25519().getPublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
+
+    // Helper function to check if a key is in a list of keys
     auto has = [](const std::vector<primitives::AuthorityDiscoveryId> &keys,
                   const primitives::AuthorityDiscoveryId &key) {
       return std::ranges::find(keys, key) != keys.end();
     };
+
+    // Remove local keys from the list of authorities
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return not has(local_keys, id);
     });
+
+    // Remove outdated entries from the authority-to-peer cache
     for (auto it = auth_to_peer_cache_.begin();
          it != auth_to_peer_cache_.end();) {
       if (has(authorities, it->first)) {
@@ -163,6 +210,8 @@ namespace kagome::authority_discovery {
         it = auth_to_peer_cache_.erase(it);
       }
     }
+
+    // Remove outdated entries from the peer-to-authority cache
     for (auto it = peer_to_auth_cache_.begin();
          it != peer_to_auth_cache_.end();) {
       if (has(authorities, it->second)) {
@@ -171,9 +220,17 @@ namespace kagome::authority_discovery {
         it = peer_to_auth_cache_.erase(it);
       }
     }
+
+    // Shuffle the list of authorities for random processing
     std::shuffle(authorities.begin(), authorities.end(), random_);
+
+    // Update the queue with the shuffled list of authorities
     queue_ = std::move(authorities);
+
+    // Process the queue to handle the authorities
     pop();
+
+    // Return success
     return outcome::success();
   }
 
@@ -202,9 +259,7 @@ namespace kagome::authority_discovery {
                             authority,
                             this] {
         if (auto self = wp.lock()) {
-          SL_INFO(self->log_,
-                  "start lookup({})",
-                  common::hex_lower(authority));
+          SL_INFO(self->log_, "start lookup({})", common::hex_lower(authority));
           return self->rust_kad_->lookup(
               hash, [authority, WEAK_SELF](std::vector<Buffer> values) {
                 WEAK_LOCK(self);
@@ -275,9 +330,11 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery_v3::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
+      SL_ERROR(log_, "Failed to parse authority record {}", authority);
       return Error::DECODE_ERROR;
     }
     if (record.addresses().empty()) {
+      SL_ERROR(log_, "No addresses in authority record {}", authority);
       return Error::NO_ADDRESSES;
     }
     std::optional<Timestamp> time{};
@@ -299,9 +356,18 @@ namespace kagome::authority_discovery {
         continue;
       }
       if (id != peer_id_str) {
+        SL_ERROR(log_,
+                 "Inconsistent peer id {} in address {}",
+                 id.value(),
+                 address.getStringAddress());
         return Error::INCONSISTENT_PEER_ID;
       }
       peer.addresses.emplace_back(std::move(address));
+      SL_INFO(log_,
+              "Added address {} to peer {} authority {}",
+              peer.addresses.back().getStringAddress(),
+              peer_id_str,
+              common::hex_lower(authority));
     }
 
     OUTCOME_TRY(auth_sig_ok,
