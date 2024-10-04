@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "candidate_chunk_key.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 
 namespace kagome::parachain {
