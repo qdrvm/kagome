@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <unistd.h>
+
 #include <iostream>
 #include "parachain/pvf/secure_mode_precheck.hpp"
 
