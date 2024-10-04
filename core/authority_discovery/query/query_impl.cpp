@@ -313,6 +313,7 @@ namespace kagome::authority_discovery {
             signed_record_pb.data(),
             // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
             signed_record_pb.size())) {
+      SL_ERROR(log_, "Failed to parse signed authority record {}", authority);
       return Error::DECODE_ERROR;
     }
 
@@ -374,6 +375,10 @@ namespace kagome::authority_discovery {
                 sr_crypto_provider_->verify(
                     auth_sig, str2byte(signed_record.record()), authority));
     if (not auth_sig_ok) {
+      SL_ERROR(log_,
+               "Invalid authority signature for peer {} authority {}",
+               peer_id_str,
+               common::hex_lower(authority));
       return Error::INVALID_SIGNATURE;
     }
 
@@ -383,11 +388,20 @@ namespace kagome::authority_discovery {
                     str2byte(signed_record.peer_signature().signature()),
                     peer_key));
     if (not peer_sig_ok) {
+      SL_ERROR(log_,
+               "Invalid peer signature for peer {} authority {}",
+               peer_id_str,
+               common::hex_lower(authority));
       return Error::INVALID_SIGNATURE;
     }
 
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
         peer.id, peer.addresses, libp2p::peer::ttl::kDay);
+
+    SL_INFO(log_,
+            "Added peer {} authority {} to peer repository",
+            peer_id_str,
+            common::hex_lower(authority));
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(authority,
