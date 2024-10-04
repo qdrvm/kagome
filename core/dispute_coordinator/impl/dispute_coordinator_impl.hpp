@@ -10,8 +10,6 @@
 #include "network/dispute_request_observer.hpp"
 #include "network/types/dispute_messages.hpp"
 
-#include <list>
-
 #include <libp2p/basic/scheduler.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -104,6 +102,12 @@ namespace kagome::dispute {
     /// peer to enforce that limit.
     static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
 
+    /// It would be nice to draw this from the chain state, but we have no tools
+    /// for it right now. On Polkadot this is 1 day, and on Kusama it's 6 hours.
+    ///
+    /// Number of sessions we want to consider in disputes.
+    static constexpr auto kDisputeWindow = SessionIndex(6);
+
     DisputeCoordinatorImpl(
         std::shared_ptr<application::ChainSpec> chain_spec,
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -194,7 +198,8 @@ namespace kagome::dispute {
     std::optional<CandidateEnvironment> makeCandidateEnvironment(
         crypto::SessionKeys &session_keys,
         SessionIndex session,
-        primitives::BlockHash relay_parent);
+        primitives::BlockHash relay_parent,
+        std::vector<ValidatorIndex> &&offchain_disabled);
 
     outcome::result<void> process_on_chain_votes(
         const ScrapedOnChainVotes &votes);
@@ -367,6 +372,71 @@ namespace kagome::dispute {
     /// Using an `IndexMap` so items can be iterated in the order of insertion.
     std::list<std::tuple<CandidateHash, std::shared_ptr<SendingDispute>>>
         sending_disputes_;
+
+    // Ideally, we want to use the top `byzantine_threshold` offenders here
+    // based on the amount of stake slashed. However, given that slashing might
+    // be applied with a delay, we want to have some list of offenders as soon
+    // as disputes conclude offchain. This list only approximates the top
+    // offenders and only accounts for lost disputes. But that should be good
+    // enough to prevent spam attacks.
+    struct LostSessionDisputes {
+      std::deque<ValidatorIndex> backers_for_invalid;
+      std::deque<ValidatorIndex> for_invalid;
+      std::deque<ValidatorIndex> against_valid;
+    };
+
+    // We separate lost disputes to prioritize "for invalid" offenders. And
+    // among those, we prioritize backing votes the most. There's no need to
+    // limit the size of these sets, as they are already limited by the number
+    // of validators in the session. We use deque to ensure the iteration order
+    // prioritizes most recently disputes lost over older ones in case we reach
+    // the limit.
+    struct OffchainDisabledValidators {
+      std::map<SessionIndex, LostSessionDisputes> per_session;
+
+      void prune_old(SessionIndex up_to_excluding) {
+        std::erase_if(per_session,
+                      [&](const auto &p) { return p.first < up_to_excluding; });
+      }
+
+      void insert_for_invalid(SessionIndex session_index,
+                              ValidatorIndex validator_index,
+                              bool is_backer) {
+        auto &entry = per_session[session_index];
+        if (is_backer) {
+          entry.backers_for_invalid.emplace_front(validator_index);
+        } else {
+          entry.for_invalid.emplace_front(validator_index);
+        }
+      }
+
+      void insert_against_valid(SessionIndex session_index,
+                                ValidatorIndex validator_index) {
+        per_session[session_index].against_valid.emplace_front(validator_index);
+      }
+
+      std::vector<ValidatorIndex> asVector(SessionIndex session_index) {
+        std::vector<ValidatorIndex> res;
+        auto it = per_session.find(session_index);
+        if (it == per_session.end()) {
+          return res;
+        }
+        const auto &entry = it->second;
+
+        res.reserve(entry.backers_for_invalid.size()  //
+                    + entry.for_invalid.size()        //
+                    + entry.against_valid.size());
+
+        for (const auto &c : {entry.backers_for_invalid,
+                              entry.for_invalid,
+                              entry.against_valid}) {
+          res.insert(res.end(), c.begin(), c.end());
+        }
+        return res;
+      }
+    };
+
+    OffchainDisabledValidators offchain_disabled_validators_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
