@@ -177,6 +177,11 @@ namespace kagome::authority_discovery {
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
+    // Print all authorities
+    for (auto &authority : authorities) {
+      SL_INFO(log_, "1. authority: {}", common::hex_lower(authority));
+    }
+    SL_INFO(log_, "Total authorities: {}", authorities.size());
 
     // Update the hash-to-authority mapping
     for (auto &id : authorities) {
@@ -220,6 +225,12 @@ namespace kagome::authority_discovery {
         it = peer_to_auth_cache_.erase(it);
       }
     }
+
+    // Print authorities after processing
+    for (auto &authority : authorities) {
+      SL_INFO(log_, "2. authority: {}", common::hex_lower(authority));
+    }
+    SL_INFO(log_, "Total authorities: {}", authorities.size());
 
     // Shuffle the list of authorities for random processing
     std::shuffle(authorities.begin(), authorities.end(), random_);
