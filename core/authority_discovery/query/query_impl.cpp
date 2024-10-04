@@ -349,6 +349,18 @@ namespace kagome::authority_discovery {
       }
     }
     libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
+    // insert known addresses to peer from peer repository
+    if (auto known_addresses_res =
+            host_.getPeerRepository().getAddressRepository().getAddresses(
+                peer.id);
+        known_addresses_res.has_value()
+        && !known_addresses_res.value().empty()) {
+      peer.addresses = known_addresses_res.value();
+      SL_INFO(log_,
+              "Found known addresses for peer {} authority {}",
+              peer.id.toBase58(),
+              common::hex_lower(authority));
+    }
     auto peer_id_str = peer.id.toBase58();
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
