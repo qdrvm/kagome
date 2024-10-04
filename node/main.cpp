@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <unistd.h>
-
 #include <iostream>
 #include "parachain/pvf/secure_mode_precheck.hpp"
 
@@ -96,7 +94,7 @@ namespace {
 
 }  // namespace
 
-int main(int argc, const char **argv) {
+int main(int argc, const char **argv, const char **env) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -113,8 +111,7 @@ int main(int argc, const char **argv) {
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "pvf-worker") {
-      return kagome::parachain::pvf_worker_main(
-          argc - 1, argv + 1, const_cast<const char **>(environ));
+      return kagome::parachain::pvf_worker_main(argc - 1, argv + 1, env);
     }
     if (name == "check-secure-mode") {
       return kagome::parachain::secureModeCheckMain(argc, argv);
