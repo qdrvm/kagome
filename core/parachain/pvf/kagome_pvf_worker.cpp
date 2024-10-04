@@ -67,16 +67,17 @@ namespace kagome::parachain {
     static kagome::log::Logger logger;
   }  // namespace
 
-  bool checkEnvVarsEmpty(const char *env[]) {
+  bool checkEnvVarsEmpty(const char **env) {
 #ifdef KAGOME_WITH_ASAN
-    // explicitly allow to disable LSAN, because LSAN doesn't work in secure
-    // mode, since it wants to access /proc
-    if (env != nullptr
-        && "ASAN_OPTIONS=detect_leaks=0" == std::string_view{env[0]}) {
-      env++;
+    //  explicitly allow to disable LSAN, because LSAN doesn't work in secure
+    //  mode, since it wants to access /proc
+    if (*env != nullptr
+        && "ASAN_OPTIONS=detect_leaks=0" == std::string_view{*env}) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      ++env;
     }
 #endif
-    return env == nullptr;
+    return *env == nullptr;
   }
 
 #ifdef __linux__
