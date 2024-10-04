@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "candidate_chunk_key.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "candidate_chunk_key.hpp"
 
 namespace kagome::parachain {
   AvailabilityStoreImpl::AvailabilityStoreImpl(
@@ -97,7 +97,7 @@ namespace kagome::parachain {
 
   std::vector<AvailabilityStore::ErasureChunk> AvailabilityStoreImpl::getChunks(
       const CandidateHash &candidate_hash) const {
-    return state_.sharedAccess([&](const auto &state) {
+    auto chunks = state_.sharedAccess([&](const auto &state) {
       std::vector<AvailabilityStore::ErasureChunk> chunks;
       auto it = state.per_candidate_.find(candidate_hash);
       if (it != state.per_candidate_.end()) {
@@ -107,6 +107,22 @@ namespace kagome::parachain {
       }
       return chunks;
     });
+    if (chunks.empty()) {
+      for (auto index = 0;; index++) {
+        auto key = CandidateChunkKey::encode({candidate_hash, index});
+        auto getKeyRes =
+            storage_->getSpace(storage::Space::kAvaliabilityStorage)->get(key);
+        if (not getKeyRes) {
+          break;
+        }
+        auto decodeRes = scale::decode<ErasureChunk>(getKeyRes.value());
+        if (not decodeRes) {
+          break;
+        }
+        chunks.emplace_back(decodeRes.value());
+      }
+    }
+    return chunks;
   }
 
   void AvailabilityStoreImpl::printStoragesLoad() {
@@ -139,20 +155,20 @@ namespace kagome::parachain {
   void AvailabilityStoreImpl::putChunk(const network::RelayHash &relay_parent,
                                        const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
+    storage_->getSpace(storage::Space::kAvaliabilityStorage)
+        ->put(CandidateChunkKey::encode({candidate_hash, chunk.index}),
+              scale::encode(chunk).value());
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
-      state.per_candidate_[candidate_hash].chunks[chunk.index] =
-          chunk;
+      state.per_candidate_[candidate_hash].chunks[chunk.index] = chunk;
     });
-    storage_->getSpace(storage::Space::kAvaliabilityStorage)
-        ->put(candidate_hash, scale::encode(chunk).value());
   }
 
   void AvailabilityStoreImpl::remove(const network::RelayHash &relay_parent) {
     state_.exclusiveAccess([&](auto &state) {
       if (auto it = state.candidates_.find(relay_parent);
           it != state.candidates_.end()) {
-        for (auto const &l : it->second) {
+        for (const auto &l : it->second) {
           state.per_candidate_.erase(l);
         }
         state.candidates_.erase(it);
