@@ -6,12 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 ![logo](/docs/image_assets/kagome-logo-(new-2020).svg)
 
-[![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
 [![](https://img.shields.io/twitter/follow/qdrvm_io?label=Follow&style=social)](https://twitter.com/qdrvm_io)
 
 ## Intro
 
-KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Quadrivim](https://qdrvm.io) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md) and Treasury proposals ( [1](https://kusama.polkassembly.io/post/1858), [2](https://polkadot.polkassembly.io/treasury/485)).
+KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Quadrivium](https://qdrvm.io) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md) and Treasury proposals ( [1](https://kusama.polkassembly.io/post/1858), [2](https://polkadot.polkassembly.io/treasury/485)), [3](https://polkadot.polkassembly.io/treasury/876).
 
 
 ## Status
@@ -30,7 +29,6 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 - [x] Consensus
     - [x] BABE
     - [x] GRANDPA
-    - [ ] SASSAFRAS
 - [x] Storage
     - [x] Blockchain
         - [x] Block storage
@@ -48,8 +46,8 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
         - [x] WAVM
         - [x] WasmEdge
 - [x] Parachains core
-   - [x] Non-asynchronous Backing
    - [x] Data availability
+       - [x] Systematic chunks ([RFC-47](https://polkadot-fellows.github.io/RFCs/approved/0047-assignment-of-availability-chunks.html))
    - [x] Approval voting
    - [x] Disputes resolution
    - [x] Async-Backing
@@ -206,7 +204,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Artifacts needed to run in development mode
 * [authority_discovery](./core/authority_discovery)
     * Logic for finding peer information by authority id provided
-* [authoriship](./core/authorship)
+* [authorship](./core/authorship)
     * Mechanism for building blocks from extrinsics provided by the transaction pool
 * [blockchain](./core/blockchain)
     * Implements blockchain logic such as fork handling and block digest information processing
@@ -266,3 +264,5 @@ You can find more information about the components by checking [reference docume
 * [KAGOME and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
 * [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation
 * [Building alternative clients](https://youtu.be/TnENz6I9l8A?si=yF4oo2zQ6LdPW13N) Polkadot Decoded 2023 presentation
+* [Polkadot Host architecture in 2024](https://www.youtube.com/watch?v=Lv2KQ2EDyM8&pp=ygUKc3ViMCBrYW1pbA%3D%3D) Sub0 Asia 2024 presentation
+* [Building Kagome: Polkadot's Journey Towards Client Diversity](https://youtu.be/tkem7nYd5Y0?feature=shared) AwesomeDOT Podcast
