@@ -195,8 +195,10 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       scheduler_->schedule([wp{weak_from_this()},
-                            hash = common::Buffer{crypto::sha256(authority)}] {
+                            hash = common::Buffer{crypto::sha256(authority)},
+                            authority] {
         if (auto self = wp.lock()) {
+          SL_INFO(self->log_, "start lookup({})", common::hex_lower(authority));
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
@@ -213,6 +215,10 @@ namespace kagome::authority_discovery {
   outcome::result<void> QueryImpl::add(
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
+    SL_INFO(log_,
+            "lookup : add addresses for authority {}, _res {}",
+            common::hex_lower(authority),
+            _res.has_value());
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
