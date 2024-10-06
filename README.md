@@ -72,7 +72,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
     - [x] Libp2p
         - [x] Transport
             - [x] TCP
-            - [ ] QUIC
+            - [x] QUIC
             - [ ] WebRTC
         - [x] Secure connection
             - [x] Noise
