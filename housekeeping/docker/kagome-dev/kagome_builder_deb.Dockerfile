@@ -43,8 +43,6 @@ RUN install_packages \
         llvm-${LLVM_VERSION}-dev \
         curl \
         dpkg-dev \
-        g++-${GCC_VERSION} \
-        gcc-${GCC_VERSION} \
         gdb \
         gdbserver \
         git \
@@ -67,6 +65,8 @@ RUN install_packages \
         libgmp-dev \
         libmpfr-dev \
         libmpc-dev
+#        g++-${GCC_VERSION} \
+#        gcc-${GCC_VERSION} \
 
 ARG RUST_VERSION
 ENV RUST_VERSION=${RUST_VERSION}
