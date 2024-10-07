@@ -63,7 +63,10 @@ RUN install_packages \
         software-properties-common \
         unzip \
         vim \
-        zlib1g-dev
+        zlib1g-dev \
+        libgmp-dev \
+        libmpfr-dev \
+        libmpc-dev
 
 ARG RUST_VERSION
 ENV RUST_VERSION=${RUST_VERSION}
@@ -85,6 +88,22 @@ ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-${GCC_VERSION}
 ENV CXX=g++-${GCC_VERSION}
 
+RUN wget -q https://ftp.gnu.org/gnu/gcc/gcc-13.3.0/gcc-13.3.0.tar.gz
+RUN tar -xf gcc-13.3.0.tar.gz && \
+    cd gcc-13.3.0 && \
+    ./contrib/download_prerequisites
+
+RUN cd gcc-13.3.0 && \
+    ./configure --disable-multilib --enable-languages=c,c++ && \
+    make -j$(nproc) && \
+    make install
+
+RUN update-alternatives \
+        --install /usr/bin/gcc gcc /usr/local/bin/gcc 60 \
+        --slave /usr/bin/g++ g++ /usr/local/bin/g++ && \
+    rm -rf gcc-13.3.0.tar.gz gcc-13.3.0 && \
+    apt purge -y gcc cpp
+
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
     \
@@ -94,5 +113,5 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50 && \
     \
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               90
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                90  # && \
+#    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               90
