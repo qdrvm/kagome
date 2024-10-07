@@ -218,8 +218,7 @@ namespace kagome::authority_discovery {
     SL_INFO(log_,
             "lookup : add addresses for authority {}, _res {}",
             common::hex_lower(authority),
-            _res.has_value() ? std::to_string(_res.value().size())
-                             : "error: " + _res.error().message());
+            _res.has_value() ? "ok" : "error: " + _res.error().message());
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -265,9 +264,7 @@ namespace kagome::authority_discovery {
                       qtils::str2byte(record.creation_time().timestamp())));
       time = *tmp;
       if (it != auth_to_peer_cache_.end() and time <= it->second.time) {
-        SL_INFO(log_,
-                "lookup: outdated record for authority {}",
-                authority);
+        SL_INFO(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }
     }
