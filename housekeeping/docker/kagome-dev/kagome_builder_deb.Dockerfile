@@ -96,9 +96,9 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-${LLVM_VERSION}/bin/clang-${LLVM_VERSION}  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50 && \
     \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               90
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}                60 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                60 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               60
 
 
 RUN wget -q https://ftp.gnu.org/gnu/gcc/gcc-13.3.0/gcc-13.3.0.tar.gz
@@ -112,10 +112,13 @@ RUN cd gcc-13.3.0 && \
     make install
 
 RUN update-alternatives \
-        --install /usr/bin/gcc gcc /usr/local/bin/gcc 60 \
+        --install /usr/bin/gcc gcc /usr/local/bin/gcc 90 \
         --slave /usr/bin/g++ g++ /usr/local/bin/g++ && \
     rm -rf gcc-13.3.0.tar.gz gcc-13.3.0 && \
     apt purge -y gcc cpp 
 
 ENV CC=gcc-13
 ENV CXX=g++-13
+
+RUN gcc --version && \
+    g++ --version \
