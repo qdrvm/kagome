@@ -107,8 +107,14 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/66764acb294517f8249aea6d63c6e6cc0be5686f.tar.gz
-    SHA1 45b73da05e1b59f46b9f4cb39a24c485ee6d5ba1
+    URL https://github.com/libp2p/cpp-libp2p/archive/883d3a2657526896e5964e3e15a0307dc65cc84f.tar.gz
+    SHA1 495c21429c7e3523c7abd6ec9eee8135140aff6b
+)
+
+hunter_config(lsquic
+    URL  https://github.com/qdrvm/lsquic/archive/b79ff5c4be9936089d32dc1bc2dac70d54651e80.zip
+    SHA1 d628f8d7ec68ec33d7f404fbb7b433c62980aa13
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
