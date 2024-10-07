@@ -17,6 +17,7 @@
 
 #include "consensus/grandpa/common.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
+#include "network/types/roles.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "primitives/common.hpp"
@@ -70,8 +71,11 @@ namespace kagome::network {
         const View &new_view, const parachain::ImplicitView &local_implicit) {
       std::unordered_set<common::Hash256> next_implicit;
       for (const auto &x : new_view.heads_) {
-        auto t = local_implicit.knownAllowedRelayParentsUnder(x, std::nullopt);
-        next_implicit.insert(t.begin(), t.end());
+        auto t =
+            local_implicit.known_allowed_relay_parents_under(x, std::nullopt);
+        if (t) {
+          next_implicit.insert(t->begin(), t->end());
+        }
       }
 
       std::vector<common::Hash256> fresh_implicit;
@@ -156,8 +160,7 @@ namespace kagome::network {
 
 template <>
 struct std::hash<kagome::network::FetchedCollation> {
-  size_t operator()(
-      const kagome::network::FetchedCollation &value) const {
+  size_t operator()(const kagome::network::FetchedCollation &value) const {
     using CollatorId = kagome::parachain::CollatorId;
     using CandidateHash = kagome::parachain::CandidateHash;
     using RelayHash = kagome::parachain::RelayHash;

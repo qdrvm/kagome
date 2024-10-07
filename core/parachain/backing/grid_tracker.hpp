@@ -176,8 +176,11 @@ namespace kagome::parachain::grid {
   /// relay-parent.
   struct GridTracker {
     enum class Error {
-      DISALLOWED = 1,
-      MALFORMED,
+      DISALLOWED_GROUP_INDEX = 1,
+      DISALLOWED_DIRECTION,
+      MALFORMED_BACKING_THRESHOLD,
+      MALFORMED_REMOTE_KNOWLEDGE_LEN,
+      MALFORMED_HAS_SECONDED,
       INSUFFICIENT,
       CONFLICTING,
       SECONDING_OVERFLOW
