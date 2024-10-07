@@ -85,8 +85,8 @@ ENV HUNTER_PYTHON_LOCATION=/venv/bin/python3
 ENV LLVM_ROOT=/usr/lib/llvm-${LLVM_VERSION}
 ENV LLVM_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-${GCC_VERSION}
-ENV CXX=g++-${GCC_VERSION}
+# ENV CC=gcc-${GCC_VERSION}
+# ENV CXX=g++-${GCC_VERSION}
 
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
@@ -94,12 +94,11 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-${LLVM_VERSION}                      50 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${LLVM_VERSION}                    50 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-${LLVM_VERSION}/bin/clang-${LLVM_VERSION}  50 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50 && \
-    \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}                60 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                60 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               60
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50
 
+#    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}                60 && \
+#    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}                60 && \
+#    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}               60
 
 RUN wget -q https://ftp.gnu.org/gnu/gcc/gcc-13.3.0/gcc-13.3.0.tar.gz
 RUN tar -xf gcc-13.3.0.tar.gz && \
@@ -111,14 +110,14 @@ RUN cd gcc-13.3.0 && \
     make -j$(nproc) && \
     make install
 
-RUN update-alternatives \
-        --install /usr/bin/gcc gcc /usr/local/bin/gcc 90 \
-        --slave /usr/bin/g++ g++ /usr/local/bin/g++ && \
-    rm -rf gcc-13.3.0.tar.gz gcc-13.3.0 && \
-    apt purge -y gcc cpp 
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/local/bin/gcc 90 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/local/bin/g++ 90 && \
+    update-alternatives --install /usr/bin/gcov gcov /usr/local/bin/gcov 90
+    
+RUN rm -rf gcc-13.3.0.tar.gz gcc-13.3.0 && apt purge -y gcc cpp
 
-ENV CC=gcc-13
-ENV CXX=g++-13
+ENV CC=gcc
+ENV CXX=g++
 
 RUN gcc --version && \
-    g++ --version \
+    g++ --version
