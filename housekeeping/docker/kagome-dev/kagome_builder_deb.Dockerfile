@@ -64,7 +64,8 @@ RUN install_packages \
         zlib1g-dev \
         libgmp-dev \
         libmpfr-dev \
-        libmpc-dev
+        libmpc-dev \
+        binutils
 #        g++-${GCC_VERSION} \
 #        gcc-${GCC_VERSION} \
 
