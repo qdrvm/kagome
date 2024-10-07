@@ -985,22 +985,10 @@ namespace kagome::network {
     }
   }
 
-  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
+  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight) const {
     return std::ranges::count_if(
         active_peers_, [&](const decltype(active_peers_)::value_type &x) {
-          if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
-            return in_out == PeerType::PEER_TYPE_OUT;
-          }
-          if (in_out == PeerType::PEER_TYPE_OUT) {
-            return false;
-          }
-          auto it = peer_states_.find(x.first);
-          if (it == peer_states_.end()) {
-            return false;
-          }
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-          const auto &roles = it->second.roles.flags;
-          return (in_light ? roles.light : roles.full) == 1;
+          return x.second.peer_type == in_out;
         });
   }
 
