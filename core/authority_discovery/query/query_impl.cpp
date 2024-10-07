@@ -218,7 +218,8 @@ namespace kagome::authority_discovery {
     SL_INFO(log_,
             "lookup : add addresses for authority {}, _res {}",
             common::hex_lower(authority),
-            _res.has_value());
+            _res.has_value() ? std::to_string(_res.value().size())
+                             : "error: " + _res.error().message());
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -230,6 +231,9 @@ namespace kagome::authority_discovery {
             signed_record_pb.data(),
             // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
             signed_record_pb.size())) {
+      SL_ERROR(log_,
+               "lookup: can't parse signed record from authority {}",
+               authority);
       return Error::DECODE_ERROR;
     }
 
@@ -247,9 +251,11 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery_v3::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
+      SL_ERROR(log_, "lookup: can't parse record from authority {}", authority);
       return Error::DECODE_ERROR;
     }
     if (record.addresses().empty()) {
+      SL_ERROR(log_, "lookup: no addresses from authority {}", authority);
       return Error::NO_ADDRESSES;
     }
     std::optional<Timestamp> time{};
@@ -259,11 +265,18 @@ namespace kagome::authority_discovery {
                       qtils::str2byte(record.creation_time().timestamp())));
       time = *tmp;
       if (it != auth_to_peer_cache_.end() and time <= it->second.time) {
+        SL_INFO(log_,
+                "lookup: outdated record for authority {}",
+                authority);
         return outcome::success();
       }
     }
     libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
+    SL_INFO(log_,
+            "lookup: adding {} addresses for authority {}",
+            record.addresses().size(),
+            authority);
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
       auto id = address.getPeerId();
@@ -271,6 +284,10 @@ namespace kagome::authority_discovery {
         continue;
       }
       if (id != peer_id_str) {
+        SL_ERROR(log_,
+                 "lookup: inconsistent peer id {} != {}",
+                 id.value(),
+                 peer_id_str);
         return Error::INCONSISTENT_PEER_ID;
       }
       peer.addresses.emplace_back(std::move(address));
@@ -280,6 +297,7 @@ namespace kagome::authority_discovery {
                 sr_crypto_provider_->verify(
                     auth_sig, str2byte(signed_record.record()), authority));
     if (not auth_sig_ok) {
+      SL_ERROR(log_, "lookup: invalid authority signature");
       return Error::INVALID_SIGNATURE;
     }
 
@@ -289,6 +307,7 @@ namespace kagome::authority_discovery {
                     str2byte(signed_record.peer_signature().signature()),
                     peer_key));
     if (not peer_sig_ok) {
+      SL_ERROR(log_, "lookup: invalid peer signature");
       return Error::INVALID_SIGNATURE;
     }
 
