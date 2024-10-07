@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(validator/prospective_parachains)
+
 add_library(grid_tracker
     backing/grid_tracker.cpp
     )
@@ -38,7 +40,6 @@ add_library(validator_parachain
     approval/approval.cpp
     backing/store_impl.cpp
     backing/cluster.cpp
-    validator/impl/fragment_tree.cpp
     validator/backing_implicit_view.cpp
     )
 
@@ -52,6 +53,7 @@ target_link_libraries(validator_parachain
     waitable_timer
     kagome_pvf_worker
     runtime_common
+    prospective_parachains
     )
 
 add_library(kagome_pvf_worker

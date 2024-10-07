@@ -9,10 +9,16 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::grid, GridTracker::Error, e) {
   using E = kagome::parachain::grid::GridTracker::Error;
   switch (e) {
-    case E::DISALLOWED:
-      return "Manifest disallowed";
-    case E::MALFORMED:
-      return "Malformed";
+    case E::DISALLOWED_GROUP_INDEX:
+      return "Manifest disallowed group index";
+    case E::DISALLOWED_DIRECTION:
+      return "Manifest disallowed direction";
+    case E::MALFORMED_BACKING_THRESHOLD:
+      return "Malformed backing threshold";
+    case E::MALFORMED_REMOTE_KNOWLEDGE_LEN:
+      return "Malformed remote knowledge len";
+    case E::MALFORMED_HAS_SECONDED:
+      return "Malformed has seconded";
     case E::INSUFFICIENT:
       return "Insufficient";
     case E::CONFLICTING:
@@ -115,7 +121,7 @@ namespace kagome::parachain::grid {
       ValidatorIndex sender) {
     const auto claimed_group_index = manifest.claimed_group_index;
     if (claimed_group_index >= session_topology.size()) {
-      return Error::DISALLOWED;
+      return Error::DISALLOWED_GROUP_INDEX;
     }
 
     const auto &group_topology = session_topology[manifest.claimed_group_index];
@@ -131,22 +137,22 @@ namespace kagome::parachain::grid {
                       && it->second.has_sent_manifest_to(sender);
     }
     if (!manifest_allowed) {
-      return Error::DISALLOWED;
+      return Error::DISALLOWED_DIRECTION;
     }
 
     auto group_size_backing_threshold =
         groups.get_size_and_backing_threshold(manifest.claimed_group_index);
     if (!group_size_backing_threshold) {
-      return Error::MALFORMED;
+      return Error::MALFORMED_BACKING_THRESHOLD;
     }
 
     const auto [group_size, backing_threshold] = *group_size_backing_threshold;
     auto remote_knowledge = manifest.statement_knowledge;
     if (!remote_knowledge.has_len(group_size)) {
-      return Error::MALFORMED;
+      return Error::MALFORMED_REMOTE_KNOWLEDGE_LEN;
     }
     if (!remote_knowledge.has_seconded()) {
-      return Error::MALFORMED;
+      return Error::MALFORMED_HAS_SECONDED;
     }
 
     const auto votes = remote_knowledge.backing_validators();

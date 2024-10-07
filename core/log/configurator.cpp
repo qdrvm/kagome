@@ -70,6 +70,7 @@ groups:
           - name: parachain
             children:
              - name: pvf_executor
+             - name: fragment_chain
           - name: dispute
           - name: runtime
             children:
