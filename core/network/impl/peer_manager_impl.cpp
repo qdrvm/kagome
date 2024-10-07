@@ -818,6 +818,14 @@ namespace kagome::network {
       }
     }
 
+    if (not out) {
+      if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
+        return;
+      }
+    }
+
     // Don't accept connection from bad (negative reputation) peers
     const auto peer_reputation = reputation_repository_->reputation(peer_id);
     if (peer_reputation < kMinReputationForInnerConnection) {
