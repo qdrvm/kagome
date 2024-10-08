@@ -427,10 +427,10 @@ namespace kagome::dispute {
                     + entry.for_invalid.size()        //
                     + entry.against_valid.size());
 
-        for (const auto &c : {entry.backers_for_invalid,
-                              entry.for_invalid,
-                              entry.against_valid}) {
-          res.insert(res.end(), c.begin(), c.end());
+        for (auto c : {std::cref(entry.backers_for_invalid),
+                       std::cref(entry.for_invalid),
+                       std::cref(entry.against_valid)}) {
+          res.insert(res.end(), c.get().begin(), c.get().end());
         }
         return res;
       }

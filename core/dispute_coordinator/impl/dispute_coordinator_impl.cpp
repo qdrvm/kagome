@@ -1013,8 +1013,9 @@ namespace kagome::dispute {
     auto byzantine_threshold =
         (std::max<size_t>(session_info.validators.size(), 1) - 1) / 3;
     std::unordered_set<ValidatorIndex> disabled_indices;
-    for (auto &container : {disabled_onchain, disabled_offchain}) {
-      for (auto validator_index : container) {
+    for (auto container :
+         {std::cref(disabled_onchain), std::cref(disabled_offchain)}) {
+      for (auto validator_index : container.get()) {
         disabled_indices.emplace(validator_index);
         if (disabled_indices.size() >= byzantine_threshold) {
           break;
