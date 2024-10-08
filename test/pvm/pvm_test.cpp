@@ -1,0 +1,89 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <gtest/gtest.h>
+#include "primitives/math.hpp"
+#include "pvm/sections.hpp"
+
+using namespace kagome::pvm;
+
+class PvmTest : public testing::Test {};
+
+TEST(PvmTest, test_blog_1) {
+  std::vector<uint8_t> program = {
+      0x50, 0x56, 0x4d, 0x00, 0x01, 0x01, 0x04, 0x00, 0x00, 0x90, 0x00,
+      0x04, 0x15, 0x01, 0x00, 0x00, 0x00, 0x00, 0x67, 0x65, 0x74, 0x5f,
+      0x74, 0x68, 0x69, 0x72, 0x64, 0x5f, 0x6e, 0x75, 0x6d, 0x62, 0x65,
+      0x72, 0x05, 0x0e, 0x01, 0x00, 0x0b, 0x61, 0x64, 0x64, 0x5f, 0x6e,
+      0x75, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x06, 0x20, 0x00, 0x00, 0x19,
+      0x02, 0x11, 0xf8, 0x03, 0x10, 0x04, 0x03, 0x15, 0x08, 0x78, 0x05,
+      0x4e, 0x08, 0x57, 0x07, 0x01, 0x10, 0x04, 0x01, 0x15, 0x02, 0x11,
+      0x08, 0x13, 0x00, 0x49, 0x99, 0x94, 0xfe, 0x00};
+
+  auto program_blob = ProgramBlob::create_from(std::move(program));
+
+  {
+    const uint32_t ref[] = {
+        0xc355,     0x186aa,    0x30d54,    0x61aa8,    0xc3550,    0x186aa0,
+        0x30d540,   0x61aa80,   0xc35500,   0x186aa00,  0x30d5400,  0x61aa800,
+        0xc355000,  0x186aa000, 0x30d54000, 0x61aa8000, 0xc3550000, 0x86aa0000,
+        0xd540000,  0x1aa80000, 0x35500000, 0x6aa00000, 0xd5400000, 0xaa800000,
+        0x55000000, 0xaa000000, 0x54000000, 0xa8000000, 0x50000000, 0xa0000000,
+        0x40000000, 0x80000000, 0xc355,     0x186aa,    0x30d54,    0x61aa8,
+        0xc3550,    0x186aa0,   0x30d540,   0x61aa80,   0xc35500,   0x186aa00,
+        0x30d5400,  0x61aa800,  0xc355000,  0x186aa000, 0x30d54000, 0x61aa8000,
+        0xc3550000, 0x86aa0000, 0xd540000,  0x1aa80000, 0x35500000, 0x6aa00000,
+        0xd5400000, 0xaa800000, 0x55000000, 0xaa000000, 0x54000000, 0xa8000000,
+        0x50000000, 0xa0000000, 0x40000000, 0x80000000, 0xc355,     0x186aa,
+        0x30d54,    0x61aa8,    0xc3550,    0x186aa0};
+
+    for (const uint32_t upper_mask : {0xc355 /*, 0x167f23bb*/}) {
+      for (uint32_t i = 0; i < 70; ++i) {
+        const auto upper_bits = kagome::math::wrapped_shl(upper_mask, i);
+        // const auto upper_bits = upper_mask << ((i) & (sizeof(uint32_t) * 8 -
+        // 1));
+        ASSERT_EQ(ref[i], upper_bits);
+      }
+    }
+  }
+
+  {
+    uint8_t first_byte = 0x80;
+    const auto length = __builtin_clz(uint8_t(~first_byte)) - 24;
+    ASSERT_EQ(length, 1);
+  }
+  {
+    uint8_t first_byte = 0xf0;
+    const auto length =
+        first_byte == 0xff ? 8 : __builtin_clz(uint8_t(~first_byte)) - 24;
+    ASSERT_EQ(length, 4);
+  }
+  {
+    uint8_t first_byte = 0xfa;
+    const uint32_t length =
+        first_byte == 0xff ? 8 : __builtin_clz(uint8_t(~first_byte)) - 24;
+    ASSERT_EQ(length, 5);
+
+    const uint32_t upper_mask = 0x000000ff >> length;
+    ASSERT_EQ(upper_mask, 0x7);
+
+    const uint32_t upper_bits = kagome::math::wrapped_shl(
+        upper_mask & uint32_t(first_byte), length * 8);
+    ASSERT_EQ(upper_bits, 512);
+  }
+  {
+    uint8_t first_byte = 0x00;
+    const auto length =
+        first_byte == 0xff ? 8 : __builtin_clz(uint8_t(~first_byte)) - 24;
+    ASSERT_EQ(length, 0);
+  }
+  {
+    uint8_t first_byte = 0xff;
+    const auto length =
+        first_byte == 0xff ? 8 : __builtin_clz(uint8_t(~first_byte)) - 24;
+    ASSERT_EQ(length, 8);
+  }
+}

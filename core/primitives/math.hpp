@@ -7,6 +7,7 @@
 #pragma once
 
 #include <bit>
+#include <optional>
 #include <limits>
 #include <type_traits>
 
@@ -39,6 +40,17 @@ namespace kagome::math {
     return res;
   }
 
+  template <typename T> requires std::is_arithmetic_v<T>
+  inline constexpr T wrapped_shl(T x, T rhs) {
+    return (x << rhs);
+  }
+
+  template <typename T> requires std::is_arithmetic_v<T>
+  inline constexpr std::optional<T> checked_mul(T x, T y) {
+    T z;
+    return (!__builtin_mul_overflow(x, y, &z) ? z : std::optional<T>());
+  }
+
   template <typename T, typename E>
   inline outcome::result<void> checked_sub(T &x, T y, E e) {
     static_assert(std::numeric_limits<T>::is_integer
@@ -65,6 +77,12 @@ namespace kagome::math {
     }
 #endif
     return value;
+  }
+
+  template <typename T>
+    requires std::is_integral_v<std::decay_t<T>>
+  constexpr auto fromLE(const T &value) {
+    return toLE(value);
   }
 
   inline bool isPowerOf2(size_t x) {

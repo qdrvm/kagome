@@ -13,6 +13,7 @@ include_directories(
 add_subdirectory(core)
 add_subdirectory(deps)
 add_subdirectory(testutil)
+add_subdirectory(pvm)
 
 if(EXTERNAL_PROJECT)
   add_executable(external_project external-project-test/src/main.cpp)
