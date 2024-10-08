@@ -112,8 +112,8 @@ hunter_config(
 )
 
 hunter_config(lsquic
-    URL  https://github.com/qdrvm/lsquic/archive/b79ff5c4be9936089d32dc1bc2dac70d54651e80.zip
-    SHA1 d628f8d7ec68ec33d7f404fbb7b433c62980aa13
+    URL  https://github.com/qdrvm/lsquic/archive/958701ee1286f5ece3cd1354ee8df7d39ef24faf.zip
+    SHA1 397dae10ff52d56dadd2f11f6d8de759b6ab768f
     KEEP_PACKAGE_SOURCES
 )
 
