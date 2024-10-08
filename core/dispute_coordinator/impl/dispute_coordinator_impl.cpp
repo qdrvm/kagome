@@ -363,16 +363,38 @@ namespace kagome::dispute {
       auto is_confirmed =
           is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
                       : false;
-      auto is_potential_spam = is_disputed  //
-                           and not is_included and not is_backed
-                           and not is_confirmed and not is_postponed;
 
+      auto all_invalid_votes_disabled =
+          std::ranges::all_of(vote_state.votes.invalid, [&](const auto &entry) {
+            auto &validator_index = entry.first;
+            return env.disabled_indices.contains(validator_index);
+          });
+
+      auto ignore_disabled = not is_confirmed and all_invalid_votes_disabled;
+
+      auto is_potential_spam = (is_disputed  //
+                                and not is_included and not is_backed
+                                and not is_confirmed and not is_postponed)
+                            or ignore_disabled;
       if (is_potential_spam) {
         SL_TRACE(log_,
                  "Found potential spam dispute on startup "
-                 "(session={}, candidate={})",
+                 "(session={},"
+                 " candidate={},"
+                 " is_disputed={},"
+                 " is_included={},"
+                 " is_backed={},"
+                 " is_confirmed={},"
+                 " all_invalid_votes_disabled={},"
+                 " ignore_disabled={})",
                  session,
-                 candidate_hash);
+                 candidate_hash,
+                 is_disputed,
+                 is_included,
+                 is_backed,
+                 is_confirmed,
+                 all_invalid_votes_disabled,
+                 ignore_disabled);
 
         std::set<ValidatorIndex> voted_indices;
         for (auto &[key, _] : vote_state.votes.valid) {
@@ -1371,9 +1393,19 @@ namespace kagome::dispute {
     auto is_confirmed = is_disputed
                           ? is_type<Confirmed>(new_state.dispute_status.value())
                           : false;
-    auto is_potential_spam = is_disputed  //
-                         and not is_included and not is_backed
-                         and not is_confirmed and not is_postponed;
+
+    auto all_invalid_votes_disabled =
+        std::ranges::all_of(new_state.votes.invalid, [&](const auto &entry) {
+          auto &validator_index = entry.first;
+          return env.disabled_indices.contains(validator_index);
+        });
+
+    auto ignore_disabled = not is_confirmed and all_invalid_votes_disabled;
+
+    auto is_potential_spam = (is_disputed  //
+                              and not is_included and not is_backed
+                              and not is_confirmed and not is_postponed)
+                          or ignore_disabled;
 
     // We participate only in disputes which are not potential spam.
     auto allow_participation = not is_potential_spam;
@@ -1387,6 +1419,25 @@ namespace kagome::dispute {
 
       // Potential spam:
     } else if (not import_result.new_invalid_voters.empty()) {
+      SL_TRACE(log_,
+               "Detected potential spam dispute "
+               "(session={},"
+               " candidate={},"
+               " is_disputed={},"
+               " is_included={},"
+               " is_backed={},"
+               " is_confirmed={},"
+               " all_invalid_votes_disabled={},"
+               " ignore_disabled={})",
+               session,
+               candidate_hash,
+               is_disputed,
+               is_included,
+               is_backed,
+               is_confirmed,
+               all_invalid_votes_disabled,
+               ignore_disabled);
+
       auto free_spam_slots_available = false;
 
       // Only allow import if at least one validator voting invalid, has not
