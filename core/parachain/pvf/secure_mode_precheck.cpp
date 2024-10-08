@@ -79,7 +79,13 @@ namespace kagome::parachain {
         io_context,
         exePath().c_str(),
         {"check-secure-mode", cache_dir.c_str()},
-        process_v2::process_stdio{.in = {}, .out = pipe, .err = {}}};
+        process_v2::process_environment({
+// LSAN doesn't work in secure mode
+#ifdef KAGOME_WITH_ASAN
+            {"ASAN_OPTIONS=detect_leaks=0"}
+#endif
+        }),
+        process_v2::process_stdio{.in = {}, .out = pipe, .err = stderr}};
     Buffer output;
     boost::system::error_code ec;
     boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);
