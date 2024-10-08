@@ -18,6 +18,8 @@ namespace kagome {
     template <typename... Args>
     Wrapper(Args &&...args) : value(std::forward<T>(args)...) {}
 
+    auto operator<=>(const Wrapper&) const = default;
+
    protected:
     T value;
   };

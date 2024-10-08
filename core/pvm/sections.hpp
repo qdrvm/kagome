@@ -16,6 +16,8 @@ namespace kagome::pvm {
       RO_DataSize ro_data_size;
       RW_DataSize rw_data_size;
       StackSize stack_size;
+
+      auto operator<=>(const MemoryConfig &) const = default;
     };
 
     /// @brief Contains the whole program data, which is represented as spans in
@@ -40,12 +42,14 @@ namespace kagome::pvm {
 
    private:
     ProgramBlob(std::vector<uint8_t> &&program_data);
-    static Result<Cursor> read_section(Cursor& cursor);
+    static Result<Cursor> read_section(Cursor &cursor);
 
     Result<void> parse_memory_config_section(Cursor &cursor);
     Result<void> parse_ro_data_section(Cursor &cursor);
     Result<void> parse_rw_data_section(Cursor &cursor);
     Result<void> parse_imports_section(Cursor &cursor);
+    Result<void> parse_exports_section(Cursor &cursor);
+    Result<void> parse_code_and_jump_table_section(Cursor &cursor);
   };
 
 }  // namespace kagome::pvm

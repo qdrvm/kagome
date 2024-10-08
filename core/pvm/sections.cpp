@@ -26,9 +26,10 @@ static constexpr uint8_t VERSION_DEBUG_LINE_PROGRAM_V1 = 1;
 static constexpr uint32_t VM_MAXIMUM_IMPORT_COUNT = 1024;
 
 #define CHECK_INITIALIZED(val, error) \
-if (!(val)) { \
-  return (error); \
-} else {}
+  if (!(val)) {                       \
+    return (error);                   \
+  } else {                            \
+  }
 
 #define CHECK_NOT_INITIALIZED(val, error) CHECK_INITIALIZED(!(val), error)
 
@@ -99,6 +100,12 @@ namespace kagome::pvm {
         case SECTION_IMPORTS: {
           OUTCOME_TRY(program.parse_imports_section(cursor));
         } break;
+        case SECTION_EXPORTS: {
+          OUTCOME_TRY(program.parse_exports_section(cursor));
+        } break;
+        case SECTION_CODE_AND_JUMP_TABLE: {
+          OUTCOME_TRY(program.parse_code_and_jump_table_section(cursor));
+        } break;
         default: {
           OUTCOME_TRY(program.read_section(cursor));
         } break;
@@ -108,29 +115,54 @@ namespace kagome::pvm {
     return Error::UNEXPECTED_END_OF_FILE;
   }
 
-  Result<Cursor> ProgramBlob::read_section(Cursor& cursor) {
+  Result<Cursor> ProgramBlob::read_section(Cursor &cursor) {
     OUTCOME_TRY(section_length, cursor.read_varint());
     OUTCOME_TRY(section, cursor.read<uint8_t>(section_length));
     return Cursor(std::span<const uint8_t>(section, section_length));
   }
 
+  Result<void> ProgramBlob::parse_exports_section(Cursor &cursor) {
+    CHECK_NOT_INITIALIZED(exports, Error::EXPORTS_SECTION_DUPLICATED);
+
+    OUTCOME_TRY(section, read_section(cursor));
+    exports = section.get_section();
+    return outcome::success();
+  }
+
+  Result<void> ProgramBlob::parse_code_and_jump_table_section(Cursor &cursor) {
+    CHECK_NOT_INITIALIZED(code_and_jump_table,
+                          Error::CODE_AND_JUMP_TABLE_SECTION_DUPLICATED);
+
+    OUTCOME_TRY(section, read_section(cursor));
+    code_and_jump_table = section.get_section();
+    return outcome::success();
+  }
+
   Result<void> ProgramBlob::parse_imports_section(Cursor &cursor) {
-    CHECK_NOT_INITIALIZED(import_offsets, Error::IMPORT_OFFSETS_SECTION_DUPLICATED);
-    CHECK_NOT_INITIALIZED(import_symbols, Error::IMPORT_SYMBOLS_SECTION_DUPLICATED);
+    CHECK_NOT_INITIALIZED(import_offsets,
+                          Error::IMPORT_OFFSETS_SECTION_DUPLICATED);
+    CHECK_NOT_INITIALIZED(import_symbols,
+                          Error::IMPORT_SYMBOLS_SECTION_DUPLICATED);
 
     OUTCOME_TRY(section, read_section(cursor));
     OUTCOME_TRY(import_count, section.read_varint());
     if (import_count > VM_MAXIMUM_IMPORT_COUNT) {
-        return Error::TOO_MANY_IMPORTS;
+      return Error::TOO_MANY_IMPORTS;
     }
 
-    const auto import_offsets_size = math::checked_mul(import_count, uint32_t(4));
+    const auto import_offsets_size =
+        math::checked_mul(import_count, uint32_t(4));
     CHECK_INITIALIZED(import_offsets_size, Error::IMPORT_SECTION_CORRUPTED);
 
-    OUTCOME_TRY(import_offsets, section.read<uint8_t>(*import_offsets_size));
+    OUTCOME_TRY(import_offsets_, section.read<uint8_t>(*import_offsets_size));
     const auto import_symbols_size = section.get_len() - section.get_offset();
 
-    OUTCOME_TRY(import_symbols, section.read<uint8_t>(import_symbols_size));
+    OUTCOME_TRY(import_symbols_, section.read<uint8_t>(import_symbols_size));
+
+    import_symbols =
+        std::span<const uint8_t>(import_symbols_, import_symbols_size);
+    import_offsets =
+        std::span<const uint8_t>(import_offsets_, *import_offsets_size);
     return outcome::success();
   }
 
@@ -151,17 +183,18 @@ namespace kagome::pvm {
   }
 
   Result<void> ProgramBlob::parse_memory_config_section(Cursor &cursor) {
-    CHECK_NOT_INITIALIZED(memory_config, Error::MEMORY_CONFIG_SECTION_DUPLICATED);
+    CHECK_NOT_INITIALIZED(memory_config,
+                          Error::MEMORY_CONFIG_SECTION_DUPLICATED);
 
     OUTCOME_TRY(section, read_section(cursor));
     OUTCOME_TRY(ro_data_size, section.read_varint());
     OUTCOME_TRY(rw_data_size, section.read_varint());
     OUTCOME_TRY(stack_size, section.read_varint());
 
-    memory_config =  MemoryConfig {
-      .ro_data_size = ro_data_size,
-      .rw_data_size = rw_data_size,
-      .stack_size = stack_size,
+    memory_config = MemoryConfig{
+        .ro_data_size = ro_data_size,
+        .rw_data_size = rw_data_size,
+        .stack_size = stack_size,
     };
 
     return outcome::success();
