@@ -36,7 +36,13 @@ namespace kagome::parachain {
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
 
-    ProcessAndPipes(boost::asio::io_context &io_context, const std::string &exe)
+    struct Config {
+      bool disable_lsan = false;
+    };
+
+    ProcessAndPipes(boost::asio::io_context &io_context,
+                    const std::string &exe,
+                    const Config &config)
         : pipe_stdin{io_context},
           writer{pipe_stdin},
           pipe_stdout{io_context},
@@ -44,9 +50,16 @@ namespace kagome::parachain {
           process{
               exe,
               boost::process::args({"pvf-worker"}),
+              boost::process::env(boost::process::environment()),
+// LSAN doesn't work in secure mode
+#ifdef KAGOME_WITH_ASAN
+              boost::process::env["ASAN_OPTIONS"] =
+                  config.disable_lsan ? "detect_leaks=0" : "",
+#endif
               boost::process::std_out > pipe_stdout,
               boost::process::std_in < pipe_stdin,
-          } {}
+          } {
+    }
 
     void write(Buffer data, auto cb) {
       auto len = std::make_shared<common::Buffer>(
@@ -130,7 +143,12 @@ namespace kagome::parachain {
         return;
       }
       auto used = std::make_shared<Used>(*this);
-      auto process = std::make_shared<ProcessAndPipes>(*io_context_, exe_);
+      ProcessAndPipes::Config config{};
+#if defined(__linux__) && defined(KAGOME_WITH_ASAN)
+      config.disable_lsan = !worker_config_.force_disable_secure_mode;
+#endif
+      auto process =
+          std::make_shared<ProcessAndPipes>(*io_context_, exe_, config);
       process->writeScale(
           worker_config_,
           [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](
