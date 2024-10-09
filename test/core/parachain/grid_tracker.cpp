@@ -392,9 +392,10 @@ TEST_F(GridTrackerTest, pending_communication_is_cleared) {
       tracker.is_manifest_pending_for(validator_index, candidate_hash));
 }
 
-	TEST_F(GridTrackerTest, pending_statements_are_updated_after_manifest_exchange) {
-		const ValidatorIndex send_to(0);
-		const ValidatorIndex receive_from(1);
+TEST_F(GridTrackerTest,
+       pending_statements_are_updated_after_manifest_exchange) {
+  const ValidatorIndex send_to(0);
+  const ValidatorIndex receive_from(1);
 
   GridTracker tracker;
   SessionTopologyView session_topology = {View{
@@ -409,101 +410,94 @@ TEST_F(GridTrackerTest, pending_communication_is_cleared) {
   const StatementFilter local_knowledge(group_size);
   const auto groups = dummy_groups(group_size);
 
-		// Confirm the candidate.
-		const auto receivers = tracker.add_backed_candidate(
-			session_topology,
-			candidate_hash,
-			group_index,
-			local_knowledge
-		);
+  // Confirm the candidate.
+  const auto receivers = tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
   ASSERT_EQ(receivers.size(), 1);
   ASSERT_EQ(receivers[0].first, send_to);
   ASSERT_EQ(receivers[0].second, ManifestKind::Full);
 
-		// Learn a statement from a different validator.
-		tracker.learned_fresh_statement(
-			groups,
-			session_topology,
-			ValidatorIndex(2),
-			kagome::network::vstaging::SecondedCandidateHash {
-        .hash = candidate_hash,
-      }
-		);
+  // Learn a statement from a different validator.
+  tracker.learned_fresh_statement(
+      groups,
+      session_topology,
+      ValidatorIndex(2),
+      kagome::network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      });
 
-		// Test receiving followed by sending an ack.
-		{
-			// Should start with no pending statements.
-			ASSERT_FALSE(tracker.pending_statements_for(receive_from, candidate_hash));
-			ASSERT_TRUE(tracker.all_pending_statements_for(receive_from).empty());
-			const auto ack = tracker.import_manifest(
-				session_topology,
-				groups,
-				candidate_hash,
-				3,
-				ManifestSummary {
-          .claimed_parent_hash = fromNumber(0),
-          .claimed_group_index = group_index,
-          .statement_knowledge =
-              create_filter({{false, true, false}, {true, false, true}}),
-				},
-				ManifestKind::Full,
-				receive_from
-			);
-      ASSERT_TRUE(ack.has_value() && ack.value() == true);
+  // Test receiving followed by sending an ack.
+  {
+    // Should start with no pending statements.
+    ASSERT_FALSE(tracker.pending_statements_for(receive_from, candidate_hash));
+    ASSERT_TRUE(tracker.all_pending_statements_for(receive_from).empty());
+    const auto ack = tracker.import_manifest(
+        session_topology,
+        groups,
+        candidate_hash,
+        3,
+        ManifestSummary{
+            .claimed_parent_hash = fromNumber(0),
+            .claimed_group_index = group_index,
+            .statement_knowledge =
+                create_filter({{false, true, false}, {true, false, true}}),
+        },
+        ManifestKind::Full,
+        receive_from);
+    ASSERT_TRUE(ack.has_value() && ack.value() == true);
 
-			// Send ack now.
-			tracker.manifest_sent_to(
-				groups,
-				receive_from,
-				candidate_hash,
-				local_knowledge
-			);
+    // Send ack now.
+    tracker.manifest_sent_to(
+        groups, receive_from, candidate_hash, local_knowledge);
 
-			// There should be pending statements now.
-			ASSERT_EQ(
-				tracker.pending_statements_for(receive_from, candidate_hash),
-        create_filter({{false, false, true}, {false, false, false}})
-			);
+    // There should be pending statements now.
+    ASSERT_EQ(tracker.pending_statements_for(receive_from, candidate_hash),
+              create_filter({{false, false, true}, {false, false, false}}));
 
-      const auto res = tracker.all_pending_statements_for(receive_from);
-      ASSERT_EQ(res.size(), 1);
-      ASSERT_EQ(res[0], std::make_pair(ValidatorIndex(2), kagome::network::vstaging::CompactStatement(kagome::network::vstaging::SecondedCandidateHash {
-            .hash = candidate_hash,
-          })));
-		}
+    const auto res = tracker.all_pending_statements_for(receive_from);
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_EQ(
+        res[0],
+        std::make_pair(ValidatorIndex(2),
+                       kagome::network::vstaging::CompactStatement(
+                           kagome::network::vstaging::SecondedCandidateHash{
+                               .hash = candidate_hash,
+                           })));
+  }
 
-		// Test sending followed by receiving an ack.
-		{
-			// Should start with no pending statements.
-			ASSERT_FALSE(tracker.pending_statements_for(send_to, candidate_hash));
-			ASSERT_TRUE(tracker.all_pending_statements_for(send_to).empty());
+  // Test sending followed by receiving an ack.
+  {
+    // Should start with no pending statements.
+    ASSERT_FALSE(tracker.pending_statements_for(send_to, candidate_hash));
+    ASSERT_TRUE(tracker.all_pending_statements_for(send_to).empty());
 
-			tracker.manifest_sent_to(groups, send_to, candidate_hash, local_knowledge);
-			const auto ack = tracker.import_manifest(
-				session_topology,
-				groups,
-				candidate_hash,
-				3,
-				ManifestSummary {
-          .claimed_parent_hash = fromNumber(0),
-          .claimed_group_index = group_index,
-          .statement_knowledge =
-              create_filter({{false, true, false}, {false, false, true}}),
-				},
-				ManifestKind::Acknowledgement,
-				send_to
-			);
-      ASSERT_TRUE(ack.has_value() && ack.value() == false);
+    tracker.manifest_sent_to(groups, send_to, candidate_hash, local_knowledge);
+    const auto ack = tracker.import_manifest(
+        session_topology,
+        groups,
+        candidate_hash,
+        3,
+        ManifestSummary{
+            .claimed_parent_hash = fromNumber(0),
+            .claimed_group_index = group_index,
+            .statement_knowledge =
+                create_filter({{false, true, false}, {false, false, true}}),
+        },
+        ManifestKind::Acknowledgement,
+        send_to);
+    ASSERT_TRUE(ack.has_value() && ack.value() == false);
 
-			// There should be pending statements now.
-			ASSERT_EQ(
-				tracker.pending_statements_for(send_to, candidate_hash),
-        create_filter({{false, false, true}, {false, false, false}})
-			);
-      const auto res = tracker.all_pending_statements_for(send_to);
-      ASSERT_EQ(res.size(), 1);
-      ASSERT_EQ(res[0], std::make_pair(ValidatorIndex(2), kagome::network::vstaging::CompactStatement(kagome::network::vstaging::SecondedCandidateHash {
-            .hash = candidate_hash,
-          })));
-		}
-	}
+    // There should be pending statements now.
+    ASSERT_EQ(tracker.pending_statements_for(send_to, candidate_hash),
+              create_filter({{false, false, true}, {false, false, false}}));
+    const auto res = tracker.all_pending_statements_for(send_to);
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_EQ(
+        res[0],
+        std::make_pair(ValidatorIndex(2),
+                       kagome::network::vstaging::CompactStatement(
+                           kagome::network::vstaging::SecondedCandidateHash{
+                               .hash = candidate_hash,
+                           })));
+  }
+}

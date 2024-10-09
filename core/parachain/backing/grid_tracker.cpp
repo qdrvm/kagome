@@ -43,14 +43,17 @@ namespace kagome {
     const auto &[statement_kind, candidate_hash] = visit_in_place(
         statement.inner_value,
         [&](const network::vstaging::SecondedCandidateHash &v) {
-          return std::make_pair(network::vstaging::StatementKind::Seconded, std::cref(v.hash));
+          return std::make_pair(network::vstaging::StatementKind::Seconded,
+                                std::cref(v.hash));
         },
         [&](const network::vstaging::ValidCandidateHash &v) {
-          return std::make_pair(network::vstaging::StatementKind::Valid, std::cref(v.hash));
+          return std::make_pair(network::vstaging::StatementKind::Valid,
+                                std::cref(v.hash));
         },
         [&](const auto &) {
           UNREACHABLE;
-          return std::make_pair(network::vstaging::StatementKind::Valid, std::cref(__empty__));
+          return std::make_pair(network::vstaging::StatementKind::Valid,
+                                std::cref(__empty__));
         });
 
     auto group = groups.byValidatorIndex(originator);
