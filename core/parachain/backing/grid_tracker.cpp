@@ -39,22 +39,34 @@ namespace kagome {
       const parachain::Groups &groups,
       parachain::ValidatorIndex originator,
       const network::vstaging::CompactStatement &statement) {
-    parachain::CandidateHash __empty__;
-    const auto &[statement_kind, candidate_hash] = visit_in_place(
+    namespace vs = network::vstaging;
+
+    const auto [statement_kind, candidate_hash] = visit_in_place(
         statement.inner_value,
-        [&](const network::vstaging::SecondedCandidateHash &v) {
-          return std::make_pair(network::vstaging::StatementKind::Seconded,
-                                std::cref(v.hash));
+        [&](const network::vstaging::SecondedCandidateHash &v)
+            -> std::pair<vs::StatementKind,
+                         std::optional<std::reference_wrapper<
+                             const parachain::CandidateHash>>> {
+          return {network::vstaging::StatementKind::Seconded,
+                  std::cref(v.hash)};
         },
-        [&](const network::vstaging::ValidCandidateHash &v) {
-          return std::make_pair(network::vstaging::StatementKind::Valid,
-                                std::cref(v.hash));
+        [&](const network::vstaging::ValidCandidateHash &v)
+            -> std::pair<vs::StatementKind,
+                         std::optional<std::reference_wrapper<
+                             const parachain::CandidateHash>>> {
+          return {network::vstaging::StatementKind::Valid, std::cref(v.hash)};
         },
-        [&](const auto &) {
-          UNREACHABLE;
+        [&](const auto &) -> std::pair<vs::StatementKind,
+                                       std::optional<std::reference_wrapper<
+                                           const parachain::CandidateHash>>> {
           return std::make_pair(network::vstaging::StatementKind::Valid,
-                                std::cref(__empty__));
+                                std::nullopt);
         });
+
+    if (!candidate_hash) {
+      UNREACHABLE;
+      return {};
+    }
 
     auto group = groups.byValidatorIndex(originator);
     if (!group) {
@@ -64,7 +76,8 @@ namespace kagome {
     auto s = groups.get(*group).value();
     for (size_t ix = 0; ix < s.size(); ++ix) {
       if (s[ix] == originator) {
-        return std::make_tuple(*group, candidate_hash, statement_kind, ix);
+        return std::make_tuple(
+            *group, candidate_hash->get(), statement_kind, ix);
       }
     }
     return {};
