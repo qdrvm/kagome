@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <iostream>
+#include <cstdio>
+#include <iterator>
+#include <fstream>
+#include <vector>
+#include <algorithm> // for std::copy
 #include <gtest/gtest.h>
 #include "primitives/math.hpp"
 #include "pvm/sections.hpp"
@@ -49,3 +55,15 @@ TEST(PvmTest, test_blog_1) {
   ASSERT_TRUE(program_blob.exports);
   ASSERT_EQ(program_blob.exports->size(), 14);
 }
+
+TEST(PvmTest, doom) {
+  std::unique_ptr<FILE, decltype(&std::fclose)> fp(std::fopen("/home/iceseer/Work/kagome/test/pvm/doom/doom.polkavm", "r"), &std::fclose);
+
+  std::vector<uint8_t> program;
+  program.resize(10 * 1024 * 1024);
+
+  std::ignore = std::fread(&program[0], sizeof(program[0]), program.size(), fp.get());
+  EXPECT_OUTCOME_TRUE(program_blob,
+                      ProgramBlob::create_from(std::move(program)));
+}
+
