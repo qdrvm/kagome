@@ -63,9 +63,10 @@ namespace kagome::network {
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> stream) override {
-      base().logger()->info("Fetching chunk request.(chunk={}, candidate={})",
-                            request.chunk_index,
-                            request.candidate);
+      SL_DEBUG(base_.logger(),
+               "Fetching chunk request.(chunk={}, candidate={})",
+               request.chunk_index,
+               request.candidate);
 
       auto peer_id = [&] {
         auto res = stream->remotePeerId();
@@ -84,27 +85,48 @@ namespace kagome::network {
       }();
       peer_state.req_chunk_version = ReqChunkVersion::V2;
 
+      SL_TRACE(
+          base_.logger(),
+          "ChunkRequest (v2) received from peer {}: candidate={}, chunk={}",
+          peer_id,
+          request.candidate,
+          request.chunk_index);
+
       auto res = pp_->OnFetchChunkRequest(std::move(request));
       if (res.has_error()) {
-        base().logger()->error("Fetching chunk response failed.(error={})",
-                               res.error());
-      } else {
-        visit_in_place(
-            res.value(),
-            [&](const network::Chunk &r) {
-              base().logger()->info("Fetching chunk response with data.");
-            },
-            [&](const auto &) {
-              base().logger()->info("Fetching chunk response empty.");
-            });
+        SL_ERROR(base_.logger(),
+                 "Fetching chunk response failed.(error={})",
+                 res.error());
+        return res.as_failure();
       }
-      return res;
+
+      if (auto _chunk = if_type<const network::Chunk>(res.value())) {
+        SL_DEBUG(base_.logger(), "Fetching chunk response with data.");
+
+        auto &chunk = _chunk.value().get();
+        SL_TRACE(base_.logger(),
+                 "ChunkResponse (v2) sent to peer {}: "
+                 "chunk={}, data={}, proof=[{}]",
+                 peer_id,
+                 chunk.chunk_index,
+                 chunk.data,
+                 fmt::join(chunk.proof, ", "));
+      } else {
+        SL_DEBUG(base_.logger(), "Fetching chunk response empty.");
+
+        SL_TRACE(base_.logger(),
+                 "ChunkResponse (v2) sent to peer {}: empty",
+                 peer_id);
+      }
+
+      return std::move(res);
     }
 
     void onTxRequest(const RequestType &request) override {
-      base().logger()->debug("Fetching chunk candidate: {}, index: {}",
-                             request.candidate,
-                             request.chunk_index);
+      SL_DEBUG(base_.logger(),
+               "Fetching chunk candidate: {}, index: {}",
+               request.candidate,
+               request.chunk_index);
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;

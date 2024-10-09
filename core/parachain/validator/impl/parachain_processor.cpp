@@ -3346,7 +3346,22 @@ namespace kagome::parachain {
           .proof = chunk->proof,
       };
     }
-    return network::FetchChunkResponse{};
+    return network::Empty{};
+  }
+
+  outcome::result<network::FetchChunkResponseObsolete>
+  ParachainProcessorImpl::OnFetchChunkRequestObsolete(
+      const network::FetchChunkRequest &request) {
+    if (auto chunk =
+            av_store_->getChunk(request.candidate, request.chunk_index)) {
+      if (chunk->index == request.chunk_index) {
+        return network::ChunkObsolete{
+            .data = chunk->chunk,
+            .proof = chunk->proof,
+        };
+      }
+    }
+    return network::Empty{};
   }
 
   std::optional<
