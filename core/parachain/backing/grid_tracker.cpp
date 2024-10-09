@@ -39,18 +39,18 @@ namespace kagome {
       const parachain::Groups &groups,
       parachain::ValidatorIndex originator,
       const network::vstaging::CompactStatement &statement) {
-    parachain::CandidateHash candidate_hash;
-    network::vstaging::StatementKind statement_kind = visit_in_place(
+    parachain::CandidateHash __empty__;
+    const auto &[statement_kind, candidate_hash] = visit_in_place(
         statement.inner_value,
-        [&](const network::vstaging::SecondedCandidateHash &) {
-          return network::vstaging::StatementKind::Seconded;
+        [&](const network::vstaging::SecondedCandidateHash &v) {
+          return std::make_pair(network::vstaging::StatementKind::Seconded, std::cref(v.hash));
         },
-        [&](const network::vstaging::ValidCandidateHash &) {
-          return network::vstaging::StatementKind::Valid;
+        [&](const network::vstaging::ValidCandidateHash &v) {
+          return std::make_pair(network::vstaging::StatementKind::Valid, std::cref(v.hash));
         },
         [&](const auto &) {
           UNREACHABLE;
-          return network::vstaging::StatementKind::Valid;
+          return std::make_pair(network::vstaging::StatementKind::Valid, std::cref(__empty__));
         });
 
     auto group = groups.byValidatorIndex(originator);
