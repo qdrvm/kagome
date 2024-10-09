@@ -248,3 +248,12 @@ if(TESTING)
 endif ()
 
 add_subdirectory(node)
+
+add_executable(test-wasm test-wasm/test-wasm.cpp)
+target_include_directories(test-wasm PUBLIC test)
+target_link_libraries(test-wasm
+  binaryen_module_factory
+  GTest::gmock
+  logger_for_tests
+  runtime_wasm_edge
+)

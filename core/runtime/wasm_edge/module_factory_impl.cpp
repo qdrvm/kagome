@@ -28,6 +28,8 @@
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
+#include "wasm-bulk.hpp"
+
 static_assert(std::string_view{WASMEDGE_ID}.size() == 40,
               "WASMEDGE_ID should be set to WasmEdge repository SHA1 hash");
 
@@ -104,6 +106,15 @@ namespace kagome::runtime::wasm_edge {
     ConfigureContext ctx{WasmEdge_ConfigureCreate()};
     if (ctx.raw() == nullptr) {
       return CompilationError{"WasmEdge_ConfigureCreate returned nullptr"};
+    }
+    WasmEdge_ConfigureRemoveProposal(ctx.raw(),
+                                     WasmEdge_Proposal_ReferenceTypes);
+    if (wasmBulk()) {
+      WasmEdge_ConfigureAddProposal(ctx.raw(),
+                                    WasmEdge_Proposal_BulkMemoryOperations);
+    } else {
+      WasmEdge_ConfigureRemoveProposal(ctx.raw(),
+                                       WasmEdge_Proposal_BulkMemoryOperations);
     }
     return ctx;
   }
