@@ -550,3 +550,94 @@ TEST_F(GridTrackerTest, invalid_fresh_statement_import) {
   ASSERT_FALSE(tracker.pending_statements_for(validator_index, candidate_hash));
   ASSERT_TRUE(tracker.all_pending_statements_for(validator_index).empty());
 }
+
+TEST_F(GridTrackerTest,
+       pending_statements_updated_when_importing_fresh_statement) {
+  const ValidatorIndex validator_index(0);
+
+  GridTracker tracker;
+  SessionTopologyView session_topology = {View{
+      .sending = {},
+      .receiving = {validator_index},
+  }};
+
+  const auto candidate_hash = fromNumber(42);
+  const GroupIndex group_index(0);
+  const size_t group_size(3);
+
+  const StatementFilter local_knowledge(group_size);
+  const auto groups = dummy_groups(group_size);
+
+  // Should start with no pending statements.
+  ASSERT_FALSE(tracker.pending_statements_for(validator_index, candidate_hash));
+  ASSERT_TRUE(tracker.all_pending_statements_for(validator_index).empty());
+
+  // Add the candidate as backed.
+  tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
+
+  // Import fresh statement.
+  const auto ack = tracker.import_manifest(
+      session_topology,
+      groups,
+      candidate_hash,
+      3,
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0),
+          .claimed_group_index = group_index,
+          .statement_knowledge =
+              create_filter({{false, true, false}, {true, false, true}}),
+      },
+      ManifestKind::Full,
+      validator_index);
+  ASSERT_TRUE(ack.has_value() && ack.value() == true);
+
+  tracker.manifest_sent_to(
+      groups, validator_index, candidate_hash, local_knowledge);
+  tracker.learned_fresh_statement(
+      groups,
+      session_topology,
+      validator_index,
+      kagome::network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      });
+
+  // There should be pending statements now.
+  ASSERT_EQ(tracker.pending_statements_for(validator_index, candidate_hash),
+            create_filter({{true, false, false}, {false, false, false}}));
+
+  {
+    const auto res = tracker.all_pending_statements_for(validator_index);
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_EQ(
+        res[0],
+        std::make_pair(ValidatorIndex(0),
+                       kagome::network::vstaging::CompactStatement(
+                           kagome::network::vstaging::SecondedCandidateHash{
+                               .hash = candidate_hash,
+                           })));
+  }
+
+  // After successful import, try importing again. Nothing should change.
+  tracker.learned_fresh_statement(
+      groups,
+      session_topology,
+      validator_index,
+      kagome::network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      });
+  ASSERT_EQ(tracker.pending_statements_for(validator_index, candidate_hash),
+            create_filter({{true, false, false}, {false, false, false}}));
+
+  {
+    const auto res = tracker.all_pending_statements_for(validator_index);
+    ASSERT_EQ(res.size(), 1);
+    ASSERT_EQ(
+        res[0],
+        std::make_pair(ValidatorIndex(0),
+                       kagome::network::vstaging::CompactStatement(
+                           kagome::network::vstaging::SecondedCandidateHash{
+                               .hash = candidate_hash,
+                           })));
+  }
+}
