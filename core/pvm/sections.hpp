@@ -50,6 +50,9 @@ namespace kagome::pvm {
     Result<void> parse_imports_section(Cursor &cursor);
     Result<void> parse_exports_section(Cursor &cursor);
     Result<void> parse_code_and_jump_table_section(Cursor &cursor);
+    Result<void> parse_debug_strings_section(Cursor &cursor);
+    Result<void> parse_debug_line_programs_table_section(Cursor &cursor);
+    Result<void> parse_debug_line_program_ranges_section(Cursor &cursor);
   };
 
 }  // namespace kagome::pvm

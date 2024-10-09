@@ -106,6 +106,16 @@ namespace kagome::pvm {
         case SECTION_CODE_AND_JUMP_TABLE: {
           OUTCOME_TRY(program.parse_code_and_jump_table_section(cursor));
         } break;
+        case SECTION_OPT_DEBUG_STRINGS: {
+          OUTCOME_TRY(program.parse_debug_strings_section(cursor));
+        } break;
+        case SECTION_OPT_DEBUG_LINE_PROGRAMS: {
+          OUTCOME_TRY(program.parse_debug_line_programs_table_section(cursor));
+        } break;
+        case SECTION_OPT_DEBUG_LINE_PROGRAM_RANGES: {
+          OUTCOME_TRY(program.parse_debug_line_program_ranges_section(cursor));
+        } break;
+
         default: {
           OUTCOME_TRY(program.read_section(cursor));
         } break;
@@ -119,6 +129,35 @@ namespace kagome::pvm {
     OUTCOME_TRY(section_length, cursor.read_varint());
     OUTCOME_TRY(section, cursor.read<uint8_t>(section_length));
     return Cursor(std::span<const uint8_t>(section, section_length));
+  }
+
+  Result<void> ProgramBlob::parse_debug_strings_section(Cursor &cursor) {
+    CHECK_NOT_INITIALIZED(debug_strings,
+                          Error::DEBUG_STRINGS_SECTION_DUPLICATED);
+
+    OUTCOME_TRY(section, read_section(cursor));
+    debug_strings = section.get_section();
+    return outcome::success();
+  }
+
+  Result<void> ProgramBlob::parse_debug_line_programs_table_section(
+      Cursor &cursor) {
+    CHECK_NOT_INITIALIZED(debug_line_programs,
+                          Error::DEBUG_LINE_PROGRAMS_SECTION_DUPLICATED);
+
+    OUTCOME_TRY(section, read_section(cursor));
+    debug_line_programs = section.get_section();
+    return outcome::success();
+  }
+
+  Result<void> ProgramBlob::parse_debug_line_program_ranges_section(
+      Cursor &cursor) {
+    CHECK_NOT_INITIALIZED(debug_line_program_ranges,
+                          Error::DEBUG_LINE_PROGRAM_RANGES_SECTION_DUPLICATED);
+
+    OUTCOME_TRY(section, read_section(cursor));
+    debug_line_program_ranges = section.get_section();
+    return outcome::success();
   }
 
   Result<void> ProgramBlob::parse_exports_section(Cursor &cursor) {

@@ -45,6 +45,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
       return COMPONENT_NAME ": Exports section duplicated";
     case E::CODE_AND_JUMP_TABLE_SECTION_DUPLICATED:
       return COMPONENT_NAME ": Code and jump table section duplicated";
+    case E::DEBUG_STRINGS_SECTION_DUPLICATED:
+      return COMPONENT_NAME ": Debug strings section duplicated";
+    case E::DEBUG_LINE_PROGRAMS_SECTION_DUPLICATED:
+      return COMPONENT_NAME ": Debug line programs section duplicated";
+    case E::DEBUG_LINE_PROGRAM_RANGES_SECTION_DUPLICATED:
+      return COMPONENT_NAME ": Debug line program ranges section duplicated";
   }
   return COMPONENT_NAME ": Unknown error";
 }
