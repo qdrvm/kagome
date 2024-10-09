@@ -6,6 +6,7 @@
 
 #include "parachain/backing/grid_tracker.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
+#include "utils/map.hpp"
 
 using namespace kagome::parachain::grid;
 
@@ -236,4 +237,157 @@ TEST_F(GridTrackerTest, reject_insufficient_below_threshold) {
       ManifestKind::Full,
       ValidatorIndex(0));
   ASSERT_TRUE(res.has_value() && res.value() == false);
+}
+
+TEST_F(GridTrackerTest, senders_can_provide_manifests_in_acknowledgement) {
+  const ValidatorIndex validator_index(0);
+  GridTracker tracker;
+  SessionTopologyView session_topology = {View{
+      .sending = {validator_index},
+      .receiving = {ValidatorIndex(1)},
+  }};
+
+  const auto candidate_hash = fromNumber(42);
+  const GroupIndex group_index(0);
+  const size_t group_size(3);
+
+  const StatementFilter local_knowledge(group_size);
+  const auto groups = dummy_groups(group_size);
+
+  // Add the candidate as backed.
+  const auto receivers = tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
+  // Validator 0 is in the sending group. Advertise onward to it.
+  //
+  // Validator 1 is in the receiving group, but we have not received from it, so
+  // we're not expected to send it an acknowledgement.
+  ASSERT_EQ(receivers.size(), 1);
+  ASSERT_EQ(receivers[0].first, validator_index);
+  ASSERT_EQ(receivers[0].second, ManifestKind::Full);
+
+  // Note the manifest as 'sent' to validator 0.
+  tracker.manifest_sent_to(
+      groups, validator_index, candidate_hash, local_knowledge);
+
+  // Import manifest of kind `Acknowledgement` from validator 0.
+  const auto ack = tracker.import_manifest(
+      session_topology,
+      groups,
+      candidate_hash,
+      3,
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0),
+          .claimed_group_index = group_index,
+          .statement_knowledge =
+              create_filter({{false, true, false}, {true, false, true}}),
+      },
+      ManifestKind::Acknowledgement,
+      validator_index);
+  ASSERT_TRUE(ack.has_value() && ack.value() == false);
+}
+
+TEST_F(GridTrackerTest,
+       pending_communication_receiving_manifest_on_confirmed_candidate) {
+  const ValidatorIndex validator_index(0);
+  GridTracker tracker;
+  SessionTopologyView session_topology = {View{
+      .sending = {validator_index},
+      .receiving = {ValidatorIndex(1)},
+  }};
+
+  const auto candidate_hash = fromNumber(42);
+  const GroupIndex group_index(0);
+  const size_t group_size(3);
+
+  const StatementFilter local_knowledge(group_size);
+  const auto groups = dummy_groups(group_size);
+
+  // Manifest should not be pending yet.
+  ASSERT_FALSE(
+      tracker.is_manifest_pending_for(validator_index, candidate_hash));
+
+  // Add the candidate as backed.
+  tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
+
+  // Manifest should be pending as `Full`.
+  ASSERT_EQ(tracker.is_manifest_pending_for(validator_index, candidate_hash),
+            ManifestKind::Full);
+
+  // Note the manifest as 'sent' to validator 0.
+  tracker.manifest_sent_to(
+      groups, validator_index, candidate_hash, local_knowledge);
+
+  // Import manifest.
+  //
+  // Should overwrite existing `Full` manifest.
+  const auto ack = tracker.import_manifest(
+      session_topology,
+      groups,
+      candidate_hash,
+      3,
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0),
+          .claimed_group_index = group_index,
+          .statement_knowledge =
+              create_filter({{false, true, false}, {true, false, true}}),
+      },
+      ManifestKind::Acknowledgement,
+      validator_index);
+  ASSERT_TRUE(ack.has_value() && ack.value() == false);
+  ASSERT_FALSE(
+      tracker.is_manifest_pending_for(validator_index, candidate_hash));
+}
+
+TEST_F(GridTrackerTest, pending_communication_is_cleared) {
+  const ValidatorIndex validator_index(0);
+  GridTracker tracker;
+  SessionTopologyView session_topology = {View{
+      .sending = {},
+      .receiving = {validator_index},
+  }};
+
+  const auto candidate_hash = fromNumber(42);
+  const GroupIndex group_index(0);
+  const size_t group_size(3);
+
+  const StatementFilter local_knowledge(group_size);
+  const auto groups = dummy_groups(group_size);
+
+  // Add the candidate as backed.
+  tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
+
+  // Manifest should not be pending yet.
+  ASSERT_FALSE(
+      tracker.is_manifest_pending_for(validator_index, candidate_hash));
+
+  // Import manifest. The candidate is confirmed backed and we are expected to
+  // receive from validator 0, so send it an acknowledgement.
+  const auto ack = tracker.import_manifest(
+      session_topology,
+      groups,
+      candidate_hash,
+      3,
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0),
+          .claimed_group_index = group_index,
+          .statement_knowledge =
+              create_filter({{false, true, false}, {true, false, true}}),
+      },
+      ManifestKind::Full,
+      validator_index);
+  ASSERT_TRUE(ack.has_value() && ack.value() == true);
+
+  // Acknowledgement manifest should be pending.
+  ASSERT_EQ(tracker.is_manifest_pending_for(validator_index, candidate_hash),
+            ManifestKind::Acknowledgement);
+
+  // Note the candidate as advertised.
+  tracker.manifest_sent_to(
+      groups, validator_index, candidate_hash, local_knowledge);
+
+  // Pending manifest should be cleared.
+  ASSERT_FALSE(
+      tracker.is_manifest_pending_for(validator_index, candidate_hash));
 }
