@@ -501,3 +501,52 @@ TEST_F(GridTrackerTest,
                            })));
   }
 }
+
+TEST_F(GridTrackerTest, invalid_fresh_statement_import) {
+  const ValidatorIndex validator_index(0);
+
+  GridTracker tracker;
+  SessionTopologyView session_topology = {View{
+      .sending = {},
+      .receiving = {validator_index},
+  }};
+
+  const auto candidate_hash = fromNumber(42);
+  const GroupIndex group_index(0);
+  const size_t group_size(3);
+
+  const StatementFilter local_knowledge(group_size);
+  const auto groups = dummy_groups(group_size);
+
+  // Should start with no pending statements.
+  ASSERT_FALSE(tracker.pending_statements_for(validator_index, candidate_hash));
+  ASSERT_TRUE(tracker.all_pending_statements_for(validator_index).empty());
+
+  // Try to import fresh statement. Candidate not backed.
+  tracker.learned_fresh_statement(
+      groups,
+      session_topology,
+      validator_index,
+      kagome::network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      });
+
+  ASSERT_FALSE(tracker.pending_statements_for(validator_index, candidate_hash));
+  ASSERT_TRUE(tracker.all_pending_statements_for(validator_index).empty());
+
+  // Add the candidate as backed.
+  tracker.add_backed_candidate(
+      session_topology, candidate_hash, group_index, local_knowledge);
+
+  // Try to import fresh statement. Unknown group for validator index.
+  tracker.learned_fresh_statement(
+      groups,
+      session_topology,
+      ValidatorIndex(1),
+      kagome::network::vstaging::SecondedCandidateHash{
+          .hash = candidate_hash,
+      });
+
+  ASSERT_FALSE(tracker.pending_statements_for(validator_index, candidate_hash));
+  ASSERT_TRUE(tracker.all_pending_statements_for(validator_index).empty());
+}
