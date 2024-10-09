@@ -32,6 +32,7 @@ namespace kagome::parachain {
                              const ParachainBlock &pov,
                              const CandidateReceipt &receipt,
                              const ParachainRuntime &code,
+                             runtime::PvfExecTimeoutKind timeout_kind,
                              Cb cb) const = 0;
   };
 }  // namespace kagome::parachain

@@ -407,8 +407,9 @@ namespace kagome::runtime {
     uint64_t msec;
   };
 
-  /// Enables WASM bulk memory proposal
-  using WasmExtBulkMemory = Unused<1>;
+  struct WasmExtBulkMemory {
+    SCALE_TIE(0);
+  };
 
   using ExecutorParam = std::variant<Unused<0>,
                                      MaxMemoryPages,
@@ -417,6 +418,5 @@ namespace kagome::runtime {
                                      PrecheckingMaxMemory,
                                      PvfPrepTimeout,
                                      PvfExecTimeout,
-                                     Unused<7>>;  // WasmExtBulkMemory
-
+                                     WasmExtBulkMemory>;
 }  // namespace kagome::runtime

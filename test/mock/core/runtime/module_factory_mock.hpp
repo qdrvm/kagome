@@ -22,7 +22,9 @@ namespace kagome::runtime {
                 (const, override));
     MOCK_METHOD((CompilationOutcome<void>),
                 compile,
-                (std::filesystem::path, BufferView),
+                (std::filesystem::path,
+                 BufferView,
+                 const RuntimeContext::ContextParams &),
                 (const, override));
     MOCK_METHOD((CompilationOutcome<std::shared_ptr<Module>>),
                 loadCompiled,
