@@ -844,3 +844,57 @@ TEST_F(GridTrackerTest, pending_statements_cleared_when_sending) {
             StatementFilter(group_size));
   ASSERT_TRUE(tracker.all_pending_statements_for(counterparty).empty());
 }
+
+TEST_F(GridTrackerTest, session_grid_topology_consistent) {
+  const size_t n_validators = 300;
+  const size_t group_size = 5;
+
+  std::vector<std::vector<ValidatorIndex>> groups;
+  groups.resize(n_validators / group_size);
+
+  std::vector<ValidatorIndex> validator_indices;
+  validator_indices.resize(n_validators);
+
+  for (size_t i = 0; i < n_validators; ++i) {
+    validator_indices[i] = ValidatorIndex(i);
+    groups[i / group_size].emplace_back(i);
+  }
+
+  std::vector<Views> computed_topologies;
+  for (size_t i = 0; i < n_validators; ++i) {
+    computed_topologies.emplace_back(
+        makeViews(groups, validator_indices, ValidatorIndex(i)));
+  }
+
+  auto pairwise_check_topologies = [&](auto i, auto j) {
+    ValidatorIndex v_i(i);
+    ValidatorIndex v_j(j);
+
+    for (GroupIndex group = 0; group < groups.size(); ++group) {
+      const auto &g_i = computed_topologies[i][group];
+      const auto &g_j = computed_topologies[j][group];
+
+      if (g_i.sending.contains(v_j)) {
+        ASSERT_TRUE(g_j.receiving.contains(v_i));
+      }
+
+      if (g_j.sending.contains(v_i)) {
+        ASSERT_TRUE(g_i.receiving.contains(v_j));
+      }
+
+      if (g_i.receiving.contains(v_j)) {
+        ASSERT_TRUE(g_j.sending.contains(v_i));
+      }
+
+      if (g_j.receiving.contains(v_i)) {
+        ASSERT_TRUE(g_i.sending.contains(v_j));
+      }
+    }
+  };
+
+  for (ValidatorIndex i = 0; i < n_validators; ++i) {
+    for (ValidatorIndex j = i + 1; j < n_validators; ++j) {
+      pairwise_check_topologies(i, j);
+    }
+  }
+}
