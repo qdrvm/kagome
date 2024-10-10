@@ -20,6 +20,7 @@
 #include "parachain/backing/grid.hpp"
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
+#include "utils/map.hpp"
 
 template <>
 struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
@@ -286,6 +287,16 @@ namespace kagome::parachain::grid {
     /// Get the advertised statement filter of a validator for a candidate.
     std::optional<StatementFilter> advertised_statements(
         ValidatorIndex validator, const CandidateHash &candidate_hash);
+
+    std::optional<ManifestKind> is_manifest_pending_for(
+        ValidatorIndex validator, const CandidateHash &candidate_hash) const {
+      if (auto m = utils::get(pending_manifests, validator)) {
+        if (auto x = utils::get(m->get(), candidate_hash)) {
+          return x->get();
+        }
+      }
+      return std::nullopt;
+    }
 
    private:
     std::unordered_map<ValidatorIndex, ReceivedManifests> received;

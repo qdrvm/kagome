@@ -60,6 +60,7 @@ addtest(parachain_test
     assignments.cpp
     cluster_test.cpp
     grid.cpp
+    grid_tracker.cpp
     )
 
 target_link_libraries(parachain_test

@@ -250,6 +250,9 @@ namespace kagome::parachain {
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
 
+    outcome::result<network::FetchChunkResponseObsolete>
+    OnFetchChunkRequestObsolete(const network::FetchChunkRequest &request);
+
     outcome::result<network::vstaging::AttestedCandidateResponse>
     OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
