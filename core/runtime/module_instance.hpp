@@ -77,6 +77,9 @@ namespace kagome::runtime {
           }
           return outcome::success(std::move(t));
         } catch (std::system_error &e) {
+          // if (method_name == "TaggedTransactionQueue_validate_transaction") {
+          //   throw;
+          // }
           return outcome::failure(e.code());
         }
       }

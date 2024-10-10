@@ -28,7 +28,7 @@ namespace kagome::runtime {
     outcome::result<Res> call(RuntimeContext &ctx,
                               std::string_view name,
                               const Args &...args) {
-      std::cerr << "Runtime execute call: " << name << std::endl;
+      // std::cerr << "Runtime execute call: " << name << '\n' << std::flush;
       auto code_hash = ctx.module_instance->getCodeHash();
       auto call = [&]() {
         return ctx.module_instance->callAndDecodeExportFunction<Res>(
