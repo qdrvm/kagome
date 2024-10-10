@@ -1360,7 +1360,7 @@ namespace kagome::parachain {
 
       ProspectiveParachainsModeOpt mode_;
       if (auto l = utils::get(our_current_state_.per_leaf, maybe_new)) {
-        mode_ = from((*l)->second);
+        mode_ = from(l->get());
       } else {
         mode_ = leaf_mode;
       }
