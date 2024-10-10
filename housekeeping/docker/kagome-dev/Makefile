@@ -103,7 +103,7 @@ kagome_dev_docker_build:
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_TOOLCHAIN_FILE=/opt/kagome/cmake/toolchain/gcc-13_cxx20.cmake -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_TOOLCHAIN_FILE=/opt/kagome/cmake/toolchain/clang-16_mold_cxx20.cmake -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
 		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
 		mkdir -p /tmp/kagome && \
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
