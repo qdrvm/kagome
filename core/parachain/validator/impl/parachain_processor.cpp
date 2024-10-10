@@ -2614,7 +2614,7 @@ namespace kagome::parachain {
              "Enumerate peers. (relay_parent={}, candidate_hash={})",
              relay_parent,
              candidate_hash);
-    std::optional<network::vstaging::StatementFilter> target;
+    std::optional<libp2p::peer::PeerId> target;
     auto audi = query_audi_->get(peer);
     if (!audi) {
       SL_TRACE(logger_,
@@ -2665,8 +2665,7 @@ namespace kagome::parachain {
     if (!backing_threshold
         || (filter->has_seconded()
             && filter->backing_validators() >= *backing_threshold)) {
-      network::vstaging::StatementFilter f(group->size());
-      target.emplace(std::move(f));
+      target.emplace(peer);
     } else {
       SL_TRACE(
           logger_,
@@ -2684,7 +2683,6 @@ namespace kagome::parachain {
       return;
     }
 
-    const auto &um = *target;
     SL_TRACE(logger_,
              "Requesting. (peer={}, relay_parent={}, candidate_hash={})",
              peer,
@@ -2694,7 +2692,7 @@ namespace kagome::parachain {
         peer,
         network::vstaging::AttestedCandidateRequest{
             .candidate_hash = candidate_hash,
-            .mask = um,
+            .mask = unwanted_mask,
         },
         [wptr{weak_from_this()},
          relay_parent{relay_parent},
