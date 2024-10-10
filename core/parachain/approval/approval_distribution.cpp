@@ -889,15 +889,15 @@ namespace kagome::parachain {
         result;
     if (auto candidate_entry = utils::get(candidates, candidate_index)) {
       for (const auto &[validator, assignment_bitfield] :
-           (*candidate_entry)->assignments) {
+           candidate_entry->get().assignments) {
         if (auto approval_entry =
                 utils::get(approval_entries,
                            std::make_pair(validator, assignment_bitfield))) {
           for (const auto &[approved_candidates, vote] :
-               (*approval_entry)->second.approvals) {
+               approval_entry->get().approvals) {
             if (candidate_index < approved_candidates.bits.size()
                 && approved_candidates.bits[candidate_index]) {
-              result[std::make_pair((*approval_entry)->second.validator_index,
+              result[std::make_pair(approval_entry->get().validator_index,
                                     approved_candidates)] = vote;
             }
           }
@@ -936,7 +936,7 @@ namespace kagome::parachain {
             const auto &candidate_entry = candidates[candidate_index];
             if (auto it = utils::get(candidate_entry.assignments,
                                      approval_value.payload.ix)) {
-              covered_assignments_bitfields.insert((*it)->second);
+              covered_assignments_bitfields.insert(it->get());
             }
           }
           return outcome::success();
@@ -946,7 +946,7 @@ namespace kagome::parachain {
       if (auto it = utils::get(
               approval_entries,
               std::make_pair(approval_value.payload.ix, assignment_bitfield))) {
-        auto &approval_entry = (*it)->second;
+        auto &approval_entry = it->get();
         OUTCOME_TRY(approval_entry.note_approval(approval_value));
 
         peers_randomly_routed_to.insert(

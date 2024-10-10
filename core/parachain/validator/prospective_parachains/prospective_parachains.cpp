@@ -72,7 +72,7 @@ namespace kagome::parachain {
     if (view().active_leaves.contains(relay_parent)) {
       if (auto leaf_data = utils::get(view().per_relay_parent, relay_parent)) {
         for (const auto &[para_id, fragment_chain] :
-             (*leaf_data)->second.fragment_chains) {
+             leaf_data->get().fragment_chains) {
           v.emplace_back(
               para_id,
               fragment_chain.get_scope().earliest_relay_parent().number);
@@ -112,7 +112,7 @@ namespace kagome::parachain {
       return {};
     }
 
-    auto chain_it = utils::get((*data)->second.fragment_chains, para);
+    auto chain_it = utils::get(data->get().fragment_chains, para);
     if (!chain_it) {
       SL_TRACE(logger,
                "Requested backable candidate for inactive para. "
@@ -122,7 +122,7 @@ namespace kagome::parachain {
       return {};
     }
 
-    auto &chain = (*chain_it)->second;
+    auto &chain = chain_it->get();
     SL_TRACE(logger,
              "Candidate chain for para. "
              "(relay_parent={}, para_id={}, best chain size={})",
@@ -242,13 +242,12 @@ namespace kagome::parachain {
         continue;
       }
 
-      auto fragment_chain_it =
-          utils::get((*data)->second.fragment_chains, para_id);
+      auto fragment_chain_it = utils::get(data->get().fragment_chains, para_id);
       if (!fragment_chain_it) {
         continue;
       }
 
-      auto &fragment_chain = (*fragment_chain_it)->second;
+      auto &fragment_chain = fragment_chain_it->get();
       if (head_data && relay_parent_info && max_pov_size) {
         break;
       }
@@ -559,7 +558,7 @@ namespace kagome::parachain {
         if (prev_fragment_chains) {
           if (auto prev_fragment_chain =
                   utils::get(prev_fragment_chains->get(), para)) {
-            chain.populate_from_previous((*prev_fragment_chain)->second);
+            chain.populate_from_previous(prev_fragment_chain->get());
           }
         }
 
@@ -649,14 +648,13 @@ namespace kagome::parachain {
         const ParachainId &para_id = candidatePara(candidate);
 
         auto fragment_chain =
-            utils::get((*leaf_view)->second.fragment_chains, para_id);
+            utils::get(leaf_view->get().fragment_chains, para_id);
         if (!fragment_chain) {
           continue;
         }
 
-        const auto res = (*fragment_chain)
-                             ->second.can_add_candidate_as_potential(
-                                 into_wrapper(candidate, hasher_));
+        const auto res = fragment_chain->get().can_add_candidate_as_potential(
+            into_wrapper(candidate, hasher_));
         if (res.has_value()
             || res.error()
                    == fragment::FragmentChainError::CANDIDATE_ALREADY_KNOWN) {
@@ -689,7 +687,7 @@ namespace kagome::parachain {
       const auto is_active_leaf = view().active_leaves.contains(relay_parent);
 
       found_para = true;
-      if ((*chain)->second.is_candidate_backed(candidate_hash)) {
+      if (chain->get().is_candidate_backed(candidate_hash)) {
         SL_TRACE(
             logger,
             "Received redundant instruction to mark as backed an already "
@@ -698,10 +696,9 @@ namespace kagome::parachain {
             is_active_leaf,
             candidate_hash);
         found_candidate = true;
-      } else if ((*chain)->second.contains_unconnected_candidate(
-                     candidate_hash)) {
+      } else if (chain->get().contains_unconnected_candidate(candidate_hash)) {
         found_candidate = true;
-        (*chain)->second.candidate_backed(candidate_hash);
+        chain->get().candidate_backed(candidate_hash);
 
         SL_TRACE(logger,
                  "Candidate backed. Candidate chain for para. (para={}, "
@@ -709,7 +706,7 @@ namespace kagome::parachain {
                  para,
                  relay_parent,
                  is_active_leaf,
-                 (*chain)->second.best_chain_len());
+                 chain->get().best_chain_len());
 
         SL_TRACE(logger,
                  "Potential candidate storage for para. (para={}, "
@@ -717,7 +714,7 @@ namespace kagome::parachain {
                  para,
                  relay_parent,
                  is_active_leaf,
-                 (*chain)->second.unconnected_len());
+                 chain->get().unconnected_len());
       }
     }
 
@@ -766,7 +763,7 @@ namespace kagome::parachain {
       const auto is_active_leaf = view().active_leaves.contains(relay_parent);
 
       para_scheduled = true;
-      if (auto res = (*chain)->second.try_adding_seconded_candidate(
+      if (auto res = chain->get().try_adding_seconded_candidate(
               candidate_entry.value());
           res.has_value()) {
         SL_TRACE(logger,

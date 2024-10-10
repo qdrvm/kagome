@@ -291,8 +291,8 @@ namespace kagome::parachain::grid {
     std::optional<ManifestKind> is_manifest_pending_for(
         ValidatorIndex validator, const CandidateHash &candidate_hash) const {
       if (auto m = utils::get(pending_manifests, validator)) {
-        if (auto x = utils::get((*m)->second, candidate_hash)) {
-          return (*x)->second;
+        if (auto x = utils::get(m->get(), candidate_hash)) {
+          return x->get();
         }
       }
       return std::nullopt;
