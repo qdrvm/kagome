@@ -2614,7 +2614,7 @@ namespace kagome::parachain {
              "Enumerate peers. (relay_parent={}, candidate_hash={})",
              relay_parent,
              candidate_hash);
-    std::optional<libp2p::peer::PeerId > target;
+    std::optional<libp2p::peer::PeerId> target;
     auto audi = query_audi_->get(peer);
     if (!audi) {
       SL_TRACE(logger_,
