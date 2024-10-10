@@ -92,7 +92,7 @@ namespace kagome::network {
           request.candidate,
           request.chunk_index);
 
-      auto res = pp_->OnFetchChunkRequest(std::move(request));
+      auto res = pp_->OnFetchChunkRequest(request);
       if (res.has_error()) {
         SL_ERROR(base_.logger(),
                  "Fetching chunk response failed.(error={})",
