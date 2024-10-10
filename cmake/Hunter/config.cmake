@@ -111,6 +111,12 @@ hunter_config(
     SHA1 177178b8acdf778f8aa9b61daa241f9d3c4e9f8c
 )
 
+hunter_config(lsquic
+    URL  https://github.com/qdrvm/lsquic/archive/883ececa99d2da9ba68b72dd5c987a4ed8cd75c2.zip
+    SHA1 bcea6ea51ee3aec10cccd779bf2690114ec8925f
+    KEEP_PACKAGE_SOURCES
+)
+
 hunter_config(
     erasure_coding_crust
 #    VERSION 0.0.8
