@@ -34,7 +34,7 @@ hunter_config(
 
 hunter_config(
     rocksdb
-    VERSION 9.0.0
+    VERSION 9.6.1
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
@@ -107,14 +107,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/883d3a2657526896e5964e3e15a0307dc65cc84f.tar.gz
-    SHA1 495c21429c7e3523c7abd6ec9eee8135140aff6b
-)
-
-hunter_config(lsquic
-    URL  https://github.com/qdrvm/lsquic/archive/958701ee1286f5ece3cd1354ee8df7d39ef24faf.zip
-    SHA1 397dae10ff52d56dadd2f11f6d8de759b6ab768f
-    KEEP_PACKAGE_SOURCES
+    URL https://github.com/libp2p/cpp-libp2p/archive/a820e24a88170bdcd7e93c821b6b3bd6f5f01a9b.tar.gz
+    SHA1 3bce83beb222906b390e73956a47fb4820729bce
 )
 
 hunter_config(
