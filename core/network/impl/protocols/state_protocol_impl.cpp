@@ -10,8 +10,8 @@
 #include "network/adapters/protobuf_state_response.hpp"
 #include "network/common.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/helpers/compressor/zstd_stream_compressor.h"
 #include "network/impl/protocols/protocol_error.hpp"
-
 namespace kagome::network {
 
   StateProtocolImpl::StateProtocolImpl(
@@ -19,11 +19,13 @@ namespace kagome::network {
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<StateProtocolObserver> state_observer)
-      : base_(kStateProtocolName,
-              host,
-              make_protocols(kStateProtocol, genesis_hash, chain_spec),
-              log::createLogger(kStateProtocolName, "state_protocol")),
-        state_observer_(std::move(state_observer)) {
+      : base_(kStateProtocolName
+              , host
+              , make_protocols(kStateProtocol, genesis_hash, chain_spec)
+              , log::createLogger(kStateProtocolName, "state_protocol"))
+              , state_observer_(std::move(state_observer))
+              // , state_response_compressor_(std::make_shared<ZstdStreamCompressor>())
+  {
     BOOST_ASSERT(state_observer_ != nullptr);
   }
 
@@ -228,7 +230,7 @@ namespace kagome::network {
           }
 
           stream->close([](auto &&...) {});
-        });
+        }, state_response_compressor_);
   }
 
   void StateProtocolImpl::writeRequest(
@@ -275,7 +277,7 @@ namespace kagome::network {
         });
   }
 
-  void StateProtocolImpl::readResponse(
+ void StateProtocolImpl::readResponse(
       std::shared_ptr<Stream> stream,
       std::function<void(outcome::result<StateResponse>)> &&response_handler) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
@@ -317,7 +319,7 @@ namespace kagome::network {
 
       stream->reset();
       response_handler(std::move(state_response));
-    });
+    }, state_response_compressor_);
   }
 
 }  // namespace kagome::network

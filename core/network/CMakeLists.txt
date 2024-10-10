@@ -32,6 +32,7 @@ add_library(network
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
     helpers/scale_message_read_writer.cpp
+    helpers/compressor/zstd_stream_compressor.cpp
     adapters/adapter_errors.cpp
     impl/protocols/protocol_req_pov.cpp
     warp/cache.cpp
