@@ -18,6 +18,7 @@ target_link_libraries(telemetry
     kagome_uri
     Boost::boost
     Boost::date_time
+    Boost::process
     OpenSSL::SSL
     RapidJSON::rapidjson
     p2p::p2p_asio_scheduler_backend
