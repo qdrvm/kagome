@@ -3344,7 +3344,24 @@ namespace kagome::parachain {
           .proof = chunk->proof,
       };
     }
-    return network::FetchChunkResponse{};
+    return network::Empty{};
+  }
+
+  outcome::result<network::FetchChunkResponseObsolete>
+  ParachainProcessorImpl::OnFetchChunkRequestObsolete(
+      const network::FetchChunkRequest &request) {
+    if (auto chunk =
+            av_store_->getChunk(request.candidate, request.chunk_index)) {
+      // This check needed because v1 protocol mustn't have chunk mapping
+      // https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/node/core/av-store/src/lib.rs#L1345
+      if (chunk->index == request.chunk_index) {
+        return network::ChunkObsolete{
+            .data = chunk->chunk,
+            .proof = chunk->proof,
+        };
+      }
+    }
+    return network::Empty{};
   }
 
   std::optional<
