@@ -2692,7 +2692,7 @@ namespace kagome::parachain {
         peer,
         network::vstaging::AttestedCandidateRequest{
             .candidate_hash = candidate_hash,
-            .mask = um,
+            .mask = unwanted_mask,
         },
         [wptr{weak_from_this()},
          relay_parent{relay_parent},
