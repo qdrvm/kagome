@@ -25,41 +25,57 @@ namespace kagome::utils {
     return std::nullopt;
   }
 
-  template <typename C> requires requires { typename C::mapped_type; }
-  inline std::optional<std::reference_wrapper<const typename C::mapped_type>> get(
-      const C &container, const typename C::key_type &key) {
-      if (auto it = container.find(key); it != container.end()) {
-        return {{it->second}};
-      }
-      return std::nullopt;
+  template <typename C>
+    requires requires { typename C::mapped_type; }
+  inline std::optional<std::reference_wrapper<const typename C::mapped_type>>
+  get(const C &container, const typename C::key_type &key) {
+    if (auto it = container.find(key); it != container.end()) {
+      return {{it->second}};
+    }
+    return std::nullopt;
   }
 
-  template <typename C> requires requires { typename C::mapped_type; }
+  template <typename C>
+    requires requires { typename C::mapped_type; }
   inline std::optional<std::reference_wrapper<typename C::mapped_type>> get(
       C &container, const typename C::key_type &key) {
-      if (auto it = container.find(key); it != container.end()) {
-        return {{it->second}};
-      }
-      return std::nullopt;
+    if (auto it = container.find(key); it != container.end()) {
+      return {{it->second}};
+    }
+    return std::nullopt;
   }
 
-template <typename C> requires requires { typename C::value_type; std::is_same_v<is_pair<typename C::value_type>, std::false_type>; }
-inline std::optional<std::reference_wrapper<const typename C::value_type>> get(
-    const C &container, const size_t &index) {
-    if (index < container.size()) {
-        return {{container[index]}};
-    }
-    return std::nullopt;
-}
+  template <typename>
+  struct is_pair : std::false_type {};
 
-template <typename C> requires requires { typename C::value_type; std::is_same_v<is_pair<typename C::value_type>, std::false_type>; }
-inline std::optional<std::reference_wrapper<typename C::value_type>> get(
-    C &container, const size_t &index) {
+  template <typename T, typename U>
+  struct is_pair<std::pair<T, U>> : std::true_type {};
+
+  template <typename C>
+    requires requires {
+      typename C::value_type;
+      std::is_same_v<is_pair<typename C::value_type>, std::false_type>;
+    }
+  inline std::optional<std::reference_wrapper<const typename C::value_type>>
+  get(const C &container, const size_t &index) {
     if (index < container.size()) {
-        return {{container[index]}};
+      return {{container[index]}};
     }
     return std::nullopt;
-}
+  }
+
+  template <typename C>
+    requires requires {
+      typename C::value_type;
+      std::is_same_v<is_pair<typename C::value_type>, std::false_type>;
+    }
+  inline std::optional<std::reference_wrapper<typename C::value_type>> get(
+      C &container, const size_t &index) {
+    if (index < container.size()) {
+      return {{container[index]}};
+    }
+    return std::nullopt;
+  }
 
   template <typename T>
   inline auto fromRefToOwn(
