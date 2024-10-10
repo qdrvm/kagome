@@ -88,7 +88,7 @@ jobs:
           - name: "Linux: clang-16 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
     name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
@@ -193,7 +193,7 @@ jobs:
           - name: "Minideb: Build Release"
             build-type: "Release"
     name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     container: qdrvm/kagome-dev:9-minideb
     steps:
@@ -209,7 +209,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   kagome_dev_docker_build_tidy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
     name: "Linux: clang-tidy"
 
