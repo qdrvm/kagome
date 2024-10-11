@@ -437,12 +437,6 @@ namespace kagome::parachain {
 
     using ManifestSummary = parachain::grid::ManifestSummary;
 
-    struct ManifestImportSuccess {
-      bool acknowledge;
-      ValidatorIndex sender_index;
-    };
-    using ManifestImportSuccessOpt = std::optional<ManifestImportSuccess>;
-
     /*
      * Validation.
      */
@@ -528,12 +522,6 @@ namespace kagome::parachain {
     void process_legacy_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::StatementDistributionMessage &msg);
-    outcome::result<void> handle_grid_statement(
-        const RelayHash &relay_parent,
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
-        grid::GridTracker &grid_tracker,
-        const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
-        ValidatorIndex grid_sender_index);
 
     /**
      * @brief Processes a vstaging statement.
@@ -554,112 +542,15 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
 
-    /// Checks whether a statement is allowed, whether the signature is
-    /// accurate,
-    /// and importing into the cluster tracker if successful.
-    ///
-    /// if successful, this returns a checked signed statement if it should be
-    /// imported or otherwise an error indicating a reputational fault.
-    outcome::result<std::optional<network::vstaging::SignedCompactStatement>>
-    handle_cluster_statement(
-        const RelayHash &relay_parent,
-        ClusterTracker &cluster_tracker,
-        SessionIndex session,
-        const runtime::SessionInfo &session_info,
-        const network::vstaging::SignedCompactStatement &statement,
-        ValidatorIndex cluster_sender_index);
-
     /// Check a statement signature under this parent hash.
-    outcome::result<
-        std::reference_wrapper<const network::vstaging::SignedCompactStatement>>
-    check_statement_signature(
-        SessionIndex session_index,
-        const std::vector<ValidatorId> &validators,
-        const RelayHash &relay_parent,
-        const network::vstaging::SignedCompactStatement &statement);
-    void handle_incoming_manifest(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateManifest &msg);
-    void handle_incoming_statement(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm);
-    void handle_incoming_acknowledgement(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateAcknowledgement
-            &acknowledgement);
-    void send_backing_fresh_statements(
-        const ConfirmedCandidate &confirmed,
-        const RelayHash &relay_parent,
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
-        const std::vector<ValidatorIndex> &group,
-        const CandidateHash &candidate_hash);
-    void apply_post_confirmation(const PostConfirmation &post_confirmation);
     std::optional<GroupIndex> group_for_para(
         const std::vector<runtime::CoreState> &availability_cores,
         const runtime::GroupDescriptor &group_rotation_info,
         ParachainId para_id) const;
-    void send_cluster_candidate_statements(const CandidateHash &candidate_hash,
-                                           const RelayHash &relay_parent);
-    void new_confirmed_candidate_fragment_chain_updates(
-        const HypotheticalCandidate &candidate);
-    void new_leaf_fragment_chain_updates(const Hash &leaf_hash);
-    void prospective_backed_notification_fragment_chain_updates(
-        ParachainId para_id, const Hash &para_head);
-    void fragment_chain_update_inner(
-        std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
-        std::optional<std::pair<std::reference_wrapper<const Hash>,
-                                ParachainId>> required_parent_info,
-        std::optional<std::reference_wrapper<const HypotheticalCandidate>>
-            known_hypotheticals);
-    void handleFetchedStatementResponse(
-        outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
-        const RelayHash &relay_parent,
-        const CandidateHash &candidate_hash,
-        GroupIndex group_index);
     outcome::result<consensus::Randomness> getBabeRandomness(
         const RelayHash &relay_parent);
     outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
     fetch_claim_queue(const RelayHash &relay_parent);
-    void request_attested_candidate(const libp2p::peer::PeerId &peer,
-                                    RelayParentState &relay_parent_state,
-                                    const RelayHash &relay_parent,
-                                    const CandidateHash &candidate_hash,
-                                    GroupIndex group_index);
-    ManifestImportSuccessOpt handle_incoming_manifest_common(
-        const libp2p::peer::PeerId &peer_id,
-        const CandidateHash &candidate_hash,
-        const RelayHash &relay_parent,
-        ManifestSummary manifest_summary,
-        ParachainId para_id,
-        grid::ManifestKind manifest_kind);
-    network::vstaging::StatementFilter local_knowledge_filter(
-        size_t group_size,
-        GroupIndex group_index,
-        const CandidateHash &candidate_hash,
-        const StatementStore &statement_store);
-    std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
-                         network::VersionedValidatorProtocolMessage>>
-    acknowledgement_and_statement_messages(
-        const libp2p::peer::PeerId &peer,
-        network::CollationVersion version,
-        ValidatorIndex validator_index,
-        const Groups &groups,
-        ParachainProcessorImpl::RelayParentState &relay_parent_state,
-        const RelayHash &relay_parent,
-        GroupIndex group_index,
-        const CandidateHash &candidate_hash,
-        const network::vstaging::StatementFilter &local_knowledge);
-    std::deque<network::VersionedValidatorProtocolMessage>
-    post_acknowledgement_statement_messages(
-        ValidatorIndex recipient,
-        const RelayHash &relay_parent,
-        grid::GridTracker &grid_tracker,
-        const StatementStore &statement_store,
-        const Groups &groups,
-        GroupIndex group_index,
-        const CandidateHash &candidate_hash,
-        const libp2p::peer::PeerId &peer,
-        network::CollationVersion version);
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
@@ -848,8 +739,6 @@ namespace kagome::parachain {
       BOOST_ASSERT(context);
       boost::asio::post(*context, std::forward<F>(func));
     }
-    void statementDistributionBackedCandidate(
-        const CandidateHash &candidate_hash);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              const primitives::BlockHash &relay_parent,
                              const network::CandidateHash &candidate_hash,
@@ -901,11 +790,6 @@ namespace kagome::parachain {
             &active_leaves,
         const std::unordered_map<primitives::BlockHash, RelayParentState>
             &per_relay_parent);
-    void provide_candidate_to_grid(
-        const CandidateHash &candidate_hash,
-        RelayParentState &relay_parent_state,
-        const ConfirmedCandidate &confirmed_candidate,
-        const runtime::SessionInfo &session_info);
 
     /**
      * The `create_backing_task` function is responsible for creating a new
