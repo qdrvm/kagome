@@ -180,34 +180,6 @@ jobs:
           BRANCH_NAME: ${{ github.ref }}
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
-  Minideb:
-    if: ${{ 
-      !(github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/' )) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Minideb: Build Debug"
-            build-type: "Debug"
-          - name: "Minideb: Build Release"
-            build-type: "Release"
-    name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    container: qdrvm/kagome-dev:9-minideb
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        if: ${{ env.USE_CACHE == 'true' }}
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: "${{ matrix.options.name }}"
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
-
   kagome_dev_docker_build_tidy:
     runs-on: ubuntu-24.04
     timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
