@@ -4588,7 +4588,7 @@ namespace kagome::parachain {
                 } break;
               }
             })) {
-      logger_->info("Initiated validation protocol with {}", peer_id);
+      logger_->debug("Initiated validation protocol with {}", peer_id);
     }
   }
 

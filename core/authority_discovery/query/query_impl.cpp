@@ -198,7 +198,7 @@ namespace kagome::authority_discovery {
                             hash = common::Buffer{crypto::sha256(authority)},
                             authority] {
         if (auto self = wp.lock()) {
-          SL_INFO(self->log_, "start lookup({})", common::hex_lower(authority));
+          SL_DEBUG(self->log_, "start lookup({})", common::hex_lower(authority));
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
@@ -215,7 +215,7 @@ namespace kagome::authority_discovery {
   outcome::result<void> QueryImpl::add(
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
-    SL_INFO(log_,
+    SL_TRACE(log_,
             "lookup : add addresses for authority {}, _res {}",
             common::hex_lower(authority),
             _res.has_value() ? "ok" : "error: " + _res.error().message());
@@ -250,7 +250,7 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery_v3::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
-      SL_ERROR(log_, "lookup: can't parse record from authority {}", authority);
+      SL_TRACE(log_, "lookup: can't parse record from authority {}", authority);
       return Error::DECODE_ERROR;
     }
     if (record.addresses().empty()) {
@@ -264,13 +264,13 @@ namespace kagome::authority_discovery {
                       qtils::str2byte(record.creation_time().timestamp())));
       time = *tmp;
       if (it != auth_to_peer_cache_.end() and time <= it->second.time) {
-        SL_INFO(log_, "lookup: outdated record for authority {}", authority);
+        SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }
     }
     libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
-    SL_INFO(log_,
+    SL_TRACE(log_,
             "lookup: adding {} addresses for authority {}",
             record.addresses().size(),
             authority);
