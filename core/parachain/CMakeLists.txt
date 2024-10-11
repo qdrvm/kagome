@@ -34,6 +34,7 @@ add_library(validator_parachain
     pvf/workers.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
+    validator/statement_distribution/statement_distribution.cpp
     validator/signer.cpp
     approval/approval_distribution.cpp
     approval/approval_distribution_error.cpp

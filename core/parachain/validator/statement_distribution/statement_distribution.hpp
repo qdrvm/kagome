@@ -19,13 +19,75 @@ namespace kagome::parachain::statement_distribution {
     StatementDistribution(
         std::shared_ptr<parachain::ValidatorSignerFactory> sf,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        ApprovalThreadPool &approval_thread_pool)
-        : per_session(RefCache<SessionIndex, PerSessionState>::create()),
-          signer_factory(std::move(sf)),
-          approval_thread_handler(poolHandlerReadyMake(
-              this, app_state_manager, approval_thread_pool, logger_)) {}
+        StatementDistributionThreadPool &statements_distribution_thread_pool);
 
-   public:
+    private:
+    std::optional<LocalValidatorState>
+    find_active_validator_state(
+        ValidatorIndex validator_index,
+        const Groups &groups,
+        const std::vector<runtime::CoreState> &availability_cores,
+        const runtime::GroupDescriptor &group_rotation_info,
+        const std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+        size_t seconding_limit,
+        size_t max_candidate_depth);
+
+    void handle_peer_view_update(const libp2p::peer::PeerId &peer_id,
+                          const network::View &view);
+
+    void send_peer_messages_for_relay_parent(
+        const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent);
+
+    /**
+     * @brief Sends peer messages corresponding for a given relay parent.
+     *
+     * @param peer_id Optional reference to the PeerId of the peer to send the
+     * messages to.
+     * @param relay_parent The hash of the relay parent block
+     */
+    std::optional<std::pair<std::vector<libp2p::peer::PeerId>,
+                            network::VersionedValidatorProtocolMessage>>
+    pending_statement_network_message(
+        const StatementStore &statement_store,
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer,
+        network::CollationVersion version,
+        ValidatorIndex originator,
+        const network::vstaging::CompactStatement &compact);
+
+    void send_pending_cluster_statements(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        PerRelayParentState &relay_parent_state);
+
+    void send_pending_grid_messages(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version,
+        ValidatorIndex peer_validator_id,
+        const Groups &groups,
+        PerRelayParentState &relay_parent_state);
+
+    void share_local_statement(
+        RelayParentState &per_relay_parent,
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement);
+
+    /**
+     * @brief Circulates a statement to the validators group.
+     * @param relay_parent The hash of the relay parent block. This is used to
+     * identify the group of validators to which the statement should be sent.
+     * @param statement The statement to be circulated. This is an indexed and
+     * signed compact statement.
+     */
+    void circulate_statement(
+        const RelayHash &relay_parent,
+        RelayParentState &relay_parent_state,
+        const IndexedAndSigned<network::vstaging::CompactStatement> &statement);
+
+   private:
     log::Logger logger =
         log::createLogger("StatementDistribution", "parachain");
 
@@ -38,7 +100,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
 
     /// worker thread
-    std::shared_ptr<PoolHandlerReady> approval_thread_handler;
+    std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
   };
 
 }  // namespace kagome::parachain::statement_distribution
