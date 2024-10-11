@@ -547,13 +547,13 @@ namespace kagome::parachain {
         main_pool_handler_
             ->isInCurrentThread());  // because of pm_->getPeerState(...)
 
-    TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
+    //TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
 
     network::CollationVersion version = network::CollationVersion::VStaging;
-    if (peer_state->get().collation_version) {
-      version = *peer_state->get().collation_version;
-    }
+//    if (peer_state->get().collation_version) {
+//      version = *peer_state->get().collation_version;
+//    }
 
     if (auto auth_id = query_audi_->get(peer_id)) {
       if (auto it = parachain_state->get().authority_lookup.find(*auth_id);
@@ -732,6 +732,7 @@ namespace kagome::parachain {
       if (keep) {
         ++it;
       } else {
+        our_current_state_.per_leaf.erase(hash);
         our_current_state_.implicit_view->deactivate_leaf(hash);
         it = our_current_state_.state_by_relay_parent.erase(it);
       }
@@ -1272,11 +1273,6 @@ namespace kagome::parachain {
       }
     } else {
       res = std::nullopt;
-    }
-
-    for (const auto &deactivated : lost) {
-      our_current_state_.per_leaf.erase(deactivated);
-      our_current_state_.implicit_view->deactivate_leaf(deactivated);
     }
 
     std::vector<
