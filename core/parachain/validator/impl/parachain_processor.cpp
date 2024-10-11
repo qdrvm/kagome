@@ -1360,7 +1360,7 @@ namespace kagome::parachain {
 
       ProspectiveParachainsModeOpt mode_;
       if (auto l = utils::get(our_current_state_.per_leaf, maybe_new)) {
-        mode_ = from((*l)->second);
+        mode_ = from(l->get());
       } else {
         mode_ = leaf_mode;
       }
@@ -2614,7 +2614,7 @@ namespace kagome::parachain {
              "Enumerate peers. (relay_parent={}, candidate_hash={})",
              relay_parent,
              candidate_hash);
-    std::optional<network::vstaging::StatementFilter> target;
+    std::optional<libp2p::peer::PeerId> target;
     auto audi = query_audi_->get(peer);
     if (!audi) {
       SL_TRACE(logger_,
@@ -2665,8 +2665,7 @@ namespace kagome::parachain {
     if (!backing_threshold
         || (filter->has_seconded()
             && filter->backing_validators() >= *backing_threshold)) {
-      network::vstaging::StatementFilter f(group->size());
-      target.emplace(std::move(f));
+      target.emplace(peer);
     } else {
       SL_TRACE(
           logger_,
@@ -2684,7 +2683,6 @@ namespace kagome::parachain {
       return;
     }
 
-    const auto &um = *target;
     SL_TRACE(logger_,
              "Requesting. (peer={}, relay_parent={}, candidate_hash={})",
              peer,
@@ -2694,7 +2692,7 @@ namespace kagome::parachain {
         peer,
         network::vstaging::AttestedCandidateRequest{
             .candidate_hash = candidate_hash,
-            .mask = um,
+            .mask = unwanted_mask,
         },
         [wptr{weak_from_this()},
          relay_parent{relay_parent},
@@ -3346,7 +3344,24 @@ namespace kagome::parachain {
           .proof = chunk->proof,
       };
     }
-    return network::FetchChunkResponse{};
+    return network::Empty{};
+  }
+
+  outcome::result<network::FetchChunkResponseObsolete>
+  ParachainProcessorImpl::OnFetchChunkRequestObsolete(
+      const network::FetchChunkRequest &request) {
+    if (auto chunk =
+            av_store_->getChunk(request.candidate, request.chunk_index)) {
+      // This check needed because v1 protocol mustn't have chunk mapping
+      // https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/node/core/av-store/src/lib.rs#L1345
+      if (chunk->index == request.chunk_index) {
+        return network::ChunkObsolete{
+            .data = chunk->chunk,
+            .proof = chunk->proof,
+        };
+      }
+    }
+    return network::Empty{};
   }
 
   std::optional<

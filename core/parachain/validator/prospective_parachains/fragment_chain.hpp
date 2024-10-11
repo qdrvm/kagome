@@ -165,11 +165,11 @@ namespace kagome::parachain::fragment {
 
       if (auto other_candidate =
               utils::get(best_chain.by_parent_head, parent_head_hash)) {
-        if (scope.get_pending_availability((*other_candidate)->second)) {
+        if (scope.get_pending_availability(other_candidate->get())) {
           return FragmentChainError::FORK_WITH_CANDIDATE_PENDING_AVAILABILITY;
         }
 
-        if (fork_selection_rule((*other_candidate)->second,
+        if (fork_selection_rule(other_candidate->get(),
                                 candidate.get_candidate_hash())) {
           return FragmentChainError::FORK_CHOICE_RULE;
         }
@@ -182,7 +182,7 @@ namespace kagome::parachain::fragment {
             best_chain.chain.begin(),
             best_chain.chain.end(),
             [&](const auto &c) {
-              return c.candidate_hash == (*parent_candidate_)->second;
+              return c.candidate_hash == parent_candidate_->get();
             });
         if (parent_candidate == best_chain.chain.end()) {
           return FragmentChainError::PARENT_CANDIDATE_NOT_FOUND;

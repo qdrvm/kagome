@@ -166,6 +166,9 @@ namespace kagome::dispute {
     SessionInfo session;
     /// Validator indices controlled by this node.
     std::unordered_set<ValidatorIndex> controlled_indices{};
+    /// Indices of on-chain disabled validators at the `relay_parent` combined
+    /// with the off-chain state.
+    std::unordered_set<ValidatorIndex> disabled_indices{};
   };
 
   /// The status of an activated leaf.

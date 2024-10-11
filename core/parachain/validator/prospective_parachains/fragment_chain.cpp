@@ -377,22 +377,21 @@ namespace kagome::parachain::fragment {
       }
 
       Vec<Hash> to_remove;
-      for (const auto &child_hash : (*children)->second) {
+      for (const auto &child_hash : children->get()) {
         auto child = utils::get(storage.by_candidate_hash, child_hash);
         if (!child) {
           continue;
         }
 
-        if (visited.contains((*child)->second.output_head_data_hash)) {
+        if (visited.contains(child->get().output_head_data_hash)) {
           continue;
         }
 
-        if (parent_has_potential
-            && check_potential((*child)->second).has_value()) {
-          queue.emplace_back((*child)->second.output_head_data_hash, true);
+        if (parent_has_potential && check_potential(child->get()).has_value()) {
+          queue.emplace_back(child->get().output_head_data_hash, true);
         } else {
           to_remove.emplace_back(child_hash);
-          queue.emplace_back((*child)->second.output_head_data_hash, false);
+          queue.emplace_back(child->get().output_head_data_hash, false);
         }
       }
 
