@@ -29,8 +29,8 @@ RUN install_packages \
 
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
-        tee -a /etc/apt/sources.list.d/llvm.list \
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list \
+        tee -a /etc/apt/sources.list.d/llvm.list
+RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list
 
 RUN install_packages \
         build-essential \
