@@ -58,6 +58,15 @@ jobs:
   MacOS:
     runs-on: macos-15
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "MacOS: Build Debug"
+            build_type: "Debug"
+          - name: "MacOS: Build Release"
+            build_type: "Release"
+    name: "${{ matrix.options.name }}"
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4
@@ -70,7 +79,7 @@ jobs:
       env:
         KAGOME_MAC_CI: 1
     - name: build
-      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.options.build_type }} -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
