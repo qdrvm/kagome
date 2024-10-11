@@ -37,7 +37,7 @@ namespace kagome::parachain::statement_distribution {
     std::optional<ActiveValidatorState> active;
   };
 
-  struct RelayParentState {
+  struct PerRelayParentState {
     std::optional<LocalValidatorState> local_validator;
     StatementStore statement_store;
     size_t seconding_limit;
