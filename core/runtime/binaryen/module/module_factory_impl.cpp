@@ -35,6 +35,9 @@ namespace kagome::runtime::binaryen {
       std::filesystem::path path_compiled,
       BufferView code,
       const RuntimeContext::ContextParams &config) const {
+    if (config.wasm_ext_bulk_memory) {
+      return CompilationError{"bulk memory is not supported"};
+    }
     OUTCOME_TRY(writeFileTmp(path_compiled, code));
     return outcome::success();
   }
