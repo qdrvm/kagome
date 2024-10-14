@@ -19,6 +19,22 @@ target_link_libraries(grid_tracker
     outcome
     )
 
+add_library(statement_distribution
+    validator/statement_distribution/statement_distribution.cpp
+)
+target_link_libraries(statement_distribution
+    grid_tracker
+    key_store
+    dispute_coordinator
+    module_repository
+    network
+    erasure_coding_crust::ec-cpp
+    waitable_timer
+    kagome_pvf_worker
+    runtime_common
+    prospective_parachains
+)
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -34,7 +50,6 @@ add_library(validator_parachain
     pvf/workers.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
-    validator/statement_distribution/statement_distribution.cpp
     validator/signer.cpp
     approval/approval_distribution.cpp
     approval/approval_distribution_error.cpp
@@ -45,6 +60,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
+    statement_distribution
     grid_tracker
     key_store
     dispute_coordinator
