@@ -18,6 +18,8 @@
 namespace kagome::parachain::statement_distribution {
 
   using LocalValidatorIndex = std::optional<ValidatorIndex>;
+  using PeerUseCount =
+      SafeObject<std::unordered_map<primitives::AuthorityDiscoveryId, size_t>>;
 
   struct PerSessionState final {
     PerSessionState(const PerSessionState &) = delete;
@@ -31,19 +33,24 @@ namespace kagome::parachain::statement_distribution {
     Groups groups;
     std::optional<grid::Views> grid_view;
     LocalValidatorIndex local_validator;
+    std::optional<ValidatorIndex> our_index;
+    std::optional<GroupIndex> our_group;
+    std::shared_ptr<PeerUseCount> peers;
+    std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
+        authority_lookup;
 
     PerSessionState(SessionIndex _session,
                     runtime::SessionInfo _session_info,
                     Groups &&_groups,
                     grid::Views &&_grid_view,
                     std::optional<ValidatorIndex> _our_index,
-                    std::shared_ptr<PeerUseCount> peers)
+                    std::shared_ptr<PeerUseCount> _peers)
         : session{_session},
           session_info{std::move(_session_info)},
           groups{std::move(_groups)},
           grid_view{std::move(_grid_view)},
           our_index{_our_index},
-          peers{std::move(peers)} {
+          peers(std::move(_peers)) {
       if (our_index) {
         our_group = groups.byValidatorIndex(*our_index);
       }

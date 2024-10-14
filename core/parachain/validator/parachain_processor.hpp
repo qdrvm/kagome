@@ -22,7 +22,6 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
-#include "network/can_disconnect.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
@@ -40,6 +39,8 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
+#include "parachain/validator/statement_distribution/types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
@@ -99,7 +100,6 @@ namespace kagome::parachain {
 
   struct ParachainProcessorImpl
       : BackedCandidatesSource,
-        network::CanDisconnect,
         std::enable_shared_from_this<ParachainProcessorImpl> {
     enum class Error {
       RESPONSE_ALREADY_RECEIVED = 1,
@@ -170,8 +170,9 @@ namespace kagome::parachain {
         std::shared_ptr<ProspectiveParachains> prospective_parachains,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<consensus::babe::BabeConfigRepository>
-            babe_config_repo);
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<statement_distribution::StatementDistribution>
+            statement_distribution);
     ~ParachainProcessorImpl() = default;
 
     /**
@@ -250,10 +251,6 @@ namespace kagome::parachain {
     outcome::result<network::FetchChunkResponseObsolete>
     OnFetchChunkRequestObsolete(const network::FetchChunkRequest &request);
 
-    outcome::result<network::vstaging::AttestedCandidateResponse>
-    OnFetchAttestedCandidateRequest(
-        const network::vstaging::AttestedCandidateRequest &request,
-        const libp2p::peer::PeerId &peer_id);
     outcome::result<BlockNumber> get_block_number_under_construction(
         const RelayHash &relay_parent) const;
     bool bitfields_indicate_availability(
@@ -271,9 +268,6 @@ namespace kagome::parachain {
      */
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
-
-    // CanDisconnect
-    bool canDisconnect(const libp2p::PeerId &) const override;
 
     /**
      * @brief Fetches the Proof of Validity (PoV) for a given candidate.
@@ -336,20 +330,6 @@ namespace kagome::parachain {
           validity_votes;
     };
 
-    struct StatementWithPVDSeconded {
-      network::CommittedCandidateReceipt committed_receipt;
-      runtime::PersistedValidationData pvd;
-    };
-
-    struct StatementWithPVDValid {
-      CandidateHash candidate_hash;
-    };
-
-    using StatementWithPVD =
-        boost::variant<StatementWithPVDSeconded, StatementWithPVDValid>;
-
-    using SignedFullStatementWithPVD = IndexedAndSigned<StatementWithPVD>;
-
     /**
      * @brief Converts a SignedFullStatementWithPVD to an IndexedAndSigned
      * CompactStatement.
@@ -380,9 +360,6 @@ namespace kagome::parachain {
       };
     }
 
-    using PeerUseCount = SafeObject<
-        std::unordered_map<primitives::AuthorityDiscoveryId, size_t>>;
-
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<CoreIndex> assigned_core;
@@ -397,8 +374,6 @@ namespace kagome::parachain {
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
       uint32_t minimum_backing_votes;
-      std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
-          authority_lookup;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -407,20 +382,6 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes;
 
       bool inject_core_index;
-
-      bool is_disabled(ValidatorIndex validator_index) const {
-        return disabled_validators.contains(validator_index);
-      }
-
-      scale::BitVec disabled_bitmask(
-          const std::span<const ValidatorIndex> &group) const {
-        scale::BitVec v;
-        v.bits.resize(group.size());
-        for (size_t ix = 0; ix < group.size(); ++ix) {
-          v.bits[ix] = is_disabled(group[ix]);
-        }
-        return v;
-      }
     };
 
     /**
@@ -434,8 +395,6 @@ namespace kagome::parachain {
       ParachainId para_id;
       Hash relay_parent;
     };
-
-    using ManifestSummary = parachain::grid::ManifestSummary;
 
     /*
      * Validation.
@@ -660,8 +619,7 @@ namespace kagome::parachain {
     std::optional<network::SignedStatement> createAndSignStatement(
         const ValidateAndSecondResult &validation_result);
     template <ParachainProcessorImpl::StatementType kStatementType>
-    outcome::result<
-        std::optional<ParachainProcessorImpl::SignedFullStatementWithPVD>>
+    outcome::result<std::optional<SignedFullStatementWithPVD>>
     sign_import_and_distribute_statement(
         ParachainProcessorImpl::RelayParentState &rp_state,
         const ValidateAndSecondResult &validation_result);
@@ -976,7 +934,6 @@ namespace kagome::parachain {
     primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
     primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
-    std::shared_ptr<PeerUseCount> peer_use_count_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 
@@ -985,6 +942,8 @@ namespace kagome::parachain {
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<statement_distribution::StatementDistribution>
+        statement_distribution;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;

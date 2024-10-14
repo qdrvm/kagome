@@ -15,6 +15,7 @@
 #include "parachain/backing/grid_tracker.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/impl/statements_store.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::parachain::statement_distribution {
 
@@ -45,7 +46,8 @@ namespace kagome::parachain::statement_distribution {
     std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
     std::unordered_set<ValidatorIndex> disabled_validators;
 
-    std::optional<const ActiveValidatorState &> active_validator_state() const {
+    std::optional<std::reference_wrapper<const ActiveValidatorState>>
+    active_validator_state() const {
       if (local_validator && local_validator->active) {
         return local_validator->active.value();
       }

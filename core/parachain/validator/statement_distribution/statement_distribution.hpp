@@ -8,27 +8,90 @@
 
 #include <parachain/validator/backing_implicit_view.hpp>
 #include <parachain/validator/statement_distribution/per_relay_parent_state.hpp>
+#include "authority_discovery/query/query.hpp"
 #include "common/ref_cache.hpp"
+#include "network/can_disconnect.hpp"
+#include "network/peer_manager.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/validator/impl/candidates.hpp"
+#include "parachain/validator/signer.hpp"
+#include "parachain/validator/statement_distribution/per_session_state.hpp"
+#include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+
+namespace kagome::parachain {
+  struct ParachainProcessorImpl;
+}
 
 namespace kagome::parachain::statement_distribution {
 
   struct StatementDistribution
-      : std::enable_shared_from_this<StatementDistribution> {
+      : std::enable_shared_from_this<StatementDistribution>,
+        network::CanDisconnect {
+    enum class Error {
+      RESPONSE_ALREADY_RECEIVED = 1,
+      COLLATION_NOT_FOUND,
+      KEY_NOT_PRESENT,
+      VALIDATION_FAILED,
+      VALIDATION_SKIPPED,
+      OUT_OF_VIEW,
+      DUPLICATE,
+      NO_INSTANCE,
+      NOT_A_VALIDATOR,
+      NOT_SYNCHRONIZED,
+      UNDECLARED_COLLATOR,
+      PEER_LIMIT_REACHED,
+      PROTOCOL_MISMATCH,
+      NOT_CONFIRMED,
+      NO_STATE,
+      NO_SESSION_INFO,
+      OUT_OF_BOUND,
+      REJECTED_BY_PROSPECTIVE_PARACHAINS,
+      INCORRECT_BITFIELD_SIZE,
+      CORE_INDEX_UNAVAILABLE,
+      INCORRECT_SIGNATURE,
+      CLUSTER_TRACKER_ERROR,
+      PERSISTED_VALIDATION_DATA_NOT_FOUND,
+      PERSISTED_VALIDATION_DATA_MISMATCH,
+      CANDIDATE_HASH_MISMATCH,
+      PARENT_HEAD_DATA_MISMATCH,
+      NO_PEER,
+      ALREADY_REQUESTED,
+      NOT_ADVERTISED,
+      WRONG_PARA,
+      THRESHOLD_LIMIT_REACHED,
+    };
+
     StatementDistribution(
         std::shared_ptr<parachain::ValidatorSignerFactory> sf,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        StatementDistributionThreadPool &statements_distribution_thread_pool);
+        StatementDistributionThreadPool &statements_distribution_thread_pool,
+        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<runtime::ParachainHost> parachain_host,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<authority_discovery::Query> query_audi);
 
     void statementDistributionBackedCandidate(
         const CandidateHash &candidate_hash);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
-                                    RelayParentState &relay_parent_state,
+                                    PerRelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
+
+    outcome::result<network::vstaging::AttestedCandidateResponse>
+    OnFetchAttestedCandidateRequest(
+        const network::vstaging::AttestedCandidateRequest &request,
+        const libp2p::peer::PeerId &peer_id);
+
+    // CanDisconnect
+    bool can_disconnect(const libp2p::PeerId &) const override;
+    void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp) {
+      BOOST_ASSERT(!pp.expired());
+      parachain_processor = std::move(pp);
+    }
+    bool tryStart();
 
    private:
     struct ManifestImportSuccess {
@@ -36,6 +99,12 @@ namespace kagome::parachain::statement_distribution {
       ValidatorIndex sender_index;
     };
     using ManifestImportSuccessOpt = std::optional<ManifestImportSuccess>;
+    using ManifestSummary = parachain::grid::ManifestSummary;
+
+    std::optional<std::reference_wrapper<PerRelayParentState>>
+    tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
+    outcome::result<std::reference_wrapper<PerRelayParentState>>
+    getStateByRelayParent(const primitives::BlockHash &relay_parent);
 
     void handle_response(
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
@@ -94,7 +163,7 @@ namespace kagome::parachain::statement_distribution {
                                     const Groups &groups,
                                     PerRelayParentState &relay_parent_state);
 
-    void share_local_statement(RelayParentState &per_relay_parent,
+    void share_local_statement(PerRelayParentState &per_relay_parent,
                                const primitives::BlockHash &relay_parent,
                                const SignedFullStatementWithPVD &statement);
 
@@ -107,7 +176,7 @@ namespace kagome::parachain::statement_distribution {
      */
     void circulate_statement(
         const RelayHash &relay_parent,
-        RelayParentState &relay_parent_state,
+        PerRelayParentState &relay_parent_state,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement);
 
     outcome::result<
@@ -139,17 +208,16 @@ namespace kagome::parachain::statement_distribution {
 
     outcome::result<void> handle_grid_statement(
         const RelayHash &relay_parent,
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
+        PerRelayParentState &per_relay_parent,
         grid::GridTracker &grid_tracker,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
         ValidatorIndex grid_sender_index);
 
-    void send_backing_fresh_statements(
-        const ConfirmedCandidate &confirmed,
-        const RelayHash &relay_parent,
-        ParachainProcessorImpl::RelayParentState &per_relay_parent,
-        const std::vector<ValidatorIndex> &group,
-        const CandidateHash &candidate_hash);
+    void send_backing_fresh_statements(const ConfirmedCandidate &confirmed,
+                                       const RelayHash &relay_parent,
+                                       PerRelayParentState &per_relay_parent,
+                                       const std::vector<ValidatorIndex> &group,
+                                       const CandidateHash &candidate_hash);
 
     network::vstaging::StatementFilter local_knowledge_filter(
         size_t group_size,
@@ -159,7 +227,7 @@ namespace kagome::parachain::statement_distribution {
 
     void provide_candidate_to_grid(
         const CandidateHash &candidate_hash,
-        RelayParentState &relay_parent_state,
+        PerRelayParentState &relay_parent_state,
         const ConfirmedCandidate &confirmed_candidate,
         const runtime::SessionInfo &session_info);
 
@@ -213,7 +281,7 @@ namespace kagome::parachain::statement_distribution {
         network::CollationVersion version,
         ValidatorIndex validator_index,
         const Groups &groups,
-        ParachainProcessorImpl::RelayParentState &relay_parent_state,
+        PerRelayParentState &relay_parent_state,
         const RelayHash &relay_parent,
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
@@ -233,11 +301,17 @@ namespace kagome::parachain::statement_distribution {
     std::unordered_map<primitives::BlockHash, PerRelayParentState>
         per_relay_parent;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
-    std::unordered_map<libp2p::peer::PeerId, PeerState> peers;
+    std::unordered_map<libp2p::peer::PeerId, network::PeerState> peers;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
+    std::shared_ptr<PeerUseCount> peer_use_count;
 
     /// worker thread
     std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
+    std::shared_ptr<authority_discovery::Query> query_audi;
+    std::weak_ptr<ParachainProcessorImpl> parachain_processor;
   };
 
 }  // namespace kagome::parachain::statement_distribution
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::statement_distribution,
+                          StatementDistribution::Error);
