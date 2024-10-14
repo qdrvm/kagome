@@ -90,7 +90,8 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<ProspectiveParachains> prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<authority_discovery::Query> _query_audi)
+      std::shared_ptr<authority_discovery::Query> _query_audi,
+      std::shared_ptr<NetworkBridge> _network_bridge)
       : implicit_view(
             prospective_parachains, parachain_host, block_tree, std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
@@ -102,7 +103,7 @@ namespace kagome::parachain::statement_distribution {
                                  logger)),
         peer_use_count(
             std::make_shared<decltype(peer_use_count)::element_type>()),
-        query_audi(std::move(_query_audi)) {}
+        query_audi(std::move(_query_audi)), network_bridge(std::move(_network_bridge)) {}
 
   /* handle active leaves sub
 remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
@@ -250,8 +251,8 @@ self->handle_peer_view_update(peer_id, view);
       const primitives::BlockHash &relay_parent) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
-    const auto it = our_current_state_.state_by_relay_parent.find(relay_parent);
-    if (it != our_current_state_.state_by_relay_parent.end()) {
+    const auto it = per_relay_parent.find(relay_parent);
+    if (it != per_relay_parent.end()) {
       return it->second;
     }
     return std::nullopt;
@@ -268,8 +269,8 @@ self->handle_peer_view_update(peer_id, view);
     return Error::OUT_OF_VIEW;
   }
 
-  outcome::result<network::vstaging::AttestedCandidateResponse>
-  StatementDistribution::OnFetchAttestedCandidateRequest(
+  //outcome::result<network::vstaging::AttestedCandidateResponse>
+  void StatementDistribution::OnFetchAttestedCandidateRequest(
       const network::vstaging::AttestedCandidateRequest &request,
       const libp2p::peer::PeerId &peer_id) {
     REINVOKE(*statements_distribution_thread_handler,
@@ -419,11 +420,11 @@ self->handle_peer_view_update(peer_id, view);
       }
     }
 
-    return network::vstaging::AttestedCandidateResponse{
+    network_bridge->send_response(stream, protocol, std::make_shared<network::vstaging::AttestedCandidateResponse>(network::vstaging::AttestedCandidateResponse{
         .candidate_receipt = confirmed->get().receipt,
         .persisted_validation_data = confirmed->get().persisted_validation_data,
         .statements = std::move(statements),
-    };
+    }));
   }
 
   void StatementDistribution::handle_peer_view_update(
@@ -432,7 +433,7 @@ self->handle_peer_view_update(peer_id, view);
     TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer));
 
     auto fresh_implicit = peer_state->get().update_view(
-        new_view, *our_current_state_.implicit_view);
+        new_view, implicit_view);
     for (const auto &new_relay_parent : fresh_implicit) {
       send_peer_messages_for_relay_parent(peer, new_relay_parent);
     }

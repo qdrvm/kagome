@@ -60,16 +60,9 @@ namespace kagome::network {
       base().logger()->info(
           "Fetching attested candidate request.(candidate={})",
           request.candidate_hash);
-      auto res = statement_distribution_->OnFetchAttestedCandidateRequest(
+      statement_distribution_->OnFetchAttestedCandidateRequest(
           std::move(request), stream->remotePeerId().value());
-      if (res.has_error()) {
-        base().logger()->error(
-            "Fetching attested candidate response failed.(error={})",
-            res.error());
-      } else {
-        SL_TRACE(base().logger(), "Fetching attested candidate response.");
-      }
-      return res;
+      return std::nullopt;
     }
 
     void onTxRequest(const RequestType &request) override {

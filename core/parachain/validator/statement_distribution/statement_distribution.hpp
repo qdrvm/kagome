@@ -18,6 +18,7 @@
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "parachain/validator/network_bridge.hpp"
 
 namespace kagome::parachain {
   struct ParachainProcessorImpl;
@@ -69,7 +70,8 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<ProspectiveParachains> prospective_parachains,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<authority_discovery::Query> query_audi);
+        std::shared_ptr<authority_discovery::Query> query_audi,
+        std::shared_ptr<NetworkBridge> network_bridge);
 
     void statementDistributionBackedCandidate(
         const CandidateHash &candidate_hash);
@@ -80,8 +82,8 @@ namespace kagome::parachain::statement_distribution {
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
 
-    outcome::result<network::vstaging::AttestedCandidateResponse>
-    OnFetchAttestedCandidateRequest(
+    //outcome::result<network::vstaging::AttestedCandidateResponse>
+    void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
         const libp2p::peer::PeerId &peer_id);
 
@@ -305,10 +307,12 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
     std::shared_ptr<PeerUseCount> peer_use_count;
 
+
     /// worker thread
     std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
     std::shared_ptr<authority_discovery::Query> query_audi;
     std::weak_ptr<ParachainProcessorImpl> parachain_processor;
+    std::shared_ptr<NetworkBridge> network_bridge;
   };
 
 }  // namespace kagome::parachain::statement_distribution

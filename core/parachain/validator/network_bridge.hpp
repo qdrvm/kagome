@@ -8,6 +8,7 @@
 
 #include <memory>
 #include "common/main_thread_pool.hpp"
+#include "network/peer_manager.hpp"
 
 namespace kagome::parachain {
 
