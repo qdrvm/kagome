@@ -60,7 +60,9 @@ namespace kagome::runtime::wasm_edge {
         BufferView code,
         const RuntimeContext::ContextParams &config) const override;
     CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
-        std::filesystem::path path_compiled) const override;
+        std::filesystem::path path_compiled,
+        const std::optional<RuntimeContext::ContextParams> config)
+        const override;
 
    private:
     std::shared_ptr<const crypto::Hasher> hasher_;

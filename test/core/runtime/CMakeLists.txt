@@ -50,6 +50,10 @@ target_link_libraries(uncompress_code_test
 addtest(executor_test
     executor_test.cpp
     )
+addtest(wasm_test
+    wasm_test.cpp
+    )
+
 target_link_libraries(executor_test
     executor
     basic_code_provider
@@ -57,6 +61,15 @@ target_link_libraries(executor_test
     logger
     log_configurator
     module_repository
+    )
+
+target_link_libraries(wasm_test
+    binaryen_module_factory
+    GTest::gmock
+    logger_for_tests
+    runtime_wasm_edge
+    zstd::libzstd_static
+    WasmEdge::WasmEdge
     )
 
 addtest(runtime_upgrade_tracker_test

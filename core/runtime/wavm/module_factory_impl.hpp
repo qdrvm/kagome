@@ -56,7 +56,9 @@ namespace kagome::runtime::wavm {
         BufferView code,
         const RuntimeContext::ContextParams &config) const override;
     CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
-        std::filesystem::path path_compiled) const override;
+        std::filesystem::path path_compiled,
+        const std::optional<RuntimeContext::ContextParams> config)
+        const override;
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;

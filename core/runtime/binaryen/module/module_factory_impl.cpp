@@ -40,10 +40,16 @@ namespace kagome::runtime::binaryen {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
+      std::filesystem::path path_compiled,
+      const std::optional<RuntimeContext::ContextParams> config) const {
     Buffer code;
     if (not readFile(code, path_compiled)) {
       return CompilationError{"read file failed"};
+    }
+    if (config) {
+      if (config->wasm_ext_bulk_memory) {
+        return CompilationError{"bulk memory is not supported"};
+      }
     }
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(

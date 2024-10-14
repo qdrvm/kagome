@@ -63,7 +63,9 @@ namespace kagome::runtime {
      * Load compiled code from `path_compiled`.
      */
     virtual CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
-        std::filesystem::path path_compiled) const = 0;
+        std::filesystem::path path_compiled,
+        const std::optional<RuntimeContext::ContextParams> config =
+            std::nullopt) const = 0;
   };
 
 }  // namespace kagome::runtime

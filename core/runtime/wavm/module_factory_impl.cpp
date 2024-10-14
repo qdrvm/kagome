@@ -96,7 +96,8 @@ namespace kagome::runtime::wavm {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
+      std::filesystem::path path_compiled,
+      const std::optional<RuntimeContext::ContextParams> config) const {
     Buffer file;
     if (not readFile(file, path_compiled)) {
       return CompilationError{"read file failed"};
