@@ -4504,7 +4504,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(protocol);
     CHECK_OR_RET(canProcessParachains().has_value());
 
-    SL_INFO(logger_,
+    SL_DEBUG(logger_,
             "Send my view.(peer={}, protocol={})",
             peer_id,
             protocol->protocolName());
