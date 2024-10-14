@@ -1477,11 +1477,26 @@ namespace kagome::dispute {
 
       auto res = participation_->queue_participation(priority, request);
       if (res.has_error()) {
-        SL_ERROR(log_, "Error of participation: {}", res.error());
+        SL_ERROR(log_,
+                 "Error of participation for candidate "
+                 "(session={}, candidate={}): {}",
+                 session,
+                 candidate_hash,
+                 res.error());
+      } else {
+        SL_TRACE(log_,
+                 "Trying to participate for candidate "
+                 "(session={}, candidate={})",
+                 session,
+                 candidate_hash);
       }
 
     } else {
-      SL_DEBUG(log_, "Will not queue participation for candidate");
+      SL_DEBUG(log_,
+               "Will not queue participation for candidate "
+               "(session={}, candidate={})",
+               session,
+               candidate_hash);
     }
 
     // Also send any already existing approval vote on new disputes:
