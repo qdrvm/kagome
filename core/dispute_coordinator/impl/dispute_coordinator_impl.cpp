@@ -1463,12 +1463,10 @@ namespace kagome::dispute {
     // - `is_included` lands in prioritized queue
     // - `is_confirmed` | `is_backed` lands in the best effort queue
     // We don't participate in disputes escalated by disabled validators only.
-    // We don't participate in disputes on finalized candidates.
-    // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:907
+    // see:
+    // https://github.com/paritytech/polkadot-sdk/blob/b16237ad6f019667a59b0e3e726f6ac20e2d0a1c/polkadot/node/core/dispute-coordinator/src/initialized.rs#L1184
 
-    if (own_vote_missing                      //
-        and is_disputed and not is_postponed  //
-        and allow_participation) {
+    if (own_vote_missing and is_disputed and allow_participation) {
       auto priority = static_cast<ParticipationPriority>(is_included);
 
       auto &receipt = new_state.votes.candidate_receipt;
