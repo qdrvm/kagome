@@ -9,6 +9,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 set(FLAGS
     -fsanitize=undefined
     -fno-omit-frame-pointer
+    -fno-sanitize-recover=all
     -g
     )
 if (UBSAN_ABORT) 
