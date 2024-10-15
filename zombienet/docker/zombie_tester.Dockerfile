@@ -128,3 +128,8 @@ RUN install_packages  \
       libseccomp2 \
       libatomic1 \
       ssh
+
+# temporary fix for libc6 (gcc-13)
+# TODO: remove when CI swithed to trixie
+RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list && apt update
+RUN apt install -y libc6 libstdc++6 libgcc-s1 -t trixie
