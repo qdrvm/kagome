@@ -58,6 +58,12 @@ struct SafeObject {
   }
 
   template <typename F>
+  inline auto exclusiveConstAccess(F &&f) const {
+    std::unique_lock lock(cs_);
+    return std::forward<F>(f)(t_);
+  }
+
+  template <typename F>
   inline auto sharedAccess(F &&f) const {
     std::shared_lock lock(cs_);
     return std::forward<F>(f)(t_);

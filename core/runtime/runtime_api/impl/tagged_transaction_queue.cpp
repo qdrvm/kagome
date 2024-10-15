@@ -30,19 +30,27 @@ namespace kagome::runtime {
             const std::string &reason) {
     constexpr auto kDumpDir = "/chain-data/dump";
 
-    static std::optional<bool> dumps_allowed = std::nullopt;
-    if (!dumps_allowed) {
-      dumps_allowed = std::filesystem::is_empty(kDumpDir);
-      if (!*dumps_allowed) {
-        std::ofstream marker;
-        marker.open(std::string(kDumpDir) + "/fin.txt", std::ios::app);
-        marker << "Node started. Dumping disabled. Directory is not empty.\n";
-        marker.close();
-      }
+    auto kFinPath = std::filesystem::path(kDumpDir) / "fin.txt";
+    static bool fin_updated = false;
+
+    using dit = std::filesystem::directory_iterator;
+    const size_t existing_files = std::distance(dit(kDumpDir), dit{});
+    bool fin_exists = std::filesystem::exists(kFinPath);
+    size_t dump_files = existing_files;
+    if (fin_exists) {
+      dump_files -= 1;
     }
 
-    if (!*dumps_allowed) {
-      return;
+    if (!fin_updated) {
+      fin_updated = true;
+
+      if (dump_files) {
+        std::ofstream marker;
+        marker.open(kFinPath, std::ios::app);
+        marker << "Node started. The last dump file of previous launch is "
+               << dump_files << ".txt\n";
+        marker.close();
+      }
     }
 
     std::ostringstream dump_data;
@@ -62,8 +70,8 @@ namespace kagome::runtime {
     static std::optional<size_t> next_file = std::nullopt;
     if (!next_file) {
       using dit = std::filesystem::directory_iterator;
-      const size_t existing_files = std::distance(dit(kDumpDir), dit{});
-      next_file = existing_files;
+      // const size_t existing_files = std::distance(dit(kDumpDir), dit{});
+      next_file = dump_files;
     }
     *next_file += 1;
     const auto path_and_file =

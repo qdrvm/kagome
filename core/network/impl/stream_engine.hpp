@@ -109,7 +109,7 @@ namespace kagome::network {
       BOOST_ASSERT(protocol != nullptr);
 
       bool was_sent = false;
-      streams_.sharedAccess([&](const auto &streams) {
+      streams_.exclusiveAccess([&](const auto &streams) { //sharedAccess
         forPeerProtocol(
             peer_id, streams, protocol, [&](auto type, auto const &descr) {
               if (descr.hasActiveOutgoing()) {
@@ -190,7 +190,7 @@ namespace kagome::network {
 
     template <typename F>
     void forEachPeer(F &&f) const {
-      streams_.sharedAccess([&](const auto &streams) {
+      streams_.exclusiveConstAccess([&](const auto &streams) { //sharedAccess
         for (auto const &[peer_id, protocol_map] : streams) {
           std::forward<F>(f)(peer_id, protocol_map);
         }
@@ -361,7 +361,7 @@ namespace kagome::network {
     std::shared_ptr<ReputationRepository> reputation_repository_;
     log::Logger logger_;
 
-    SafeObject<PeerMap> streams_;
+    SafeObject<PeerMap, std::mutex> streams_;
   };
 
 }  // namespace kagome::network
