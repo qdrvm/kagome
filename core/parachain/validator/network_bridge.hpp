@@ -32,17 +32,17 @@ namespace kagome::parachain {
                std::move(stream),
                std::move(protocol),
                std::move(response));
-      protocol->writeResponseAsync(std::move(stream), std::move(response));
+      protocol->writeResponseAsync(std::move(stream), std::move(*response));
     }
 
-    template <typename MessageType, typename Protocol>
+    template <typename MessageType>
     void send_to_peers(std::vector<libp2p::peer::PeerId> peers,
-                       std::shared_ptr<Protocol> protocol,
+                       const std::shared_ptr<network::ProtocolBase> &protocol,
                        std::shared_ptr<MessageType> message) {
       REINVOKE(*main_pool_handler_,
                send_to_peers,
                std::move(peers),
-               std::move(protocol),
+               protocol,
                std::move(message));
       for (const auto &peer : peers) {
         std::ignore = tryOpenOutgoingStream(
@@ -53,14 +53,14 @@ namespace kagome::parachain {
       }
     }
 
-    template <typename MessageType, typename Protocol>
+    template <typename MessageType>
     void send_to_peer(const libp2p::peer::PeerId &peer,
-                      std::shared_ptr<Protocol> protocol,
+                      const std::shared_ptr<network::ProtocolBase> &protocol,
                       std::shared_ptr<MessageType> message) {
       REINVOKE(*main_pool_handler_,
                send_to_peer,
                peer,
-               std::move(protocol),
+               protocol,
                std::move(message));
       std::ignore = tryOpenOutgoingStream(
           peer, protocol, [WEAK_SELF, peer, message, protocol]() {

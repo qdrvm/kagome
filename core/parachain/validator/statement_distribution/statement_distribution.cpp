@@ -6,6 +6,7 @@
 
 #include <parachain/validator/statement_distribution/statement_distribution.hpp>
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 
 #define COMPONENT_NAME "StatementDistribution"
@@ -104,16 +105,17 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       StatementDistributionThreadPool &statements_distribution_thread_pool,
       std::shared_ptr<ProspectiveParachains> _prospective_parachains,
-      std::shared_ptr<runtime::ParachainHost> parachain_host,
+      std::shared_ptr<runtime::ParachainHost> _parachain_host,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<authority_discovery::Query> _query_audi,
       std::shared_ptr<NetworkBridge> _network_bridge,
       std::shared_ptr<network::Router> _router,
       common::MainThreadPool &main_thread_pool,
       std::shared_ptr<network::PeerManager> _pm,
-      std::shared_ptr<crypto::Hasher> _hasher)
+      std::shared_ptr<crypto::Hasher> _hasher,
+      std::shared_ptr<crypto::Sr25519Provider> _crypto_provider)
       : implicit_view(
-            _prospective_parachains, parachain_host, block_tree, std::nullopt),
+            _prospective_parachains, _parachain_host, block_tree, std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -129,7 +131,9 @@ namespace kagome::parachain::statement_distribution {
         main_pool_handler{main_thread_pool.handler(*app_state_manager)},
         pm(std::move(_pm)),
         hasher(std::move(_hasher)),
-        prospective_parachains(_prospective_parachains) {
+        prospective_parachains(_prospective_parachains),
+        parachain_host(_parachain_host),
+        crypto_provider(_crypto_provider) {
     BOOST_ASSERT(per_session);
     BOOST_ASSERT(signer_factory);
     BOOST_ASSERT(peer_use_count);
@@ -140,6 +144,9 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(main_pool_handler);
     BOOST_ASSERT(pm);
     BOOST_ASSERT(hasher);
+    BOOST_ASSERT(prospective_parachains);
+    BOOST_ASSERT(parachain_host);
+    BOOST_ASSERT(crypto_provider);
   }
 
   /* handle active leaves sub
@@ -420,10 +427,9 @@ self->handle_peer_view_update(peer_id, view);
     if (!validator_id) {
       SL_ERROR(logger,
                "Fetch attested candidate failed. Out of bound. (candidate "
-               "hash={}, relay parent={}, validator id={})",
+               "hash={}, relay parent={})",
                request.candidate_hash,
-               confirmed->get().relay_parent(),
-               validator_id);
+               confirmed->get().relay_parent());
       return;
     }
 
@@ -910,7 +916,6 @@ self->handle_peer_view_update(peer_id, view);
         peer_id,
         network::CollationVersion::VStaging);
 
-    auto se = pm->getStreamEngine();
     SL_TRACE(logger, "Sending messages. (relay_parent = {})", relay_parent);
     for (auto &msg : messages) {
       if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
@@ -1325,9 +1330,8 @@ self->handle_peer_view_update(peer_id, view);
 
           // Sanity check if group_index is valid for this para at relay parent.
 
-          auto expected_groups =
-              utils::get(prs->get().groups_per_para,
-                         c->get().receipt.descriptor.relay_parent);
+          auto expected_groups = utils::get(
+              prs->get().groups_per_para, c->get().receipt.descriptor.para_id);
           if (!expected_groups) {
             continue;
           }
@@ -1384,10 +1388,9 @@ self->handle_peer_view_update(peer_id, view);
       hypotheticals.emplace_back(known_hypotheticals->get());
     }
 
-    auto active_leaf = utils::map(
-        active_leaf_hash, [](const auto &ref_hash) -> std::optional<Hash> {
-          return ref_hash->get();
-        });
+    auto active_leaf =
+        utils::map(active_leaf_hash,
+                   [](const auto &ref_hash) -> Hash { return ref_hash.get(); });
     request_hypotetical_membership(std::move(hypotheticals), active_leaf);
   }
 
@@ -1429,7 +1432,7 @@ self->handle_peer_view_update(peer_id, view);
     auto filter = local_knowledge_filter(group_size,
                                          group_index,
                                          candidate_hash,
-                                         *relay_parent_state.statement_store);
+                                         relay_parent_state.statement_store);
 
     auto actions = local_validator.grid_tracker.add_backed_candidate(
         grid_view, candidate_hash, group_index, filter);
@@ -1445,10 +1448,8 @@ self->handle_peer_view_update(peer_id, view);
     network::vstaging::BackedCandidateAcknowledgement acknowledgement{
         .candidate_hash = candidate_hash, .statement_knowledge = filter};
 
-    std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>>
-        manifest_peers;
-    std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>>
-        ack_peers;
+    std::vector<libp2p::peer::PeerId> manifest_peers;
+    std::vector<libp2p::peer::PeerId> ack_peers;
     std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
                          network::VersionedValidatorProtocolMessage>>
         post_statements;
@@ -1488,13 +1489,11 @@ self->handle_peer_view_update(peer_id, view);
       switch (action) {
         case grid::ManifestKind::Full: {
           SL_TRACE(logger, "Full manifest -> {}", v);
-          manifest_peers.emplace_back(peer_opt->id,
-                                      network::CollationVersion::VStaging);
+          manifest_peers.emplace_back(peer_opt->id);
         } break;
         case grid::ManifestKind::Acknowledgement: {
           SL_TRACE(logger, "Ack manifest -> {}", v);
-          ack_peers.emplace_back(peer_opt->id,
-                                 network::CollationVersion::VStaging);
+          ack_peers.emplace_back(peer_opt->id);
         } break;
       }
 
@@ -1508,7 +1507,7 @@ self->handle_peer_view_update(peer_id, view);
           v,
           relay_parent,
           local_validator.grid_tracker,
-          *relay_parent_state.statement_store,
+          relay_parent_state.statement_store,
           relay_parent_state.per_session_state->value().groups,
           group_index,
           candidate_hash,
@@ -1521,48 +1520,42 @@ self->handle_peer_view_update(peer_id, view);
       }
     }
 
-    auto se = pm->getStreamEngine();
     if (!manifest_peers.empty()) {
       SL_TRACE(logger,
-               "Sending manifest to v2 peers. (candidate_hash={}, "
-               "local_validator={}, n_peers={})",
+               "Sending manifest to v2 peers. (candidate_hash={}, n_peers={})",
                candidate_hash,
-               *relay_parent_state.our_index,
                manifest_peers.size());
       auto message = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           kagome::network::vstaging::ValidatorProtocolMessage{
               kagome::network::vstaging::StatementDistributionMessage{
                   manifest}});
-      for (const auto &[p, _] : manifest_peers) {
-        se->send(p, router->getValidationProtocolVStaging(), message);
-      }
+
+      network_bridge->send_to_peers(
+          manifest_peers, router->getValidationProtocolVStaging(), message);
     }
 
     if (!ack_peers.empty()) {
       SL_TRACE(logger,
                "Sending acknowledgement to v2 peers. (candidate_hash={}, "
-               "local_validator={}, n_peers={})",
+               "n_peers={})",
                candidate_hash,
-               *relay_parent_state.our_index,
                ack_peers.size());
       auto message = std::make_shared<
           network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
           kagome::network::vstaging::ValidatorProtocolMessage{
               kagome::network::vstaging::StatementDistributionMessage{
                   acknowledgement}});
-      for (const auto &[p, _] : ack_peers) {
-        se->send(p, router->getValidationProtocolVStaging(), message);
-      }
+      network_bridge->send_to_peers(
+          ack_peers, router->getValidationProtocolVStaging(), message);
     }
 
     if (!post_statements.empty()) {
-      SL_TRACE(logger,
-               "Sending statements to v2 peers. (candidate_hash={}, "
-               "local_validator={}, n_peers={})",
-               candidate_hash,
-               *relay_parent_state.our_index,
-               post_statements.size());
+      SL_TRACE(
+          logger,
+          "Sending statements to v2 peers. (candidate_hash={}, n_peers={})",
+          candidate_hash,
+          post_statements.size());
 
       for (auto &[peers, msg] : post_statements) {
         if (auto m =
@@ -1570,9 +1563,8 @@ self->handle_peer_view_update(peer_id, view);
           auto message = std::make_shared<network::WireMessage<
               network::vstaging::ValidatorProtocolMessage>>(
               std::move(m->get()));
-          for (const auto &p : peers) {
-            se->send(p, router->getValidationProtocolVStaging(), message);
-          }
+          network_bridge->send_to_peers(
+              peers, router->getValidationProtocolVStaging(), message);
         } else {
           assert(false);
         }
@@ -1588,7 +1580,6 @@ self->handle_peer_view_update(peer_id, view);
       const CandidateHash &candidate_hash) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
-    CHECK_OR_RET(per_relay_parent.statement_store);
     std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
         imported;
     per_relay_parent.statement_store.fresh_statements_for_backing(
@@ -1627,7 +1618,7 @@ self->handle_peer_view_update(peer_id, view);
           };
 
           if (auto parachain_proc = parachain_processor.lock()) {
-            SL_TRACE(self->logger, "Handle statement {}", relay_parent);
+            SL_TRACE(logger, "Handle statement {}", relay_parent);
             parachain_proc->handleStatement(relay_parent, carrying_pvd);
           }
         });
@@ -1847,9 +1838,9 @@ self->handle_peer_view_update(peer_id, view);
       const RelayHash &relay_parent,
       const network::vstaging::SignedCompactStatement &statement) {
     OUTCOME_TRY(signing_context,
-                SigningContext::make(parachain_host_, relay_parent));
+                SigningContext::make(parachain_host, relay_parent));
     OUTCOME_TRY(verified,
-                crypto_provider_->verify(
+                crypto_provider->verify(
                     statement.signature,
                     signing_context.signable(*hasher, getPayload(statement)),
                     validators[statement.payload.ix]));
@@ -1932,8 +1923,7 @@ self->handle_peer_view_update(peer_id, view);
       return targets;
     }();
 
-    std::vector<std::pair<libp2p::peer::PeerId, network::CollationVersion>>
-        statement_to_peers;
+    std::vector<libp2p::peer::PeerId> statement_to_peers;
     for (const auto &[target, kind] : targets) {
       auto peer = query_audi->get(session_info.discovery_keys[target]);
       if (!peer) {
@@ -1949,11 +1939,6 @@ self->handle_peer_view_update(peer_id, view);
         continue;
       }
 
-      network::CollationVersion version = network::CollationVersion::VStaging;
-      if (peer_state->get().collation_version) {
-        version = *peer_state->get().collation_version;
-      }
-
       switch (kind) {
         case Cluster: {
           auto &active = *local_validator.active;
@@ -1964,11 +1949,11 @@ self->handle_peer_view_update(peer_id, view);
                   .has_value()) {
             active.cluster_tracker.note_sent(
                 target, originator, network::vstaging::from(compact_statement));
-            statement_to_peers.emplace_back(peer->id, version);
+            statement_to_peers.emplace_back(peer->id);
           }
         } break;
         case Grid: {
-          statement_to_peers.emplace_back(peer->id, version);
+          statement_to_peers.emplace_back(peer->id);
           local_validator.grid_tracker.sent_or_received_direct_statement(
               relay_parent_state.per_session_state->value().groups,
               originator,
@@ -1979,7 +1964,6 @@ self->handle_peer_view_update(peer_id, view);
       }
     }
 
-    auto se = pm->getStreamEngine();
     auto message_v2 = std::make_shared<
         network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
         kagome::network::vstaging::ValidatorProtocolMessage{
@@ -1994,13 +1978,9 @@ self->handle_peer_view_update(peer_id, view);
         "Send statements to validators. (relay_parent={}, validators_count={})",
         relay_parent,
         statement_to_peers.size());
-    for (const auto &[peer, version] : statement_to_peers) {
-      if (version == network::CollationVersion::VStaging) {
-        se->send(peer, router->getValidationProtocolVStaging(), message_v2);
-      } else {
-        BOOST_ASSERT(false);
-      }
-    }
+    network_bridge->send_to_peers(statement_to_peers,
+                                  router->getValidationProtocolVStaging(),
+                                  message_v2);
   }
 
   void StatementDistribution::share_local_statement(
@@ -2008,23 +1988,34 @@ self->handle_peer_view_update(peer_id, view);
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
     const CandidateHash candidate_hash =
-        candidateHashFrom(getPayload(statement));
+        candidateHashFrom(getPayload(statement), hasher);
+
     SL_TRACE(logger,
              "Sharing statement. (relay parent={}, candidate hash={}, "
-             "our_index={}, statement_ix={})",
+             "statement_ix={})",
              relay_parent,
              candidate_hash,
-             *per_relay_parent.our_index,
              statement.payload.ix);
 
-    BOOST_ASSERT(per_relay_parent.our_index);
+    auto validator_state = per_relay_parent.active_validator_state();
+    if (!validator_state) {
+      SL_WARN(logger,
+              "Invalid share statement. (relay parent={}, candidate_hash={})",
+              relay_parent,
+              candidate_hash);
+      return;
+    }
+
+    const network::ValidatorIndex local_index = validator_state->get().index;
+    const GroupIndex local_group = validator_state->get().group;
+    const auto local_assignment = validator_state->get().assignment;
 
     const Groups &groups = per_relay_parent.per_session_state->value().groups;
-    const std::optional<network::ParachainId> &local_assignment =
-        per_relay_parent.assigned_para;
-    const network::ValidatorIndex local_index = *per_relay_parent.our_index;
-    const auto local_group_opt = groups.byValidatorIndex(local_index);
-    const GroupIndex local_group = *local_group_opt;
+    // const std::optional<network::ParachainId> &local_assignment =
+    //     per_relay_parent.assigned_para;
+    // const network::ValidatorIndex local_index = *per_relay_parent.our_index;
+    // const auto local_group_opt = groups.byValidatorIndex(local_index);
+    // const GroupIndex local_group = *local_group_opt;
 
     std::optional<std::pair<ParachainId, Hash>> expected = visit_in_place(
         getPayload(statement),
@@ -2058,11 +2049,7 @@ self->handle_peer_view_update(peer_id, view);
       return;
     }
 
-    BOOST_ASSERT(per_relay_parent.statement_store);
-    BOOST_ASSERT(per_relay_parent.prospective_parachains_mode);
-
-    const auto seconding_limit =
-        per_relay_parent.prospective_parachains_mode->max_candidate_depth + 1;
+    const auto seconding_limit = per_relay_parent.seconding_limit;
     if (is_seconded
         && per_relay_parent.statement_store.seconded_count(local_index)
                == seconding_limit) {
@@ -2083,7 +2070,7 @@ self->handle_peer_view_update(peer_id, view);
     }
 
     IndexedAndSigned<network::vstaging::CompactStatement> compact_statement =
-        signed_to_compact(statement);
+        signed_to_compact(statement, hasher);
     std::optional<PostConfirmation> post_confirmation;
     if (auto s =
             if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
@@ -2114,7 +2101,7 @@ self->handle_peer_view_update(peer_id, view);
     if (per_relay_parent.per_session_state->value().grid_view) {
       auto &l = *per_relay_parent.local_validator;
       l.grid_tracker.learned_fresh_statement(
-          per_relay_parent.per_session_state->value().groups,
+          groups,
           *per_relay_parent.per_session_state->value().grid_view,
           local_index,
           getPayload(compact_statement));
@@ -2155,7 +2142,7 @@ self->handle_peer_view_update(peer_id, view);
           local_knowledge_filter(group_size,
                                  group_index,
                                  candidate_hash,
-                                 *relay_parent_state.statement_store);
+                                 relay_parent_state.statement_store);
 
       switch (kind) {
         case grid::ManifestKind::Full: {
@@ -2216,7 +2203,7 @@ self->handle_peer_view_update(peer_id, view);
 
       for (const auto &[originator, compact] : pending_statements) {
         auto res = pending_statement_network_message(
-            *relay_parent_state.statement_store,
+            relay_parent_state.statement_store,
             relay_parent,
             peer_id,
             network::CollationVersion::VStaging,
@@ -2232,15 +2219,13 @@ self->handle_peer_view_update(peer_id, view);
       }
     }
 
-    auto se = pm->getStreamEngine();
     for (auto &[peers, msg] : messages) {
       if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
         auto message = std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             std::move(m->get()));
-        for (const auto &p : peers) {
-          se->send(p, router->getValidationProtocolVStaging(), message);
-        }
+        network_bridge->send_to_peers(
+            peers, router->getValidationProtocolVStaging(), message);
       } else {
         assert(false);
       }
@@ -2268,7 +2253,7 @@ self->handle_peer_view_update(peer_id, view);
       }
 
       auto res =
-          pending_statement_network_message(*relay_parent_state.statement_store,
+          pending_statement_network_message(relay_parent_state.statement_store,
                                             relay_parent,
                                             peer_id,
                                             version,
@@ -2282,15 +2267,13 @@ self->handle_peer_view_update(peer_id, view);
       }
     }
 
-    auto se = pm->getStreamEngine();
     for (auto &[peers, msg] : messages) {
       if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
         auto message = std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             std::move(m->get()));
-        for (const auto &p : peers) {
-          se->send(p, router->getValidationProtocolVStaging(), message);
-        }
+        network_bridge->send_to_peers(
+            peers, router->getValidationProtocolVStaging(), message);
       } else {
         BOOST_ASSERT(false);
       }
@@ -2344,24 +2327,24 @@ self->handle_peer_view_update(peer_id, view);
     //    }
 
     if (auto auth_id = query_audi->get(peer_id)) {
-      if (auto it = parachain_state->get().authority_lookup.find(*auth_id);
-          it != parachain_state->get().authority_lookup.end()) {
-        ValidatorIndex vi = it->second;
-
+      if (auto vi = utils::get(parachain_state->get()
+                                   .per_session_state->value()
+                                   .authority_lookup,
+                               *auth_id)) {
         SL_TRACE(logger,
                  "Send pending cluster/grid messages. (peer={}. validator "
                  "index={}, relay_parent={})",
                  peer_id,
-                 vi,
+                 vi->get(),
                  relay_parent);
         send_pending_cluster_statements(
-            relay_parent, peer_id, version, vi, parachain_state->get());
+            relay_parent, peer_id, version, vi->get(), parachain_state->get());
 
         send_pending_grid_messages(
             relay_parent,
             peer_id,
             version,
-            vi,
+            vi->get(),
             parachain_state->get().per_session_state->value().groups,
             parachain_state->get());
       }

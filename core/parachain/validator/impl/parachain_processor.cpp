@@ -1536,7 +1536,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleStatement(
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    REINVOKE(*main_pool_handler_, handleStatement, relay_parent, statement);
     TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
 
     auto &parachain_state = opt_parachain_state->get();
@@ -2013,7 +2013,7 @@ namespace kagome::parachain {
       const SignedFullStatementWithPVD &statement,
       ParachainProcessorImpl::RelayParentState &rp_state) {
     const CandidateHash candidate_hash =
-        candidateHashFrom(parachain::getPayload(statement));
+        candidateHashFrom(parachain::getPayload(statement), hasher_);
 
     SL_TRACE(logger_,
              "Importing statement.(relay_parent={}, validator_index={}, "
@@ -2085,7 +2085,7 @@ namespace kagome::parachain {
       const std::vector<runtime::CoreState> &cores,
       const SignedFullStatementWithPVD &statement) {
     const auto &compact_statement = getPayload(statement);
-    const auto candidate_hash = candidateHashFrom(compact_statement);
+    const auto candidate_hash = candidateHashFrom(compact_statement, hasher_);
 
     const auto n_cores = cores.size();
     SL_TRACE(

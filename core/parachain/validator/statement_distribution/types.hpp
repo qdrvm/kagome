@@ -25,4 +25,47 @@ namespace kagome::parachain {
   using SignedFullStatementWithPVD =
       parachain::IndexedAndSigned<StatementWithPVD>;
 
+  inline primitives::BlockHash candidateHashFrom(
+      const StatementWithPVD &statement,
+      const std::shared_ptr<crypto::Hasher> &hasher) {
+    return visit_in_place(
+        statement,
+        [&](const StatementWithPVDSeconded &val) {
+          return hasher->blake2b_256(
+              ::scale::encode(val.committed_receipt.to_plain(*hasher)).value());
+        },
+        [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
+  }
+
+  /**
+   * @brief Converts a SignedFullStatementWithPVD to an IndexedAndSigned
+   * CompactStatement.
+   */
+  inline IndexedAndSigned<network::vstaging::CompactStatement>
+  signed_to_compact(const SignedFullStatementWithPVD &s,
+                    const std::shared_ptr<crypto::Hasher> &hasher) {
+    const Hash h = candidateHashFrom(getPayload(s), hasher);
+    return {
+        .payload =
+            {
+                .payload = visit_in_place(
+                    getPayload(s),
+                    [&](const StatementWithPVDSeconded &)
+                        -> network::vstaging::CompactStatement {
+                      return network::vstaging::SecondedCandidateHash{
+                          .hash = h,
+                      };
+                    },
+                    [&](const StatementWithPVDValid &)
+                        -> network::vstaging::CompactStatement {
+                      return network::vstaging::ValidCandidateHash{
+                          .hash = h,
+                      };
+                    }),
+                .ix = s.payload.ix,
+            },
+        .signature = s.signature,
+    };
+  }
+
 }  // namespace kagome::parachain

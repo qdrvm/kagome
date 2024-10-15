@@ -76,7 +76,8 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<network::Router> router,
         common::MainThreadPool &main_thread_pool,
         std::shared_ptr<network::PeerManager> pm,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     PerRelayParentState &relay_parent_state,
@@ -329,6 +330,8 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<network::PeerManager> pm;
     std::shared_ptr<crypto::Hasher> hasher;
     std::shared_ptr<ProspectiveParachains> prospective_parachains;
+    std::shared_ptr<runtime::ParachainHost> parachain_host;
+    std::shared_ptr<crypto::Sr25519Provider> crypto_provider;
   };
 
 }  // namespace kagome::parachain::statement_distribution

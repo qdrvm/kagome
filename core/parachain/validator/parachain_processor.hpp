@@ -286,6 +286,22 @@ namespace kagome::parachain {
       return backing_store_;
     }
 
+    /**
+     * @brief Handles a statement related to a specific relay parent.
+     *
+     * This function is responsible for processing a signed statement associated
+     * with a specific relay parent. The statement is provided in the form of a
+     * SignedFullStatementWithPVD object, which includes the payload and
+     * signature. The relay parent is identified by its block hash.
+     *
+     * @param relay_parent The block hash of the relay parent associated with
+     * the statement.
+     * @param statement The signed statement to be processed, encapsulated in a
+     * SignedFullStatementWithPVD object.
+     */
+    void handleStatement(const primitives::BlockHash &relay_parent,
+                         const SignedFullStatementWithPVD &statement);
+
    private:
     enum struct StatementType { kSeconded = 0, kValid };
     using Commitments = std::shared_ptr<network::CandidateCommitments>;
@@ -329,36 +345,6 @@ namespace kagome::parachain {
       std::vector<std::pair<ValidatorIndex, network::ValidityAttestation>>
           validity_votes;
     };
-
-    /**
-     * @brief Converts a SignedFullStatementWithPVD to an IndexedAndSigned
-     * CompactStatement.
-     */
-    IndexedAndSigned<network::vstaging::CompactStatement> signed_to_compact(
-        const SignedFullStatementWithPVD &s) const {
-      const Hash h = candidateHashFrom(getPayload(s));
-      return {
-          .payload =
-              {
-                  .payload = visit_in_place(
-                      getPayload(s),
-                      [&](const StatementWithPVDSeconded &)
-                          -> network::vstaging::CompactStatement {
-                        return network::vstaging::SecondedCandidateHash{
-                            .hash = h,
-                        };
-                      },
-                      [&](const StatementWithPVDValid &)
-                          -> network::vstaging::CompactStatement {
-                        return network::vstaging::ValidCandidateHash{
-                            .hash = h,
-                        };
-                      }),
-                  .ix = s.payload.ix,
-              },
-          .signature = s.signature,
-      };
-    }
 
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
@@ -451,22 +437,6 @@ namespace kagome::parachain {
     template <ParachainProcessorImpl::ValidationTaskType kMode>
     void makeAvailable(const primitives::BlockHash &candidate_hash,
                        ValidateAndSecondResult &&result);
-
-    /**
-     * @brief Handles a statement related to a specific relay parent.
-     *
-     * This function is responsible for processing a signed statement associated
-     * with a specific relay parent. The statement is provided in the form of a
-     * SignedFullStatementWithPVD object, which includes the payload and
-     * signature. The relay parent is identified by its block hash.
-     *
-     * @param relay_parent The block hash of the relay parent associated with
-     * the statement.
-     * @param statement The signed statement to be processed, encapsulated in a
-     * SignedFullStatementWithPVD object.
-     */
-    void handleStatement(const primitives::BlockHash &relay_parent,
-                         const SignedFullStatementWithPVD &statement);
 
     /**
      * @brief Processes a bitfield distribution message.
@@ -670,18 +640,6 @@ namespace kagome::parachain {
     const network::CollatorPublicKey &collatorIdFromDescriptor(
         const network::CandidateDescriptor &descriptor) {
       return descriptor.collator_id;
-    }
-
-    primitives::BlockHash candidateHashFrom(
-        const StatementWithPVD &statement) const {
-      return visit_in_place(
-          statement,
-          [&](const StatementWithPVDSeconded &val) {
-            return hasher_->blake2b_256(
-                ::scale::encode(val.committed_receipt.to_plain(*hasher_))
-                    .value());
-          },
-          [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
     }
 
     /*
