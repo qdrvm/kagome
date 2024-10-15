@@ -83,8 +83,8 @@ ENV HUNTER_PYTHON_LOCATION=/venv/bin/python3
 ENV LLVM_ROOT=/usr/lib/llvm-${LLVM_VERSION}
 ENV LLVM_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=clang-${LLVM_VERSION}
-ENV CXX=clang++-${LLVM_VERSION}
+ENV CC=gcc-${GCC_VERSION}
+ENV CXX=g++-${GCC_VERSION}
 
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
