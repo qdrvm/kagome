@@ -24,7 +24,8 @@ RUN install_packages \
         nano \
         gpg \
         gpg-agent \
-        tini
+        tini \
+        libncurses-dev
 
 SHELL ["/bin/bash", "-c"]
 
