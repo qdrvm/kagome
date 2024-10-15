@@ -38,11 +38,6 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
-hunter_config(
-    Boost
-    VERSION 1.85.0
-)
-
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
