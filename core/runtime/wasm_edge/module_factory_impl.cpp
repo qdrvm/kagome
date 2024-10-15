@@ -102,9 +102,11 @@ namespace kagome::runtime::wasm_edge {
 
   inline CompilationOutcome<ConfigureContext> configureCtx() {
     ConfigureContext ctx{WasmEdge_ConfigureCreate()};
-    if (ctx.raw() == nullptr) {
+    auto ctx_raw = ctx.raw();
+    if (ctx_raw == nullptr) {
       return CompilationError{"WasmEdge_ConfigureCreate returned nullptr"};
     }
+    WasmEdge_ConfigureRemoveProposal(ctx_raw, WasmEdge_Proposal_ReferenceTypes);
     return ctx;
   }
 
@@ -398,20 +400,16 @@ namespace kagome::runtime::wasm_edge {
       OUTCOME_TRY(writeFileTmp(path_compiled, code));
       return outcome::success();
     }
+
     OUTCOME_TRY(configure_ctx, configureCtx());
     auto configure_ctx_raw = configure_ctx.raw();
-    if (configure_ctx_raw == nullptr) {
-      return CompilationError{"Configure ctx raw is nullptr"};
-    }
-
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
         configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O3);
     if (not config.wasm_ext_bulk_memory) {
       WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
                                        WasmEdge_Proposal_BulkMemoryOperations);
-      WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
-                                       WasmEdge_Proposal_ReferenceTypes);
     }
+
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
@@ -433,15 +431,10 @@ namespace kagome::runtime::wasm_edge {
     auto code_hash = hasher_->blake2b_256(code);
     OUTCOME_TRY(configure_ctx, configureCtx());
     auto configure_ctx_raw = configure_ctx.raw();
-    if (configure_ctx_raw == nullptr) {
-      return CompilationError{"Configure ctx raw is nullptr"};
-    }
     if (config) {
       if (not config->wasm_ext_bulk_memory) {
         WasmEdge_ConfigureRemoveProposal(
             configure_ctx_raw, WasmEdge_Proposal_BulkMemoryOperations);
-        WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
-                                         WasmEdge_Proposal_ReferenceTypes);
       }
     }
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx_raw);

@@ -28,7 +28,8 @@ namespace kagome::runtime {
                 (const, override));
     MOCK_METHOD((CompilationOutcome<std::shared_ptr<Module>>),
                 loadCompiled,
-                (std::filesystem::path),
+                (std::filesystem::path,
+                 const std::optional<RuntimeContext::ContextParams>),
                 (const, override));
   };
 }  // namespace kagome::runtime
