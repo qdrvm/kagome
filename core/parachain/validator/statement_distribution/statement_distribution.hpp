@@ -9,16 +9,17 @@
 #include <parachain/validator/backing_implicit_view.hpp>
 #include <parachain/validator/statement_distribution/per_relay_parent_state.hpp>
 #include "authority_discovery/query/query.hpp"
-#include "common/ref_cache.hpp"
 #include "network/can_disconnect.hpp"
 #include "network/peer_manager.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
+#include "network/router.hpp"
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/signer.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "parachain/validator/network_bridge.hpp"
+#include "common/ref_cache.hpp"
 
 namespace kagome::parachain {
   struct ParachainProcessorImpl;
@@ -71,7 +72,11 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<NetworkBridge> network_bridge);
+        std::shared_ptr<NetworkBridge> network_bridge,
+        std::shared_ptr<network::Router> router,
+        common::MainThreadPool &main_thread_pool,
+        std::shared_ptr<network::PeerManager> pm,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     void statementDistributionBackedCandidate(
         const CandidateHash &candidate_hash);
@@ -85,7 +90,7 @@ namespace kagome::parachain::statement_distribution {
     //outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
-        const libp2p::peer::PeerId &peer_id);
+        std::shared_ptr<network::Stream> stream);
 
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
@@ -313,6 +318,10 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<authority_discovery::Query> query_audi;
     std::weak_ptr<ParachainProcessorImpl> parachain_processor;
     std::shared_ptr<NetworkBridge> network_bridge;
+    std::shared_ptr<network::Router> router;
+    std::shared_ptr<PoolHandler> main_pool_handler;
+    std::shared_ptr<network::PeerManager> pm;
+    std::shared_ptr<crypto::Hasher> hasher;
   };
 
 }  // namespace kagome::parachain::statement_distribution

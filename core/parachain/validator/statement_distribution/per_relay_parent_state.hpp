@@ -16,6 +16,8 @@
 #include "parachain/types.hpp"
 #include "parachain/validator/impl/statements_store.hpp"
 #include "utils/safe_object.hpp"
+#include "parachain/validator/statement_distribution/per_session_state.hpp"
+#include "common/ref_cache.hpp"
 
 namespace kagome::parachain::statement_distribution {
 
@@ -45,6 +47,8 @@ namespace kagome::parachain::statement_distribution {
     SessionIndex session;
     std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
     std::unordered_set<ValidatorIndex> disabled_validators;
+    std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
+        per_session_state;    
 
     std::optional<std::reference_wrapper<const ActiveValidatorState>>
     active_validator_state() const {

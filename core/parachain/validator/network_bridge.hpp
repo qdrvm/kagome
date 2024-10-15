@@ -9,6 +9,9 @@
 #include <memory>
 #include "common/main_thread_pool.hpp"
 #include "network/peer_manager.hpp"
+#include "network/protocol_base.hpp"
+#include "utils/weak_macro.hpp"
+#include "network/impl/stream_engine.hpp"
 
 namespace kagome::parachain {
 
@@ -21,7 +24,7 @@ namespace kagome::parachain {
           pm_(std::move(peer_manager)) {}
 
     template <typename ResponseType, typename Protocol>
-    void send_response(std::shared_ptr<Stream> stream,
+    void send_response(std::shared_ptr<network::Stream> stream,
                        std::shared_ptr<Protocol> protocol,
                        std::shared_ptr<ResponseType> response) {
       REINVOKE(*main_pool_handler_,
@@ -43,7 +46,7 @@ namespace kagome::parachain {
                std::move(message));
       for (const auto &peer : peers) {
         std::ignore =
-            tryOpenOutgoingStream(peer, protocol, [WEAK_SELF, peer, message]() {
+            tryOpenOutgoingStream(peer, protocol, [WEAK_SELF, peer, message, protocol]() {
               WEAK_LOCK(self);
               self->pm_->getStreamEngine()->send(peer, protocol, message);
             });
@@ -74,7 +77,7 @@ namespace kagome::parachain {
               stream_engine->dropReserveOutgoing(peer_id, protocol);
 
               if (!stream_result.has_value()) {
-                self->logger_->verbose("Unable to create stream {} with {}: {}",
+                self->logger->trace("Unable to create stream {} with {}: {}",
                                        protocol->protocolName(),
                                        peer_id,
                                        stream_result.error());
@@ -94,6 +97,7 @@ namespace kagome::parachain {
     }
 
    private:
+   log::Logger logger = log::createLogger("NetworkBridge", "parachain");
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<network::PeerManager> pm_;
   };
