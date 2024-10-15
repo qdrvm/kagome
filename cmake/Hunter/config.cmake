@@ -119,3 +119,11 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    soralog
+#    VERSION 0.2.4
+    URL  https://github.com/qdrvm/soralog/archive/refs/tags/v0.2.4.tar.gz
+    SHA1 832a32cf134f8caab4a79c03024ac8408f848dae
+    KEEP_PACKAGE_SOURCES
+)
+
