@@ -127,7 +127,9 @@ RUN install_packages  \
       libtinfo6 \
       libseccomp2 \
       libatomic1 \
-      ssh
+      ssh \
+      tini \
+      libncurses-dev
 
 # temporary fix for libc6 (gcc-13)
 # TODO: remove when CI swithed to trixie
