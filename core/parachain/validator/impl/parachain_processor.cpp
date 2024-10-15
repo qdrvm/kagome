@@ -183,7 +183,8 @@ namespace kagome::parachain {
         worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)},
         block_tree_{std::move(block_tree)},
-        statement_distribution(std::move(sd)) {
+        statement_distribution(std::move(sd)),
+        per_session(RefCache<SessionIndex, PerSessionState>::create()) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -245,7 +246,7 @@ namespace kagome::parachain {
    * @return true if the preparation is successful.
    */
   bool ParachainProcessorImpl::prepare() {
-    statements_distribution->store_parachain_processor(weak_from_this());
+    statement_distribution->store_parachain_processor(weak_from_this());
     // Set the broadcast callback for the bitfield signer
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
@@ -607,9 +608,9 @@ namespace kagome::parachain {
                 parachain_host_->session_index_for_child(relay_parent));
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(relay_parent, session_index));
-    OUTCOME_TRY(randomness, getBabeRandomness(relay_parent));
-    OUTCOME_TRY(disabled_validators_,
-                parachain_host_->disabled_validators(relay_parent));
+    //OUTCOME_TRY(randomness, getBabeRandomness(relay_parent));
+//    OUTCOME_TRY(disabled_validators_,
+//                parachain_host_->disabled_validators(relay_parent));
     const auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
@@ -656,6 +657,13 @@ namespace kagome::parachain {
       SL_TRACE(logger_, "Not a validator, or no para keys.");
       return Error::NOT_A_VALIDATOR;
     }
+
+  auto per_session_state = per_session->get_or_insert(session_index, [&] {
+    return RefCache<SessionIndex, PerSessionState>::RefObj(
+        session_index,
+        *session_info
+);
+  });
 
     const auto n_cores = cores.size();
     std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> out_groups;
@@ -737,22 +745,20 @@ namespace kagome::parachain {
     //      }();
     //    }
 
-    std::unordered_set<ValidatorIndex> disabled_validators{
-        disabled_validators_.begin(), disabled_validators_.end()};
-    if (!disabled_validators.empty()) {
-      SL_TRACE(logger_,
-               "Disabled validators detected. (relay parent={})",
-               relay_parent);
-    }
+//    std::unordered_set<ValidatorIndex> disabled_validators{
+//        disabled_validators_.begin(), disabled_validators_.end()};
+//    if (!disabled_validators.empty()) {
+//      SL_TRACE(logger_,
+//               "Disabled validators detected. (relay parent={})",
+//               relay_parent);
+//    }
 
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
-               "assigned_core={}, our index={}, our_group={}, relay "
-               "parent={})",
+               "assigned_core={}, our index={}, relay parent={})",
                assigned_para,
                assigned_core,
                global_v_index,
-               our_group,
                relay_parent);
 
     return RelayParentState{
@@ -760,9 +766,6 @@ namespace kagome::parachain {
         .assigned_core = assigned_core,
         .assigned_para = assigned_para,
         .validator_to_group = std::move(validator_to_group),
-        .per_session_state = per_session_state,
-        .our_index = validator_index,
-        .our_group = our_group,
         .collations = {},
         .table_context =
             TableContext{
@@ -770,18 +773,17 @@ namespace kagome::parachain {
                 .groups = std::move(out_groups),
                 .validators = std::move(validators),
             },
-        //.statement_store = std::move(statement_store),
         .availability_cores = cores,
         .group_rotation_info = group_rotation_info,
         .minimum_backing_votes = minimum_backing_votes,
-        .local_validator = local_validator,
         .awaiting_validation = {},
         .issued_statements = {},
         .peers_advertised = {},
         .fallbacks = {},
         .backed_hashes = {},
-        .disabled_validators = std::move(disabled_validators),
+//        .disabled_validators = std::move(disabled_validators),
         .inject_core_index = inject_core_index,
+        .per_session_state = per_session_state,
     };
   }
 
@@ -1243,15 +1245,15 @@ namespace kagome::parachain {
     if (auto inner =
             if_type<const network::vstaging::BackedCandidateAcknowledgement>(
                 msg)) {
-      handle_incoming_acknowledgement(peer_id, inner->get());
+      statement_distribution->handle_incoming_acknowledgement(peer_id, inner->get());
     } else if (auto manifest =
                    if_type<const network::vstaging::BackedCandidateManifest>(
                        msg)) {
-      handle_incoming_manifest(peer_id, manifest->get());
+      statement_distribution->handle_incoming_manifest(peer_id, manifest->get());
     } else if (auto stm =
                    if_type<const network::vstaging::
                                StatementDistributionMessageStatement>(msg)) {
-      handle_incoming_statement(peer_id, stm->get());
+      statement_distribution->handle_incoming_statement(peer_id, stm->get());
     } else {
       SL_ERROR(logger_, "Skipped message.");
     }
@@ -1544,6 +1546,7 @@ namespace kagome::parachain {
     const auto &assigned_core = parachain_state.assigned_core;
     auto &fallbacks = parachain_state.fallbacks;
     auto &awaiting_validation = parachain_state.awaiting_validation;
+    auto &table_context = parachain_state.table_context;
 
     auto res = importStatement(relay_parent, statement, parachain_state);
     if (res.has_error()) {
@@ -1599,8 +1602,11 @@ namespace kagome::parachain {
                 if (it == fallbacks.end()) {
                   return std::nullopt;
                 }
-                if (!parachain_state.our_index
-                    || *parachain_state.our_index == statement.payload.ix) {
+
+                const auto our_index = utils::map(table_context.validator, [](const auto &signer) {
+                  return signer.validatorIndex();
+                });
+                if (our_index && *our_index == statement.payload.ix) {
                   return std::nullopt;
                 }
                 if (awaiting_validation.find(val.candidate_hash)
@@ -2288,8 +2294,8 @@ namespace kagome::parachain {
       OUTCOME_TRY(
           summary,
           importStatement(validation_result.relay_parent, stm, rp_state));
-      share_local_statement_vstaging(
-          rp_state, validation_result.relay_parent, stm);
+      statement_distribution->share_local_statement(
+          validation_result.relay_parent, stm);
 
       post_import_statement_actions(
           validation_result.relay_parent, rp_state, summary);
@@ -2332,7 +2338,7 @@ namespace kagome::parachain {
                                                       summary->candidate);
             unblockAdvertisements(
                 rp_state, para_id, backed->candidate.descriptor.para_head_hash);
-            handle_backed_candidate_message(summary->candidate);
+            statement_distribution->handle_backed_candidate_message(summary->candidate);
           } else {
             backing_store_->add(relay_parent, std::move(*backed));
           }
@@ -2366,7 +2372,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    if (!parachain_state->get().our_index) {
+    if (!parachain_state->get().table_context.validator) {
       logger_->warn("We are not validators or we have no validator index.");
       return std::nullopt;
     }
@@ -2377,13 +2383,11 @@ namespace kagome::parachain {
               network::CandidateState{network::CommittedCandidateReceipt{
                   .descriptor = validation_result.candidate.descriptor,
                   .commitments = *validation_result.commitments}}},
-          *parachain_state->get().our_index,
           parachain_state->get());
     } else if constexpr (kStatementType == StatementType::kValid) {
       return createAndSignStatementFromPayload(
           network::Statement{network::CandidateState{
               validation_result.candidate.hash(*hasher_)}},
-          *parachain_state->get().our_index,
           parachain_state->get());
     }
   }
@@ -2392,7 +2396,6 @@ namespace kagome::parachain {
   std::optional<network::SignedStatement>
   ParachainProcessorImpl::createAndSignStatementFromPayload(
       T &&payload,
-      ValidatorIndex validator_ix,
       RelayParentState &parachain_state) {
     /// TODO(iceseer):
     /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545

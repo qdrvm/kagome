@@ -346,14 +346,16 @@ namespace kagome::parachain {
           validity_votes;
     };
 
+    struct PerSessionState final {
+        SessionIndex session;
+        runtime::SessionInfo session_info;
+    };
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<CoreIndex> assigned_core;
       std::optional<ParachainId> assigned_para;
       std::vector<std::optional<GroupIndex>> validator_to_group;
-
-      std::optional<network::ValidatorIndex> our_index;
-      std::optional<network::GroupIndex> our_group;
 
       Collations collations;
       TableContext table_context;
@@ -368,6 +370,7 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes;
 
       bool inject_core_index;
+      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj> per_session_state;    
     };
 
     /**
@@ -600,7 +603,6 @@ namespace kagome::parachain {
     template <typename T>
     std::optional<network::SignedStatement> createAndSignStatementFromPayload(
         T &&payload,
-        ValidatorIndex validator_ix,
         RelayParentState &parachain_state);
     outcome::result<std::optional<BackingStore::ImportResult>> importStatement(
         const network::RelayHash &relay_parent,
@@ -902,6 +904,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<statement_distribution::StatementDistribution>
         statement_distribution;
+    std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;

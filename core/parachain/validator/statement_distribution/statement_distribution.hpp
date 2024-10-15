@@ -85,8 +85,6 @@ namespace kagome::parachain::statement_distribution {
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
 
-    void handle_backed_candidate_message(const CandidateHash &candidate_hash);
-
     // outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
@@ -99,6 +97,28 @@ namespace kagome::parachain::statement_distribution {
       parachain_processor = std::move(pp);
     }
     bool tryStart();
+
+    // Handles BackedCandidateManifest message
+    // It performs various checks and operations, and if everything is
+    // successful, it sends acknowledgement and statement messages to the
+    // validators group or sends a request to fetch the attested candidate.
+    void handle_incoming_manifest(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::BackedCandidateManifest &msg);
+
+    void handle_incoming_acknowledgement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::BackedCandidateAcknowledgement
+            &acknowledgement);
+
+    void handle_incoming_statement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::StatementDistributionMessageStatement &stm);
+
+    void handle_backed_candidate_message(const CandidateHash &candidate_hash);
+
+    void share_local_statement(const primitives::BlockHash &relay_parent,
+                               const SignedFullStatementWithPVD &statement);
 
    private:
     struct ManifestImportSuccess {
@@ -170,10 +190,6 @@ namespace kagome::parachain::statement_distribution {
                                     const Groups &groups,
                                     PerRelayParentState &relay_parent_state);
 
-    void share_local_statement(PerRelayParentState &per_relay_parent,
-                               const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement);
-
     /**
      * @brief Circulates a statement to the validators group.
      * @param relay_parent The hash of the relay parent block. This is used to
@@ -193,10 +209,6 @@ namespace kagome::parachain::statement_distribution {
         const std::vector<ValidatorId> &validators,
         const RelayHash &relay_parent,
         const network::vstaging::SignedCompactStatement &statement);
-
-    void handle_incoming_statement(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm);
 
     /// Checks whether a statement is allowed, whether the signature is
     /// accurate,
@@ -273,13 +285,6 @@ namespace kagome::parachain::statement_distribution {
         const libp2p::peer::PeerId &peer,
         network::CollationVersion version);
 
-    // Handles BackedCandidateManifest message
-    // It performs various checks and operations, and if everything is
-    // successful, it sends acknowledgement and statement messages to the
-    // validators group or sends a request to fetch the attested candidate.
-    void handle_incoming_manifest(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateManifest &msg);
 
     std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
                          network::VersionedValidatorProtocolMessage>>
@@ -293,11 +298,6 @@ namespace kagome::parachain::statement_distribution {
         GroupIndex group_index,
         const CandidateHash &candidate_hash,
         const network::vstaging::StatementFilter &local_knowledge);
-
-    void handle_incoming_acknowledgement(
-        const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateAcknowledgement
-            &acknowledgement);
 
     void request_hypotetical_membership(
         std::vector<HypotheticalCandidate> hypotheticals,

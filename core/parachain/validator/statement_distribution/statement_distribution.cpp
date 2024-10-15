@@ -836,6 +836,10 @@ self->handle_peer_view_update(peer_id, view);
 
   void StatementDistribution::handle_backed_candidate_message(
       const CandidateHash &candidate_hash) {
+    REINVOKE(*statements_distribution_thread_handler,
+             handle_backed_candidate_message,
+             candidate_hash);
+
     auto confirmed_opt = candidates.get_confirmed(candidate_hash);
     if (!confirmed_opt) {
       SL_TRACE(logger,
@@ -863,6 +867,10 @@ self->handle_peer_view_update(peer_id, view);
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateAcknowledgement
           &acknowledgement) {
+    REINVOKE(*statements_distribution_thread_handler,
+             handle_incoming_acknowledgement,
+             peer_id, acknowledgement);
+
     SL_TRACE(logger,
              "`BackedCandidateAcknowledgement`. (candidate_hash={})",
              acknowledgement.candidate_hash);
@@ -995,6 +1003,10 @@ self->handle_peer_view_update(peer_id, view);
   void StatementDistribution::handle_incoming_manifest(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::BackedCandidateManifest &manifest) {
+    REINVOKE(*statements_distribution_thread_handler,
+             handle_incoming_manifest,
+             peer_id, manifest);
+
     SL_TRACE(logger,
              "`BackedCandidateManifest`. (relay_parent={}, "
              "candidate_hash={}, para_id={}, parent_head_data_hash={})",
@@ -1663,6 +1675,9 @@ self->handle_peer_view_update(peer_id, view);
   void StatementDistribution::handle_incoming_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessageStatement &stm) {
+    REINVOKE(*statements_distribution_thread_handler,
+             handle_incoming_statement,
+             peer_id, stm);
     SL_TRACE(logger,
              "`StatementDistributionMessageStatement`. (relay_parent={}, "
              "candidate_hash={})",
@@ -1984,9 +1999,13 @@ self->handle_peer_view_update(peer_id, view);
   }
 
   void StatementDistribution::share_local_statement(
-      PerRelayParentState &per_relay_parent,
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
+    REINVOKE(*statements_distribution_thread_handler,
+             share_local_statement,
+             relay_parent, statement);
+
+    auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
     const CandidateHash candidate_hash =
         candidateHashFrom(getPayload(statement), hasher);
 
@@ -1997,7 +2016,7 @@ self->handle_peer_view_update(peer_id, view);
              candidate_hash,
              statement.payload.ix);
 
-    auto validator_state = per_relay_parent.active_validator_state();
+    auto validator_state = per_relay_parent->get().active_validator_state();
     if (!validator_state) {
       SL_WARN(logger,
               "Invalid share statement. (relay parent={}, candidate_hash={})",
@@ -2010,7 +2029,7 @@ self->handle_peer_view_update(peer_id, view);
     const GroupIndex local_group = validator_state->get().group;
     const auto local_assignment = validator_state->get().assignment;
 
-    const Groups &groups = per_relay_parent.per_session_state->value().groups;
+    const Groups &groups = per_relay_parent->get().per_session_state->value().groups;
     // const std::optional<network::ParachainId> &local_assignment =
     //     per_relay_parent.assigned_para;
     // const network::ValidatorIndex local_index = *per_relay_parent.our_index;
@@ -2049,9 +2068,9 @@ self->handle_peer_view_update(peer_id, view);
       return;
     }
 
-    const auto seconding_limit = per_relay_parent.seconding_limit;
+    const auto seconding_limit = per_relay_parent->get().seconding_limit;
     if (is_seconded
-        && per_relay_parent.statement_store.seconded_count(local_index)
+        && per_relay_parent->get().statement_store.seconded_count(local_index)
                == seconding_limit) {
       SL_WARN(
           logger,
@@ -2082,7 +2101,7 @@ self->handle_peer_view_update(peer_id, view);
                                        hasher);
     }
 
-    if (auto r = per_relay_parent.statement_store.insert(
+    if (auto r = per_relay_parent->get().statement_store.insert(
             groups, compact_statement, StatementOrigin::Local);
         !r || !*r) {
       SL_ERROR(logger,
@@ -2092,22 +2111,22 @@ self->handle_peer_view_update(peer_id, view);
       return;
     }
 
-    if (per_relay_parent.local_validator
-        && per_relay_parent.local_validator->active) {
-      per_relay_parent.local_validator->active->cluster_tracker.note_issued(
+    if (per_relay_parent->get().local_validator
+        && per_relay_parent->get().local_validator->active) {
+      per_relay_parent->get().local_validator->active->cluster_tracker.note_issued(
           local_index, network::vstaging::from(getPayload(compact_statement)));
     }
 
-    if (per_relay_parent.per_session_state->value().grid_view) {
-      auto &l = *per_relay_parent.local_validator;
+    if (per_relay_parent->get().per_session_state->value().grid_view) {
+      auto &l = *per_relay_parent->get().local_validator;
       l.grid_tracker.learned_fresh_statement(
           groups,
-          *per_relay_parent.per_session_state->value().grid_view,
+          *per_relay_parent->get().per_session_state->value().grid_view,
           local_index,
           getPayload(compact_statement));
     }
 
-    circulate_statement(relay_parent, per_relay_parent, compact_statement);
+    circulate_statement(relay_parent, per_relay_parent->get(), compact_statement);
     if (post_confirmation) {
       apply_post_confirmation(*post_confirmation);
     }
