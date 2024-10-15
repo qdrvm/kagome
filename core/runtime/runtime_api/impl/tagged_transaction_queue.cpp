@@ -30,6 +30,21 @@ namespace kagome::runtime {
             const std::string &reason) {
     constexpr auto kDumpDir = "/chain-data/dump";
 
+    static std::optional<bool> dumps_allowed = std::nullopt;
+    if (!dumps_allowed) {
+      dumps_allowed = std::filesystem::is_empty(kDumpDir);
+      if (!*dumps_allowed) {
+        std::ofstream marker;
+        marker.open(std::string(kDumpDir) + "/fin.txt", std::ios::app);
+        marker << "Node started. Dumping disabled. Directory is not empty.\n";
+        marker.close();
+      }
+    }
+
+    if (!*dumps_allowed) {
+      return;
+    }
+
     std::ostringstream dump_data;
     dump_data << "Extrinsic hex:\n\n" << ext.data.toHex() << "\n\n";
     dump_data << "Root state:\n\n" << hash.toHex() << "\n\n";
@@ -60,7 +75,7 @@ namespace kagome::runtime {
     dump_file.close();
 
     if (reason == "Exception") {
-      std::cout << "\n" <<  dump_data.str() << std::flush;
+      std::cout << "\n" << dump_data.str() << std::flush;
     }
   }
 
@@ -70,6 +85,7 @@ namespace kagome::runtime {
     auto block = block_tree_.get()->bestBlock();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block.hash));
+    dump(ext, block.hash, "Before execution");
     try {
       auto result = executor_->call<primitives::TransactionValidity>(
           ctx,
