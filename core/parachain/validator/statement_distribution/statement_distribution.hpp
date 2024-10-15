@@ -9,17 +9,17 @@
 #include <parachain/validator/backing_implicit_view.hpp>
 #include <parachain/validator/statement_distribution/per_relay_parent_state.hpp>
 #include "authority_discovery/query/query.hpp"
+#include "common/ref_cache.hpp"
 #include "network/can_disconnect.hpp"
 #include "network/peer_manager.hpp"
-#include "parachain/approval/approval_thread_pool.hpp"
 #include "network/router.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/validator/impl/candidates.hpp"
+#include "parachain/validator/network_bridge.hpp"
 #include "parachain/validator/signer.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
-#include "parachain/validator/network_bridge.hpp"
-#include "common/ref_cache.hpp"
 
 namespace kagome::parachain {
   struct ParachainProcessorImpl;
@@ -78,16 +78,15 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    void statementDistributionBackedCandidate(
-        const CandidateHash &candidate_hash);
-
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     PerRelayParentState &relay_parent_state,
                                     const RelayHash &relay_parent,
                                     const CandidateHash &candidate_hash,
                                     GroupIndex group_index);
 
-    //outcome::result<network::vstaging::AttestedCandidateResponse>
+    void handle_backed_candidate_message(const CandidateHash &candidate_hash);
+
+    // outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
         std::shared_ptr<network::Stream> stream);
@@ -299,6 +298,14 @@ namespace kagome::parachain::statement_distribution {
         const network::vstaging::BackedCandidateAcknowledgement
             &acknowledgement);
 
+    void request_hypotetical_membership(
+        std::vector<HypotheticalCandidate> hypotheticals,
+        std::optional<Hash> active_leaf);
+
+    void process_frontier(
+        std::vector<std::pair<HypotheticalCandidate,
+                              fragment::HypotheticalMembership>> frontier);
+
    private:
     log::Logger logger =
         log::createLogger("StatementDistribution", "parachain");
@@ -312,7 +319,6 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
     std::shared_ptr<PeerUseCount> peer_use_count;
 
-
     /// worker thread
     std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
     std::shared_ptr<authority_discovery::Query> query_audi;
@@ -322,6 +328,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<PoolHandler> main_pool_handler;
     std::shared_ptr<network::PeerManager> pm;
     std::shared_ptr<crypto::Hasher> hasher;
+    std::shared_ptr<ProspectiveParachains> prospective_parachains;
   };
 
 }  // namespace kagome::parachain::statement_distribution

@@ -8,10 +8,10 @@
 
 #include <memory>
 #include "common/main_thread_pool.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocol_base.hpp"
 #include "utils/weak_macro.hpp"
-#include "network/impl/stream_engine.hpp"
 
 namespace kagome::parachain {
 
@@ -45,12 +45,28 @@ namespace kagome::parachain {
                std::move(protocol),
                std::move(message));
       for (const auto &peer : peers) {
-        std::ignore =
-            tryOpenOutgoingStream(peer, protocol, [WEAK_SELF, peer, message, protocol]() {
+        std::ignore = tryOpenOutgoingStream(
+            peer, protocol, [WEAK_SELF, peer, message, protocol]() {
               WEAK_LOCK(self);
               self->pm_->getStreamEngine()->send(peer, protocol, message);
             });
       }
+    }
+
+    template <typename MessageType, typename Protocol>
+    void send_to_peer(const libp2p::peer::PeerId &peer,
+                      std::shared_ptr<Protocol> protocol,
+                      std::shared_ptr<MessageType> message) {
+      REINVOKE(*main_pool_handler_,
+               send_to_peer,
+               peer,
+               std::move(protocol),
+               std::move(message));
+      std::ignore = tryOpenOutgoingStream(
+          peer, protocol, [WEAK_SELF, peer, message, protocol]() {
+            WEAK_LOCK(self);
+            self->pm_->getStreamEngine()->send(peer, protocol, message);
+          });
     }
 
    private:
@@ -78,9 +94,9 @@ namespace kagome::parachain {
 
               if (!stream_result.has_value()) {
                 self->logger->trace("Unable to create stream {} with {}: {}",
-                                       protocol->protocolName(),
-                                       peer_id,
-                                       stream_result.error());
+                                    protocol->protocolName(),
+                                    peer_id,
+                                    stream_result.error());
                 return;
               }
 
@@ -97,7 +113,7 @@ namespace kagome::parachain {
     }
 
    private:
-   log::Logger logger = log::createLogger("NetworkBridge", "parachain");
+    log::Logger logger = log::createLogger("NetworkBridge", "parachain");
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<network::PeerManager> pm_;
   };
