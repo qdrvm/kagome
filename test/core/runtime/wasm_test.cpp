@@ -109,7 +109,7 @@ void test(std::string name,
     auto context_params = kagome::runtime::RuntimeContext::ContextParams();
     context_params.wasm_ext_bulk_memory = bulk;
     if (not is_interpreter) {
-      auto wat_path = kagome::filesystem::path(__FILE__).parent_path().string()
+      auto wat_path = kagome::filesystem::absolute(__FILE__).parent_path().string()
                     + "/wat/memory_fill.wat";
       std::string wat_code;
       EXPECT_TRUE(qtils::readFile(wat_code, wat_path));
@@ -124,7 +124,7 @@ void test(std::string name,
         return nullptr;
       }
     } else {
-      path = kagome::filesystem::path(__FILE__).parent_path().string()
+      path = kagome::filesystem::absolute(__FILE__).parent_path().string()
            + "/wasm/memory_fill.wasm";
     }
     auto _module = factory.loadCompiled(path, context_params);
