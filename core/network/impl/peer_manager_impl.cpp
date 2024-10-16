@@ -820,12 +820,8 @@ namespace kagome::network {
 
     if (not out) {
       if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
-        // remove random peer to give place for a new peer
-        auto it = active_peers_.begin();
-        std::advance(it, std::rand() % active_peers_.size());
-        auto peer_to_remove = it->first;
-        connecting_peers_.erase(peer_to_remove);
-        disconnectFromPeer(peer_to_remove);
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
         return;
       }
     }
