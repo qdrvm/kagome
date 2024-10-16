@@ -328,8 +328,11 @@ namespace kagome::dispute {
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L298
     for (auto &[session, candidate_hash, status] : active_disputes) {
-      auto env_opt =
-          makeCandidateEnvironment(*session_keys_, session, first_leaf.hash);
+      auto env_opt = makeCandidateEnvironment(
+          *session_keys_,
+          session,
+          first_leaf.hash,
+          offchain_disabled_validators_.asVector(session));
       if (not env_opt.has_value()) {
         continue;
       }
@@ -348,20 +351,8 @@ namespace kagome::dispute {
       }
       auto &candidate_votes = votes_res.value().value();
 
-      auto &relay_parent =
-          candidate_votes.candidate_receipt.descriptor.relay_parent;
-
-      auto disabled_validators_res = api_->disabled_validators(relay_parent);
-      if (disabled_validators_res.has_error()) {
-        SL_WARN(log_,
-                "Cannot import votes, without getting disabled validators: {}",
-                disabled_validators_res.error());
-        continue;
-      }
-      auto &disabled_validators = disabled_validators_res.value();
-
       auto vote_state = CandidateVoteState::create(
-          candidate_votes, env, disabled_validators, system_clock_.nowUint64());
+          candidate_votes, env, system_clock_.nowUint64());
 
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
@@ -372,16 +363,38 @@ namespace kagome::dispute {
       auto is_confirmed =
           is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
                       : false;
-      auto is_potential_spam = is_disputed  //
-                           and not is_included and not is_backed
-                           and not is_confirmed and not is_postponed;
 
+      auto all_invalid_votes_disabled =
+          std::ranges::all_of(vote_state.votes.invalid, [&](const auto &entry) {
+            auto &validator_index = entry.first;
+            return env.disabled_indices.contains(validator_index);
+          });
+
+      auto ignore_disabled = not is_confirmed and all_invalid_votes_disabled;
+
+      auto is_potential_spam = (is_disputed  //
+                                and not is_included and not is_backed
+                                and not is_confirmed and not is_postponed)
+                            or ignore_disabled;
       if (is_potential_spam) {
         SL_TRACE(log_,
                  "Found potential spam dispute on startup "
-                 "(session={}, candidate={})",
+                 "(session={},"
+                 " candidate={},"
+                 " is_disputed={},"
+                 " is_included={},"
+                 " is_backed={},"
+                 " is_confirmed={},"
+                 " all_invalid_votes_disabled={},"
+                 " ignore_disabled={})",
                  session,
-                 candidate_hash);
+                 candidate_hash,
+                 is_disputed,
+                 is_included,
+                 is_backed,
+                 is_confirmed,
+                 all_invalid_votes_disabled,
+                 ignore_disabled);
 
         std::set<ValidatorIndex> voted_indices;
         for (auto &[key, _] : vote_state.votes.valid) {
@@ -799,8 +812,13 @@ namespace kagome::dispute {
       // If the latest session was updated, then prune spam slots
       if (highest_session_ < session_index) {
         highest_session_ = session_index;
-        static size_t kWindowSize = 6;
-        spam_slots_->prune_old(highest_session_ - kWindowSize);
+
+        auto prune_up_to = (highest_session_ > kDisputeWindow)
+                             ? highest_session_ - (kDisputeWindow - 1)
+                             : 1;
+
+        spam_slots_->prune_old(prune_up_to);
+        offchain_disabled_validators_.prune_old(prune_up_to);
       }
 
       // The `runtime-api` subsystem has an internal queue which serializes the
@@ -943,10 +961,10 @@ namespace kagome::dispute {
           sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
       //.await?;
 
-      // Only rate limit if we actually sent something out _and_ it was not just
+      // Only rate limit if we actually sent something out _and_ it wasn't just
       // because of errors on previous sends.
-      //
-      // Reasoning: It would not be acceptable to slow down the whole subsystem,
+
+      // Reasoning: It wouldn't be acceptable to slow down the whole subsystem,
       // just because of a few bad peers having problems. It is actually better
       // to risk running into their rate limit in that case and accept a minor
       // reputation change.
@@ -979,7 +997,17 @@ namespace kagome::dispute {
   DisputeCoordinatorImpl::makeCandidateEnvironment(
       crypto::SessionKeys &session_keys,
       SessionIndex session,
-      primitives::BlockHash relay_parent) {
+      primitives::BlockHash relay_parent,
+      std::vector<ValidatorIndex> &&disabled_offchain) {
+    auto disabled_onchain_res = api_->disabled_validators(relay_parent);
+    if (disabled_onchain_res.has_error()) {
+      SL_WARN(log_,
+              "Failed to get disabled validators: {}",
+              disabled_onchain_res.error());
+      return std::nullopt;
+    }
+    auto &disabled_onchain = disabled_onchain_res.value();
+
     auto session_info_opt_res = api_->session_info(relay_parent, session);
     if (session_info_opt_res.has_error()) {
       SL_WARN(log_,
@@ -999,9 +1027,30 @@ namespace kagome::dispute {
       controlled_indices.emplace(keypair->second);
     }
 
-    return CandidateEnvironment{.session_index = session,
-                                .session = std::move(session_info),
-                                .controlled_indices = controlled_indices};
+    // combine on-chain with off-chain disabled validators
+    // process disabled validators in the following order:
+    // - on-chain disabled validators
+    // - prioritized order of off-chain disabled validators
+    // deduplicate the list and take at most `byzantine_threshold` validators
+    auto byzantine_threshold =
+        (std::max<size_t>(session_info.validators.size(), 1) - 1) / 3;
+    std::unordered_set<ValidatorIndex> disabled_indices;
+    for (auto container :
+         {std::cref(disabled_onchain), std::cref(disabled_offchain)}) {
+      for (auto validator_index : container.get()) {
+        disabled_indices.emplace(validator_index);
+        if (disabled_indices.size() >= byzantine_threshold) {
+          break;
+        }
+      }
+    }
+
+    return CandidateEnvironment{
+        .session_index = session,
+        .session = std::move(session_info),
+        .controlled_indices = std::move(controlled_indices),
+        .disabled_indices = std::move(disabled_indices),
+    };
   }
 
   outcome::result<bool> DisputeCoordinatorImpl::handle_import_statements(
@@ -1028,7 +1077,6 @@ namespace kagome::dispute {
     // blocks, and hence we do not have a `CandidateReceipt` available.
 
     CandidateVoteState old_state;
-    std::vector<ValidatorIndex> disabled_validators;
 
     OUTCOME_TRY(old_state_opt,
                 storage_->load_candidate_votes(session, candidate_hash));
@@ -1055,8 +1103,11 @@ namespace kagome::dispute {
       relay_parent = old_state_opt->candidate_receipt.descriptor.relay_parent;
     }
 
-    auto env_opt =
-        makeCandidateEnvironment(*session_keys_, session, relay_parent);
+    auto env_opt = makeCandidateEnvironment(
+        *session_keys_,
+        session,
+        relay_parent,
+        offchain_disabled_validators_.asVector(session));
     if (not env_opt.has_value()) {
       SL_DEBUG(log_,
                "We are lacking a `SessionInfo` for handling import of "
@@ -1065,24 +1116,8 @@ namespace kagome::dispute {
     }
     auto &env = env_opt.value();
 
-    auto disabled_validators_res = api_->disabled_validators(relay_parent);
-    if (disabled_validators_res.has_error()) {
-      SL_WARN(log_,
-              "Cannot import votes, without getting disabled validators: {}",
-              disabled_validators_res.error());
-      return outcome::success(false);
-    }
-    disabled_validators = std::move(disabled_validators_res.value());
-
-    auto is_disabled = [&disabled_validators =
-                            disabled_validators_res.value()](auto index) {
-      return std::binary_search(
-          disabled_validators.begin(), disabled_validators.end(), index);
-    };
-
     if (old_state_opt.has_value()) {
-      old_state = CandidateVoteState::create(
-          old_state_opt.value(), env, disabled_validators, now);
+      old_state = CandidateVoteState::create(old_state_opt.value(), env, now);
     }
 
     SL_TRACE(log_, "Loaded votes");
@@ -1133,10 +1168,10 @@ namespace kagome::dispute {
         continue;
       }
 
-      auto is_disabled_validator = is_disabled(val_index);
+      auto is_disabled_validator = env.disabled_indices.contains(val_index);
 
-      // Postpone votes of disabled validators while any votes for candidate are
-      // not exist
+      // Postpone votes of disabled validators while any votes for candidate
+      // don't exist
       if (is_disabled_validator and votes.valid.empty()
           and votes.invalid.empty()) {
         postponed_statements.emplace_back(std::move(vote));
@@ -1176,8 +1211,7 @@ namespace kagome::dispute {
 
     ImportResult intermediate_result{
         .old_state = std::move(old_state),
-        .new_state = CandidateVoteState::create(
-            votes, env, disabled_validators, now),  // new_state
+        .new_state = CandidateVoteState::create(votes, env, now),
         .imported_invalid_votes = imported_invalid_votes,
         .imported_valid_votes = imported_valid_votes,
         .imported_approval_votes = 0,
@@ -1335,8 +1369,8 @@ namespace kagome::dispute {
           }
         }
 
-        import_result.new_state = CandidateVoteState::create(
-            std::move(_votes), env, disabled_validators, now);
+        import_result.new_state =
+            CandidateVoteState::create(std::move(_votes), env, now);
       }
     } else {
       SL_TRACE(log_, "Not requested approval signatures");
@@ -1359,9 +1393,19 @@ namespace kagome::dispute {
     auto is_confirmed = is_disputed
                           ? is_type<Confirmed>(new_state.dispute_status.value())
                           : false;
-    auto is_potential_spam = is_disputed  //
-                         and not is_included and not is_backed
-                         and not is_confirmed and not is_postponed;
+
+    auto all_invalid_votes_disabled =
+        std::ranges::all_of(new_state.votes.invalid, [&](const auto &entry) {
+          auto &validator_index = entry.first;
+          return env.disabled_indices.contains(validator_index);
+        });
+
+    auto ignore_disabled = not is_confirmed and all_invalid_votes_disabled;
+
+    auto is_potential_spam = (is_disputed  //
+                              and not is_included and not is_backed
+                              and not is_confirmed and not is_postponed)
+                          or ignore_disabled;
 
     // We participate only in disputes which are not potential spam.
     auto allow_participation = not is_potential_spam;
@@ -1375,6 +1419,25 @@ namespace kagome::dispute {
 
       // Potential spam:
     } else if (not import_result.new_invalid_voters.empty()) {
+      SL_TRACE(log_,
+               "Detected potential spam dispute "
+               "(session={},"
+               " candidate={},"
+               " is_disputed={},"
+               " is_included={},"
+               " is_backed={},"
+               " is_confirmed={},"
+               " all_invalid_votes_disabled={},"
+               " ignore_disabled={})",
+               session,
+               candidate_hash,
+               is_disputed,
+               is_included,
+               is_backed,
+               is_confirmed,
+               all_invalid_votes_disabled,
+               ignore_disabled);
+
       auto free_spam_slots_available = false;
 
       // Only allow import if at least one validator voting invalid, has not
@@ -1400,12 +1463,10 @@ namespace kagome::dispute {
     // - `is_included` lands in prioritized queue
     // - `is_confirmed` | `is_backed` lands in the best effort queue
     // We don't participate in disputes escalated by disabled validators only.
-    // We don't participate in disputes on finalized candidates.
-    // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:907
+    // see:
+    // https://github.com/paritytech/polkadot-sdk/blob/b16237ad6f019667a59b0e3e726f6ac20e2d0a1c/polkadot/node/core/dispute-coordinator/src/initialized.rs#L1184
 
-    if (own_vote_missing                      //
-        and is_disputed and not is_postponed  //
-        and allow_participation) {
+    if (own_vote_missing and is_disputed and allow_participation) {
       auto priority = static_cast<ParticipationPriority>(is_included);
 
       auto &receipt = new_state.votes.candidate_receipt;
@@ -1416,11 +1477,26 @@ namespace kagome::dispute {
 
       auto res = participation_->queue_participation(priority, request);
       if (res.has_error()) {
-        SL_ERROR(log_, "Error of participation: {}", res.error());
+        SL_ERROR(log_,
+                 "Error of participation for candidate "
+                 "(session={}, candidate={}): {}",
+                 session,
+                 candidate_hash,
+                 res.error());
+      } else {
+        SL_TRACE(log_,
+                 "Trying to participate for candidate "
+                 "(session={}, candidate={})",
+                 session,
+                 candidate_hash);
       }
 
     } else {
-      SL_DEBUG(log_, "Will not queue participation for candidate");
+      SL_DEBUG(log_,
+               "Will not queue participation for candidate "
+               "(session={}, candidate={})",
+               session,
+               candidate_hash);
     }
 
     // Also send any already existing approval vote on new disputes:
@@ -1514,6 +1590,20 @@ namespace kagome::dispute {
       }
     }
 
+    if (is_freshly_concluded_for) {
+      for (const auto &[validator_index, vote] : new_state.votes.invalid) {
+        SL_DEBUG(
+            log_,
+            "Disabled offchain for voting invalid against a valid candidate."
+            "(candidate={}, validator_index={})",
+            candidate_hash,
+            validator_index);
+        // https://github.com/paritytech/polkadot-sdk/blob/b16237ad6f019667a59b0e3e726f6ac20e2d0a1c/polkadot/node/core/dispute-coordinator/src/initialized.rs#L1381
+        offchain_disabled_validators_.insert_against_valid(session,
+                                                           validator_index);
+      }
+    }
+
     // Notify ChainSelection if a dispute has concluded against a candidate.
     // ChainSelection will need to mark the candidate's relay parent as
     // reverted.
@@ -1538,6 +1628,21 @@ namespace kagome::dispute {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "
                  "which a dispute has concluded");
+      }
+
+      for (const auto &[validator_index, vote] : new_state.votes.valid) {
+        const auto &[kind, sig] = vote;
+        bool is_backer =
+            is_type<BackingValid>(kind) or is_type<BackingSeconded>(kind);
+        SL_DEBUG(log_,
+                 "Disabled offchain for voting valid for an invalid candidate."
+                 "(candidate={}, validator_index={}, is_backer={})",
+                 candidate_hash,
+                 validator_index,
+                 is_backer);
+        // https://github.com/paritytech/polkadot-sdk/blob/b16237ad6f019667a59b0e3e726f6ac20e2d0a1c/polkadot/node/core/dispute-coordinator/src/initialized.rs#L1412
+        offchain_disabled_validators_.insert_for_invalid(
+            session, validator_index, is_backer);
       }
     }
 

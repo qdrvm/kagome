@@ -34,8 +34,13 @@ hunter_config(
 
 hunter_config(
     rocksdb
-    VERSION 9.0.0
+    VERSION 9.6.1
     CMAKE_ARGS WITH_GFLAGS=OFF
+)
+
+hunter_config(
+    Boost
+    VERSION 1.85.0
 )
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
@@ -107,8 +112,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/66764acb294517f8249aea6d63c6e6cc0be5686f.tar.gz
-    SHA1 45b73da05e1b59f46b9f4cb39a24c485ee6d5ba1
+    URL https://github.com/libp2p/cpp-libp2p/archive/c96d45f792fafd6970a7e37ec816b02a9167e2b6.zip
+    SHA1 884932112bc75996eeecd4a7bbcb932565fe9859
 )
 
 hunter_config(
@@ -116,6 +121,14 @@ hunter_config(
 #    VERSION 0.0.8
     URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
     SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    soralog
+#    VERSION 0.2.4
+    URL  https://github.com/qdrvm/soralog/archive/refs/tags/v0.2.4.tar.gz
+    SHA1 832a32cf134f8caab4a79c03024ac8408f848dae
     KEEP_PACKAGE_SOURCES
 )
 

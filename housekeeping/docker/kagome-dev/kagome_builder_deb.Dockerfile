@@ -6,6 +6,7 @@ ARG ARCHITECTURE=x86_64
 
 ARG DEBIAN_VERSION=bookworm
 ARG LLVM_VERSION=19
+ARG GCC_VERSION=13
 
 FROM ${BASE_IMAGE}
 
@@ -20,6 +21,8 @@ ARG DEBIAN_VERSION
 ENV DEBIAN_VERSION=${DEBIAN_VERSION}
 ARG LLVM_VERSION
 ENV LLVM_VERSION=${LLVM_VERSION}
+ARG GCC_VERSION
+ENV GCC_VERSION=${GCC_VERSION}
 
 RUN install_packages \
         apt-transport-https \
@@ -30,6 +33,7 @@ RUN install_packages \
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
         tee -a /etc/apt/sources.list.d/llvm.list
+RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list
 
 RUN install_packages \
         build-essential \
@@ -40,8 +44,8 @@ RUN install_packages \
         llvm-${LLVM_VERSION}-dev \
         curl \
         dpkg-dev \
-        g++-12 \
-        gcc-12 \
+        g++-${GCC_VERSION} \
+        gcc-${GCC_VERSION} \
         gdb \
         gdbserver \
         git \
@@ -79,8 +83,8 @@ ENV HUNTER_PYTHON_LOCATION=/venv/bin/python3
 ENV LLVM_ROOT=/usr/lib/llvm-${LLVM_VERSION}
 ENV LLVM_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-12
-ENV CXX=g++-12
+ENV CC=gcc-${GCC_VERSION}
+ENV CXX=g++-${GCC_VERSION}
 
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
@@ -90,6 +94,6 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-${LLVM_VERSION}/bin/clang-${LLVM_VERSION}  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}                         50 && \
     \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}    90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}    90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}   90

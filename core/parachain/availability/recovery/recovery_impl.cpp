@@ -909,7 +909,7 @@ namespace kagome::parachain {
     }();
 
     auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-        network::ReqChunkVersion::V1_obsolete);
+        network::ReqChunkVersion::V2);
 
     SL_TRACE(logger_,
              "Candidate {}. "
