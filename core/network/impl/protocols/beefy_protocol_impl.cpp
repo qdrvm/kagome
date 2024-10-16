@@ -67,13 +67,13 @@ namespace kagome::network {
             std::shared_ptr<BeefyProtocolImpl> self,
             outcome::result<notifications::ConnectAndHandshake<Roles>>
                 r) mutable {
-          if (not r) {
-            cb(r.error());
+          // if (not r) {
+            cb(outcome::failure(std::errc::wrong_protocol_type));
             return;
-          }
-          auto &stream = std::get<0>(r.value());
-          self->stream_engine_->addOutgoing(stream, self);
-          cb(std::move(stream));
+          // }
+          // auto &stream = std::get<0>(r.value());
+          // self->stream_engine_->addOutgoing(stream, self);
+          // cb(std::move(stream));
         };
     notifications::connectAndHandshake(
         weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
