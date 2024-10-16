@@ -4,7 +4,7 @@ ARG BASE_IMAGE
 ARG RUST_VERSION
 ARG ARCHITECTURE=x86_64
 
-ARG DEBIAN_VERSION=trixie
+ARG DEBIAN_VERSION=unstable
 ARG LLVM_VERSION=19
 ARG GCC_VERSION=13
 
@@ -34,8 +34,13 @@ RUN install_packages \
         wget
 
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
-        tee -a /etc/apt/sources.list.d/llvm.list
+RUN if [ "$DEBIAN_VERSION" = "unstable" ]; then \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${LLVM_VERSION} main" | \
+      tee -a /etc/apt/sources.list.d/llvm.list; \
+    else \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
+      tee -a /etc/apt/sources.list.d/llvm.list; \
+    fi
 
 RUN install_packages \
         build-essential \
