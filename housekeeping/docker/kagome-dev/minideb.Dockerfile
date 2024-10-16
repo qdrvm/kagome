@@ -16,6 +16,9 @@ ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Kagome image"
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
 RUN install_packages \
         bash \
         software-properties-common \
@@ -64,11 +67,6 @@ RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages \
         kagome-dev=${KAGOME_PACKAGE_VERSION} && \
         sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
-
-# temporary fix for libc6 (gcc-13)
-# TODO: remove when CI swithed to trixie
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list && apt update
-RUN apt install -y libc6 libstdc++6 libgcc-s1 -t trixie
 
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
 

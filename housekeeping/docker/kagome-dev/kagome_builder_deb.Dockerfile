@@ -4,7 +4,7 @@ ARG BASE_IMAGE
 ARG RUST_VERSION
 ARG ARCHITECTURE=x86_64
 
-ARG DEBIAN_VERSION=bookworm
+ARG DEBIAN_VERSION=trixie
 ARG LLVM_VERSION=19
 ARG GCC_VERSION=13
 
@@ -24,6 +24,9 @@ ENV LLVM_VERSION=${LLVM_VERSION}
 ARG GCC_VERSION
 ENV GCC_VERSION=${GCC_VERSION}
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
 RUN install_packages \
         apt-transport-https \
         ca-certificates \
@@ -33,7 +36,6 @@ RUN install_packages \
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
         tee -a /etc/apt/sources.list.d/llvm.list
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list
 
 RUN install_packages \
         build-essential \
