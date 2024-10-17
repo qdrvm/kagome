@@ -10,8 +10,12 @@
 #include <parachain/validator/statement_distribution/per_relay_parent_state.hpp>
 #include "authority_discovery/query/query.hpp"
 #include "common/ref_cache.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "network/can_disconnect.hpp"
 #include "network/peer_manager.hpp"
+#include "network/peer_view.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/validator/impl/candidates.hpp"
@@ -77,7 +81,11 @@ namespace kagome::parachain::statement_distribution {
         common::MainThreadPool &main_thread_pool,
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::Sr25519Provider> crypto_provider);
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+        std::shared_ptr<network::PeerView> peer_view,
+        LazySPtr<consensus::SlotsUtil> slots_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repo);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     PerRelayParentState &relay_parent_state,
@@ -285,7 +293,6 @@ namespace kagome::parachain::statement_distribution {
         const libp2p::peer::PeerId &peer,
         network::CollationVersion version);
 
-
     std::deque<std::pair<std::vector<libp2p::peer::PeerId>,
                          network::VersionedValidatorProtocolMessage>>
     acknowledgement_and_statement_messages(
@@ -306,6 +313,34 @@ namespace kagome::parachain::statement_distribution {
     void process_frontier(
         std::vector<std::pair<HypotheticalCandidate,
                               fragment::HypotheticalMembership>> frontier);
+
+    outcome::result<std::optional<ValidatorSigner>> is_parachain_validator(
+        const primitives::BlockHash &relay_parent) const;
+
+    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+    fetch_claim_queue(const RelayHash &relay_parent);
+
+    std::unordered_map<ParachainId, std::vector<GroupIndex>>
+    determine_groups_per_para(
+        const std::vector<runtime::CoreState> &availability_cores,
+        const GroupDescriptor &group_rotation_info,
+        std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+        size_t max_candidate_depth);
+
+    void handle_view_event(const network::ExView &event);
+    outcome::result<void> handle_active_leaves_update(
+        const network::ExView &event);
+    outcome::result<void> handle_deactivate_leaves(
+        std::vector<primitives::BlockHash> lost);
+
+    void update_peers_state(const Hash &relay_parent,
+                            std::vector<primitives::BlockHash> lost,
+                            std::vector<Hash> new_relay_parents);
+    void update_remote_peers_and_our_fragment_chain(
+        const Hash &relay_parent,
+        std::vector<primitives::BlockHash> lost,
+        std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
+            update_peers);
 
    private:
     log::Logger logger =
@@ -332,6 +367,14 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<ProspectiveParachains> prospective_parachains;
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider;
+    std::shared_ptr<network::PeerView> peer_view;
+    std::shared_ptr<blockchain::BlockTree> block_tree;
+    LazySPtr<consensus::SlotsUtil> slots_util;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo;
+
+    /// sub
+
+    network::PeerView::MyViewSubscriberPtr my_view_sub;
   };
 
 }  // namespace kagome::parachain::statement_distribution

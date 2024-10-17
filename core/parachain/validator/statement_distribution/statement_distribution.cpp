@@ -106,16 +106,21 @@ namespace kagome::parachain::statement_distribution {
       StatementDistributionThreadPool &statements_distribution_thread_pool,
       std::shared_ptr<ProspectiveParachains> _prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> _parachain_host,
-      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<blockchain::BlockTree> _block_tree,
       std::shared_ptr<authority_discovery::Query> _query_audi,
       std::shared_ptr<NetworkBridge> _network_bridge,
       std::shared_ptr<network::Router> _router,
       common::MainThreadPool &main_thread_pool,
       std::shared_ptr<network::PeerManager> _pm,
       std::shared_ptr<crypto::Hasher> _hasher,
-      std::shared_ptr<crypto::Sr25519Provider> _crypto_provider)
-      : implicit_view(
-            _prospective_parachains, _parachain_host, block_tree, std::nullopt),
+      std::shared_ptr<crypto::Sr25519Provider> _crypto_provider,
+      std::shared_ptr<network::PeerView> _peer_view,
+      LazySPtr<consensus::SlotsUtil> _slots_util,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo)
+      : implicit_view(_prospective_parachains,
+                      _parachain_host,
+                      _block_tree,
+                      std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -133,7 +138,11 @@ namespace kagome::parachain::statement_distribution {
         hasher(std::move(_hasher)),
         prospective_parachains(_prospective_parachains),
         parachain_host(_parachain_host),
-        crypto_provider(_crypto_provider) {
+        crypto_provider(_crypto_provider),
+        peer_view(std::move(_peer_view)),
+        block_tree(_block_tree),
+        slots_util(_slots_util),
+        babe_config_repo(std::move(_babe_config_repo)) {
     BOOST_ASSERT(per_session);
     BOOST_ASSERT(signer_factory);
     BOOST_ASSERT(peer_use_count);
@@ -147,62 +156,14 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(prospective_parachains);
     BOOST_ASSERT(parachain_host);
     BOOST_ASSERT(crypto_provider);
+    BOOST_ASSERT(peer_view);
+    BOOST_ASSERT(block_tree);
+    BOOST_ASSERT(babe_config_repo);
   }
-
-  /* handle active leaves sub
-remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
-peer_view_->getRemoteViewObservable(), false);
-primitives::events::subscribe(
-*remote_view_sub_,
-network::PeerView::EventType::kViewUpdated,
-[wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-                     const network::View &view) {
-TRY_GET_OR_RET(self, wptr.lock());
-self->handle_peer_view_update(peer_id, view);
-});
-  */
 
   /* handle_active_leaves
       /// update `statements_distribution` subsystem
-     {
-       auto new_relay_parents =
-           our_current_state_.implicit_view->all_allowed_relay_parents();
-       std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
-           update_peers;
-       pm->enumeratePeerState([&](const libp2p::peer::PeerId &peer,
-                                   network::PeerState &peer_state) {
-         std::vector<Hash> fresh =
-             peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
-         if (!fresh.empty()) {
-           update_peers.emplace_back(peer, fresh);
-         }
-         return true;
-       });
-       for (const auto &[peer, fresh] : update_peers) {
-         for (const auto &fresh_relay_parent : fresh) {
-           send_peer_messages_for_relay_parent(peer, fresh_relay_parent);
-         }
-       }
-     }
-     new_leaf_fragment_chain_updates(relay_parent);
       */
-
-  /*handle_active_leaves
-  auto per_session_state = per_session_->get_or_insert(session_index, [&] {
-    grid::Views grid_view = grid::makeViews(
-        session_info->validator_groups,
-        grid::shuffle(session_info->discovery_keys.size(), randomness),
-        *global_v_index);
-
-    return RefCache<SessionIndex, PerSessionState>::RefObj(
-        session_index,
-        *session_info,
-        Groups{session_info->validator_groups, minimum_backing_votes},
-        std::move(grid_view),
-        validator_index,
-        peer_use_count_);
-  });
-  */
 
   /*
       std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
@@ -232,51 +193,324 @@ self->handle_peer_view_update(peer_id, view);
   */
 
   /*
-      std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
-        authority_lookup;
-    for (ValidatorIndex v = 0;
-         v < per_session_state->value().session_info.discovery_keys.size();
-         ++v) {
-      authority_lookup[per_session_state->value()
-                           .session_info.discovery_keys[v]] = v;
-    }
 
    */
 
   /*handle_active_leaves
-    std::optional<LocalValidatorState> local_validator;
-    if (mode) {
-      //statement_store.emplace(per_session_state->value().groups);
+   */
+
+  bool StatementDistribution::tryStart() {
+    //    remote_view_sub_ =
+    //    std::make_shared<network::PeerView::PeerViewSubscriber>(
+    //        peer_view_->getRemoteViewObservable(), false);
+    //    primitives::events::subscribe(
+    //        *remote_view_sub_,
+    //        network::PeerView::EventType::kViewUpdated,
+    //        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
+    //                                 const network::View &view) {
+    //          TRY_GET_OR_RET(self, wptr.lock());
+    //          self->handle_peer_view_update(peer_id, view);
+    //        });
+
+    my_view_sub = std::make_shared<network::PeerView::MyViewSubscriber>(
+        peer_view->getMyViewObservable(), false);
+    primitives::events::subscribe(
+        *my_view_sub,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const network::ExView &event) {
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->handle_view_event(event);
+        });
+
+    return true;
+  }
+
+  outcome::result<std::optional<ValidatorSigner>>
+  StatementDistribution::is_parachain_validator(
+      const primitives::BlockHash &relay_parent) const {
+    return signer_factory->at(relay_parent);
+  }
+
+  void StatementDistribution::handle_view_event(const network::ExView &event) {
+    REINVOKE(*statements_distribution_thread_handler, handle_view_event, event);
+
+    if (auto result = handle_active_leaves_update(event); result.has_error()) {
+      SL_ERROR(logger,
+               "Handle active leaves update failed. (relay parent={})",
+               event.new_head.hash());
+    }
+  }
+
+  outcome::result<void> StatementDistribution::handle_active_leaves_update(
+      const network::ExView &event) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
+    const auto &relay_parent = event.new_head.hash();
+    const auto leaf_mode =
+        prospective_parachains->prospectiveParachainsMode(relay_parent);
+    if (!leaf_mode) {
+      return outcome::success();
+    }
+
+    const auto max_candidate_depth = leaf_mode->max_candidate_depth;
+    const auto seconding_limit = max_candidate_depth + 1;
+
+    OUTCOME_TRY(implicit_view.activate_leaf(relay_parent));
+    auto new_relay_parents = implicit_view.all_allowed_relay_parents();
+
+    for (const auto &new_relay_parent : new_relay_parents) {
+      /// We check `per_relay_state` befor `per_session_state`, because we keep
+      /// ref in `per_relay_parent` directly
+      if (tryGetStateByRelayParent(new_relay_parent)) {
+        continue;
+      }
+
+      OUTCOME_TRY(session_index,
+                  parachain_host->session_index_for_child(new_relay_parent));
+      OUTCOME_TRY(
+          per_session_state,
+          per_session->get_or_insert(
+              session_index,
+              [&]() -> outcome::result<
+                        RefCache<SessionIndex, PerSessionState>::RefObj> {
+                OUTCOME_TRY(session_info,
+                            parachain_host->session_info(new_relay_parent,
+                                                         session_index));
+                OUTCOME_TRY(v_index,
+                            signer_factory->getAuthorityValidatorIndex(
+                                new_relay_parent));
+                if (!v_index) {
+                  SL_TRACE(logger, "Not a validator.");
+                  return outcome::failure(Error::NOT_A_VALIDATOR);
+                }
+
+                uint32_t minimum_backing_votes = 2;  /// legacy value
+                if (auto r = parachain_host->minimum_backing_votes(
+                        new_relay_parent, session_index);
+                    r.has_value()) {
+                  minimum_backing_votes = r.value();
+                } else {
+                  SL_TRACE(
+                      logger,
+                      "Querying the backing threshold from the runtime is not "
+                      "supported by the current Runtime API. "
+                      "(new_relay_parent={})",
+                      new_relay_parent);
+                }
+
+                OUTCOME_TRY(block_header,
+                            block_tree->getBlockHeader(new_relay_parent));
+                OUTCOME_TRY(babe_header,
+                            consensus::babe::getBabeBlockHeader(block_header));
+                OUTCOME_TRY(
+                    epoch,
+                    slots_util.get()->slotToEpoch(*block_header.parentInfo(),
+                                                  babe_header.slot_number));
+                OUTCOME_TRY(babe_config,
+                            babe_config_repo->config(*block_header.parentInfo(),
+                                                     epoch));
+                OUTCOME_TRY(validator,
+                            is_parachain_validator(new_relay_parent));
+
+                const auto validator_index = utils::map(
+                    validator,
+                    [](const auto &signer) { return signer.validatorIndex(); });
+
+                std::unordered_map<primitives::AuthorityDiscoveryId,
+                                   ValidatorIndex>
+                    authority_lookup;
+                for (ValidatorIndex v = 0;
+                     v < session_info->discovery_keys.size();
+                     ++v) {
+                  authority_lookup[session_info->discovery_keys[v]] = v;
+                }
+
+                grid::Views grid_view = grid::makeViews(
+                    session_info->validator_groups,
+                    grid::shuffle(session_info->discovery_keys.size(),
+                                  babe_config->randomness),
+                    *v_index);
+
+                return outcome::success(
+                    RefCache<SessionIndex, PerSessionState>::RefObj(
+                        session_index,
+                        *session_info,
+                        Groups{session_info->validator_groups,
+                               minimum_backing_votes},
+                        std::move(grid_view),
+                        validator_index,
+                        peer_use_count,
+                        std::move(authority_lookup)));
+              }));
+
+      OUTCOME_TRY(availability_cores,
+                  parachain_host->availability_cores(new_relay_parent));
+      OUTCOME_TRY(groups, parachain_host->validator_groups(new_relay_parent));
+      const auto &[std::ignore, group_rotation_info] = groups;
+
       auto maybe_claim_queue =
           [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
-        auto r = fetch_claim_queue(relay_parent);
+        auto r = fetch_claim_queue(new_relay_parent);
         if (r.has_value()) {
           return r.value();
         }
         return std::nullopt;
       }();
 
-      const auto seconding_limit = mode->max_candidate_depth + 1;
-      local_validator = [&]() -> std::optional<LocalValidatorState> {
-        if (!global_v_index) {
+      auto local_validator = [&]() -> std::optional<LocalValidatorState> {
+        if (!v_index) {
           return std::nullopt;
         }
+
         if (validator_index) {
           return find_active_validator_state(*validator_index,
                                              per_session_state->value().groups,
-                                             cores,
+                                             availability_cores,
                                              group_rotation_info,
                                              maybe_claim_queue,
                                              seconding_limit,
-                                             mode->max_candidate_depth);
+                                             max_candidate_depth);
         }
         return LocalValidatorState{};
       }();
-    }
-  */
 
-  bool StatementDistribution::tryStart() {
-    return true;
+      auto groups_per_para = determine_groups_per_para(availability_cores,
+                                                       group_rotation_info,
+                                                       maybe_claim_queue,
+                                                       max_candidate_depth);
+      per_relay_parent.emplace(
+          new_relay_parent,
+          PerRelayParentState{
+              .local_validator = local_validator,
+              .statement_store = StatementStore(per_session->value().groups),
+              .seconding_limit = seconding_limit,
+              .session = session_index,
+              .groups_per_para = std::move(groups_per_para),
+              .disabled_validators = {},
+              .per_session_state = per_session_state,
+          }, );
+    }  // for
+
+    SL_TRACE(
+        logger,
+        "Activated leaves. Now tracking {} relay-parents across {} sessions",
+        per_relay_parent.size(),
+        per_session.size());
+
+    update_peers_state(relay_parent, event.lost, std::move(new_relay_parents));
+    return outcome::success();
+  }
+
+  void StatementDistribution::update_peers_state(
+      const Hash &relay_parent,
+      std::vector<primitives::BlockHash> lost,
+      std::vector<Hash> new_relay_parents) {
+    REINVOKE(*main_pool_handler,
+             update_peers_state,
+             relay_parent,
+             std::move(lost),
+             std::move(new_relay_parents));
+
+    std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
+        update_peers;
+    pm->enumeratePeerState(
+        [&](const libp2p::peer::PeerId &peer, network::PeerState &peer_state) {
+          std::vector<Hash> fresh =
+              peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
+          if (!fresh.empty()) {
+            update_peers.emplace_back(peer, fresh);
+          }
+          return true;
+        });
+    update_remote_peers_and_our_fragment_chain(
+        relay_parent, std::move(lost), std::move(update_peers));
+  }
+
+  void StatementDistribution::update_remote_peers_and_our_fragment_chain(
+      const Hash &relay_parent,
+      std::vector<primitives::BlockHash> lost,
+      std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
+          update_peers) {
+    REINVOKE(*statements_distribution_thread_handler,
+             update_remote_peers_and_our_fragment_chain,
+             relay_parent,
+             std::move(lost),
+             std::move(update_peers));
+
+    for (const auto &[peer, fresh] : update_peers) {
+      for (const auto &fresh_relay_parent : fresh) {
+        send_peer_messages_for_relay_parent(peer, fresh_relay_parent);
+      }
+    }
+    new_leaf_fragment_chain_updates(relay_parent);
+    handle_deactivate_leaves(std::move(lost));
+  }
+
+  std::unordered_map<ParachainId, std::vector<GroupIndex>>
+  StatementDistribution::determine_groups_per_para(
+      const std::vector<runtime::CoreState> &availability_cores,
+      const GroupDescriptor &group_rotation_info,
+      std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
+      size_t max_candidate_depth) {
+    const auto n_cores = availability_cores.size();
+    const auto schedule =
+        [&]() -> std::unordered_map<CoreIndex, std::vector<ParachainId>> {
+      if (maybe_claim_queue) {
+        return std::unordered_map<CoreIndex, std::vector<ParachainId>>(
+            maybe_claim_queue->claimes.begin(),
+            maybe_claim_queue->claimes.end());
+      }
+
+      std::unordered_map<CoreIndex, std::vector<ParachainId>> result;
+      for (CoreIndex index = 0; index < availability_cores.size(); ++index) {
+        const auto &core = availability_cores[index];
+        visit_in_place(
+            core,
+            [&](const runtime::ScheduledCore &scheduled_core) {
+              result.emplace(index, {scheduled_core.para_id});
+            },
+            [&](const runtime::OccupiedCore &occupied_core) {
+              if (max_candidate_depth >= 1) {
+                if (occupied_core.next_up_on_available) {
+                  result.emplace(index,
+                                 {occupied_core.next_up_on_available->para_id});
+                }
+              }
+            },
+            [&](const auto &) {});
+      }
+      return result;
+    }();
+
+    std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
+    for (const auto &[core_index, paras] : schedule) {
+      const auto group_index =
+          group_rotation_info.groupForCore(core_index, n_cores);
+      for (const auto &para : paras) {
+        groups_per_para[para].emplace_back(group_index);
+      }
+    }
+    return groups_per_para;
+  }
+
+  outcome::result<void> StatementDistribution::handle_deactivate_leaves(
+      std::vector<primitives::BlockHash> lost) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+  }
+
+  outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+  StatementDistribution::fetch_claim_queue(const RelayHash &relay_parent) {
+    constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
+    OUTCOME_TRY(version, parachain_host_->runtime_api_version(relay_parent));
+    if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
+      SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
+      return std::nullopt;
+    }
+
+    OUTCOME_TRY(claims, parachain_host_->claim_queue(relay_parent));
+    return runtime::ClaimQueueSnapshot{
+        .claimes = std::move(claims),
+    };
   }
 
   bool StatementDistribution::can_disconnect(const libp2p::PeerId &peer) const {
@@ -869,7 +1103,8 @@ self->handle_peer_view_update(peer_id, view);
           &acknowledgement) {
     REINVOKE(*statements_distribution_thread_handler,
              handle_incoming_acknowledgement,
-             peer_id, acknowledgement);
+             peer_id,
+             acknowledgement);
 
     SL_TRACE(logger,
              "`BackedCandidateAcknowledgement`. (candidate_hash={})",
@@ -1005,7 +1240,8 @@ self->handle_peer_view_update(peer_id, view);
       const network::vstaging::BackedCandidateManifest &manifest) {
     REINVOKE(*statements_distribution_thread_handler,
              handle_incoming_manifest,
-             peer_id, manifest);
+             peer_id,
+             manifest);
 
     SL_TRACE(logger,
              "`BackedCandidateManifest`. (relay_parent={}, "
@@ -1677,7 +1913,8 @@ self->handle_peer_view_update(peer_id, view);
       const network::vstaging::StatementDistributionMessageStatement &stm) {
     REINVOKE(*statements_distribution_thread_handler,
              handle_incoming_statement,
-             peer_id, stm);
+             peer_id,
+             stm);
     SL_TRACE(logger,
              "`StatementDistributionMessageStatement`. (relay_parent={}, "
              "candidate_hash={})",
@@ -2003,7 +2240,8 @@ self->handle_peer_view_update(peer_id, view);
       const SignedFullStatementWithPVD &statement) {
     REINVOKE(*statements_distribution_thread_handler,
              share_local_statement,
-             relay_parent, statement);
+             relay_parent,
+             statement);
 
     auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
     const CandidateHash candidate_hash =
@@ -2029,7 +2267,8 @@ self->handle_peer_view_update(peer_id, view);
     const GroupIndex local_group = validator_state->get().group;
     const auto local_assignment = validator_state->get().assignment;
 
-    const Groups &groups = per_relay_parent->get().per_session_state->value().groups;
+    const Groups &groups =
+        per_relay_parent->get().per_session_state->value().groups;
     // const std::optional<network::ParachainId> &local_assignment =
     //     per_relay_parent.assigned_para;
     // const network::ValidatorIndex local_index = *per_relay_parent.our_index;
@@ -2113,8 +2352,10 @@ self->handle_peer_view_update(peer_id, view);
 
     if (per_relay_parent->get().local_validator
         && per_relay_parent->get().local_validator->active) {
-      per_relay_parent->get().local_validator->active->cluster_tracker.note_issued(
-          local_index, network::vstaging::from(getPayload(compact_statement)));
+      per_relay_parent->get()
+          .local_validator->active->cluster_tracker.note_issued(
+              local_index,
+              network::vstaging::from(getPayload(compact_statement)));
     }
 
     if (per_relay_parent->get().per_session_state->value().grid_view) {
@@ -2126,7 +2367,8 @@ self->handle_peer_view_update(peer_id, view);
           getPayload(compact_statement));
     }
 
-    circulate_statement(relay_parent, per_relay_parent->get(), compact_statement);
+    circulate_statement(
+        relay_parent, per_relay_parent->get(), compact_statement);
     if (post_confirmation) {
       apply_post_confirmation(*post_confirmation);
     }

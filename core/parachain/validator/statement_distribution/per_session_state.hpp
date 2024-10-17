@@ -33,33 +33,25 @@ namespace kagome::parachain::statement_distribution {
     Groups groups;
     std::optional<grid::Views> grid_view;
     LocalValidatorIndex local_validator;
-    std::optional<ValidatorIndex> our_index;
-    std::optional<GroupIndex> our_group;
     std::shared_ptr<PeerUseCount> peers;
     std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
         authority_lookup;
 
     PerSessionState(SessionIndex _session,
                     runtime::SessionInfo _session_info,
-                    Groups &&_groups,
-                    grid::Views &&_grid_view,
-                    std::optional<ValidatorIndex> _our_index,
-                    std::shared_ptr<PeerUseCount> _peers)
+                    Groups _groups,
+                    grid::Views _grid_view,
+                    LocalValidatorIndex _local_validator,
+                    std::shared_ptr<PeerUseCount> _peers,
+                    std::unordered_map<primitives::AuthorityDiscoveryId,
+                                       ValidatorIndex> _authority_lookup)
         : session{_session},
           session_info{std::move(_session_info)},
           groups{std::move(_groups)},
           grid_view{std::move(_grid_view)},
-          our_index{_our_index},
-          peers(std::move(_peers)) {
-      if (our_index) {
-        our_group = groups.byValidatorIndex(*our_index);
-      }
-      if (our_group) {
-        BOOST_ASSERT(*our_group < session_info.validator_groups.size());
-        if (grid_view) {
-          BOOST_ASSERT(*our_group < grid_view->size());
-        }
-      }
+          local_validator(_local_validator),
+          peers(std::move(_peers)),
+          authority_lookup(std::move(_authority_lookup)) {
       updatePeers(true);
     }
 
@@ -68,7 +60,8 @@ namespace kagome::parachain::statement_distribution {
     }
 
     void updatePeers(bool add) const {
-      if (not our_index or not our_group or not this->peers) {
+      const auto our_group = groups.byValidatorIndex(*local_validator);
+      if (!local_validator || !our_group || !this->peers) {
         return;
       }
       auto &peers = *this->peers;

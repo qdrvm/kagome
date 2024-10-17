@@ -347,8 +347,8 @@ namespace kagome::parachain {
     };
 
     struct PerSessionState final {
-        SessionIndex session;
-        runtime::SessionInfo session_info;
+      SessionIndex session;
+      runtime::SessionInfo session_info;
     };
 
     struct RelayParentState {
@@ -370,7 +370,8 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes;
 
       bool inject_core_index;
-      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj> per_session_state;    
+      std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
+          per_session_state;
     };
 
     /**
@@ -474,11 +475,6 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
 
-    /// Check a statement signature under this parent hash.
-    std::optional<GroupIndex> group_for_para(
-        const std::vector<runtime::CoreState> &availability_cores,
-        const runtime::GroupDescriptor &group_rotation_info,
-        ParachainId para_id) const;
     outcome::result<consensus::Randomness> getBabeRandomness(
         const RelayHash &relay_parent);
     outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -602,8 +598,7 @@ namespace kagome::parachain {
         std::optional<BackingStore::ImportResult> &summary);
     template <typename T>
     std::optional<network::SignedStatement> createAndSignStatementFromPayload(
-        T &&payload,
-        RelayParentState &parachain_state);
+        T &&payload, RelayParentState &parachain_state);
     outcome::result<std::optional<BackingStore::ImportResult>> importStatement(
         const network::RelayHash &relay_parent,
         const SignedFullStatementWithPVD &statement,
