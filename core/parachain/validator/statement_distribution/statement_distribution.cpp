@@ -496,6 +496,22 @@ namespace kagome::parachain::statement_distribution {
   outcome::result<void> StatementDistribution::handle_deactivate_leaves(
       std::vector<primitives::BlockHash> lost) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
+    for (const auto &leaf : lost) {
+      const auto pruned = implicit_view.deactivate_leaf(leaf);
+      for (const auto &pruned_rp : pruned) {
+        if (auto it = per_relay_parent.find(pruned_rp); it != per_relay_parent.end()) {
+          if (auto active_state = it->second.active_validator_state()) {
+            active_state->get().cluster_tracker.warn_if_too_many_pending_statements(pruned_rp)
+          }
+          per_relay_parent.erase(it);
+        }
+      }
+    }
+
+    candidates.on_deactivate_leaves(lost, [&](const auto &h) {
+      return per_relay_parent.contains(h);
+    });
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
