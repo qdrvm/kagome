@@ -1758,6 +1758,7 @@ namespace kagome::parachain {
                                   available_data.pov,
                                   candidate_receipt,
                                   validation_code,
+                                  runtime::PvfExecTimeoutKind::Approval,
                                   std::move(cb));
         };
 

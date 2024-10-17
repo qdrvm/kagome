@@ -10,8 +10,9 @@
 
 #include "common/buffer_view.hpp"
 #include "outcome/custom.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/types.hpp"
-
 namespace kagome::runtime {
 
   class Module;
@@ -54,13 +55,15 @@ namespace kagome::runtime {
      * Compile `wasm` code to `path_compiled`.
      */
     virtual CompilationOutcome<void> compile(
-        std::filesystem::path path_compiled, BufferView wasm) const = 0;
+        std::filesystem::path path_compiled,
+        BufferView wasm,
+        const RuntimeContext::ContextParams &config) const = 0;
 
     /**
      * Load compiled code from `path_compiled`.
      */
     virtual CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
-        std::filesystem::path path_compiled) const = 0;
+        const kagome::parachain::PvfWorkerInputCodeParams &code_params) const = 0;
   };
 
 }  // namespace kagome::runtime

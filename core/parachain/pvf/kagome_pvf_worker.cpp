@@ -349,14 +349,15 @@ namespace kagome::parachain {
     while (true) {
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
 
-      if (auto *code_path = std::get_if<PvfWorkerInputCodePath>(&input)) {
-        OUTCOME_TRY(path, chroot_path(*code_path));
-        BOOST_OUTCOME_TRY(module, factory->loadCompiled(path));
+      if (auto *code_params = std::get_if<PvfWorkerInputCodeParams>(&input)) {
+        OUTCOME_TRY(path, chroot_path(code_params->path));
+        code_params->path = std::move(path);
+        BOOST_OUTCOME_TRY(module, factory->loadCompiled(*code_params));
         continue;
       }
       auto &input_args = std::get<PvfWorkerInputArgs>(input);
       if (not module) {
-        SL_ERROR(logger, "PvfWorkerInputCode expected");
+        SL_ERROR(logger, "PvfWorkerInputCodeParams expected");
         return std::errc::invalid_argument;
       }
       OUTCOME_TRY(instance, module->instantiate());

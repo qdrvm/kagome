@@ -50,6 +50,7 @@ target_link_libraries(uncompress_code_test
 addtest(executor_test
     executor_test.cpp
     )
+
 target_link_libraries(executor_test
     executor
     basic_code_provider
@@ -58,6 +59,21 @@ target_link_libraries(executor_test
     log_configurator
     module_repository
     )
+
+if (NOT ${WASM_COMPILER} STREQUAL "WAVM")
+    addtest(wasm_test
+        wasm_test.cpp
+        )
+
+    target_link_libraries(wasm_test
+        binaryen_module_factory
+        GTest::gmock
+        logger_for_tests
+        runtime_wasm_edge
+        zstd::libzstd_static
+        WasmEdge::WasmEdge
+        )
+endif()
 
 addtest(runtime_upgrade_tracker_test
     runtime_upgrade_tracker_test.cpp

@@ -78,7 +78,9 @@ namespace kagome::runtime::wavm {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     WAVM::IR::Module ir;
     WAVM::WASM::LoadError error;
     if (not WAVM::WASM::loadBinaryModule(
@@ -94,9 +96,9 @@ namespace kagome::runtime::wavm {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
+      const kagome::parachain::PvfWorkerInputCodeParams &code_params) const {
     Buffer file;
-    if (not readFile(file, path_compiled)) {
+    if (not readFile(file, code_params.path)) {
       return CompilationError{"read file failed"};
     }
     BOOST_OUTCOME_TRY(loading, scale::decode<std::shared_ptr<Compiled>>(file));
