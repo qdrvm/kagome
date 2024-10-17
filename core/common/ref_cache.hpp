@@ -91,14 +91,15 @@ namespace kagome {
      * @param f is a functor to create RefObj
      */
     template <typename F>
-    SRefObj get_or_insert(const Key &k, F &&f) {
+    outcome::result<SRefObj> get_or_insert(const Key &k, F &&f) {
       [[likely]] if (auto it = items_.find(k); it != items_.end()) {
         auto obj = it->second.lock();
         BOOST_ASSERT(obj);
         return obj;
       }
 
-      auto obj = std::make_shared<RefObj>(std::forward<F>(f)());
+      OUTCOME_TRY(o, std::forward<F>(f)());
+      auto obj = std::make_shared<RefObj>(std::move(o));
       auto [it, inserted] = items_.emplace(k, obj);
       BOOST_ASSERT(inserted);
 

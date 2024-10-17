@@ -331,7 +331,7 @@ namespace kagome::network {
 
     for (const auto &[peer_id, desc] : active_peers_) {
       // Skip peer having immunity
-      if (not can_disconnect_.get()->canDisconnect(peer_id)) {
+      if (not can_disconnect_.get()->can_disconnect(peer_id)) {
         continue;
       }
 
