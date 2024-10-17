@@ -8,6 +8,7 @@
 
 #include "application/app_configuration.hpp"
 #include "common/monadic_utils.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -215,7 +216,9 @@ namespace kagome::runtime {
                           instrument_->instrument(code, config.memory_limits));
         OUTCOME_TRY(module_factory_->compile(path, code, config));
       }
-      OUTCOME_TRY(module, module_factory_->loadCompiled(path, config));
+      const kagome::parachain::PvfWorkerInputCodeParams code_params = {
+          .path = path, .context_params = config};
+      OUTCOME_TRY(module, module_factory_->loadCompiled(code_params));
       return module;
     }();
     l.lock();

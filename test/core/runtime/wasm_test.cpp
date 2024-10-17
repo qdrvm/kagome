@@ -109,8 +109,9 @@ void test(std::string name,
     auto context_params = kagome::runtime::RuntimeContext::ContextParams();
     context_params.wasm_ext_bulk_memory = bulk;
     if (not is_interpreter) {
-      auto wat_path = kagome::filesystem::absolute(__FILE__).parent_path().string()
-                    + "/wat/memory_fill.wat";
+      auto wat_path =
+          kagome::filesystem::absolute(__FILE__).parent_path().string()
+          + "/wat/memory_fill.wat";
       std::string wat_code;
       EXPECT_TRUE(qtils::readFile(wat_code, wat_path));
       auto _compile = factory.compile(path, fromWat(wat_code), context_params);
@@ -127,7 +128,9 @@ void test(std::string name,
       path = kagome::filesystem::absolute(__FILE__).parent_path().string()
            + "/wasm/memory_fill.wasm";
     }
-    auto _module = factory.loadCompiled(path, context_params);
+    const kagome::parachain::PvfWorkerInputCodeParams code_params = {
+        .path = path, .context_params = context_params};
+    auto _module = factory.loadCompiled(code_params);
     if (not _module) {
       fmt::println("loadCompiled: [{}]", _module.error().message());
     }

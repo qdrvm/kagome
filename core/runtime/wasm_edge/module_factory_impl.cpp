@@ -419,9 +419,9 @@ namespace kagome::runtime::wasm_edge {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled,
-      const std::optional<RuntimeContext::ContextParams> config) const {
+      const kagome::parachain::PvfWorkerInputCodeParams &code_params) const {
     Buffer code;
+    const auto &path_compiled = code_params.path;
     if (auto res = readFile(code, path_compiled); !res) {
       return CompilationError{
           fmt::format("Failed to read compiled wasm module from '{}': {}",
@@ -431,11 +431,9 @@ namespace kagome::runtime::wasm_edge {
     auto code_hash = hasher_->blake2b_256(code);
     OUTCOME_TRY(configure_ctx, configureCtx());
     auto configure_ctx_raw = configure_ctx.raw();
-    if (config) {
-      if (not config->wasm_ext_bulk_memory) {
-        WasmEdge_ConfigureRemoveProposal(
-            configure_ctx_raw, WasmEdge_Proposal_BulkMemoryOperations);
-      }
+    if (not code_params.context_params.wasm_ext_bulk_memory) {
+      WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
+                                       WasmEdge_Proposal_BulkMemoryOperations);
     }
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx_raw);
     // NOLINTNEXTLINE(cppcoreguidelines-init-variables)

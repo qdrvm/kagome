@@ -96,10 +96,9 @@ namespace kagome::runtime::wavm {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled,
-      const std::optional<RuntimeContext::ContextParams> config) const {
+      const kagome::parachain::PvfWorkerInputCodeParams &code_params) const {
     Buffer file;
-    if (not readFile(file, path_compiled)) {
+    if (not readFile(file, code_params.path)) {
       return CompilationError{"read file failed"};
     }
     BOOST_OUTCOME_TRY(loading, scale::decode<std::shared_ptr<Compiled>>(file));

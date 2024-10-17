@@ -353,8 +353,10 @@ namespace kagome::parachain {
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
+    kagome::parachain::PvfWorkerInputCodeParams code_params{
+        .path = pvf_pool_->getCachePath(code_hash, context_params)};
     workers_->execute({
-        .code_path = pvf_pool_->getCachePath(code_hash, context_params),
+        .code_params = std::move(code_params),
         .args = scale::encode(params).value(),
         .cb =
             [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
