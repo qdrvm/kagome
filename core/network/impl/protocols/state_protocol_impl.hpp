@@ -17,6 +17,7 @@
 #include "log/logger.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/state_protocol_observer.hpp"
+#include <network/helpers/compressor/compressor.h>
 #include "utils/non_copyable.hpp"
 
 namespace kagome::blockchain {
@@ -75,6 +76,7 @@ namespace kagome::network {
     inline static const auto kStateProtocolName = "StateProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<StateProtocolObserver> state_observer_;
+    std::shared_ptr<ICompressor> state_response_compressor_;
   };
 
 }  // namespace kagome::network
