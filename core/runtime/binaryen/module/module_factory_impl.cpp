@@ -48,7 +48,7 @@ namespace kagome::runtime::binaryen {
     if (not readFile(code, path_compiled)) {
       return CompilationError{"read file failed"};
     }
-    //TODO: handle wasm bulk memory flag if Binaryen is keeped
+    /// TODO(erakhtinb) handle wasm bulk memory flag if Binaryen is keeped
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(
                     code, env_factory_, hasher_->blake2b_256(code)));
