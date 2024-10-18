@@ -753,6 +753,36 @@ namespace kagome::network {
     }
   }
 
+  std::optional<PeerId> PeerManagerImpl::findLeastActivePeer() const {
+    if (active_peers_.empty()) {
+      return std::nullopt;
+    }
+
+    // Find the peer, which state was not updated for the longest time
+    auto it = std::min_element(active_peers_.begin(),
+                               active_peers_.end(),
+                               [this](const auto &l, const auto &r) {
+                                 if (peer_states_.contains(l.first)
+                                     && peer_states_.contains(r.first)) {
+                                   return peer_states_.at(l.first).time
+                                        < peer_states_.at(r.first).time;
+                                 } else {
+                                   return active_peers_.at(l.first).time_point
+                                        < active_peers_.at(r.first).time_point;
+                                 }
+                               });
+    // Return empty PeerID
+    if (it->second.time_point
+        > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
+      SL_INFO(log_,
+              "Least active peer {} has been active within last align period",
+              it->first);
+      return std::nullopt;
+    }
+
+    return it->first;
+  }
+
   void PeerManagerImpl::tryOpenValidationProtocol(
       const PeerInfo &peer_info,
       PeerState &peer_state,
@@ -815,6 +845,24 @@ namespace kagome::network {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
+      }
+    }
+
+    if (not out) {
+      if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
+        auto peer_to_remove = findLeastActivePeer();
+        if (not peer_to_remove.has_value()) {
+          SL_ERROR(log_,
+                   "New connection from peer {} was dropped: "
+                   "no peers to disconnect",
+                   peer_id);
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+
+        connecting_peers_.erase(peer_to_remove.value());
+        disconnectFromPeer(peer_to_remove.value());
       }
     }
 
@@ -977,22 +1025,10 @@ namespace kagome::network {
     }
   }
 
-  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
+  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight) const {
     return std::ranges::count_if(
         active_peers_, [&](const decltype(active_peers_)::value_type &x) {
-          if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
-            return in_out == PeerType::PEER_TYPE_OUT;
-          }
-          if (in_out == PeerType::PEER_TYPE_OUT) {
-            return false;
-          }
-          auto it = peer_states_.find(x.first);
-          if (it == peer_states_.end()) {
-            return false;
-          }
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-          const auto &roles = it->second.roles.flags;
-          return (in_light ? roles.light : roles.full) == 1;
+          return x.second.peer_type == in_out;
         });
   }
 
