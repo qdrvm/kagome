@@ -28,7 +28,7 @@ namespace kagome::runtime {
                 (const, override));
     MOCK_METHOD((CompilationOutcome<std::shared_ptr<Module>>),
                 loadCompiled,
-                (const kagome::parachain::PvfWorkerInputCodeParams&),
+                (std::filesystem::path, const RuntimeContext::ContextParams &),
                 (const, override));
   };
 }  // namespace kagome::runtime

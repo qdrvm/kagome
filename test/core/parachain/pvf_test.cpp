@@ -127,7 +127,7 @@ class PvfTest : public testing::Test {
         .WillRepeatedly(Return(std::nullopt));
     EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code), _))
         .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=] {
+    EXPECT_CALL(*module_factory_, loadCompiled(_, _)).WillRepeatedly([=] {
       auto module = std::make_shared<ModuleMock>();
       ON_CALL(*module, instantiate()).WillByDefault([=] {
         auto instance = std::make_shared<ModuleInstanceMock>();

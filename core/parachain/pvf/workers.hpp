@@ -53,7 +53,7 @@ namespace kagome::parachain {
    private:
     struct Worker {
       std::shared_ptr<ProcessAndPipes> process;
-      PvfWorkerInputCodeParams code_params;
+      std::optional<PvfWorkerInputCodeParams> code_params;
     };
     struct Used {
       Used(PvfWorkers &self);

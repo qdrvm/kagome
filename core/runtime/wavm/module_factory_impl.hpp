@@ -56,8 +56,8 @@ namespace kagome::runtime::wavm {
         BufferView code,
         const RuntimeContext::ContextParams &config) const override;
     CompilationOutcome<std::shared_ptr<Module>> loadCompiled(
-        const kagome::parachain::PvfWorkerInputCodeParams &code_params)
-        const override;
+        std::filesystem::path path_compiled,
+        const RuntimeContext::ContextParams &config) const override;
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;

@@ -128,9 +128,7 @@ void test(std::string name,
       path = kagome::filesystem::absolute(__FILE__).parent_path().string()
            + "/wasm/memory_fill.wasm";
     }
-    const kagome::parachain::PvfWorkerInputCodeParams code_params = {
-        .path = path, .context_params = context_params};
-    auto _module = factory.loadCompiled(code_params);
+    auto _module = factory.loadCompiled(path, context_params);
     if (not _module) {
       fmt::println("loadCompiled: [{}]", _module.error().message());
     }

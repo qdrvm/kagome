@@ -43,14 +43,12 @@ namespace kagome::runtime::binaryen {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      const kagome::parachain::PvfWorkerInputCodeParams &code_params) const {
+      std::filesystem::path path_compiled, const RuntimeContext::ContextParams &config) const {
     Buffer code;
-    if (not readFile(code, code_params.path)) {
+    if (not readFile(code, path_compiled)) {
       return CompilationError{"read file failed"};
     }
-    if (code_params.context_params.wasm_ext_bulk_memory) {
-      return CompilationError{"bulk memory is not supported"};
-    }
+    //TODO: handle wasm bulk memory flag if Binaryen is keeped
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(
                     code, env_factory_, hasher_->blake2b_256(code)));
