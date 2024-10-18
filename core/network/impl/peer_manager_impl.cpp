@@ -845,7 +845,7 @@ namespace kagome::network {
     if (not out) {
       if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
         PeerId peer_to_remove = findLeastActivePeer();
-        if (peer_to_remove.empty()) {
+        if (peer_to_remove == PeerId{}) {
           SL_ERROR(log_,
                    "New connection from peer {} was dropped: "
                    "no peers to disconnect",
