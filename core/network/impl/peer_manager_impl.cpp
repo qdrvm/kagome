@@ -768,6 +768,9 @@ namespace kagome::network {
     // align period
     if (it->second.time_point
         > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
+      SL_INFO(log_,
+              "Least active peer {} has been active within last align period",
+              it->first);
       return PeerId{};
     }
 
