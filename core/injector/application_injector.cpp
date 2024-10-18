@@ -162,6 +162,7 @@
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
@@ -781,7 +782,7 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
-            di::bind<network::CanDisconnect>.template to<parachain::ParachainProcessorImpl>(),
+            di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -998,6 +999,11 @@ namespace kagome::injector {
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_
         .template create<sptr<parachain::ParachainProcessorImpl>>();
+  }
+
+  std::shared_ptr<parachain::statement_distribution::StatementDistribution> KagomeNodeInjector::injectStatementDistribution() {
+    return pimpl_->injector_
+        .template create<sptr<parachain::statement_distribution::StatementDistribution>>();
   }
 
   std::shared_ptr<parachain::ApprovalDistribution>

@@ -87,6 +87,19 @@ namespace kagome::utils {
     return val;
   }
 
+
+  template <typename C>
+    requires requires {
+      typename C::mapped_type;
+    }
+  inline std::optional<typename C::iterator> get_it(
+      C &container, const typename C::key_type &key) {
+    if (auto it = container.find(key); it != container.end()) {
+      return it;
+    }
+    return std::nullopt;
+  }
+
 }  // namespace kagome::utils
 
 #endif  // KAGOME_UTILS_MAP_HPP
