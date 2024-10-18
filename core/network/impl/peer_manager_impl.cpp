@@ -753,9 +753,9 @@ namespace kagome::network {
     }
   }
 
-  PeerId PeerManagerImpl::findLeastActivePeer() const {
+  std::optional<PeerId> PeerManagerImpl::findLeastActivePeer() const {
     if (active_peers_.empty()) {
-      return PeerId{};
+      return std::nullopt;
     }
 
     auto it =
@@ -771,7 +771,7 @@ namespace kagome::network {
       SL_INFO(log_,
               "Least active peer {} has been active within last align period",
               it->first);
-      return PeerId{};
+      return std::nullopt;
     }
 
     return it->first;
@@ -844,8 +844,8 @@ namespace kagome::network {
 
     if (not out) {
       if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
-        PeerId peer_to_remove = findLeastActivePeer();
-        if (peer_to_remove == PeerId{}) {
+        auto peer_to_remove = findLeastActivePeer();
+        if (not peer_to_remove.has_value()) {
           SL_ERROR(log_,
                    "New connection from peer {} was dropped: "
                    "no peers to disconnect",
@@ -855,8 +855,8 @@ namespace kagome::network {
           return;
         }
 
-        connecting_peers_.erase(peer_to_remove);
-        disconnectFromPeer(peer_to_remove);
+        connecting_peers_.erase(peer_to_remove.value());
+        disconnectFromPeer(peer_to_remove.value());
       }
     }
 
