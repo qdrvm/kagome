@@ -70,8 +70,11 @@ void test(std::string name,
           + "/wat/memory_fill.wat";
       std::string wat_code;
       EXPECT_TRUE(qtils::readFile(wat_code, wat_path));
+      std::string_view wat_code_view(wat_code);
       auto _compile = factory.compile(
-          path, kagome::runtime::wat_to_wasm(wat_code), context_params);
+          path,
+          kagome::runtime::watToWasm(kagome::str2byte(wat_code_view)),
+          context_params);
       if (not _compile) {
         fmt::println("compile: [{}]", _compile.error().message());
       }
@@ -115,14 +118,24 @@ void test(std::string name,
   test(true);
 }
 
-int main() {
-  testutil::prepareLoggers();
-  EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_)).WillRepeatedly([] {
-    return nullptr;
-  });
+class WasmBulkMemoryTest : public ::testing::Test {
+ protected:
+  static void SetUpTestSuite() {
+    testutil::prepareLoggers();
+    EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_)).WillRepeatedly([] {
+      return nullptr;
+    });
+  }
 
-  test("wasmedge-interpret", *kagome::runtime::wasm_edge::interpreter(), true);
+  static void TearDownTestSuite() {
+    trie_storage.reset();
+  }
+};
+
+TEST_F(WasmBulkMemoryTest, wasm_edge_compiler) {
   test("wasmedge-compile", *kagome::runtime::wasm_edge::compiler(), false);
+}
 
-  trie_storage.reset();
+TEST_F(WasmBulkMemoryTest, wasm_edge_interpreter) {
+  test("wasmedge-interpret", *kagome::runtime::wasm_edge::interpreter(), true);
 }

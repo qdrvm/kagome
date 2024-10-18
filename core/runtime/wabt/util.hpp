@@ -56,7 +56,7 @@ namespace kagome::runtime {
     return common::Buffer{std::move(s.output_buffer().data)};
   }
 
-  std::unique_ptr<wabt::Module> wat_to_module(std::span<const uint8_t> wat) {
+  inline std::unique_ptr<wabt::Module> watToModule(std::span<const uint8_t> wat) {
     wabt::Result result;
     wabt::Errors errors;
     std::unique_ptr<wabt::WastLexer> lexer =
@@ -75,8 +75,8 @@ namespace kagome::runtime {
     return module;
   }
 
-  std::vector<uint8_t> wat_to_wasm(std::string_view wat) {
-    auto module = wat_to_module(kagome::str2byte(wat));
+  inline std::vector<uint8_t> watToWasm(std::span<const uint8_t> wat) {
+    auto module = watToModule(wat);
     wabt::MemoryStream stream;
     if (wabt::Failed(wabt::WriteBinaryModule(
             &stream,
@@ -85,6 +85,10 @@ namespace kagome::runtime {
       throw std::runtime_error{"Failed to write binary wasm"};
     }
     return std::move(stream.output_buffer().data);
+  }
+
+  inline auto fromWat(std::string_view wat) {
+    return watToModule(str2byte(wat));
   }
 
 }  // namespace kagome::runtime
