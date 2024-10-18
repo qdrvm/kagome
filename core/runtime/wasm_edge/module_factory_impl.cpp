@@ -100,11 +100,17 @@ namespace kagome::runtime::wasm_edge {
     return Error::INVALID_VALUE_TYPE;
   }
 
-  inline CompilationOutcome<ConfigureContext> configureCtx() {
+  inline CompilationOutcome<ConfigureContext> configureCtx(
+      const RuntimeContext::ContextParams &config) {
     ConfigureContext ctx{WasmEdge_ConfigureCreate()};
     auto ctx_raw = ctx.raw();
     if (ctx_raw == nullptr) {
       return CompilationError{"WasmEdge_ConfigureCreate returned nullptr"};
+    }
+    // by default WASM bulk memory operations are enabled
+    if (not config.wasm_ext_bulk_memory) {
+      WasmEdge_ConfigureRemoveProposal(ctx_raw,
+                                       WasmEdge_Proposal_BulkMemoryOperations);
     }
     WasmEdge_ConfigureRemoveProposal(ctx_raw, WasmEdge_Proposal_ReferenceTypes);
     return ctx;
@@ -401,14 +407,10 @@ namespace kagome::runtime::wasm_edge {
       return outcome::success();
     }
 
-    OUTCOME_TRY(configure_ctx, configureCtx());
+    OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
         configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O3);
-    if (not config.wasm_ext_bulk_memory) {
-      WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
-                                       WasmEdge_Proposal_BulkMemoryOperations);
-    }
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
@@ -420,7 +422,7 @@ namespace kagome::runtime::wasm_edge {
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
       std::filesystem::path path_compiled,
-        const RuntimeContext::ContextParams &config) const {
+      const RuntimeContext::ContextParams &config) const {
     Buffer code;
     if (auto res = readFile(code, path_compiled); !res) {
       return CompilationError{
@@ -429,12 +431,8 @@ namespace kagome::runtime::wasm_edge {
                       res.error())};
     }
     auto code_hash = hasher_->blake2b_256(code);
-    OUTCOME_TRY(configure_ctx, configureCtx());
+    OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
-    if (not config.wasm_ext_bulk_memory) {
-      WasmEdge_ConfigureRemoveProposal(configure_ctx_raw,
-                                       WasmEdge_Proposal_BulkMemoryOperations);
-    }
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx_raw);
     // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     WasmEdge_ASTModuleContext *module_ctx;

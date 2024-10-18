@@ -14,15 +14,6 @@
 #include "runtime/wasm_edge/module_factory_impl.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-#include <wabt/binary-reader-ir.h>
-#include <wabt/binary-reader.h>
-#include <wabt/binary-writer.h>
-#include <wabt/ir.h>
-#include <wabt/stream.h>
-#include <wabt/wast-lexer.h>
-#include <wabt/wast-parser.h>
-#include <wabt/wat-writer.h>
-
 using testing::_;
 
 using kagome::runtime::wabtDecode;
@@ -55,41 +46,6 @@ namespace kagome::runtime::wasm_edge {
   auto compiler = [] { return make(true); };
 }  // namespace kagome::runtime::wasm_edge
 
-std::unique_ptr<wabt::Module> wat_to_module(std::span<const uint8_t> wat) {
-  wabt::Result result;
-  wabt::Errors errors;
-  std::unique_ptr<wabt::WastLexer> lexer =
-      wabt::WastLexer::CreateBufferLexer("", wat.data(), wat.size(), &errors);
-  if (Failed(result)) {
-    throw std::runtime_error{"Failed to parse WAT"};
-  }
-
-  std::unique_ptr<wabt::Module> module;
-  wabt::WastParseOptions parse_wast_options{{}};
-  result =
-      wabt::ParseWatModule(lexer.get(), &module, &errors, &parse_wast_options);
-  if (Failed(result)) {
-    throw std::runtime_error{"Failed to parse module"};
-  }
-  return module;
-}
-
-std::vector<uint8_t> wat_to_wasm(std::span<const uint8_t> wat) {
-  auto module = wat_to_module(wat);
-  wabt::MemoryStream stream;
-  if (wabt::Failed(wabt::WriteBinaryModule(
-          &stream,
-          module.get(),
-          wabt::WriteBinaryOptions{{}, true, false, true}))) {
-    throw std::runtime_error{"Failed to write binary wasm"};
-  }
-  return std::move(stream.output_buffer().data);
-}
-
-auto fromWat(std::string_view wat) {
-  return wat_to_wasm(kagome::str2byte(wat));
-}
-
 void test(std::string name,
           const kagome::runtime::ModuleFactory &factory,
           bool is_interpreter = false) {
@@ -114,7 +70,8 @@ void test(std::string name,
           + "/wat/memory_fill.wat";
       std::string wat_code;
       EXPECT_TRUE(qtils::readFile(wat_code, wat_path));
-      auto _compile = factory.compile(path, fromWat(wat_code), context_params);
+      auto _compile = factory.compile(
+          path, kagome::runtime::wat_to_wasm(wat_code), context_params);
       if (not _compile) {
         fmt::println("compile: [{}]", _compile.error().message());
       }
