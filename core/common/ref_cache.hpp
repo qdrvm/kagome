@@ -108,6 +108,10 @@ namespace kagome {
       return obj;
     }
 
+    size_t size() const {
+      return items_.size();
+    }
+
    private:
     RefCache() = default;
 

@@ -267,6 +267,16 @@ namespace kagome::parachain::statement_distribution {
 
       OUTCOME_TRY(session_index,
                   parachain_host->session_index_for_child(new_relay_parent));
+      OUTCOME_TRY(v_index,
+                  signer_factory->getAuthorityValidatorIndex(
+                      new_relay_parent));
+      OUTCOME_TRY(validator,
+                  is_parachain_validator(new_relay_parent));
+
+      const auto validator_index = utils::map(
+          validator,
+          [](const auto &signer) { return signer.validatorIndex(); });
+
       OUTCOME_TRY(
           per_session_state,
           per_session->get_or_insert(
@@ -276,9 +286,6 @@ namespace kagome::parachain::statement_distribution {
                 OUTCOME_TRY(session_info,
                             parachain_host->session_info(new_relay_parent,
                                                          session_index));
-                OUTCOME_TRY(v_index,
-                            signer_factory->getAuthorityValidatorIndex(
-                                new_relay_parent));
                 if (!v_index) {
                   SL_TRACE(logger, "Not a validator.");
                   return outcome::failure(Error::NOT_A_VALIDATOR);
@@ -309,13 +316,6 @@ namespace kagome::parachain::statement_distribution {
                 OUTCOME_TRY(babe_config,
                             babe_config_repo->config(*block_header.parentInfo(),
                                                      epoch));
-                OUTCOME_TRY(validator,
-                            is_parachain_validator(new_relay_parent));
-
-                const auto validator_index = utils::map(
-                    validator,
-                    [](const auto &signer) { return signer.validatorIndex(); });
-
                 std::unordered_map<primitives::AuthorityDiscoveryId,
                                    ValidatorIndex>
                     authority_lookup;
@@ -346,7 +346,7 @@ namespace kagome::parachain::statement_distribution {
       OUTCOME_TRY(availability_cores,
                   parachain_host->availability_cores(new_relay_parent));
       OUTCOME_TRY(groups, parachain_host->validator_groups(new_relay_parent));
-      const auto &[std::ignore, group_rotation_info] = groups;
+      const auto &[_, group_rotation_info] = groups;
 
       auto maybe_claim_queue =
           [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
@@ -382,20 +382,20 @@ namespace kagome::parachain::statement_distribution {
           new_relay_parent,
           PerRelayParentState{
               .local_validator = local_validator,
-              .statement_store = StatementStore(per_session->value().groups),
+              .statement_store = StatementStore(per_session_state->value().groups),
               .seconding_limit = seconding_limit,
               .session = session_index,
               .groups_per_para = std::move(groups_per_para),
               .disabled_validators = {},
               .per_session_state = per_session_state,
-          }, );
+          });
     }  // for
 
     SL_TRACE(
         logger,
         "Activated leaves. Now tracking {} relay-parents across {} sessions",
         per_relay_parent.size(),
-        per_session.size());
+        per_session->size());
 
     update_peers_state(relay_parent, event.lost, std::move(new_relay_parents));
     return outcome::success();
@@ -449,7 +449,7 @@ namespace kagome::parachain::statement_distribution {
   std::unordered_map<ParachainId, std::vector<GroupIndex>>
   StatementDistribution::determine_groups_per_para(
       const std::vector<runtime::CoreState> &availability_cores,
-      const GroupDescriptor &group_rotation_info,
+      const runtime::GroupDescriptor &group_rotation_info,
       std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
       size_t max_candidate_depth) {
     const auto n_cores = availability_cores.size();
@@ -467,13 +467,13 @@ namespace kagome::parachain::statement_distribution {
         visit_in_place(
             core,
             [&](const runtime::ScheduledCore &scheduled_core) {
-              result.emplace(index, {scheduled_core.para_id});
+              result.emplace(index, std::vector<ParachainId>{scheduled_core.para_id});
             },
             [&](const runtime::OccupiedCore &occupied_core) {
               if (max_candidate_depth >= 1) {
                 if (occupied_core.next_up_on_available) {
                   result.emplace(index,
-                                 {occupied_core.next_up_on_available->para_id});
+                                 std::vector<ParachainId>{occupied_core.next_up_on_available->para_id});
                 }
               }
             },
@@ -493,7 +493,7 @@ namespace kagome::parachain::statement_distribution {
     return groups_per_para;
   }
 
-  outcome::result<void> StatementDistribution::handle_deactivate_leaves(
+  void StatementDistribution::handle_deactivate_leaves(
       std::vector<primitives::BlockHash> lost) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
@@ -502,7 +502,7 @@ namespace kagome::parachain::statement_distribution {
       for (const auto &pruned_rp : pruned) {
         if (auto it = per_relay_parent.find(pruned_rp); it != per_relay_parent.end()) {
           if (auto active_state = it->second.active_validator_state()) {
-            active_state->get().cluster_tracker.warn_if_too_many_pending_statements(pruned_rp)
+            active_state->get().cluster_tracker.warn_if_too_many_pending_statements(pruned_rp);
           }
           per_relay_parent.erase(it);
         }
@@ -517,13 +517,13 @@ namespace kagome::parachain::statement_distribution {
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
   StatementDistribution::fetch_claim_queue(const RelayHash &relay_parent) {
     constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
-    OUTCOME_TRY(version, parachain_host_->runtime_api_version(relay_parent));
+    OUTCOME_TRY(version, parachain_host->runtime_api_version(relay_parent));
     if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
       SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
       return std::nullopt;
     }
 
-    OUTCOME_TRY(claims, parachain_host_->claim_queue(relay_parent));
+    OUTCOME_TRY(claims, parachain_host->claim_queue(relay_parent));
     return runtime::ClaimQueueSnapshot{
         .claimes = std::move(claims),
     };
@@ -1064,9 +1064,7 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
     TRY_GET_OR_RET(relay_parent_state, tryGetStateByRelayParent(relay_parent));
-    TRY_GET_OR_RET(
-        local_group,
-        relay_parent_state->get().per_session_state->value().our_group);
+    TRY_GET_OR_RET(local_group, utils::map(relay_parent_state->get().active_validator_state(), [](const auto &state) {return state.get().group;}));
     TRY_GET_OR_RET(
         group,
         relay_parent_state->get().per_session_state->value().groups.get(
@@ -1538,7 +1536,7 @@ namespace kagome::parachain::statement_distribution {
                "local_validator={})",
                candidate_hash,
                *sender_index,
-               *relay_parent_state->get().per_session_state->value().our_index);
+               *relay_parent_state->get().per_session_state->value().local_validator);
     }
 
     return ManifestImportSuccess{

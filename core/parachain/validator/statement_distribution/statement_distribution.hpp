@@ -323,14 +323,14 @@ namespace kagome::parachain::statement_distribution {
     std::unordered_map<ParachainId, std::vector<GroupIndex>>
     determine_groups_per_para(
         const std::vector<runtime::CoreState> &availability_cores,
-        const GroupDescriptor &group_rotation_info,
+        const runtime::GroupDescriptor &group_rotation_info,
         std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
         size_t max_candidate_depth);
 
     void handle_view_event(const network::ExView &event);
     outcome::result<void> handle_active_leaves_update(
         const network::ExView &event);
-    outcome::result<void> handle_deactivate_leaves(
+    void handle_deactivate_leaves(
         std::vector<primitives::BlockHash> lost);
 
     void update_peers_state(const Hash &relay_parent,
@@ -351,7 +351,8 @@ namespace kagome::parachain::statement_distribution {
     std::unordered_map<primitives::BlockHash, PerRelayParentState>
         per_relay_parent;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
-    std::unordered_map<libp2p::peer::PeerId, network::PeerState> peers;
+    /// TODO(iceseer): move `peer_state` here and modify it on PeerConnected and PeerDisconnected events
+    /// std::unordered_map<libp2p::peer::PeerId, network::PeerState> peers;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
     std::shared_ptr<PeerUseCount> peer_use_count;
 

@@ -658,10 +658,9 @@ namespace kagome::parachain {
       return Error::NOT_A_VALIDATOR;
     }
 
-    auto per_session_state = per_session->get_or_insert(session_index, [&] {
-      return RefCache<SessionIndex, PerSessionState>::RefObj(session_index,
-                                                             *session_info);
-    });
+    OUTCOME_TRY(per_session_state, per_session->get_or_insert(session_index, [&]() -> outcome::result<RefCache<SessionIndex, PerSessionState>::RefObj> {
+      return outcome::success(RefCache<SessionIndex, PerSessionState>::RefObj(session_index, *session_info));
+    }));
 
     const auto n_cores = cores.size();
     std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> out_groups;

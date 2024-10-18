@@ -50,8 +50,8 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
         per_session_state;    
 
-    std::optional<std::reference_wrapper<const ActiveValidatorState>>
-    active_validator_state() const {
+    std::optional<std::reference_wrapper<ActiveValidatorState>>
+    active_validator_state() {
       if (local_validator && local_validator->active) {
         return local_validator->active.value();
       }
