@@ -758,14 +758,20 @@ namespace kagome::network {
       return std::nullopt;
     }
 
-    auto it =
-        std::min_element(active_peers_.begin(),
-                         active_peers_.end(),
-                         [](const auto &l, const auto &r) {
-                           return l.second.time_point < r.second.time_point;
-                         });
-    // Return empty PeerID if least active peer has been active within last
-    // align period
+    // Find the peer, which state was not updated for the longest time
+    auto it = std::min_element(active_peers_.begin(),
+                               active_peers_.end(),
+                               [this](const auto &l, const auto &r) {
+                                 if (peer_states_.contains(l.first)
+                                     && peer_states_.contains(r.first)) {
+                                   return peer_states_.at(l.first).time
+                                        < peer_states_.at(r.first).time;
+                                 } else {
+                                   return active_peers_.at(l.first).time_point
+                                        < active_peers_.at(r.first).time_point;
+                                 }
+                               });
+    // Return empty PeerID
     if (it->second.time_point
         > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
       SL_INFO(log_,
