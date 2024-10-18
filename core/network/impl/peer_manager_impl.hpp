@@ -188,6 +188,8 @@ namespace kagome::network {
 
     void clearClosedPingingConnections();
 
+    PeerId findLeastActivePeer() const;
+
     using IsLight = Tagged<bool, struct IsLightTag>;
     size_t countPeers(PeerType in_out, IsLight in_light = false) const;
 

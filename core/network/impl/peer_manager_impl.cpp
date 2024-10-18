@@ -753,6 +753,27 @@ namespace kagome::network {
     }
   }
 
+  PeerId PeerManagerImpl::findLeastActivePeer() const {
+    if (active_peers_.empty()) {
+      return PeerId{};
+    }
+
+    auto it =
+        std::min_element(active_peers_.begin(),
+                         active_peers_.end(),
+                         [](const auto &l, const auto &r) {
+                           return l.second.time_point < r.second.time_point;
+                         });
+    // Return empty PeerID if least active peer has been active within last
+    // align period
+    if (it->second.time_point
+        > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
+      return PeerId{};
+    }
+
+    return it->first;
+  }
+
   void PeerManagerImpl::tryOpenValidationProtocol(
       const PeerInfo &peer_info,
       PeerState &peer_state,
@@ -820,9 +841,19 @@ namespace kagome::network {
 
     if (not out) {
       if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
-        connecting_peers_.erase(peer_id);
-        disconnectFromPeer(peer_id);
-        return;
+        PeerId peer_to_remove = findLeastActivePeer();
+        if (peer_to_remove.empty()) {
+          SL_ERROR(log_,
+                   "New connection from peer {} was dropped: "
+                   "no peers to disconnect",
+                   peer_id);
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+
+        connecting_peers_.erase(peer_to_remove);
+        disconnectFromPeer(peer_to_remove);
       }
     }
 
