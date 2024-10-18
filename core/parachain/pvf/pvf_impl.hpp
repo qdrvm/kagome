@@ -105,6 +105,7 @@ namespace kagome::parachain {
                      const ParachainBlock &pov,
                      const CandidateReceipt &receipt,
                      const ParachainRuntime &code,
+                     runtime::PvfExecTimeoutKind timeout_kind,
                      Cb cb) const override;
 
    private:
@@ -118,6 +119,7 @@ namespace kagome::parachain {
                   const common::Hash256 &code_hash,
                   const ParachainRuntime &code_zstd,
                   const ValidationParams &params,
+                  runtime::PvfExecTimeoutKind timeout_kind,
                   WasmCb cb) const;
 
     outcome::result<CandidateCommitments> fromOutputs(

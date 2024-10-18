@@ -43,7 +43,7 @@ namespace kagome::parachain {
 
     using Cb = std::function<void(outcome::result<Buffer>)>;
     struct Job {
-      PvfWorkerInputCodePath code_path;
+      PvfWorkerInputCodeParams code_params;
       Buffer args;
       Cb cb;
       std::chrono::milliseconds timeout{0};
@@ -53,7 +53,7 @@ namespace kagome::parachain {
    private:
     struct Worker {
       std::shared_ptr<ProcessAndPipes> process;
-      std::optional<PvfWorkerInputCodePath> code_path;
+      std::optional<PvfWorkerInputCodeParams> code_params;
     };
     struct Used {
       Used(PvfWorkers &self);
