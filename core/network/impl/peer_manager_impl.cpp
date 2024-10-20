@@ -753,25 +753,43 @@ namespace kagome::network {
     }
   }
 
+  /**
+   * @brief findLeastActivePeer Find the least in-connected peer, which state
+   * was not updated for the longest time
+   * @return PeerId of the least active peer or empty PeerId if no in-connected
+   * peers found or all in-connected peers have been active within last align
+   */
   std::optional<PeerId> PeerManagerImpl::findLeastActivePeer() const {
     if (active_peers_.empty()) {
       return std::nullopt;
     }
 
-    // Find the peer, which state was not updated for the longest time
-    auto it = std::min_element(active_peers_.begin(),
-                               active_peers_.end(),
-                               [this](const auto &l, const auto &r) {
-                                 if (peer_states_.contains(l.first)
-                                     && peer_states_.contains(r.first)) {
-                                   return peer_states_.at(l.first).time
-                                        < peer_states_.at(r.first).time;
-                                 } else {
-                                   return active_peers_.at(l.first).time_point
-                                        < active_peers_.at(r.first).time_point;
-                                 }
-                               });
-    // Return empty PeerID
+    // Filter active peers to keep only in-connected
+    std::vector<std::pair<PeerId, PeerDescriptor>> in_active_peers;
+    std::copy_if(active_peers_.begin(),
+                 active_peers_.end(),
+                 std::back_inserter(in_active_peers),
+                 [](const auto &p) {
+                   return p.second.peer_type == PeerType::PEER_TYPE_IN;
+                 });
+
+    // Find the in-connected peer, which state was not updated for the longest
+    // time
+    auto it = std::min_element(
+        in_active_peers.begin(),
+        in_active_peers.end(),
+        [this](const auto &l, const auto &r) {
+          if (peer_states_.contains(l.first)
+              && peer_states_.contains(r.first)) {
+            return peer_states_.at(l.first).time
+                 < peer_states_.at(r.first).time;
+          } else {
+            return l.second.time_point
+                 < r.second.time_point;
+          }
+        });
+    // Return empty PeerID if least active peer has been active within last
+    // align period
     if (it->second.time_point
         > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
       SL_INFO(log_,
