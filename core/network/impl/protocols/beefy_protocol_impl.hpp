@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/main_thread_pool.hpp"
 #include "consensus/beefy/types.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
@@ -33,7 +34,8 @@ namespace kagome::network {
                       const blockchain::GenesisBlockHash &genesis,
                       Roles roles,
                       std::shared_ptr<Beefy> beefy,
-                      std::shared_ptr<StreamEngine> stream_engine);
+                      std::shared_ptr<StreamEngine> stream_engine,
+                      std::shared_ptr<common::MainThreadPool> main_thread_pool);
 
     bool start() override;
     const std::string &protocolName() const override;
@@ -51,6 +53,7 @@ namespace kagome::network {
     Roles roles_;
     std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<StreamEngine> stream_engine_;
+    std::shared_ptr<common::MainThreadPool> main_thread_pool_;
   };
 
 }  // namespace kagome::network

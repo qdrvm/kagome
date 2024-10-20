@@ -18,7 +18,8 @@ namespace kagome::network {
                                const blockchain::GenesisBlockHash &genesis,
                                Roles roles,
                                std::shared_ptr<Beefy> beefy,
-                               std::shared_ptr<StreamEngine>stream_engine
+                               std::shared_ptr<StreamEngine>stream_engine,
+                               std::shared_ptr<common::MainThreadPool> main_thread_pool
                                )
       : base_{
           kName,
@@ -28,7 +29,8 @@ namespace kagome::network {
         },
         roles_{roles},
         beefy_{std::move(beefy)},
-        stream_engine_{std::move(stream_engine)}
+        stream_engine_{std::move(stream_engine)},
+        main_thread_pool_{std::move(main_thread_pool)}
         {}
 
   bool BeefyProtocolImpl::start() {
@@ -63,17 +65,21 @@ namespace kagome::network {
       const PeerId &peer_id,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto on_handshake =
-        [cb = std::move(cb)](
+        [cb = std::move(cb), mtp{main_thread_pool_}](
             std::shared_ptr<BeefyProtocolImpl> self,
             outcome::result<notifications::ConnectAndHandshake<Roles>>
                 r) mutable {
-          // if (not r) {
-            cb(outcome::failure(std::errc::wrong_protocol_type));
+          if (not r) {
+            mtp->io_context()->post([cb = std::move(cb), r] { cb(r.error()); });
             return;
-          // }
-          // auto &stream = std::get<0>(r.value());
-          // self->stream_engine_->addOutgoing(stream, self);
-          // cb(std::move(stream));
+          }
+
+          mtp->io_context()->post(
+              [self, r = std::move(r), cb = std::move(cb)] mutable {
+                auto stream = std::get<0>(r.value());
+                self->stream_engine_->addOutgoing(stream, self);
+                cb(std::move(stream));
+              });
         };
     notifications::connectAndHandshake(
         weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
