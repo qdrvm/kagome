@@ -43,6 +43,11 @@ namespace kagome::primitives::events {
     kDeactivateAfterFinalization = 6,
   };
 
+  enum struct PeerEventType : uint8_t {
+    kConnected = 1,
+    kDisconnected = 2,
+  };
+
   enum struct SyncStateEventType : uint8_t { kSyncState = 1 };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
@@ -233,18 +238,27 @@ namespace kagome::primitives::events {
                                        primitives::BlockHash>;
   using StorageSubscriptionEnginePtr =
       std::shared_ptr<StorageSubscriptionEngine>;
-
   using StorageEventSubscriber = StorageSubscriptionEngine::SubscriberType;
   using StorageEventSubscriberPtr = std::shared_ptr<StorageEventSubscriber>;
+
+
+  using PeerSubscriptionEngine =
+      subscription::SubscriptionEngine<primitives::events::PeerEventType,
+                                       bool,
+                                       libp2p::peer::PeerId>;
+  using PeerSubscriptionEnginePtr = std::shared_ptr<PeerSubscriptionEngine>;
+  using PeerEventSubscriber = PeerSubscriptionEngine::SubscriberType;
+  using PeerEventSubscriberPtr = std::shared_ptr<PeerEventSubscriber>;
+
 
   using ChainSubscriptionEngine =
       subscription::SubscriptionEngine<primitives::events::ChainEventType,
                                        std::shared_ptr<api::Session>,
                                        primitives::events::ChainEventParams>;
   using ChainSubscriptionEnginePtr = std::shared_ptr<ChainSubscriptionEngine>;
-
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
+
 
   using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
@@ -252,9 +266,9 @@ namespace kagome::primitives::events {
       primitives::events::SyncStateEventParams>;
   using SyncStateSubscriptionEnginePtr =
       std::shared_ptr<SyncStateSubscriptionEngine>;
-
   using SyncStateEventSubscriber = SyncStateSubscriptionEngine::SubscriberType;
   using SyncStateEventSubscriberPtr = std::shared_ptr<SyncStateEventSubscriber>;
+
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,
@@ -262,9 +276,9 @@ namespace kagome::primitives::events {
       primitives::events::ExtrinsicLifecycleEvent>;
   using ExtrinsicSubscriptionEnginePtr =
       std::shared_ptr<ExtrinsicSubscriptionEngine>;
-
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
+
 
   template <typename EventKey, typename Receiver, typename... Arguments>
   void subscribe(

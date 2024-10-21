@@ -111,12 +111,12 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<NetworkBridge> _network_bridge,
       std::shared_ptr<network::Router> _router,
       common::MainThreadPool &main_thread_pool,
-      std::shared_ptr<network::PeerManager> _pm,
       std::shared_ptr<crypto::Hasher> _hasher,
       std::shared_ptr<crypto::Sr25519Provider> _crypto_provider,
       std::shared_ptr<network::PeerView> _peer_view,
       LazySPtr<consensus::SlotsUtil> _slots_util,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
+      primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
       : implicit_view(_prospective_parachains,
                       _parachain_host,
                       _block_tree,
@@ -134,7 +134,6 @@ namespace kagome::parachain::statement_distribution {
         network_bridge(std::move(_network_bridge)),
         router(std::move(_router)),
         main_pool_handler{main_thread_pool.handler(*app_state_manager)},
-        pm(std::move(_pm)),
         hasher(std::move(_hasher)),
         prospective_parachains(_prospective_parachains),
         parachain_host(_parachain_host),
@@ -142,7 +141,8 @@ namespace kagome::parachain::statement_distribution {
         peer_view(std::move(_peer_view)),
         block_tree(_block_tree),
         slots_util(_slots_util),
-        babe_config_repo(std::move(_babe_config_repo)) {
+        babe_config_repo(std::move(_babe_config_repo)),
+        peer_state_sub(std::make_shared<primitives::events::PeerEventSubscriber>(_peer_events_engine, false)) {
     BOOST_ASSERT(per_session);
     BOOST_ASSERT(signer_factory);
     BOOST_ASSERT(peer_use_count);
@@ -151,7 +151,6 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(network_bridge);
     BOOST_ASSERT(router);
     BOOST_ASSERT(main_pool_handler);
-    BOOST_ASSERT(pm);
     BOOST_ASSERT(hasher);
     BOOST_ASSERT(prospective_parachains);
     BOOST_ASSERT(parachain_host);
@@ -161,9 +160,6 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(babe_config_repo);
   }
 
-  /* handle_active_leaves
-      /// update `statements_distribution` subsystem
-      */
 
   /*
       std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
@@ -192,12 +188,6 @@ namespace kagome::parachain::statement_distribution {
    }
   */
 
-  /*
-
-   */
-
-  /*handle_active_leaves
-   */
 
   bool StatementDistribution::tryStart() {
     //    remote_view_sub_ =
@@ -212,6 +202,18 @@ namespace kagome::parachain::statement_distribution {
     //          self->handle_peer_view_update(peer_id, view);
     //        });
 
+    peer_state_sub->setCallback([wptr{weak_from_this()}](subscription::SubscriptionSetId, auto &, const auto ev_key, const libp2p::peer::PeerId &peer) { 
+      TRY_GET_OR_RET(self, wptr.lock());
+      switch (ev_key) {
+        case primitives::events::PeerEventType::kConnected: return self->on_peer_connected(peer);
+        case primitives::events::PeerEventType::kDisconnected: return self->on_peer_disconnected(peer);
+        default: break;
+      }
+    });
+    peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(), primitives::events::PeerEventType::kConnected);
+    peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(), primitives::events::PeerEventType::kDisconnected);
+
+
     my_view_sub = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view->getMyViewObservable(), false);
     primitives::events::subscribe(
@@ -219,30 +221,77 @@ namespace kagome::parachain::statement_distribution {
         network::PeerView::EventType::kViewUpdated,
         [wptr{weak_from_this()}](const network::ExView &event) {
           TRY_GET_OR_RET(self, wptr.lock());
-          self->handle_view_event(event);
+          if (auto result = self->handle_view_event(event); result.has_error()) {
+            SL_ERROR(self->logger,
+                    "Handle view event failed. (relay parent={})",
+                    event.new_head.hash());
+          }
         });
 
     return true;
   }
 
+  void StatementDistribution::on_peer_connected(const libp2p::peer::PeerId &peer) {
+    REINVOKE(*statements_distribution_thread_handler, on_peer_connected, peer);
+    auto _ = peers[peer];
+  }
+
+  void StatementDistribution::on_peer_disconnected(const libp2p::peer::PeerId &peer) {
+    REINVOKE(*statements_distribution_thread_handler, on_peer_disconnected, peer);
+    peers.erase(peer);
+  }
+
   outcome::result<std::optional<ValidatorSigner>>
   StatementDistribution::is_parachain_validator(
       const primitives::BlockHash &relay_parent) const {
+    BOOST_ASSERT(main_pool_handler->isInCurrentThread());        
     return signer_factory->at(relay_parent);
   }
 
-  void StatementDistribution::handle_view_event(const network::ExView &event) {
-    REINVOKE(*statements_distribution_thread_handler, handle_view_event, event);
+  outcome::result<void> StatementDistribution::handle_view_event(const network::ExView &event) {
+    BOOST_ASSERT(main_pool_handler->isInCurrentThread());        
+    OUTCOME_TRY(new_relay_parents, implicit_view.exclusiveAccess([&](auto &iv) -> outcome::result<std::vector<Hash>> {
+      OUTCOME_TRY(iv.activate_leaf(event.new_head.hash()));
+      return outcome::success(iv.all_allowed_relay_parents());
+    }));
+    
+    std::vector<RelayParentContext> new_contexts;
+    new_contexts.reserve(new_relay_parents.size());
 
-    if (auto result = handle_active_leaves_update(event); result.has_error()) {
+    for (const auto &new_relay_parent : new_relay_parents) {
+      OUTCOME_TRY(v_index,
+                  signer_factory->getAuthorityValidatorIndex(
+                      new_relay_parent));
+      OUTCOME_TRY(validator,
+                  is_parachain_validator(new_relay_parent));
+
+      const auto validator_index = utils::map(
+          validator,
+          [](const auto &signer) { return signer.validatorIndex(); });
+
+      new_contexts.emplace_back(RelayParentContext {
+        .relay_parent = new_relay_parent,
+        .validator_index = validator_index,
+        .v_index = v_index,
+      });
+    }
+
+    handle_active_leaves_update(event, std::move(new_contexts));
+    return outcome::success();
+  }
+
+  void StatementDistribution::handle_active_leaves_update(
+      const network::ExView &event, std::vector<RelayParentContext> new_contexts) {
+    REINVOKE(*statements_distribution_thread_handler, handle_active_leaves_update, event, std::move(new_contexts));
+    if (auto res = handle_active_leaves_update_inner(event, std::move(new_contexts)); res.has_error()) {
       SL_ERROR(logger,
-               "Handle active leaves update failed. (relay parent={})",
-               event.new_head.hash());
+              "Handle active leaf update inner failed. (relay parent={}, error={})",
+              event.new_head.hash(), res.error());
     }
   }
 
-  outcome::result<void> StatementDistribution::handle_active_leaves_update(
-      const network::ExView &event) {
+outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
+      const network::ExView &event, std::vector<RelayParentContext> new_contexts) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
     const auto &relay_parent = event.new_head.hash();
@@ -255,10 +304,11 @@ namespace kagome::parachain::statement_distribution {
     const auto max_candidate_depth = leaf_mode->max_candidate_depth;
     const auto seconding_limit = max_candidate_depth + 1;
 
-    OUTCOME_TRY(implicit_view.activate_leaf(relay_parent));
-    auto new_relay_parents = implicit_view.all_allowed_relay_parents();
+    for (const auto &new_context : new_contexts) {
+      const auto &new_relay_parent = new_context.relay_parent;
+      const auto &validator_index = new_context.validator_index;
+      const auto &v_index = new_context.v_index;
 
-    for (const auto &new_relay_parent : new_relay_parents) {
       /// We check `per_relay_state` befor `per_session_state`, because we keep
       /// ref in `per_relay_parent` directly
       if (tryGetStateByRelayParent(new_relay_parent)) {
@@ -267,15 +317,6 @@ namespace kagome::parachain::statement_distribution {
 
       OUTCOME_TRY(session_index,
                   parachain_host->session_index_for_child(new_relay_parent));
-      OUTCOME_TRY(v_index,
-                  signer_factory->getAuthorityValidatorIndex(
-                      new_relay_parent));
-      OUTCOME_TRY(validator,
-                  is_parachain_validator(new_relay_parent));
-
-      const auto validator_index = utils::map(
-          validator,
-          [](const auto &signer) { return signer.validatorIndex(); });
 
       OUTCOME_TRY(
           per_session_state,
@@ -397,45 +438,21 @@ namespace kagome::parachain::statement_distribution {
         per_relay_parent.size(),
         per_session->size());
 
-    update_peers_state(relay_parent, event.lost, std::move(new_relay_parents));
-    return outcome::success();
-  }
-
-  void StatementDistribution::update_peers_state(
-      const Hash &relay_parent,
-      std::vector<primitives::BlockHash> lost,
-      std::vector<Hash> new_relay_parents) {
-    REINVOKE(*main_pool_handler,
-             update_peers_state,
-             relay_parent,
-             std::move(lost),
-             std::move(new_relay_parents));
+    std::vector<Hash> new_relay_parents;
+    new_relay_parents.reserve(new_contexts.size());
+    std::ranges::transform(
+        new_contexts, new_relay_parents.begin(), [](const auto &context) {
+          return context.relay_parent;
+        });
 
     std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
         update_peers;
-    pm->enumeratePeerState(
-        [&](const libp2p::peer::PeerId &peer, network::PeerState &peer_state) {
-          std::vector<Hash> fresh =
-              peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
-          if (!fresh.empty()) {
-            update_peers.emplace_back(peer, fresh);
-          }
-          return true;
-        });
-    update_remote_peers_and_our_fragment_chain(
-        relay_parent, std::move(lost), std::move(update_peers));
-  }
-
-  void StatementDistribution::update_remote_peers_and_our_fragment_chain(
-      const Hash &relay_parent,
-      std::vector<primitives::BlockHash> lost,
-      std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
-          update_peers) {
-    REINVOKE(*statements_distribution_thread_handler,
-             update_remote_peers_and_our_fragment_chain,
-             relay_parent,
-             std::move(lost),
-             std::move(update_peers));
+    for (auto it = peers.begin(); it != peers.end(); ++it) {
+      std::vector<Hash> fresh = it->second.reconcile_active_leaf(relay_parent, new_relay_parents);
+      if (!fresh.empty()) {
+        update_peers.emplace_back(it->first, fresh);
+      }
+    }
 
     for (const auto &[peer, fresh] : update_peers) {
       for (const auto &fresh_relay_parent : fresh) {
@@ -443,7 +460,25 @@ namespace kagome::parachain::statement_distribution {
       }
     }
     new_leaf_fragment_chain_updates(relay_parent);
-    handle_deactivate_leaves(std::move(lost));
+
+    implicit_view.exclusiveAccess([&](auto &iv) {
+      for (const auto &leaf : event.lost) {
+        const auto pruned = iv.deactivate_leaf(leaf);
+        for (const auto &pruned_rp : pruned) {
+          if (auto it = per_relay_parent.find(pruned_rp); it != per_relay_parent.end()) {
+            if (auto active_state = it->second.active_validator_state()) {
+              active_state->get().cluster_tracker.warn_if_too_many_pending_statements(pruned_rp);
+            }
+            per_relay_parent.erase(it);
+          }
+        }
+      }
+    });
+
+    candidates.on_deactivate_leaves(event.lost, [&](const auto &h) {
+      return per_relay_parent.contains(h);
+    });
+    return outcome::success();
   }
 
   std::unordered_map<ParachainId, std::vector<GroupIndex>>
@@ -491,27 +526,6 @@ namespace kagome::parachain::statement_distribution {
       }
     }
     return groups_per_para;
-  }
-
-  void StatementDistribution::handle_deactivate_leaves(
-      std::vector<primitives::BlockHash> lost) {
-    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
-
-    for (const auto &leaf : lost) {
-      const auto pruned = implicit_view.deactivate_leaf(leaf);
-      for (const auto &pruned_rp : pruned) {
-        if (auto it = per_relay_parent.find(pruned_rp); it != per_relay_parent.end()) {
-          if (auto active_state = it->second.active_validator_state()) {
-            active_state->get().cluster_tracker.warn_if_too_many_pending_statements(pruned_rp);
-          }
-          per_relay_parent.erase(it);
-        }
-      }
-    }
-
-    candidates.on_deactivate_leaves(lost, [&](const auto &h) {
-      return per_relay_parent.contains(h);
-    });
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -767,14 +781,23 @@ namespace kagome::parachain::statement_distribution {
 
   void StatementDistribution::handle_peer_view_update(
       const libp2p::peer::PeerId &peer, const network::View &new_view) {
-    REINVOKE(*main_pool_handler, handle_peer_view_update, peer, new_view);
-    TRY_GET_OR_RET(peer_state, pm->getPeerState(peer));
+    REINVOKE(*statements_distribution_thread_handler,
+             handle_peer_view_update,
+             peer,
+             new_view);
 
-    auto fresh_implicit =
-        peer_state->get().update_view(new_view, implicit_view);
-    for (const auto &new_relay_parent : fresh_implicit) {
-      send_peer_messages_for_relay_parent(peer, new_relay_parent);
+    auto peer_state = utils::get(peers, peer);
+    if (!peer_state) {
+      return;
     }
+
+    implicit_view.sharedAccess([&](const auto &iv) {
+      auto fresh_implicit =
+          peer_state->get().update_view(new_view, iv);
+      for (const auto &new_relay_parent : fresh_implicit) {
+        send_peer_messages_for_relay_parent(peer, new_relay_parent);
+      }
+    });
   }
 
   outcome::result<void> StatementDistribution::handle_grid_statement(
@@ -783,6 +806,8 @@ namespace kagome::parachain::statement_distribution {
       grid::GridTracker &grid_tracker,
       const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
       ValidatorIndex grid_sender_index) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     /// TODO(iceseer): do Ensure the statement is correctly signed. Signature
     /// check.
     grid_tracker.sent_or_received_direct_statement(
@@ -800,6 +825,8 @@ namespace kagome::parachain::statement_distribution {
       GroupIndex group_index,
       const CandidateHash &candidate_hash,
       const StatementStore &statement_store) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     network::vstaging::StatementFilter f{group_size};
     statement_store.fill_statement_filter(group_index, candidate_hash, f);
     return f;
@@ -811,6 +838,8 @@ namespace kagome::parachain::statement_distribution {
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
       GroupIndex group_index) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     CHECK_OR_RET(relay_parent_state.local_validator);
     auto &local_validator = *relay_parent_state.local_validator;
 
@@ -958,7 +987,7 @@ namespace kagome::parachain::statement_distribution {
       const RelayHash &relay_parent,
       const CandidateHash &candidate_hash,
       GroupIndex group_index) {
-    REINVOKE(*main_pool_handler,
+    REINVOKE(*statements_distribution_thread_handler,
              handle_response,
              std::move(r),
              relay_parent,
@@ -1051,6 +1080,8 @@ namespace kagome::parachain::statement_distribution {
 
   void StatementDistribution::apply_post_confirmation(
       const PostConfirmation &post_confirmation) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     const auto candidate_hash = candidateHash(post_confirmation.hypothetical);
     send_cluster_candidate_statements(
         candidate_hash, relayParent(post_confirmation.hypothetical));
@@ -1199,6 +1230,7 @@ namespace kagome::parachain::statement_distribution {
       GroupIndex group_index,
       const CandidateHash &candidate_hash,
       const network::vstaging::StatementFilter &local_knowledge) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     if (!relay_parent_state.local_validator) {
       return {};
     }
@@ -1365,6 +1397,8 @@ namespace kagome::parachain::statement_distribution {
       const CandidateHash &candidate_hash,
       const libp2p::peer::PeerId &peer,
       network::CollationVersion version) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     auto sending_filter =
         grid_tracker.pending_statements_for(recipient, candidate_hash);
     if (!sending_filter) {
@@ -1417,7 +1451,8 @@ namespace kagome::parachain::statement_distribution {
       ManifestSummary manifest_summary,
       ParachainId para_id,
       grid::ManifestKind manifest_kind) {
-    auto peer_state = pm->getPeerState(peer_id);
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+    auto peer_state = utils::get(peers, peer_id);
     if (!peer_state) {
       SL_WARN(logger, "No peer state. (peer_id={})", peer_id);
       return {};
@@ -1547,17 +1582,20 @@ namespace kagome::parachain::statement_distribution {
 
   void StatementDistribution::new_confirmed_candidate_fragment_chain_updates(
       const HypotheticalCandidate &candidate) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     fragment_chain_update_inner(std::nullopt, std::nullopt, {candidate});
   }
 
   void StatementDistribution::new_leaf_fragment_chain_updates(
       const Hash &leaf_hash) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     fragment_chain_update_inner({leaf_hash}, std::nullopt, std::nullopt);
   }
 
   void
   StatementDistribution::prospective_backed_notification_fragment_chain_updates(
       ParachainId para_id, const Hash &para_head) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     std::pair<std::reference_wrapper<const Hash>, ParachainId> p{{para_head},
                                                                  para_id};
     fragment_chain_update_inner(std::nullopt, p, std::nullopt);
@@ -1643,6 +1681,8 @@ namespace kagome::parachain::statement_distribution {
           required_parent_info,
       std::optional<std::reference_wrapper<const HypotheticalCandidate>>
           known_hypotheticals) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     std::vector<HypotheticalCandidate> hypotheticals;
     if (!known_hypotheticals) {
       hypotheticals = candidates.frontier_hypotheticals(required_parent_info);
@@ -1661,6 +1701,7 @@ namespace kagome::parachain::statement_distribution {
       PerRelayParentState &relay_parent_state,
       const ConfirmedCandidate &confirmed_candidate,
       const runtime::SessionInfo &session_info) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     CHECK_OR_RET(relay_parent_state.local_validator);
     auto &local_validator = *relay_parent_state.local_validator;
 
@@ -1728,7 +1769,7 @@ namespace kagome::parachain::statement_distribution {
         continue;
       }
 
-      auto peer_state = pm->getPeerState(peer_opt->id);
+      auto peer_state = utils::get(peers, peer_opt->id);
       if (!peer_state) {
         SL_TRACE(logger,
                  "No peer state. (relay_parent={}, peer={}, candidate_hash={})",
@@ -1898,6 +1939,7 @@ namespace kagome::parachain::statement_distribution {
       const runtime::SessionInfo &session_info,
       const network::vstaging::SignedCompactStatement &statement,
       ValidatorIndex cluster_sender_index) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     const auto accept = cluster_tracker.can_receive(
         cluster_sender_index,
         statement.payload.ix,
@@ -2121,6 +2163,8 @@ namespace kagome::parachain::statement_distribution {
       const RelayHash &relay_parent,
       PerRelayParentState &relay_parent_state,
       const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
     const auto &session_info =
         relay_parent_state.per_session_state->value().session_info;
     const auto &compact_statement = getPayload(statement);
@@ -2196,7 +2240,7 @@ namespace kagome::parachain::statement_distribution {
         continue;
       }
 
-      auto peer_state = pm->getPeerState(peer->id);
+      auto peer_state = utils::get(peers, peer->id);
       if (!peer_state) {
         continue;
       }
@@ -2395,6 +2439,7 @@ namespace kagome::parachain::statement_distribution {
       ValidatorIndex peer_validator_id,
       const Groups &groups,
       PerRelayParentState &relay_parent_state) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     CHECK_OR_RET(relay_parent_state.local_validator);
 
     auto pending_manifests =
@@ -2513,6 +2558,7 @@ namespace kagome::parachain::statement_distribution {
       network::CollationVersion version,
       ValidatorIndex peer_validator_id,
       PerRelayParentState &relay_parent_state) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     CHECK_OR_RET(relay_parent_state.local_validator);
     CHECK_OR_RET(relay_parent_state.local_validator->active);
 
@@ -2564,6 +2610,7 @@ namespace kagome::parachain::statement_distribution {
       network::CollationVersion version,
       ValidatorIndex originator,
       const network::vstaging::CompactStatement &compact) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     switch (version) {
       case network::CollationVersion::VStaging: {
         auto s = statement_store.validator_statement(originator, compact);
@@ -2591,16 +2638,10 @@ namespace kagome::parachain::statement_distribution {
 
   void StatementDistribution::send_peer_messages_for_relay_parent(
       const libp2p::peer::PeerId &peer_id, const RelayHash &relay_parent) {
-    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
-
-    // TRY_GET_OR_RET(peer_state, pm->getPeerState(peer_id));
+    REINVOKE(*statements_distribution_thread_handler, send_peer_messages_for_relay_parent, peer_id, relay_parent);
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
 
-    network::CollationVersion version = network::CollationVersion::VStaging;
-    //    if (peer_state->get().collation_version) {
-    //      version = *peer_state->get().collation_version;
-    //    }
-
+    const network::CollationVersion version = network::CollationVersion::VStaging;
     if (auto auth_id = query_audi->get(peer_id)) {
       if (auto vi = utils::get(parachain_state->get()
                                    .per_session_state->value()

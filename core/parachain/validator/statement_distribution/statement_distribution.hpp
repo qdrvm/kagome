@@ -23,6 +23,7 @@
 #include "parachain/validator/signer.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
+#include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
@@ -79,13 +80,13 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<NetworkBridge> network_bridge,
         std::shared_ptr<network::Router> router,
         common::MainThreadPool &main_thread_pool,
-        std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository>
-            babe_config_repo);
+            babe_config_repo,
+        primitives::events::PeerSubscriptionEnginePtr peer_events_engine);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     PerRelayParentState &relay_parent_state,
@@ -135,6 +136,12 @@ namespace kagome::parachain::statement_distribution {
     };
     using ManifestImportSuccessOpt = std::optional<ManifestImportSuccess>;
     using ManifestSummary = parachain::grid::ManifestSummary;
+
+    struct RelayParentContext {
+        Hash relay_parent;
+        std::optional<ValidatorIndex> validator_index;
+        std::optional<ValidatorIndex> v_index;
+    };
 
     std::optional<std::reference_wrapper<PerRelayParentState>>
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
@@ -327,32 +334,25 @@ namespace kagome::parachain::statement_distribution {
         std::optional<runtime::ClaimQueueSnapshot> &maybe_claim_queue,
         size_t max_candidate_depth);
 
-    void handle_view_event(const network::ExView &event);
-    outcome::result<void> handle_active_leaves_update(
-        const network::ExView &event);
-    void handle_deactivate_leaves(
-        std::vector<primitives::BlockHash> lost);
+    outcome::result<void> handle_view_event(const network::ExView &event);
+    void handle_active_leaves_update(
+        const network::ExView &event, std::vector<RelayParentContext> new_contexts);
+    outcome::result<void> handle_active_leaves_update_inner(
+      const network::ExView &event, std::vector<RelayParentContext> new_contexts);
 
-    void update_peers_state(const Hash &relay_parent,
-                            std::vector<primitives::BlockHash> lost,
-                            std::vector<Hash> new_relay_parents);
-    void update_remote_peers_and_our_fragment_chain(
-        const Hash &relay_parent,
-        std::vector<primitives::BlockHash> lost,
-        std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
-            update_peers);
+    void on_peer_connected(const libp2p::peer::PeerId &peer);
+    void on_peer_disconnected(const libp2p::peer::PeerId &peer);
 
    private:
     log::Logger logger =
         log::createLogger("StatementDistribution", "parachain");
 
-    ImplicitView implicit_view;
+    SafeObject<ImplicitView> implicit_view;
     Candidates candidates;
     std::unordered_map<primitives::BlockHash, PerRelayParentState>
         per_relay_parent;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
-    /// TODO(iceseer): move `peer_state` here and modify it on PeerConnected and PeerDisconnected events
-    /// std::unordered_map<libp2p::peer::PeerId, network::PeerState> peers;
+    std::unordered_map<libp2p::peer::PeerId, PeerState> peers;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory;
     std::shared_ptr<PeerUseCount> peer_use_count;
 
@@ -363,7 +363,6 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<NetworkBridge> network_bridge;
     std::shared_ptr<network::Router> router;
     std::shared_ptr<PoolHandler> main_pool_handler;
-    std::shared_ptr<network::PeerManager> pm;
     std::shared_ptr<crypto::Hasher> hasher;
     std::shared_ptr<ProspectiveParachains> prospective_parachains;
     std::shared_ptr<runtime::ParachainHost> parachain_host;
@@ -374,7 +373,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo;
 
     /// sub
-
+    primitives::events::PeerEventSubscriberPtr peer_state_sub;
     network::PeerView::MyViewSubscriberPtr my_view_sub;
   };
 

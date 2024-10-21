@@ -103,7 +103,7 @@ namespace kagome::parachain {
 
 
   template<typename F, typename D>
-  void on_deactivate_leaves(std::span<Hash> leaves, F &&remove_parent_index, D &&relay_parent_live) {
+  void on_deactivate_leaves(std::span<const Hash> leaves, F &&remove_parent_index, D &&relay_parent_live) {
     retain_if(claims, [&](const auto &c) {
       if (std::forward<D>(relay_parent_live)(c.second.relay_parent)) {
         return true;
@@ -493,7 +493,7 @@ namespace kagome::parachain {
     }
 
     template <typename F>
-    void on_deactivate_leaves(std::span<Hash> leaves, F &&relay_parent_live) {
+    void on_deactivate_leaves(std::span<const Hash> leaves, F &&relay_parent_live) {
       auto remove_parent_claims = [&](const auto &c_hash, const auto &parent_hash, const auto id) {
         if (auto it_1 = utils::get_it(by_parent, parent_hash)) {
           if (auto it_2 = utils::get_it((*it_1)->second, id)) {

@@ -93,7 +93,8 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ReputationRepository> reputation_repository,
       LazySPtr<CanDisconnect> can_disconnect,
-      std::shared_ptr<PeerView> peer_view)
+      std::shared_ptr<PeerView> peer_view,
+      primitives::events::PeerSubscriptionEnginePtr peer_event_engine)
       : log_{log::createLogger("PeerManager", "network")},
         host_(host),
         main_pool_handler_{poolHandlerReadyMake(
@@ -111,7 +112,8 @@ namespace kagome::network {
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
         can_disconnect_{can_disconnect},
-        peer_view_{std::move(peer_view)} {
+        peer_view_{std::move(peer_view)},
+        peer_event_engine_(std::move(peer_event_engine)) {
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
@@ -122,6 +124,7 @@ namespace kagome::network {
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
+    BOOST_ASSERT(peer_event_engine_);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -188,6 +191,8 @@ namespace kagome::network {
                 self->peer_view_->removePeer(peer_id);
                 self->sync_peer_num_->set(self->active_peers_.size());
                 self->peers_count_metric_->set(self->active_peers_.size());
+
+                self->peer_event_engine_->notify(primitives::events::PeerEventType::kDisconnected, peer_id);
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
                          self->active_peers_.size());
@@ -858,6 +863,7 @@ namespace kagome::network {
               }
             }
 
+            self->peer_event_engine_->notify(primitives::events::PeerEventType::kConnected, peer_info.id);
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(
                 peer_info,
