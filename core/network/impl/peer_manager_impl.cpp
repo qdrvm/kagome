@@ -779,14 +779,18 @@ namespace kagome::network {
         in_active_peers.begin(),
         in_active_peers.end(),
         [this](const auto &l, const auto &r) {
-          if (peer_states_.contains(l.first)
-              && peer_states_.contains(r.first)) {
-            return peer_states_.at(l.first).time
-                 < peer_states_.at(r.first).time;
-          } else {
-            return l.second.time_point
-                 < r.second.time_point;
-          }
+          // If peer states are available, compare by time
+          // If peer states are unavailable, assume peer was not active for a
+          // long time
+          auto l_state = getPeerState(l.first);
+          auto r_state = getPeerState(r.first);
+          decltype(clock_->now()) genesis_time =
+              clock_->now() - 5000 * app_config_.peeringConfig().aligningPeriod;
+          auto l_state_time =
+              l_state.has_value() ? l_state.value().get().time : genesis_time;
+          auto r_state_time =
+              r_state.has_value() ? r_state.value().get().time : genesis_time;
+          return l_state_time < r_state_time;
         });
     // Return empty PeerID if least active peer has been active within last
     // align period
