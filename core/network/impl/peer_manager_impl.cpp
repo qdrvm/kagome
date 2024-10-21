@@ -761,6 +761,7 @@ namespace kagome::network {
    */
   std::optional<PeerId> PeerManagerImpl::findLeastActivePeer() const {
     if (active_peers_.empty()) {
+      SL_INFO(log_, "No active peers found");
       return std::nullopt;
     }
 
