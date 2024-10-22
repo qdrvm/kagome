@@ -69,7 +69,7 @@ All used terms are described in [terms.md](./terms.md).
 
 6. **major design rule** - avoid using preprocessor macros in header files except as include guards.
 
-7. **major design rule** - only classes, structures, unions and free operator functions should be *declared*  at file scope in `.h` file. Only classes, structures , unions, and inline (member or free operator) functions should be *defined* at file scope in a `.h` file.
+7. **major design rule** - only classes, structures, unions and free operator functions should be *declared*  at file scope in `.h` file. Only classes, structures, unions, and inline (member or free operator) functions should be *defined* at file scope in a `.h` file.
 
 8. **major design rule** - place a unique and predictable (internal) include guard around the contents of each header file.
 
@@ -99,11 +99,11 @@ All used terms are described in [terms.md](./terms.md).
 
     Example: defining an iterator class along with a container class in the same component enables user extensibility, improves maintainability and enhances reusability while preserving encapsulation.
 
-21. **principle** - all tests must be done in  isolation. Testing a component in isolation is an effective way to ensure reliability.
+21. **principle** - all tests must be done in isolation. Testing a component in isolation is an effective way to ensure reliability.
 
 22. **principle** - every directed acyclic graph can be assigned unique level numbers; a graph with cycles cannot. A physical dependency graph that can be assigned unique level numbers is said to be *levelizable*.
 
-23. **principle** - in most real-world situations, large designs must be levelizable if they are able to be tested  effectively.
+23. **principle** - in most real-world situations, large designs must be levelizable if they are able to be tested effectively.
 
 24. **principle** - testing only the functionality *directly implemented* within a component enables the complexity of the test to be proportional to the complexity of the component.
 
@@ -117,7 +117,7 @@ All used terms are described in [terms.md](./terms.md).
 
 29. **major design rule** - prepend every global identifier with its package prefix.
 
-30. **major design  rule** - avoid cyclic dependencies among packages.
+30. **major design rule** - avoid cyclic dependencies among packages.
 
 31. **guideline** - avoid declaring results returned by value from functions as `const`.
 
@@ -129,7 +129,7 @@ All used terms are described in [terms.md](./terms.md).
 
 35. **guideline** - explicitly declare (public or private) the constructor and assignment operator for any class defined in a header file.
 
-36. **minor design rule** - in every class that declares or is  derived from a class that declares a virtual function, explicitly declare the destructor as the first virtual function in the class and define it out of line.
+36. **minor design rule** - in every class that declares or is derived from a class that declares a virtual function, explicitly declare the destructor as the first virtual function in the class and define it out of line.
 
 
 [^1]: "John Lakos - Large Scale C++ Software Design".
