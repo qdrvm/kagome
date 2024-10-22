@@ -212,7 +212,7 @@ namespace kagome::runtime {
         OUTCOME_TRY(code_zstd, get_code());
         OUTCOME_TRY(code, uncompressCodeIfNeeded(*code_zstd));
         BOOST_OUTCOME_TRY(code,
-                          instrument_->instrument(code, config.memory_limits));
+                          instrument_->instrument(code, config));
         OUTCOME_TRY(module_factory_->compile(path, code, config));
       }
       OUTCOME_TRY(module, module_factory_->loadCompiled(path, config));

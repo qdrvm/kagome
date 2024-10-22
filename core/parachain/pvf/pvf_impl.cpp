@@ -354,7 +354,8 @@ namespace kagome::parachain {
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
     kagome::parachain::PvfWorkerInputCodeParams code_params{
-        .path = pvf_pool_->getCachePath(code_hash, context_params)};
+        .path = pvf_pool_->getCachePath(code_hash, context_params),
+        .context_params = context_params};
     workers_->execute({
         .code_params = std::move(code_params),
         .args = scale::encode(params).value(),

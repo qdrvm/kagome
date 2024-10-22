@@ -13,7 +13,8 @@
 namespace kagome::runtime {
   struct NoopWasmInstrumenter : WasmInstrumenter {
     WabtOutcome<common::Buffer> instrument(
-        common::BufferView code, const MemoryLimits &) const override {
+        common::BufferView code,
+        const RuntimeContext::ContextParams &) const override {
       return common::Buffer{code};
     }
   };

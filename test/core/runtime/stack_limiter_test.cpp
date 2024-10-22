@@ -45,7 +45,7 @@ std::string toWat(const wabt::Module &module) {
 void expectWasm(const wabt::Module &actual, std::string_view expected) {
   auto expected_fmt = toWat(*kagome::runtime::fromWat(expected));
   EXPECT_EQ(toWat(actual), expected_fmt);
-  auto actual2 = wabtDecode(wabtEncode(actual).value()).value();
+  auto actual2 = wabtDecode(wabtEncode(actual).value(), {}).value();
   EXPECT_EQ(toWat(actual2), expected_fmt);
 }
 
