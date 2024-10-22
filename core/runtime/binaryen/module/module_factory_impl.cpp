@@ -32,17 +32,26 @@ namespace kagome::runtime::binaryen {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
+    if (config.wasm_ext_bulk_memory) {
+      return CompilationError{"bulk memory is not supported"};
+    }
     OUTCOME_TRY(writeFileTmp(path_compiled, code));
     return outcome::success();
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
+      std::filesystem::path path_compiled, const RuntimeContext::ContextParams &config) const {
     Buffer code;
+    if (config.wasm_ext_bulk_memory) {
+      return CompilationError{"bulk memory is not supported"};
+    }
     if (not readFile(code, path_compiled)) {
       return CompilationError{"read file failed"};
     }
+    /// TODO(erakhtinb) handle wasm bulk memory flag if Binaryen is keeped
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(
                     code, env_factory_, hasher_->blake2b_256(code)));

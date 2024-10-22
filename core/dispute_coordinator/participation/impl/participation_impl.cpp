@@ -252,6 +252,7 @@ namespace kagome::dispute {
                       ctx->available_data->pov,
                       ctx->request.candidate_receipt,
                       ctx->validation_code.value(),
+                      runtime::PvfExecTimeoutKind::Approval,
                       [cb{std::move(cb)}](
                           const outcome::result<parachain::Pvf::Result> &res) {
                         // we cast votes (either positive or negative)
