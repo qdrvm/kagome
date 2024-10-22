@@ -1,1 +1,0 @@
-kagome_version: 0.9.5-28-ci/zombienet_new_verison-1-889c65c9-dirty
