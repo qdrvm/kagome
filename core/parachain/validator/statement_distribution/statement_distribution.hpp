@@ -378,6 +378,7 @@ namespace kagome::parachain::statement_distribution {
     /// sub
     primitives::events::PeerEventSubscriberPtr peer_state_sub;
     network::PeerView::MyViewSubscriberPtr my_view_sub;
+    network::PeerView::PeerViewSubscriberPtr remote_view_sub;
   };
 
 }  // namespace kagome::parachain::statement_distribution

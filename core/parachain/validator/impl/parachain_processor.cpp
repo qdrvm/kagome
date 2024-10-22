@@ -337,78 +337,75 @@ namespace kagome::parachain {
     backing_store_->onActivateLeaf(relay_parent);
 
     /// init `backing` subsystem
-    create_backing_task(relay_parent, event.new_head, event.lost);
+    auto pruned = create_backing_task(relay_parent, event.new_head, event.lost);
 
-    /// update our `view` on remote nodes
-    SL_TRACE(logger_,
-             "Update my view.(new head={}, finalized={}, leaves={})",
-             relay_parent,
-             event.view.finalized_number_,
-             event.view.heads_.size());
-    broadcastView(event.view);
-    broadcastViewToGroup(relay_parent, event.view);
-
-    // need to lock removing session infoes
     for (const auto &lost : event.lost) {
-      our_current_state_.active_leaves.erase(lost);
-
-      {  /// remove cancelations
-        auto &container = our_current_state_.collation_requests_cancel_handles;
-        for (auto pc = container.begin(); pc != container.end();) {
-          if (pc->relay_parent != lost) {
-            ++pc;
-          } else {
-            pc = container.erase(pc);
-          }
-        }
-      }
-      {  /// remove fetched candidates
-        auto &container = our_current_state_.validator_side.fetched_candidates;
-        for (auto pc = container.begin(); pc != container.end();) {
-          if (pc->first.relay_parent != lost) {
-            ++pc;
-          } else {
-            pc = container.erase(pc);
-          }
-        }
-      }
-
       av_store_->remove(lost);
     }
 
-    our_current_state_.active_leaves[relay_parent] =
-        prospective_parachains_->prospectiveParachainsMode(relay_parent);
+    handle_active_leaves_update_for_validator(event, std::move(pruned));
+  }
 
-    auto remove_if = [](bool eq, auto &it, auto &cont) {
-      if (eq) {
-        it = cont.erase(it);
-      } else {
-        ++it;
+  void ParachainProcessorImpl::handle_active_leaves_update_for_validator(const network::ExView &event, std::vector<Hash> pruned_h) {
+    const auto current_leaves = our_current_state_.validator_side.active_leaves;
+    std::unordered_map<Hash, ProspectiveParachainsModeOpt> removed;
+    for (const auto &[h, m] : current_leaves) {
+      if (!event.view.contains(h)) {
+        removed.emplace(h, m);
       }
-    };
-
-    // para
-    for (auto it = our_current_state_.blocked_advertisements.begin();
-         it != our_current_state_.blocked_advertisements.end();) {
-      // hash
-      for (auto it_2 = it->second.begin(); it_2 != it->second.end();) {
-        // adv
-        for (auto it_3 = it_2->second.begin(); it_3 != it_2->second.end();) {
-          remove_if(!tryGetStateByRelayParent(it_3->candidate_relay_parent),
-                    it_3,
-                    it_2->second);
-        }
-        remove_if(it_2->second.empty(), it_2, it->second);
+    }
+    std::vector<Hash> added;
+    for (const auto &h : event.view.heads_) {
+      if (!current_leaves.contains(h)) {
+        added.emplace_back(h);
       }
-      remove_if(
-          it->second.empty(), it, our_current_state_.blocked_advertisements);
     }
 
-    auto maybe_unblocked = std::move(our_current_state_.blocked_advertisements);
-    requestUnblockedCollations(std::move(maybe_unblocked));
+    for (const auto &leaf : added) {
+      const auto mode = prospective_parachains_->prospectiveParachainsMode(leaf);
+      our_current_state_.validator_side.active_leaves[leaf] = mode;
+    }
+
+    for (const auto &[removed, mode] : removed) {
+      our_current_state_.validator_side.active_leaves.erase(removed);
+      const std::vector<Hash> pruned = mode ? std::move(pruned_h) : std::vector<Hash>{removed};
+
+      for (const auto &removed : pruned) {
+        our_current_state_.state_by_relay_parent.erase(removed);
+
+        {  /// remove cancelations
+          auto &container = our_current_state_.collation_requests_cancel_handles;
+          for (auto pc = container.begin(); pc != container.end();) {
+            if (pc->relay_parent != removed) {
+              ++pc;
+            } else {
+              pc = container.erase(pc);
+            }
+          }
+        }
+        {  /// remove fetched candidates
+          auto &container = our_current_state_.validator_side.fetched_candidates;
+          for (auto pc = container.begin(); pc != container.end();) {
+            if (pc->first.relay_parent != removed) {
+              ++pc;
+            } else {
+              pc = container.erase(pc);
+            }
+          }
+        }
+      }
+    }
+
+    retain_if(our_current_state_.validator_side.blocked_from_seconding, [&](auto &pair) {
+      auto &collations = pair.second;
+      retain_if(collations, [&](const auto &collation) {
+        return our_current_state_.state_by_relay_parent.contains(collation.candidate_receipt.descriptor.relay_parent);
+      });
+      return !collations.empty();
+    });
 
     prune_old_advertisements(*our_current_state_.implicit_view,
-                             our_current_state_.active_leaves,
+                             our_current_state_.validator_side.active_leaves,
                              our_current_state_.state_by_relay_parent);
     printStoragesLoad();
   }
@@ -425,28 +422,6 @@ namespace kagome::parachain {
 
       backing_store_->onDeactivateLeaf(lost.hash);
       bitfield_store_->remove(lost.hash);
-    }
-
-    for (auto it = our_current_state_.state_by_relay_parent.begin();
-         it != our_current_state_.state_by_relay_parent.end();) {
-      const auto &hash = it->first;
-      const auto &per_relay_state = it->second;
-      const auto header = block_tree_->getBlockHeader(hash);
-
-      const bool keep = header.has_value()
-                     && per_relay_state.prospective_parachains_mode
-                     && (header.value().number
-                         + per_relay_state.prospective_parachains_mode
-                               ->allowed_ancestry_len
-                         + 1)
-                            >= event.finalized;
-      if (keep) {
-        ++it;
-      } else {
-        our_current_state_.per_leaf.erase(hash);
-        our_current_state_.implicit_view->deactivate_leaf(hash);
-        it = our_current_state_.state_by_relay_parent.erase(it);
-      }
     }
   }
 
@@ -784,7 +759,7 @@ namespace kagome::parachain {
     };
   }
 
-  void ParachainProcessorImpl::create_backing_task(
+  std::vector<Hash> ParachainProcessorImpl::create_backing_task(
       const primitives::BlockHash &relay_parent,
       const network::HashedBlockHeader &block_header,
       const std::vector<primitives::BlockHash> &lost) {
@@ -805,6 +780,12 @@ namespace kagome::parachain {
       }
     } else {
       res = std::nullopt;
+    }
+
+    std::vector<Hash> pruned;
+    for (const auto &l : lost) {
+      our_current_state_.per_leaf.erase(l);
+      pruned = our_current_state_.implicit_view->deactivate_leaf(l);
     }
 
     std::vector<
@@ -846,7 +827,7 @@ namespace kagome::parachain {
     ProspectiveParachainsModeOpt leaf_mode;
     if (!res) {
       if (our_current_state_.per_leaf.contains(relay_parent)) {
-        return;
+        return pruned;
       }
 
       our_current_state_.per_leaf.insert_or_assign(relay_parent,
@@ -878,7 +859,7 @@ namespace kagome::parachain {
           relay_parent,
           res->error());
 
-      return;
+      return pruned;
     }
 
     for (const auto &maybe_new : fresh_relay_parents) {
@@ -905,7 +886,37 @@ namespace kagome::parachain {
             rps_result.error());
       }
     }
+
+    return pruned;
   }
+
+void ParachainProcessorImpl::second_unblocked_collations(ParachainId para_id, const HeadData &head_data, const Hash &head_data_hash) {
+  auto unblocked_collations_it = our_current_state_.validator_side.blocked_from_seconding.find(BlockedCollationId { 
+    .para_id = para_id, 
+    .parent_head_data_hash = head_data_hash,
+  });
+
+  if (unblocked_collations_it != our_current_state_.validator_side.blocked_from_seconding.end()) {
+    auto &unblocked_collations = unblocked_collations_it->second;
+
+    if (!unblocked_collations.empty()) {
+      SL_TRACE(logger_, "Candidate outputting head data with hash {} unblocked {} collations for seconding.", head_data_hash, unblocked_collations.size());
+    }
+
+    for (auto &unblocked_collation : unblocked_collations) {
+      unblocked_collation.maybe_parent_head_data = head_data;
+      const auto peer_id = unblocked_collation.collation_event.pending_collation.peer_id;
+      const auto relay_parent = unblocked_collation.candidate_receipt.descriptor.relay_parent;
+
+      if (auto res = kick_off_seconding(std::move(unblocked_collation)); res.has_error()) {
+        SL_WARN(logger_, "Seconding aborted due to an error. (relay_parent={}, para_id={}, peer_id={}, error={})", relay_parent, para_id, peer_id, res.error());
+      }
+    }
+
+    our_current_state_.validator_side.blocked_from_seconding.erase(unblocked_collations_it);
+  }
+}
+
 
   void ParachainProcessorImpl::handle_collation_fetch_response(
       network::CollationEvent &&collation_event,
@@ -999,6 +1010,12 @@ namespace kagome::parachain {
                      [](const auto &v) { return v.candidate_hash; });
       dequeue_next_collation_and_fetch(pending_collation_copy.relay_parent,
                                        {collator_id, maybe_candidate_hash});
+    } else if (res.value() == false) {
+      const auto maybe_candidate_hash =
+          utils::map(pending_collation_copy.prospective_candidate,
+                     [](const auto &v) { return v.candidate_hash; });
+      dequeue_next_collation_and_fetch(pending_collation_copy.relay_parent,
+                                       {collator_id, maybe_candidate_hash});
     }
   }
 
@@ -1009,7 +1026,7 @@ namespace kagome::parachain {
                            32,
                            crypto::Blake2b_StreamHasher<32>>
           &persisted_validation_data,
-      std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash) {
+      std::optional<std::pair<std::reference_wrapper<const HeadData>, std::reference_wrapper<const Hash>>> maybe_parent_head_and_hash) {
     if (persisted_validation_data.getHash()
         != fetched.descriptor.persisted_data_hash) {
       return Error::PERSISTED_VALIDATION_DATA_MISMATCH;
@@ -1022,8 +1039,8 @@ namespace kagome::parachain {
     }
 
     if (maybe_parent_head_and_hash
-        && hasher_->blake2b_256(maybe_parent_head_and_hash->first)
-               != maybe_parent_head_and_hash->second) {
+        && hasher_->blake2b_256(maybe_parent_head_and_hash->first.get())
+               != maybe_parent_head_and_hash->second.get()) {
       return Error::PARENT_HEAD_DATA_MISMATCH;
     }
 
@@ -2150,71 +2167,6 @@ namespace kagome::parachain {
     return core_index;
   }
 
-  void ParachainProcessorImpl::unblockAdvertisements(
-      ParachainProcessorImpl::RelayParentState &rp_state,
-      ParachainId para_id,
-      const Hash &para_head) {
-    std::optional<std::vector<BlockedAdvertisement>> unblocked{};
-    auto it = our_current_state_.blocked_advertisements.find(para_id);
-    if (it != our_current_state_.blocked_advertisements.end()) {
-      auto i = it->second.find(para_head);
-      if (i != it->second.end()) {
-        unblocked = std::move(i->second);
-        it->second.erase(i);
-      }
-    }
-
-    if (unblocked) {
-      requestUnblockedCollations(
-          {{para_id, {{para_head, std::move(*unblocked)}}}});
-    }
-  }
-
-  void ParachainProcessorImpl::requestUnblockedCollations(
-      std::unordered_map<
-          ParachainId,
-          std::unordered_map<Hash, std::vector<BlockedAdvertisement>>>
-          &&blocked) {
-    for (const auto &[para_id, v] : blocked) {
-      for (const auto &[para_head, blocked_tmp] : v) {
-        std::vector<BlockedAdvertisement> blocked_vec;
-        for (const auto &blocked : blocked_tmp) {
-          const auto is_seconding_allowed =
-              canSecond(para_id,
-                        blocked.candidate_relay_parent,
-                        blocked.candidate_hash,
-                        para_head);
-          if (is_seconding_allowed) {
-            auto result =
-                enqueueCollation(blocked.candidate_relay_parent,
-                                 para_id,
-                                 blocked.peer_id,
-                                 blocked.collator_id,
-                                 std::make_optional(std::make_pair(
-                                     blocked.candidate_hash, para_head)));
-            if (result.has_error()) {
-              SL_DEBUG(logger_,
-                       "Enqueue collation failed.(candidate={}, para id={}, "
-                       "relay_parent={}, para_head={}, peer_id={})",
-                       blocked.candidate_hash,
-                       para_id,
-                       blocked.candidate_relay_parent,
-                       para_head,
-                       blocked.peer_id);
-            }
-          } else {
-            blocked_vec.emplace_back(blocked);
-          }
-        }
-
-        if (!blocked_vec.empty()) {
-          our_current_state_.blocked_advertisements[para_id][para_head] =
-              std::move(blocked_vec);
-        }
-      }
-    }
-  }
-
   template <ParachainProcessorImpl::StatementType kStatementType>
   outcome::result<std::optional<SignedFullStatementWithPVD>>
   ParachainProcessorImpl::sign_import_and_distribute_statement(
@@ -2302,8 +2254,6 @@ namespace kagome::parachain {
           if (rp_state.prospective_parachains_mode) {
             prospective_parachains_->candidate_backed(para_id,
                                                       summary->candidate);
-            unblockAdvertisements(
-                rp_state, para_id, backed->candidate.descriptor.para_head_hash);
             statement_distribution->handle_backed_candidate_message(
                 summary->candidate);
           } else {
@@ -2547,6 +2497,11 @@ namespace kagome::parachain {
     REINVOKE_ONCE(
         *main_pool_handler_, notifyInvalid, parent, candidate_receipt);
 
+    our_current_state_.validator_side.blocked_from_seconding.erase(BlockedCollationId {
+      .para_id = candidate_receipt.descriptor.para_id,
+      .parent_head_data_hash = candidate_receipt.descriptor.para_head_hash,
+    });
+
     auto fetched_collation =
         network::FetchedCollation::from(candidate_receipt, *hasher_);
     const auto &candidate_hash = fetched_collation.candidate_hash;
@@ -2591,6 +2546,8 @@ namespace kagome::parachain {
       return;
     }
 
+    auto output_head_data = seconded->get().committed_receipt.commitments.para_head;
+    auto output_head_data_hash = seconded->get().committed_receipt.descriptor.para_head_hash;
     auto fetched_collation = network::FetchedCollation::from(
         seconded->get().committed_receipt.to_plain(*hasher_), *hasher_);
     auto it = our_current_state_.validator_side.fetched_candidates.find(
@@ -2625,6 +2582,12 @@ namespace kagome::parachain {
       rp_state->get().collations.status = CollationStatus::Seconded;
       rp_state->get().collations.note_seconded();
     }
+
+    second_unblocked_collations(
+      fetched_collation.para_id,
+      output_head_data,
+      output_head_data_hash
+    );
 
     const auto maybe_candidate_hash = utils::map(
         prospective_candidate, [](const auto &v) { return v.candidate_hash; });
@@ -3012,7 +2975,7 @@ namespace kagome::parachain {
     if (!isRelayParentInImplicitView(on_relay_parent,
                                      relay_parent_mode,
                                      *our_current_state_.implicit_view,
-                                     our_current_state_.active_leaves,
+                                     our_current_state_.validator_side.active_leaves,
                                      peer_data.collator_state->para_id)) {
       SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
@@ -3046,7 +3009,7 @@ namespace kagome::parachain {
                           peer_data.collator_state->para_id);
   }
 
-  outcome::result<void> ParachainProcessorImpl::kick_off_seconding(
+  outcome::result<bool> ParachainProcessorImpl::kick_off_seconding(
       network::PendingCollationFetch &&pending_collation_fetch) {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
@@ -3075,7 +3038,9 @@ namespace kagome::parachain {
         per_relay_parent.get().prospective_parachains_mode.has_value();
 
     std::optional<runtime::PersistedValidationData> maybe_pvd;
-    std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash;
+    std::optional<Hash> maybe_parent_head_hash;
+    std::optional<HeadData> &maybe_parent_head = pending_collation_fetch.maybe_parent_head_data;
+
     if (is_collator_v2 && have_prospective_candidate && async_backing_en) {
       OUTCOME_TRY(pvd,
                   requestProspectiveValidationData(
@@ -3087,10 +3052,7 @@ namespace kagome::parachain {
       maybe_pvd = pvd;
 
       if (pending_collation_fetch.maybe_parent_head_data) {
-        maybe_parent_head_and_hash.emplace(
-            *pending_collation_fetch.maybe_parent_head_data,
-            collation_event.pending_collation.prospective_candidate
-                ->parent_head_data_hash);
+        maybe_parent_head_hash.emplace(collation_event.pending_collation.prospective_candidate->parent_head_data_hash);
       }
     } else if ((is_collator_v2 && have_prospective_candidate)
                || !is_collator_v2) {
@@ -3100,32 +3062,53 @@ namespace kagome::parachain {
               pending_collation_fetch.candidate_receipt.descriptor.relay_parent,
               pending_collation_fetch.candidate_receipt.descriptor.para_id));
       maybe_pvd = pvd;
-      maybe_parent_head_and_hash = std::nullopt;
+      maybe_parent_head_hash = std::nullopt;
     } else {
-      return outcome::success();
+      return outcome::success(false);
     }
 
-    if (!maybe_pvd) {
+    std::optional<std::reference_wrapper<runtime::PersistedValidationData>> pvd;
+    if (maybe_pvd) {
+      pvd = *maybe_pvd;
+    } else if(!maybe_pvd && !maybe_parent_head && maybe_parent_head_hash) {
+        const network::PendingCollationFetch blocked_collation {
+          .collation_event = std::move(collation_event),
+          .candidate_receipt = std::move(pending_collation_fetch.candidate_receipt),
+          .pov = std::move(pending_collation_fetch.pov),
+          .maybe_parent_head_data = std::nullopt,
+        };
+        SL_TRACE(logger_,
+          "Collation having parent head data hash {} is blocked from seconding. Waiting on its parent to be validated. (candidate_hash={}, relay_parent={})",
+          *maybe_parent_head_hash,
+          blocked_collation.candidate_receipt.hash(*hasher_),
+          blocked_collation.candidate_receipt.descriptor.relay_parent
+        );
+        our_current_state_.validator_side.blocked_from_seconding[BlockedCollationId {
+            .para_id =  blocked_collation.candidate_receipt.descriptor.para_id,
+            .parent_head_data_hash = *maybe_parent_head_hash,
+          }].emplace_back(blocked_collation);
+
+        return outcome::success(false);
+    } else {
       return Error::PERSISTED_VALIDATION_DATA_NOT_FOUND;
     }
 
-    auto pvd{std::move(*maybe_pvd)};
     OUTCOME_TRY(fetched_collation_sanity_check(
         collation_event.pending_collation,
         pending_collation_fetch.candidate_receipt,
-        pvd,
-        maybe_parent_head_and_hash));
+        pvd->get(),
+        maybe_parent_head && maybe_parent_head_hash ? std::make_pair(std::cref(*maybe_parent_head), std::cref(*maybe_parent_head_hash)) : std::optional<std::pair<std::reference_wrapper<const HeadData>, std::reference_wrapper<const Hash>>>{}));
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
         pending_collation_fetch.candidate_receipt,
         std::move(pending_collation_fetch.pov),
-        std::move(pvd),
+        std::move(pvd->get()),
         relay_parent);
 
     our_current_state_.validator_side.fetched_candidates.emplace(
         fetched_collation, collation_event);
-    return outcome::success();
+    return outcome::success(true);
   }
 
   ParachainProcessorImpl::SecondingAllowed
@@ -3234,14 +3217,12 @@ namespace kagome::parachain {
              "\n\t-> per_leaf={}"
              "\n\t-> per_candidate={}"
              "\n\t-> active_leaves={}"
-             "\n\t-> blocked_advertisements={}"
              "\n\t-> collation_requests_cancel_handles={}"
              "\n\t-> validator_side.fetched_candidates={}",
              our_current_state_.state_by_relay_parent.size(),
              our_current_state_.per_leaf.size(),
              our_current_state_.per_candidate.size(),
-             our_current_state_.active_leaves.size(),
-             our_current_state_.blocked_advertisements.size(),
+             our_current_state_.validator_side.active_leaves.size(),
              our_current_state_.collation_requests_cancel_handles.size(),
              our_current_state_.validator_side.fetched_candidates.size());
     if (our_current_state_.implicit_view) {
@@ -3253,12 +3234,12 @@ namespace kagome::parachain {
     av_store_->printStoragesLoad();
   }
 
-  void ParachainProcessorImpl::handleAdvertisement(
+  void ParachainProcessorImpl::handle_advertisement(
       const RelayHash &relay_parent,
       const libp2p::peer::PeerId &peer_id,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
     REINVOKE(*main_pool_handler_,
-             handleAdvertisement,
+             handle_advertisement,
              relay_parent,
              peer_id,
              std::move(prospective_candidate));
@@ -3327,15 +3308,6 @@ namespace kagome::parachain {
                  ch,
                  relay_parent,
                  para_id);
-
-        our_current_state_
-            .blocked_advertisements[collator_para_id][parent_head_data_hash]
-            .emplace_back(
-                BlockedAdvertisement{.peer_id = peer_id,
-                                     .collator_id = collator_id,
-                                     .candidate_relay_parent = relay_parent,
-                                     .candidate_hash = ch});
-
         return;
       }
     }

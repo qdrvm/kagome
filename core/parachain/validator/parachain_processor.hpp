@@ -91,6 +91,29 @@ namespace kagome::dispute {
 }
 
 namespace kagome::parachain {
+    struct BlockedCollationId {
+      /// Para id.
+      ParachainId para_id;
+      /// Hash of the parent head data.
+      Hash parent_head_data_hash;
+
+      constexpr auto operator<=>(const BlockedCollationId &) const = default;
+    };
+}
+
+template <>
+struct std::hash<kagome::parachain::BlockedCollationId> {
+  size_t operator()(const kagome::parachain::BlockedCollationId &value) const {
+    using Hash = kagome::parachain::Hash;
+    using ParachainId = kagome::parachain::ParachainId;
+
+    size_t result = std::hash<ParachainId>()(value.para_id);
+    boost::hash_combine(result, std::hash<Hash>()(value.parent_head_data_hash));
+    return result;
+  }
+};
+
+namespace kagome::parachain {
 
   struct BackedCandidatesSource {
     virtual ~BackedCandidatesSource() {}
@@ -194,7 +217,7 @@ namespace kagome::parachain {
      * @param prospective_candidate An optional pair containing the hash of the
      * prospective candidate and the hash of the parent block.
      */
-    void handleAdvertisement(
+    void handle_advertisement(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
@@ -566,7 +589,7 @@ namespace kagome::parachain {
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
-        std::optional<std::pair<HeadData, Hash>> maybe_parent_head_and_hash);
+        std::optional<std::pair<std::reference_wrapper<const HeadData>, std::reference_wrapper<const Hash>>> maybe_parent_head_and_hash);
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     fetchPersistedValidationData(const RelayHash &relay_parent,
@@ -575,6 +598,9 @@ namespace kagome::parachain {
     void onAttestComplete(const ValidateAndSecondResult &result);
     void onAttestNoPoVComplete(const network::RelayHash &relay_parent,
                                const CandidateHash &candidate_hash);
+
+    /// Try seconding any collations which were waiting on the validation of their parent
+    void second_unblocked_collations(ParachainId para_id, const HeadData &head_data, const Hash &head_data_hash);
 
     void kickOffValidationWork(
         const RelayHash &relay_parent,
@@ -673,6 +699,7 @@ namespace kagome::parachain {
 
     void onDeactivateBlocks(
         const primitives::events::RemoveAfterFinalizationParams &event);
+    void handle_active_leaves_update_for_validator(const network::ExView &event, std::vector<Hash> pruned);
     void onViewUpdated(const network::ExView &event);
     void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                               const network::SignedBitfield &bitfield);
@@ -717,7 +744,7 @@ namespace kagome::parachain {
      * @param relay_parent The hash of the relay parent block for which the
      * backing task is to be created.
      */
-    void create_backing_task(
+    std::vector<Hash> create_backing_task(
         const primitives::BlockHash &relay_parent,
         const network::HashedBlockHeader &block_header,
         const std::vector<primitives::BlockHash> &deactivated);
@@ -808,16 +835,6 @@ namespace kagome::parachain {
                     const std::shared_ptr<network::ProtocolBase> &protocol);
 
     bool isValidatingNode() const;
-    void unblockAdvertisements(
-        ParachainProcessorImpl::RelayParentState &rp_state,
-        ParachainId para_id,
-        const Hash &para_head);
-    void requestUnblockedCollations(
-        std::unordered_map<
-            ParachainId,
-            std::unordered_map<Hash, std::vector<BlockedAdvertisement>>>
-            &&unblocked);
-
     bool canSecond(ParachainId candidate_para_id,
                    const Hash &candidate_relay_parent,
                    const CandidateHash &candidate_hash,
@@ -830,7 +847,7 @@ namespace kagome::parachain {
 
     /// Handle a fetched collation result.
     /// polkadot/node/network/collator-protocol/src/validator_side/mod.rs
-    outcome::result<void> kick_off_seconding(
+    outcome::result<bool> kick_off_seconding(
         network::PendingCollationFetch &&pending_collation_fetch);
 
     std::optional<BackingStore::ImportResult> importStatementToTable(
@@ -853,21 +870,16 @@ namespace kagome::parachain {
       std::optional<ImplicitView> implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;
       std::unordered_map<CandidateHash, PerCandidateState> per_candidate;
-      /// Added as independent member to prevent extra locks for
-      /// `state_by_relay_parent` which is used in internal thread only
-      std::unordered_map<Hash, ProspectiveParachainsModeOpt> active_leaves;
-      std::unordered_map<
-          ParachainId,
-          std::unordered_map<Hash, std::vector<BlockedAdvertisement>>>
-          blocked_advertisements;
       std::unordered_set<PendingCollation,
                          PendingCollationHash,
                          PendingCollationEq>
           collation_requests_cancel_handles;
 
       struct {
+        std::unordered_map<Hash, ProspectiveParachainsModeOpt> active_leaves;
         std::unordered_map<network::FetchedCollation, network::CollationEvent>
             fetched_candidates;
+        std::unordered_map<BlockedCollationId, std::vector<network::PendingCollationFetch>> blocked_from_seconding;
       } validator_side;
     } our_current_state_;
 
@@ -875,7 +887,6 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
-    network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
 
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory_;

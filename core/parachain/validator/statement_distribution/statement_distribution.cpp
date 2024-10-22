@@ -138,11 +138,13 @@ namespace kagome::parachain::statement_distribution {
         prospective_parachains(_prospective_parachains),
         parachain_host(_parachain_host),
         crypto_provider(_crypto_provider),
-        peer_view(std::move(_peer_view)),
+        peer_view(_peer_view),
         block_tree(_block_tree),
         slots_util(_slots_util),
         babe_config_repo(std::move(_babe_config_repo)),
-        peer_state_sub(std::make_shared<primitives::events::PeerEventSubscriber>(_peer_events_engine, false)) {
+        peer_state_sub(std::make_shared<primitives::events::PeerEventSubscriber>(_peer_events_engine, false)),
+        my_view_sub(std::make_shared<network::PeerView::MyViewSubscriber>(_peer_view->getMyViewObservable(), false)),
+        remote_view_sub(std::make_shared<network::PeerView::PeerViewSubscriber>(_peer_view->getRemoteViewObservable(), false)) {
     BOOST_ASSERT(per_session);
     BOOST_ASSERT(signer_factory);
     BOOST_ASSERT(peer_use_count);
@@ -158,25 +160,22 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(peer_view);
     BOOST_ASSERT(block_tree);
     BOOST_ASSERT(babe_config_repo);
+    BOOST_ASSERT(peer_state_sub);
+    BOOST_ASSERT(my_view_sub);
+    BOOST_ASSERT(remote_view_sub);
   }
 
 
-  /*
-  */
-
-
   bool StatementDistribution::tryStart() {
-    //    remote_view_sub_ =
-    //    std::make_shared<network::PeerView::PeerViewSubscriber>(
-    //        peer_view_->getRemoteViewObservable(), false);
-    //    primitives::events::subscribe(
-    //        *remote_view_sub_,
-    //        network::PeerView::EventType::kViewUpdated,
-    //        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-    //                                 const network::View &view) {
-    //          TRY_GET_OR_RET(self, wptr.lock());
-    //          self->handle_peer_view_update(peer_id, view);
-    //        });
+    SL_INFO(logger, "StatementDistribution subsystem started.");
+
+    primitives::events::subscribe(
+        *remote_view_sub,
+        network::PeerView::EventType::kViewUpdated,
+        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id, const network::View &view) {
+          TRY_GET_OR_RET(self, wptr.lock());
+          self->handle_peer_view_update(peer_id, view);
+        });
 
     peer_state_sub->setCallback([wptr{weak_from_this()}](subscription::SubscriptionSetId, auto &, const auto ev_key, const libp2p::peer::PeerId &peer) { 
       TRY_GET_OR_RET(self, wptr.lock());
@@ -189,9 +188,6 @@ namespace kagome::parachain::statement_distribution {
     peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(), primitives::events::PeerEventType::kConnected);
     peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(), primitives::events::PeerEventType::kDisconnected);
 
-
-    my_view_sub = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view->getMyViewObservable(), false);
     primitives::events::subscribe(
         *my_view_sub,
         network::PeerView::EventType::kViewUpdated,
@@ -259,6 +255,7 @@ namespace kagome::parachain::statement_distribution {
   void StatementDistribution::handle_active_leaves_update(
       const network::ExView &event, std::vector<RelayParentContext> new_contexts) {
     REINVOKE(*statements_distribution_thread_handler, handle_active_leaves_update, event, std::move(new_contexts));
+    SL_TRACE(logger, "New leaf update. (relay_parent={}, height={})", event.new_head.hash(), event.new_head.number);
     if (auto res = handle_active_leaves_update_inner(event, std::move(new_contexts)); res.has_error()) {
       SL_ERROR(logger,
               "Handle active leaf update inner failed. (relay parent={}, error={})",
@@ -488,12 +485,13 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
     if (local_validator) {
       if (const auto our_group = per_session_state.groups.byValidatorIndex(*local_validator)) {
         /// update peers of our group
-        const auto &group = session_info->validator_groups[*our_group];
-        for (const auto vi : group) {
-          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
-            peers_to_send.emplace(peer);
-          } else {
-            SL_TRACE(logger_, "No audi for {}.", id);
+        if (const auto group = per_session_state.groups.get(*our_group)) {
+          for (const auto vi : *group) {
+            if (auto peer = query_audi->get(per_session_state.session_info.discovery_keys[vi])) {
+              peers_to_send.emplace(peer->id);
+            } else {
+              SL_TRACE(logger, "No audi for {}.", per_session_state.session_info.discovery_keys[vi]);
+            }
           }
         }
       }
@@ -503,17 +501,17 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
     if (per_session_state.grid_view) {
       for (const auto &view : *per_session_state.grid_view) {
         for (const auto vi : view.sending) {
-          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
-            peers_to_send.emplace(peer);
+          if (auto peer = query_audi->get(per_session_state.session_info.discovery_keys[vi])) {
+            peers_to_send.emplace(peer->id);
           } else {
-            SL_TRACE(logger_, "No audi for {}.", id);
+            SL_TRACE(logger, "No audi for {}.", per_session_state.session_info.discovery_keys[vi]);
           }
         }
         for (const auto vi : view.receiving) {
-          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
-            peers_to_send.emplace(peer);
+          if (auto peer = query_audi->get(per_session_state.session_info.discovery_keys[vi])) {
+            peers_to_send.emplace(peer->id);
           } else {
-            SL_TRACE(logger_, "No audi for {}.", id);
+            SL_TRACE(logger, "No audi for {}.", per_session_state.session_info.discovery_keys[vi]);
           }
         }
       }
@@ -523,13 +521,14 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
       peers_to_send.emplace(peer);
     }
 
-    SL_INFO(logger, "Send my view.(peers_count={})", peers_to_send.size());
+    SL_INFO(logger, "Send my view. (peers_count={})", peers_to_send.size());
     auto message = std::make_shared<
             network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
             network::ViewUpdate{
                 .view = view,
             });
     network_bridge->send_to_peers(peers_to_send, router->getValidationProtocolVStaging(), message);
+    return outcome::success();
   }
 
   std::unordered_map<ParachainId, std::vector<GroupIndex>>
