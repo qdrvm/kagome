@@ -25,7 +25,7 @@ git submodule update --init --recursive
 
 ### Build
 
-First build will likely take long time. However, you can cache binaries to [hunter-binary-cache](https://github.com/soramitsu/hunter-binary-cache) or even download binaries from the cache in case someone has already compiled project with the same compiler. To this end, you need to set up two environment variables:
+First build will likely take a long time. However, you can cache binaries to [hunter-binary-cache](https://github.com/soramitsu/hunter-binary-cache) or even download binaries from the cache in case someone has already compiled project with the same compiler. To this end, you need to set up two environment variables:
 ```
 GITHUB_HUNTER_USERNAME=<github account name>
 GITHUB_HUNTER_TOKEN=<github token>
@@ -51,7 +51,7 @@ ctest
 
 #### Build node application
 
-If you'd like to build node use the following instruction
+If you'd like to build node use the following instructions
 
 ```
 mkdir build && cd build
