@@ -18,7 +18,7 @@ MINIDEB_SHORT_HASH := $(shell echo $(MINIDEB_HASH) | cut -c1-7)
 MINIDEB_TAG = $(MINIDEB_SHORT_HASH)_rust-$(RUST_VERSION)
 
 # kagome_builder_deb Variables
-RUST_VERSION ?= 1.79.0
+RUST_VERSION ?= 1.81.0
 
 # kagome_dev_docker_build Variables
 BUILD_DIR ?= build

@@ -9,7 +9,7 @@ ARCHITECTURE ?= amd64
 
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
-RUST_IMAGE=rust:1.80-slim-bookworm
+RUST_IMAGE=rust:1.81-slim-bookworm
 SCCACHE_VERSION ?= 0.7.4
 
 # polkadot_binary Variables
