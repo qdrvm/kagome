@@ -162,30 +162,6 @@ namespace kagome::parachain::statement_distribution {
 
 
   /*
-      std::unordered_set<primitives::AuthorityDiscoveryId> peers_sent;
-   std::optional<network::GroupIndex> our_group;
-   if (validator_index) {
-     our_group =
-         per_session_state->value().groups.byValidatorIndex(*validator_index);
-     if (our_group) {
-       /// update peers of our group
-       const auto &group = session_info->validator_groups[*our_group];
-       for (const auto vi : group) {
-         spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
-       }
-     }
-   }
-
-   /// update peers in grid view
-   const auto &grid_view = *per_session_state->value().grid_view;
-   for (const auto &view : grid_view) {
-     for (const auto vi : view.sending) {
-       spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
-     }
-     for (const auto vi : view.receiving) {
-       spawn_and_update_peer(peers_sent, session_info->discovery_keys[vi]);
-     }
-   }
   */
 
 
@@ -288,6 +264,16 @@ namespace kagome::parachain::statement_distribution {
               "Handle active leaf update inner failed. (relay parent={}, error={})",
               event.new_head.hash(), res.error());
     }
+    if (auto res = handle_deactive_leaves_update_inner(event.lost); res.has_error()) {
+      SL_ERROR(logger,
+              "Handle deactive leaf update inner failed. (relay parent={}, error={})",
+              event.new_head.hash(), res.error());
+    }
+    if (auto res = update_our_view(event.new_head.hash(), event.view); res.has_error()) {
+      SL_ERROR(logger,
+              "Update our view failed. (relay parent={}, error={})",
+              event.new_head.hash(), res.error());
+    }
   }
 
 outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
@@ -318,8 +304,7 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
       OUTCOME_TRY(session_index,
                   parachain_host->session_index_for_child(new_relay_parent));
 
-      OUTCOME_TRY(
-          per_session_state,
+      auto per_session_state =
           per_session->get_or_insert(
               session_index,
               [&]() -> outcome::result<
@@ -382,7 +367,11 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
                         validator_index,
                         peer_use_count,
                         std::move(authority_lookup)));
-              }));
+              });
+      if (per_session_state.has_error()) {
+        SL_WARN(logger, "Create session data failed. (error={})", per_session_state.error());
+        continue;
+      }
 
       OUTCOME_TRY(availability_cores,
                   parachain_host->availability_cores(new_relay_parent));
@@ -405,7 +394,7 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
 
         if (validator_index) {
           return find_active_validator_state(*validator_index,
-                                             per_session_state->value().groups,
+                                             per_session_state.value()->value().groups,
                                              availability_cores,
                                              group_rotation_info,
                                              maybe_claim_queue,
@@ -423,12 +412,12 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
           new_relay_parent,
           PerRelayParentState{
               .local_validator = local_validator,
-              .statement_store = StatementStore(per_session_state->value().groups),
+              .statement_store = StatementStore(per_session_state.value()->value().groups),
               .seconding_limit = seconding_limit,
               .session = session_index,
               .groups_per_para = std::move(groups_per_para),
               .disabled_validators = {},
-              .per_session_state = per_session_state,
+              .per_session_state = per_session_state.value(),
           });
     }  // for
 
@@ -459,10 +448,14 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
         send_peer_messages_for_relay_parent(peer, fresh_relay_parent);
       }
     }
-    new_leaf_fragment_chain_updates(relay_parent);
 
+    new_leaf_fragment_chain_updates(relay_parent);
+    return outcome::success();
+  }
+
+  outcome::result<void> StatementDistribution::handle_deactive_leaves_update_inner(const std::vector<Hash> &lost) {
     implicit_view.exclusiveAccess([&](auto &iv) {
-      for (const auto &leaf : event.lost) {
+      for (const auto &leaf : lost) {
         const auto pruned = iv.deactivate_leaf(leaf);
         for (const auto &pruned_rp : pruned) {
           if (auto it = per_relay_parent.find(pruned_rp); it != per_relay_parent.end()) {
@@ -475,10 +468,68 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
       }
     });
 
-    candidates.on_deactivate_leaves(event.lost, [&](const auto &h) {
+    candidates.on_deactivate_leaves(lost, [&](const auto &h) {
       return per_relay_parent.contains(h);
     });
     return outcome::success();
+  }
+
+  outcome::result<void> StatementDistribution::update_our_view(const Hash &relay_parent, const network::View &view) {
+    if (auto parachain_proc = parachain_processor.lock()) {
+      OUTCOME_TRY(parachain_proc->canProcessParachains());
+    }
+
+    OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
+
+    std::unordered_set<libp2p::PeerId> peers_to_send;
+    const auto &per_session_state = per_relay_parent.get().per_session_state->value();
+    const auto &local_validator = per_session_state.local_validator;
+
+    if (local_validator) {
+      if (const auto our_group = per_session_state.groups.byValidatorIndex(*local_validator)) {
+        /// update peers of our group
+        const auto &group = session_info->validator_groups[*our_group];
+        for (const auto vi : group) {
+          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
+            peers_to_send.emplace(peer);
+          } else {
+            SL_TRACE(logger_, "No audi for {}.", id);
+          }
+        }
+      }
+    }
+
+    /// update peers in grid view
+    if (per_session_state.grid_view) {
+      for (const auto &view : *per_session_state.grid_view) {
+        for (const auto vi : view.sending) {
+          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
+            peers_to_send.emplace(peer);
+          } else {
+            SL_TRACE(logger_, "No audi for {}.", id);
+          }
+        }
+        for (const auto vi : view.receiving) {
+          if (auto peer = query_audi_->get(per_session_state.session_info.discovery_keys[vi])) {
+            peers_to_send.emplace(peer);
+          } else {
+            SL_TRACE(logger_, "No audi for {}.", id);
+          }
+        }
+      }
+    }
+
+    for (const auto &[peer, _] : peers) {
+      peers_to_send.emplace(peer);
+    }
+
+    SL_INFO(logger, "Send my view.(peers_count={})", peers_to_send.size());
+    auto message = std::make_shared<
+            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
+            network::ViewUpdate{
+                .view = view,
+            });
+    network_bridge->send_to_peers(peers_to_send, router->getValidationProtocolVStaging(), message);
   }
 
   std::unordered_map<ParachainId, std::vector<GroupIndex>>

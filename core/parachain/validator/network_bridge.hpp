@@ -7,6 +7,7 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 #include "common/main_thread_pool.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
@@ -23,6 +24,22 @@ namespace kagome::parachain {
         : main_pool_handler_(main_thread_pool.handler(*app_state_manager)),
           pm_(std::move(peer_manager)) {}
 
+    template <typename MessageType>
+    void send_to_peer(const libp2p::peer::PeerId &peer,
+                      const std::shared_ptr<network::ProtocolBase> &protocol,
+                      const std::shared_ptr<MessageType> &message) {
+      REINVOKE(*main_pool_handler_,
+               send_to_peer,
+               peer,
+               protocol,
+               std::move(message));
+      std::ignore = tryOpenOutgoingStream(
+          peer, protocol, [WEAK_SELF, peer, message, protocol]() {
+            WEAK_LOCK(self);
+            self->pm_->getStreamEngine()->send(peer, protocol, message);
+          });
+    }
+
     template <typename ResponseType, typename Protocol>
     void send_response(std::shared_ptr<network::Stream> stream,
                        std::shared_ptr<Protocol> protocol,
@@ -35,38 +52,19 @@ namespace kagome::parachain {
       protocol->writeResponseAsync(std::move(stream), std::move(*response));
     }
 
-    template <typename MessageType>
-    void send_to_peers(std::vector<libp2p::peer::PeerId> peers,
+    template <typename MessageType, typename Container>
+    requires requires { std::is_same_v<typename Container::value_type, libp2p::peer::PeerId>; }
+    void send_to_peers(Container peers,
                        const std::shared_ptr<network::ProtocolBase> &protocol,
-                       std::shared_ptr<MessageType> message) {
+                       const std::shared_ptr<MessageType> &message) {
       REINVOKE(*main_pool_handler_,
                send_to_peers,
                std::move(peers),
                protocol,
-               std::move(message));
+               message);
       for (const auto &peer : peers) {
-        std::ignore = tryOpenOutgoingStream(
-            peer, protocol, [WEAK_SELF, peer, message, protocol]() {
-              WEAK_LOCK(self);
-              self->pm_->getStreamEngine()->send(peer, protocol, message);
-            });
+        send_to_peer(peer, protocol, message);
       }
-    }
-
-    template <typename MessageType>
-    void send_to_peer(const libp2p::peer::PeerId &peer,
-                      const std::shared_ptr<network::ProtocolBase> &protocol,
-                      std::shared_ptr<MessageType> message) {
-      REINVOKE(*main_pool_handler_,
-               send_to_peer,
-               peer,
-               protocol,
-               std::move(message));
-      std::ignore = tryOpenOutgoingStream(
-          peer, protocol, [WEAK_SELF, peer, message, protocol]() {
-            WEAK_LOCK(self);
-            self->pm_->getStreamEngine()->send(peer, protocol, message);
-          });
     }
 
    private:

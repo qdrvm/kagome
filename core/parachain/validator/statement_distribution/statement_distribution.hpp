@@ -339,6 +339,9 @@ namespace kagome::parachain::statement_distribution {
         const network::ExView &event, std::vector<RelayParentContext> new_contexts);
     outcome::result<void> handle_active_leaves_update_inner(
       const network::ExView &event, std::vector<RelayParentContext> new_contexts);
+    outcome::result<void> handle_deactive_leaves_update_inner(
+      const std::vector<Hash> &lost);
+    outcome::result<void> update_our_view(const Hash &relay_parent, const network::View &view);
 
     void on_peer_connected(const libp2p::peer::PeerId &peer);
     void on_peer_disconnected(const libp2p::peer::PeerId &peer);
