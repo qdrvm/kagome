@@ -230,16 +230,30 @@ namespace kagome::parachain::statement_distribution {
     std::vector<RelayParentContext> new_contexts;
     new_contexts.reserve(new_relay_parents.size());
 
+    SL_TRACE(logger, "===> (relay_parent={}, new_relay_parents={})", event.new_head.hash(), new_relay_parents.size());
     for (const auto &new_relay_parent : new_relay_parents) {
+      SL_TRACE(logger, "===> (new_relay_parent={})", new_relay_parent);
       OUTCOME_TRY(v_index,
                   signer_factory->getAuthorityValidatorIndex(
                       new_relay_parent));
       OUTCOME_TRY(validator,
                   is_parachain_validator(new_relay_parent));
+      SL_TRACE(logger, "===> (new_relay_parent={}, validator={})", new_relay_parent, validator ? "YES" : "NO");
 
       const auto validator_index = utils::map(
           validator,
           [](const auto &signer) { return signer.validatorIndex(); });
+      if (validator_index) {
+        SL_TRACE(logger, "===> (new_relay_parent={}, index={})", new_relay_parent, *validator_index);
+      } else {
+        SL_TRACE(logger, "===> (new_relay_parent={}, index={})", new_relay_parent, "NO");
+      }
+
+      if (v_index) {
+        SL_TRACE(logger, "===> (new_relay_parent={}, v_index={})", new_relay_parent, *v_index);
+      } else {
+        SL_TRACE(logger, "===> (new_relay_parent={}, v_index={})", new_relay_parent, "NO");
+      }
 
       new_contexts.emplace_back(RelayParentContext {
         .relay_parent = new_relay_parent,
@@ -310,7 +324,7 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
                             parachain_host->session_info(new_relay_parent,
                                                          session_index));
                 if (!v_index) {
-                  SL_TRACE(logger, "Not a validator.");
+                  SL_TRACE(logger, "Not a validator. (new_relay_parent={})", new_relay_parent);
                   return outcome::failure(Error::NOT_A_VALIDATOR);
                 }
 
