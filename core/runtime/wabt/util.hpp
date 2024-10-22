@@ -81,19 +81,15 @@ namespace kagome::runtime {
     if (Failed(result)) {
       throw std::runtime_error{"Failed to parse module"};
     }
+    if (module == nullptr) {
+      throw std::runtime_error{"Module is null"};
+    }
     return module;
   }
 
   inline std::vector<uint8_t> watToWasm(std::span<const uint8_t> wat) {
     auto module = watToModule(wat);
-    wabt::MemoryStream stream;
-    if (wabt::Failed(wabt::WriteBinaryModule(
-            &stream,
-            module.get(),
-            wabt::WriteBinaryOptions{{}, true, false, true}))) {
-      throw std::runtime_error{"Failed to write binary wasm"};
-    }
-    return std::move(stream.output_buffer().data);
+    return wabtEncode(*module).value();
   }
 
   inline auto fromWat(std::string_view wat) {

@@ -79,6 +79,8 @@ void test(std::string name, const kagome::runtime::ModuleFactory &factory) {
       code = std::move(instrumented.value());
     } else {
       EXPECT_FALSE(instrumented);
+    }
+    if (not instrumented) {
       return nullptr;
     }
 
