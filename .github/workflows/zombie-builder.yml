@@ -26,6 +26,10 @@ on:
         required: false
         default: 'false'
         type: 'boolean'
+      polkadot_sdk_tag:
+        description: 'Custom Polkadot SDK tag'
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -33,6 +37,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   CACHE_VERSION: v001
   CACHE_PATHS: ./zombienet/docker/cargo
+  POLKADOT_SDK_TAG: ${{ github.event.inputs.polkadot_sdk_tag }}
 
 jobs:
   build_polkadot_builder:
