@@ -8,6 +8,7 @@ PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
 # polkadot_builder Variables
+POLKADOT_SDK_TAG ?=
 RUST_IMAGE=rust:1.80-slim-bookworm
 SCCACHE_VERSION ?= 0.7.4
 
@@ -88,7 +89,7 @@ define run_test
 endef
 
 get_versions:
-	python3 version.py https://github.com/paritytech/polkadot-sdk && \
+	python3 version.py https://github.com/paritytech/polkadot-sdk $(POLKADOT_SDK_TAG) && \
 	python3 version_sem.py https://github.com/paritytech/zombienet
 	@echo "full_commit_hash: `git rev-parse HEAD`" | tee commit_hash.txt
 	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
