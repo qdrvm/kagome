@@ -24,6 +24,9 @@ ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
 ARG POLKADOT_SDK_RELEASE
 ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
 RUN groupadd --gid 10000 nonroot && \
     useradd --home-dir /home/nonroot \
             --create-home \
@@ -128,8 +131,3 @@ RUN install_packages  \
       libseccomp2 \
       libatomic1 \
       ssh
-
-# temporary fix for libc6 (gcc-13)
-# TODO: remove when CI swithed to trixie
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list && apt update
-RUN apt install -y libc6 libstdc++6 libgcc-s1 -t trixie
