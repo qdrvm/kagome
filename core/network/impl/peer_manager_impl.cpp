@@ -192,7 +192,8 @@ namespace kagome::network {
                 self->sync_peer_num_->set(self->active_peers_.size());
                 self->peers_count_metric_->set(self->active_peers_.size());
 
-                self->peer_event_engine_->notify(primitives::events::PeerEventType::kDisconnected, peer_id);
+                self->peer_event_engine_->notify(
+                    primitives::events::PeerEventType::kDisconnected, peer_id);
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
                          self->active_peers_.size());
@@ -863,7 +864,8 @@ namespace kagome::network {
               }
             }
 
-            self->peer_event_engine_->notify(primitives::events::PeerEventType::kConnected, peer_info.id);
+            self->peer_event_engine_->notify(
+                primitives::events::PeerEventType::kConnected, peer_info.id);
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(
                 peer_info,

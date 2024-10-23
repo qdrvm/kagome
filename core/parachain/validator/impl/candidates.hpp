@@ -97,53 +97,59 @@ namespace kagome::parachain {
       });
     }
 
-  bool has_claims() const {
-    return !claims.empty();
-  }
+    bool has_claims() const {
+      return !claims.empty();
+    }
 
+    template <typename F, typename D>
+    void on_deactivate_leaves(std::span<const Hash> leaves,
+                              F &&remove_parent_index,
+                              D &&relay_parent_live) {
+      retain_if(claims, [&](const auto &c) {
+        if (std::forward<D>(relay_parent_live)(c.second.relay_parent)) {
+          return true;
+        }
 
-  template<typename F, typename D>
-  void on_deactivate_leaves(std::span<const Hash> leaves, F &&remove_parent_index, D &&relay_parent_live) {
-    retain_if(claims, [&](const auto &c) {
-      if (std::forward<D>(relay_parent_live)(c.second.relay_parent)) {
-        return true;
-      }
+        if (c.second.parent_hash_and_id) {
+          const auto &pc = *c.second.parent_hash_and_id;
+          if (auto it_1 = parent_claims.find(pc.first);
+              it_1 != parent_claims.end()) {
+            if (auto it_2 = it_1->second.find(pc.second);
+                it_2 != it_1->second.end()) {
+              auto it = std::ranges::find_if(it_2->second, [&](const auto &x) {
+                return x.first == c.second.relay_parent;
+              });
+              if (it != it_2->second.end()) {
+                const auto p = std::distance(it_2->second.begin(), it);
+                auto &sub_claims = it_2->second;
+                sub_claims[p].second -= 1;
+                if (sub_claims[p].second == 0) {
+                  auto rem_it = sub_claims.begin();
+                  std::advance(rem_it, p);
+                  sub_claims.erase(rem_it);
+                }
+              }
 
-      if (c.second.parent_hash_and_id) {
-        const auto &pc = *c.second.parent_hash_and_id;
-        if (auto it_1 = parent_claims.find(pc.first); it_1 != parent_claims.end()) {
-          if (auto it_2 = it_1->second.find(pc.second); it_2 != it_1->second.end()) {
-            auto it = std::ranges::find_if(it_2->second, [&](const auto &x) { return x.first == c.second.relay_parent; });
-            if (it != it_2->second.end()) {
-              const auto p = std::distance(it_2->second.begin(), it);
-              auto &sub_claims = it_2->second;
-              sub_claims[p].second -= 1;
-              if (sub_claims[p].second == 0) {
-                auto rem_it = sub_claims.begin();
-                std::advance(rem_it, p);
-                sub_claims.erase(rem_it);
+              if (it_2->second.empty()) {
+                std::forward<F>(remove_parent_index)(pc.first, pc.second);
+                it_1->second.erase(it_2);
               }
             }
 
-            if (it_2->second.empty()) {
-              std::forward<F>(remove_parent_index)(pc.first, pc.second);
-              it_1->second.erase(it_2);
+            if (it_1->second.empty()) {
+              parent_claims.erase(it_1);
             }
           }
-
-          if (it_1->second.empty()) {
-            parent_claims.erase(it_1);
-          }
         }
-      }
-      return false;
-    });
+        return false;
+      });
 
-    retain_if(unconfirmed_importable_under, [&](const auto &pair) {
-      const auto &[l, props] = pair;
-      return (std::ranges::find(leaves, l) != leaves.end()) && std::forward<D>(relay_parent_live)(props.relay_parent);
-    });
-  }
+      retain_if(unconfirmed_importable_under, [&](const auto &pair) {
+        const auto &[l, props] = pair;
+        return (std::ranges::find(leaves, l) != leaves.end())
+            && std::forward<D>(relay_parent_live)(props.relay_parent);
+      });
+    }
 
     void extend_hypotheticals(
         const CandidateHash &candidate_hash,
@@ -493,46 +499,53 @@ namespace kagome::parachain {
     }
 
     template <typename F>
-    void on_deactivate_leaves(std::span<const Hash> leaves, F &&relay_parent_live) {
-      auto remove_parent_claims = [&](const auto &c_hash, const auto &parent_hash, const auto id) {
-        if (auto it_1 = utils::get_it(by_parent, parent_hash)) {
-          if (auto it_2 = utils::get_it((*it_1)->second, id)) {
-            (*it_2)->second.erase(c_hash);
-            if ((*it_2)->second.empty()) {
-              (*it_1)->second.erase(*it_2);
+    void on_deactivate_leaves(std::span<const Hash> leaves,
+                              F &&relay_parent_live) {
+      auto remove_parent_claims =
+          [&](const auto &c_hash, const auto &parent_hash, const auto id) {
+            if (auto it_1 = utils::get_it(by_parent, parent_hash)) {
+              if (auto it_2 = utils::get_it((*it_1)->second, id)) {
+                (*it_2)->second.erase(c_hash);
+                if ((*it_2)->second.empty()) {
+                  (*it_1)->second.erase(*it_2);
+                }
+              }
+              if ((*it_1)->second.empty()) {
+                by_parent.erase(*it_1);
+              }
             }
-          }
-          if ((*it_1)->second.empty()) {
-            by_parent.erase(*it_1);
-          }
-        }
-      };
-      
+          };
+
       retain_if(candidates, [&](auto &pair) {
         auto &[c_hash, state] = pair;
-        return visit_in_place(state,
-          [&](ConfirmedCandidate &c){
-            if (!std::forward<F>(relay_parent_live)(c.relay_parent())) {
-              remove_parent_claims(c_hash, c.parent_head_data_hash(), c.para_id());
-              return false;
-            }
+        return visit_in_place(
+            state,
+            [&](ConfirmedCandidate &c) {
+              if (!std::forward<F>(relay_parent_live)(c.relay_parent())) {
+                remove_parent_claims(
+                    c_hash, c.parent_head_data_hash(), c.para_id());
+                return false;
+              }
 
-            for (const auto &leaf_hash : leaves) {
-              c.importable_under.erase(leaf_hash);
-            }
-            return true;
-          },
-          [&](UnconfirmedCandidate &c){
-            c.on_deactivate_leaves(leaves, [&](const auto &parent_hash, const auto &id) {
-              return remove_parent_claims(c_hash, parent_hash, id);
-            }, std::forward<F>(relay_parent_live));
-            return c.has_claims();
-          });
+              for (const auto &leaf_hash : leaves) {
+                c.importable_under.erase(leaf_hash);
+              }
+              return true;
+            },
+            [&](UnconfirmedCandidate &c) {
+              c.on_deactivate_leaves(
+                  leaves,
+                  [&](const auto &parent_hash, const auto &id) {
+                    return remove_parent_claims(c_hash, parent_hash, id);
+                  },
+                  std::forward<F>(relay_parent_live));
+              return c.has_claims();
+            });
       });
 
-      SL_TRACE(logger, "Candidates remaining after cleanup: {}", candidates.size());
+      SL_TRACE(
+          logger, "Candidates remaining after cleanup: {}", candidates.size());
     }
-
   };
 
 }  // namespace kagome::parachain

@@ -87,11 +87,8 @@ namespace kagome::utils {
     return val;
   }
 
-
   template <typename C>
-    requires requires {
-      typename C::mapped_type;
-    }
+    requires requires { typename C::mapped_type; }
   inline std::optional<typename C::iterator> get_it(
       C &container, const typename C::key_type &key) {
     if (auto it = container.find(key); it != container.end()) {

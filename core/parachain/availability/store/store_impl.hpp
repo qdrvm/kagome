@@ -53,7 +53,8 @@ namespace kagome::parachain {
       std::unordered_map<CandidateHash, PerCandidate> per_candidate_{};
       std::unordered_map<network::RelayHash, std::unordered_set<CandidateHash>>
           candidates_{};
-      std::deque<std::pair<uint64_t, network::RelayHash>> candidates_living_keeper_;
+      std::deque<std::pair<uint64_t, network::RelayHash>>
+          candidates_living_keeper_;
     };
 
     void prune_candidates_no_lock(State &state);

@@ -53,7 +53,9 @@ namespace kagome::parachain {
     }
 
     template <typename MessageType, typename Container>
-    requires requires { std::is_same_v<typename Container::value_type, libp2p::peer::PeerId>; }
+      requires requires {
+        std::is_same_v<typename Container::value_type, libp2p::peer::PeerId>;
+      }
     void send_to_peers(Container peers,
                        const std::shared_ptr<network::ProtocolBase> &protocol,
                        const std::shared_ptr<MessageType> &message) {

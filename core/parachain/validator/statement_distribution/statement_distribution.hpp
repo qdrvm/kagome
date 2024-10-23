@@ -21,9 +21,9 @@
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/network_bridge.hpp"
 #include "parachain/validator/signer.hpp"
+#include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
-#include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
@@ -84,8 +84,7 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<consensus::babe::BabeConfigRepository>
-            babe_config_repo,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         primitives::events::PeerSubscriptionEnginePtr peer_events_engine);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
@@ -138,9 +137,9 @@ namespace kagome::parachain::statement_distribution {
     using ManifestSummary = parachain::grid::ManifestSummary;
 
     struct RelayParentContext {
-        Hash relay_parent;
-        std::optional<ValidatorIndex> validator_index;
-        std::optional<ValidatorIndex> v_index;
+      Hash relay_parent;
+      std::optional<ValidatorIndex> validator_index;
+      std::optional<ValidatorIndex> v_index;
     };
 
     std::optional<std::reference_wrapper<PerRelayParentState>>
@@ -336,12 +335,15 @@ namespace kagome::parachain::statement_distribution {
 
     outcome::result<void> handle_view_event(const network::ExView &event);
     void handle_active_leaves_update(
-        const network::ExView &event, std::vector<RelayParentContext> new_contexts);
+        const network::ExView &event,
+        std::vector<RelayParentContext> new_contexts);
     outcome::result<void> handle_active_leaves_update_inner(
-      const network::ExView &event, std::vector<RelayParentContext> new_contexts);
+        const network::ExView &event,
+        std::vector<RelayParentContext> new_contexts);
     outcome::result<void> handle_deactive_leaves_update_inner(
-      const std::vector<Hash> &lost);
-    outcome::result<void> update_our_view(const Hash &relay_parent, const network::View &view);
+        const std::vector<Hash> &lost);
+    outcome::result<void> update_our_view(const Hash &relay_parent,
+                                          const network::View &view);
 
     void on_peer_connected(const libp2p::peer::PeerId &peer);
     void on_peer_disconnected(const libp2p::peer::PeerId &peer);

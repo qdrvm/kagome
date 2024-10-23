@@ -19,6 +19,7 @@ namespace kagome::parachain {
   class StatementDistributionThreadPool final : public ThreadPool {
    public:
     StatementDistributionThreadPool(std::shared_ptr<Watchdog> watchdog)
-        : ThreadPool(std::move(watchdog), "statement-distribution", 1, std::nullopt) {}
+        : ThreadPool(
+              std::move(watchdog), "statement-distribution", 1, std::nullopt) {}
   };
 }  // namespace kagome::parachain

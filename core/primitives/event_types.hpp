@@ -241,7 +241,6 @@ namespace kagome::primitives::events {
   using StorageEventSubscriber = StorageSubscriptionEngine::SubscriberType;
   using StorageEventSubscriberPtr = std::shared_ptr<StorageEventSubscriber>;
 
-
   using PeerSubscriptionEngine =
       subscription::SubscriptionEngine<primitives::events::PeerEventType,
                                        bool,
@@ -250,7 +249,6 @@ namespace kagome::primitives::events {
   using PeerEventSubscriber = PeerSubscriptionEngine::SubscriberType;
   using PeerEventSubscriberPtr = std::shared_ptr<PeerEventSubscriber>;
 
-
   using ChainSubscriptionEngine =
       subscription::SubscriptionEngine<primitives::events::ChainEventType,
                                        std::shared_ptr<api::Session>,
@@ -258,7 +256,6 @@ namespace kagome::primitives::events {
   using ChainSubscriptionEnginePtr = std::shared_ptr<ChainSubscriptionEngine>;
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
-
 
   using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
@@ -269,7 +266,6 @@ namespace kagome::primitives::events {
   using SyncStateEventSubscriber = SyncStateSubscriptionEngine::SubscriberType;
   using SyncStateEventSubscriberPtr = std::shared_ptr<SyncStateEventSubscriber>;
 
-
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,
       std::shared_ptr<api::Session>,
@@ -278,7 +274,6 @@ namespace kagome::primitives::events {
       std::shared_ptr<ExtrinsicSubscriptionEngine>;
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
-
 
   template <typename EventKey, typename Receiver, typename... Arguments>
   void subscribe(
@@ -296,7 +291,7 @@ namespace kagome::primitives::events {
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
-            std::move(engine))} {}
+              std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
       subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {

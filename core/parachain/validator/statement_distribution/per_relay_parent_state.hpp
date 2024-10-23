@@ -11,13 +11,13 @@
 #include <memory>
 #include <unordered_map>
 
+#include "common/ref_cache.hpp"
 #include "parachain/backing/cluster.hpp"
 #include "parachain/backing/grid_tracker.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/impl/statements_store.hpp"
-#include "utils/safe_object.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
-#include "common/ref_cache.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::parachain::statement_distribution {
 
@@ -48,7 +48,7 @@ namespace kagome::parachain::statement_distribution {
     std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
     std::unordered_set<ValidatorIndex> disabled_validators;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
-        per_session_state;    
+        per_session_state;
 
     std::optional<std::reference_wrapper<ActiveValidatorState>>
     active_validator_state() {

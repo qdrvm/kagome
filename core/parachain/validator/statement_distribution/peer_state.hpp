@@ -24,14 +24,15 @@ namespace kagome::parachain {
 
 namespace kagome::parachain::statement_distribution {
 
-struct PeerState {
+  struct PeerState {
     network::View view;
     std::unordered_set<common::Hash256> implicit_view;
 
     /// Update the view, returning a vector of implicit relay-parents which
     /// weren't previously part of the view.
     std::vector<common::Hash256> update_view(
-        const network::View &new_view, const parachain::ImplicitView &local_implicit) {
+        const network::View &new_view,
+        const parachain::ImplicitView &local_implicit) {
       std::unordered_set<common::Hash256> next_implicit;
       for (const auto &x : new_view.heads_) {
         auto t =
@@ -82,7 +83,6 @@ struct PeerState {
       }
       return v;
     }
-
   };
 
-}
+}  // namespace kagome::parachain::statement_distribution

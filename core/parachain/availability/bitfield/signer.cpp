@@ -7,8 +7,8 @@
 #include "parachain/availability/bitfield/signer.hpp"
 
 #include "log/logger.hpp"
-#include "primitives/block_header.hpp"
 #include "parachain/availability/availability_chunk_index.hpp"
+#include "primitives/block_header.hpp"
 
 namespace kagome::parachain {
   constexpr std::chrono::milliseconds kDelay{1500};
@@ -93,13 +93,15 @@ namespace kagome::parachain {
           n_validators += group.size();
         }
 
-        SL_DEBUG(logger_, "chunk mapping is enabled: {}", availability_chunk_mapping_is_enabled(node_features) ? "YES" : "NO");
-        OUTCOME_TRY(chunk_index, availability_chunk_index(
-          node_features,
-          n_validators,
-          core_index,
-          signer->validatorIndex()
-        ));    
+        SL_DEBUG(logger_,
+                 "chunk mapping is enabled: {}",
+                 availability_chunk_mapping_is_enabled(node_features) ? "YES"
+                                                                      : "NO");
+        OUTCOME_TRY(chunk_index,
+                    availability_chunk_index(node_features,
+                                             n_validators,
+                                             core_index,
+                                             signer->validatorIndex()));
         fetch_->fetch(chunk_index, *occupied, *session);
       } else {
         candidates.emplace_back(std::nullopt);

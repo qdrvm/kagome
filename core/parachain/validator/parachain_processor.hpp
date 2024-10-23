@@ -91,15 +91,15 @@ namespace kagome::dispute {
 }
 
 namespace kagome::parachain {
-    struct BlockedCollationId {
-      /// Para id.
-      ParachainId para_id;
-      /// Hash of the parent head data.
-      Hash parent_head_data_hash;
+  struct BlockedCollationId {
+    /// Para id.
+    ParachainId para_id;
+    /// Hash of the parent head data.
+    Hash parent_head_data_hash;
 
-      constexpr auto operator<=>(const BlockedCollationId &) const = default;
-    };
-}
+    constexpr auto operator<=>(const BlockedCollationId &) const = default;
+  };
+}  // namespace kagome::parachain
 
 template <>
 struct std::hash<kagome::parachain::BlockedCollationId> {
@@ -589,7 +589,9 @@ namespace kagome::parachain {
                              32,
                              crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
-        std::optional<std::pair<std::reference_wrapper<const HeadData>, std::reference_wrapper<const Hash>>> maybe_parent_head_and_hash);
+        std::optional<std::pair<std::reference_wrapper<const HeadData>,
+                                std::reference_wrapper<const Hash>>>
+            maybe_parent_head_and_hash);
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     fetchPersistedValidationData(const RelayHash &relay_parent,
@@ -599,8 +601,11 @@ namespace kagome::parachain {
     void onAttestNoPoVComplete(const network::RelayHash &relay_parent,
                                const CandidateHash &candidate_hash);
 
-    /// Try seconding any collations which were waiting on the validation of their parent
-    void second_unblocked_collations(ParachainId para_id, const HeadData &head_data, const Hash &head_data_hash);
+    /// Try seconding any collations which were waiting on the validation of
+    /// their parent
+    void second_unblocked_collations(ParachainId para_id,
+                                     const HeadData &head_data,
+                                     const Hash &head_data_hash);
 
     void kickOffValidationWork(
         const RelayHash &relay_parent,
@@ -699,7 +704,8 @@ namespace kagome::parachain {
 
     void onDeactivateBlocks(
         const primitives::events::RemoveAfterFinalizationParams &event);
-    void handle_active_leaves_update_for_validator(const network::ExView &event, std::vector<Hash> pruned);
+    void handle_active_leaves_update_for_validator(const network::ExView &event,
+                                                   std::vector<Hash> pruned);
     void onViewUpdated(const network::ExView &event);
     void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                               const network::SignedBitfield &bitfield);
@@ -879,7 +885,9 @@ namespace kagome::parachain {
         std::unordered_map<Hash, ProspectiveParachainsModeOpt> active_leaves;
         std::unordered_map<network::FetchedCollation, network::CollationEvent>
             fetched_candidates;
-        std::unordered_map<BlockedCollationId, std::vector<network::PendingCollationFetch>> blocked_from_seconding;
+        std::unordered_map<BlockedCollationId,
+                           std::vector<network::PendingCollationFetch>>
+            blocked_from_seconding;
       } validator_side;
     } our_current_state_;
 

@@ -18,9 +18,7 @@ namespace kagome {
             v.end());
   }
   template <typename C>
-  requires requires { 
-    typename C::key_type;
-  }
+    requires requires { typename C::key_type; }
   void retain_if(C &v, auto &&predicate) {
     for (auto it = v.begin(); it != v.end();) {
       if (!predicate(*it)) {

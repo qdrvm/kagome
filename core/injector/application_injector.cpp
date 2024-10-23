@@ -1012,9 +1012,10 @@ namespace kagome::injector {
         .template create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
-  std::shared_ptr<parachain::statement_distribution::StatementDistribution> KagomeNodeInjector::injectStatementDistribution() {
-    return pimpl_->injector_
-        .template create<sptr<parachain::statement_distribution::StatementDistribution>>();
+  std::shared_ptr<parachain::statement_distribution::StatementDistribution>
+  KagomeNodeInjector::injectStatementDistribution() {
+    return pimpl_->injector_.template create<
+        sptr<parachain::statement_distribution::StatementDistribution>>();
   }
 
   std::shared_ptr<parachain::ApprovalDistribution>

@@ -61,7 +61,7 @@ namespace kagome {
     struct ParachainProcessorImpl;
     struct ApprovalDistribution;
 
-    namespace statement_distribution{
+    namespace statement_distribution {
       struct StatementDistribution;
     }
   }  // namespace parachain

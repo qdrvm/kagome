@@ -86,7 +86,8 @@ namespace kagome::network {
           });
     }
 
-    void writeResponseAsync(std::shared_ptr<Stream> stream, ResponseType response) {
+    void writeResponseAsync(std::shared_ptr<Stream> stream,
+                            ResponseType response) {
       writeResponse(std::move(stream), std::move(response));
     }
 
