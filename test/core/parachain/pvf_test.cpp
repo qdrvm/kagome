@@ -125,9 +125,9 @@ class PvfTest : public testing::Test {
     auto code_hash = hasher_->blake2b_256(code);
     EXPECT_CALL(*module_factory_, compilerType())
         .WillRepeatedly(Return(std::nullopt));
-    EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code)))
+    EXPECT_CALL(*module_factory_, compile(_, MatchSpan(code), _))
         .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(*module_factory_, loadCompiled(_)).WillRepeatedly([=] {
+    EXPECT_CALL(*module_factory_, loadCompiled(_, _)).WillRepeatedly([=] {
       auto module = std::make_shared<ModuleMock>();
       ON_CALL(*module, instantiate()).WillByDefault([=] {
         auto instance = std::make_shared<ModuleInstanceMock>();
@@ -157,7 +157,12 @@ class PvfTest : public testing::Test {
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
         EXPECT_OUTCOME_TRUE_1(r);
       });
-      pvf_->pvfValidate(pvd, pov, receipt, code, cb.AsStdFunction());
+      pvf_->pvfValidate(pvd,
+                        pov,
+                        receipt,
+                        code,
+                        runtime::PvfExecTimeoutKind::Approval,
+                        cb.AsStdFunction());
       io_->restart();
       io_->run();
     };

@@ -35,41 +35,6 @@ using kagome::runtime::setupMemoryAccordingToHeapAllocStrategy;
 using kagome::runtime::wabtDecode;
 using kagome::runtime::wabtEncode;
 
-std::unique_ptr<wabt::Module> wat_to_module(std::span<const uint8_t> wat) {
-  wabt::Result result;
-  wabt::Errors errors;
-  std::unique_ptr<wabt::WastLexer> lexer =
-      wabt::WastLexer::CreateBufferLexer("", wat.data(), wat.size(), &errors);
-  if (Failed(result)) {
-    throw std::runtime_error{"Failed to parse WAT"};
-  }
-
-  std::unique_ptr<wabt::Module> module;
-  wabt::WastParseOptions parse_wast_options{{}};
-  result =
-      wabt::ParseWatModule(lexer.get(), &module, &errors, &parse_wast_options);
-  if (Failed(result)) {
-    throw std::runtime_error{"Failed to parse module"};
-  }
-  return module;
-}
-
-std::vector<uint8_t> wat_to_wasm(std::span<const uint8_t> wat) {
-  auto module = wat_to_module(wat);
-  wabt::MemoryStream stream;
-  if (wabt::Failed(wabt::WriteBinaryModule(
-          &stream,
-          module.get(),
-          wabt::WriteBinaryOptions{{}, true, false, true}))) {
-    throw std::runtime_error{"Failed to write binary wasm"};
-  }
-  return std::move(stream.output_buffer().data);
-}
-
-auto fromWat(std::string_view wat) {
-  return wat_to_module(str2byte(wat));
-}
-
 std::string toWat(const wabt::Module &module) {
   wabt::MemoryStream s;
   EXPECT_TRUE(
@@ -78,14 +43,14 @@ std::string toWat(const wabt::Module &module) {
 }
 
 void expectWasm(const wabt::Module &actual, std::string_view expected) {
-  auto expected_fmt = toWat(*fromWat(expected));
+  auto expected_fmt = toWat(*kagome::runtime::fromWat(expected));
   EXPECT_EQ(toWat(actual), expected_fmt);
-  auto actual2 = wabtDecode(wabtEncode(actual).value()).value();
+  auto actual2 = wabtDecode(wabtEncode(actual).value(), {}).value();
   EXPECT_EQ(toWat(actual2), expected_fmt);
 }
 
 uint32_t compute_cost(std::string_view data) {
-  auto module = fromWat(data);
+  auto module = kagome::runtime::fromWat(data);
   EXPECT_OUTCOME_TRUE(cost,
                       kagome::runtime::detail::compute_stack_cost(
                           kagome::log::createLogger("StackLimiterTest"),
@@ -223,8 +188,8 @@ TEST_P(StackLimiterCompareTest, output_matches_expected) {
   ASSERT_TRUE(wabt::Succeeded(wabt::ReadFile(expected.c_str(), &expected_wat)));
   ASSERT_TRUE(wabt::Succeeded(wabt::ReadFile(fixture.c_str(), &fixture_wat)));
 
-  auto fixture_wasm = wat_to_wasm(fixture_wat);
-  auto expected_module = wat_to_module(expected_wat);
+  auto fixture_wasm = kagome::runtime::watToWasm(fixture_wat);
+  auto expected_module = kagome::runtime::watToModule(expected_wat);
 
   EXPECT_OUTCOME_TRUE(
       result_wasm,
@@ -291,7 +256,7 @@ auto memory_limit_static = std::make_pair(HeapAllocStrategyStatic{100}, R"(
 
 /// Check `convertMemoryImportIntoExport`.
 TEST(WasmInstrumentTest, memory_import) {
-  auto module = fromWat(wat_memory_import);
+  auto module = kagome::runtime::fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
   expectWasm(*module, wat_memory_export);
 }
@@ -299,7 +264,7 @@ TEST(WasmInstrumentTest, memory_import) {
 /// Check `setupMemoryAccordingToHeapAllocStrategy`.
 TEST(WasmInstrumentTest, memory_limit) {
   auto test = [](HeapAllocStrategy config, std::string_view expected) {
-    auto module = fromWat(wat_memory_export);
+    auto module = kagome::runtime::fromWat(wat_memory_export);
     setupMemoryAccordingToHeapAllocStrategy(*module, config).value();
     expectWasm(*module, expected);
   };
@@ -316,7 +281,7 @@ TEST(WasmInstrumentTest, memory_limit) {
 /// `setupMemoryAccordingToHeapAllocStrategy` to check wabt encoding
 /// consistency.
 TEST(WasmInstrumentTest, memory_import_limit) {
-  auto module = fromWat(wat_memory_import);
+  auto module = kagome::runtime::fromWat(wat_memory_import);
   convertMemoryImportIntoExport(*module).value();
   setupMemoryAccordingToHeapAllocStrategy(*module, memory_limit_static.first)
       .value();

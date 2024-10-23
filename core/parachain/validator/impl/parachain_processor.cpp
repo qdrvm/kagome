@@ -2350,7 +2350,7 @@ void ParachainProcessorImpl::second_unblocked_collations(ParachainId para_id, co
     BOOST_ASSERT(protocol);
     CHECK_OR_RET(canProcessParachains().has_value());
 
-    SL_INFO(logger_,
+    SL_DEBUG(logger_,
             "Send my view.(peer={}, protocol={})",
             peer_id,
             protocol->protocolName());
@@ -2434,7 +2434,7 @@ void ParachainProcessorImpl::second_unblocked_collations(ParachainId para_id, co
                 } break;
               }
             })) {
-      logger_->info("Initiated validation protocol with {}", peer_id);
+      logger_->debug("Initiated validation protocol with {}", peer_id);
     }
   }
 
