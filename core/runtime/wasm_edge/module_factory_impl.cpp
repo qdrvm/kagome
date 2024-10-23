@@ -100,11 +100,19 @@ namespace kagome::runtime::wasm_edge {
     return Error::INVALID_VALUE_TYPE;
   }
 
-  inline CompilationOutcome<ConfigureContext> configureCtx() {
+  inline CompilationOutcome<ConfigureContext> configureCtx(
+      const RuntimeContext::ContextParams &config) {
     ConfigureContext ctx{WasmEdge_ConfigureCreate()};
-    if (ctx.raw() == nullptr) {
+    auto ctx_raw = ctx.raw();
+    if (ctx_raw == nullptr) {
       return CompilationError{"WasmEdge_ConfigureCreate returned nullptr"};
     }
+    // by default WASM bulk memory operations are enabled
+    if (not config.wasm_ext_bulk_memory) {
+      WasmEdge_ConfigureRemoveProposal(ctx_raw,
+                                       WasmEdge_Proposal_BulkMemoryOperations);
+    }
+    WasmEdge_ConfigureRemoveProposal(ctx_raw, WasmEdge_Proposal_ReferenceTypes);
     return ctx;
   }
 
@@ -391,15 +399,20 @@ namespace kagome::runtime::wasm_edge {
   }
 
   CompilationOutcome<void> ModuleFactoryImpl::compile(
-      std::filesystem::path path_compiled, BufferView code) const {
+      std::filesystem::path path_compiled,
+      BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     if (config_.exec == ExecType::Interpreted) {
       OUTCOME_TRY(writeFileTmp(path_compiled, code));
       return outcome::success();
     }
-    OUTCOME_TRY(configure_ctx, configureCtx());
+
+    OUTCOME_TRY(configure_ctx, configureCtx(config));
+    auto configure_ctx_raw = configure_ctx.raw();
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
-    CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
+        configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O3);
+
+    CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
         compiler.raw(), code.data(), code.size(), path_compiled.c_str()));
@@ -408,7 +421,8 @@ namespace kagome::runtime::wasm_edge {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled) const {
+      std::filesystem::path path_compiled,
+      const RuntimeContext::ContextParams &config) const {
     Buffer code;
     if (auto res = readFile(code, path_compiled); !res) {
       return CompilationError{
@@ -417,15 +431,16 @@ namespace kagome::runtime::wasm_edge {
                       res.error())};
     }
     auto code_hash = hasher_->blake2b_256(code);
-    OUTCOME_TRY(configure_ctx, configureCtx());
-    LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
+    OUTCOME_TRY(configure_ctx, configureCtx(config));
+    auto configure_ctx_raw = configure_ctx.raw();
+    LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx_raw);
     // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     WasmEdge_ASTModuleContext *module_ctx;
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
         loader_ctx.raw(), &module_ctx, path_compiled.c_str()));
     ASTModuleContext module = module_ctx;
 
-    ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
+    ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx_raw);
     WasmEdge_UNWRAP_COMPILE_ERR(
         WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
 

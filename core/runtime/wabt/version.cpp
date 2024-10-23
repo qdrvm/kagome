@@ -11,7 +11,7 @@
 namespace kagome::runtime {
   outcome::result<std::optional<primitives::Version>> readEmbeddedVersion(
       BufferView wasm) {
-    OUTCOME_TRY(module, wabtDecode(wasm));
+    OUTCOME_TRY(module, wabtDecode(wasm, {}));
     auto custom_section_contents = [&](std::string_view name) {
       auto it = std::ranges::find_if(
           module.customs,

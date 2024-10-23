@@ -82,21 +82,22 @@ namespace kagome::runtime {
   }
 
   WabtOutcome<common::Buffer> instrumentCodeForCompilation(
-      common::BufferView code, const MemoryLimits &config) {
-    OUTCOME_TRY(module, wabtDecode(code));
-    if (config.max_stack_values_num) {
-      OUTCOME_TRY(
-          instrumentWithStackLimiter(module, *config.max_stack_values_num));
+      common::BufferView code, const RuntimeContext::ContextParams &config) {
+    OUTCOME_TRY(module, wabtDecode(code, config));
+    const auto &memory_config = config.memory_limits;
+    if (memory_config.max_stack_values_num) {
+      OUTCOME_TRY(instrumentWithStackLimiter(
+          module, *memory_config.max_stack_values_num));
     }
     OUTCOME_TRY(convertMemoryImportIntoExport(module));
     OUTCOME_TRY(setupMemoryAccordingToHeapAllocStrategy(
-        module, config.heap_alloc_strategy));
+        module, memory_config.heap_alloc_strategy));
     OUTCOME_TRY(wabtValidate(module));
     return wabtEncode(module);
   }
 
   WabtOutcome<common::Buffer> WasmInstrumenter::instrument(
-      common::BufferView code, const MemoryLimits &config) const {
+      common::BufferView code, const RuntimeContext::ContextParams &config) const {
     return instrumentCodeForCompilation(code, config);
   }
 }  // namespace kagome::runtime
