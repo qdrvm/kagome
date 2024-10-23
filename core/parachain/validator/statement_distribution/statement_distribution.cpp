@@ -594,12 +594,12 @@ outcome::result<void> StatementDistribution::handle_active_leaves_update_inner(
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
   StatementDistribution::fetch_claim_queue(const RelayHash &relay_parent) {
-    constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
-    OUTCOME_TRY(version, parachain_host->runtime_api_version(relay_parent));
-    if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
-      SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
-      return std::nullopt;
-    }
+//    constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
+//    OUTCOME_TRY(version, parachain_host->runtime_api_version(relay_parent));
+//    if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
+//      SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
+//      return std::nullopt;
+//    }
 
     OUTCOME_TRY(claims, parachain_host->claim_queue(relay_parent));
     return runtime::ClaimQueueSnapshot{
