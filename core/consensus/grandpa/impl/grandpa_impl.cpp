@@ -429,30 +429,24 @@ namespace kagome::consensus::grandpa {
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         // Do catch-up only when another one is not in progress
-        if (not pending_catchup_request_.has_value()) {
+        if (not pending_catchup_requests_.contains(peer_id)) {
           environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
-          if (pending_catchup_request_.has_value()) {
-            SL_WARN(logger_,
-                    "Catch up request pending, but another one has done");
-          }
-          pending_catchup_request_.emplace(
+          pending_catchup_requests_.emplace(
               peer_id,
               network::CatchUpRequest{.round_number = msg.round_number - 1,
                                       .voter_set_id = msg.voter_set_id});
           catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
-              [wp{weak_from_this()}] {
+              [wp{weak_from_this()}, peer_id] {
                 auto self = wp.lock();
                 if (not self) {
                   return;
                 }
-                if (self->pending_catchup_request_.has_value()) {
-                  const auto &peer_id =
-                      std::get<0>(self->pending_catchup_request_.value());
+                if (self->pending_catchup_requests_.contains(peer_id)) {
                   self->reputation_repository_->change(
                       peer_id,
                       network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
-                  self->pending_catchup_request_.reset();
+                  self->pending_catchup_requests_.erase(peer_id);
                 }
               },
               toMilliseconds(kCatchupRequestTimeout));
@@ -610,7 +604,7 @@ namespace kagome::consensus::grandpa {
     bool need_cleanup_when_exiting_scope = false;
 
     if (allow_missing_blocks) {
-      if (not pending_catchup_request_.has_value()) {
+      if (not pending_catchup_requests_.contains(peer_id)) {
         SL_DEBUG(logger_,
                  "Catch-up request to round #{} received from {}, "
                  "but catch-up request is not pending or timed out",
@@ -621,8 +615,8 @@ namespace kagome::consensus::grandpa {
         return;
       }
 
-      const auto &[remote_peer_id, catchup_request] =
-          pending_catchup_request_.value();
+      const auto &remote_peer_id = peer_id;
+      const auto &catchup_request = pending_catchup_requests_.at(peer_id);
 
       if (peer_id != remote_peer_id) {
         SL_DEBUG(logger_,
@@ -680,7 +674,7 @@ namespace kagome::consensus::grandpa {
     ::libp2p::common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
         catchup_request_timer_handle_.reset();
-        pending_catchup_request_.reset();
+        pending_catchup_requests_.erase(peer_id);
       }
     });
 
