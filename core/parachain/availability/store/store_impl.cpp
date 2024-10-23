@@ -43,6 +43,7 @@ namespace kagome::parachain {
   std::optional<AvailabilityStore::ErasureChunk>
   AvailabilityStoreImpl::getChunk(const CandidateHash &candidate_hash,
                                   ValidatorIndex index) const {
+    SL_TRACE(logger, "===> GET CHUNK: candidate_hash={}, index={}", candidate_hash, index);    
     return state_.sharedAccess(
         [&](const auto &state)
             -> std::optional<AvailabilityStore::ErasureChunk> {
@@ -122,6 +123,7 @@ namespace kagome::parachain {
       state.candidates_[relay_parent].insert(candidate_hash);
       auto &candidate_data = state.per_candidate_[candidate_hash];
       for (auto &&chunk : std::move(chunks)) {
+        SL_TRACE(logger, "===> STORE CHUNK: candidate_hash={}, index={}", candidate_hash, chunk.index);
         candidate_data.chunks[chunk.index] = std::move(chunk);
       }
       candidate_data.pov = pov;
@@ -134,6 +136,7 @@ namespace kagome::parachain {
                                        ErasureChunk &&chunk) {
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
+      SL_TRACE(logger, "===> STORE CHUNK: candidate_hash={}, index={}", candidate_hash, chunk.index);
       state.per_candidate_[candidate_hash].chunks[chunk.index] =
           std::move(chunk);
     });

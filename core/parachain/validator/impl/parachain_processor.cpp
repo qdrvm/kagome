@@ -339,9 +339,13 @@ namespace kagome::parachain {
     /// init `backing` subsystem
     auto pruned = create_backing_task(relay_parent, event.new_head, event.lost);
 
-    for (const auto &lost : event.lost) {
-      av_store_->remove(lost);
-    }
+    SL_TRACE(logger_,
+             "Update my view.(new head={}, finalized={}, leaves={})",
+             relay_parent,
+             event.view.finalized_number_,
+             event.view.heads_.size());
+    broadcastView(event.view);
+    //broadcastViewToGroup(relay_parent, event.view);
 
     handle_active_leaves_update_for_validator(event, std::move(pruned));
   }
@@ -422,6 +426,7 @@ namespace kagome::parachain {
 
       backing_store_->onDeactivateLeaf(lost.hash);
       bitfield_store_->remove(lost.hash);
+      //av_store_->remove(lost);
     }
   }
 
@@ -484,8 +489,8 @@ namespace kagome::parachain {
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
-    pm_->getStreamEngine()->broadcast(router_->getValidationProtocolVStaging(),
-                                      msg);
+//    pm_->getStreamEngine()->broadcast(router_->getValidationProtocolVStaging(),
+//                                      msg);
   }
 
   outcome::result<std::optional<ValidatorSigner>>
@@ -1457,6 +1462,7 @@ void ParachainProcessorImpl::second_unblocked_collations(ParachainId para_id, co
   outcome::result<network::FetchChunkResponse>
   ParachainProcessorImpl::OnFetchChunkRequest(
       const network::FetchChunkRequest &request) {
+    SL_TRACE(logger_, "===> REQUEST V2 CHUNK: candidate_hash={}, index={}", request.candidate, request.chunk_index);
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       return network::Chunk{
@@ -1471,6 +1477,7 @@ void ParachainProcessorImpl::second_unblocked_collations(ParachainId para_id, co
   outcome::result<network::FetchChunkResponseObsolete>
   ParachainProcessorImpl::OnFetchChunkRequestObsolete(
       const network::FetchChunkRequest &request) {
+    SL_TRACE(logger_, "===> REQUEST V1 CHUNK: candidate_hash={}, index={}", request.candidate, request.chunk_index);
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       // This check needed because v1 protocol mustn't have chunk mapping
