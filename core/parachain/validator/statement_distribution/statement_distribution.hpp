@@ -85,7 +85,8 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        primitives::events::PeerSubscriptionEnginePtr peer_events_engine);
+        primitives::events::PeerSubscriptionEnginePtr peer_events_engine,
+        LazySPtr<blockchain::BlockHeaderRepository> block_header_repository);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
                                     PerRelayParentState &relay_parent_state,
@@ -376,6 +377,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<blockchain::BlockTree> block_tree;
     LazySPtr<consensus::SlotsUtil> slots_util;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo;
+    LazySPtr<blockchain::BlockHeaderRepository> block_header_repository;
 
     /// sub
     primitives::events::PeerEventSubscriberPtr peer_state_sub;

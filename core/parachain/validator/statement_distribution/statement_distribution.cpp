@@ -116,11 +116,13 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<network::PeerView> _peer_view,
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
-      primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
+      primitives::events::PeerSubscriptionEnginePtr _peer_events_engine,
+      LazySPtr<blockchain::BlockHeaderRepository> _block_header_repository)
       : implicit_view(_prospective_parachains,
                       _parachain_host,
                       _block_tree,
-                      std::nullopt),
+                      std::nullopt,
+                      _block_header_repository),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -142,6 +144,7 @@ namespace kagome::parachain::statement_distribution {
         block_tree(_block_tree),
         slots_util(_slots_util),
         babe_config_repo(std::move(_babe_config_repo)),
+        block_header_repository(_block_header_repository),
         peer_state_sub(
             std::make_shared<primitives::events::PeerEventSubscriber>(
                 _peer_events_engine, false)),

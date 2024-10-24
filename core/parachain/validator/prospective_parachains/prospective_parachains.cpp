@@ -42,10 +42,12 @@ namespace kagome::parachain {
   ProspectiveParachains::ProspectiveParachains(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      LazySPtr<blockchain::BlockHeaderRepository> block_header_repository)
       : hasher_{std::move(hasher)},
         parachain_host_{std::move(parachain_host)},
-        block_tree_{std::move(block_tree)} {
+        block_tree_{std::move(block_tree)},
+        block_header_repository_(block_header_repository) {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(block_tree_);
@@ -607,8 +609,11 @@ namespace kagome::parachain {
       view_.emplace(View{
           .per_relay_parent = {},
           .active_leaves = {},
-          .implicit_view = ImplicitView(
-              weak_from_this(), parachain_host_, block_tree_, std::nullopt),
+          .implicit_view = ImplicitView(weak_from_this(),
+                                        parachain_host_,
+                                        block_tree_,
+                                        std::nullopt,
+                                        block_header_repository_),
       });
     }
     return *view_;
