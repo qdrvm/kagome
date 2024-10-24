@@ -4,7 +4,7 @@ All Rights Reserved
 SPDX-License-Identifier: Apache-2.0
 )
 
-## Runing Kagome in docker container
+## Running Kagome in docker container
 
 In this tutorial you will learn how to execute Kagome-based Polkadot-host chain which can be used as a cryptocurrency, and interact with it by sending extrinsics and executing queries.
 
@@ -31,7 +31,7 @@ docker run \                        # Run docker container
   --interactive \                   # Interactive mode
   --tty \                           # Allocate pseudo-TTY
   --rm \                            # Remove container (not image) after stop
-  --user `id -u`:`id -g` \          # Delegate current user permitions in container 
+  --user `id -u`:`id -g` \          # Delegate current user permissions in container 
   --volume `pwd`:/kagome \          # Map current directory to directory in container 
   --publish DOCKER_PORT:HOST_PORT \ # Bind ports
   soramitsu/kagome \                # Name of docker image of Kagome

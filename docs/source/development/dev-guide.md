@@ -51,7 +51,7 @@ private:
 };
 
 // 3. instead, create an interface for "Hasher":
-// "Interface" leyer
+// "Interface" layer
 class Hasher {
 public:
   virtual ~Hasher() = default;

@@ -59,7 +59,7 @@ Once activated, the second node performs several steps before beginning the actu
 
 ### Step 4: Start syncing node
 
-Syncing node cannot participate in block production or block finalization. However, it can connect to the network and import all produced blocks. Besides that, syncing node can also receive extrinsics and broadcast them to the network.In the world of blockchain, a syncing node plays a unique role. While it can't contribute to block production or finalization, it serves as a connector to the network, importing all produced blocks. More than that, a syncing node can receive extrinsics and subsequently broadcast them to the network.
+Syncing node cannot participate in block production or block finalization. However, it can connect to the network and import all produced blocks. Besides that, syncing node can also receive extrinsics and broadcast them to the network. In the world of blockchain, a syncing node plays a unique role. While it can't contribute to block production or finalization, it serves as a connector to the network, importing all produced blocks. More than that, a syncing node can receive extrinsics and subsequently broadcast them to the network.
 
 To initiate a syncing node, you can use the binary `kagome` as outlined in the command below:
 
