@@ -12,6 +12,7 @@
 #include "log/logger.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
+#include "utils/lru.hpp"
 
 namespace kagome::blockchain {
 
@@ -107,6 +108,9 @@ namespace kagome::blockchain {
 
     mutable std::optional<std::vector<primitives::BlockHash>>
         block_tree_leaves_;
+
+    mutable Lru<primitives::BlockHash, primitives::BlockHeader>
+        block_headers_cache_;
 
     log::Logger logger_;
   };

@@ -22,6 +22,7 @@ namespace kagome::blockchain {
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
+        block_headers_cache_{1024},
         logger_{log::createLogger("BlockStorage", "block_storage")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -204,12 +205,17 @@ namespace kagome::blockchain {
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
     SL_INFO(logger_, "===> PUT BLOCK HEADER {}", block_hash);
+    block_headers_cache_.put(block_hash, header);
     return block_hash;
   }
 
   outcome::result<std::optional<primitives::BlockHeader>>
   BlockStorageImpl::getBlockHeader(
       const primitives::BlockHash &block_hash) const {
+    // check in cache, if found return. If not found, check in storage
+    if (auto header = block_headers_cache_.get(block_hash)) {
+      return header;
+    }
     OUTCOME_TRY(encoded_header_opt,
                 getFromSpace(*storage_, Space::kHeader, block_hash));
     if (encoded_header_opt.has_value()) {
