@@ -209,8 +209,9 @@ namespace kagome::parachain::statement_distribution {
           if (auto result = self->handle_view_event(event);
               result.has_error()) {
             SL_ERROR(self->logger,
-                     "Handle view event failed. (relay parent={})",
-                     event.new_head.hash());
+                     "Handle view event failed. (relay parent={}, error={})",
+                     event.new_head.hash(),
+                     result.error());
           }
         });
 
