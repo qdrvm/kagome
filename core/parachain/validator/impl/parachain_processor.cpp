@@ -308,7 +308,10 @@ namespace kagome::parachain {
         network::PeerView::EventType::kViewUpdated,
         [wptr{weak_from_this()}](const network::ExView &event) {
           TRY_GET_OR_RET(self, wptr.lock());
-          self->onViewUpdated(event);
+          self->main_pool_handler_->execute([wptr, event]() {
+            TRY_GET_OR_RET(self, wptr.lock());
+            self->onViewUpdated(event);
+          });
         });
 
     return true;
