@@ -753,6 +753,59 @@ namespace kagome::network {
     }
   }
 
+  /**
+   * @brief findLeastActivePeer Find the least in-connected peer, which state
+   * was not updated for the longest time
+   * @return PeerId of the least active peer or empty PeerId if no in-connected
+   * peers found or all in-connected peers have been active within last align
+   */
+  std::optional<PeerId> PeerManagerImpl::findLeastActivePeer() const {
+    if (active_peers_.empty()) {
+      SL_INFO(log_, "No active peers found");
+      return std::nullopt;
+    }
+
+    // Filter active peers to keep only in-connected
+    std::vector<std::pair<PeerId, PeerDescriptor>> in_active_peers;
+    std::copy_if(active_peers_.begin(),
+                 active_peers_.end(),
+                 std::back_inserter(in_active_peers),
+                 [](const auto &p) {
+                   return p.second.peer_type == PeerType::PEER_TYPE_IN;
+                 });
+
+    // Find the in-connected peer, which state was not updated for the longest
+    // time
+    auto it = std::min_element(
+        in_active_peers.begin(),
+        in_active_peers.end(),
+        [this](const auto &l, const auto &r) {
+          // If peer states are available, compare by time
+          // If peer states are unavailable, assume peer was not active for a
+          // long time
+          auto l_state = getPeerState(l.first);
+          auto r_state = getPeerState(r.first);
+          decltype(clock_->now()) genesis_time =
+              clock_->now() - 5000 * app_config_.peeringConfig().aligningPeriod;
+          auto l_state_time =
+              l_state.has_value() ? l_state.value().get().time : genesis_time;
+          auto r_state_time =
+              r_state.has_value() ? r_state.value().get().time : genesis_time;
+          return l_state_time < r_state_time;
+        });
+    // Return empty PeerID if least active peer has been active within last
+    // align period
+    if (it->second.time_point
+        > clock_->now() - app_config_.peeringConfig().aligningPeriod) {
+      SL_INFO(log_,
+              "Least active peer {} has been active within last align period",
+              it->first);
+      return std::nullopt;
+    }
+
+    return it->first;
+  }
+
   void PeerManagerImpl::tryOpenValidationProtocol(
       const PeerInfo &peer_info,
       PeerState &peer_state,
@@ -815,6 +868,24 @@ namespace kagome::network {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
+      }
+    }
+
+    if (not out) {
+      if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
+        auto peer_to_remove = findLeastActivePeer();
+        if (not peer_to_remove.has_value()) {
+          SL_ERROR(log_,
+                   "New connection from peer {} was dropped: "
+                   "no peers to disconnect",
+                   peer_id);
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+
+        connecting_peers_.erase(peer_to_remove.value());
+        disconnectFromPeer(peer_to_remove.value());
       }
     }
 
@@ -977,22 +1048,10 @@ namespace kagome::network {
     }
   }
 
-  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
+  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight) const {
     return std::ranges::count_if(
         active_peers_, [&](const decltype(active_peers_)::value_type &x) {
-          if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
-            return in_out == PeerType::PEER_TYPE_OUT;
-          }
-          if (in_out == PeerType::PEER_TYPE_OUT) {
-            return false;
-          }
-          auto it = peer_states_.find(x.first);
-          if (it == peer_states_.end()) {
-            return false;
-          }
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-          const auto &roles = it->second.roles.flags;
-          return (in_light ? roles.light : roles.full) == 1;
+          return x.second.peer_type == in_out;
         });
   }
 
