@@ -86,6 +86,11 @@ namespace kagome::network {
           });
     }
 
+    void writeResponseAsync(std::shared_ptr<Stream> stream,
+                            ResponseType response) {
+      writeResponse(std::move(stream), std::move(response));
+    }
+
    protected:
     virtual std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> stream) = 0;

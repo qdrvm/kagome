@@ -16,6 +16,7 @@
 namespace kagome::parachain {
   class AvailabilityStoreImpl : public AvailabilityStore {
    public:
+    AvailabilityStoreImpl(clock::SteadyClock &steady_clock);
     ~AvailabilityStoreImpl() override = default;
 
     bool hasChunk(const CandidateHash &candidate_hash,
@@ -52,9 +53,15 @@ namespace kagome::parachain {
       std::unordered_map<CandidateHash, PerCandidate> per_candidate_{};
       std::unordered_map<network::RelayHash, std::unordered_set<CandidateHash>>
           candidates_{};
+      std::deque<std::pair<uint64_t, network::RelayHash>>
+          candidates_living_keeper_;
     };
 
+    void prune_candidates_no_lock(State &state);
+    void remove_no_lock(State &state, const network::RelayHash &relay_parent);
+
     log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
+    clock::SteadyClock &steady_clock_;
     SafeObject<State> state_{};
   };
 }  // namespace kagome::parachain

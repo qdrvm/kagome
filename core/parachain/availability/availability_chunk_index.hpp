@@ -67,7 +67,7 @@ namespace kagome::parachain {
   /// WARNING: THIS FUNCTION IS CRITICAL TO PARACHAIN CONSENSUS.
   /// Any modification to the output of the function needs to be coordinated via
   /// the runtime. It's best to use minimal/no external dependencies.
-  outcome::result<ChunkIndex> availability_chunk_index(
+  inline outcome::result<ChunkIndex> availability_chunk_index(
       std::optional<runtime::ParachainHost::NodeFeatures> node_features,
       size_t n_validators,
       CoreIndex core_index,

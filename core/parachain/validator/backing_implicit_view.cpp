@@ -33,11 +33,13 @@ namespace kagome::parachain {
       std::weak_ptr<ProspectiveParachains> prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> parachain_host_,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::optional<ParachainId> collating_for_)
+      std::optional<ParachainId> collating_for_,
+      LazySPtr<blockchain::BlockHeaderRepository> block_header_repository)
       : parachain_host(std::move(parachain_host_)),
         collating_for{collating_for_},
         prospective_parachains_{std::move(prospective_parachains)},
-        block_tree_{std::move(block_tree)} {
+        block_tree_{std::move(block_tree)},
+        block_header_repository_(block_header_repository) {
     BOOST_ASSERT(!prospective_parachains_.expired());
     BOOST_ASSERT(parachain_host);
     BOOST_ASSERT(block_tree_);
@@ -210,7 +212,8 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree =
         prospective_parachains->getBlockTree();
 
-    OUTCOME_TRY(leaf_header, block_tree->getBlockHeader(leaf_hash));
+    OUTCOME_TRY(leaf_header,
+                block_header_repository_.get()->getBlockHeader(leaf_hash));
 
     std::vector<std::pair<ParachainId, BlockNumber>> min_relay_parents;
     if (collating_for) {
@@ -249,7 +252,9 @@ namespace kagome::parachain {
         if (it != block_info_storage.end()) {
           parent_hash = it->second.parent_hash;
         } else {
-          OUTCOME_TRY(header, block_tree->getBlockHeader(next_ancestor_hash));
+          OUTCOME_TRY(header,
+                      block_header_repository_.get()->getBlockHeader(
+                          next_ancestor_hash));
           block_info_storage.emplace(
               next_ancestor_hash,
               BlockInfo{

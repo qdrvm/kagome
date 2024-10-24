@@ -7,6 +7,7 @@
 #include "parachain/availability/bitfield/signer.hpp"
 
 #include "log/logger.hpp"
+#include "parachain/availability/availability_chunk_index.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::parachain {
@@ -78,11 +79,30 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session,
         parachain_api_->session_info(relay_parent, signer->getSessionIndex()));
+    OUTCOME_TRY(
+        node_features,
+        parachain_api_->node_features(relay_parent, signer->getSessionIndex()));
     candidates.reserve(cores.size());
-    for (auto &core : cores) {
+    for (CoreIndex core_index = 0; core_index < cores.size(); ++core_index) {
+      auto &core = cores[core_index];
       if (auto occupied = std::get_if<runtime::OccupiedCore>(&core)) {
         candidates.emplace_back(occupied->candidate_hash);
-        fetch_->fetch(signer->validatorIndex(), *occupied, *session);
+
+        size_t n_validators = 0;
+        for (const auto &group : session->validator_groups) {
+          n_validators += group.size();
+        }
+
+        SL_DEBUG(logger_,
+                 "chunk mapping is enabled: {}",
+                 availability_chunk_mapping_is_enabled(node_features) ? "YES"
+                                                                      : "NO");
+        OUTCOME_TRY(chunk_index,
+                    availability_chunk_index(node_features,
+                                             n_validators,
+                                             core_index,
+                                             signer->validatorIndex()));
+        fetch_->fetch(chunk_index, *occupied, *session);
       } else {
         candidates.emplace_back(std::nullopt);
       }

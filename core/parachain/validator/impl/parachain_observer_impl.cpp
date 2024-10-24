@@ -139,7 +139,7 @@ namespace kagome::parachain {
       primitives::BlockHash relay_parent,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate,
       network::CollationVersion collator_protocol_version) {
-    processor_->handleAdvertisement(
+    processor_->handle_advertisement(
         relay_parent, peer_id, std::move(prospective_candidate));
   }
 

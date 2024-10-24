@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/fragment_chain_errors.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT FragmentChain
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "FragmentChain"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
                             FragmentChainError,

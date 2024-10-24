@@ -74,6 +74,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    LazySPtr<blockchain::BlockHeaderRepository> block_header_repository_;
     log::Logger logger =
         log::createLogger("ProspectiveParachains", "parachain");
 
@@ -83,7 +84,8 @@ namespace kagome::parachain {
     ProspectiveParachains(
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<blockchain::BlockTree> block_tree);
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<blockchain::BlockHeaderRepository> block_header_repository);
 
     // Debug print of all internal buffers load.
     void printStoragesLoad();

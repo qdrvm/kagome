@@ -79,7 +79,8 @@ namespace kagome::network {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<ReputationRepository> reputation_repository,
         LazySPtr<CanDisconnect> can_disconnect,
-        std::shared_ptr<PeerView> peer_view);
+        std::shared_ptr<PeerView> peer_view,
+        primitives::events::PeerSubscriptionEnginePtr peer_event_engine);
 
     /** @see poolHandlerReadyMake */
     bool tryStart();
@@ -222,6 +223,7 @@ namespace kagome::network {
     std::unordered_map<PeerId, PeerState> peer_states_;
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
+    primitives::events::PeerSubscriptionEnginePtr peer_event_engine_;
 
     // metrics
     metrics::RegistryPtr registry_ = metrics::createRegistry();
