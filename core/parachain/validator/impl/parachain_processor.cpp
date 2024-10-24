@@ -158,8 +158,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<statement_distribution::StatementDistribution> sd,
-      LazySPtr<blockchain::BlockHeaderRepository> block_header_repository)
+      std::shared_ptr<statement_distribution::StatementDistribution> sd)
       : pm_(std::move(pm)),
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
@@ -185,8 +184,7 @@ namespace kagome::parachain {
         prospective_parachains_{std::move(prospective_parachains)},
         block_tree_{std::move(block_tree)},
         statement_distribution(std::move(sd)),
-        per_session(RefCache<SessionIndex, PerSessionState>::create()),
-        block_header_repository_(block_header_repository) {
+        per_session(RefCache<SessionIndex, PerSessionState>::create()) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -209,11 +207,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(statement_distribution);
     app_state_manager.takeControl(*this);
 
-    our_current_state_.implicit_view.emplace(prospective_parachains_,
-                                             parachain_host_,
-                                             block_tree_,
-                                             std::nullopt,
-                                             block_header_repository_);
+    our_current_state_.implicit_view.emplace(
+        prospective_parachains_, parachain_host_, block_tree_, std::nullopt);
     BOOST_ASSERT(our_current_state_.implicit_view);
 
     metrics_registry_->registerGaugeFamily(
