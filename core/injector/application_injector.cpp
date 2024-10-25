@@ -56,7 +56,6 @@
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
@@ -351,7 +350,6 @@ namespace {
     // clang-format off
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<network::ExtrinsicObserver>>(),
         injector.template create<sptr<crypto::Hasher>>(),
@@ -743,7 +741,8 @@ namespace {
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
             bind_by_lambda<blockchain::BlockTree>(
                 [](const auto &injector) { return get_block_tree(injector); }),
-            di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+            bind_by_lambda<blockchain::BlockHeaderRepository>(
+                            [](const auto &injector) { return get_block_tree(injector); }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),

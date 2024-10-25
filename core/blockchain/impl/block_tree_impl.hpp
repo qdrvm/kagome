@@ -21,6 +21,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/impl/cached_tree.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/hasher.hpp"
@@ -40,7 +41,6 @@ namespace kagome {
 namespace kagome::blockchain {
   struct ReorgAndPrune;
   class TreeNode;
-  class CachedTree;
 }  // namespace kagome::blockchain
 
 namespace kagome::common {
@@ -59,7 +59,6 @@ namespace kagome::blockchain {
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         const application::AppConfiguration &app_config,
-        std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -158,6 +157,13 @@ namespace kagome::blockchain {
 
     void removeUnfinalized() override;
 
+    // BlockHeaderRepository methods
+    outcome::result<primitives::BlockNumber> getNumberByHash(
+        const primitives::BlockHash &block_hash) const override;
+
+    outcome::result<primitives::BlockHash> getHashByNumber(
+        primitives::BlockNumber block_number) const override;
+
    private:
     struct BlocksPruning {
       BlocksPruning(std::optional<uint32_t> keep,
@@ -170,7 +176,7 @@ namespace kagome::blockchain {
     };
 
     struct BlockTreeData {
-      std::shared_ptr<BlockHeaderRepository> header_repo_;
+      mutable std::shared_ptr<BlockHeaderRepository> header_repo_;
       std::shared_ptr<BlockStorage> storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;
@@ -190,7 +196,6 @@ namespace kagome::blockchain {
      */
     BlockTreeImpl(
         const application::AppConfiguration &app_config,
-        std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockInfo &finalized,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,

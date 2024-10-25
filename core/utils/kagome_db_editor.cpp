@@ -15,7 +15,6 @@
 #include <soralog/impl/configurator_from_yaml.hpp>
 
 #include "blockchain/block_storage_error.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
@@ -268,7 +267,7 @@ int db_editor_main(int argc, const char **argv) {
         }),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockTreeImpl>(),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>());
 
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
