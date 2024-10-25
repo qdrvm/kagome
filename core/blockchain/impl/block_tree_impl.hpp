@@ -27,7 +27,6 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
-#include "network/extrinsic_observer.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -60,7 +59,6 @@ namespace kagome::blockchain {
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         const application::AppConfiguration &app_config,
         std::shared_ptr<BlockStorage> storage,
-        std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         primitives::events::ExtrinsicSubscriptionEnginePtr
@@ -180,7 +178,6 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;
-      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
       std::shared_ptr<crypto::Hasher> hasher_;
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo_;
@@ -198,7 +195,6 @@ namespace kagome::blockchain {
         const application::AppConfiguration &app_config,
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockInfo &finalized,
-        std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         primitives::events::ExtrinsicSubscriptionEnginePtr

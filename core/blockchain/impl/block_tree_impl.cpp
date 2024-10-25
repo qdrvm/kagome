@@ -121,7 +121,6 @@ namespace kagome::blockchain {
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       const application::AppConfiguration &app_config,
       std::shared_ptr<BlockStorage> storage,
-      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       primitives::events::ExtrinsicSubscriptionEnginePtr
@@ -281,7 +280,6 @@ namespace kagome::blockchain {
         new BlockTreeImpl(app_config,
                           std::move(storage),
                           last_finalized_block_info,
-                          std::move(extrinsic_observer),
                           std::move(hasher),
                           std::move(chain_events_engine),
                           std::move(extrinsic_events_engine),
@@ -415,7 +413,6 @@ namespace kagome::blockchain {
       const application::AppConfiguration &app_config,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockInfo &finalized,
-      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       primitives::events::ExtrinsicSubscriptionEnginePtr
@@ -431,7 +428,6 @@ namespace kagome::blockchain {
           .storage_ = std::move(storage),
           .state_pruner_ = std::move(state_pruner),
           .tree_ = std::make_unique<CachedTree>(finalized),
-          .extrinsic_observer_ = std::move(extrinsic_observer),
           .hasher_ = std::move(hasher),
           .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
           .justification_storage_policy_ =
@@ -447,7 +443,6 @@ namespace kagome::blockchain {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);
       BOOST_ASSERT(p.tree_ != nullptr);
-      BOOST_ASSERT(p.extrinsic_observer_ != nullptr);
       BOOST_ASSERT(p.hasher_ != nullptr);
       BOOST_ASSERT(p.extrinsic_event_key_repo_ != nullptr);
       BOOST_ASSERT(p.justification_storage_policy_ != nullptr);
@@ -1345,34 +1340,6 @@ namespace kagome::blockchain {
               .hash = block.hash, .number = block.number});
       OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
-
-    // trying to return extrinsics back to transaction pool
-    main_pool_handler_->execute(
-        [extrinsics{std::move(extrinsics)},
-         wself{weak_from_this()},
-         retired{primitives::events::RemoveAfterFinalizationParams{
-             .removed = std::move(retired_hashes),
-             .finalized = getLastFinalizedNoLock(p).number}}]() mutable {
-          if (auto self = wself.lock()) {
-            auto eo = self->block_tree_data_.sharedAccess(
-                [&](const BlockTreeData &p) { return p.extrinsic_observer_; });
-
-            for (auto &&extrinsic : extrinsics) {
-              auto result = eo->onTxMessage(extrinsic);
-              if (result) {
-                SL_DEBUG(
-                    self->log_, "Tx {} was reapplied", result.value().toHex());
-              } else {
-                SL_DEBUG(self->log_, "Tx was skipped: {}", result.error());
-              }
-            }
-
-            self->chain_events_engine_->notify(
-                primitives::events::ChainEventType::
-                    kDeactivateAfterFinalization,
-                retired);
-          }
-        });
 
     return outcome::success();
   }

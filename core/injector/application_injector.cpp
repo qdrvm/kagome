@@ -355,7 +355,6 @@ namespace {
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<network::ExtrinsicObserver>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         chain_events_engine,
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
