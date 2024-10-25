@@ -343,6 +343,10 @@ namespace {
 
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
+    static std::optional<sptr<blockchain::BlockTree>> cached = std::nullopt;
+    if (cached.has_value()) {
+      return cached.value();
+    }
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
@@ -372,6 +376,7 @@ namespace {
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
 
+    cached = block_tree;
     return block_tree;
   }
 
