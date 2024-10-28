@@ -223,8 +223,7 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
-  int *x = 0;
-  *x = 5;
+
   ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
 }
 
