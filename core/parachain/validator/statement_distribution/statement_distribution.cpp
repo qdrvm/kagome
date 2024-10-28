@@ -206,16 +206,13 @@ namespace kagome::parachain::statement_distribution {
         network::PeerView::EventType::kViewUpdated,
         [wptr{weak_from_this()}](const network::ExView &event) {
           TRY_GET_OR_RET(self, wptr.lock());
-          self->main_pool_handler->execute([wptr, event]() {
-            TRY_GET_OR_RET(self, wptr.lock());
-            if (auto result = self->handle_view_event(event);
-                result.has_error()) {
-              SL_ERROR(self->logger,
-                       "Handle view event failed. (relay parent={}, error={})",
-                       event.new_head.hash(),
-                       result.error());
-            }
-          });
+          if (auto result = self->handle_view_event(event);
+              result.has_error()) {
+            SL_ERROR(self->logger,
+                     "Handle view event failed. (relay parent={}, error={})",
+                     event.new_head.hash(),
+                     result.error());
+          }
         });
 
     return true;
