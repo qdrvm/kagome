@@ -10,6 +10,7 @@ set(FLAGS
     -fsanitize=undefined
     -fno-omit-frame-pointer
     -g
+    -O0
     )
 if (UBSAN_ABORT) 
   list(APPEND FLAGS -fno-sanitize-recover=undefined)

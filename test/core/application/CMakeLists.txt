@@ -28,4 +28,5 @@ target_link_libraries(app_config_test
     filesystem
     logger_for_tests
     telemetry
+    Backward::Backward
     )
