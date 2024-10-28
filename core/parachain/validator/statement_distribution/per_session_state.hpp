@@ -33,6 +33,7 @@ namespace kagome::parachain::statement_distribution {
     Groups groups;
     std::optional<grid::Views> grid_view;
     LocalValidatorIndex local_validator;
+    std::optional<ValidatorIndex> v_index;
     std::shared_ptr<PeerUseCount> peers;
     std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
         authority_lookup;
@@ -42,6 +43,7 @@ namespace kagome::parachain::statement_distribution {
                     Groups _groups,
                     grid::Views _grid_view,
                     LocalValidatorIndex _local_validator,
+                    std::optional<ValidatorIndex> _v_index,
                     std::shared_ptr<PeerUseCount> _peers,
                     std::unordered_map<primitives::AuthorityDiscoveryId,
                                        ValidatorIndex> _authority_lookup)
@@ -50,6 +52,7 @@ namespace kagome::parachain::statement_distribution {
           groups{std::move(_groups)},
           grid_view{std::move(_grid_view)},
           local_validator(_local_validator),
+          v_index(_v_index),
           peers(std::move(_peers)),
           authority_lookup(std::move(_authority_lookup)) {
       updatePeers(true);

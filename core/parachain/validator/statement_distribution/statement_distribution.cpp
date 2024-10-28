@@ -268,17 +268,18 @@ namespace kagome::parachain::statement_distribution {
              new_relay_parents.size());
     for (const auto &new_relay_parent : new_relay_parents) {
       SL_TRACE(logger, "===> (new_relay_parent={})", new_relay_parent);
-      OUTCOME_TRY(v_index,
-                  signer_factory->getAuthorityValidatorIndex(new_relay_parent));
-      OUTCOME_TRY(validator, is_parachain_validator(new_relay_parent));
-      SL_TRACE(logger,
-               "===> (new_relay_parent={}, validator={})",
-               new_relay_parent,
-               validator ? "YES" : "NO");
+      std::optional<ValidatorIndex> v_index;
+      if (auto res = signer_factory->getAuthorityValidatorIndex(new_relay_parent); res.has_value()) {
+        v_index = res.value();
+      }
 
-      const auto validator_index = utils::map(
-          validator,
+      std::optional<ValidatorIndex> validator_index;
+      if (auto res = is_parachain_validator(new_relay_parent); res.has_value()) {
+        validator_index = utils::map(
+          res.value(),
           [](const auto &signer) { return signer.validatorIndex(); });
+      }
+
       if (validator_index) {
         SL_TRACE(logger,
                  "===> (new_relay_parent={}, index={})",
@@ -369,8 +370,6 @@ namespace kagome::parachain::statement_distribution {
 
     for (const auto &new_context : new_contexts) {
       const auto &new_relay_parent = new_context.relay_parent;
-      const auto &validator_index = new_context.validator_index;
-      const auto &v_index = new_context.v_index;
 
       /// We check `per_relay_state` befor `per_session_state`, because we keep
       /// ref in `per_relay_parent` directly
@@ -388,7 +387,7 @@ namespace kagome::parachain::statement_distribution {
             OUTCOME_TRY(
                 session_info,
                 parachain_host->session_info(new_relay_parent, session_index));
-            if (!v_index) {
+            if (!new_context.v_index) {
               SL_TRACE(logger,
                        "Not a validator. (new_relay_parent={})",
                        new_relay_parent);
@@ -430,7 +429,7 @@ namespace kagome::parachain::statement_distribution {
                 session_info->validator_groups,
                 grid::shuffle(session_info->discovery_keys.size(),
                               babe_config->randomness),
-                *v_index);
+                *new_context.v_index);
 
             return outcome::success(
                 RefCache<SessionIndex, PerSessionState>::RefObj(
@@ -439,7 +438,8 @@ namespace kagome::parachain::statement_distribution {
                     Groups{session_info->validator_groups,
                            minimum_backing_votes},
                     std::move(grid_view),
-                    validator_index,
+                    new_context.validator_index,
+                    new_context.v_index,
                     peer_use_count,
                     std::move(authority_lookup)));
           });
@@ -465,13 +465,13 @@ namespace kagome::parachain::statement_distribution {
       }();
 
       auto local_validator = [&]() -> std::optional<LocalValidatorState> {
-        if (!v_index) {
+        if (!per_session_state.value()->value().v_index) {
           return std::nullopt;
         }
 
-        if (validator_index) {
+        if (per_session_state.value()->value().local_validator) {
           return find_active_validator_state(
-              *validator_index,
+              *per_session_state.value()->value().local_validator,
               per_session_state.value()->value().groups,
               availability_cores,
               group_rotation_info,
