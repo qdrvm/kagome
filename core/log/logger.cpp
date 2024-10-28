@@ -120,6 +120,11 @@ namespace kagome::log {
     }
   }
 
+  void doLogRotate() {
+    auto logging_system = ensure_logger_system_is_initialized();
+    logging_system->callRotateForAllSinks();
+  }
+
   Logger createLogger(const std::string &tag) {
     auto logging_system = ensure_logger_system_is_initialized();
     return std::static_pointer_cast<soralog::LoggerFactory>(logging_system)
