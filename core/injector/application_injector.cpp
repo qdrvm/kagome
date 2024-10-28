@@ -341,9 +341,10 @@ namespace {
         std::move(identify_config));
   }
 
+  static std::optional<sptr<blockchain::BlockTreeImpl>> cached = std::nullopt;
+
   template <typename Injector>
-  sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
-    static std::optional<sptr<blockchain::BlockTree>> cached = std::nullopt;
+  sptr<blockchain::BlockTreeImpl> get_block_tree(const Injector &injector) {
     if (cached.has_value()) {
       return cached.value();
     }
@@ -470,9 +471,6 @@ namespace {
   template <typename Injector>
   std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
   get_runtime_upgrade_tracker(const Injector &injector) {
-    auto header_repo =
-        injector
-            .template create<sptr<const blockchain::BlockHeaderRepository>>();
     auto storage = injector.template create<sptr<storage::SpacedStorage>>();
     auto substitutes =
         injector
@@ -480,8 +478,7 @@ namespace {
     auto block_storage =
         injector.template create<sptr<blockchain::BlockStorage>>();
     auto res =
-        runtime::RuntimeUpgradeTrackerImpl::create(std::move(header_repo),
-                                                   std::move(storage),
+        runtime::RuntimeUpgradeTrackerImpl::create(std::move(storage),
                                                    std::move(substitutes),
                                                    std::move(block_storage));
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
@@ -743,10 +740,8 @@ namespace {
                   .value();
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
-            bind_by_lambda<blockchain::BlockTree>(
-                [](const auto &injector) { return get_block_tree(injector); }),
-            bind_by_lambda<blockchain::BlockHeaderRepository>(
-                            [](const auto &injector) { return get_block_tree(injector); }),
+            di::bind<blockchain::BlockTree>.template to([](const auto &injector) { return get_block_tree(injector); }),
+            di::bind<blockchain::BlockHeaderRepository>.template to([](const auto &injector) { return get_block_tree(injector); }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),

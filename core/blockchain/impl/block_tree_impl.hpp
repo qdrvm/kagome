@@ -18,7 +18,6 @@
 #include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
@@ -74,7 +73,6 @@ namespace kagome::blockchain {
     static outcome::result<void> recover(
         const primitives::BlockId &target_block_id,
         std::shared_ptr<BlockStorage> storage,
-        std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<blockchain::BlockTree> block_tree);
 
@@ -174,7 +172,6 @@ namespace kagome::blockchain {
     };
 
     struct BlockTreeData {
-      mutable std::shared_ptr<BlockHeaderRepository> header_repo_;
       std::shared_ptr<BlockStorage> storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;

@@ -10,7 +10,6 @@
 #include "application/app_state_manager.hpp"
 #include "babe.hpp"
 #include "babe_digests_util.hpp"
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -52,7 +51,6 @@ namespace kagome::consensus::babe {
       const application::AppConfiguration &app_config,
       EpochTimings &timings,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       LazySPtr<ConsensusSelector> consensus_selector,
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -70,7 +68,6 @@ namespace kagome::consensus::babe {
                 persistent_storage_),
             block_tree_,
         },
-        header_repo_(std::move(header_repo)),
         consensus_selector_(consensus_selector),
         babe_api_(std::move(babe_api)),
         trie_storage_(std::move(trie_storage)),
@@ -79,7 +76,6 @@ namespace kagome::consensus::babe {
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(babe_api_ != nullptr);
 
     SAFE_UNIQUE(indexer_) {

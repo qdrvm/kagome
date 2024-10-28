@@ -19,7 +19,6 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::blockchain {
-  class BlockHeaderRepository;
   class BlockTree;
   class BlockStorage;
 }  // namespace kagome::blockchain
@@ -33,7 +32,6 @@ namespace kagome::runtime {
      * which may fail, thus construction only from a factory method
      */
     static outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>> create(
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
@@ -66,7 +64,6 @@ namespace kagome::runtime {
 
    private:
     RuntimeUpgradeTrackerImpl(
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
@@ -104,7 +101,6 @@ namespace kagome::runtime {
     std::shared_ptr<primitives::events::ChainEventSubscriber>
         chain_subscription_;
     std::weak_ptr<const blockchain::BlockTree> block_tree_;
-    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<const primitives::CodeSubstituteBlockIds>
         known_code_substitutes_;

@@ -8,7 +8,6 @@
 
 #include "api/service/state/state_api.hpp"
 
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "injector/lazy.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -32,8 +31,7 @@ namespace kagome::api {
     static constexpr size_t kMaxBlockRange = 256;
     static constexpr size_t kMaxKeySetSize = 64;
 
-    StateApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-                 std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
+    StateApiImpl(std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::Core> runtime_core,
                  std::shared_ptr<runtime::Metadata> metadata,
@@ -94,7 +92,6 @@ namespace kagome::api {
         std::string_view hex_block_hash) override;
 
    private:
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> runtime_core_;
