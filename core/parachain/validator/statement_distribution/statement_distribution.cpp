@@ -247,6 +247,11 @@ namespace kagome::parachain::statement_distribution {
   outcome::result<void> StatementDistribution::handle_view_event(
       const network::ExView &event) {
     BOOST_ASSERT(main_pool_handler->isInCurrentThread());
+    if (auto parachain_proc = parachain_processor.lock();
+        parachain_proc && parachain_proc->canProcessParachains().has_error()) {
+      return outcome::success();
+    }
+
     OUTCOME_TRY(new_relay_parents,
                 implicit_view.exclusiveAccess(
                     [&](auto &iv) -> outcome::result<std::vector<Hash>> {
