@@ -283,6 +283,16 @@ namespace kagome::consensus {
               current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
           self->telemetry_->pushBlockStats();
 
+          if (auto res = self->block_tree_->getBlockHeader(block_info.hash); res.has_error()) {
+            self->logger_->error(
+                "Request header after import failed {}, error={}",
+                block_info, res.error());
+          } else {
+            self->logger_->info(
+                "Request header after import success {}",
+                block_info);
+          }
+
           // Create new offchain worker for block if it is best only
           if (current_best_block.number > previous_best_block_number) {
             auto ocw_res = self->offchain_worker_api_->offchain_worker(
