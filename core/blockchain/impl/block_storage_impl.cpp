@@ -203,7 +203,6 @@ namespace kagome::blockchain {
     const auto &block_hash = header.hash();
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
-    SL_INFO(logger_, "===> PUT BLOCK HEADER {}", block_hash);
     return block_hash;
   }
 

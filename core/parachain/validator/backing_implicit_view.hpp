@@ -12,10 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "injector/lazy.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/prospective_parachains/common.hpp"
 #include "primitives/common.hpp"
@@ -126,12 +124,10 @@ namespace kagome::parachain {
                block_info_storage.size());
     }
 
-    ImplicitView(
-        std::weak_ptr<ProspectiveParachains> prospective_parachains,
-        std::shared_ptr<runtime::ParachainHost> parachain_host_,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::optional<ParachainId> collating_for_,
-        LazySPtr<blockchain::BlockHeaderRepository> block_header_repository);
+    ImplicitView(std::weak_ptr<ProspectiveParachains> prospective_parachains,
+                 std::shared_ptr<runtime::ParachainHost> parachain_host_,
+                 std::shared_ptr<blockchain::BlockTree> block_tree,
+                 std::optional<ParachainId> collating_for_);
 
    private:
     struct ActiveLeafPruningInfo {
@@ -167,7 +163,6 @@ namespace kagome::parachain {
 
     std::weak_ptr<ProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    LazySPtr<blockchain::BlockHeaderRepository> block_header_repository_;
     log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
   };
 

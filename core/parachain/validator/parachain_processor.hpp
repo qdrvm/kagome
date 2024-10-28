@@ -195,8 +195,7 @@ namespace kagome::parachain {
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<statement_distribution::StatementDistribution>
-            statement_distribution,
-        LazySPtr<blockchain::BlockHeaderRepository> block_header_repository);
+            statement_distribution);
     ~ParachainProcessorImpl() = default;
 
     /**
@@ -920,7 +919,6 @@ namespace kagome::parachain {
     std::shared_ptr<statement_distribution::StatementDistribution>
         statement_distribution;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
-    LazySPtr<blockchain::BlockHeaderRepository> block_header_repository_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
