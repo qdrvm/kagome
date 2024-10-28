@@ -159,22 +159,22 @@ namespace kagome::consensus {
       auto duration_ms = timer().count();
       SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
 
-      // add block header if it does not exist
-      if (auto res = block_tree_->addBlock(block); res.has_error()) {
-        callback(res.as_failure());
-        return;
-      }
-
-      changes_tracker->onBlockAdded(
-          block_info.hash, storage_sub_engine_, chain_subscription_engine_);
-
       auto executed = [self,
                        block{std::move(block)},
                        justification{std::move(justification)},
                        callback{std::move(callback)},
                        block_info,
                        start_time,
+                       changes_tracker,
                        previous_best_block]() mutable {
+        // add block header if it does not exist
+        if (auto res = self->block_tree_->addBlock(block); res.has_error()) {
+          callback(res.as_failure());
+          return;
+        }
+
+        changes_tracker->onBlockAdded(
+            block_info.hash, self->storage_sub_engine_, self->chain_subscription_engine_);
         self->applyBlockExecuted(std::move(block),
                                  justification,
                                  std::move(callback),
