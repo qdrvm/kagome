@@ -98,6 +98,12 @@ option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 # cmake-format: on
 
+# useful for tests, an error message will be printed
+option(UBSAN_ABORT "Make UB sanitizer abort on error" OFF)
+
+# useful to catch the exact wrong place with a debugger
+option(UBSAN_TRAP "Make UB sanitizer execute a trap instruction on error" OFF)
+
 set(RECOMMENDED_CLANG_FORMAT_VERSION 16)
 
 include(CheckCXXCompilerFlag)

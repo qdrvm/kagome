@@ -11,6 +11,13 @@ set(FLAGS
     -fno-omit-frame-pointer
     -g
     )
+if (UBSAN_ABORT) 
+  list(APPEND FLAGS -fno-sanitize-recover=undefined)
+endif()
+if (UBSAN_TRAP)
+  list(APPEND FLAGS -fsanitize-trap=undefined)
+endif()
+
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
   add_cache_flag(CMAKE_C_FLAGS ${FLAG})
