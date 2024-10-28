@@ -212,7 +212,6 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree =
         prospective_parachains->getBlockTree();
 
-    SL_TRACE(logger, "Requested header hash {}", leaf_hash);
     OUTCOME_TRY(leaf_header,
                 block_header_repository_.get()->getBlockHeader(leaf_hash));
 
