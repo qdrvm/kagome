@@ -271,14 +271,15 @@ struct fmt::formatter<kagome::common::Blob<N>> {
   template <typename FormatContext>
   auto format(const kagome::common::Blob<N> &blob,
               FormatContext &ctx) const -> decltype(ctx.out()) {
-    // ctx.out() is an output iterator to write to.
-
     if (presentation == 's') {
-      uint16_t head = static_cast<uint16_t>(blob[0])
-                    | (static_cast<uint16_t>(blob[1]) << 8);
-      uint16_t tail = static_cast<uint16_t>(blob[blob.size() - 1])
-                    | (static_cast<uint16_t>(blob[blob.size() - 2]) << 8);
-      return fmt::format_to(ctx.out(), "0x{:04x}…{:04x}", head, tail);
+      if constexpr (N > 4) {
+        uint16_t head = static_cast<uint16_t>(blob[1])
+                      | (static_cast<uint16_t>(blob[0]) << 8);
+        uint16_t tail = static_cast<uint16_t>(blob[blob.size() - 1])
+                      | (static_cast<uint16_t>(blob[blob.size() - 2]) << 8);
+        return fmt::format_to(ctx.out(), "0x{:04x}…{:04x}", head, tail);
+      }
+      // else fallback to normal print
     }
 
     return fmt::format_to(ctx.out(), "0x{}", blob.toHex());
