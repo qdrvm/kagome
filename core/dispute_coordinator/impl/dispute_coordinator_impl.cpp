@@ -16,7 +16,6 @@
 
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
-#include "blockchain/block_header_repository.hpp"
 #include "common/main_thread_pool.hpp"
 #include "common/visitor.hpp"
 #include "consensus/timeline/timeline.hpp"
@@ -137,8 +136,6 @@ namespace kagome::dispute {
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
-      std::shared_ptr<blockchain::BlockHeaderRepository>
-          block_header_repository,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core_api,
@@ -159,7 +156,6 @@ namespace kagome::dispute {
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
         sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
-        block_header_repository_(std::move(block_header_repository)),
         hasher_(std::move(hasher)),
         block_tree_(std::move(block_tree)),
         core_api_(std::move(core_api)),
@@ -184,7 +180,6 @@ namespace kagome::dispute {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
-    BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
@@ -479,7 +474,7 @@ namespace kagome::dispute {
     }
 
     participation_ =
-        std::make_shared<ParticipationImpl>(block_header_repository_,
+        std::make_shared<ParticipationImpl>(block_tree_,
                                             hasher_,
                                             api_,
                                             runtime_info_,
@@ -2203,7 +2198,7 @@ namespace kagome::dispute {
 
     // Update finality lag if possible
     if (not block_descriptions.empty()) {
-      if (auto number_res = block_header_repository_->getNumberByHash(
+      if (auto number_res = block_tree_->getNumberByHash(
               block_descriptions.back().block_hash);
           number_res.has_value()) {
         if (number_res.value() > undisputed_chain.number) {

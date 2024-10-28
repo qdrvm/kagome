@@ -55,13 +55,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * @return status of a block with corresponding {@param block_hash} or a
-     * storage error
-     */
-    virtual outcome::result<BlockStatus> getBlockStatus(
-        const primitives::BlockHash &block_hash) const = 0;
-
-    /**
      * @param id of a block which number is returned
      * @return block number or a none optional if the corresponding block header
      * is not in storage or a storage error
