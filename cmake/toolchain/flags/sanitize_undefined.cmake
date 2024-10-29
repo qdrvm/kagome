@@ -11,6 +11,7 @@ set(FLAGS
     -fno-omit-frame-pointer
     -g
     -O0
+    -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/ubsan_ignore.txt"
     )
 if (UBSAN_ABORT) 
   list(APPEND FLAGS -fno-sanitize-recover=undefined)
