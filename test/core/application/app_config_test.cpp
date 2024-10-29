@@ -6,7 +6,6 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <backward.hpp>
 #include <boost/assert.hpp>
 #include <boost/format.hpp>
 #include <fstream>

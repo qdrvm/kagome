@@ -30,7 +30,7 @@ which git
 
 cd "$(dirname $0)/.."
 
-cmake . -B${BUILD_DIR} "$@" -DBACKWARD=ON
+cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}
 fi
