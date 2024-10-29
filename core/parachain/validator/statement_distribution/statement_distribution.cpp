@@ -936,6 +936,7 @@ namespace kagome::parachain::statement_distribution {
 
     auto peer_state = utils::get(peers, peer);
     if (!peer_state) {
+      SL_TRACE(logger, "Unknown peer. Skip message. (peer={})", peer);
       return;
     }
 
