@@ -208,7 +208,6 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
  * @then we must select cmd line version
  */
 TEST_F(AppConfigurationTest, CrossConfigTest) {
-  backward::SignalHandling sh;
   const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
   const char *args[] = {
