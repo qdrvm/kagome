@@ -2458,7 +2458,24 @@ namespace kagome::parachain {
       }
       return res;
     }();
+
     peer_state->get().collation_version = version;
+    if (tryOpenOutgoingValidationStream(
+            peer_id, version, [wptr{weak_from_this()}, peer_id, version]() {
+              TRY_GET_OR_RET(self, wptr.lock());
+              switch (version) {
+                case network::CollationVersion::V1:
+                case network::CollationVersion::VStaging: {
+                  self->sendMyView(
+                      peer_id, self->router_->getValidationProtocolVStaging());
+                } break;
+                default: {
+                  UNREACHABLE;
+                } break;
+              }
+            })) {
+      logger_->debug("Initiated validation protocol with {}", peer_id);
+    }
   }
 
   network::ResponsePov ParachainProcessorImpl::getPov(
