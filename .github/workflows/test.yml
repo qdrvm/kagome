@@ -132,6 +132,7 @@ jobs:
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
           - name: "Self-hosted: Linux: clang-16 UBSAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=ON
+            env: UBSAN_OPTIONS=print_stacktrace=1
         # Need to fix
         #  - name: "Self-hosted: Linux: clang-16 External Project"
         #    run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
