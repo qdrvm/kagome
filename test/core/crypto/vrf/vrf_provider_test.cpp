@@ -115,7 +115,7 @@ TEST_F(VRFProviderTest, SignAndVerifyTranscriptSuccess) {
  */
 TEST_F(VRFProviderTest, TranscriptSignFailed) {
   // given
-  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::min()};
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::min()};
   Transcript t_src;
   prepare_transcript(t_src);
 
@@ -181,7 +181,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  */
 TEST_F(VRFProviderTest, SignFailed) {
   // given
-  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::min()};
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::min()};
 
   // when
   Buffer src(reference_data);
