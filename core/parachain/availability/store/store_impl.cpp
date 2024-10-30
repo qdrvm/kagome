@@ -76,17 +76,17 @@ namespace kagome::parachain {
     if (not chunk_from_db) {
       return std::nullopt;
     }
-    if (auto decoded_chunk = scale::decode<ErasureChunk>(chunk_from_db.value());
-        not decoded_chunk) {
+    const auto decoded_chunk =
+        scale::decode<ErasureChunk>(chunk_from_db.value());
+    if (not decoded_chunk) {
       SL_ERROR(logger,
                "Failed to decode chunk candidate {} index {} error {}",
                candidate_hash,
                index,
                decoded_chunk.error());
       return std::nullopt;
-    } else {
-      return decoded_chunk.value();
     }
+    return decoded_chunk.value();
   }
 
   std::optional<AvailabilityStore::ParachainBlock>
