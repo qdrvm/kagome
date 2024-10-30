@@ -21,6 +21,7 @@
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
 #include "utils/map.hpp"
+#include "log/logger.hpp"
 
 template <>
 struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
@@ -312,6 +313,7 @@ namespace kagome::parachain::grid {
         std::unordered_set<
             std::pair<ValidatorIndex, network::vstaging::CompactStatement>>>
         pending_statements;
+    log::Logger logger = log::createLogger("GridTracker", "parachain");
   };
 
 }  // namespace kagome::parachain::grid

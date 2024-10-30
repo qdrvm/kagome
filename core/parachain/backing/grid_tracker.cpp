@@ -147,10 +147,22 @@ namespace kagome::parachain::grid {
     bool manifest_allowed = true;
     if (kind == ManifestKind::Full) {
       manifest_allowed = receiving_from;
+      SL_TRACE(logger,
+               "Manifest full allowed. (receiving_from={})",
+               manifest_allowed ? "[yes]" : "[no]");
     } else {
       auto it = confirmed_backed.find(candidate_hash);
       manifest_allowed = sending_to && it != confirmed_backed.end()
                       && it->second.has_sent_manifest_to(sender);
+      SL_TRACE(logger,
+               "Manifest acknowledgement allowed. (sending_to={}, "
+               "has_confirmed_back={}, has_sent_manifest_to={})",
+               sending_to ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()) ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()
+                && it->second.has_sent_manifest_to(sender))
+                   ? "[yes]"
+                   : "[no]");
     }
     if (!manifest_allowed) {
       return Error::DISALLOWED_DIRECTION;
