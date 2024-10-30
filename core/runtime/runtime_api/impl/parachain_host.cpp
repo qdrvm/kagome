@@ -149,6 +149,18 @@ namespace kagome::runtime {
     return *ref;
   }
 
+  outcome::result<std::vector<std::optional<CommittedCandidateReceipt>>>
+  ParachainHostImpl::candidates_pending_availability(
+      const primitives::BlockHash &block, ParachainId id) {
+    OUTCOME_TRY(ref,
+                candidates_pending_availability_.call(
+                    *executor_,
+                    block,
+                    "ParachainHost_candidates_pending_availability",
+                    id));
+    return *ref;
+  }
+
   outcome::result<std::vector<CandidateEvent>>
   ParachainHostImpl::candidate_events(const primitives::BlockHash &block) {
     OUTCOME_TRY(ref,
@@ -213,6 +225,7 @@ namespace kagome::runtime {
     availability_cores_.erase(blocks);
     session_index_for_child_.erase(blocks);
     candidate_pending_availability_.erase(blocks);
+    candidates_pending_availability_.erase(blocks);
     candidate_events_.erase(blocks);
     session_info_.erase(blocks);
     dmq_contents_.erase(blocks);
