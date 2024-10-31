@@ -263,15 +263,18 @@ namespace kagome::parachain::statement_distribution {
     for (const auto &new_relay_parent : new_relay_parents) {
       SL_TRACE(logger, "===> (new_relay_parent={})", new_relay_parent);
       std::optional<ValidatorIndex> v_index;
-      if (auto res = signer_factory->getAuthorityValidatorIndex(new_relay_parent); res.has_value()) {
+      if (auto res =
+              signer_factory->getAuthorityValidatorIndex(new_relay_parent);
+          res.has_value()) {
         v_index = res.value();
       }
 
       std::optional<ValidatorIndex> validator_index;
-      if (auto res = is_parachain_validator(new_relay_parent); res.has_value()) {
-        validator_index = utils::map(
-          res.value(),
-          [](const auto &signer) { return signer.validatorIndex(); });
+      if (auto res = is_parachain_validator(new_relay_parent);
+          res.has_value()) {
+        validator_index = utils::map(res.value(), [](const auto &signer) {
+          return signer.validatorIndex();
+        });
       }
 
       if (validator_index) {
@@ -934,14 +937,9 @@ namespace kagome::parachain::statement_distribution {
              peer,
              new_view);
 
-    auto peer_state = utils::get(peers, peer);
-    if (!peer_state) {
-      SL_TRACE(logger, "Unknown peer. Skip message. (peer={})", peer);
-      return;
-    }
-
+    auto &peer_state = peers[peer];
     implicit_view.sharedAccess([&](const auto &iv) {
-      auto fresh_implicit = peer_state->get().update_view(new_view, iv);
+      auto fresh_implicit = peer_state.update_view(new_view, iv);
       for (const auto &new_relay_parent : fresh_implicit) {
         send_peer_messages_for_relay_parent(peer, new_relay_parent);
       }
@@ -2390,15 +2388,30 @@ namespace kagome::parachain::statement_distribution {
     for (const auto &[target, kind] : targets) {
       auto peer = query_audi->get(session_info.discovery_keys[target]);
       if (!peer) {
+        SL_TRACE(logger,
+                 "Skip send statement to validator. No audi. (relay_parent={}, "
+                 "discovery_key={})",
+                 relay_parent,
+                 session_info.discovery_keys[target]);
         continue;
       }
 
       auto peer_state = utils::get(peers, peer->id);
       if (!peer_state) {
+        SL_TRACE(logger,
+                 "Skip send statement to validator. No peer. (relay_parent={}, "
+                 "peer={})",
+                 relay_parent,
+                 peer->id);
         continue;
       }
 
       if (!peer_state->get().knows_relay_parent(relay_parent)) {
+        SL_TRACE(logger,
+                 "Skip send statement to validator. Doesn't know relay_parent. "
+                 "(relay_parent={}, peer={})",
+                 relay_parent,
+                 peer->id);
         continue;
       }
 
