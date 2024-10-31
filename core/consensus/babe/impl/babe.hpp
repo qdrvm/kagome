@@ -98,6 +98,11 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Sr25519Keypair> keypair;
     };
 
+    struct CandidatesMetricInfo {
+      size_t backed;
+      size_t included;
+    };
+
     Babe(
         application::AppStateManager &app_state_manager,
         const application::AppConfiguration &app_config,
@@ -167,7 +172,8 @@ namespace kagome::consensus::babe {
         clock::SteadyClock::TimePoint proposal_start,
         std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
             &&changes_tracker,
-        primitives::Block &&block);
+        primitives::Block &&block,
+        std::optional<CandidatesMetricInfo> candidates_metrics = std::nullopt);
 
    private:
     log::Logger log_;
@@ -211,6 +217,12 @@ namespace kagome::consensus::babe {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_relaychain_validator_;
+    metrics::Gauge *metric_backed_candidates_in_block_;
+    metrics::Gauge *metric_include_candidates_in_block_;
+    metrics::Counter *metric_no_backed_candidates_in_block_;
+    metrics::Counter *metric_no_include_candidates_in_block_;
+    metrics::Counter *metric_no_backed_no_include_candidates_in_block_;
+    metrics::Counter *metric_total_blocks_;
 
     telemetry::Telemetry telemetry_;  // telemetry
   };
