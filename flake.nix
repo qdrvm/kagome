@@ -28,8 +28,6 @@
               doxygen
               gtest
               lcov
-              vcpkg
-              vcpkg-tool
             ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
           };
       });
