@@ -180,16 +180,27 @@ namespace kagome::consensus::babe {
         metrics_registry_->registerGaugeMetric(kIncludeCandidatesInBlock);
     metric_include_candidates_in_block_->set(0);
 
+    metrics_registry_->registerCounterFamily(
+        kNoBackedCandidatesInBlock,
+        "Number of blocks with no backed candidates");
     metric_no_backed_candidates_in_block_ =
         metrics_registry_->registerCounterMetric(kNoBackedCandidatesInBlock);
 
+    metrics_registry_->registerCounterFamily(
+        kNoIncludeCandidatesInBlock,
+        "Number of blocks with no include candidates");
     metric_no_include_candidates_in_block_ =
         metrics_registry_->registerCounterMetric(kNoIncludeCandidatesInBlock);
 
+    metrics_registry_->registerCounterFamily(
+        kNoBackedNoIncludeCandidatesInBlock,
+        "Number of blocks with no backed and no include candidates");
     metric_no_backed_no_include_candidates_in_block_ =
         metrics_registry_->registerCounterMetric(
             kNoBackedNoIncludeCandidatesInBlock);
 
+    metrics_registry_->registerCounterFamily(kTotalBlocks,
+                                             "Total number of blocks produced");
     metric_total_blocks_ =
         metrics_registry_->registerCounterMetric(kTotalBlocks);
   }
@@ -701,7 +712,8 @@ namespace kagome::consensus::babe {
     }
 
     if (candidates_metrics) {
-      if (candidates_metrics->backed == 0 and candidates_metrics->included == 0) {
+      if (candidates_metrics->backed == 0
+          and candidates_metrics->included == 0) {
         metric_no_backed_no_include_candidates_in_block_->inc();
       } else if (candidates_metrics->backed == 0) {
         metric_no_backed_candidates_in_block_->inc();
