@@ -105,3 +105,6 @@ endif ()
 
 hunter_add_package(rocksdb)
 find_package(RocksDB CONFIG REQUIRED)
+
+hunter_add_package(SQLiteModernCpp)
+find_package(SQLiteModernCpp CONFIG REQUIRED)

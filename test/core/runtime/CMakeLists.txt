@@ -85,3 +85,8 @@ target_link_libraries(stack_limiter_test
     log_configurator
     wasm_instrument
     )
+
+addtest(sqlite_test sqlite_test.cpp)
+target_link_libraries(sqlite_test
+    SQLiteModernCpp::SQLiteModernCpp
+)

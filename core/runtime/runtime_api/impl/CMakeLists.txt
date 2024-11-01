@@ -82,6 +82,7 @@ add_library(tagged_transaction_queue_api
     )
 target_link_libraries(tagged_transaction_queue_api
     executor
+    SQLiteModernCpp::SQLiteModernCpp
     )
 
 add_library(transaction_payment_api

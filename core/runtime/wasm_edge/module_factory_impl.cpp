@@ -170,6 +170,7 @@ namespace kagome::runtime::wasm_edge {
           "\thost_api: {}\n"
           "\tmemory_provider: {}\n"
           "\tmemory: {}\n"
+          "\tmem size: {}\n"
           "\tstorage_provider: {}",
           name,
           fmt::ptr(this),
@@ -178,6 +179,8 @@ namespace kagome::runtime::wasm_edge {
           fmt::ptr(env_.host_api),
           fmt::ptr(env_.memory_provider),
           fmt::ptr(&env_.memory_provider->getCurrentMemory().value().get()),
+          env_.memory_provider->getCurrentMemory().value().get().memory()->size(),
+
           fmt::ptr(env_.storage_provider));
 
       auto res = WasmEdge_ExecutorInvoke(executor_->raw(),

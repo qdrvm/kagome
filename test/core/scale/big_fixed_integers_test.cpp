@@ -12,6 +12,8 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+#include "primitives/extrinsic.hpp"
+
 using kagome::common::Buffer;
 using scale::Compact;
 using scale::Fixed;
@@ -70,3 +72,15 @@ DEFINE_TEST_SUITE(uint32_t,
                   std::pair{42, "A8"_hex2buf},
                   std::pair{std::numeric_limits<uint32_t>::max(),
                             "03FFFFFFFF"_hex2buf});
+
+TEST(ScaleTest, TestScaleExtEnc) {
+  auto buf = Buffer::fromHex(
+                 "8400db33daf8e3a062a3711f30937abb6ed9fe8f0e9af8f8ad2b575edc732"
+                 "f470311006a0c031940ee57b9a0dbcf4d8528dbeeeec91d8aa34f10f66ad8"
+                 "d06e25a70411e3b8caf04095d9fb7f61f2047cdc6bbc12d3795c53dfab081"
+                 "9e1335775c50600000caa07eb1e07010b00800cb19a09")
+                 .value();
+  kagome::primitives::Extrinsic ext{.data = buf};
+  auto ext_buf = Buffer(scale::encode(ext).value());
+  std::cout << ext_buf.toHex() << std::endl;
+}
