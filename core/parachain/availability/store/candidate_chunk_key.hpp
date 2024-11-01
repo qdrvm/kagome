@@ -21,20 +21,19 @@ namespace kagome {
     using Key = common::Blob<kCandidateHashSize + kChunkIndexSize>;
     using HashKey = common::Blob<kCandidateHashSize>;
 
-    static Key encode(const std::pair<parachain::CandidateHash,
-                                      parachain::ChunkIndex> &candidateChunk) {
+    static Key encode(const parachain::CandidateHash &candidate_hash,
+                      const parachain::ChunkIndex &chunk_index) {
       Key key;
-      std::copy_n(encode_hash(candidateChunk.first).data(),
-                  kCandidateHashSize,
-                  key.data());
+      std::copy_n(
+          encode_hash(candidate_hash).data(), kCandidateHashSize, key.data());
       boost::endian::store_big_u32(key.data() + kCandidateHashSize,
-                                   candidateChunk.second);
+                                   chunk_index);
       return key;
     }
 
-    static HashKey encode_hash(const parachain::CandidateHash &candidateHash) {
+    static HashKey encode_hash(const parachain::CandidateHash &candidate_hash) {
       HashKey key;
-      std::copy_n(candidateHash.data(), kCandidateHashSize, key.data());
+      std::copy_n(candidate_hash.data(), kCandidateHashSize, key.data());
       return key;
     }
 

@@ -72,7 +72,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
     auto chunk_from_db =
-        space->get(CandidateChunkKey::encode({candidate_hash, index}));
+        space->get(CandidateChunkKey::encode(candidate_hash, index));
     if (not chunk_from_db) {
       return std::nullopt;
     }
@@ -219,7 +219,7 @@ namespace kagome::parachain {
           continue;
         }
         if (auto res = space->put(
-                CandidateChunkKey::encode({candidate_hash, chunk_index}),
+                CandidateChunkKey::encode(candidate_hash, chunk_index),
                 std::move(encoded_chunk.value()));
             not res) {
           SL_ERROR(logger,
@@ -257,7 +257,7 @@ namespace kagome::parachain {
     }
 
     if (auto res =
-            space->put(CandidateChunkKey::encode({candidate_hash, chunk_index}),
+            space->put(CandidateChunkKey::encode(candidate_hash, chunk_index),
                        std::move(encoded_chunk.value()));
         not res) {
       SL_ERROR(logger,
