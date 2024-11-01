@@ -13,16 +13,21 @@
 
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class BlockHeaderRepository;
+}  // namespace kagome::blockchain
 
 namespace kagome::runtime {
 
   class Executor;
+  class RuntimeCodeProvider;
+  class ModuleFactory;
 
   class TaggedTransactionQueueImpl final : public TaggedTransactionQueue {
    public:
     TaggedTransactionQueueImpl(std::shared_ptr<Executor> executor,
-                               LazySPtr<blockchain::BlockTree> block_tree);
+                               LazySPtr<blockchain::BlockTree> block_tree,
+                               std::shared_ptr<RuntimeCodeProvider> cd_prvdr,
+                               std::shared_ptr<ModuleFactory> mdl_fctr);
 
     outcome::result<TransactionValidityAt> validate_transaction(
         primitives::TransactionSource source,
@@ -30,6 +35,8 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<RuntimeCodeProvider> cd_prvdr_;
+    std::shared_ptr<ModuleFactory> mdl_fctr_;
     LazySPtr<blockchain::BlockTree> block_tree_;
     log::Logger logger_;
   };
