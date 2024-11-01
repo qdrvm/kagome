@@ -1,7 +1,8 @@
 {
   description = "A Nix-flake-based C/C++ development environment";
 
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+  inputs.nixpkgs.url =
+    "https://github.com/NixOS/nixpkgs/archive/c6c17387f7dd5332bec72bb9e76df434ac6b2bff.tar.gz";
 
   outputs = { self, nixpkgs }:
     let
