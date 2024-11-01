@@ -6,6 +6,7 @@ pkgs.mkShell {
     # pkgs.clang
     # pkgs.libclang
     pkgs.cmake
+    pkgs.cmake-language-server
     pkgs.boost
     pkgs.boost-build
     pkgs.git
