@@ -68,7 +68,6 @@ namespace kagome::crypto {
       store_->ed25519().generateKeypair(KeyTypes::GRANDPA, *dev).value();
       // Sr25519
       for (auto key_type : {KeyTypes::BABE,
-                            KeyTypes::IM_ONLINE,
                             KeyTypes::AUTHORITY_DISCOVERY,
                             KeyTypes::ASSIGNMENT,
                             KeyTypes::PARACHAIN}) {
