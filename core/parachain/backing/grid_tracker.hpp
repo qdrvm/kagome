@@ -16,12 +16,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include "log/logger.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/backing/grid.hpp"
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
 #include "utils/map.hpp"
-#include "log/logger.hpp"
 
 template <>
 struct std::hash<std::pair<kagome::parachain::ValidatorIndex,

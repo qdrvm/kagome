@@ -2346,21 +2346,42 @@ namespace kagome::parachain::statement_distribution {
             (statement_group && *statement_group == active.group);
         if (is_confirmed && cluster_relevant) {
           for (const auto v : active.cluster_tracker.targets()) {
-            if (active.cluster_tracker
-                    .can_send(v,
-                              originator,
-                              network::vstaging::from(compact_statement))
-                    .has_error()) {
+            if (auto res = active.cluster_tracker.can_send(
+                    v, originator, network::vstaging::from(compact_statement));
+                res.has_error()) {
+              SL_TRACE(logger,
+                       "Skip cluster target because of `can_send`. "
+                       "(relay_parent={}, error={})",
+                       relay_parent,
+                       (uint32_t)res.error());
               continue;
             }
             if (v == active.index) {
+              SL_TRACE(logger,
+                       "Skip cluster target because of index eq. "
+                       "(relay_parent={}, v={})",
+                       relay_parent,
+                       v);
               continue;
             }
             if (v >= session_info.discovery_keys.size()) {
+              SL_TRACE(logger,
+                       "Skip cluster target because index is out of bound. "
+                       "(relay_parent={}, v={}, discovery_keys={})",
+                       relay_parent,
+                       v,
+                       session_info.discovery_keys.size());
               continue;
             }
             targets.emplace_back(v, DirectTargetKind::Cluster);
           }
+        } else {
+          SL_TRACE(logger,
+                   "Skip target because of either. (relay_parent={}, "
+                   "is_confirmed={}, cluster_relevant={})",
+                   relay_parent,
+                   is_confirmed ? "[yes]" : "[no]",
+                   cluster_relevant ? "[yes]" : "[no]");
         }
         all_cluster_targets = active.cluster_tracker.targets();
       }
@@ -2373,9 +2394,19 @@ namespace kagome::parachain::statement_distribution {
                                || std::ranges::find(all_cluster_targets, v)
                                       == all_cluster_targets.end();
         if (!can_use_grid) {
+          SL_TRACE(
+              logger,
+              "Skip grid target because can not use grid. (relay_parent={})",
+              relay_parent);
           continue;
         }
         if (v >= session_info.discovery_keys.size()) {
+          SL_TRACE(logger,
+                   "Skip grid target because index is out of bound. "
+                   "(relay_parent={}, v={}, discovery_keys={})",
+                   relay_parent,
+                   v,
+                   session_info.discovery_keys.size());
           continue;
         }
         targets.emplace_back(v, DirectTargetKind::Grid);
@@ -2383,6 +2414,10 @@ namespace kagome::parachain::statement_distribution {
 
       return targets;
     }();
+    SL_TRACE(logger,
+             "Formed resulted targets list. (relay_parent={}, size={})",
+             relay_parent,
+             targets.size());
 
     std::vector<libp2p::peer::PeerId> statement_to_peers;
     for (const auto &[target, kind] : targets) {
@@ -2418,14 +2453,20 @@ namespace kagome::parachain::statement_distribution {
       switch (kind) {
         case Cluster: {
           auto &active = *local_validator.active;
-          if (active.cluster_tracker
-                  .can_send(target,
-                            originator,
-                            network::vstaging::from(compact_statement))
-                  .has_value()) {
+          if (auto res = active.cluster_tracker.can_send(
+                  target,
+                  originator,
+                  network::vstaging::from(compact_statement));
+              res.has_value()) {
             active.cluster_tracker.note_sent(
                 target, originator, network::vstaging::from(compact_statement));
             statement_to_peers.emplace_back(peer->id);
+          } else {
+            SL_TRACE(logger,
+                     "Skip cluster peer send because of `can_send`. "
+                     "(relay_parent={}, error={})",
+                     relay_parent,
+                     (uint32_t)res.error());
           }
         } break;
         case Grid: {
