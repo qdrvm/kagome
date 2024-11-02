@@ -32,6 +32,8 @@
               doxygen
               gtest
               lcov
+              libseccomp
+              ncurses.dev
 
               # Rust tools
               rustup
