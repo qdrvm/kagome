@@ -38,6 +38,12 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
+hunter_config(
+    BoringSSL
+    URL  https://github.com/qdrvm/boringssl/archive/bc72a3fa91d52d6c1db45c24efd863d180c7d98c.zip
+    SHA1 64b281459365194c7d1f561b075c25138e122926
+)
+
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
@@ -68,6 +74,17 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       KEEP_PACKAGE_SOURCES
   )
 endif ()
+
+hunter_config(
+      WasmEdge
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/fix/libdir.zip
+      SHA1 0bd0d0d5dc3e377c65a17f2fe309c5cdb9668755
+      CMAKE_ARGS
+        WASMEDGE_BUILD_STATIC_LIB=ON
+        WASMEDGE_BUILD_SHARED_LIB=OFF
+      KEEP_PACKAGE_SOURCES
+  )
+
 
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_config(
