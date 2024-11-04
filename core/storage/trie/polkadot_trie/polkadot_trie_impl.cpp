@@ -319,17 +319,17 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-          std::move(retrieve_functions.retrieve_node),
-          std::move(retrieve_functions.retrieve_value),
-          nullptr)},
+            std::move(retrieve_functions.retrieve_node),
+            std::move(retrieve_functions.retrieve_value),
+            nullptr)},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root,
                                      RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-          std::move(retrieve_functions.retrieve_node),
-          std::move(retrieve_functions.retrieve_value),
-          std::move(root))},
+            std::move(retrieve_functions.retrieve_node),
+            std::move(retrieve_functions.retrieve_value),
+            std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   //  PolkadotTrieImpl::~PolkadotTrieImpl() {}
@@ -561,7 +561,9 @@ namespace kagome::storage::trie {
       auto parent_as_branch =
           std::dynamic_pointer_cast<const BranchNode>(parent);
       OUTCOME_TRY(child, retrieveChild(*parent_as_branch, path[common_length]));
-      OUTCOME_TRY(callback(*parent_as_branch, path[common_length], *child));
+      if (child != nullptr) {
+        OUTCOME_TRY(callback(*parent_as_branch, path[common_length], *child));
+      }
       return forNodeInPath(child, path.subspan(common_length + 1), callback);
     }
     if (parent->getKeyNibbles() == path) {

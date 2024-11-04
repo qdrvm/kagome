@@ -117,6 +117,12 @@ hunter_config(
 )
 
 hunter_config(
+    scale
+    URL  https://github.com/qdrvm/scale-codec-cpp/archive/e1a3c7afafc2eeda0c8e2daed08da6b7789f44b3.zip
+    SHA1 b56bcda34fb0d293c88d8b642b2f3fdc2d16a3e5
+)
+
+hunter_config(
     erasure_coding_crust
 #    VERSION 0.0.8
     URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
@@ -128,7 +134,7 @@ hunter_config(
     soralog
 #    VERSION 0.2.4
     URL  https://github.com/qdrvm/soralog/archive/refs/tags/v0.2.4.tar.gz
-    SHA1 832a32cf134f8caab4a79c03024ac8408f848dae
+    SHA1 1de495d8a3a73c1e940be3fdddf263a2d673aec1
     KEEP_PACKAGE_SOURCES
 )
 
