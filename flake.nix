@@ -46,6 +46,7 @@
             export RUSTUP_HOME="$PWD/.rustup"
             export CARGO_HOME="$PWD/.cargo"
             export PATH="$CARGO_HOME/bin:$PATH"
+            export FLAKE_INITIATED=1
 
             echo "Using RUSTUP_HOME: $RUSTUP_HOME"
             echo "Using CARGO_HOME: $CARGO_HOME"
@@ -53,9 +54,8 @@
 
             export RUST_VERSION=1.77.0
 
-            export CMAKE_VERSION="3.29"
+            export CMAKE_VERSION="3.25"
             export CMAKE_CORE_NUMBER=10
-
 
             if ! rustup show | grep -q "$RUST_VERSION"; then
                 echo "Installing Rust version $RUST_VERSION"
