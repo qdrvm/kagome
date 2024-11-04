@@ -46,9 +46,6 @@
 
             export RUST_VERSION=1.77.0
 
-            export CMAKE_VERSION="3.25"
-            export CMAKE_CORE_NUMBER=10
-
             if ! rustup show | grep -q "$RUST_VERSION"; then
                 echo "Installing Rust version $RUST_VERSION"
                     rustup toolchain install $RUST_VERSION
