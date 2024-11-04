@@ -4,7 +4,13 @@ current_dir=$(dirname $(readlink -f "$0"))
 parent_dir=$(dirname "$current_dir")
 cd $parent_dir
 
-set -a; source $current_dir/.env; set +a #include .env vars
+#include .env vars and optionally .rust_env vars
+set -a;
+if [ -z "$FLAKE_INITIATED" ]; then
+    source $current_dir/.rust_env;
+fi
+source $current_dir/.env;
+set +a
 
 # if not using nix, install the following packages
 if [ -z "$FLAKE_INITIATED" ]; then
