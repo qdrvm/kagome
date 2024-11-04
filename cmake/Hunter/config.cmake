@@ -87,8 +87,7 @@ hunter_config(
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
       KEEP_PACKAGE_SOURCES
-  )
-
+)
 
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_config(
@@ -141,9 +140,8 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-#    VERSION 0.0.8
-    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
-    SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/heads/master.zip
+    SHA1 5b5970cce37c33f55929a0585445b05f27956dda
     KEEP_PACKAGE_SOURCES
 )
 
@@ -154,4 +152,3 @@ hunter_config(
     SHA1 1de495d8a3a73c1e940be3fdddf263a2d673aec1
     KEEP_PACKAGE_SOURCES
 )
-
