@@ -165,7 +165,7 @@ namespace kagome::parachain::grid {
                    : "[no]");
     }
     if (!manifest_allowed) {
-      return Error::DISALLOWED_DIRECTION;
+      //return Error::DISALLOWED_DIRECTION;
     }
 
     auto group_size_backing_threshold =
