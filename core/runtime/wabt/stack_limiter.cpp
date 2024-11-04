@@ -791,7 +791,7 @@ namespace kagome::runtime {
       common::BufferView uncompressed_wasm, size_t stack_limit) {
     auto logger = stackLimiterLog();
     KAGOME_PROFILE_START_L(logger, read_ir);
-    OUTCOME_TRY(module, wabtDecode(uncompressed_wasm));
+    OUTCOME_TRY(module, wabtDecode(uncompressed_wasm, {}));
     KAGOME_PROFILE_END(read_ir);
 
     OUTCOME_TRY(instrumentWithStackLimiter(module, stack_limit));

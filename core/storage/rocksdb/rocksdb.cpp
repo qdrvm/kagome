@@ -35,7 +35,8 @@ namespace kagome::storage {
       const filesystem::path &path,
       rocksdb::Options options,
       uint32_t memory_budget_mib,
-      bool prevent_destruction) {
+      bool prevent_destruction,
+      const std::unordered_map<std::string, int32_t> &column_ttl) {
     OUTCOME_TRY(mkdirs(path));
 
     auto log = log::createLogger("RocksDB", "storage");
@@ -61,12 +62,19 @@ namespace kagome::storage {
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
-    column_family_descriptors.reserve(Space::kTotal);
+    std::vector<int32_t> ttls;
     for (auto i = 0; i < Space::kTotal; ++i) {
+      const auto space_name = spaceName(static_cast<Space>(i));
+      auto ttl = 0;
+      if (const auto it = column_ttl.find(space_name); it != column_ttl.end()) {
+        ttl = it->second;
+      }
       column_family_descriptors.emplace_back(
-          spaceName(static_cast<Space>(i)),
+          space_name,
           configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
                                                 : trie_space_cache_size));
+      ttls.push_back(ttl);
+      SL_INFO(log, "Column family {} configured with TTL {}", space_name, ttl);
     }
 
     std::vector<std::string> existing_families;
@@ -74,11 +82,12 @@ namespace kagome::storage {
         options, path.native(), &existing_families);
     if (!res.ok() && !res.IsPathNotFound()) {
       SL_ERROR(log,
-               "Can't open database in {}: {}",
+               "Can't list column families in {}: {}",
                absolute_path.native(),
                res.ToString());
       return status_as_error(res);
     }
+
     for (auto &family : existing_families) {
       if (std::ranges::find_if(
               column_family_descriptors,
@@ -93,21 +102,21 @@ namespace kagome::storage {
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
-    auto status = rocksdb::DB::Open(options,
-                                    path.native(),
-                                    column_family_descriptors,
-                                    &rocks_db->column_family_handles_,
-                                    &rocks_db->db_);
-    if (status.ok()) {
-      return rocks_db;
+    auto status = rocksdb::DBWithTTL::Open(options,
+                                           path.native(),
+                                           column_family_descriptors,
+                                           &rocks_db->column_family_handles_,
+                                           &rocks_db->db_,
+                                           ttls);
+    if (not status.ok()) {
+      SL_ERROR(log,
+               "Can't open database in {}: {}",
+               absolute_path.native(),
+               status.ToString());
+      return status_as_error(status);
     }
 
-    SL_ERROR(log,
-             "Can't open database in {}: {}",
-             absolute_path.native(),
-             status.ToString());
-
-    return status_as_error(status);
+    return rocks_db;
   }
 
   std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {

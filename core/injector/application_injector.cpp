@@ -272,11 +272,14 @@ namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
+    const std::unordered_map<std::string, int32_t> column_ttl = {
+        {"avaliability_storage", 25 * 60 * 60}};  // 25 hours
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  app_config.dbCacheSize(),
-                                 prevent_destruction);
+                                 prevent_destruction,
+                                 column_ttl);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical(
@@ -333,6 +336,13 @@ namespace {
 
     return std::make_shared<libp2p::protocol::kademlia::Config>(
         std::move(kademlia_config));
+  }
+
+  sptr<libp2p::protocol::IdentifyConfig> get_identify_config() {
+    libp2p::protocol::IdentifyConfig identify_config;
+    identify_config.protocols = {"/ipfs/id/1.0.0", "/substrate/1.0"};
+    return std::make_shared<libp2p::protocol::IdentifyConfig>(
+        std::move(identify_config));
   }
 
   template <typename Injector>
@@ -890,6 +900,10 @@ namespace {
             di::bind<network::FetchAvailableDataProtocol>.template to<network::FetchAvailableDataProtocolImpl>(),
             di::bind<network::WarpProtocol>.template to<network::WarpProtocolImpl>(),
             di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
+            bind_by_lambda<libp2p::protocol::IdentifyConfig>(
+                [](const auto &injector) {
+                  return get_identify_config();
+                }),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
@@ -923,7 +937,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

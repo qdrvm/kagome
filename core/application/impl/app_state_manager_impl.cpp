@@ -10,9 +10,11 @@
 #include <functional>
 
 namespace kagome::application {
-  std::atomic_bool AppStateManagerImpl::signals_enabled{false};
+  std::weak_ptr<AppStateManagerImpl> AppStateManagerImpl::wp_to_myself;
 
-  void AppStateManagerImpl::signalsEnable() {
+  std::atomic_bool AppStateManagerImpl::shutting_down_signals_enabled{false};
+
+  void AppStateManagerImpl::shuttingDownSignalsEnable() {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     struct sigaction act;
     memset(&act, 0, sizeof(act));
@@ -25,13 +27,14 @@ namespace kagome::application {
     sigaction(SIGINT, &act, nullptr);
     sigaction(SIGTERM, &act, nullptr);
     sigaction(SIGQUIT, &act, nullptr);
-    signals_enabled.store(true);
+    shutting_down_signals_enabled.store(true);
     sigprocmask(SIG_UNBLOCK, &act.sa_mask, nullptr);
   }
 
-  void AppStateManagerImpl::signalsDisable() {
+  void AppStateManagerImpl::shuttingDownSignalsDisable() {
     auto expected = true;
-    if (not signals_enabled.compare_exchange_strong(expected, false)) {
+    if (not shutting_down_signals_enabled.compare_exchange_strong(expected,
+                                                                  false)) {
       return;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
@@ -43,24 +46,59 @@ namespace kagome::application {
     sigaction(SIGQUIT, &act, nullptr);
   }
 
-  std::weak_ptr<AppStateManagerImpl> AppStateManagerImpl::wp_to_myself;
-
   void AppStateManagerImpl::shuttingDownSignalsHandler(int signal) {
-    signalsDisable();
+    shuttingDownSignalsDisable();
     if (auto self = wp_to_myself.lock()) {
       SL_TRACE(self->logger_, "Shutdown signal {} received", signal);
       self->shutdown();
     }
   }
 
+  std::atomic_bool AppStateManagerImpl::log_rotate_signals_enabled{false};
+
+  void AppStateManagerImpl::logRotateSignalsEnable() {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = logRotateSignalsHandler;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask, SIGHUP);
+    sigprocmask(SIG_BLOCK, &act.sa_mask, nullptr);
+    sigaction(SIGHUP, &act, nullptr);
+    log_rotate_signals_enabled.store(true);
+    sigprocmask(SIG_UNBLOCK, &act.sa_mask, nullptr);
+  }
+
+  void AppStateManagerImpl::logRotateSignalsDisable() {
+    auto expected = true;
+    if (not log_rotate_signals_enabled.compare_exchange_strong(expected,
+                                                               false)) {
+      return;
+    }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = SIG_DFL;
+    sigaction(SIGHUP, &act, nullptr);
+  }
+
+  void AppStateManagerImpl::logRotateSignalsHandler(int signal) {
+    if (auto self = wp_to_myself.lock()) {
+      SL_TRACE(self->logger_, "Log rotate signal {} received", signal);
+      log::doLogRotate();
+    }
+  }
+
   AppStateManagerImpl::AppStateManagerImpl()
       : logger_(log::createLogger("AppStateManager", "application")) {
-    signalsEnable();
-    SL_TRACE(logger_, "Signal handler set up");
+    shuttingDownSignalsEnable();
+    logRotateSignalsEnable();
+    SL_TRACE(logger_, "Signal handlers set up");
   }
 
   AppStateManagerImpl::~AppStateManagerImpl() {
-    signalsDisable();
+    shuttingDownSignalsDisable();
+    logRotateSignalsDisable();
     wp_to_myself.reset();
   }
 
@@ -223,7 +261,7 @@ namespace kagome::application {
   }
 
   void AppStateManagerImpl::shutdown() {
-    signalsDisable();
+    shuttingDownSignalsDisable();
     if (state_.load() == State::ReadyToStop) {
       SL_TRACE(logger_, "Shutting down requested, but app is ready to stop");
       return;
