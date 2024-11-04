@@ -22,25 +22,17 @@
           # Override stdenv in order to change compiler:
           # stdenv = pkgs.clangStdenv;
         } {
-          packages = with pkgs;
-            [
-              clang-tools
-              oldpkgs.cmake
-              codespell
-              conan
-              cppcheck
-              doxygen
-              gtest
-              lcov
-              libseccomp
-              ncurses.dev
+          packages = with pkgs; [
+            clang-tools
+            oldpkgs.cmake
+            libseccomp
+            ncurses.dev
 
-              # Rust tools
-              rustup
-              cargo
-              rust-analyzer
-
-            ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
+            # Rust tools
+            rustup
+            cargo
+            rust-analyzer
+          ];
 
           shellHook = ''
             export RUSTUP_HOME="$PWD/.rustup"
