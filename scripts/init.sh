@@ -5,11 +5,11 @@ parent_dir=$(dirname "$current_dir")
 cd $parent_dir
 
 #include .env vars and optionally .rust_env vars
-set -a;
+set -a
 if [ -z "$FLAKE_INITIATED" ]; then
-    source $current_dir/.rust_env;
+    source $current_dir/.rust_env
 fi
-source $current_dir/.env;
+source $current_dir/.env
 set +a
 
 # if not using nix, install the following packages
