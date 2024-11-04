@@ -2847,7 +2847,6 @@ namespace kagome::parachain {
                 chunks_res.error());
         return;
       }
-      measure2.reset();
       auto &chunks = chunks_res.value();
 
       self->notifyAvailableData(std::move(chunks),
