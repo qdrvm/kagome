@@ -493,9 +493,16 @@ namespace kagome::parachain::grid {
       return recipients;
     }
     for (const auto &[v, k] : mutual_knowledge) {
-      if (k.local_knowledge
-          && !k.remote_knowledge->contains(originator_index_in_group,
-                                           statement_kind)) {
+      if (!k.local_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge->contains(originator_index_in_group,
+                                        statement_kind)) {
         recipients.push_back(v);
       }
     }

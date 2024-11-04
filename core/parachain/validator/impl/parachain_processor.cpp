@@ -1496,10 +1496,6 @@ namespace kagome::parachain {
   outcome::result<network::FetchChunkResponse>
   ParachainProcessorImpl::OnFetchChunkRequest(
       const network::FetchChunkRequest &request) {
-    SL_TRACE(logger_,
-             "===> REQUEST V2 CHUNK: candidate_hash={}, index={}",
-             request.candidate,
-             request.chunk_index);
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       return network::Chunk{
@@ -1514,10 +1510,6 @@ namespace kagome::parachain {
   outcome::result<network::FetchChunkResponseObsolete>
   ParachainProcessorImpl::OnFetchChunkRequestObsolete(
       const network::FetchChunkRequest &request) {
-    SL_TRACE(logger_,
-             "===> REQUEST V1 CHUNK: candidate_hash={}, index={}",
-             request.candidate,
-             request.chunk_index);
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       // This check needed because v1 protocol mustn't have chunk mapping
@@ -2847,8 +2839,6 @@ namespace kagome::parachain {
           .validation_data = std::move(data),
       };
 
-      auto measure2 =
-          std::make_shared<TicToc>("===> EC validation", self->logger_);
       auto chunks_res =
           self->validateErasureCoding(available_data, n_validators);
       if (chunks_res.has_error()) {

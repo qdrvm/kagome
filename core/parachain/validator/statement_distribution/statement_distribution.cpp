@@ -256,12 +256,7 @@ namespace kagome::parachain::statement_distribution {
     std::vector<RelayParentContext> new_contexts;
     new_contexts.reserve(new_relay_parents.size());
 
-    SL_TRACE(logger,
-             "===> (relay_parent={}, new_relay_parents={})",
-             event.new_head.hash(),
-             new_relay_parents.size());
     for (const auto &new_relay_parent : new_relay_parents) {
-      SL_TRACE(logger, "===> (new_relay_parent={})", new_relay_parent);
       std::optional<ValidatorIndex> v_index;
       if (auto res =
               signer_factory->getAuthorityValidatorIndex(new_relay_parent);
@@ -275,30 +270,6 @@ namespace kagome::parachain::statement_distribution {
         validator_index = utils::map(res.value(), [](const auto &signer) {
           return signer.validatorIndex();
         });
-      }
-
-      if (validator_index) {
-        SL_TRACE(logger,
-                 "===> (new_relay_parent={}, index={})",
-                 new_relay_parent,
-                 *validator_index);
-      } else {
-        SL_TRACE(logger,
-                 "===> (new_relay_parent={}, index={})",
-                 new_relay_parent,
-                 "NO");
-      }
-
-      if (v_index) {
-        SL_TRACE(logger,
-                 "===> (new_relay_parent={}, v_index={})",
-                 new_relay_parent,
-                 *v_index);
-      } else {
-        SL_TRACE(logger,
-                 "===> (new_relay_parent={}, v_index={})",
-                 new_relay_parent,
-                 "NO");
       }
 
       new_contexts.emplace_back(RelayParentContext{
