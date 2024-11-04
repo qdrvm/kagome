@@ -43,8 +43,8 @@
             ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
 
           shellHook = ''
-            export RUSTUP_HOME="~/.rustup"
-            export CARGO_HOME="~/.cargo"
+            export RUSTUP_HOME="$PWD/.rustup"
+            export CARGO_HOME="$PWD/.cargo"
             export PATH="$CARGO_HOME/bin:$PATH"
             export FLAKE_INITIATED=1
 
