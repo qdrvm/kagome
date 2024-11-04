@@ -6,16 +6,22 @@ cd $parent_dir
 
 set -a; source $current_dir/.env; set +a #include .env vars 
 
-apt update
-apt install --no-install-recommends -y \
-      build-essential git gcc ca-certificates python-is-python3 python3-pip \
-      python3-venv curl libgmp-dev libncurses6 libnsl-dev libseccomp-dev
+# if not using nix, install the following packages
+if [ -z "$FLAKE_INITIATED" ]; then
+    apt update
+    apt install --no-install-recommends -y \
+        build-essential git gcc ca-certificates python-is-python3 python3-pip \
+        python3-venv curl libgmp-dev libncurses6 libnsl-dev libseccomp-dev
+fi
 
 python3 -m venv "$parent_dir/venv"
-
 echo "Python environment created successfully in $parent_dir/venv"
 
-$parent_dir/venv/bin/pip install --no-cache-dir cmake==${CMAKE_VERSION} gitpython requests
+if [ -z "$FLAKE_INITIATED" ]; then
+    $parent_dir/venv/bin/pip install --no-cache-dir cmake==${CMAKE_VERSION} gitpython requests
 
-curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
-    rustup default ${RUST_VERSION}
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} &&
+        rustup default ${RUST_VERSION}
+else
+    $parent_dir/venv/bin/pip install --no-cache-dir gitpython requests
+fi
