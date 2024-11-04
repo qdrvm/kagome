@@ -16,7 +16,8 @@
 namespace kagome::parachain {
   class AvailabilityStoreImpl : public AvailabilityStore {
    public:
-    AvailabilityStoreImpl(clock::SteadyClock &steady_clock, std::shared_ptr<storage::SpacedStorage> storage);
+    AvailabilityStoreImpl(clock::SteadyClock &steady_clock,
+                          std::shared_ptr<storage::SpacedStorage> storage);
     ~AvailabilityStoreImpl() override = default;
     AvailabilityStoreImpl(std::shared_ptr<storage::SpacedStorage> storage);
 

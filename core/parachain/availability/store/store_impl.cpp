@@ -11,10 +11,9 @@ constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 10 * 60;
 
 namespace kagome::parachain {
   AvailabilityStoreImpl::AvailabilityStoreImpl(
-  	clock::SteadyClock &steady_clock,
+      clock::SteadyClock &steady_clock,
       std::shared_ptr<storage::SpacedStorage> storage)
-      : steady_clock_(steady_clock), storage_{std::move(storage)}
-       {
+      : steady_clock_(steady_clock), storage_{std::move(storage)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

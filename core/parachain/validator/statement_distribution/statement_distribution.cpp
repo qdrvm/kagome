@@ -353,10 +353,9 @@ namespace kagome::parachain::statement_distribution {
           disabled_validators_.begin(), disabled_validators_.end()};
       if (!disabled_validators.empty()) {
         SL_TRACE(logger,
-                "Disabled validators detected. (relay parent={})",
-                new_relay_parent);
+                 "Disabled validators detected. (relay parent={})",
+                 new_relay_parent);
       }
-
 
       auto per_session_state = per_session->get_or_insert(
           session_index,
@@ -1133,11 +1132,12 @@ namespace kagome::parachain::statement_distribution {
     }
 
     TRY_GET_OR_RET(parachain_state, tryGetStateByRelayParent(relay_parent));
-    TRY_GET_OR_RET(
-        group,
-        parachain_state->get().per_session_state->value().groups.get(group_index));
+    TRY_GET_OR_RET(group,
+                   parachain_state->get().per_session_state->value().groups.get(
+                       group_index));
 
-    [[maybe_unused]] const auto disabled_mask = parachain_state->get().disabled_bitmask(*group);
+    [[maybe_unused]] const auto disabled_mask =
+        parachain_state->get().disabled_bitmask(*group);
     const network::vstaging::AttestedCandidateResponse &response = r.value();
     SL_INFO(logger,
             "Fetch attested candidate success. (relay parent={}, "
