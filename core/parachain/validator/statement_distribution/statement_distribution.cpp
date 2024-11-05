@@ -1936,6 +1936,11 @@ namespace kagome::parachain::statement_distribution {
         } break;
       }
 
+      SL_TRACE(
+          logger,
+          "Mark message sent to for RP. (relay_parent={}, candidate_hash={})",
+          relay_parent,
+          candidate_hash);
       local_validator.grid_tracker.manifest_sent_to(
           relay_parent_state.per_session_state->value().groups,
           v,

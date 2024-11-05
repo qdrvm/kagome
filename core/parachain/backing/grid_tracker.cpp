@@ -155,17 +155,30 @@ namespace kagome::parachain::grid {
       manifest_allowed = sending_to && it != confirmed_backed.end()
                       && it->second.has_sent_manifest_to(sender);
       SL_TRACE(logger,
-               "Manifest acknowledgement allowed. (sending_to={}, "
+               "Manifest acknowledgement allowed. (sender={}, "
+               "candidate_hash={}, sending_to={}, "
                "has_confirmed_back={}, has_sent_manifest_to={})",
+               sender,
+               candidate_hash,
                sending_to ? "[yes]" : "[no]",
                (it != confirmed_backed.end()) ? "[yes]" : "[no]",
                (it != confirmed_backed.end()
                 && it->second.has_sent_manifest_to(sender))
                    ? "[yes]"
                    : "[no]");
+      if (it != confirmed_backed.end()) {
+        auto a = it->second.mutual_knowledge.find(sender);
+        SL_TRACE(
+            logger,
+            "Local knowledge. (has_mutual_knowledge={}, local_knowledge={})",
+            (a != it->second.mutual_knowledge.end()) ? "[yes]" : "[no]",
+            (a != it->second.mutual_knowledge.end()) && a->second.local_knowledge
+                ? "[yes]"
+                : "[no]");
+      }
     }
     if (!manifest_allowed) {
-      //return Error::DISALLOWED_DIRECTION;
+      return Error::DISALLOWED_DIRECTION;
     }
 
     auto group_size_backing_threshold =
@@ -278,6 +291,11 @@ namespace kagome::parachain::grid {
                                      const StatementFilter &local_knowledge) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
+      SL_TRACE(logger,
+               "Manifest sent to. (validator_index={}, candidate_hash={}, "
+               "local_knowledge=[yes])",
+               validator_index,
+               candidate_hash);
       confirmed->second.manifest_sent_to(validator_index, local_knowledge);
       auto ps = confirmed->second.pending_statements(validator_index);
       if (ps) {
