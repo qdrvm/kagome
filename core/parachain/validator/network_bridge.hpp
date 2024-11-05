@@ -20,9 +20,10 @@ namespace kagome::parachain {
     NetworkBridge(
         common::MainThreadPool &main_thread_pool,
         std::shared_ptr<network::PeerManager> peer_manager,
-        std::shared_ptr<application::AppStateManager> app_state_manager)
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        primitives::events::PeerSubscriptionEnginePtr peer_event_engine)
         : main_pool_handler_(main_thread_pool.handler(*app_state_manager)),
-          pm_(std::move(peer_manager)) {}
+          pm_(std::move(peer_manager)), peer_event_engine_(std::move(peer_event_engine)) {}
 
     template <typename MessageType>
     void send_to_peer(const libp2p::peer::PeerId &peer,
@@ -104,7 +105,10 @@ namespace kagome::parachain {
               stream_engine->addOutgoing(std::move(stream_result.value()),
                                          protocol);
 
+
               std::forward<F>(callback)();
+              self->peer_event_engine_->notify(
+                  primitives::events::PeerEventType::kConnected, peer_id);
             });
         return true;
       }
@@ -116,6 +120,7 @@ namespace kagome::parachain {
     log::Logger logger = log::createLogger("NetworkBridge", "parachain");
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<network::PeerManager> pm_;
+    primitives::events::PeerSubscriptionEnginePtr peer_event_engine_;
   };
 
 }  // namespace kagome::parachain

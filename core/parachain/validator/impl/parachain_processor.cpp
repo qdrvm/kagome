@@ -158,7 +158,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<statement_distribution::StatementDistribution> sd)
+      std::shared_ptr<statement_distribution::StatementDistribution> sd, primitives::events::PeerSubscriptionEnginePtr peer_event_engine)
       : pm_(std::move(pm)),
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
@@ -184,7 +184,7 @@ namespace kagome::parachain {
         prospective_parachains_{std::move(prospective_parachains)},
         block_tree_{std::move(block_tree)},
         statement_distribution(std::move(sd)),
-        per_session(RefCache<SessionIndex, PerSessionState>::create()) {
+        per_session(RefCache<SessionIndex, PerSessionState>::create()), peer_event_engine_(std::move(peer_event_engine)) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -2465,6 +2465,9 @@ namespace kagome::parachain {
                   UNREACHABLE;
                 } break;
               }
+
+              self->peer_event_engine_->notify(
+                  primitives::events::PeerEventType::kConnected, peer_id);
             })) {
       logger_->debug("Initiated validation protocol with {}", peer_id);
     }
