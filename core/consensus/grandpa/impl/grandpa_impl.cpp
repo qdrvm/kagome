@@ -431,7 +431,7 @@ namespace kagome::consensus::grandpa {
         // If peer is not validator, ignore it
         if (auto peer_state = peer_manager_->getPeerState(peer_id);
             peer_state.has_value()
-            && peer_state.value().get().roles.isAuthority()) {
+            && not peer_state.value().get().roles.isAuthority()) {
           SL_INFO(logger_,
                   "Catch-up request to round #{} will not be sent to {}",
                   current_round_->roundNumber(),
