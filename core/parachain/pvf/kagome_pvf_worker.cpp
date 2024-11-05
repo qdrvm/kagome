@@ -15,7 +15,6 @@
 
 #ifdef __linux__
 #include <linux/landlock.h>
-#include <linux/types.h>
 #include <sched.h>
 #include <seccomp.h>
 #include <sys/mount.h>
@@ -167,43 +166,35 @@ namespace kagome::parachain {
       return getLastErr("landlock_create_ruleset");
     }
 
-    __u64 access_fs =
-        LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_WRITE_FILE
-        | LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR
-        | LANDLOCK_ACCESS_FS_REMOVE_DIR | LANDLOCK_ACCESS_FS_REMOVE_FILE
-        | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR
-        | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK
-        | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
-        | LANDLOCK_ACCESS_FS_MAKE_SYM;
+    struct landlock_ruleset_attr ruleset_attr = {
+        .handled_access_fs =
+            LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_WRITE_FILE
+            | LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR
+            | LANDLOCK_ACCESS_FS_REMOVE_DIR | LANDLOCK_ACCESS_FS_REMOVE_FILE
+            | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR
+            | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK
+            | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
+            | LANDLOCK_ACCESS_FS_MAKE_SYM};
 
 #ifdef LANDLOCK_ACCESS_FS_REFER
     if (abi >= 2) {
       SL_INFO(logger, "Adding FS REFER", abi);
-      access_fs |= LANDLOCK_ACCESS_FS_REFER;
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_REFER;
     }
 #endif
 #ifdef LANDLOCK_ACCESS_FS_TRUNCATE
     if (abi >= 3) {
       SL_INFO(logger, "Adding FS TRUNCATE");
-      access_fs |= LANDLOCK_ACCESS_FS_TRUNCATE;
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_TRUNCATE;
     }
 #endif
 #ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
-    __u64 access_net = 0;
     if (abi >= 4) {
       SL_INFO(logger, "Adding NET TCP");
-      access_net =
+      ruleset_attr.handled_access_net =
           LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP;
     }
 #endif
-
-    struct landlock_ruleset_attr ruleset_attr = {
-        .handled_access_fs = access_fs
-#ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
-        ,
-        .handled_access_net = access_net
-#endif
-    };
 
     auto ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
