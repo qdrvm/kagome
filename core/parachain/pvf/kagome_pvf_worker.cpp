@@ -178,19 +178,16 @@ namespace kagome::parachain {
 
 #ifdef LANDLOCK_ACCESS_FS_REFER
     if (abi >= 2) {
-      SL_INFO(logger, "Adding FS REFER", abi);
       ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_REFER;
     }
 #endif
 #ifdef LANDLOCK_ACCESS_FS_TRUNCATE
     if (abi >= 3) {
-      SL_INFO(logger, "Adding FS TRUNCATE");
       ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_TRUNCATE;
     }
 #endif
 #ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
     if (abi >= 4) {
-      SL_INFO(logger, "Adding NET TCP");
       ruleset_attr.handled_access_net =
           LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP;
     }
