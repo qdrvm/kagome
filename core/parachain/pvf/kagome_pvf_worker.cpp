@@ -182,8 +182,8 @@ namespace kagome::parachain {
 #ifdef LANDLOCK_ACCESS_FS_TRUNCATE
             | LANDLOCK_ACCESS_FS_TRUNCATE
 #endif
-        ,
 #ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
+        ,
         .handled_access_net =
             LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP,
 #endif
