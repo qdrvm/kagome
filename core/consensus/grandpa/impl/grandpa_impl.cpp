@@ -428,6 +428,16 @@ namespace kagome::consensus::grandpa {
       // Check if needed to catch-up peer, then do that
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
+        // If peer is not validator, ignore it
+        if (auto peer_state = peer_manager_->getPeerState(peer_id);
+            peer_state.has_value()
+            && peer_state.value().get().roles.isAuthority()) {
+          SL_INFO(logger_,
+                  "Catch-up request to round #{} will not be sent to {}",
+                  current_round_->roundNumber(),
+                  peer_id);
+          return;
+        }
         // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.contains(peer_id)) {
           environment_->onCatchUpRequested(
