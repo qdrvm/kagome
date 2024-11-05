@@ -176,6 +176,8 @@ namespace kagome::parachain {
             | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
             | LANDLOCK_ACCESS_FS_MAKE_SYM};
 
+    // only add Landlock V2+ features if defined and supported by the (runtime)
+    // kernel
 #ifdef LANDLOCK_ACCESS_FS_REFER
     if (abi >= 2) {
       ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_REFER;
