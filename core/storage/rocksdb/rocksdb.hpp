@@ -10,7 +10,6 @@
 
 #include <rocksdb/db.h>
 #include <rocksdb/table.h>
-#include <rocksdb/utilities/db_ttl.h>
 #include <boost/container/flat_map.hpp>
 
 #include "filesystem/common.hpp"
@@ -49,8 +48,7 @@ namespace kagome::storage {
         const filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
         uint32_t memory_budget_mib = kDefaultStateCacheSizeMiB,
-        bool prevent_destruction = false,
-        const std::unordered_map<std::string, int32_t>& column_ttl = {});
+        bool prevent_destruction = false);
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
 
@@ -79,7 +77,7 @@ namespace kagome::storage {
 
     static rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget);
 
-    rocksdb::DBWithTTL *db_{};
+    rocksdb::DB *db_{};
     std::vector<ColumnFamilyHandlePtr> column_family_handles_;
     boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
     rocksdb::ReadOptions ro_;
