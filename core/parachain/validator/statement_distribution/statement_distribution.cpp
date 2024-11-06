@@ -1637,20 +1637,27 @@ namespace kagome::parachain::statement_distribution {
       return {};
     }
 
+    auto &local_validator = *relay_parent_state->get().local_validator;
     auto sender_index = [&]() -> std::optional<ValidatorIndex> {
       const auto &sub = grid_topology[manifest_summary.claimed_group_index];
       const auto &iter = (manifest_kind == grid::ManifestKind::Full)
                            ? sub.receiving
                            : sub.sending;
-      if (!iter.empty()) {
-        return *iter.begin();
+
+      for (const auto v : iter) {
+        if (local_validator.grid_tracker.can_request(v, candidate_hash)) {
+          return v;
+        }
       }
-
-
       return {};
     }();
 
     if (!sender_index) {
+      SL_TRACE(
+          logger,
+          "Sender not found. (relay_parent={}, candidate_hash={})",
+          relay_parent,
+          candidate_hash);
       return {};
     }
 
@@ -1671,7 +1678,6 @@ namespace kagome::parachain::statement_distribution {
     manifest_summary.statement_knowledge.mask_valid(disabled_mask);
 
     const auto seconding_limit = relay_parent_state->get().seconding_limit;
-    auto &local_validator = *relay_parent_state->get().local_validator;
 
     SL_TRACE(
         logger,
