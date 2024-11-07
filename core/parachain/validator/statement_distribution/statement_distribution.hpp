@@ -346,7 +346,6 @@ namespace kagome::parachain::statement_distribution {
                                           const network::View &view);
 
     void on_peer_connected(const libp2p::peer::PeerId &peer);
-    void on_peer_connected_internal(const libp2p::peer::PeerId &peer);
     void on_peer_disconnected(const libp2p::peer::PeerId &peer);
 
    private:

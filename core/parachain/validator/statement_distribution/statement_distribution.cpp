@@ -220,21 +220,7 @@ namespace kagome::parachain::statement_distribution {
 
   void StatementDistribution::on_peer_connected(
       const libp2p::peer::PeerId &peer) {
-    BOOST_ASSERT(main_pool_handler->isInCurrentThread());
-//    if (auto my_view = peer_view->getMyView()) {
-//      auto message = std::make_shared<
-//          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-//          network::ViewUpdate{
-//              .view = my_view->get().view
-//          });
-//      network_bridge->send_to_peer(peer, router->getValidationProtocolVStaging(), message);
-//    }
-    on_peer_connected_internal(peer);
-  }
-
-  void StatementDistribution::on_peer_connected_internal(
-      const libp2p::peer::PeerId &peer) {
-    REINVOKE(*statements_distribution_thread_handler, on_peer_connected_internal, peer);
+    REINVOKE(*statements_distribution_thread_handler, on_peer_connected, peer);
     auto _ = peers[peer];
   }
 
@@ -1919,7 +1905,7 @@ namespace kagome::parachain::statement_distribution {
       auto peer_opt = query_audi->get(session_info.discovery_keys[v]);
       if (!peer_opt) {
         SL_TRACE(logger,
-                 "No audi. (relay_parent={}, validator_index={}, "
+                 "No peer info. (relay_parent={}, validator_index={}, "
                  "candidate_hash={})",
                  relay_parent,
                  v,
@@ -1930,20 +1916,20 @@ namespace kagome::parachain::statement_distribution {
       auto peer_state = utils::get(peers, peer_opt->id);
       if (!peer_state) {
         SL_TRACE(logger,
-                 "No peer state. (relay_parent={}, peer={}, candidate_hash={}, validator_index={})",
+                 "No peer state. (relay_parent={}, peer={}, candidate_hash={})",
                  relay_parent,
                  peer_opt->id,
-                 candidate_hash, v);
+                 candidate_hash);
         continue;
       }
 
       if (!peer_state->get().knows_relay_parent(relay_parent)) {
         SL_TRACE(logger,
                  "Peer doesn't know relay parent. (relay_parent={}, peer={}, "
-                 "candidate_hash={}, validator_index={})",
+                 "candidate_hash={})",
                  relay_parent,
                  peer_opt->id,
-                 candidate_hash, v);
+                 candidate_hash);
         continue;
       }
 

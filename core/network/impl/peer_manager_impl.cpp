@@ -864,6 +864,8 @@ namespace kagome::network {
               }
             }
 
+            self->peer_event_engine_->notify(
+                primitives::events::PeerEventType::kConnected, peer_info.id);
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             auto beefy_protocol = std::static_pointer_cast<BeefyProtocolImpl>(
                 self->router_->getBeefyProtocol());
