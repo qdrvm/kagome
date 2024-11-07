@@ -603,6 +603,7 @@ namespace kagome::parachain::statement_distribution {
         network::ViewUpdate{
             .view = view,
         });
+    network_bridge->connect_to_peers(peers_to_send);
     network_bridge->send_to_peers(
         peers_to_send, router->getValidationProtocolVStaging(), message);
     return outcome::success();
@@ -1639,11 +1640,10 @@ namespace kagome::parachain::statement_distribution {
     }();
 
     if (!sender_index) {
-      SL_TRACE(
-          logger,
-          "Sender not found. (relay_parent={}, candidate_hash={})",
-          relay_parent,
-          candidate_hash);
+      SL_TRACE(logger,
+               "Sender not found. (relay_parent={}, candidate_hash={})",
+               relay_parent,
+               candidate_hash);
       return {};
     }
 

@@ -172,7 +172,8 @@ namespace kagome::parachain::grid {
             logger,
             "Local knowledge. (has_mutual_knowledge={}, local_knowledge={})",
             (a != it->second.mutual_knowledge.end()) ? "[yes]" : "[no]",
-            (a != it->second.mutual_knowledge.end()) && a->second.local_knowledge
+            (a != it->second.mutual_knowledge.end())
+                    && a->second.local_knowledge
                 ? "[yes]"
                 : "[no]");
       }
