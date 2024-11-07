@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/backed_chain.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT BackedChain
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "BackedChain"
 
 namespace kagome::parachain::fragment {
 

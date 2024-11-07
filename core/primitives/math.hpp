@@ -7,8 +7,8 @@
 #pragma once
 
 #include <bit>
-#include <optional>
 #include <limits>
+#include <optional>
 #include <type_traits>
 
 #include "macro/endianness_utils.hpp"
@@ -40,12 +40,14 @@ namespace kagome::math {
     return res;
   }
 
-  template <typename T> requires std::is_arithmetic_v<T>
+  template <typename T>
+    requires std::is_arithmetic_v<T>
   inline constexpr T wrapped_shl(T x, T rhs) {
     return (x << rhs);
   }
 
-  template <typename T> requires std::is_arithmetic_v<T>
+  template <typename T>
+    requires std::is_arithmetic_v<T>
   inline constexpr std::optional<T> checked_mul(T x, T y) {
     T z;
     return (!__builtin_mul_overflow(x, y, &z) ? z : std::optional<T>());

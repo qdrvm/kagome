@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/scope.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT Scope
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "Scope"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment, Scope::Error, e) {
   using E = kagome::parachain::fragment::Scope::Error;

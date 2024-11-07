@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/fragment.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT Fragment
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "Fragment"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment, Fragment::Error, e) {
   using E = decltype(e);

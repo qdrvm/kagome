@@ -4,14 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <iostream>
-#include <cstdio>
-#include <iterator>
-#include <fstream>
-#include <vector>
-#include <algorithm> // for std::copy
 #include <gtest/gtest.h>
+#include <algorithm>  // for std::copy
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <vector>
 #include "primitives/math.hpp"
+#include "pvm/config.hpp"
 #include "pvm/sections.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -57,13 +58,15 @@ TEST(PvmTest, test_blog_1) {
 }
 
 TEST(PvmTest, doom) {
-  std::unique_ptr<FILE, decltype(&std::fclose)> fp(std::fopen("/home/iceseer/Work/kagome/test/pvm/doom/doom.polkavm", "r"), &std::fclose);
+  std::unique_ptr<FILE, decltype(&std::fclose)> fp(
+      std::fopen("/home/iceseer/Work/kagome/test/pvm/doom/doom.polkavm", "r"),
+      &std::fclose);
 
   std::vector<uint8_t> program;
   program.resize(10 * 1024 * 1024);
 
-  std::ignore = std::fread(&program[0], sizeof(program[0]), program.size(), fp.get());
+  std::ignore =
+      std::fread(&program[0], sizeof(program[0]), program.size(), fp.get());
   EXPECT_OUTCOME_TRUE(program_blob,
                       ProgramBlob::create_from(std::move(program)));
 }
-

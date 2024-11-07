@@ -7,8 +7,7 @@
 #include "pvm/errors.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT PVM
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "PVM"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
   using E = kagome::pvm::Error;
@@ -51,6 +50,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
       return COMPONENT_NAME ": Debug line programs section duplicated";
     case E::DEBUG_LINE_PROGRAM_RANGES_SECTION_DUPLICATED:
       return COMPONENT_NAME ": Debug line program ranges section duplicated";
+    case E::UNSUPPORTED_BACKEND_KIND:
+      return COMPONENT_NAME ": Unsupported backend kind";
+    case E::UNSUPPORTED_SANDBOX:
+      return COMPONENT_NAME ": Unsupported sandbox";
   }
   return COMPONENT_NAME ": Unknown error";
 }

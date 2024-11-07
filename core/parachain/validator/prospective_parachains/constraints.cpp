@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/common.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT Constraints
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "Constraints"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
                             Constraints::Error,

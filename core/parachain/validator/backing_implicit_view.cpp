@@ -13,8 +13,7 @@
 #include "primitives/math.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT BackingImplicitView
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "BackingImplicitView"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
   using E = decltype(e);

@@ -7,8 +7,7 @@
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "utils/stringify.hpp"
 
-#define COMPONENT ProspectiveParachains
-#define COMPONENT_NAME STRINGIFY(COMPONENT)
+#define COMPONENT_NAME "ProspectiveParachains"
 
 template <>
 struct fmt::formatter<
