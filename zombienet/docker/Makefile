@@ -10,10 +10,14 @@ GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
+# Generated versions
+OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
+
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
-RUST_IMAGE=rust
-RUST_IMAGE_TAG=1.81-slim-bookworm
+RUST_VERSION ?= 1.81.0
 SCCACHE_VERSION ?= 0.7.4
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
@@ -110,8 +114,9 @@ polkadot_builder:
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		-f polkadot_builder.Dockerfile \
-		--build-arg RUST_IMAGE=$(RUST_IMAGE) \
-		--build-arg RUST_IMAGE_TAG=$(RUST_IMAGE_TAG) \
+		--build-arg RUST_VERSION=$(RUST_VERSION) \
+		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \
