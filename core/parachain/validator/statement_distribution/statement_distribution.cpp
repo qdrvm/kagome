@@ -809,7 +809,6 @@ namespace kagome::parachain::statement_distribution {
         return;
       }
 
-      validator_id = v;
       if (active
           and active->cluster_tracker.can_request(v, request.candidate_hash)) {
         validator_id = v;
