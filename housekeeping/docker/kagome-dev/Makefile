@@ -23,8 +23,9 @@ BUILD_TYPE ?= Release
 OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
-BUILDER_IMAGE_TAG = $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
+BUILDER_IMAGE_TAG ?= $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
 BUILDER_LATEST_TAG ?= latest
+DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
 
 # kagome_dev_docker_build Variables
 BUILD_DIR ?= build
@@ -79,12 +80,69 @@ kagome_builder_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG)
 
 kagome_builder_push_dockerhub:
-	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_IMAGE_TAG) ; \
-	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_LATEST_TAG) ; \
-	docker push $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_IMAGE_TAG) ; \
-	docker push $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_LATEST_TAG)
+	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) ; \
+	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) $(DOCKERHUB_BUILDER_PATH):$(BUILDER_LATEST_TAG) ; \
+	docker push $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) ; \
+	docker push $(DOCKERHUB_BUILDER_PATH):$(BUILDER_LATEST_TAG)
 
 kagome_dev_docker_build:
+	$(MAKE) get_versions
+	mkdir -p \
+		$(CACHE_DIR)/.cargo/git \
+		$(CACHE_DIR)/.cargo/registry \
+		$(CACHE_DIR)/.hunter \
+		$(CACHE_DIR)/.cache/ccache  ; \
+	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
+	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
+	DOCKER_EXEC_RESULT=0 ; \
+	echo "Build type: $(BUILD_TYPE)"; \
+	docker run -d --name $$CONTAINER_NAME \
+		--platform $(PLATFORM) \
+		--entrypoint "/bin/bash" \
+		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
+		-e BUILD_TYPE=$(BUILD_TYPE) \
+		-e BUILD_THREADS=$$BUILD_THREADS \
+		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
+		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
+		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
+		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
+		-v $$(pwd)/../../../../kagome:/opt/kagome \
+		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
+		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
+		-v $(CACHE_DIR)/.hunter:/root/.hunter \
+		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
+		$kagome_builder:$(BUILDER_IMAGE_TAG) \
+		-c "tail -f /dev/null"; \
+	docker exec -t $$CONTAINER_NAME /bin/bash -c \
+		"cd /opt/kagome && \
+		git config --global --add safe.directory /opt/kagome && \
+		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
+		source /venv/bin/activate && \
+		git submodule update --init && \
+		echo \"Building in $$(pwd)\" && \
+		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
+		mkdir -p /tmp/kagome && \
+		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
+		cd /opt/kagome/housekeeping/docker/kagome-dev && \
+		./build_apt_package.sh \
+			\"$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)\" \
+			$(PACKAGE_ARCHITECTURE) \
+			kagome-dev \
+			/tmp/kagome \
+			'Kagome Dev Debian Package' \
+			'$(DEPENDENCIES)' ; \
+		" || DOCKER_EXEC_RESULT=$$? ; \
+	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
+		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
+		docker stop $$CONTAINER_NAME; \
+		exit $$DOCKER_EXEC_RESULT; \
+	fi; \
+	docker stop $$CONTAINER_NAME
+
+kagome_dev_docker_build_tidy_inhouse:
 	$(MAKE) get_versions
 	mkdir -p \
 		$(CACHE_DIR)/.cargo/git \
@@ -115,24 +173,16 @@ kagome_dev_docker_build:
 		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
-		"cd /opt/kagome && \
+		"clang --version && \
+		cd /opt/kagome && \
 		git config --global --add safe.directory /opt/kagome && \
 		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
-		mkdir -p /tmp/kagome && \
-		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
-		cd /opt/kagome/housekeeping/docker/kagome-dev && \
-		./build_apt_package.sh \
-			\"$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)\" \
-			$(PACKAGE_ARCHITECTURE) \
-			kagome-dev \
-			/tmp/kagome \
-			'Kagome Dev Debian Package' \
-			'$(DEPENDENCIES)' ; \
+		cmake --build \"$(BUILD_DIR)\" --target generated -- -j${BUILD_THREADS} && \
+		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -164,12 +214,11 @@ kagome_dev_docker_build_tidy:
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
-		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
 		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
-		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
+		$(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"clang --version && \
