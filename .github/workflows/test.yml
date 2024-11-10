@@ -271,11 +271,11 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Self-hosted: Minideb: Build Debug"
+          - name: "Self-hosted docker: Build Debug"
             build_type: "Debug"
-          - name: "Self-hosted: Minideb: Build Release"
+          - name: "Self-hosted docker: Build Release"
             build_type: "Release"
-          - name: "Self-hosted: Minideb: Build RelWithDebInfo"
+          - name: "Self-hosted docker: Build RelWithDebInfo"
             build_type: "RelWithDebInfo"
     name: "${{ matrix.options.name }}"
 

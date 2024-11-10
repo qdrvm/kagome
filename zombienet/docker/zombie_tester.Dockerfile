@@ -1,6 +1,7 @@
 ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
+ARG BASE_IMAGE_TAG
 ARG RUST_VERSION=1.81.0
 
 ARG PROJECT_ID
@@ -12,7 +13,7 @@ ARG REGION=europe-north1
 ARG ARCHITECTURE=x86_64
 
 
-FROM ${BASE_IMAGE} as zombie-tester
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS zombie-tester
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -42,7 +43,10 @@ RUN install_packages  \
         gnupg2 \
         curl
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
 
 RUN mkdir -p /home/nonroot/bin
     
@@ -127,9 +131,7 @@ RUN install_packages  \
       libtinfo6 \
       libseccomp2 \
       libatomic1 \
-      ssh
-
-# temporary fix for libc6 (gcc-13)
-# TODO: remove when CI swithed to trixie
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list && apt update
-RUN apt install -y libc6 libstdc++6 libgcc-s1 -t trixie
+      ssh \
+      libc6 \
+      libstdc++6 \
+      libgcc-s1

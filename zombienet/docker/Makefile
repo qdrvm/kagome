@@ -1,6 +1,9 @@
 # Shared Environment Variables
 # bookworm (Debian 12)
 MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+OS_IMAGE_NAME ?= ubuntu
+OS_IMAGE_TAG ?= 24.04
+OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
 GOOGLE_APPLICATION_CREDENTIALS ?=
@@ -9,7 +12,8 @@ ARCHITECTURE ?= amd64
 
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
-RUST_IMAGE=rust:1.81-slim-bookworm
+RUST_IMAGE=rust
+RUST_IMAGE_TAG=1.81-slim-bookworm
 SCCACHE_VERSION ?= 0.7.4
 
 # polkadot_binary Variables
@@ -34,7 +38,8 @@ HOST_LOGS_PATH ?= /tmp/test_logs
 CONTAINER_NAME ?= zombienet-test
 
 # tests Variables
-ZOMBIE_TESTER_IMAGE ?= zombie_tester:latest
+ZOMBIE_TESTER_IMAGE_TAG ?= latest
+ZOMBIE_TESTER_IMAGE ?= zombie_tester:$(ZOMBIE_TESTER_IMAGE_TAG)
 KAGOME_PACKAGE_VERSION ?=
 WORKING_DIR := $(shell pwd)/../../../kagome
 DELETE_IMAGE_AFTER_TEST ?= true
@@ -104,6 +109,7 @@ polkadot_builder:
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:latest \
 		-f polkadot_builder.Dockerfile \
 		--build-arg RUST_IMAGE=$(RUST_IMAGE) \
+		--build-arg RUST_IMAGE_TAG=$(RUST_IMAGE_TAG) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \

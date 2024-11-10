@@ -66,7 +66,7 @@ kagome_builder_deb:
 	docker build --platform $(PLATFORM) \
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) \
-    		-f kagome_builder_deb.Dockerfile \
+    		-f kagome_builder.Dockerfile \
     		--build-arg RUST_VERSION=$(RUST_VERSION) \
     		--build-arg GCC_VERSION=$(GCC_VERSION) \
     		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
@@ -253,7 +253,7 @@ kagome_image_build:
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
-		-f minideb.Dockerfile \
+		-f kagome_runner.Dockerfile \
 		--build-arg BASE_IMAGE=$(OS_IMAGE) \
 		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
 		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \

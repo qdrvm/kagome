@@ -1,6 +1,7 @@
 ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
+ARG BASE_IMAGE_TAG
 
 ARG PROJECT_ID
 
@@ -9,7 +10,7 @@ ARG ARCHITECTURE=x86_64
 
 ARG KAGOME_PACKAGE_VERSION
 
-FROM ${BASE_IMAGE} AS base
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS base
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -26,7 +27,10 @@ RUN install_packages \
         gpg-agent \
         tini
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
 
 # Setup enterprise repository
 
@@ -65,10 +69,10 @@ RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
         kagome-dev=${KAGOME_PACKAGE_VERSION} && \
         sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
-# temporary fix for libc6 (gcc-13)
-# TODO: remove when CI swithed to trixie
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list && apt update
-RUN apt install -y libc6 libstdc++6 libgcc-s1 -t trixie
+RUN install_packages \
+    libc6 \
+    libstdc++6 \
+    libgcc-s1 
 
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
 

@@ -5,8 +5,9 @@ ARG SCCACHE_VERSION
 
 ARG POLKADOT_SDK_RELEASE
 ARG RUST_IMAGE
+ARG RUST_IMAGE_TAG
 
-FROM ${RUST_IMAGE} AS polkadot-sdk-builder
+FROM ${RUST_IMAGE}:${RUST_IMAGE_TAG} AS polkadot-sdk-builder
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -14,7 +15,7 @@ LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Polkadot SDK builder image"
 
 WORKDIR /home/nonroot/
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG POLKADOT_SDK_RELEASE
 ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE

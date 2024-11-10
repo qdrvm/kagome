@@ -19,15 +19,15 @@ LABEL org.opencontainers.image.description="Kagome builder image"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
 ARG OS_REL_VERSION
 ENV OS_REL_VERSION=${OS_REL_VERSION}
 ARG LLVM_VERSION
 ENV LLVM_VERSION=${LLVM_VERSION}
 ARG GCC_VERSION
 ENV GCC_VERSION=${GCC_VERSION}
-
-COPY install_packages /usr/sbin/install_packages
-RUN chmod 0755 /usr/sbin/install_packages
 
 RUN install_packages \
         apt-transport-https \
