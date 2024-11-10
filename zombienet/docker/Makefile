@@ -15,6 +15,8 @@ POLKADOT_SDK_TAG ?=
 RUST_IMAGE=rust
 RUST_IMAGE_TAG=1.81-slim-bookworm
 SCCACHE_VERSION ?= 0.7.4
+BUILDER_LATEST_TAG ?= latest
+TESTER_LATEST_TAG ?= latest
 
 # polkadot_binary Variables
 SCCACHE_GCS_BUCKET ?=
@@ -106,7 +108,7 @@ polkadot_builder:
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker build --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:latest \
+		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		-f polkadot_builder.Dockerfile \
 		--build-arg RUST_IMAGE=$(RUST_IMAGE) \
 		--build-arg RUST_IMAGE_TAG=$(RUST_IMAGE_TAG) \
@@ -120,7 +122,7 @@ polkadot_builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
-		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
+		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
@@ -191,7 +193,7 @@ zombie_tester:
 		docker build \
 			--platform $(PLATFORM) \
 			--no-cache \
-			-t $(DOCKER_REGISTRY_PATH)zombie_tester:latest \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) \
 			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
 			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 			-f zombie_tester.Dockerfile \
@@ -209,7 +211,7 @@ zombie_tester_push:
 		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
-		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:latest ; \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) ; \
 	else \
 		echo "One or more files are missing."; \
 	fi

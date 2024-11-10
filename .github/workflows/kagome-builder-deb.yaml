@@ -17,12 +17,12 @@ on:
         default: 'false'
         type: 'boolean'
       runtime_cache_rebuild:
-        description: 'Rebuild Kagome Runtime Cache'
+        description: 'Rebuild Kagome Runtime cache'
         required: false
         default: 'false'
         type: 'boolean'
       builder_latest_tag:
-        description: 'Custom builder latest tag'
+        description: 'Custom Kagome Builder tag'
         default: 'latest'
         required: false
         type: 'string'

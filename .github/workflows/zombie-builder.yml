@@ -30,6 +30,11 @@ on:
         description: 'Custom Polkadot SDK tag'
         required: false
         type: 'string'
+      builder_latest_tag:
+        description: 'Custom Polkadot Builder tag'
+        default: 'latest'
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -38,6 +43,7 @@ env:
   CACHE_VERSION: v001
   CACHE_PATHS: ./zombienet/docker/cargo
   POLKADOT_SDK_TAG: ${{ github.event.inputs.polkadot_sdk_tag }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag }}
 
 jobs:
   build_polkadot_builder:
@@ -79,6 +85,7 @@ jobs:
         if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
         run: make polkadot_builder \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+          BUILDER_LATEST_TAG=${BUILDER_LATEST_TAG}
         
       - name: "Push Polkadot Builder"
         working-directory: ./zombienet/docker
