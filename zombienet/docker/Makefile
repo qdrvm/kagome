@@ -1,6 +1,6 @@
 # Shared Environment Variables
-# bookworm (Debian 12)
-MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+# trixie (Debian 13)
+MINIDEB_IMAGE ?= debian:trixie-slim@sha256:c63174f799a74411a0290f25086fdc5dc939aa1f8971a16ad6fb1b7658a25126
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
 GOOGLE_APPLICATION_CREDENTIALS ?=
