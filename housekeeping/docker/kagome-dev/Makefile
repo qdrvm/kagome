@@ -25,6 +25,7 @@ OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 BUILDER_IMAGE_TAG ?= $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
 BUILDER_LATEST_TAG ?= latest
+TESTER_LATEST_TAG ?= latest
 DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
 
 # kagome_dev_docker_build Variables
@@ -258,7 +259,7 @@ runtime_cache:
 		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
-		$(DOCKER_REGISTRY_PATH)zombie_tester:latest \
+		$(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome/zombienet && \

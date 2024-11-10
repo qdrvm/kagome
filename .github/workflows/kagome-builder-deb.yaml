@@ -26,10 +26,16 @@ on:
         default: 'latest'
         required: false
         type: 'string'
+      zombie_tester_latest_tag:
+        description: 'Custom Zombie Tester tag'
+        default: 'latest'
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag }}
 
 jobs:
   build_kagome_builder:
@@ -117,7 +123,8 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         if: github.event.inputs.runtime_cache_rebuild == 'true'
         run: make runtime_cache \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          TESTER_LATEST_TAG=${{ env.TESTER_LATEST_TAG }}
 
       - name: "Push Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev
