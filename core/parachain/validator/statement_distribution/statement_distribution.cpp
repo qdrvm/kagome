@@ -1632,10 +1632,8 @@ namespace kagome::parachain::statement_distribution {
                            ? sub.receiving
                            : sub.sending;
 
-      for (const auto v : iter) {
-        if (local_validator.grid_tracker.can_request(v, candidate_hash)) {
-          return v;
-        }
+      if (!iter.empty()) {
+        return *iter.begin();
       }
       return {};
     }();
