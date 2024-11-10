@@ -248,7 +248,7 @@ upload_apt_package:
 
 runtime_cache:
 	CONTAINER_NAME=kagome_dev_runtime_cache_$$(openssl rand -hex 6); \
-	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py)-$$(date +'%y.%m.%d'); \
+	RUNTIME_VERSION=$$(date +'%y.%m.%d')-$$(python3 get_wasmedge_version.py); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Runtime version: $$RUNTIME_VERSION"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -286,7 +286,7 @@ runtime_cache:
 	docker stop $$CONTAINER_NAME
 
 upload_apt_package_runtime:
-	RUNTIME_VERSION=$$(python3 get_wasmedge_version.py)-$$(date +'%y.%m.%d'); \
+	RUNTIME_VERSION=$$(date +'%y.%m.%d')-$$(python3 get_wasmedge_version.py); \
 	echo "Runtime version: $$RUNTIME_VERSION"; \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
