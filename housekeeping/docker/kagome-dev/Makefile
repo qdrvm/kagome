@@ -78,6 +78,12 @@ kagome_builder_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) ; \
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG)
 
+kagome_builder_push_dockerhub:
+	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_IMAGE_TAG) ; \
+	docker tag $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_LATEST_TAG) ; \
+	docker push $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_IMAGE_TAG) ; \
+	docker push $(DOCKERHUB_REGISTRY_PATH)_builder:$(BUILDER_LATEST_TAG)
+
 kagome_dev_docker_build:
 	$(MAKE) get_versions
 	mkdir -p \
