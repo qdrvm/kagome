@@ -17,8 +17,12 @@ ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Kagome image"
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN install_packages \
-        bash \
         software-properties-common \
         curl \
         wget \
@@ -26,11 +30,6 @@ RUN install_packages \
         gpg \
         gpg-agent \
         tini
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-COPY install_packages /usr/sbin/install_packages
-RUN chmod 0755 /usr/sbin/install_packages
 
 # Setup enterprise repository
 

@@ -202,8 +202,10 @@ zombie_tester:
 			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
 			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 			-f zombie_tester.Dockerfile \
-			--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
+			--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+			--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 			--build-arg PROJECT_ID=$$PROJECT_ID \
+			--build-arg RUST_VERSION=$(RUST_VERSION) \
 			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
 			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
 			--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \

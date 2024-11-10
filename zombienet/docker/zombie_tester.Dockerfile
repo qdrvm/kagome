@@ -2,7 +2,7 @@ ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
 ARG BASE_IMAGE_TAG
-ARG RUST_VERSION=1.81.0
+ARG RUST_VERSION
 
 ARG PROJECT_ID
 ARG POLKADOT_BINARY_PACKAGE_VERSION
@@ -25,6 +25,11 @@ ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
 ARG POLKADOT_SDK_RELEASE
 ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
 
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN groupadd --gid 10000 nonroot && \
     useradd --home-dir /home/nonroot \
             --create-home \
@@ -36,17 +41,12 @@ RUN groupadd --gid 10000 nonroot && \
 WORKDIR /home/nonroot/
 
 RUN install_packages  \
-        bash \
         wget  \
         nano \
         ca-certificates \
         gnupg2 \
         curl
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-COPY install_packages /usr/sbin/install_packages
-RUN chmod 0755 /usr/sbin/install_packages
 
 RUN mkdir -p /home/nonroot/bin
     
