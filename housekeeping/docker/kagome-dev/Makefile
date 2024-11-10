@@ -5,6 +5,8 @@ OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e
 
 # kagome_builder_deb Variables
 RUST_VERSION ?= 1.81.0
+GCC_VERSION ?= 13
+LLVM_VERSION ?= 19
 
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
@@ -21,7 +23,7 @@ BUILD_TYPE ?= Release
 OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
-BUILDER_IMAGE_TAG = $(OS_IMAGE_SHORT_HASH)_rust-$(RUST_VERSION)
+BUILDER_IMAGE_TAG = $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
 BUILDER_LATEST_TAG ?= latest
 
 # kagome_dev_docker_build Variables
@@ -66,6 +68,8 @@ kagome_builder_deb:
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) \
     		-f kagome_builder_deb.Dockerfile \
     		--build-arg RUST_VERSION=$(RUST_VERSION) \
+    		--build-arg GCC_VERSION=$(GCC_VERSION) \
+    		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
     		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
     		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
     		--build-arg ARCHITECTURE=$(ARCHITECTURE) .
