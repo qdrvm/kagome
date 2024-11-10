@@ -3,7 +3,7 @@ OS_IMAGE_NAME ?= ubuntu
 OS_IMAGE_TAG ?= 24.04
 OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
 
-# kagome_builder_deb Variables
+# kagome_builder Variables
 RUST_VERSION ?= 1.81.0
 GCC_VERSION ?= 13
 LLVM_VERSION ?= 19
@@ -62,7 +62,7 @@ get_versions:
 builder_image_tag:
 	@echo $(BUILDER_IMAGE_TAG)
 
-kagome_builder_deb:
+kagome_builder:
 	docker build --platform $(PLATFORM) \
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) \
@@ -74,7 +74,7 @@ kagome_builder_deb:
     		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
     		--build-arg ARCHITECTURE=$(ARCHITECTURE) .
 
-kagome_builder_deb_push:
+kagome_builder_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) ; \
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG)
 

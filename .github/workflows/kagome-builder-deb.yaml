@@ -57,28 +57,28 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           IMAGE_TAG=$(make builder_image_tag)
-          KAGOME_BUILDER_DEB_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
-          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_DEB_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
+          KAGOME_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
+          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "kagome_builder_deb=$KAGOME_BUILDER_DEB_IMAGE" >> $GITHUB_OUTPUT
+          echo "kagome_builder=$KAGOME_BUILDER_IMAGE" >> $GITHUB_OUTPUT
 
       - name: "Build Polkadot Builder"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb \
+        run: make kagome_builder \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           BUILDER_LATEST_TAG=${BUILDER_LATEST_TAG}
 
       - name: "Push Polkadot Builder"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb_push \
+        run: make kagome_builder_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
         
       - name: "Versions Info"
         if: always()
         run: |
-          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder_deb }}"
+          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder }}"
 
   build_kagome_runtime:
     runs-on: [ actions-runner-controller ]
