@@ -48,8 +48,8 @@ env:
   CACHE_VERSION: v001
   CACHE_PATHS: ./zombienet/docker/cargo
   POLKADOT_SDK_TAG: ${{ github.event.inputs.polkadot_sdk_tag }}
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 jobs:
   build_polkadot_builder:

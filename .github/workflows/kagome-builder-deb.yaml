@@ -34,8 +34,8 @@ on:
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 jobs:
   build_kagome_builder:

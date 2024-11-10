@@ -62,8 +62,8 @@ env:
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 
 jobs:
