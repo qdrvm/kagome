@@ -113,7 +113,7 @@ kagome_dev_docker_build:
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
-		$kagome_builder:$(BUILDER_IMAGE_TAG) \
+		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome && \
