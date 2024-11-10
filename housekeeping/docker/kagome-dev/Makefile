@@ -1,6 +1,11 @@
 # Shared Environment Variables
-# bookworm (Debian 12)
-MINIDEB_IMAGE ?= bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+OS_IMAGE_NAME ?= ubuntu
+OS_IMAGE_TAG ?= 24.04
+OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
+
+# kagome_builder_deb Variables
+RUST_VERSION ?= 1.81.0
+
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
 DOCKERHUB_REGISTRY_PATH ?= qdrvm/kagome
@@ -13,12 +18,11 @@ PACKAGE_ARCHITECTURE ?= amd64
 BUILD_TYPE ?= Release
 
 # Generated versions
-MINIDEB_HASH := $(subst bitnami/minideb@sha256:,,$(MINIDEB_IMAGE))
-MINIDEB_SHORT_HASH := $(shell echo $(MINIDEB_HASH) | cut -c1-7)
-MINIDEB_TAG = $(MINIDEB_SHORT_HASH)_rust-$(RUST_VERSION)
-
-# kagome_builder_deb Variables
-RUST_VERSION ?= 1.81.0
+OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
+BUILDER_IMAGE_TAG = $(OS_IMAGE_SHORT_HASH)_rust-$(RUST_VERSION)
+BUILDER_LATEST_TAG ?= latest
 
 # kagome_dev_docker_build Variables
 BUILD_DIR ?= build
@@ -53,18 +57,22 @@ get_versions:
 	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
 	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
 
+builder_image_tag:
+	@echo $(BUILDER_IMAGE_TAG)
+
 kagome_builder_deb:
 	docker build --platform $(PLATFORM) \
-    		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
-    		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest \
+    		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
+    		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) \
     		-f kagome_builder_deb.Dockerfile \
     		--build-arg RUST_VERSION=$(RUST_VERSION) \
-    		--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
+    		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+    		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
     		--build-arg ARCHITECTURE=$(ARCHITECTURE) .
 
 kagome_builder_deb_push:
-	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) ; \
-	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:latest
+	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) ; \
+	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG)
 
 kagome_dev_docker_build:
 	$(MAKE) get_versions
@@ -94,7 +102,7 @@ kagome_dev_docker_build:
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
-		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
+		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome && \
@@ -151,7 +159,7 @@ kagome_dev_docker_build_tidy:
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
-		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(MINIDEB_TAG) \
+		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"clang --version && \
@@ -242,7 +250,7 @@ kagome_image_build:
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 		-f minideb.Dockerfile \
-		--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
+		--build-arg BASE_IMAGE=$(OS_IMAGE) \
 		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
 		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
 		--build-arg PROJECT_ID=$(PROJECT_ID) \

@@ -1,28 +1,32 @@
 ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
+ARG BASE_IMAGE_TAG
 ARG RUST_VERSION
 ARG ARCHITECTURE=x86_64
 
-ARG DEBIAN_VERSION=bookworm
+ARG OS_REL_VERSION=noble
 ARG LLVM_VERSION=19
 ARG GCC_VERSION=13
 
-FROM ${BASE_IMAGE}
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"
 LABEL org.opencontainers.image.description="Kagome builder image"
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG DEBIAN_VERSION
-ENV DEBIAN_VERSION=${DEBIAN_VERSION}
+ARG OS_REL_VERSION
+ENV OS_REL_VERSION=${OS_REL_VERSION}
 ARG LLVM_VERSION
 ENV LLVM_VERSION=${LLVM_VERSION}
 ARG GCC_VERSION
 ENV GCC_VERSION=${GCC_VERSION}
+
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
 
 RUN install_packages \
         apt-transport-https \
@@ -30,10 +34,9 @@ RUN install_packages \
         gnupg \
         wget
 
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-${LLVM_VERSION} main" | \
+RUN wget --progress=dot:giga -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${OS_REL_VERSION}/ llvm-toolchain-${OS_REL_VERSION}-${LLVM_VERSION} main" | \
         tee -a /etc/apt/sources.list.d/llvm.list
-RUN echo "deb http://deb.debian.org/debian/ trixie main" | tee -a /etc/apt/sources.list
 
 RUN install_packages \
         build-essential \
