@@ -309,7 +309,8 @@ kagome_image_build:
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 		-f kagome_runner.Dockerfile \
-		--build-arg BASE_IMAGE=$(OS_IMAGE) \
+		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
 		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
 		--build-arg PROJECT_ID=$(PROJECT_ID) \
