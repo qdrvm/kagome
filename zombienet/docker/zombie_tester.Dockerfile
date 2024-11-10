@@ -103,14 +103,14 @@ RUN zombienet setup -y polkadot polkadot-parachain; \
         exit $EXIT_CODE; \
     fi;
 
-RUN ./polkadot --version && \
-    ./polkadot-parachain --version && \
-    ./zombienet version  && \
-    ./polkadot-execute-worker --version && \
-    ./polkadot-prepare-worker --version && \
-    malus --version && \
-    adder-collator --version && \
-    undying-collator --version
+RUN echo "Polkadot Version:" && ./polkadot --version && \
+    echo "Polkadot Parachain Version:" && ./polkadot-parachain --version && \
+    echo "Zombienet Version:" && ./zombienet version && \
+    echo "Polkadot Execute Worker Version:" && ./polkadot-execute-worker --version && \
+    echo "Polkadot Prepare Worker Version:" && ./polkadot-prepare-worker --version && \
+    echo "Malus Version:" && malus --version && \
+    echo "Adder Collator Version:" && adder-collator --version && \
+    echo "Undying Collator Version:" && undying-collator --version
 
 RUN ln -s /home/nonroot/bin/zombienet-linux-x64 /usr/local/bin/zombienet && \
     ln -s /home/nonroot/bin/polkadot /usr/local/bin/polkadot && \
