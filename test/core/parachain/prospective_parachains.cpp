@@ -351,6 +351,35 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     return receipt;
   }
 
+  auto get_backable_candidates(
+      const TestLeaf &leaf,
+      ParachainId para_id,
+      fragment::Ancestors ancestors,
+      uint32_t count,
+      const std::vector<std::pair<CandidateHash, Hash>> &expected_result) {
+    auto resp = prospective_parachain_->answerGetBackableCandidates(
+        leaf.hash, para_id, count, ancestors);
+    ASSERT_EQ(resp, expected_result);
+  }
+
+  void back_candidate(const network::CommittedCandidateReceipt &candidate,
+                      const CandidateHash &candidate_hash) {
+    prospective_parachain_->candidate_backed(candidate.descriptor.para_id,
+                                             candidate_hash);
+  }
+
+  void introduce_seconded_candidate(
+      const network::CommittedCandidateReceipt &candidate,
+      const runtime::PersistedValidationData &pvd) {
+    prospective_parachain_->introduce_seconded_candidate(
+        candidate.descriptor.para_id,
+        candidate,
+        crypto::Hashed<runtime::PersistedValidationData,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(pvd),
+        network::candidateHash(*hasher_, candidate));
+  }
+
   std::pair<network::CommittedCandidateReceipt,
             runtime::PersistedValidationData>
   make_candidate(const Hash &relay_parent_hash,
@@ -477,4 +506,66 @@ TEST_F(ProspectiveParachainsTest, introduce_candidates_basic) {
   const Hash candidate_hash_a1 = network::candidateHash(*hasher_, candidate_a1);
   std::vector<std::pair<CandidateHash, Hash>> response_a1 = {
       {candidate_hash_a1, leaf_a.hash}};
+
+  // Candidate A2
+  const auto &[candidate_a2, pvd_a2] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     2,
+                     {2, 3, 4},
+                     {2},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a2 = network::candidateHash(*hasher_, candidate_a2);
+  std::vector<std::pair<CandidateHash, Hash>> response_a2 = {
+      {candidate_hash_a2, leaf_a.hash}};
+
+  // Candidate B
+  const auto &[candidate_b, pvd_b] =
+      make_candidate(leaf_b.hash,
+                     leaf_b.number,
+                     1,
+                     {3, 4, 5},
+                     {3},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  std::vector<std::pair<CandidateHash, Hash>> response_b = {
+      {candidate_hash_b, leaf_b.hash}};
+
+  // Candidate C
+  const auto &[candidate_c, pvd_c] =
+      make_candidate(leaf_c.hash,
+                     leaf_c.number,
+                     2,
+                     {6, 7, 8},
+                     {4},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+  std::vector<std::pair<CandidateHash, Hash>> response_c = {
+      {candidate_hash_c, leaf_c.hash}};
+
+  // Introduce candidates.
+  introduce_seconded_candidate(candidate_a1, pvd_a1);
+  introduce_seconded_candidate(candidate_a2, pvd_a2);
+  introduce_seconded_candidate(candidate_b, pvd_b);
+  introduce_seconded_candidate(candidate_c, pvd_c);
+
+  // Back candidates. Otherwise, we cannot check membership with
+  // GetBackableCandidates.
+  back_candidate(candidate_a1, candidate_hash_a1);
+  back_candidate(candidate_a2, candidate_hash_a2);
+  back_candidate(candidate_b, candidate_hash_b);
+  back_candidate(candidate_c, candidate_hash_c);
+
+  // Check candidate tree membership.
+  get_backable_candidates(leaf_a, 1, {}, 5, response_a1);
+  get_backable_candidates(leaf_a, 2, {}, 5, response_a2);
+  get_backable_candidates(leaf_b, 1, {}, 5, response_b);
+  get_backable_candidates(leaf_c, 2, {}, 5, response_c);
+
+  // Check membership on other leaves.
+  get_backable_candidates(leaf_b, 2, {}, 5, {});
+
+  get_backable_candidates(leaf_c, 1, {}, 5, {});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 3);
 }
