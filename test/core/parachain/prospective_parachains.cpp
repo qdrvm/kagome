@@ -28,11 +28,18 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   }
 
  public:
+    using ClaimQueue = std::map<CoreIndex, std::vector<ParachainId>>;
+
+  static constexpr fragment::AsyncBackingParams ASYNC_BACKING_PARAMETERS{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
   std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
 
   struct TestState {
-    std::map<CoreIndex, std::vector<ParachainId>> claim_queue = {
+    ClaimQueue claim_queue = {
         {CoreIndex(0), {ParachainId(1)}}, {CoreIndex(1), {ParachainId(2)}}};
     uint32_t runtime_api_version = CLAIM_QUEUE_RUNTIME_REQUIREMENT;
     ValidationCodeHash validation_code_hash = fromNumber(42);
@@ -156,10 +163,10 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     std::vector<BlockNumber> ancestry_numbers;
 
     Hash d = hash;
-    for (BlockNumber x = 1; x <= ancestry_len; ++x) {
-      d = get_parent_hash(d);
+    for (BlockNumber x = 0; x <= ancestry_len; ++x) {
       ancestry_hashes.emplace_back(d);
       ancestry_numbers.push_back(number - x);
+      d = get_parent_hash(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
 
@@ -302,4 +309,46 @@ TEST_F(ProspectiveParachainsTest,
       .lost = update.lost,
   });
   ASSERT_TRUE(prospective_parachain_->view().active_leaves.empty());
+}
+
+TEST_F(ProspectiveParachainsTest,introduce_candidates_basic) {
+	TestState test_state;
+
+	const ParachainId chain_a(1);
+	const ParachainId chain_b(2);
+	test_state.claim_queue = {{CoreIndex(0), {chain_a, chain_b}}};
+
+    // Leaf A
+		const TestLeaf leaf_a {
+			.number = 100,
+			.hash = fromNumber(130),
+			.para_data = {
+				{1, PerParaData(97, {1, 2, 3})},
+				{2, PerParaData(100, {2, 3, 4})},
+            },
+		};  
+		// Leaf B
+		const TestLeaf leaf_b {
+			.number = 101,
+			.hash = fromNumber(131),
+			.para_data = {
+				{1, PerParaData(99, {3, 4, 5})},
+				{2, PerParaData(101, {4, 5, 6})},
+            },
+		};  
+		// Leaf C
+		const TestLeaf leaf_c {
+			.number= 102,
+			.hash= fromNumber(132),
+			.para_data= {
+				{1, PerParaData(102, {5, 6, 7})},
+				{2, PerParaData(98, {6, 7, 8})},
+            },
+		};
+
+		// Activate leaves.
+		activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+		activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+		activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+
 }
