@@ -28,7 +28,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   }
 
  public:
-    using ClaimQueue = std::map<CoreIndex, std::vector<ParachainId>>;
+  using ClaimQueue = std::map<CoreIndex, std::vector<ParachainId>>;
 
   static constexpr fragment::AsyncBackingParams ASYNC_BACKING_PARAMETERS{
       .max_candidate_depth = 4,
@@ -39,8 +39,8 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
 
   struct TestState {
-    ClaimQueue claim_queue = {
-        {CoreIndex(0), {ParachainId(1)}}, {CoreIndex(1), {ParachainId(2)}}};
+    ClaimQueue claim_queue = {{CoreIndex(0), {ParachainId(1)}},
+                              {CoreIndex(1), {ParachainId(2)}}};
     uint32_t runtime_api_version = CLAIM_QUEUE_RUNTIME_REQUIREMENT;
     ValidationCodeHash validation_code_hash = fromNumber(42);
 
@@ -280,6 +280,116 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     update.new_head.hash_opt = hash;
     handle_leaf_activation_2(update, leaf, test_state, async_backing_params);
   }
+
+  runtime::PersistedValidationData dummy_pvd(const HeadData &parent_head,
+                                             uint32_t relay_parent_number) {
+    return runtime::PersistedValidationData{
+        .parent_head = parent_head,
+        .relay_parent_number = relay_parent_number,
+        .relay_parent_storage_root = {},
+        .max_pov_size = MAX_POV_SIZE,
+    };
+  }
+
+  network::CandidateCommitments dummy_candidate_commitments(
+      const std::optional<HeadData> &head_data) {
+    return network::CandidateCommitments{
+        .upward_msgs = {},
+        .outbound_hor_msgs = {},
+        .opt_para_runtime = std::nullopt,
+        .para_head = (head_data ? *head_data : dummy_head_data()),
+        .downward_msgs_count = 0,
+        .watermark = 0,
+    };
+  }
+
+  /// Create meaningless validation code.
+  runtime::ValidationCode dummy_validation_code() {
+    return {1, 2, 3, 4, 5, 6, 7, 8, 9};
+  }
+
+  network::CandidateDescriptor dummy_candidate_descriptor_bad_sig(
+      const Hash &relay_parent) {
+    return network::CandidateDescriptor{
+        .para_id = 0,
+        .relay_parent = relay_parent,
+        .collator_id = {},
+        .persisted_data_hash = fromNumber(0),
+        .pov_hash = fromNumber(0),
+        .erasure_encoding_root = fromNumber(0),
+        .signature = {},
+        .para_head_hash = fromNumber(0),
+        .validation_code_hash =
+            crypto::Hashed<runtime::ValidationCode,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>(
+                dummy_validation_code())
+                .getHash(),
+    };
+  }
+
+  HeadData dummy_head_data() {
+    return {};
+  }
+
+  network::CandidateReceipt dummy_candidate_receipt_bad_sig(
+      const Hash &relay_parent, const std::optional<Hash> &commitments) {
+    const auto commitments_hash = [&]() -> Hash {
+      if (commitments) {
+        return *commitments;
+      }
+      return crypto::Hashed<network::CandidateCommitments,
+                            32,
+                            crypto::Blake2b_StreamHasher<32>>(
+                 dummy_candidate_commitments(dummy_head_data()))
+          .getHash();
+    }();
+
+    network::CandidateReceipt receipt;
+    receipt.descriptor = dummy_candidate_descriptor_bad_sig(relay_parent);
+    receipt.commitments_hash = commitments_hash;
+    return receipt;
+  }
+
+  std::pair<network::CommittedCandidateReceipt,
+            runtime::PersistedValidationData>
+  make_candidate(const Hash &relay_parent_hash,
+                 BlockNumber relay_parent_number,
+                 ParachainId para_id,
+                 const HeadData &parent_head,
+                 const HeadData &head_data,
+                 const ValidationCodeHash &validation_code_hash) {
+    const runtime::PersistedValidationData pvd =
+        dummy_pvd(parent_head, relay_parent_number);
+    network::CandidateCommitments commitments{
+        .upward_msgs = {},
+        .outbound_hor_msgs = {},
+        .opt_para_runtime = std::nullopt,
+        .para_head = head_data,
+        .downward_msgs_count = 0,
+        .watermark = relay_parent_number,
+    };
+
+    auto candidate = dummy_candidate_receipt_bad_sig(relay_parent_hash, Hash{});
+    candidate.commitments_hash =
+        crypto::Hashed<network::CandidateCommitments,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(commitments)
+            .getHash();
+    candidate.descriptor.para_id = para_id;
+    candidate.descriptor.persisted_data_hash =
+        crypto::Hashed<runtime::PersistedValidationData,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(pvd)
+            .getHash();
+    candidate.descriptor.validation_code_hash = validation_code_hash;
+    return std::make_pair(
+        network::CommittedCandidateReceipt{
+            .descriptor = candidate.descriptor,
+            .commitments = commitments,
+        },
+        pvd);
+  }
 };
 
 TEST_F(ProspectiveParachainsTest,
@@ -311,44 +421,60 @@ TEST_F(ProspectiveParachainsTest,
   ASSERT_TRUE(prospective_parachain_->view().active_leaves.empty());
 }
 
-TEST_F(ProspectiveParachainsTest,introduce_candidates_basic) {
-	TestState test_state;
+TEST_F(ProspectiveParachainsTest, introduce_candidates_basic) {
+  TestState test_state;
 
-	const ParachainId chain_a(1);
-	const ParachainId chain_b(2);
-	test_state.claim_queue = {{CoreIndex(0), {chain_a, chain_b}}};
+  const ParachainId chain_a(1);
+  const ParachainId chain_b(2);
+  test_state.claim_queue = {{CoreIndex(0), {chain_a, chain_b}}};
 
-    // Leaf A
-		const TestLeaf leaf_a {
-			.number = 100,
-			.hash = fromNumber(130),
-			.para_data = {
-				{1, PerParaData(97, {1, 2, 3})},
-				{2, PerParaData(100, {2, 3, 4})},
-            },
-		};  
-		// Leaf B
-		const TestLeaf leaf_b {
-			.number = 101,
-			.hash = fromNumber(131),
-			.para_data = {
-				{1, PerParaData(99, {3, 4, 5})},
-				{2, PerParaData(101, {4, 5, 6})},
-            },
-		};  
-		// Leaf C
-		const TestLeaf leaf_c {
-			.number= 102,
-			.hash= fromNumber(132),
-			.para_data= {
-				{1, PerParaData(102, {5, 6, 7})},
-				{2, PerParaData(98, {6, 7, 8})},
-            },
-		};
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  // Leaf B
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(99, {3, 4, 5})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  // Leaf C
+  const TestLeaf leaf_c{
+      .number = 102,
+      .hash = fromNumber(132),
+      .para_data =
+          {
+              {1, PerParaData(102, {5, 6, 7})},
+              {2, PerParaData(98, {6, 7, 8})},
+          },
+  };
 
-		// Activate leaves.
-		activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
-		activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
-		activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
 
+  // Candidate A1
+
+  const auto &[candidate_a1, pvd_a1] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+
+  const Hash candidate_hash_a1 = network::candidateHash(*hasher_, candidate_a1);
+  std::vector<std::pair<CandidateHash, Hash>> response_a1 = {
+      {candidate_hash_a1, leaf_a.hash}};
 }
