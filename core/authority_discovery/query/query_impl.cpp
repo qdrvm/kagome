@@ -322,7 +322,7 @@ namespace kagome::authority_discovery {
                                          Authority{
                                              .raw = std::move(signed_record_pb),
                                              .time = time,
-                                             .peer = std::move(peer),
+                                             .peer = peer,
                                          });
 
     validation_protocol_.get()->reserve(peer.id, true);
