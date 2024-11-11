@@ -23,7 +23,6 @@
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
 #include "network/can_disconnect.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
@@ -221,27 +220,6 @@ namespace kagome::parachain {
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
-
-    /**
-     * @brief Handles an incoming collation stream from a peer.
-     *
-     * @param peer_id The ID of the peer from which the collation stream is
-     * received.
-     * @param version The version of the collation protocol used in the stream.
-     */
-    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id,
-                                   network::CollationVersion version);
-
-    /**
-     * @brief Handles an incoming validation stream from a peer.
-     *
-     * @param peer_id The ID of the peer from which the validation stream is
-     * received.
-     * @param version The version of the collation protocol used in the
-     * validation stream.
-     */
-    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
-                                    network::CollationVersion version);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
@@ -712,7 +690,7 @@ namespace kagome::parachain {
         network::CollationVersion version);
     void send_to_validators_group(
         const RelayHash &relay_parent,
-        const std::deque<network::VersionedValidatorProtocolMessage> &messages);
+        const network::VersionedValidatorProtocolMessage &message);
 
     /**
      * @brief Circulates a statement to the validators group.
@@ -900,11 +878,6 @@ namespace kagome::parachain {
     /*
      * Notification
      */
-    void broadcastView(const network::View &view) const;
-    void broadcastViewToGroup(const primitives::BlockHash &relay_parent,
-                              const network::View &view);
-    void broadcastViewExcept(const libp2p::peer::PeerId &peer_id,
-                             const network::View &view) const;
     template <typename F>
     void notify_internal(std::shared_ptr<WorkersContext> &context, F &&func) {
       BOOST_ASSERT(context);
@@ -1053,74 +1026,13 @@ namespace kagome::parachain {
         size_t seconding_limit,
         size_t max_candidate_depth);
 
-    template <typename F>
-    bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
-
-                                        F &&callback);
-
-   public:
-    template <typename F>
-    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
-                                         network::CollationVersion version,
-                                         F &&callback) {
-      auto protocol = router_->getValidationProtocolVStaging();
-      BOOST_ASSERT(protocol);
-
-      return tryOpenOutgoingStream(
-          peer_id, std::move(protocol), std::forward<F>(callback));
-    }
-
    private:
-    template <typename F>
-    bool tryOpenOutgoingStream(const libp2p::peer::PeerId &peer_id,
-                               std::shared_ptr<network::ProtocolBase> protocol,
-                               F &&callback) {
-      auto stream_engine = pm_->getStreamEngine();
-      BOOST_ASSERT(stream_engine);
-
-      if (stream_engine->reserveOutgoing(peer_id, protocol)) {
-        protocol->newOutgoingStream(
-            peer_id,
-            [callback = std::forward<F>(callback),
-             protocol,
-             peer_id,
-             wptr{weak_from_this()}](auto &&stream_result) mutable {
-              auto self = wptr.lock();
-              if (not self) {
-                return;
-              }
-
-              auto stream_engine = self->pm_->getStreamEngine();
-              stream_engine->dropReserveOutgoing(peer_id, protocol);
-
-              if (!stream_result.has_value()) {
-                self->logger_->verbose("Unable to create stream {} with {}: {}",
-                                       protocol->protocolName(),
-                                       peer_id,
-                                       stream_result.error());
-                return;
-              }
-
-              auto stream = stream_result.value();
-              stream_engine->addOutgoing(std::move(stream_result.value()),
-                                         protocol);
-
-              std::forward<F>(callback)();
-            });
-        return true;
-      }
-      std::forward<F>(callback)();
-      return false;
-    }
-
     outcome::result<void> enqueueCollation(
         const RelayHash &relay_parent,
         ParachainId para_id,
         const libp2p::peer::PeerId &peer_id,
         const CollatorId &collator_id,
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
-    void sendMyView(const libp2p::peer::PeerId &peer_id,
-                    const std::shared_ptr<network::ProtocolBase> &protocol);
 
     bool isValidatingNode() const;
     void unblockAdvertisements(

@@ -8,6 +8,7 @@
 
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <future>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/shared_fn.hpp>
@@ -20,8 +21,7 @@
 #include "crypto/hasher.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
-#include "network/impl/stream_engine.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
@@ -585,7 +585,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-            this, app_state_manager, approval_thread_pool, logger_)},
+          this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(slots_util),
@@ -2587,20 +2587,14 @@ namespace kagome::parachain {
              "Distributing assignment on candidate (block hash={})",
              indirect_cert.block_hash);
 
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Assignments{
-                    .assignments = {network::vstaging::Assignment{
-                        .indirect_assignment_cert = indirect_cert,
-                        .candidate_bitfield = candidate_indices,
-                    }}}}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    router_->getValidationProtocol()->write(
+        peers,
+        network::vstaging::Assignments{
+            .assignments = {network::vstaging::Assignment{
+                .indirect_assignment_cert = indirect_cert,
+                .candidate_bitfield = candidate_indices,
+            }},
+        });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2610,9 +2604,6 @@ namespace kagome::parachain {
              send_assignments_batched,
              std::move(assignments),
              peer_id);
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);  // kMaxAssignmentBatchSize
 
     /** TODO(iceseer): optimize
         std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>>
@@ -2633,16 +2624,11 @@ namespace kagome::parachain {
       auto end = (assignments.size() > kMaxAssignmentBatchSize)
                    ? assignments.begin() + kMaxAssignmentBatchSize
                    : assignments.end();
-
-      auto msg = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{
-              network::vstaging::Assignments{
-                  .assignments =
-                      std::vector<network::vstaging::Assignment>(begin, end),
-              }});
-
-      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
+      router_->getValidationProtocol()->write(
+          peer_id,
+          network::vstaging::Assignments{
+              .assignments = std::vector(begin, end),
+          });
       assignments.erase(begin, end);
     }
   }
@@ -2654,9 +2640,6 @@ namespace kagome::parachain {
              send_approvals_batched,
              std::move(approvals),
              peer_id);
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);  // kMaxApprovalBatchSize
 
     /** TODO(iceseer): optimize
         std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>>
@@ -2682,17 +2665,11 @@ namespace kagome::parachain {
       auto end = (approvals.size() > kMaxApprovalBatchSize)
                    ? approvals.begin() + kMaxApprovalBatchSize
                    : approvals.end();
-
-      auto msg = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{
-              network::vstaging::Approvals{
-                  .approvals =
-                      std::vector<approval::IndirectSignedApprovalVoteV2>(begin,
-                                                                          end),
-              }});
-
-      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
+      router_->getValidationProtocol()->write(
+          peer_id,
+          network::vstaging::Approvals{
+              .approvals = std::vector(begin, end),
+          });
       approvals.erase(begin, end);
     }
   }
@@ -2708,18 +2685,10 @@ namespace kagome::parachain {
             vote.payload.payload.block_hash,
             peers.size());
 
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Approvals{
-                    .approvals = {vote},
-                }}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    router_->getValidationProtocol()->write(peers,
+                                            network::vstaging::Approvals{
+                                                .approvals = {vote},
+                                            });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
@@ -2933,10 +2902,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay,
-                              tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
