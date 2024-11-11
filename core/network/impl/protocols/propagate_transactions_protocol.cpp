@@ -46,6 +46,7 @@ namespace kagome::network {
             0,
             0)},
         roles_{roles},
+        hasher_{std::move(hasher)},
         main_pool_handler_{main_thread_pool.handlerStarted()},
         timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
