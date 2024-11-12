@@ -1114,13 +1114,14 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     const application::AppConfiguration &app_config_;
     primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
-    primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
+    std::shared_ptr<void> sync_state_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session_;
     std::shared_ptr<PeerUseCount> peer_use_count_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 
+    bool synchronized_ = false;
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;

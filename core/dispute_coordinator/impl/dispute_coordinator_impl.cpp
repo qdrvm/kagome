@@ -35,6 +35,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/tuple_hash.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::dispute {
 
@@ -238,15 +239,12 @@ namespace kagome::dispute {
     active_heads_.insert(leaves.begin(), leaves.end());
 
     // subscribe to leaves update
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->on_active_leaves_update(event);
-          }
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
+          self->on_active_leaves_update(event);
         });
 
     // subscribe to finalization

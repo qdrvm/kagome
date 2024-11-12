@@ -249,38 +249,18 @@ namespace kagome::parachain {
 
     // Subscribe to the BABE status observable
     sync_state_observer_ =
-        std::make_shared<primitives::events::SyncStateEventSubscriber>(
-            sync_state_observable_, false);
-    sync_state_observer_->setCallback(
-        [wself{weak_from_this()}, was_synchronized = false](
-            auto /*set_id*/,
-            bool &synchronized,
-            auto /*event_type*/,
-            const primitives::events::SyncStateEventParams &event) mutable {
-          TRY_GET_OR_RET(self, wself.lock());
-
-          if (event == consensus::SyncState::SYNCHRONIZED) {
-            if (not was_synchronized) {
-              self->bitfield_signer_->start();
-              self->pvf_precheck_->start();
-              was_synchronized = true;
-            }
-          }
-          if (was_synchronized) {
-            if (!synchronized) {
-              synchronized = true;
-            }
-          }
+        primitives::events::onSync(sync_state_observable_, [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->synchronized_ = true;
+          self->bitfield_signer_->start();
+          self->pvf_precheck_->start();
         });
-    sync_state_observer_->subscribe(
-        sync_state_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
 
     // Subscribe to the chain events engine
     chain_sub_.onDeactivate(
-        [wptr{weak_from_this()}](
+        [WEAK_SELF](
             const primitives::events::RemoveAfterFinalizationParams &event) {
-          TRY_GET_OR_RET(self, wptr.lock());
+          WEAK_LOCK(self);
           self->onDeactivateBlocks(event);
         });
 
@@ -289,24 +269,20 @@ namespace kagome::parachain {
     // It updates the active leaves, checks if parachains can be processed,
     // creates a new backing task for the new head, and broadcasts the updated
     // view.
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          TRY_GET_OR_RET(self, wptr.lock());
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
           self->onViewUpdated(event);
         });
 
-    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
-        peer_view_->getRemoteViewObservable(), false);
-    primitives::events::subscribe(
-        *remote_view_sub_,
+    remote_view_sub_ = primitives::events::subscribe(
+        peer_view_->getRemoteViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-                                 const network::View &view) {
-          TRY_GET_OR_RET(self, wptr.lock());
+        [WEAK_SELF](const libp2p::peer::PeerId &peer_id,
+                    const network::View &view) {
+          WEAK_LOCK(self);
           self->onUpdatePeerView(peer_id, view);
         });
 
@@ -714,7 +690,7 @@ namespace kagome::parachain {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
     }
-    if (!sync_state_observer_->get()) {
+    if (not synchronized_) {
       return Error::NOT_SYNCHRONIZED;
     }
     return outcome::success();
@@ -846,11 +822,8 @@ namespace kagome::parachain {
      * assignment, validator index, required collator, and table context.
      */
     bool is_parachain_validator = false;
-    ::libp2p::common::FinalAction metric_updater(
-        [wptr{weak_from_this()}, &is_parachain_validator] {
-          TRY_GET_OR_RET(self, wptr.lock());
-          self->metric_is_parachain_validator_->set(is_parachain_validator);
-        });
+    ::libp2p::common::FinalAction metric_updater{
+        [&] { metric_is_parachain_validator_->set(is_parachain_validator); }};
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
@@ -2501,13 +2474,13 @@ namespace kagome::parachain {
             .candidate_hash = candidate_hash,
             .mask = unwanted_mask,
         },
-        [wptr{weak_from_this()},
+        [WEAK_SELF,
          relay_parent{relay_parent},
          candidate_hash{candidate_hash},
          group_index{group_index}](
             outcome::result<network::vstaging::AttestedCandidateResponse>
                 r) mutable {
-          TRY_GET_OR_RET(self, wptr.lock());
+          WEAK_LOCK(self);
           self->handleFetchedStatementResponse(
               std::move(r), relay_parent, candidate_hash, group_index);
         });

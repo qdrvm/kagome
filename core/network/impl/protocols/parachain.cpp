@@ -71,7 +71,8 @@ namespace kagome::network {
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
         block_tree_{std::move(inject.block_tree)},
-        peer_view_{std::move(inject.peer_view)} {}
+        peer_view_{std::move(inject.peer_view)},
+        sync_engine_{std::move(inject.sync_engine)} {}
 
   Buffer ParachainProtocol::handshake() {
     return scale::encode(roles_).value();
@@ -102,16 +103,21 @@ namespace kagome::network {
     if (not roles_.isAuthority()) {
       return;
     }
+    if (not sync_sub_) {
+      sync_sub_ = primitives::events::onSync(sync_engine_, [WEAK_SELF] {
+        WEAK_LOCK(self);
+        self->start();
+      });
+      return;
+    }
     notifications_->start(weak_from_this());
-    auto my_view_sub = std::make_shared<PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    my_view_sub_ = my_view_sub;
-    primitives::events::subscribe(*my_view_sub,
-                                  PeerView::EventType::kViewUpdated,
-                                  [WEAK_SELF](const ExView &event) {
-                                    WEAK_LOCK(self);
-                                    self->write(event.view);
-                                  });
+    my_view_sub_ =
+        primitives::events::subscribe(peer_view_->getMyViewObservable(),
+                                      PeerView::EventType::kViewUpdated,
+                                      [WEAK_SELF](const ExView &event) {
+                                        WEAK_LOCK(self);
+                                        self->write(event.view);
+                                      });
   }
 
   void ParachainProtocol::write(const View &view) {

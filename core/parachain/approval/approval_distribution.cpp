@@ -634,35 +634,28 @@ namespace kagome::parachain {
   }
 
   bool ApprovalDistribution::tryStart() {
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->on_active_leaves_update(event);
-          }
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
+          self->on_active_leaves_update(event);
         });
 
-    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
-        peer_view_->getRemoteViewObservable(), false);
-    primitives::events::subscribe(
-        *remote_view_sub_,
+    remote_view_sub_ = primitives::events::subscribe(
+        peer_view_->getRemoteViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-                                 const network::View &view) {
-          if (auto self = wptr.lock()) {
-            self->store_remote_view(peer_id, view);
-          }
+        [WEAK_SELF](const libp2p::peer::PeerId &peer_id,
+                    const network::View &view) {
+          WEAK_LOCK(self);
+          self->store_remote_view(peer_id, view);
         });
 
     chain_sub_.onDeactivate(
-        [wptr{weak_from_this()}](
+        [WEAK_SELF](
             const primitives::events::RemoveAfterFinalizationParams &event) {
-          if (auto self = wptr.lock()) {
-            self->clearCaches(event);
-          }
+          WEAK_LOCK(self);
+          self->clearCaches(event);
         });
 
     /// TODO(iceseer): clear `known_by` when peer disconnected
