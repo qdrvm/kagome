@@ -19,6 +19,7 @@
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
@@ -34,7 +35,9 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+        std::shared_ptr<
+            parachain::statement_distribution::StatementDistribution>
+            statement_distribution)
         : RequestResponseProtocolImpl<
               vstaging::AttestedCandidateRequest,
               vstaging::AttestedCandidateResponse,
@@ -47,8 +50,8 @@ namespace kagome::network {
                                       log::createLogger(
                                           kFetchAttestedCandidateProtocolName,
                                           "req_attested_candidate_protocol")},
-          pp_{std::move(pp)} {
-      BOOST_ASSERT(pp_);
+          statement_distribution_(std::move(statement_distribution)) {
+      BOOST_ASSERT(statement_distribution_);
     }
 
    private:
@@ -57,16 +60,8 @@ namespace kagome::network {
       base().logger()->info(
           "Fetching attested candidate request.(candidate={})",
           request.candidate_hash);
-      auto res = pp_->OnFetchAttestedCandidateRequest(
-          std::move(request), stream->remotePeerId().value());
-      if (res.has_error()) {
-        base().logger()->error(
-            "Fetching attested candidate response failed.(error={})",
-            res.error());
-      } else {
-        SL_TRACE(base().logger(), "Fetching attested candidate response.");
-      }
-      return res;
+      statement_distribution_->OnFetchAttestedCandidateRequest(request, stream);
+      return std::nullopt;
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -76,7 +71,8 @@ namespace kagome::network {
 
     inline static const auto kFetchAttestedCandidateProtocolName =
         "FetchAttestedCandidateProtocol"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::statement_distribution::StatementDistribution>
+        statement_distribution_;
   };
 
 }  // namespace kagome::network
