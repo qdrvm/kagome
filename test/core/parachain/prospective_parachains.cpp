@@ -259,6 +259,15 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     ASSERT_EQ(resp, mrp_response);
   }
 
+  void deactivate_leaf(const Hash &hash) {
+    std::vector<Hash> lost = {hash};
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = lost,
+        }));
+  }
+
   void activate_leaf(const TestLeaf &leaf,
                      const TestState &test_state,
                      const fragment::AsyncBackingParams &async_backing_params) {
@@ -564,8 +573,399 @@ TEST_F(ProspectiveParachainsTest, introduce_candidates_basic) {
 
   // Check membership on other leaves.
   get_backable_candidates(leaf_b, 2, {}, 5, {});
-
   get_backable_candidates(leaf_c, 1, {}, 5, {});
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 3);
+}
+
+TEST_F(ProspectiveParachainsTest, introduce_candidate_multiple_times) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate A.
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  std::vector<std::pair<CandidateHash, Hash>> response_a = {
+      {candidate_hash_a, leaf_a.hash}};
+
+  // Introduce candidates.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+
+  // Back candidates. Otherwise, we cannot check membership with
+  // GetBackableCandidates.
+  back_candidate(candidate_a, candidate_hash_a);
+
+  // Check candidate tree membership.
+  get_backable_candidates(leaf_a, 1, {}, 5, response_a);
+
+  // Introduce the same candidate multiple times. It'll return true but it will
+  // only be added once.
+  for (size_t i = 0; i < 5; ++i) {
+    introduce_seconded_candidate(candidate_a, pvd_a);
+  }
+
+  // Check candidate tree membership.
+  get_backable_candidates(leaf_a, 1, {}, 5, response_a);
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+}
+
+TEST_F(ProspectiveParachainsTest, fragment_chain_best_chain_length_is_bounded) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  activate_leaf(leaf_a,
+                test_state,
+                fragment::AsyncBackingParams{
+                    .max_candidate_depth = 1,
+                    .allowed_ancestry_len = 3,
+                });
+
+  // Candidates A, B and C form a chain.
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto &[candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+  const auto &[candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+
+  // Introduce candidates A and B. Since max depth is 1, only these two will be
+  // allowed.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  introduce_seconded_candidate(candidate_b, pvd_b);
+
+  // Back candidates. Otherwise, we cannot check membership with
+  // GetBackableCandidates and they won't be part of the best chain.
+  back_candidate(candidate_a, network::candidateHash(*hasher_, candidate_a));
+  back_candidate(candidate_b, network::candidateHash(*hasher_, candidate_b));
+
+  // Check candidate tree membership.
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {},
+      5,
+      {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_b), leaf_a.hash}});
+
+  // Introducing C will not fail. It will be kept as unconnected storage.
+  introduce_seconded_candidate(candidate_c, pvd_c);
+  // When being backed, candidate C will be dropped.
+  back_candidate(candidate_c, network::candidateHash(*hasher_, candidate_c));
+
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {},
+      5,
+      {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_b), leaf_a.hash}});
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+}
+
+TEST_F(ProspectiveParachainsTest, introduce_candidate_parent_leaving_view) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  // Leaf B
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(99, {3, 4, 5})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  // Leaf C
+  const TestLeaf leaf_c{
+      .number = 102,
+      .hash = fromNumber(132),
+      .para_data =
+          {
+              {1, PerParaData(102, {5, 6, 7})},
+              {2, PerParaData(98, {6, 7, 8})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate A1
+  const auto &[candidate_a1, pvd_a1] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a1 = network::candidateHash(*hasher_, candidate_a1);
+
+  // Candidate A2
+  const auto &[candidate_a2, pvd_a2] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     2,
+                     {2, 3, 4},
+                     {2},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a2 = network::candidateHash(*hasher_, candidate_a2);
+
+  // Candidate B
+  const auto &[candidate_b, pvd_b] =
+      make_candidate(leaf_b.hash,
+                     leaf_b.number,
+                     1,
+                     {3, 4, 5},
+                     {3},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  std::vector<std::pair<CandidateHash, Hash>> response_b = {
+      {candidate_hash_b, leaf_b.hash}};
+
+  // Candidate C
+  const auto &[candidate_c, pvd_c] =
+      make_candidate(leaf_c.hash,
+                     leaf_c.number,
+                     2,
+                     {6, 7, 8},
+                     {4},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+  std::vector<std::pair<CandidateHash, Hash>> response_c = {
+      {candidate_hash_c, leaf_c.hash}};
+
+  // Introduce candidates.
+  introduce_seconded_candidate(candidate_a1, pvd_a1);
+  introduce_seconded_candidate(candidate_a2, pvd_a2);
+  introduce_seconded_candidate(candidate_b, pvd_b);
+  introduce_seconded_candidate(candidate_c, pvd_c);
+
+  // Back candidates. Otherwise, we cannot check membership with
+  // GetBackableCandidates.
+  back_candidate(candidate_a1, candidate_hash_a1);
+  back_candidate(candidate_a2, candidate_hash_a2);
+  back_candidate(candidate_b, candidate_hash_b);
+  back_candidate(candidate_c, candidate_hash_c);
+
+  // Deactivate leaf A.
+  deactivate_leaf(leaf_a.hash);
+
+  // Candidates A1 and A2 should be gone. Candidates B and C should remain.
+  get_backable_candidates(leaf_a, 1, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_b, 1, {}, 5, response_b);
+  get_backable_candidates(leaf_c, 2, {}, 5, response_c);
+
+  // Deactivate leaf B.
+  deactivate_leaf(leaf_b.hash);
+
+  // Candidate B should be gone, C should remain.
+  get_backable_candidates(leaf_a, 1, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_b, 1, {}, 5, {});
+  get_backable_candidates(leaf_c, 2, {}, 5, response_c);
+
+  // Deactivate leaf C.
+  deactivate_leaf(leaf_c.hash);
+
+  // Candidate C should be gone.
+  get_backable_candidates(leaf_a, 1, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_b, 1, {}, 5, {});
+  get_backable_candidates(leaf_c, 2, {}, 5, {});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 0);
+}
+
+TEST_F(ProspectiveParachainsTest, introduce_candidate_on_multiple_forks) {
+  TestState test_state;
+
+  // Leaf B
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(99, {1, 2, 3})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = get_parent_hash(leaf_b.hash),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate built on leaf A.
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  std::vector<std::pair<CandidateHash, Hash>> response_a = {
+      {candidate_hash_a, leaf_a.hash}};
+
+  // Introduce candidate. Should be present on leaves B and C.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  // Check candidate tree membership.
+  get_backable_candidates(leaf_a, 1, {}, 5, response_a);
+  get_backable_candidates(leaf_b, 1, {}, 5, response_a);
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidates A, B, C and D all form a chain, but we'll first introduce A, C
+  // and D.
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto &[candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+  const auto &[candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+  const auto &[candidate_d, pvd_d] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {3}, {4}, test_state.validation_code_hash);
+
+  // Introduce candidates A, C and D.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  introduce_seconded_candidate(candidate_c, pvd_c);
+  introduce_seconded_candidate(candidate_d, pvd_d);
+
+  // Back candidates. Otherwise, we cannot check membership with
+  // GetBackableCandidates.
+  back_candidate(candidate_a, network::candidateHash(*hasher_, candidate_a));
+  back_candidate(candidate_c, network::candidateHash(*hasher_, candidate_c));
+  back_candidate(candidate_d, network::candidateHash(*hasher_, candidate_d));
+
+  // Check candidate tree membership. Only A should be returned.
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {},
+      5,
+      {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash}});
+
+  // Introduce C and check membership. Full chain should be returned.
+  introduce_seconded_candidate(candidate_b, pvd_b);
+  back_candidate(candidate_b, network::candidateHash(*hasher_, candidate_b));
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {},
+      5,
+      {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_b), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_c), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_d), leaf_a.hash}});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+}
+
+TEST_F(ProspectiveParachainsTest, check_backable_query_single_candidate) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate A
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+
+  // Candidate B
+  const auto &[candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
 }
