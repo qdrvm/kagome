@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/variant.hpp>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -499,9 +500,9 @@ namespace kagome::parachain {
       };
     }
 
-    template <typename F>
-    void on_deactivate_leaves(std::span<const Hash> leaves,
-                              F &&relay_parent_live) {
+    void on_deactivate_leaves(
+        std::span<const Hash> leaves,
+        const std::function<bool(const Hash &)> &relay_parent_live) {
       auto remove_parent_claims =
           [&](const auto &c_hash, const auto &parent_hash, const auto id) {
             if (auto it_1 = utils::get_it(by_parent, parent_hash)) {
@@ -517,36 +518,32 @@ namespace kagome::parachain {
             }
           };
 
-      retain_if(
-          candidates,
-          [&remove_parent_claims,
-           &leaves,
-           relay_parent_live(std::forward<F>(relay_parent_live))](auto &pair) {
-            auto &[c_hash, state] = pair;
-            return visit_in_place(
-                state,
-                [&](ConfirmedCandidate &c) {
-                  if (!relay_parent_live(c.relay_parent())) {
-                    remove_parent_claims(
-                        c_hash, c.parent_head_data_hash(), c.para_id());
-                    return false;
-                  }
+      retain_if(candidates, [&](auto &pair) {
+        auto &[c_hash, state] = pair;
+        return visit_in_place(
+            state,
+            [&](ConfirmedCandidate &c) {
+              if (!relay_parent_live(c.relay_parent())) {
+                remove_parent_claims(
+                    c_hash, c.parent_head_data_hash(), c.para_id());
+                return false;
+              }
 
-                  for (const auto &leaf_hash : leaves) {
-                    c.importable_under.erase(leaf_hash);
-                  }
-                  return true;
-                },
-                [&](UnconfirmedCandidate &c) {
-                  c.on_deactivate_leaves(
-                      leaves,
-                      [&](const auto &parent_hash, const auto &id) {
-                        return remove_parent_claims(c_hash, parent_hash, id);
-                      },
-                      relay_parent_live);
-                  return c.has_claims();
-                });
-          });
+              for (const auto &leaf_hash : leaves) {
+                c.importable_under.erase(leaf_hash);
+              }
+              return true;
+            },
+            [&](UnconfirmedCandidate &c) {
+              c.on_deactivate_leaves(
+                  leaves,
+                  [&](const auto &parent_hash, const auto &id) {
+                    return remove_parent_claims(c_hash, parent_hash, id);
+                  },
+                  relay_parent_live);
+              return c.has_claims();
+            });
+      });
 
       SL_TRACE(
           logger, "Candidates remaining after cleanup: {}", candidates.size());

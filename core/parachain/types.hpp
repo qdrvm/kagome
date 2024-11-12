@@ -189,6 +189,7 @@ namespace kagome::network {
   struct CandidateReceipt {
     CandidateDescriptor descriptor;    /// Candidate descriptor
     parachain::Hash commitments_hash;  /// Hash of candidate commitments
+    mutable std::optional<parachain::Hash> hash_{};
 
     const parachain::Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
@@ -198,23 +199,7 @@ namespace kagome::network {
       return hash_.value();
     }
 
-    inline bool operator==(const CandidateReceipt &other) const {
-      return descriptor == other.descriptor
-         and commitments_hash == other.commitments_hash;
-    }
-
-    friend inline scale::ScaleDecoderStream &operator>>(
-        scale::ScaleDecoderStream &s, CandidateReceipt &cr) {
-      return s >> cr.descriptor >> cr.commitments_hash;
-    }
-
-    friend inline scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const CandidateReceipt &cr) {
-      return s << cr.descriptor << cr.commitments_hash;
-    }
-
-   private:
-    mutable std::optional<parachain::Hash> hash_{};
+    SCALE_TIE_ONLY(descriptor, commitments_hash);
   };
 
   struct CommittedCandidateReceipt {

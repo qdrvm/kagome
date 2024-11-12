@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "network/types/collator_messages_vstaging.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {

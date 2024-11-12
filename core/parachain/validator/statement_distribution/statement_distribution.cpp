@@ -137,14 +137,14 @@ namespace kagome::parachain::statement_distribution {
         hasher(std::move(_hasher)),
         prospective_parachains(_prospective_parachains),
         parachain_host(_parachain_host),
-        crypto_provider(_crypto_provider),
+        crypto_provider(std::move(_crypto_provider)),
         peer_view(_peer_view),
         block_tree(_block_tree),
         slots_util(_slots_util),
         babe_config_repo(std::move(_babe_config_repo)),
         peer_state_sub(
             std::make_shared<primitives::events::PeerEventSubscriber>(
-                _peer_events_engine, false)),
+                std::move(_peer_events_engine), false)),
         my_view_sub(std::make_shared<network::PeerView::MyViewSubscriber>(
             _peer_view->getMyViewObservable(), false)),
         remote_view_sub(std::make_shared<network::PeerView::PeerViewSubscriber>(
@@ -492,11 +492,11 @@ namespace kagome::parachain::statement_distribution {
 
     std::vector<std::pair<libp2p::peer::PeerId, std::vector<Hash>>>
         update_peers;
-    for (auto it = peers.begin(); it != peers.end(); ++it) {
+    for (auto &[peer, peer_state] : peers) {
       std::vector<Hash> fresh =
-          it->second.reconcile_active_leaf(relay_parent, new_relay_parents);
+          peer_state.reconcile_active_leaf(relay_parent, new_relay_parents);
       if (!fresh.empty()) {
-        update_peers.emplace_back(it->first, fresh);
+        update_peers.emplace_back(peer, fresh);
       }
     }
 
@@ -619,9 +619,8 @@ namespace kagome::parachain::statement_distribution {
     const auto schedule =
         [&]() -> std::unordered_map<CoreIndex, std::vector<ParachainId>> {
       if (maybe_claim_queue) {
-        return std::unordered_map<CoreIndex, std::vector<ParachainId>>(
-            maybe_claim_queue->claimes.begin(),
-            maybe_claim_queue->claimes.end());
+        return {maybe_claim_queue->claimes.begin(),
+                maybe_claim_queue->claimes.end()};
       }
 
       std::unordered_map<CoreIndex, std::vector<ParachainId>> result;
