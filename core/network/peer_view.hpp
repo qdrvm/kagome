@@ -51,15 +51,15 @@ namespace kagome::network {
 
     using PeerId = libp2p::peer::PeerId;
 
-    using MyViewSubscriptionEngine =
-        subscription::SubscriptionEngine<EventType, bool, network::ExView>;
+    using MyViewSubscriptionEngine = subscription::
+        SubscriptionEngine<EventType, std::monostate, network::ExView>;
     using MyViewSubscriptionEnginePtr =
         std::shared_ptr<MyViewSubscriptionEngine>;
     using MyViewSubscriber = MyViewSubscriptionEngine::SubscriberType;
     using MyViewSubscriberPtr = std::shared_ptr<MyViewSubscriber>;
 
     using PeerViewSubscriptionEngine = subscription::
-        SubscriptionEngine<EventType, bool, PeerId, network::View>;
+        SubscriptionEngine<EventType, std::monostate, PeerId, network::View>;
     using PeerViewSubscriptionEnginePtr =
         std::shared_ptr<PeerViewSubscriptionEngine>;
     using PeerViewSubscriber = PeerViewSubscriptionEngine::SubscriberType;

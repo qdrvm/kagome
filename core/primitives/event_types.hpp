@@ -250,7 +250,7 @@ namespace kagome::primitives::events {
 
   using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
-      bool,
+      std::monostate,
       primitives::events::SyncStateEventParams>;
   using SyncStateSubscriptionEnginePtr =
       std::shared_ptr<SyncStateSubscriptionEngine>;
