@@ -11,5 +11,5 @@ echo "Building in $(pwd)"
 VERSION=${VERSION:-5}
 TAG=qdrvm/kagome-dev:$VERSION
 
-docker build -t ${TAG}-minideb -f minideb.Dockerfile .
-docker push ${TAG}-minideb
+docker build -t ${TAG}-runner -f kagome_runner.Dockerfile .
+docker push ${TAG}-runner
