@@ -99,6 +99,9 @@ namespace kagome::network {
   void ParachainProtocol::onClose(const PeerId &peer_id) {}
 
   void ParachainProtocol::start() {
+    if (not roles_.isAuthority()) {
+      return;
+    }
     notifications_->start(weak_from_this());
     auto my_view_sub = std::make_shared<PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
