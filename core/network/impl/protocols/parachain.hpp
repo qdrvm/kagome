@@ -37,7 +37,6 @@ namespace kagome::network {
     Roles roles;
     const blockchain::GenesisBlockHash &genesis_hash;
     std::shared_ptr<PeerManager> peer_manager;
-    std::shared_ptr<blockchain::BlockTree> block_tree;
     std::shared_ptr<PeerView> peer_view;
     primitives::events::SyncStateSubscriptionEnginePtr sync_engine;
   };
@@ -72,7 +71,6 @@ namespace kagome::network {
     std::vector<CollationVersion> collation_versions_;
     Roles roles_;
     std::shared_ptr<PeerManager> peer_manager_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<PeerView> peer_view_;
     primitives::events::SyncStateSubscriptionEnginePtr sync_engine_;
     std::shared_ptr<void> sync_sub_;

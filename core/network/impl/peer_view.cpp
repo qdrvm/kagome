@@ -7,19 +7,29 @@
 #include "network/peer_view.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::network {
+  inline View makeView(const LazySPtr<blockchain::BlockTree> &block_tree) {
+    View view{
+        .heads_ = block_tree.get()->getLeaves(),
+        .finalized_number_ = block_tree.get()->getLastFinalized().number,
+    };
+    std::ranges::sort(view.heads_);
+    return view;
+  }
 
   PeerView::PeerView(
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       LazySPtr<blockchain::BlockTree> block_tree)
       : chain_sub_{std::move(chain_events_engine)},
+        block_tree_{std::move(block_tree)},
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
             std::make_shared<PeerViewSubscriptionEngine>()},
-        block_tree_(block_tree) {
+        my_view_{makeView(block_tree_)} {
     app_state_manager->takeControl(*this);
   }
 
@@ -28,21 +38,10 @@ namespace kagome::network {
   }
 
   bool PeerView::prepare() {
-    chain_sub_.onHead(
-        [weak{weak_from_this()}](const primitives::BlockHeader &header) {
-          if (auto self = weak.lock()) {
-            self->updateMyView(ExView{
-                .view =
-                    View{
-                        .heads_ = self->block_tree_.get()->getLeaves(),
-                        .finalized_number_ =
-                            self->block_tree_.get()->getLastFinalized().number,
-                    },
-                .new_head = header,
-                .lost = {},
-            });
-          }
-        });
+    chain_sub_.onHead([WEAK_SELF](const primitives::BlockHeader &header) {
+      WEAK_LOCK(self);
+      self->updateMyView(header);
+    });
     return true;
   }
 
@@ -56,25 +55,19 @@ namespace kagome::network {
     return remote_view_update_observable_;
   }
 
-  void PeerView::updateMyView(network::ExView &&view) {
+  void PeerView::updateMyView(const primitives::BlockHeader &header) {
     BOOST_ASSERT(my_view_update_observable_);
-    std::ranges::sort(view.view.heads_);
-    if (!my_view_ || my_view_->view != view.view
-        || my_view_->new_head != view.new_head) {
-      if (my_view_) {
-        view.lost.swap(my_view_->lost);
-        view.lost.clear();
-        for (const auto &head : my_view_->view.heads_) {
-          if (!view.view.contains(head)) {
-            view.lost.emplace_back(head);
-          }
-        }
-      }
-      my_view_ = std::move(view);
-
-      BOOST_ASSERT(my_view_);
-      my_view_update_observable_->notify(EventType::kViewUpdated, *my_view_);
+    ExView event{makeView(block_tree_), header, {}};
+    if (event.view == my_view_) {
+      return;
     }
+    for (const auto &head : my_view_.heads_) {
+      if (not event.view.contains(head)) {
+        event.lost.emplace_back(head);
+      }
+    }
+    my_view_ = event.view;
+    my_view_update_observable_->notify(EventType::kViewUpdated, event);
   }
 
   size_t PeerView::peersCount() const {
@@ -115,10 +108,4 @@ namespace kagome::network {
           EventType::kViewUpdated, peer_id, *ref);
     }
   }
-
-  std::optional<std::reference_wrapper<const ExView>> PeerView::getMyView()
-      const {
-    return my_view_;
-  }
-
 }  // namespace kagome::network

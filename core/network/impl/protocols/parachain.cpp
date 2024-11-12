@@ -70,7 +70,6 @@ namespace kagome::network {
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
-        block_tree_{std::move(inject.block_tree)},
         peer_view_{std::move(inject.peer_view)},
         sync_engine_{std::move(inject.sync_engine)} {}
 
@@ -87,12 +86,8 @@ namespace kagome::network {
     state.value().get().collation_version =
         collation_versions_.at(protocol_group);
     if (out) {
-      notifications_->write(peer_id,
-                            protocol_group,
-                            encodeView({
-                                block_tree_->getLeaves(),
-                                block_tree_->getLastFinalized().number,
-                            }));
+      notifications_->write(
+          peer_id, protocol_group, encodeView(peer_view_->getMyView()));
     }
     return true;
   }
