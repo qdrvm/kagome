@@ -60,8 +60,7 @@ namespace kagome::network {
       base().logger()->info(
           "Fetching attested candidate request.(candidate={})",
           request.candidate_hash);
-      statement_distribution_->OnFetchAttestedCandidateRequest(
-          std::move(request), stream);
+      statement_distribution_->OnFetchAttestedCandidateRequest(request, stream);
       return std::nullopt;
     }
 

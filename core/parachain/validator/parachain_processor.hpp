@@ -97,6 +97,8 @@ namespace kagome::parachain {
     /// Hash of the parent head data.
     Hash parent_head_data_hash;
 
+    BlockedCollationId(ParachainId pid, const Hash &h)
+        : para_id(pid), parent_head_data_hash(h) {}
     constexpr auto operator<=>(const BlockedCollationId &) const = default;
   };
 }  // namespace kagome::parachain
@@ -372,6 +374,9 @@ namespace kagome::parachain {
     struct PerSessionState final {
       SessionIndex session;
       runtime::SessionInfo session_info;
+
+      PerSessionState(SessionIndex s, runtime::SessionInfo si)
+          : session(s), session_info(std::move(si)) {}
     };
 
     struct RelayParentState {
@@ -853,6 +858,7 @@ namespace kagome::parachain {
 
     /// Handle a fetched collation result.
     /// polkadot/node/network/collator-protocol/src/validator_side/mod.rs
+    /// Returns `true` if seconding started.
     outcome::result<bool> kick_off_seconding(
         network::PendingCollationFetch &&pending_collation_fetch);
 

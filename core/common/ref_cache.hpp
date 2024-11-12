@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include "outcome/outcome.hpp"
 
 namespace kagome {
 

@@ -345,7 +345,6 @@ namespace kagome::parachain {
              event.view.finalized_number_,
              event.view.heads_.size());
     broadcastView(event.view);
-    // broadcastViewToGroup(relay_parent, event.view);
 
     handle_active_leaves_update_for_validator(event, std::move(pruned));
   }
@@ -433,7 +432,6 @@ namespace kagome::parachain {
 
       backing_store_->onDeactivateLeaf(lost.hash);
       bitfield_store_->remove(lost.hash);
-      // av_store_->remove(lost);
     }
   }
 
@@ -496,8 +494,6 @@ namespace kagome::parachain {
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
                                       msg);
-    //    pm_->getStreamEngine()->broadcast(router_->getValidationProtocolVStaging(),
-    //                                      msg);
   }
 
   outcome::result<std::optional<ValidatorSigner>>
@@ -595,9 +591,6 @@ namespace kagome::parachain {
                 parachain_host_->session_index_for_child(relay_parent));
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(relay_parent, session_index));
-    // OUTCOME_TRY(randomness, getBabeRandomness(relay_parent));
-    //    OUTCOME_TRY(disabled_validators_,
-    //                parachain_host_->disabled_validators(relay_parent));
     const auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
@@ -704,45 +697,6 @@ namespace kagome::parachain {
       }
     }
 
-    // std::optional<StatementStore> statement_store;
-    //    std::optional<LocalValidatorState> local_validator;
-    //    if (mode) {
-    //      //statement_store.emplace(per_session_state->value().groups);
-    //      auto maybe_claim_queue =
-    //          [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
-    //        auto r = fetch_claim_queue(relay_parent);
-    //        if (r.has_value()) {
-    //          return r.value();
-    //        }
-    //        return std::nullopt;
-    //      }();
-    //
-    //      const auto seconding_limit = mode->max_candidate_depth + 1;
-    //      local_validator = [&]() -> std::optional<LocalValidatorState> {
-    //        if (!global_v_index) {
-    //          return std::nullopt;
-    //        }
-    //        if (validator_index) {
-    //          return find_active_validator_state(*validator_index,
-    //                                             per_session_state->value().groups,
-    //                                             cores,
-    //                                             group_rotation_info,
-    //                                             maybe_claim_queue,
-    //                                             seconding_limit,
-    //                                             mode->max_candidate_depth);
-    //        }
-    //        return LocalValidatorState{};
-    //      }();
-    //    }
-
-    //    std::unordered_set<ValidatorIndex> disabled_validators{
-    //        disabled_validators_.begin(), disabled_validators_.end()};
-    //    if (!disabled_validators.empty()) {
-    //      SL_TRACE(logger_,
-    //               "Disabled validators detected. (relay parent={})",
-    //               relay_parent);
-    //    }
-
     SL_VERBOSE(logger_,
                "Inited new backing task v3.(assigned_para={}, "
                "assigned_core={}, our index={}, relay parent={})",
@@ -771,7 +725,6 @@ namespace kagome::parachain {
         .peers_advertised = {},
         .fallbacks = {},
         .backed_hashes = {},
-        //        .disabled_validators = std::move(disabled_validators),
         .inject_core_index = inject_core_index,
         .per_session_state = per_session_state,
     };
@@ -914,10 +867,7 @@ namespace kagome::parachain {
       const Hash &head_data_hash) {
     auto unblocked_collations_it =
         our_current_state_.validator_side.blocked_from_seconding.find(
-            BlockedCollationId{
-                .para_id = para_id,
-                .parent_head_data_hash = head_data_hash,
-            });
+            BlockedCollationId(para_id, head_data_hash));
 
     if (unblocked_collations_it
         != our_current_state_.validator_side.blocked_from_seconding.end()) {
@@ -2537,11 +2487,8 @@ namespace kagome::parachain {
         *main_pool_handler_, notifyInvalid, parent, candidate_receipt);
 
     our_current_state_.validator_side.blocked_from_seconding.erase(
-        BlockedCollationId{
-            .para_id = candidate_receipt.descriptor.para_id,
-            .parent_head_data_hash =
-                candidate_receipt.descriptor.para_head_hash,
-        });
+        BlockedCollationId(candidate_receipt.descriptor.para_id,
+                           candidate_receipt.descriptor.para_head_hash));
 
     auto fetched_collation =
         network::FetchedCollation::from(candidate_receipt, *hasher_);
@@ -3114,8 +3061,7 @@ namespace kagome::parachain {
     } else if (!maybe_pvd && !maybe_parent_head && maybe_parent_head_hash) {
       const network::PendingCollationFetch blocked_collation{
           .collation_event = std::move(collation_event),
-          .candidate_receipt =
-              std::move(pending_collation_fetch.candidate_receipt),
+          .candidate_receipt = pending_collation_fetch.candidate_receipt,
           .pov = std::move(pending_collation_fetch.pov),
           .maybe_parent_head_data = std::nullopt,
       };
@@ -3127,10 +3073,9 @@ namespace kagome::parachain {
                blocked_collation.candidate_receipt.hash(*hasher_),
                blocked_collation.candidate_receipt.descriptor.relay_parent);
       our_current_state_.validator_side
-          .blocked_from_seconding[BlockedCollationId{
-              .para_id = blocked_collation.candidate_receipt.descriptor.para_id,
-              .parent_head_data_hash = *maybe_parent_head_hash,
-          }]
+          .blocked_from_seconding[BlockedCollationId(
+              blocked_collation.candidate_receipt.descriptor.para_id,
+              *maybe_parent_head_hash)]
           .emplace_back(blocked_collation);
 
       return outcome::success(false);

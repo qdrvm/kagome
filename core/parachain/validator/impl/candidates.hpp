@@ -14,6 +14,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
+#include "utils/map.hpp"
 #include "utils/retain_if.hpp"
 
 namespace kagome::parachain {
@@ -516,32 +517,36 @@ namespace kagome::parachain {
             }
           };
 
-      retain_if(candidates, [&](auto &pair) {
-        auto &[c_hash, state] = pair;
-        return visit_in_place(
-            state,
-            [&](ConfirmedCandidate &c) {
-              if (!std::forward<F>(relay_parent_live)(c.relay_parent())) {
-                remove_parent_claims(
-                    c_hash, c.parent_head_data_hash(), c.para_id());
-                return false;
-              }
+      retain_if(
+          candidates,
+          [&remove_parent_claims,
+           &leaves,
+           relay_parent_live(std::forward<F>(relay_parent_live))](auto &pair) {
+            auto &[c_hash, state] = pair;
+            return visit_in_place(
+                state,
+                [&](ConfirmedCandidate &c) {
+                  if (!relay_parent_live(c.relay_parent())) {
+                    remove_parent_claims(
+                        c_hash, c.parent_head_data_hash(), c.para_id());
+                    return false;
+                  }
 
-              for (const auto &leaf_hash : leaves) {
-                c.importable_under.erase(leaf_hash);
-              }
-              return true;
-            },
-            [&](UnconfirmedCandidate &c) {
-              c.on_deactivate_leaves(
-                  leaves,
-                  [&](const auto &parent_hash, const auto &id) {
-                    return remove_parent_claims(c_hash, parent_hash, id);
-                  },
-                  std::forward<F>(relay_parent_live));
-              return c.has_claims();
-            });
-      });
+                  for (const auto &leaf_hash : leaves) {
+                    c.importable_under.erase(leaf_hash);
+                  }
+                  return true;
+                },
+                [&](UnconfirmedCandidate &c) {
+                  c.on_deactivate_leaves(
+                      leaves,
+                      [&](const auto &parent_hash, const auto &id) {
+                        return remove_parent_claims(c_hash, parent_hash, id);
+                      },
+                      relay_parent_live);
+                  return c.has_claims();
+                });
+          });
 
       SL_TRACE(
           logger, "Candidates remaining after cleanup: {}", candidates.size());

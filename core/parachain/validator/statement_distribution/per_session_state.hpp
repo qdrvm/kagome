@@ -11,8 +11,10 @@
 #include <unordered_map>
 
 #include <libp2p/peer/peer_id.hpp>
+#include "parachain/backing/grid.hpp"
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 
 namespace kagome::parachain::statement_distribution {

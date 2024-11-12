@@ -16,6 +16,7 @@
 #include <libp2p/peer/peer_info.hpp>
 
 #include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/validator/backing_implicit_view.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
