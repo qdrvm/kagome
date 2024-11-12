@@ -27,7 +27,6 @@
 #include "crypto/hasher.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-#include "metrics/metrics.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"
@@ -198,11 +197,6 @@ namespace kagome::network {
     std::unordered_map<PeerId, PeerState> peer_states_;
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
-
-    // metrics
-    metrics::RegistryPtr registry_ = metrics::createRegistry();
-    metrics::Gauge *sync_peer_num_;
-    metrics::Gauge *peers_count_metric_;
   };
 
 }  // namespace kagome::network

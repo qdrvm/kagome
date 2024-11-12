@@ -26,10 +26,27 @@ namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/substrate/client/network/sync/src/engine.rs#L86
   constexpr size_t kSeenCapacity = 1024;
 
-  static const metrics::GaugeHelper metric_peers{
-      "kagome_sync_peers",
-      "Number of peers we sync with",
-  };
+  static const struct {
+    void inc(bool inc) const {
+      for (auto &metric : metrics) {
+        if (inc) {
+          metric->inc();
+        } else {
+          metric->dec();
+        }
+      }
+    }
+    std::array<metrics::GaugeHelper, 2> metrics{
+        metrics::GaugeHelper{
+            "kagome_sync_peers",
+            "Number of peers we sync with",
+        },
+        metrics::GaugeHelper{
+            "kagome_sub_libp2p_peers_count",
+            "Number of connected peers",
+        },
+    };
+  } metric_peers;
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(
       MainThreadPool &main_thread_pool,
@@ -80,7 +97,7 @@ namespace kagome::network {
       return false;
     }
     if (seen_.add(peer_id)) {
-      metric_peers->inc(1);
+      metric_peers.inc(true);
       ++*telemetry_peer_count_.v;
     }
     grandpa_protocol_.get()->notifications_->reserve(peer_id, true);
@@ -113,7 +130,7 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::onClose(const PeerId &peer_id) {
-    metric_peers->dec(1);
+    metric_peers.inc(false);
     --*telemetry_peer_count_.v;
     seen_.remove(peer_id);
     grandpa_protocol_.get()->notifications_->reserve(peer_id, false);
