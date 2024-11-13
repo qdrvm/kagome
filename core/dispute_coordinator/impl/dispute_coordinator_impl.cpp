@@ -15,6 +15,7 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/main_thread_pool.hpp"

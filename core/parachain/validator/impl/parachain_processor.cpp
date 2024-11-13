@@ -21,10 +21,9 @@
 #include "dispute_coordinator/impl/runtime_info.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"
@@ -130,7 +129,6 @@ namespace {
 }
 
 namespace kagome::parachain {
-  constexpr size_t kMinGossipPeers = 25;
 
   ParachainProcessorImpl::ParachainProcessorImpl(
       std::shared_ptr<network::PeerManager> pm,
@@ -227,14 +225,8 @@ namespace kagome::parachain {
       const network::SignedBitfield &bitfield) {
     REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
-
-    send_to_validators_group(
-        relay_parent,
-        {network::VersionedValidatorProtocolMessage{
-            network::vstaging::ValidatorProtocolMessage{
-                network::vstaging::BitfieldDistributionMessage{
-                    network::vstaging::BitfieldDistribution{relay_parent,
-                                                            bitfield}}}}});
+    router_->getValidationProtocol()->write(
+        network::BitfieldDistribution{relay_parent, bitfield});
   }
 
   /**
@@ -257,42 +249,18 @@ namespace kagome::parachain {
 
     // Subscribe to the BABE status observable
     sync_state_observer_ =
-        std::make_shared<primitives::events::SyncStateEventSubscriber>(
-            sync_state_observable_, false);
-    sync_state_observer_->setCallback(
-        [wself{weak_from_this()}, was_synchronized = false](
-            auto /*set_id*/,
-            bool &synchronized,
-            auto /*event_type*/,
-            const primitives::events::SyncStateEventParams &event) mutable {
-          TRY_GET_OR_RET(self, wself.lock());
-
-          if (event == consensus::SyncState::SYNCHRONIZED) {
-            if (not was_synchronized) {
-              self->bitfield_signer_->start();
-              self->pvf_precheck_->start();
-              was_synchronized = true;
-            }
-          }
-          if (was_synchronized) {
-            if (!synchronized) {
-              synchronized = true;
-              TRY_GET_OR_RET(my_view, self->peer_view_->getMyView());
-              SL_TRACE(self->logger_,
-                       "Broadcast my view because synchronized.");
-              self->broadcastView(my_view->get().view);
-            }
-          }
+        primitives::events::onSync(sync_state_observable_, [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->synchronized_ = true;
+          self->bitfield_signer_->start();
+          self->pvf_precheck_->start();
         });
-    sync_state_observer_->subscribe(
-        sync_state_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
 
     // Subscribe to the chain events engine
     chain_sub_.onDeactivate(
-        [wptr{weak_from_this()}](
+        [WEAK_SELF](
             const primitives::events::RemoveAfterFinalizationParams &event) {
-          TRY_GET_OR_RET(self, wptr.lock());
+          WEAK_LOCK(self);
           self->onDeactivateBlocks(event);
         });
 
@@ -301,13 +269,11 @@ namespace kagome::parachain {
     // It updates the active leaves, checks if parachains can be processed,
     // creates a new backing task for the new head, and broadcasts the updated
     // view.
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          TRY_GET_OR_RET(self, wptr.lock());
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
           self->onViewUpdated(event);
         });
 
@@ -344,7 +310,6 @@ namespace kagome::parachain {
              relay_parent,
              event.view.finalized_number_,
              event.view.heads_.size());
-    broadcastView(event.view);
 
     handle_active_leaves_update_for_validator(event, std::move(pruned));
   }
@@ -435,67 +400,6 @@ namespace kagome::parachain {
     }
   }
 
-  void ParachainProcessorImpl::broadcastViewExcept(
-      const libp2p::peer::PeerId &peer_id, const network::View &view) const {
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::ViewUpdate{.view = view});
-    pm_->getStreamEngine()->broadcast(
-        router_->getValidationProtocolVStaging(),
-        msg,
-        [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
-  }
-
-  void ParachainProcessorImpl::broadcastViewToGroup(
-      const primitives::BlockHash &relay_parent, const network::View &view) {
-    std::deque<network::PeerId> group;
-    if (auto r = runtime_info_->get_session_info(relay_parent)) {
-      auto &[session, info] = r.value();
-      if (info.our_group) {
-        for (auto &i : session.validator_groups[*info.our_group]) {
-          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
-            group.emplace_back(peer->id);
-          }
-        }
-      }
-    }
-
-    auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
-      return router_->getValidationProtocolVStaging();
-    }();
-
-    auto make_send = [&]<typename Msg>(
-                         const Msg &msg,
-                         const std::shared_ptr<network::ProtocolBase>
-                             &protocol) {
-      auto se = pm_->getStreamEngine();
-      auto message = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          msg);
-      SL_TRACE(
-          logger_,
-          "Broadcasting view update to group.(relay_parent={}, group_size={})",
-          relay_parent,
-          group.size());
-
-      for (const auto &peer : group) {
-        SL_TRACE(logger_, "Send to peer from group. (peer={})", peer);
-        se->send(peer, protocol, message);
-      }
-    };
-
-    make_send(network::vstaging::ViewUpdate{view},
-              router_->getValidationProtocolVStaging());
-  }
-
-  void ParachainProcessorImpl::broadcastView(const network::View &view) const {
-    auto msg = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::ViewUpdate{.view = view});
-    pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(),
-                                      msg);
-  }
-
   outcome::result<std::optional<ValidatorSigner>>
   ParachainProcessorImpl::isParachainValidator(
       const primitives::BlockHash &relay_parent) const {
@@ -506,32 +410,10 @@ namespace kagome::parachain {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
     }
-    if (!sync_state_observer_->get()) {
+    if (not synchronized_) {
       return Error::NOT_SYNCHRONIZED;
     }
     return outcome::success();
-  }
-
-  void ParachainProcessorImpl::spawn_and_update_peer(
-      std::unordered_set<primitives::AuthorityDiscoveryId> &cache,
-      const primitives::AuthorityDiscoveryId &id) {
-    if (cache.contains(id)) {
-      return;
-    }
-
-    cache.insert(id);
-    if (auto peer = query_audi_->get(id)) {
-      tryOpenOutgoingValidationStream(
-          peer->id,
-          network::CollationVersion::VStaging,
-          [WEAK_SELF, peer_id{peer->id}]() {
-            WEAK_LOCK(self);
-            self->sendMyView(peer_id,
-                             self->router_->getValidationProtocolVStaging());
-          });
-    } else {
-      SL_TRACE(logger_, "No audi for {}.", id);
-    }
   }
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
@@ -578,11 +460,8 @@ namespace kagome::parachain {
      * assignment, validator index, required collator, and table context.
      */
     bool is_parachain_validator = false;
-    ::libp2p::common::FinalAction metric_updater(
-        [wptr{weak_from_this()}, &is_parachain_validator] {
-          TRY_GET_OR_RET(self, wptr.lock());
-          self->metric_is_parachain_validator_->set(is_parachain_validator);
-        });
+    ::libp2p::common::FinalAction metric_updater{
+        [&] { metric_is_parachain_validator_->set(is_parachain_validator); }};
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
@@ -1155,87 +1034,6 @@ namespace kagome::parachain {
              bd->data.payload.ix,
              bd->relay_parent);
     bitfield_store_->putBitfield(bd->relay_parent, bd->data);
-  }
-
-  void ParachainProcessorImpl::send_to_validators_group(
-      const RelayHash &relay_parent,
-      const std::deque<network::VersionedValidatorProtocolMessage> &messages) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
-
-    auto se = pm_->getStreamEngine();
-    std::unordered_set<network::PeerId> group_set;
-    if (auto r = runtime_info_->get_session_info(relay_parent)) {
-      auto &[session, info] = r.value();
-      if (info.our_group) {
-        for (auto &i : session.validator_groups[*info.our_group]) {
-          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
-            group_set.emplace(peer->id);
-          }
-        }
-      }
-    }
-
-    std::deque<network::PeerId> group, any;
-    for (const auto &p : group_set) {
-      group.emplace_back(p);
-    }
-
-    auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
-      return router_->getValidationProtocolVStaging();
-    }();
-
-    se->forEachPeer(protocol, [&](const network::PeerId &peer) {
-      if (not group_set.contains(peer)) {
-        any.emplace_back(peer);
-      }
-    });
-    auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
-    if (lucky != 0) {
-      std::shuffle(any.begin(), any.end(), random_);
-      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
-      any.erase(any.begin() + std::min(any.size(), lucky), any.end());
-    } else {
-      any.clear();
-    }
-
-    auto make_send = [&]<typename Msg>(
-                         const Msg &msg,
-                         const std::shared_ptr<network::ProtocolBase>
-                             &protocol) {
-      auto se = pm_->getStreamEngine();
-      BOOST_ASSERT(se);
-
-      auto message =
-          std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(
-              msg);
-      logger_->trace(
-          "Broadcasting messages.(relay_parent={}, group_size={}, "
-          "lucky_size={})",
-          relay_parent,
-          group.size(),
-          any.size());
-
-      for (auto &peer : group) {
-        SL_TRACE(logger_, "Send to peer from group. (peer={})", peer);
-        se->send(peer, protocol, message);
-      }
-
-      for (auto &peer : any) {
-        SL_TRACE(logger_, "Send to peer from any. (peer={})", peer);
-        se->send(peer, protocol, message);
-      }
-    };
-
-    for (const network::VersionedValidatorProtocolMessage &msg : messages) {
-      visit_in_place(
-          msg,
-          [&](const kagome::network::vstaging::ValidatorProtocolMessage &m) {
-            make_send(m, router_->getValidationProtocolVStaging());
-          },
-          [&](const kagome::network::ValidatorProtocolMessage &m) {
-            make_send(m, router_->getValidationProtocol());
-          });
-    }
   }
 
   void ParachainProcessorImpl::process_vstaging_statement(
@@ -2316,110 +2114,6 @@ namespace kagome::parachain {
     return sign_result.value();
   }
 
-  template <typename F>
-  bool ParachainProcessorImpl::tryOpenOutgoingCollatingStream(
-      const libp2p::peer::PeerId &peer_id, F &&callback) {
-    auto protocol = router_->getCollationProtocolVStaging();
-    BOOST_ASSERT(protocol);
-
-    return tryOpenOutgoingStream(
-        peer_id, std::move(protocol), std::forward<F>(callback));
-  }
-
-  void ParachainProcessorImpl::sendMyView(
-      const libp2p::peer::PeerId &peer_id,
-      const std::shared_ptr<network::ProtocolBase> &protocol) {
-    BOOST_ASSERT(protocol);
-    CHECK_OR_RET(canProcessParachains().has_value());
-
-    SL_DEBUG(logger_,
-             "Send my view.(peer={}, protocol={})",
-             peer_id,
-             protocol->protocolName());
-    pm_->getStreamEngine()->send(
-        peer_id,
-        protocol,
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::ViewUpdate{
-                .view =
-                    network::View{
-                        .heads_ = block_tree_->getLeaves(),
-                        .finalized_number_ =
-                            block_tree_->getLastFinalized().number,
-                    },
-            }));
-  }
-
-  void ParachainProcessorImpl::onIncomingCollationStream(
-      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*main_pool_handler_, onIncomingCollationStream, peer_id, version);
-
-    auto peer_state = [&]() {
-      auto res = pm_->getPeerState(peer_id);
-      if (!res) {
-        SL_TRACE(logger_,
-                 "No PeerState of peer {}. Default one has created",
-                 peer_id);
-        res = pm_->createDefaultPeerState(peer_id);
-      }
-      return res;
-    }();
-
-    peer_state->get().collation_version = version;
-    if (tryOpenOutgoingCollatingStream(
-            peer_id, [wptr{weak_from_this()}, peer_id, version]() {
-              TRY_GET_OR_RET(self, wptr.lock());
-              switch (version) {
-                case network::CollationVersion::V1:
-                case network::CollationVersion::VStaging: {
-                  self->sendMyView(
-                      peer_id, self->router_->getCollationProtocolVStaging());
-                } break;
-                default: {
-                  UNREACHABLE;
-                } break;
-              }
-            })) {
-      SL_DEBUG(logger_, "Initiated collation protocol with {}", peer_id);
-    }
-  }
-
-  void ParachainProcessorImpl::onIncomingValidationStream(
-      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*main_pool_handler_, onIncomingValidationStream, peer_id, version);
-
-    SL_TRACE(logger_, "Received incoming validation stream {}", peer_id);
-    auto peer_state = [&]() {
-      auto res = pm_->getPeerState(peer_id);
-      if (!res) {
-        SL_TRACE(logger_,
-                 "No PeerState of peer {}. Default one has created",
-                 peer_id);
-        res = pm_->createDefaultPeerState(peer_id);
-      }
-      return res;
-    }();
-
-    peer_state->get().collation_version = version;
-    if (tryOpenOutgoingValidationStream(
-            peer_id, version, [wptr{weak_from_this()}, peer_id, version]() {
-              TRY_GET_OR_RET(self, wptr.lock());
-              switch (version) {
-                case network::CollationVersion::V1:
-                case network::CollationVersion::VStaging: {
-                  self->sendMyView(
-                      peer_id, self->router_->getValidationProtocolVStaging());
-                } break;
-                default: {
-                  UNREACHABLE;
-                } break;
-              }
-            })) {
-      logger_->debug("Initiated validation protocol with {}", peer_id);
-    }
-  }
-
   network::ResponsePov ParachainProcessorImpl::getPov(
       CandidateHash &&candidate_hash) {
     if (auto res = av_store_->getPov(candidate_hash)) {
@@ -2467,16 +2161,8 @@ namespace kagome::parachain {
           };
         });
 
-    pm_->getStreamEngine()->send(
-        peer_id,
-        router_->getCollationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::CollatorProtocolMessage>>(
-            network::vstaging::CollatorProtocolMessage(
-                network::vstaging::CollationMessage(
-                    network::vstaging::CollatorProtocolMessageCollationSeconded{
-                        .relay_parent = relay_parent,
-                        .statement = std::move(stm)}))));
+    router_->getCollationProtocol()->write(
+        peer_id, network::Seconded{relay_parent, std::move(stm)});
   }
 
   template <bool kReinvoke>

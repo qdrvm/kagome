@@ -58,7 +58,7 @@ namespace kagome {
 
   namespace parachain {
     class ParachainObserver;
-    struct ParachainProcessorImpl;
+    class ParachainProcessorImpl;
     struct ApprovalDistribution;
 
     namespace statement_distribution {

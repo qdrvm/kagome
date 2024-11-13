@@ -26,6 +26,7 @@
 #include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
+#include "metrics/metrics.hpp"
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
@@ -33,7 +34,6 @@
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/backing/grid.hpp"
-#include "parachain/validator/parachain_processor.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
@@ -48,13 +48,20 @@ namespace kagome::common {
   class WorkerThreadPool;
 }  // namespace kagome::common
 
+namespace kagome::network {
+  class PeerManager;
+  class Router;
+}  // namespace kagome::network
+
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
 }
 
 namespace kagome::parachain {
   class ApprovalThreadPool;
-}
+  class ParachainProcessorImpl;
+  class Pvf;
+}  // namespace kagome::parachain
 
 namespace kagome::parachain {
   using DistributeAssignment = network::Assignment;
@@ -220,7 +227,7 @@ namespace kagome::parachain {
       SessionIndex session;
       // Assignments are based on blocks, so we need to track assignments
       // separately based on the block we are looking at.
-      std::unordered_map<network::Hash, ApprovalEntry> block_assignments;
+      std::unordered_map<Hash, ApprovalEntry> block_assignments;
       scale::BitVec approvals;
 
       CandidateEntry(const HashedCandidateReceipt &hashed_receipt,
@@ -233,9 +240,8 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(HashedCandidateReceipt{receipt},
-                           session_index,
-                           approvals_size) {}
+          : CandidateEntry(
+              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -825,12 +831,12 @@ namespace kagome::parachain {
                            const network::View &view);
 
     auto &storedBlocks() {
-      return as<StorePair<primitives::BlockNumber,
-                          std::unordered_set<network::Hash>>>(store_);
+      return as<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>>(
+          store_);
     }
 
     auto &storedCandidateEntries() {
-      return as<StorePair<network::Hash, CandidateEntry>>(store_);
+      return as<StorePair<Hash, CandidateEntry>>(store_);
     }
 
     auto &storedBlockEntries() {
@@ -893,7 +899,7 @@ namespace kagome::parachain {
     using ScheduledCandidateTimer = std::unordered_map<
         CandidateHash,
         std::vector<std::pair<Tick, libp2p::basic::Scheduler::Handle>>>;
-    std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
+    std::unordered_map<primitives::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 
     struct ApprovalCache {

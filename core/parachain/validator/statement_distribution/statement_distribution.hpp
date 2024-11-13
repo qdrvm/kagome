@@ -27,7 +27,7 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
-  struct ParachainProcessorImpl;
+  class ParachainProcessorImpl;
 }
 
 namespace kagome::parachain::statement_distribution {
@@ -96,7 +96,7 @@ namespace kagome::parachain::statement_distribution {
     // outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
-        std::shared_ptr<network::Stream> stream);
+        std::shared_ptr<libp2p::connection::Stream> stream);
 
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
@@ -342,8 +342,6 @@ namespace kagome::parachain::statement_distribution {
         std::vector<RelayParentContext> new_contexts);
     outcome::result<void> handle_deactive_leaves_update_inner(
         const std::vector<Hash> &lost);
-    outcome::result<void> update_our_view(const Hash &relay_parent,
-                                          const network::View &view);
 
     void on_peer_connected(const libp2p::peer::PeerId &peer);
     void on_peer_disconnected(const libp2p::peer::PeerId &peer);

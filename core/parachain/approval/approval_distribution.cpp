@@ -29,8 +29,11 @@
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
+#include "parachain/pvf/pvf.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/map.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_macro.hpp"
 
