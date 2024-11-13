@@ -1425,3 +1425,124 @@ TEST_F(ProspectiveParachainsTest, check_pvd_query) {
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
 }
+
+TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
+  TestState test_state;
+  test_state.set_runtime_api_version(8);
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  // Leaf B
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(99, {3, 4, 5})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  // Leaf C
+  const TestLeaf leaf_c{
+      .number = 102,
+      .hash = fromNumber(132),
+      .para_data =
+          {
+              {1, PerParaData(102, {5, 6, 7})},
+              {2, PerParaData(98, {6, 7, 8})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Try activating a duplicate leaf.
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Pass in an empty update.
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+          .new_head = std::nullopt,
+          .lost = {},
+      }));
+
+  // Activate a leaf and remove one at the same time.
+  {
+    network::ExView update{
+        .view = {},
+        .new_head =
+            BlockHeader{
+                .number = leaf_c.number,
+                .parent_hash = get_parent_hash(leaf_c.hash),
+                .state_root = {},
+                .extrinsics_root = {},
+                .digest = {},
+                .hash_opt = {},
+            },
+        .lost = {leaf_b.hash},
+    };
+
+    update.new_head.hash_opt = leaf_c.hash;
+    // ASSERT_OUTCOME_SUCCESS_TRY(
+    //     prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+    //         .new_head = {update.new_head},
+    //         .lost = update.lost,
+    //     }));
+    handle_leaf_activation_2(
+        update, leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+  }
+
+  // Remove all remaining leaves.
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+          .new_head = {},
+          .lost = {leaf_a.hash, leaf_c.hash},
+      }));
+
+  // Activate and deactivate the same leaf.
+  {
+    network::ExView update{
+        .view = {},
+        .new_head =
+            BlockHeader{
+                .number = leaf_a.number,
+                .parent_hash = get_parent_hash(leaf_a.hash),
+                .state_root = {},
+                .extrinsics_root = {},
+                .digest = {},
+                .hash_opt = {},
+            },
+        .lost = {leaf_a.hash},
+    };
+
+    update.new_head.hash_opt = leaf_a.hash;
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {update.new_head},
+            .lost = update.lost,
+        }));
+  }
+
+  // Remove the leaf again. Send some unnecessary hashes.
+  {
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {},
+            .lost = {leaf_a.hash, leaf_b.hash, leaf_c.hash},
+        }));
+  }
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 0);
+}
+
+TEST_F(ProspectiveParachainsTest,
+       handle_active_leaves_update_gets_candidates_from_parent) {}
