@@ -268,6 +268,27 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
         }));
   }
 
+  std::pair<network::CommittedCandidateReceipt, CandidateHash>
+  make_and_back_candidate(const TestState &test_state,
+                          const TestLeaf &leaf,
+                          const network::CommittedCandidateReceipt &parent,
+                          uint64_t index) {
+    auto [candidate, pvd] = make_candidate(leaf.hash,
+                                           leaf.number,
+                                           1,
+                                           parent.commitments.para_head,
+                                           {uint8_t(index)},
+                                           test_state.validation_code_hash);
+
+    candidate.descriptor.para_head_hash = fromNumber(index);
+    const Hash candidate_hash = network::candidateHash(*hasher_, candidate);
+
+    introduce_seconded_candidate(candidate, pvd);
+    back_candidate(candidate, candidate_hash);
+
+    return {candidate, candidate_hash};
+  }
+
   void activate_leaf(const TestLeaf &leaf,
                      const TestState &test_state,
                      const fragment::AsyncBackingParams &async_backing_params) {
@@ -387,6 +408,56 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
                        32,
                        crypto::Blake2b_StreamHasher<32>>(pvd),
         network::candidateHash(*hasher_, candidate));
+  }
+
+  void introduce_seconded_candidate_failed(
+      const network::CommittedCandidateReceipt &candidate,
+      const runtime::PersistedValidationData &pvd) {
+    auto res = prospective_parachain_->introduce_seconded_candidate(
+        candidate.descriptor.para_id, candidate, pvd, hash(candidate));
+
+    ASSERT_TRUE(!res);
+  }
+
+  Hash hash(const network::CommittedCandidateReceipt &value) {
+    return network::candidateHash(*hasher_, value);
+  }
+
+  void get_hypothetical_membership(
+      const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &receipt,
+      const runtime::PersistedValidationData &persisted_validation_data,
+      const std::vector<Hash> &expected_membership) {
+    const HypotheticalCandidateComplete hypothetical_candidate{
+        .candidate_hash = candidate_hash,
+        .receipt = receipt,
+        .persisted_validation_data = persisted_validation_data,
+    };
+
+    std::vector<HypotheticalCandidate> candidates = {hypothetical_candidate};
+    const auto resp =
+        prospective_parachain_->answer_hypothetical_membership_request(
+            candidates, std::nullopt);
+    ASSERT_EQ(resp.size(), 1);
+
+    const auto &[candidate, membership] = resp[0];
+    ASSERT_TRUE(candidate == HypotheticalCandidate(hypothetical_candidate));
+    ASSERT_EQ((std::unordered_set<Hash>(membership.begin(), membership.end())),
+              (std::unordered_set<Hash>(expected_membership.begin(),
+                                        expected_membership.end())));
+  }
+
+  auto get_pvd(
+      ParachainId para_id,
+      const Hash &candidate_relay_parent,
+      const HeadData &parent_head_data,
+      const std::optional<runtime::PersistedValidationData> &expected_pvd) {
+    auto resp = prospective_parachain_->answerProspectiveValidationDataRequest(
+        candidate_relay_parent,
+        ParentHeadData_OnlyHash(hasher_->blake2b_256(parent_head_data)),
+        para_id);
+    ASSERT_TRUE(resp.has_value());
+    ASSERT_EQ(resp.value(), expected_pvd);
   }
 
   std::pair<network::CommittedCandidateReceipt,
@@ -966,6 +1037,391 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_single_candidate) {
   const auto candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
 
   // Candidate B
-  const auto &[candidate_b, pvd_b] = make_candidate(
+  auto [candidate_b, pvd_b] = make_candidate(
       leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+
+  // Set a field to make this candidate unique.
+  candidate_b.descriptor.para_head_hash = fromNumber(254);
+  const auto candidate_hash_b = hash(candidate_b);
+
+  // Introduce candidates.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  introduce_seconded_candidate(candidate_b, pvd_b);
+
+  // Should not get any backable candidates.
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 1, {});
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 0, {});
+  get_backable_candidates(leaf_a, 1, {}, 0, {});
+
+  // Back candidates.
+  back_candidate(candidate_a, candidate_hash_a);
+  back_candidate(candidate_b, candidate_hash_b);
+
+  // Back an unknown candidate. It doesn't return anything but it's ignored.
+  // Will not have any effect on the backable candidates.
+  back_candidate(candidate_b, fromNumber(200));
+
+  // Should not get any backable candidates for the other para.
+  get_backable_candidates(leaf_a, 2, {}, 1, {});
+  get_backable_candidates(leaf_a, 2, {candidate_hash_a}, 1, {});
+
+  // Get backable candidate.
+  get_backable_candidates(leaf_a, 1, {}, 1, {{candidate_hash_a, leaf_a.hash}});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a}, 1, {{candidate_hash_b, leaf_a.hash}});
+
+  // Wrong path
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_b}, 1, {{candidate_hash_a, leaf_a.hash}});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+}
+
+TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate A
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a = hash(candidate_a);
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  auto [candidate_b, candidate_hash_b] =
+      make_and_back_candidate(test_state, leaf_a, candidate_a, 2);
+  auto [candidate_c, candidate_hash_c] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 3);
+  auto [_candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 4);
+
+  // Should not get any backable candidates for the other para.
+  get_backable_candidates(leaf_a, 2, {}, 1, {});
+  get_backable_candidates(leaf_a, 2, {}, 5, {});
+  get_backable_candidates(leaf_a, 2, {candidate_hash_a}, 1, {});
+
+  // Test various scenarios with various counts.
+
+  // empty ancestors
+  {
+    get_backable_candidates(
+        leaf_a, 1, {}, 1, {{candidate_hash_a, leaf_a.hash}});
+    for (size_t count = 4; count < 10; ++count) {
+      get_backable_candidates(leaf_a,
+                              1,
+                              {},
+                              count,
+                              {{candidate_hash_a, leaf_a.hash},
+                               {candidate_hash_b, leaf_a.hash},
+                               {candidate_hash_c, leaf_a.hash},
+                               {candidate_hash_d, leaf_a.hash}});
+    }
+  }
+
+  // ancestors of size 1
+  {
+    get_backable_candidates(
+        leaf_a, 1, {candidate_hash_a}, 1, {{candidate_hash_b, leaf_a.hash}});
+    get_backable_candidates(
+        leaf_a,
+        1,
+        {candidate_hash_a},
+        2,
+        {{candidate_hash_b, leaf_a.hash}, {candidate_hash_c, leaf_a.hash}});
+
+    // If the requested count exceeds the largest chain, return the longest
+    // chain we can get.
+    for (size_t count = 3; count < 10; ++count) {
+      get_backable_candidates(leaf_a,
+                              1,
+                              {candidate_hash_a},
+                              count,
+                              {{candidate_hash_b, leaf_a.hash},
+                               {candidate_hash_c, leaf_a.hash},
+                               {candidate_hash_d, leaf_a.hash}});
+    }
+  }
+
+  // ancestor count 2 and higher
+  {
+    get_backable_candidates(
+        leaf_a,
+        1,
+        {candidate_hash_a, candidate_hash_b, candidate_hash_c},
+        1,
+        {{candidate_hash_d, leaf_a.hash}});
+
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a, candidate_hash_b},
+                            1,
+                            {{candidate_hash_c, leaf_a.hash}});
+
+    // If the requested count exceeds the largest chain, return the longest
+    // chain we can get.
+    for (size_t count = 3; count < 10; ++count) {
+      get_backable_candidates(
+          leaf_a,
+          1,
+          {candidate_hash_a, candidate_hash_b},
+          count,
+          {{candidate_hash_c, leaf_a.hash}, {candidate_hash_d, leaf_a.hash}});
+    }
+  }
+
+  // No more candidates in the chain.
+  for (size_t count = 1; count < 4; ++count) {
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a,
+                             candidate_hash_b,
+                             candidate_hash_c,
+                             candidate_hash_d},
+                            count,
+                            {});
+  }
+
+  // Wrong paths.
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_b}, 1, {{candidate_hash_a, leaf_a.hash}});
+  get_backable_candidates(leaf_a,
+                          1,
+                          {candidate_hash_b, candidate_hash_c},
+                          3,
+                          {{candidate_hash_a, leaf_a.hash},
+                           {candidate_hash_b, leaf_a.hash},
+                           {candidate_hash_c, leaf_a.hash}});
+
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {candidate_hash_a, candidate_hash_c, candidate_hash_d},
+      2,
+      {{candidate_hash_b, leaf_a.hash}, {candidate_hash_c, leaf_a.hash}});
+
+  // Non-existent candidate.
+  get_backable_candidates(
+      leaf_a,
+      1,
+      {candidate_hash_a, fromNumber(100)},
+      2,
+      {{candidate_hash_b, leaf_a.hash}, {candidate_hash_c, leaf_a.hash}});
+
+  // Requested count is zero.
+  get_backable_candidates(leaf_a, 1, {}, 0, {});
+  get_backable_candidates(leaf_a, 1, {candidate_hash_a}, 0, {});
+  get_backable_candidates(
+      leaf_a, 1, {candidate_hash_a, candidate_hash_b}, 0, {});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+}
+
+TEST_F(ProspectiveParachainsTest, check_hypothetical_membership_query) {
+  TestState test_state;
+
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = get_parent_hash(leaf_b.hash),
+      .para_data =
+          {
+              {1, PerParaData(98, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a,
+                test_state,
+                fragment::AsyncBackingParams{
+                    .max_candidate_depth = 1,
+                    .allowed_ancestry_len = 3,
+                });
+  activate_leaf(leaf_b,
+                test_state,
+                fragment::AsyncBackingParams{
+                    .max_candidate_depth = 1,
+                    .allowed_ancestry_len = 3,
+                });
+
+  // Candidates will be valid on both leaves.
+
+  // Candidate A.
+  auto [candidate_a, pvd_a] = make_candidate(leaf_a.hash,
+                                             leaf_a.number,
+                                             1,
+                                             {1, 2, 3},
+                                             {1},
+                                             test_state.validation_code_hash);
+
+  // Candidate B.
+  auto [candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+
+  // Candidate C.
+  auto [candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+
+  // Get hypothetical membership of candidates before adding candidate A.
+  // Candidate A can be added directly, candidates B and C are potential
+  // candidates.
+  for (const auto &[candidate, pvd] : {std::make_pair(candidate_a, pvd_a),
+                                       std::make_pair(candidate_b, pvd_b),
+                                       std::make_pair(candidate_c, pvd_c)}) {
+    get_hypothetical_membership(
+        hash(candidate), candidate, pvd, {leaf_a.hash, leaf_b.hash});
+  }
+
+  // Add candidate A.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+
+  // Get membership of candidates after adding A. They all are still unconnected
+  // candidates (not part of the best backable chain).
+  for (const auto &[candidate, pvd] : {std::make_pair(candidate_a, pvd_a),
+                                       std::make_pair(candidate_b, pvd_b),
+                                       std::make_pair(candidate_c, pvd_c)}) {
+    get_hypothetical_membership(
+        hash(candidate), candidate, pvd, {leaf_a.hash, leaf_b.hash});
+  }
+
+  // Back A. Now A is part of the best chain the rest can be added as
+  // unconnected.
+
+  back_candidate(candidate_a, hash(candidate_a));
+
+  for (const auto &[candidate, pvd] : {std::make_pair(candidate_a, pvd_a),
+                                       std::make_pair(candidate_b, pvd_b),
+                                       std::make_pair(candidate_c, pvd_c)}) {
+    get_hypothetical_membership(
+        hash(candidate), candidate, pvd, {leaf_a.hash, leaf_b.hash});
+  }
+
+  // Candidate D has invalid relay parent.
+  const auto [candidate_d, pvd_d] =
+      make_candidate(fromNumber(200),
+                     leaf_a.number,
+                     1,
+                     {1},
+                     {2},
+                     test_state.validation_code_hash);
+  introduce_seconded_candidate_failed(candidate_d, pvd_d);
+
+  // Add candidate B and back it.
+  introduce_seconded_candidate(candidate_b, pvd_b);
+  back_candidate(candidate_b, hash(candidate_b));
+
+  // Get membership of candidates after adding B.
+  for (const auto &[candidate, pvd] : {std::make_pair(candidate_a, pvd_a),
+                                       std::make_pair(candidate_b, pvd_b),
+                                       std::make_pair(candidate_c, pvd_c)}) {
+    get_hypothetical_membership(
+        hash(candidate), candidate, pvd, {leaf_a.hash, leaf_b.hash});
+  }
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest, check_pvd_query) {
+  TestState test_state;
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  // Activate leaves.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidate A.
+  const auto [candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+
+  // Candidate B.
+  const auto [candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+
+  // Candidate C.
+  const auto [candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+
+  // Candidate E.
+  const auto [candidate_e, pvd_e] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {5}, {6}, test_state.validation_code_hash);
+
+  // Get pvd of candidate A before adding it.
+  get_pvd(1, leaf_a.hash, {1, 2, 3}, pvd_a);
+
+  // Add candidate A.
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  back_candidate(candidate_a, hash(candidate_a));
+
+  // Get pvd of candidate A after adding it.
+  get_pvd(1, leaf_a.hash, {1, 2, 3}, pvd_a);
+
+  // Get pvd of candidate B before adding it.
+  get_pvd(1, leaf_a.hash, {1}, pvd_b);
+
+  // Add candidate B.
+  introduce_seconded_candidate(candidate_b, pvd_b);
+
+  // Get pvd of candidate B after adding it.
+  get_pvd(1, leaf_a.hash, {1}, pvd_b);
+
+  // Get pvd of candidate C before adding it.
+  get_pvd(1, leaf_a.hash, {2}, pvd_c);
+
+  // Add candidate C.
+  introduce_seconded_candidate(candidate_c, pvd_c);
+
+  // Get pvd of candidate C after adding it.
+  get_pvd(1, leaf_a.hash, {2}, pvd_c);
+
+  // Get pvd of candidate E before adding it. It won't be found, as we don't
+  // have its parent.
+  get_pvd(1, leaf_a.hash, {5}, std::nullopt);
+
+  // Add candidate E and check again. Should succeed this time.
+  introduce_seconded_candidate(candidate_e, pvd_e);
+
+  get_pvd(1, leaf_a.hash, {5}, pvd_e);
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
 }
