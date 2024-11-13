@@ -310,25 +310,25 @@ namespace kagome::parachain {
       return result;
     }
 
-      OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
-      std::unordered_set<ParachainId> upcoming;
-      for (const auto &core : cores) {
-        visit_in_place(
-            core,
-            [&](const runtime::OccupiedCore &occupied) {
-              pending_availability.insert(occupied.candidate_hash);
-              if (occupied.next_up_on_available) {
-                upcoming.insert(occupied.next_up_on_available->para_id);
-              }
-              if (occupied.next_up_on_time_out) {
-                upcoming.insert(occupied.next_up_on_time_out->para_id);
-              }
-            },
-            [&](const runtime::ScheduledCore &scheduled) {
-              upcoming.insert(scheduled.para_id);
-            },
-            [](const auto &) {});
-      }
+    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
+    std::unordered_set<ParachainId> upcoming;
+    for (const auto &core : cores) {
+      visit_in_place(
+          core,
+          [&](const runtime::OccupiedCore &occupied) {
+            pending_availability.insert(occupied.candidate_hash);
+            if (occupied.next_up_on_available) {
+              upcoming.insert(occupied.next_up_on_available->para_id);
+            }
+            if (occupied.next_up_on_time_out) {
+              upcoming.insert(occupied.next_up_on_time_out->para_id);
+            }
+          },
+          [&](const runtime::ScheduledCore &scheduled) {
+            upcoming.insert(scheduled.para_id);
+          },
+          [](const auto &) {});
+    }
 
     return upcoming;
   }
