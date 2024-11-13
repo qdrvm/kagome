@@ -147,10 +147,36 @@ namespace kagome::parachain::grid {
     bool manifest_allowed = true;
     if (kind == ManifestKind::Full) {
       manifest_allowed = receiving_from;
+      SL_TRACE(logger,
+               "Manifest full allowed. (receiving_from={})",
+               manifest_allowed ? "[yes]" : "[no]");
     } else {
       auto it = confirmed_backed.find(candidate_hash);
       manifest_allowed = sending_to && it != confirmed_backed.end()
                       && it->second.has_sent_manifest_to(sender);
+      SL_TRACE(logger,
+               "Manifest acknowledgement allowed. (sender={}, "
+               "candidate_hash={}, sending_to={}, "
+               "has_confirmed_back={}, has_sent_manifest_to={})",
+               sender,
+               candidate_hash,
+               sending_to ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()) ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()
+                && it->second.has_sent_manifest_to(sender))
+                   ? "[yes]"
+                   : "[no]");
+      if (it != confirmed_backed.end()) {
+        auto a = it->second.mutual_knowledge.find(sender);
+        SL_TRACE(
+            logger,
+            "Local knowledge. (has_mutual_knowledge={}, local_knowledge={})",
+            (a != it->second.mutual_knowledge.end()) ? "[yes]" : "[no]",
+            (a != it->second.mutual_knowledge.end())
+                    && a->second.local_knowledge
+                ? "[yes]"
+                : "[no]");
+      }
     }
     if (!manifest_allowed) {
       return Error::DISALLOWED_DIRECTION;
@@ -266,6 +292,11 @@ namespace kagome::parachain::grid {
                                      const StatementFilter &local_knowledge) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
+      SL_TRACE(logger,
+               "Manifest sent to. (validator_index={}, candidate_hash={}, "
+               "local_knowledge=[yes])",
+               validator_index,
+               candidate_hash);
       confirmed->second.manifest_sent_to(validator_index, local_knowledge);
       auto ps = confirmed->second.pending_statements(validator_index);
       if (ps) {
@@ -481,9 +512,16 @@ namespace kagome::parachain::grid {
       return recipients;
     }
     for (const auto &[v, k] : mutual_knowledge) {
-      if (k.local_knowledge
-          && !k.remote_knowledge->contains(originator_index_in_group,
-                                           statement_kind)) {
+      if (!k.local_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge->contains(originator_index_in_group,
+                                        statement_kind)) {
         recipients.push_back(v);
       }
     }

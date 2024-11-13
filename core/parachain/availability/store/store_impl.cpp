@@ -6,7 +6,12 @@
 
 #include "parachain/availability/store/store_impl.hpp"
 
+constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 10 * 60;
+
 namespace kagome::parachain {
+  AvailabilityStoreImpl::AvailabilityStoreImpl(clock::SteadyClock &steady_clock)
+      : steady_clock_(steady_clock) {}
+
   bool AvailabilityStoreImpl::hasChunk(const CandidateHash &candidate_hash,
                                        ValidatorIndex index) const {
     return state_.sharedAccess([&](const auto &state) {
@@ -113,12 +118,23 @@ namespace kagome::parachain {
     });
   }
 
+  void AvailabilityStoreImpl::prune_candidates_no_lock(State &state) {
+    const auto now = steady_clock_.nowUint64();
+    while (!state.candidates_living_keeper_.empty()
+           && state.candidates_living_keeper_[0].first + KEEP_CANDIDATES_TIMEOUT
+                  < now) {
+      remove_no_lock(state, state.candidates_living_keeper_[0].second);
+      state.candidates_living_keeper_.pop_front();
+    }
+  }
+
   void AvailabilityStoreImpl::storeData(const network::RelayHash &relay_parent,
                                         const CandidateHash &candidate_hash,
                                         std::vector<ErasureChunk> &&chunks,
                                         const ParachainBlock &pov,
                                         const PersistedValidationData &data) {
     state_.exclusiveAccess([&](auto &state) {
+      prune_candidates_no_lock(state);
       state.candidates_[relay_parent].insert(candidate_hash);
       auto &candidate_data = state.per_candidate_[candidate_hash];
       for (auto &&chunk : std::move(chunks)) {
@@ -126,6 +142,8 @@ namespace kagome::parachain {
       }
       candidate_data.pov = pov;
       candidate_data.data = data;
+      state.candidates_living_keeper_.emplace_back(steady_clock_.nowUint64(),
+                                                   relay_parent);
     });
   }
 
@@ -133,21 +151,28 @@ namespace kagome::parachain {
                                        const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
     state_.exclusiveAccess([&](auto &state) {
+      prune_candidates_no_lock(state);
       state.candidates_[relay_parent].insert(candidate_hash);
       state.per_candidate_[candidate_hash].chunks[chunk.index] =
           std::move(chunk);
+      state.candidates_living_keeper_.emplace_back(steady_clock_.nowUint64(),
+                                                   relay_parent);
     });
   }
 
-  void AvailabilityStoreImpl::remove(const network::RelayHash &relay_parent) {
-    state_.exclusiveAccess([&](auto &state) {
-      if (auto it = state.candidates_.find(relay_parent);
-          it != state.candidates_.end()) {
-        for (auto const &l : it->second) {
-          state.per_candidate_.erase(l);
-        }
-        state.candidates_.erase(it);
+  void AvailabilityStoreImpl::remove_no_lock(
+      State &state, const network::RelayHash &relay_parent) {
+    if (auto it = state.candidates_.find(relay_parent);
+        it != state.candidates_.end()) {
+      for (const auto &l : it->second) {
+        state.per_candidate_.erase(l);
       }
-    });
+      state.candidates_.erase(it);
+    }
+  }
+
+  void AvailabilityStoreImpl::remove(const network::RelayHash &relay_parent) {
+    state_.exclusiveAccess(
+        [&](auto &state) { remove_no_lock(state, relay_parent); });
   }
 }  // namespace kagome::parachain
