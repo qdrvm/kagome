@@ -1796,3 +1796,180 @@ TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_bounded_implicit_v
   }
   ASSERT_EQ(l, r);
 }
+
+TEST_F(ProspectiveParachainsTest, persists_pending_availability_candidate) {
+	const ParachainId para_id(1);
+	TestState test_state;
+
+  ClaimQueue claim_queue;
+  for (const auto &[i, paras] : test_state.claim_queue) {
+    if (paras[0] == para_id) {
+      claim_queue[i] = paras;
+    }
+  }
+  test_state.claim_queue = std::move(claim_queue);
+  ASSERT_EQ(test_state.claim_queue.size(), 1);
+
+  const HeadData para_head = {1, 2, 3};
+		// Min allowed relay parent for leaf `a` which goes out of scope in the test.
+		const auto candidate_relay_parent = fromNumber(5);
+		const BlockNumber candidate_relay_parent_number = 97;
+
+    const TestLeaf leaf_a {
+        .number = candidate_relay_parent_number + ALLOWED_ANCESTRY_LEN,
+        .hash = fromNumber(2),
+        .para_data =
+            {
+                {para_id, PerParaData(candidate_relay_parent_number, para_head)},
+            },
+    };
+
+		const auto leaf_b_hash = fromNumber(1);
+		const BlockNumber leaf_b_number = leaf_a.number + 1;
+
+		// Activate leaf.
+		activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+		// Candidate A
+		const auto [candidate_a, pvd_a] = make_candidate(
+			candidate_relay_parent,
+			candidate_relay_parent_number,
+			para_id,
+			para_head,
+			{1},
+			test_state.validation_code_hash
+		);
+		const auto candidate_hash_a = hash(candidate_a);
+
+		// Candidate B, built on top of the candidate which is out of scope but pending
+		// availability.
+		const auto [candidate_b, pvd_b] = make_candidate(
+			leaf_b_hash,
+			leaf_b_number,
+			para_id,
+			{1},
+			{2},
+			test_state.validation_code_hash
+		);
+		const auto candidate_hash_b = hash(candidate_b);
+
+		introduce_seconded_candidate(candidate_a, pvd_a);
+		back_candidate(candidate_a, candidate_hash_a);
+
+		const fragment::CandidatePendingAvailability candidate_a_pending_av {
+			.candidate_hash = candidate_hash_a,
+			.descriptor = candidate_a.descriptor,
+			.commitments = candidate_a.commitments,
+			.relay_parent_number = candidate_relay_parent_number,
+			.max_pov_size = MAX_POV_SIZE,
+		};
+    const TestLeaf leaf_b {
+        .number = leaf_b_number,
+        .hash = leaf_b_hash,
+        .para_data =
+            {
+                {1, PerParaData(candidate_relay_parent_number + 1,para_head,{candidate_a_pending_av})},
+            },
+    };
+
+		activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+
+		get_hypothetical_membership(
+			candidate_hash_a,
+			candidate_a,
+			pvd_a,
+			{leaf_a.hash, leaf_b.hash}
+		);
+
+		introduce_seconded_candidate(candidate_b, pvd_b);
+		back_candidate(candidate_b, candidate_hash_b);
+
+		get_backable_candidates(
+			leaf_b,
+			para_id,
+			{candidate_hash_a},
+			1,
+			{{candidate_hash_b, leaf_b_hash}}
+		);
+}
+
+TEST_F(ProspectiveParachainsTest, backwards_compatible_with_non_async_backing_params) {
+	const ParachainId para_id(1);
+	TestState test_state;
+
+  ClaimQueue claim_queue;
+  for (const auto &[i, paras] : test_state.claim_queue) {
+    if (paras[0] == para_id) {
+      claim_queue[i] = paras;
+    }
+  }
+  test_state.claim_queue = std::move(claim_queue);
+  ASSERT_EQ(test_state.claim_queue.size(), 1);
+
+  const HeadData para_head = {1, 2, 3};
+
+		const auto leaf_b_hash = fromNumber(15);
+		const auto candidate_relay_parent = get_parent_hash(leaf_b_hash);
+		const BlockNumber candidate_relay_parent_number = 100;
+
+		const TestLeaf leaf_a {
+			.number = candidate_relay_parent_number,
+			.hash = candidate_relay_parent,
+			.para_data = {{
+				para_id,
+				PerParaData(candidate_relay_parent_number, para_head)
+      }},
+		};
+
+		// Activate leaf.
+		activate_leaf(
+			leaf_a,
+			test_state,
+			fragment::AsyncBackingParams { .max_candidate_depth = 0, .allowed_ancestry_len = 0,  }
+		);
+
+		// Candidate A
+		const auto [candidate_a, pvd_a] = make_candidate(
+			candidate_relay_parent,
+			candidate_relay_parent_number,
+			para_id,
+			para_head,
+			{1},
+			test_state.validation_code_hash
+		);
+		const auto candidate_hash_a = hash(candidate_a);
+
+		introduce_seconded_candidate(candidate_a, pvd_a);
+		back_candidate(candidate_a, candidate_hash_a);
+
+		get_backable_candidates(
+			leaf_a,
+			para_id,
+			{},
+			1,
+			{{candidate_hash_a, candidate_relay_parent}}
+		);
+
+		const TestLeaf leaf_b {
+			.number = candidate_relay_parent_number + 1,
+			.hash = leaf_b_hash,
+			.para_data = {{
+				para_id,
+				PerParaData(candidate_relay_parent_number + 1, para_head)
+			}}
+		};
+		activate_leaf(
+			leaf_b,
+			test_state,
+			fragment::AsyncBackingParams { .max_candidate_depth = 0, .allowed_ancestry_len = 0,  }
+		);
+
+		get_backable_candidates(
+			leaf_b,
+			para_id,
+			{},
+			1,
+			{}
+		);
+
+}
