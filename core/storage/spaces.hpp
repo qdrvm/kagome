@@ -23,6 +23,7 @@ namespace kagome::storage {
     kTrieValue,
     kDisputeData,
     kBeefyJustification,
+    kAvaliabilityStorage,
 
     kTotal
   };

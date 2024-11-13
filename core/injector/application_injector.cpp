@@ -258,6 +258,7 @@ namespace {
       const sptr<application::ChainSpec> &chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
+    bool enable_migration = app_config.enableDbMigration();
 
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
@@ -273,11 +274,15 @@ namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
+    const std::unordered_map<std::string, int32_t> column_ttl = {
+        {"avaliability_storage", 25 * 60 * 60}};  // 25 hours
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  app_config.dbCacheSize(),
-                                 prevent_destruction);
+                                 prevent_destruction,
+                                 column_ttl,
+                                 enable_migration);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical(

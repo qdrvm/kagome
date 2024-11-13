@@ -175,12 +175,11 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen"};
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -844,6 +843,7 @@ namespace kagome::application {
         ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
         ("blocks-pruning", po::value<uint32_t>(), "If specified, keep block body only for specified number of recent finalized blocks.")
         ("enable-thorough-pruning", po::bool_switch(), "Makes trie node pruner more efficient, but the node starts slowly")
+        ("enable-db-migration", po::bool_switch(), "Enable automatic db migration")
         ;
 
     po::options_description network_desc("Network options");
@@ -1617,6 +1617,10 @@ namespace kagome::application {
     }
 
     blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
+
+    if (find_argument(vm, "enable-db-migration")) {
+      enable_db_migration_ = true;
+    }
 
     if (find_argument(vm, "precompile-relay")) {
       precompile_wasm_.emplace();
