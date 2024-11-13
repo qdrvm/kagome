@@ -118,8 +118,8 @@ struct std::hash<kagome::parachain::BlockedCollationId> {
 
 namespace kagome::parachain {
   class ParachainProcessorImpl
-      : BackedCandidatesSource,
-        std::enable_shared_from_this<ParachainProcessorImpl> {
+      : public std::enable_shared_from_this<ParachainProcessorImpl>,
+        public BackedCandidatesSource {
    public:
     enum class Error {
       RESPONSE_ALREADY_RECEIVED = 1,

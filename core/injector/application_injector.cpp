@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "injector/application_injector.hpp"
-
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   32  // TODO(Harrm): #2104 check how it influences on compilation time
+
+#include "injector/application_injector.hpp"
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>

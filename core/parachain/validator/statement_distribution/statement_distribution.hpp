@@ -32,9 +32,10 @@ namespace kagome::parachain {
 
 namespace kagome::parachain::statement_distribution {
 
-  struct StatementDistribution
-      : std::enable_shared_from_this<StatementDistribution>,
-        network::CanDisconnect {
+  class StatementDistribution
+      : public std::enable_shared_from_this<StatementDistribution>,
+        public network::CanDisconnect {
+   public:
     enum class Error : uint8_t {
       RESPONSE_ALREADY_RECEIVED = 1,
       COLLATION_NOT_FOUND,

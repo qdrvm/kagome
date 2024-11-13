@@ -79,9 +79,10 @@ namespace kagome::parachain {
    * approvals for valid candidates, respectively disputes for invalid
    * candidates.
    */
-  struct ApprovalDistribution final
+  class ApprovalDistribution final
       : public std::enable_shared_from_this<ApprovalDistribution>,
         public IApprovedAncestor {
+   public:
     struct OurAssignment {
       SCALE_TIE(4);
       approval::AssignmentCertV2 cert;

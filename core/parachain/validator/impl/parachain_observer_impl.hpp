@@ -22,7 +22,7 @@ namespace kagome::crypto {
 
 namespace kagome::parachain {
   class ParachainProcessorImpl;
-  struct ApprovalDistribution;
+  class ApprovalDistribution;
 }  // namespace kagome::parachain
 
 namespace kagome::parachain {
