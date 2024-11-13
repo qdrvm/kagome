@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include <map>
 #include <vector>
+#include <ranges>
+
+#include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 
@@ -117,7 +119,8 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
       const network::ExView &update,
       const TestLeaf &leaf,
       const TestState &test_state,
-      const fragment::AsyncBackingParams &async_backing_params) {
+      const fragment::AsyncBackingParams &async_backing_params,
+      std::function<Hash(const Hash &)> func = get_parent_hash) {
     const auto &[number, hash, para_data] = leaf;
     const auto &header = update.new_head;
 
@@ -166,7 +169,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     for (BlockNumber x = 0; x <= ancestry_len; ++x) {
       ancestry_hashes.emplace_back(d);
       ancestry_numbers.push_back(number - x);
-      d = get_parent_hash(d);
+      d = func(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
 
@@ -289,9 +292,11 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     return {candidate, candidate_hash};
   }
 
-  void activate_leaf(const TestLeaf &leaf,
-                     const TestState &test_state,
-                     const fragment::AsyncBackingParams &async_backing_params) {
+  void activate_leaf(
+      const TestLeaf &leaf,
+      const TestState &test_state,
+      const fragment::AsyncBackingParams &async_backing_params,
+      std::function<Hash(const Hash &)> parent_hash_fn = get_parent_hash) {
     const auto &[number, hash, para_data] = leaf;
     BlockHeader header{
         .number = number,
@@ -308,7 +313,11 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
         .lost = {},
     };
     update.new_head.hash_opt = hash;
-    handle_leaf_activation_2(update, leaf, test_state, async_backing_params);
+    handle_leaf_activation_2(update,
+                             leaf,
+                             test_state,
+                             async_backing_params,
+                             std::move(parent_hash_fn));
   }
 
   runtime::PersistedValidationData dummy_pvd(const HeadData &parent_head,
@@ -1545,4 +1554,245 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
 }
 
 TEST_F(ProspectiveParachainsTest,
-       handle_active_leaves_update_gets_candidates_from_parent) {}
+       handle_active_leaves_update_gets_candidates_from_parent) {
+  const ParachainId para_id(1);
+  TestState test_state;
+
+  ClaimQueue claim_queue;
+  for (const auto &[i, paras] : test_state.claim_queue) {
+    if (paras[0] == para_id) {
+      claim_queue[i] = paras;
+    }
+  }
+  test_state.claim_queue = std::move(claim_queue);
+  ASSERT_EQ(test_state.claim_queue.size(), 1);
+
+  // Leaf A
+  const TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {para_id, PerParaData(97, {1, 2, 3})},
+          },
+  };
+
+  // Activate leaf A.
+  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+
+  // Candidates A, B, C and D all form a chain
+  const auto [candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     para_id,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const auto candidate_hash_a = hash(candidate_a);
+  introduce_seconded_candidate(candidate_a, pvd_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  const auto [candidate_b, candidate_hash_b] =
+      make_and_back_candidate(test_state, leaf_a, candidate_a, 2);
+  const auto [candidate_c, candidate_hash_c] =
+      make_and_back_candidate(test_state, leaf_a, candidate_b, 3);
+  const auto [candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 4);
+
+  std::vector<std::pair<CandidateHash, Hash>> all_candidates_resp = {
+      {candidate_hash_a, leaf_a.hash},
+      {candidate_hash_b, leaf_a.hash},
+      {candidate_hash_c, leaf_a.hash},
+      {candidate_hash_d, leaf_a.hash}};
+
+  // Check candidate tree membership.
+  get_backable_candidates(leaf_a, para_id, {}, 5, all_candidates_resp);
+
+  // Activate leaf B, which makes candidates A and B pending availability.
+  // Leaf B
+  const TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(129),
+      .para_data = {{
+          para_id,
+          PerParaData(98,
+                      {1, 2, 3},
+                      {
+                          fragment::CandidatePendingAvailability{
+                              .candidate_hash = hash(candidate_a),
+                              .descriptor = candidate_a.descriptor,
+                              .commitments = candidate_a.commitments,
+                              .relay_parent_number = leaf_a.number,
+                              .max_pov_size = MAX_POV_SIZE,
+                          },
+                          fragment::CandidatePendingAvailability{
+                              .candidate_hash = hash(candidate_b),
+                              .descriptor = candidate_b.descriptor,
+                              .commitments = candidate_b.commitments,
+                              .relay_parent_number = leaf_a.number,
+                              .max_pov_size = MAX_POV_SIZE,
+                          },
+                      }),
+      }},
+  };
+  // Activate leaf B.
+  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  get_backable_candidates(leaf_b, para_id, {}, 5, {});
+
+  get_backable_candidates(
+      leaf_b,
+      para_id,
+      {hash(candidate_a), hash(candidate_b)},
+      5,
+      {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
+
+  get_backable_candidates(leaf_b, para_id, {}, 5, {});
+
+  get_backable_candidates(leaf_a, para_id, {}, 5, all_candidates_resp);
+
+  // Now deactivate leaf A.
+  deactivate_leaf(leaf_a.hash);
+
+  get_backable_candidates(leaf_b, para_id, {}, 5, {});
+
+  get_backable_candidates(
+      leaf_b,
+      para_id,
+      {hash(candidate_a), hash(candidate_b)},
+      5,
+      {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
+
+  // Now add leaf C, which will be a sibling (fork) of leaf B. It should also
+  // inherit the candidates of leaf A (their common parent).
+  const TestLeaf leaf_c{
+      .number = 101,
+      .hash = fromNumber(12),
+      .para_data =
+          {
+              {para_id, PerParaData(98, {1, 2, 3}, {})},
+          },
+  };
+
+  activate_leaf(
+      leaf_c, test_state, ASYNC_BACKING_PARAMETERS, [&](const auto &hash) {
+        if (hash == leaf_c.hash) {
+          return leaf_a.hash;
+        }
+        return get_parent_hash(hash);
+      });
+
+  get_backable_candidates(
+      leaf_b,
+      para_id,
+      {hash(candidate_a), hash(candidate_b)},
+      5,
+      {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
+
+  get_backable_candidates(leaf_c, para_id, {}, 5, all_candidates_resp);
+
+  // Deactivate C and add another candidate that will be present on the
+  // deactivated parent A. When activating C again it should also get the new
+  // candidate. Deactivated leaves are still updated with new candidates.
+  deactivate_leaf(leaf_c.hash);
+
+  const auto [candidate_e, _] =
+      make_and_back_candidate(test_state, leaf_a, candidate_d, 5);
+  activate_leaf(
+      leaf_c, test_state, ASYNC_BACKING_PARAMETERS, [&](const auto &hash) {
+        if (hash == leaf_c.hash) {
+          return leaf_a.hash;
+        }
+        return get_parent_hash(hash);
+      });
+
+  get_backable_candidates(leaf_b,
+                          para_id,
+                          {hash(candidate_a), hash(candidate_b)},
+                          5,
+                          {{hash(candidate_c), leaf_a.hash},
+                           {hash(candidate_d), leaf_a.hash},
+                           {hash(candidate_e), leaf_a.hash}});
+
+  all_candidates_resp.emplace_back(hash(candidate_e), leaf_a.hash);
+  get_backable_candidates(leaf_c, para_id, {}, 5, all_candidates_resp);
+
+  // Querying the backable candidates for deactivated leaf won't work.
+  get_backable_candidates(leaf_a, para_id, {}, 5, {});
+
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 2);
+  ASSERT_EQ(prospective_parachain_->view().per_relay_parent.size(), 3);
+}
+
+TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_bounded_implicit_view) {
+	const ParachainId para_id(1);
+	TestState test_state;
+
+  ClaimQueue claim_queue;
+  for (const auto &[i, paras] : test_state.claim_queue) {
+    if (paras[0] == para_id) {
+      claim_queue[i] = paras;
+    }
+  }
+  test_state.claim_queue = std::move(claim_queue);
+  ASSERT_EQ(test_state.claim_queue.size(), 1);
+
+  std::vector<TestLeaf> leaves_ = {
+    TestLeaf {
+        .number = 100,
+        .hash = fromNumber(130),
+        .para_data =
+            {
+                {para_id, PerParaData(100 - ALLOWED_ANCESTRY_LEN, {1, 2, 3})},
+            },
+    }
+  };
+
+	for (size_t index = 1; index < 10; ++index) {
+		const auto &prev_leaf = leaves_[index - 1];
+		leaves_.emplace_back(TestLeaf {
+			.number = prev_leaf.number - 1,
+			.hash = get_parent_hash(prev_leaf.hash),
+			.para_data = {{
+				para_id,
+				PerParaData(
+					prev_leaf.number - 1 - ALLOWED_ANCESTRY_LEN,
+					{1, 2, 3}
+				),
+      }},
+		});
+	}
+
+  std::vector<TestLeaf> leaves;
+  for(const auto& i :  leaves_ | std::views::reverse) {
+    leaves.emplace_back(i);
+  }
+
+  // Activate first 10 leaves.
+  for (const auto &leaf : leaves) {
+    activate_leaf(leaf, test_state, ASYNC_BACKING_PARAMETERS);
+  }
+
+  // Now deactivate first 9 leaves.
+  for (size_t i = 0; i < 9; ++i) {
+    const auto &leaf = leaves[i];
+    deactivate_leaf(leaf.hash);
+  }
+
+	// Only latest leaf is active.
+  ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
+
+	// We keep allowed_ancestry_len implicit leaves. The latest leaf is also present here.
+  ASSERT_EQ(prospective_parachain_->view().per_relay_parent.size(), ASYNC_BACKING_PARAMETERS.allowed_ancestry_len + 1);
+  ASSERT_EQ(*prospective_parachain_->view().active_leaves.begin(), leaves[9].hash);
+
+  std::unordered_set<Hash> l;
+  for (const auto &[h, _] : prospective_parachain_->view().per_relay_parent) {
+    l.insert(h);
+  }
+
+  std::unordered_set<Hash> r;
+  for (size_t i = 6; i < leaves.size(); ++i) {
+    r.insert(leaves[i].hash);
+  }
+  ASSERT_EQ(l, r);
+}
