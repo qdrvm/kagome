@@ -475,6 +475,9 @@ namespace kagome::network {
   }
 
   bool GrandpaProtocol::write(const PeerId &peer_id, RawMessage raw_message) {
+    if (not notifications_->peerOut(peer_id)) {
+      return false;
+    }
     if (raw_message.hash) {
       if (not seen_.add(peer_id, *raw_message.hash)) {
         return false;
