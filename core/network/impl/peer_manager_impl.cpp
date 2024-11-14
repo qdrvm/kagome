@@ -18,6 +18,7 @@
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace {
   /// Reputation value for a node when we get disconnected from it.
@@ -123,6 +124,28 @@ namespace kagome::network {
                 self->processDiscoveredPeer(peer_id);
               }
             });
+
+    peer_connected_sub_ =
+        host_.getBus()
+            .getChannel<libp2p::event::network::OnNewConnectionChannel>()
+            .subscribe(
+                [WEAK_SELF](std::weak_ptr<libp2p::connection::CapableConnection>
+                                weak_conn) {
+                  WEAK_LOCK(self);
+                  WEAK_LOCK(conn);
+                  auto peer_id = conn->remotePeer().value();
+                  for (auto &conn2 : self->host_.getNetwork()
+                                         .getConnectionManager()
+                                         .getConnectionsToPeer(peer_id)) {
+                    if (conn2 == conn) {
+                      continue;
+                    }
+                    if (conn2->isInitiator() != conn->isInitiator()) {
+                      continue;
+                    }
+                    std::ignore = conn->close();
+                  }
+                });
 
     peer_disconnected_handler_ =
         host_.getBus()

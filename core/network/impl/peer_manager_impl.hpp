@@ -187,6 +187,7 @@ namespace kagome::network {
     std::shared_ptr<network::PeerView> peer_view_;
 
     libp2p::event::Handle add_peer_handle_;
+    libp2p::event::Handle peer_connected_sub_;
     libp2p::event::Handle peer_disconnected_handler_;
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<PeerId> queue_to_connect_;
