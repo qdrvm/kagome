@@ -416,20 +416,6 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
-  ParachainProcessorImpl::fetch_claim_queue(const RelayHash &relay_parent) {
-    OUTCOME_TRY(version, parachain_host_->runtime_api_version(relay_parent));
-    if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
-      SL_TRACE(logger_, "Runtime doesn't support `request_claim_queue`");
-      return std::nullopt;
-    }
-
-    OUTCOME_TRY(claims, parachain_host_->claim_queue(relay_parent));
-    return runtime::ClaimQueueSnapshot{
-        .claimes = std::move(claims),
-    };
-  }
-
   outcome::result<consensus::Randomness>
   ParachainProcessorImpl::getBabeRandomness(const RelayHash &relay_parent) {
     OUTCOME_TRY(block_header, block_tree_->getBlockHeader(relay_parent));

@@ -15,6 +15,8 @@
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
 
+using kagome::runtime::ClaimQueueSnapshot;
+
 class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
@@ -43,12 +45,8 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   struct TestState {
     ClaimQueue claim_queue = {{CoreIndex(0), {ParachainId(1)}},
                               {CoreIndex(1), {ParachainId(2)}}};
-    uint32_t runtime_api_version = CLAIM_QUEUE_RUNTIME_REQUIREMENT;
+    bool enable_claim_queue_api = true;
     ValidationCodeHash validation_code_hash = fromNumber(42);
-
-    void set_runtime_api_version(uint32_t version) {
-      runtime_api_version = version;
-    }
   };
 
   struct PerParaData {
@@ -127,11 +125,9 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
         .WillRepeatedly(Return(outcome::success(async_backing_params)));
 
-    EXPECT_CALL(*parachain_api_, runtime_api_version(hash))
-        .WillRepeatedly(
-            Return(outcome::success(test_state.runtime_api_version)));
-
-    if (test_state.runtime_api_version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
+    if (not test_state.enable_claim_queue_api) {
+      EXPECT_CALL(*parachain_api_, claim_queue(hash))
+          .WillRepeatedly(Return(std::nullopt));
       std::vector<runtime::CoreState> cores;
       for (const auto &[_, paras] : test_state.claim_queue) {
         cores.emplace_back(runtime::ScheduledCore{
@@ -143,7 +139,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
           .WillRepeatedly(Return(outcome::success(cores)));
     } else {
       EXPECT_CALL(*parachain_api_, claim_queue(hash))
-          .WillRepeatedly(Return(outcome::success(test_state.claim_queue)));
+          .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
     }
 
     EXPECT_CALL(*block_tree_, getBlockHeader(hash))
@@ -1437,7 +1433,7 @@ TEST_F(ProspectiveParachainsTest, check_pvd_query) {
 
 TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   TestState test_state;
-  test_state.set_runtime_api_version(8);
+  test_state.enable_claim_queue_api = false;
 
   // Leaf A
   const TestLeaf leaf_a{
@@ -1979,13 +1975,8 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
       .WillRepeatedly(Return(outcome::success(fragment::AsyncBackingParams{
           .max_candidate_depth = 0, .allowed_ancestry_len = ancestry_len})));
 
-  EXPECT_CALL(*parachain_api_, runtime_api_version(hash))
-      .WillRepeatedly(
-          Return(outcome::success(CLAIM_QUEUE_RUNTIME_REQUIREMENT)));
-
   EXPECT_CALL(*parachain_api_, claim_queue(hash))
-      .WillRepeatedly(Return(
-          outcome::success(std::map<CoreIndex, std::vector<ParachainId>>{})));
+      .WillRepeatedly(Return(ClaimQueueSnapshot{}));
 
   EXPECT_CALL(*block_tree_, getBlockHeader(hash))
       .WillRepeatedly(Return(BlockHeader{

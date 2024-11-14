@@ -413,9 +413,11 @@ namespace kagome::parachain::statement_distribution {
                     std::move(authority_lookup)));
           });
       if (per_session_state.has_error()) {
-        SL_WARN(logger,
-                "Create session data failed. (error={})",
-                per_session_state.error());
+        if (per_session_state.error() != Error::NOT_A_VALIDATOR) {
+          SL_WARN(logger,
+                  "Create session data failed. (error={})",
+                  per_session_state.error());
+        }
         continue;
       }
 
@@ -424,14 +426,7 @@ namespace kagome::parachain::statement_distribution {
       OUTCOME_TRY(groups, parachain_host->validator_groups(new_relay_parent));
       const auto &[_, group_rotation_info] = groups;
 
-      auto maybe_claim_queue =
-          [&]() -> std::optional<runtime::ClaimQueueSnapshot> {
-        auto r = fetch_claim_queue(new_relay_parent);
-        if (r.has_value()) {
-          return r.value();
-        }
-        return std::nullopt;
-      }();
+      OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
 
       auto local_validator = [&]() -> std::optional<LocalValidatorState> {
         if (!per_session_state.value()->value().v_index) {
@@ -574,22 +569,6 @@ namespace kagome::parachain::statement_distribution {
       }
     }
     return groups_per_para;
-  }
-
-  outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
-  StatementDistribution::fetch_claim_queue(const RelayHash &relay_parent) {
-    //    constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
-    //    OUTCOME_TRY(version,
-    //    parachain_host->runtime_api_version(relay_parent)); if (version <
-    //    CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
-    //      SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
-    //      return std::nullopt;
-    //    }
-
-    OUTCOME_TRY(claims, parachain_host->claim_queue(relay_parent));
-    return runtime::ClaimQueueSnapshot{
-        .claimes = std::move(claims),
-    };
   }
 
   bool StatementDistribution::can_disconnect(const libp2p::PeerId &peer) const {

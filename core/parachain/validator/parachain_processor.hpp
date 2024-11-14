@@ -479,8 +479,6 @@ namespace kagome::parachain {
 
     outcome::result<consensus::Randomness> getBabeRandomness(
         const RelayHash &relay_parent);
-    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
-    fetch_claim_queue(const RelayHash &relay_parent);
 
     /**
      * @brief Inserts an advertisement into the peer's data.
