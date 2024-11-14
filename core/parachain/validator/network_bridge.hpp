@@ -12,7 +12,7 @@
 #include "common/main_thread_pool.hpp"
 
 namespace libp2p::connection {
-  class Stream;
+  struct Stream;
 }  // namespace libp2p::connection
 
 namespace kagome::parachain {
