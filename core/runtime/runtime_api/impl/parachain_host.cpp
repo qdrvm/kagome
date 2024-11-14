@@ -9,6 +9,7 @@
 #include "common/blob.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/runtime_api/impl/if_export.hpp"
 #include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
 #include "scale/std_variant.hpp"
 
@@ -270,17 +271,11 @@ namespace kagome::runtime {
         ctx, "ParachainHost_para_backing_state", id);
   }
 
-  outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>
-  ParachainHostImpl::claim_queue(const primitives::BlockHash &block) {
-    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return executor_->call<std::map<CoreIndex, std::vector<ParachainId>>>(
-        ctx, "ParachainHost_claim_queue");
-  }
-
-  outcome::result<uint32_t> ParachainHostImpl::runtime_api_version(
+  ParachainHost::ClaimQueueResult ParachainHostImpl::claim_queue(
       const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return executor_->call<uint32_t>(ctx, "ParachainHost_runtime_api_version");
+    return ifExport(
+        executor_->call<ClaimQueueSnapshot>(ctx, "ParachainHost_claim_queue"));
   }
 
   outcome::result<parachain::fragment::AsyncBackingParams>
@@ -301,26 +296,16 @@ namespace kagome::runtime {
   outcome::result<std::vector<ValidatorIndex>>
   ParachainHostImpl::disabled_validators(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    auto res = executor_->call<std::vector<ValidatorIndex>>(
-        ctx, "ParachainHost_disabled_validators");
-    if (res.has_error()
-        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
-      return outcome::success(std::vector<ValidatorIndex>{});
-    }
-    return res;
+    return ifExportVec(executor_->call<std::vector<ValidatorIndex>>(
+        ctx, "ParachainHost_disabled_validators"));
   }
 
   outcome::result<std::optional<ParachainHost::NodeFeatures>>
   ParachainHostImpl::node_features(const primitives::BlockHash &block,
                                    SessionIndex index) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    auto res = executor_->call<ParachainHost::NodeFeatures>(
-        ctx, "ParachainHost_node_features");
-    if (res.has_error()
-        and res.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
-      return outcome::success(std::nullopt);
-    }
-    return res.value();
+    return ifExport(executor_->call<ParachainHost::NodeFeatures>(
+        ctx, "ParachainHost_node_features"));
   }
 
 }  // namespace kagome::runtime
