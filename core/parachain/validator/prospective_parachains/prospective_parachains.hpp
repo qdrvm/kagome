@@ -120,6 +120,9 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         std::unordered_set<CandidateHash> &pending_availability);
 
+    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+    fetch_claim_queue(const RelayHash &relay_parent);
+
     outcome::result<std::vector<fragment::BlockInfoProspectiveParachains>>
     fetchAncestry(const RelayHash &relay_hash, size_t ancestors);
 

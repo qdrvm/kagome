@@ -418,7 +418,6 @@ namespace kagome::parachain {
 
   outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
   ParachainProcessorImpl::fetch_claim_queue(const RelayHash &relay_parent) {
-    constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
     OUTCOME_TRY(version, parachain_host_->runtime_api_version(relay_parent));
     if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
       SL_TRACE(logger_, "Runtime doesn't support `request_claim_queue`");

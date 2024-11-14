@@ -281,12 +281,36 @@ namespace kagome::parachain {
     return std::nullopt;
   }
 
+  outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
+  ProspectiveParachains::fetch_claim_queue(const RelayHash &relay_parent) {
+    OUTCOME_TRY(version, parachain_host_->runtime_api_version(relay_parent));
+    if (version < CLAIM_QUEUE_RUNTIME_REQUIREMENT) {
+      SL_TRACE(logger, "Runtime doesn't support `request_claim_queue`");
+      return std::nullopt;
+    }
+
+    OUTCOME_TRY(claims, parachain_host_->claim_queue(relay_parent));
+    return runtime::ClaimQueueSnapshot{
+        .claimes = std::move(claims),
+    };
+  }
+
   outcome::result<std::unordered_set<ParachainId>>
   ProspectiveParachains::fetchUpcomingParas(
       const RelayHash &relay_parent,
       std::unordered_set<CandidateHash> &pending_availability) {
-    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
+    OUTCOME_TRY(claim, fetch_claim_queue(relay_parent));
+    if (claim) {
+      std::unordered_set<ParachainId> result;
+      for (const auto &[_, paras] : claim->claimes) {
+        for (const auto &para : paras) {
+          result.emplace(para);
+        }
+      }
+      return result;
+    }
 
+    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
     std::unordered_set<ParachainId> upcoming;
     for (const auto &core : cores) {
       visit_in_place(
@@ -305,6 +329,7 @@ namespace kagome::parachain {
           },
           [](const auto &) {});
     }
+
     return upcoming;
   }
 
