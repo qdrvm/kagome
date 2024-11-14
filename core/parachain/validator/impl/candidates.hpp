@@ -519,7 +519,8 @@ namespace kagome::parachain {
           };
 
       retain_if(candidates, [&](auto &pair) {
-        auto &[c_hash, state] = pair;
+        auto &[_c_hash, state] = pair;
+        auto &c_hash = _c_hash;
         return visit_in_place(
             state,
             [&](ConfirmedCandidate &c) {

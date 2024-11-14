@@ -99,7 +99,8 @@ namespace kagome::parachain {
 
     BlockedCollationId(ParachainId pid, const Hash &h)
         : para_id(pid), parent_head_data_hash(h) {}
-    constexpr auto operator<=>(const BlockedCollationId &) const = default;
+    auto operator<=>(const BlockedCollationId &) const = default;
+    bool operator==(const BlockedCollationId &) const = default;
   };
 }  // namespace kagome::parachain
 
