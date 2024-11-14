@@ -101,7 +101,11 @@ namespace kagome::network::notifications {
   void Protocol::write(const PeerId &peer_id,
                        size_t protocol_group,
                        std::shared_ptr<Buffer> message) {
-    EXPECT_THREAD(*main_pool_handler_);
+    REINVOKE(*main_pool_handler_,
+             write,
+             peer_id,
+             protocol_group,
+             std::move(message));
     auto peer = entry(peers_out_, peer_id);
     if (not peer) {
       return;
