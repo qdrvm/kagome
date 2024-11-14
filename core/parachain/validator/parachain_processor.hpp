@@ -506,8 +506,6 @@ namespace kagome::parachain {
 
     outcome::result<consensus::Randomness> getBabeRandomness(
         const RelayHash &relay_parent);
-    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
-    fetch_claim_queue(const RelayHash &relay_parent);
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);

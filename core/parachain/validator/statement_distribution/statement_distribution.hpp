@@ -323,9 +323,6 @@ namespace kagome::parachain::statement_distribution {
     outcome::result<std::optional<ValidatorSigner>> is_parachain_validator(
         const primitives::BlockHash &relay_parent) const;
 
-    outcome::result<std::optional<runtime::ClaimQueueSnapshot>>
-    fetch_claim_queue(const RelayHash &relay_parent);
-
     std::unordered_map<ParachainId, std::vector<GroupIndex>>
     determine_groups_per_para(
         const std::vector<runtime::CoreState> &availability_cores,

@@ -148,14 +148,8 @@ namespace kagome::consensus::babe {
     // If we were synchronized,
     // we have available runtime to check disabled validators
     if (was_synchronized_) {
-      std::vector<AuthorityIndex> disabled_validators;
-      if (auto res = babe_api_->disabled_validators(block_header.parent_hash);
-          res.has_error()) {
-        SL_CRITICAL(log_,
-                    "Can't obtain disabled validators list for block {}",
-                    block_header.blockInfo());
-      }
-
+      OUTCOME_TRY(disabled_validators,
+                  babe_api_->disabled_validators(block_header.parent_hash));
       if (std::ranges::binary_search(disabled_validators,
                                      babe_header.authority_index)) {
         SL_VERBOSE(log_,

@@ -58,8 +58,6 @@ namespace kagome::parachain {
   /// Signature with which parachain validators sign blocks.
   using ValidatorSignature = Signature;
 
-  constexpr uint32_t CLAIM_QUEUE_RUNTIME_REQUIREMENT = 11;
-
   template <typename D>
   struct Indexed {
     using Type = std::decay_t<D>;
