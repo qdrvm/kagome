@@ -10,6 +10,7 @@
 #include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "utils/retain_if.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
@@ -38,6 +39,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+      LazySPtr<network::ValidationProtocol> validation_protocol,
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
@@ -47,6 +49,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : block_tree_{std::move(block_tree)},
         authority_discovery_api_{std::move(authority_discovery_api)},
+        validation_protocol_{std::move(validation_protocol)},
         key_store_{std::move(key_store)},
         sr_crypto_provider_{std::move(sr_crypto_provider)},
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
@@ -158,6 +161,7 @@ namespace kagome::authority_discovery {
         ++it;
       } else {
         it = auth_to_peer_cache_.erase(it);
+        validation_protocol_.get()->reserve(it->second.peer.id, false);
       }
     }
     for (auto it = peer_to_auth_cache_.begin();
@@ -166,6 +170,7 @@ namespace kagome::authority_discovery {
         ++it;
       } else {
         it = peer_to_auth_cache_.erase(it);
+        validation_protocol_.get()->reserve(it->first, false);
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
@@ -194,11 +199,24 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
+      static size_t skipped = 0;
+      if (auth_to_peer_cache_.contains(authority)) {
+        ++skipped;
+        if (skipped % 10 == 0) {
+          SL_DEBUG(log_, "skipped {} records", skipped);
+        } else {
+          --active_;
+          continue;
+        }
+      }
+      skipped = 0;
+
       scheduler_->schedule([wp{weak_from_this()},
                             hash = common::Buffer{crypto::sha256(authority)},
                             authority] {
         if (auto self = wp.lock()) {
-          SL_DEBUG(self->log_, "start lookup({})", common::hex_lower(authority));
+          SL_DEBUG(
+              self->log_, "start lookup({})", common::hex_lower(authority));
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
@@ -216,9 +234,9 @@ namespace kagome::authority_discovery {
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
     SL_TRACE(log_,
-            "lookup : add addresses for authority {}, _res {}",
-            common::hex_lower(authority),
-            _res.has_value() ? "ok" : "error: " + _res.error().message());
+             "lookup : add addresses for authority {}, _res {}",
+             common::hex_lower(authority),
+             _res.has_value() ? "ok" : "error: " + _res.error().message());
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -271,9 +289,9 @@ namespace kagome::authority_discovery {
     libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
     SL_TRACE(log_,
-            "lookup: adding {} addresses for authority {}",
-            record.addresses().size(),
-            authority);
+             "lookup: adding {} addresses for authority {}",
+             record.addresses().size(),
+             authority);
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
       auto id = address.getPeerId();
@@ -316,8 +334,10 @@ namespace kagome::authority_discovery {
                                          Authority{
                                              .raw = std::move(signed_record_pb),
                                              .time = time,
-                                             .peer = std::move(peer),
+                                             .peer = peer,
                                          });
+
+    validation_protocol_.get()->reserve(peer.id, true);
 
     return outcome::success();
   }

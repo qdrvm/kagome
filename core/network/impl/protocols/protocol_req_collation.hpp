@@ -16,7 +16,6 @@
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
