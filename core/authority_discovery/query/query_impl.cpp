@@ -199,6 +199,18 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
+      static size_t skipped = 0;
+      if (auth_to_peer_cache_.contains(authority)) {
+        ++skipped;
+        if (skipped % 10 == 0) {
+          SL_DEBUG(log_, "skipped {} records", skipped);
+        } else {
+          --active_;
+          continue;
+        }
+      }
+      skipped = 0;
+
       scheduler_->schedule([wp{weak_from_this()},
                             hash = common::Buffer{crypto::sha256(authority)},
                             authority] {
