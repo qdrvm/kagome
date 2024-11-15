@@ -33,7 +33,7 @@ namespace kagome::network {
 
   inline auto makeProtocols(const ParachainProtocolInject &inject,
                             const std::string_view &fmt) {
-    return make_protocols(fmt, inject.genesis_hash, kProtocolPrefixPolkadot);
+    return make_protocols(fmt, *inject.genesis_hash, kProtocolPrefixPolkadot);
   }
 
   using CollationTypes =
@@ -65,7 +65,7 @@ namespace kagome::network {
       notifications::ProtocolsGroups protocols_groups,
       size_t limit_in,
       size_t limit_out)
-      : notifications_{inject.notifications_factory.make(
+      : notifications_{inject.notifications_factory->make(
           std::move(protocols_groups), limit_in, limit_out)},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},

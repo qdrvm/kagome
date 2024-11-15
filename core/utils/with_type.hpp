@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstddef>
+#include <stdexcept>
 
 namespace kagome {
   template <size_t I, typename T, typename... Ts>
@@ -17,7 +18,7 @@ namespace kagome {
     if constexpr (sizeof...(Ts) != 0) {
       return withType<I + 1, Ts...>(i, f);
     }
-    abort();
+    throw std::out_of_range{"withType"};
   }
 
   template <typename... T>

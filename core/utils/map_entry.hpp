@@ -9,6 +9,7 @@
 #include <cassert>
 #include <map>
 #include <unordered_map>
+#include <variant>
 
 namespace kagome {
   template <typename M>
@@ -58,8 +59,9 @@ namespace kagome {
       return std::move(node.mapped());
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     M &map;
-    std::variant<I, K> it_or_key;
+    std::variant<I, K> it_or_key{};
   };
 
   template <typename K, typename V>

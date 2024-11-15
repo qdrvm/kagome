@@ -225,8 +225,10 @@ namespace kagome::parachain {
       const network::SignedBitfield &bitfield) {
     REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
-    router_->getValidationProtocol()->write(
-        network::BitfieldDistribution{relay_parent, bitfield});
+    router_->getValidationProtocol()->write(network::BitfieldDistribution{
+        .relay_parent = relay_parent,
+        .data = bitfield,
+    });
   }
 
   /**
@@ -2146,8 +2148,11 @@ namespace kagome::parachain {
           };
         });
 
-    router_->getCollationProtocol()->write(
-        peer_id, network::Seconded{relay_parent, std::move(stm)});
+    router_->getCollationProtocol()->write(peer_id,
+                                           network::Seconded{
+                                               .relay_parent = relay_parent,
+                                               .statement = std::move(stm),
+                                           });
   }
 
   template <bool kReinvoke>

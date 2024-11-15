@@ -57,7 +57,11 @@ namespace kagome::network {
 
   void PeerView::updateMyView(const primitives::BlockHeader &header) {
     BOOST_ASSERT(my_view_update_observable_);
-    ExView event{makeView(block_tree_), header, {}};
+    ExView event{
+        .view = makeView(block_tree_),
+        .new_head = header,
+        .lost = {},
+    };
     if (event.view == my_view_) {
       return;
     }

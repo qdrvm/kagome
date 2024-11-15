@@ -27,8 +27,7 @@ namespace kagome::network::notifications {
         framing{std::make_shared<MessageReadWriterUvarint>(info.stream)} {
     auto it = std::ranges::find_if(
         protocols_groups, [&](const StreamProtocols &protocols) {
-          return std::find(protocols.begin(), protocols.end(), info.protocol)
-              != protocols.end();
+          return std::ranges::find(protocols, info.protocol) != protocols.end();
         });
     protocol_group =
         it == protocols_groups.end() ? 0 : it - protocols_groups.begin();
@@ -67,11 +66,12 @@ namespace kagome::network::notifications {
   void Protocol::start(std::weak_ptr<Controller> controller) {
     REINVOKE(*main_pool_handler_, start, std::move(controller));
     controller_ = std::move(controller);
-    host_->setProtocolHandler(protocols_, [WEAK_SELF](StreamAndProtocol info) {
-      WEAK_LOCK(self);
-      auto peer_id = info.stream->remotePeerId().value();
-      self->onStream(peer_id, info, false);
-    });
+    host_->setProtocolHandler(
+        protocols_, [WEAK_SELF](const StreamAndProtocol &info) {
+          WEAK_LOCK(self);
+          auto peer_id = info.stream->remotePeerId().value();
+          self->onStream(peer_id, info, false);
+        });
     timer();
   }
 
@@ -437,20 +437,20 @@ namespace kagome::network::notifications {
     return peerCount(false) < limit_in_;
   }
 
-  Factory::Factory(MainThreadPool &main_thread_pool,
+  Factory::Factory(std::shared_ptr<MainThreadPool> main_thread_pool,
                    std::shared_ptr<Host> host,
                    std::shared_ptr<Scheduler> scheduler)
-      : main_thread_pool_{main_thread_pool},
+      : main_thread_pool_{std::move(main_thread_pool)},
         host_{std::move(host)},
         scheduler_{std::move(scheduler)} {}
 
   std::shared_ptr<Protocol> Factory::make(ProtocolsGroups protocols_groups,
                                           size_t limit_in,
                                           size_t limit_out) const {
-    return std::make_shared<Protocol>(main_thread_pool_,
+    return std::make_shared<Protocol>(*main_thread_pool_,
                                       host_,
                                       scheduler_,
-                                      protocols_groups,
+                                      std::move(protocols_groups),
                                       limit_in,
                                       limit_out);
   }

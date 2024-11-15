@@ -111,7 +111,7 @@ namespace kagome::network::notifications {
     void write(const PeerId &peer_id, std::shared_ptr<Buffer> message);
     void reserve(const PeerId &peer_id, bool add);
 
-   protected:
+   private:
     void onError(const PeerId &peer_id, bool out);
     std::chrono::milliseconds backoffTime();
     void backoff(const PeerId &peer_id);
@@ -152,7 +152,7 @@ namespace kagome::network::notifications {
 
   class Factory {
    public:
-    Factory(MainThreadPool &main_thread_pool,
+    Factory(std::shared_ptr<MainThreadPool> main_thread_pool,
             std::shared_ptr<Host> host,
             std::shared_ptr<Scheduler> scheduler);
     std::shared_ptr<Protocol> make(ProtocolsGroups protocols_groups,
@@ -160,7 +160,7 @@ namespace kagome::network::notifications {
                                    size_t limit_out) const;
 
    private:
-    MainThreadPool &main_thread_pool_;
+    std::shared_ptr<MainThreadPool> main_thread_pool_;
     std::shared_ptr<Host> host_;
     std::shared_ptr<Scheduler> scheduler_;
   };

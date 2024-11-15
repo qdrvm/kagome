@@ -11,6 +11,8 @@
 #include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
 
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
+
 namespace kagome::blockchain {
   class BlockTree;
   class GenesisBlockHash;
@@ -33,9 +35,9 @@ namespace kagome::network {
       const VersionedValidatorProtocolMessage &message);
 
   struct ParachainProtocolInject {
-    const notifications::Factory &notifications_factory;
+    std::shared_ptr<notifications::Factory> notifications_factory;
     Roles roles;
-    const blockchain::GenesisBlockHash &genesis_hash;
+    std::shared_ptr<blockchain::GenesisBlockHash> genesis_hash;
     std::shared_ptr<PeerManager> peer_manager;
     std::shared_ptr<PeerView> peer_view;
     primitives::events::SyncStateSubscriptionEnginePtr sync_engine;

@@ -129,8 +129,9 @@ namespace kagome::network {
         host_.getBus()
             .getChannel<libp2p::event::network::OnNewConnectionChannel>()
             .subscribe(
-                [WEAK_SELF](std::weak_ptr<libp2p::connection::CapableConnection>
-                                weak_conn) {
+                [WEAK_SELF](
+                    const std::weak_ptr<libp2p::connection::CapableConnection>
+                        &weak_conn) {
                   WEAK_LOCK(self);
                   WEAK_LOCK(conn);
                   auto peer_id = conn->remotePeer().value();

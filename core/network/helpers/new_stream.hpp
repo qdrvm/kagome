@@ -16,7 +16,7 @@ namespace kagome::network {
                         const libp2p::PeerId &peer,
                         libp2p::StreamProtocols protocols,
                         libp2p::StreamAndProtocolOrErrorCb cb) {
-    libp2p::peer::PeerInfo info{peer, {}};
+    libp2p::peer::PeerInfo info{.id = peer, .addresses = {}};
     if (auto r = host.getPeerRepository().getAddressRepository().getAddresses(
             peer)) {
       info.addresses = r.value();

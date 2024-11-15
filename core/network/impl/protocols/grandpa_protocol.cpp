@@ -471,7 +471,7 @@ namespace kagome::network {
       const GrandpaMessage &message) const {
     auto message_raw = notifications::encode(message);
     auto hash = rawMessageHash(message, *message_raw);
-    return {std::move(message_raw), hash};
+    return {.raw = std::move(message_raw), .hash = hash};
   }
 
   bool GrandpaProtocol::write(const PeerId &peer_id, RawMessage raw_message) {

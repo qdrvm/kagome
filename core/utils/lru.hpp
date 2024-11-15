@@ -7,6 +7,10 @@
 #pragma once
 
 #include <boost/assert.hpp>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace kagome {
@@ -200,6 +204,6 @@ namespace kagome {
 
    private:
     size_t capacity_;
-    std::unordered_map<K, LruSet<V>> map_;
+    std::unordered_map<K, LruSet<V>> map_{};
   };
 }  // namespace kagome
