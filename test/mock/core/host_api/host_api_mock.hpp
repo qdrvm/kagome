@@ -290,7 +290,7 @@ namespace kagome::host_api {
                 ext_crypto_ecdsa_sign_prehashed_version_1,
                 (runtime::WasmSize key_type,
                  runtime::WasmPointer key,
-                 runtime::WasmSpan msg_data),
+                 runtime::WasmPointer msg_data),
                 (override));
 
     MOCK_METHOD(runtime::WasmPointer,
