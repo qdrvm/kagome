@@ -47,6 +47,9 @@ namespace kagome::network::notifications {
   using libp2p::connection::Stream;
   using ProtocolsGroups = std::vector<StreamProtocols>;
 
+  /**
+   * Contains stream, framing, used protocol.
+   */
   struct StreamInfo {
     StreamInfo(const ProtocolsGroups &protocols_groups,
                const StreamAndProtocol &info);
@@ -56,6 +59,9 @@ namespace kagome::network::notifications {
     std::shared_ptr<MessageReadWriterUvarint> framing;
   };
 
+  /**
+   * Closes stream when destroyed.
+   */
   struct StreamInfoClose : StreamInfo {
     StreamInfoClose(StreamInfo &&info);
     StreamInfoClose(StreamInfoClose &&) noexcept = default;
@@ -65,7 +71,13 @@ namespace kagome::network::notifications {
     ~StreamInfoClose();
   };
 
+  /**
+   * State for opening outgoing stream.
+   */
   struct PeerOutOpening {};
+  /**
+   * State for open outgoing stream.
+   */
   struct PeerOutOpen {
     PeerOutOpen(StreamInfoClose &&stream);
 
@@ -73,24 +85,50 @@ namespace kagome::network::notifications {
     bool writing;
     std::deque<std::shared_ptr<Buffer>> queue;
   };
+  /**
+   * State for backed off outgoing stream.
+   */
   struct PeerOutBackoff {
     Cancel timer;
   };
+  /**
+   * State for outgoing stream.
+   */
   using PeerOut = std::variant<PeerOutOpening, PeerOutOpen, PeerOutBackoff>;
 
+  /**
+   * Provides handshake and event callbacks.
+   */
   struct Controller {
     virtual ~Controller() = default;
+    /**
+     * @returns handshake to send
+     */
     virtual Buffer handshake() = 0;
+    /**
+     * Stream with peer was opened/accepted.
+     * @returns false to close stream
+     */
     virtual bool onHandshake(const PeerId &peer_id,
                              size_t protocol_group,
                              bool out,
                              Buffer &&handshake) = 0;
+    /**
+     * Message was received from peer.
+     * @returns false to close stream
+     */
     virtual bool onMessage(const PeerId &peer_id,
                            size_t protocol_group,
                            Buffer &&message) = 0;
+    /**
+     * Both incoming/outgoing streams with peer were closed.
+     */
     virtual void onClose(const PeerId &peer_id) = 0;
   };
 
+  /**
+   * Implements notification protocol behavior.
+   */
   class Protocol : public std::enable_shared_from_this<Protocol> {
    public:
     Protocol(MainThreadPool &main_thread_pool,
@@ -100,15 +138,40 @@ namespace kagome::network::notifications {
              size_t limit_in,
              size_t limit_out);
 
+    /**
+     * Part of constructor:
+     * 1. `weak_from_this()` doesn't work in constructor.
+     * 2. possible circular reference with controller.
+     */
     void start(std::weak_ptr<Controller> controller);
     using PeersOutCb =
         std::function<bool(const PeerId &, size_t protocol_group)>;
+    /**
+     * Get protocol used by peer.
+     */
     std::optional<size_t> peerOut(const PeerId &peer_id);
+    /**
+     * Visit peers and protocols they use.
+     * Used for broadcast.
+     */
     void peersOut(const PeersOutCb &cb) const;
+    /**
+     * Write message with specified protocol to peer.
+     * Message is ignored if peer protocol doesn't match.
+     */
     void write(const PeerId &peer_id,
                size_t protocol_group,
                std::shared_ptr<Buffer> message);
+    /**
+     * Write message to peer.
+     * Expects single protocol.
+     */
     void write(const PeerId &peer_id, std::shared_ptr<Buffer> message);
+    /**
+     * Add/remove peer to reserved set.
+     * Reserved peers are not affected by limits.
+     * Streams are automatically opened to reserved peers.
+     */
     void reserve(const PeerId &peer_id, bool add);
 
    private:
@@ -150,11 +213,18 @@ namespace kagome::network::notifications {
     std::unordered_set<PeerId> reserved_;
   };
 
+  /**
+   * Contains common constructor parameters for `Protocol` to avoid specifying
+   * them explicitly.
+   */
   class Factory {
    public:
     Factory(std::shared_ptr<MainThreadPool> main_thread_pool,
             std::shared_ptr<Host> host,
             std::shared_ptr<Scheduler> scheduler);
+    /**
+     * Make protocol with specified protocols and limits.
+     */
     std::shared_ptr<Protocol> make(ProtocolsGroups protocols_groups,
                                    size_t limit_in,
                                    size_t limit_out) const;

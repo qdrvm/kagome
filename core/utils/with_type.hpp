@@ -21,13 +21,22 @@ namespace kagome {
     throw std::out_of_range{"withType"};
   }
 
+  /**
+   * Calls `f` with `i`th type.
+   */
   template <typename... T>
   auto withType(size_t i, const auto &f) {
     return withType<0, T...>(i, f);
   }
 
+  /**
+   * Wraps types for indexing.
+   */
   template <typename... T>
   struct WithType {
+    /**
+     * Calls `withType` without specifying types explicitly.
+     */
     static auto with(size_t i, const auto &f) {
       return withType<T...>(i, f);
     }
