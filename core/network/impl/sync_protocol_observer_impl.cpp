@@ -30,16 +30,13 @@ namespace kagome::network {
   SyncProtocolObserverImpl::SyncProtocolObserverImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-      std::shared_ptr<Beefy> beefy,
-      std::shared_ptr<PeerManager> peer_manager)
+      std::shared_ptr<Beefy> beefy)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
         beefy_{std::move(beefy)},
-        peer_manager_{std::move(peer_manager)},
         log_(log::createLogger("SyncProtocolObserver", "network")) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
-    BOOST_ASSERT(peer_manager_);
   }
 
   outcome::result<network::BlocksResponse>
@@ -71,7 +68,6 @@ namespace kagome::network {
       return response;
     }
     const auto &chain_hash = chain_hash_res.value();
-    peer_manager_->reserveStatusStreams(peer_id);
 
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash);

@@ -95,6 +95,11 @@ namespace kagome {
     }                                                                          \
   })
 
+#define EXPECT_THREAD(ctx)                                   \
+  if (not runningInThisThread(ctx)) throw std::logic_error { \
+      "expected to execute on other thread"                  \
+    }
+
 /// Reinvokes function once depending on `template <bool kReinvoke>` argument.
 /// If `true` reinvoke takes place, otherwise direct call. After reinvoke called
 /// function has `false` in kReinvoke.

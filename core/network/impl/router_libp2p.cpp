@@ -10,11 +10,12 @@
 #include <libp2p/protocol/ping.hpp>
 #include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
+#include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
@@ -22,10 +23,10 @@
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
 #include "network/impl/protocols/send_dispute_protocol.hpp"
-#include "network/protocols/beefy_protocol.hpp"
 #include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/types/bootstrap_nodes.hpp"
+#include "network/types/own_peer_info.hpp"
 #include "network/warp/protocol.hpp"
 
 namespace kagome::network {
@@ -41,14 +42,12 @@ namespace kagome::network {
       LazySPtr<SyncProtocol> sync_protocol,
       LazySPtr<StateProtocol> state_protocol,
       LazySPtr<WarpProtocol> warp_protocol,
-      LazySPtr<BeefyProtocol> beefy_protocol,
+      LazySPtr<BeefyProtocolImpl> beefy_protocol,
       LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
       LazySPtr<LightProtocol> light_protocol,
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
       LazySPtr<ValidationProtocol> validation_protocol,
       LazySPtr<CollationProtocol> collation_protocol,
-      LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
-      LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging,
       LazySPtr<ReqCollationProtocol> req_collation_protocol,
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
@@ -74,8 +73,6 @@ namespace kagome::network {
         propagate_transactions_protocol_(propagate_transactions_protocol),
         validation_protocol_(validation_protocol),
         collation_protocol_(collation_protocol),
-        collation_protocol_vstaging_(collation_protocol_vstaging),
-        validation_protocol_vstaging_(validation_protocol_vstaging),
         req_collation_protocol_(req_collation_protocol),
         req_pov_protocol_(req_pov_protocol),
         fetch_chunk_protocol_(fetch_chunk_protocol),
@@ -123,13 +120,8 @@ namespace kagome::network {
     lazyStart(light_protocol_);
     lazyStart(propagate_transactions_protocol_);
 
-    // TODO(iceseer): https://github.com/qdrvm/kagome/issues/1989
-    // should be uncommented when this task will be implemented
-    // lazyStart(collation_protocol_);
-    // lazyStart(validation_protocol_);
-
-    lazyStart(collation_protocol_vstaging_);
-    lazyStart(validation_protocol_vstaging_);
+    lazyStart(collation_protocol_);
+    lazyStart(validation_protocol_);
     lazyStart(req_collation_protocol_);
     lazyStart(req_pov_protocol_);
     lazyStart(fetch_chunk_protocol_);
@@ -244,19 +236,9 @@ namespace kagome::network {
     return collation_protocol_.get();
   }
 
-  std::shared_ptr<CollationProtocolVStaging>
-  RouterLibp2p::getCollationProtocolVStaging() const {
-    return collation_protocol_vstaging_.get();
-  }
-
   std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
       const {
     return validation_protocol_.get();
-  }
-
-  std::shared_ptr<ValidationProtocolVStaging>
-  RouterLibp2p::getValidationProtocolVStaging() const {
-    return validation_protocol_vstaging_.get();
   }
 
   std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()

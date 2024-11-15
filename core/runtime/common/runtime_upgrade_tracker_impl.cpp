@@ -193,13 +193,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(block_tree != nullptr);
     block_tree_ = block_tree;
 
-    chain_subscription_ =
-        std::make_shared<primitives::events::ChainEventSubscriber>(
-            chain_sub_engine);
-    BOOST_ASSERT(chain_subscription_ != nullptr);
-
-    primitives::events::subscribe(
-        *chain_subscription_,
+    chain_subscription_ = primitives::events::subscribe(
+        chain_sub_engine,
         primitives::events::ChainEventType::kNewRuntime,
         [this](const primitives::events::ChainEventParams &event_params) {
           const auto &block_hash =

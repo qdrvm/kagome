@@ -8,6 +8,7 @@
 
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "utils/non_copyable.hpp"
 

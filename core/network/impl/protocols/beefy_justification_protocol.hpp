@@ -27,7 +27,6 @@ namespace kagome::common {
 namespace kagome::network {
   class Beefy;
   class PeerManager;
-  struct StreamEngine;
 }  // namespace kagome::network
 
 namespace kagome::network {

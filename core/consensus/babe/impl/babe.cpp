@@ -35,7 +35,7 @@
 #include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
-#include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/backed_candidates_source.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"

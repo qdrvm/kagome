@@ -13,11 +13,11 @@
 
 namespace libp2p {
   struct Host;
-}
+}  // namespace libp2p
 
 namespace libp2p::multi {
   class Multiaddress;
-}
+}  // namespace libp2p::multi
 
 namespace kagome {
   class PoolHandler;
@@ -31,13 +31,14 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockStorage;
-}
+}  // namespace kagome::blockchain
 
 namespace kagome::common {
   class MainThreadPool;
-}
+}  // namespace kagome::common
 
 namespace kagome::network {
+  class BeefyProtocolImpl;
   struct OwnPeerInfo;
   struct BootstrapNodes;
   class WarpProtocol;
@@ -61,14 +62,12 @@ namespace kagome::network {
         LazySPtr<SyncProtocol> sync_protocol,
         LazySPtr<StateProtocol> state_protocol,
         LazySPtr<WarpProtocol> warp_protocol,
-        LazySPtr<BeefyProtocol> beefy_protocol,
+        LazySPtr<BeefyProtocolImpl> beefy_protocol,
         LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
         LazySPtr<LightProtocol> light_protocol,
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
         LazySPtr<ValidationProtocol> validation_protocol,
         LazySPtr<CollationProtocol> collation_protocol,
-        LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
-        LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging,
         LazySPtr<ReqCollationProtocol> req_collation_protocol,
         LazySPtr<ReqPovProtocol> req_pov_protocol,
         LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
@@ -98,11 +97,7 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const override;
 
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
-    std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging()
-        const override;
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
-    std::shared_ptr<ValidationProtocolVStaging> getValidationProtocolVStaging()
-        const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
     std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
@@ -146,7 +141,7 @@ namespace kagome::network {
     LazySPtr<SyncProtocol> sync_protocol_;
     LazySPtr<StateProtocol> state_protocol_;
     LazySPtr<WarpProtocol> warp_protocol_;
-    LazySPtr<BeefyProtocol> beefy_protocol_;
+    LazySPtr<BeefyProtocolImpl> beefy_protocol_;
     LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol_;
     LazySPtr<LightProtocol> light_protocol_;
 
@@ -154,8 +149,6 @@ namespace kagome::network {
 
     LazySPtr<ValidationProtocol> validation_protocol_;
     LazySPtr<CollationProtocol> collation_protocol_;
-    LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging_;
-    LazySPtr<ValidationProtocolVStaging> validation_protocol_vstaging_;
     LazySPtr<ReqCollationProtocol> req_collation_protocol_;
     LazySPtr<ReqPovProtocol> req_pov_protocol_;
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;

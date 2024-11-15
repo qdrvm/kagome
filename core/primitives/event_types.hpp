@@ -11,7 +11,9 @@
 
 #include <boost/none_t.hpp>
 #include <boost/variant.hpp>
+#include <libp2p/common/shared_fn.hpp>
 #include <libp2p/peer/peer_id.hpp>
+#include <qtils/option_take.hpp>
 
 #include "common/buffer.hpp"
 #include "consensus/timeline/sync_state.hpp"
@@ -243,7 +245,7 @@ namespace kagome::primitives::events {
 
   using PeerSubscriptionEngine =
       subscription::SubscriptionEngine<primitives::events::PeerEventType,
-                                       bool,
+                                       std::monostate,
                                        libp2p::peer::PeerId>;
   using PeerSubscriptionEnginePtr = std::shared_ptr<PeerSubscriptionEngine>;
   using PeerEventSubscriber = PeerSubscriptionEngine::SubscriberType;
@@ -259,7 +261,7 @@ namespace kagome::primitives::events {
 
   using SyncStateSubscriptionEngine = subscription::SubscriptionEngine<
       primitives::events::SyncStateEventType,
-      bool,
+      std::monostate,
       primitives::events::SyncStateEventParams>;
   using SyncStateSubscriptionEnginePtr =
       std::shared_ptr<SyncStateSubscriptionEngine>;
@@ -284,14 +286,28 @@ namespace kagome::primitives::events {
         [f{std::move(f)}](subscription::SubscriptionSetId,
                           Receiver &,
                           EventKey,
-                          const Arguments &...args) { f(args...); });
+                          const Arguments &...args) mutable { f(args...); });
     sub.subscribe(sub.generateSubscriptionSetId(), type);
+  }
+
+  template <typename EventKey, typename Receiver, typename... Arguments>
+  auto subscribe(
+      std::shared_ptr<
+          subscription::SubscriptionEngine<EventKey, Receiver, Arguments...>>
+          engine,
+      EventKey type,
+      auto f) {
+    auto sub = std::make_shared<
+        typename decltype(engine)::element_type::SubscriberType>(
+        std::move(engine));
+    subscribe(*sub, type, std::move(f));
+    return sub;
   }
 
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
-              std::move(engine))} {}
+            std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
       subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {
@@ -319,4 +335,18 @@ namespace kagome::primitives::events {
 
     ChainEventSubscriberPtr sub;
   };
+
+  std::shared_ptr<void> onSync(SyncStateSubscriptionEnginePtr engine, auto f) {
+    return subscribe(
+        std::move(engine),
+        SyncStateEventType::kSyncState,
+        libp2p::SharedFn{[f_{std::make_optional(std::move(f))}](
+                             const SyncStateEventParams &event) mutable {
+          if (event == consensus::SyncState::SYNCHRONIZED) {
+            if (auto f = qtils::optionTake(f_)) {
+              (*f)();
+            }
+          }
+        }});
+  }
 }  // namespace kagome::primitives::events

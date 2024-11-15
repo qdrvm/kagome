@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "blockchain/block_tree.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::blockchain {
 

@@ -29,8 +29,6 @@ namespace kagome::network {
   class GrandpaProtocol;
   class SendDisputeProtocol;
   class BeefyProtocol;
-  class CollationProtocolVStaging;
-  class ValidationProtocolVStaging;
   class FetchAttestedCandidateProtocol;
   using Ping = libp2p::protocol::Ping;
 }  // namespace kagome::network
@@ -48,12 +46,8 @@ namespace kagome::network {
     virtual std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
         const = 0;
     virtual std::shared_ptr<CollationProtocol> getCollationProtocol() const = 0;
-    virtual std::shared_ptr<CollationProtocolVStaging>
-    getCollationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ValidationProtocol> getValidationProtocol()
         const = 0;
-    virtual std::shared_ptr<ValidationProtocolVStaging>
-    getValidationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const = 0;

@@ -6,13 +6,8 @@
 
 #pragma once
 
-#include <algorithm>
-#include <libp2p/peer/peer_info.hpp>
-#include <vector>
-
 #include "network/types/roles.hpp"
 #include "primitives/common.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::network {
 

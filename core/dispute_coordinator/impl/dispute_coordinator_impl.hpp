@@ -72,7 +72,7 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 namespace kagome::parachain {
-  struct ApprovalDistribution;
+  class ApprovalDistribution;
   class Recovery;
   class Pvf;
 }  // namespace kagome::parachain

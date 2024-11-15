@@ -7,6 +7,10 @@
 #pragma once
 
 #include <boost/assert.hpp>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace kagome {
@@ -170,5 +174,48 @@ namespace kagome {
     struct V {};
 
     Lru<K, V> lru_;
+  };
+
+  /**
+   * Wraps `map<K, LruSet<V>>` with `capacity` for `LruSet<V>`.
+   */
+  template <typename K, typename V>
+  class MapLruSet {
+   public:
+    explicit MapLruSet(size_t capacity) : capacity_{capacity} {}
+
+    /**
+     * @returns true if `K` was added.
+     */
+    bool add(const K &k) {
+      auto it = map_.find(k);
+      if (it != map_.end()) {
+        return false;
+      }
+      it = map_.emplace(k, capacity_).first;
+      return true;
+    }
+
+    /**
+     * @returns true if `(K, V)` was added.
+     */
+    bool add(const K &k, const V &v) {
+      auto it = map_.find(k);
+      if (it == map_.end()) {
+        it = map_.emplace(k, capacity_).first;
+      }
+      return it->second.add(v);
+    }
+
+    /**
+     * Remove `K` and all corresponding `V`.
+     */
+    void remove(const K &k) {
+      map_.erase(k);
+    }
+
+   private:
+    size_t capacity_;
+    std::unordered_map<K, LruSet<V>> map_{};
   };
 }  // namespace kagome

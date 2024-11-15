@@ -160,8 +160,6 @@ CheckOptions:
     value:           '4294967295'
   - key:             hicpp-member-init.IgnoreArrays
     value:           '0'
-  - key:             hicpp-move-const-arg.CheckTriviallyCopyableMove
-    value:           '1'
   - key:             hicpp-multiway-paths-covered.WarnOnMissingElse
     value:           '0'
   - key:             hicpp-named-parameter.IgnoreFailedSplit
@@ -261,7 +259,7 @@ CheckOptions:
   - key:             performance-inefficient-vector-operation.VectorLikeClasses
     value:           '::std::vector'
   - key:             performance-move-const-arg.CheckTriviallyCopyableMove
-    value:           '1'
+    value:           '0'
   - key:             performance-move-constructor-init.IncludeStyle
     value:           google
   - key:             performance-type-promotion-in-math-fn.IncludeStyle

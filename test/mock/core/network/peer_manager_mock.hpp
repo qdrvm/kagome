@@ -16,18 +16,9 @@ namespace kagome::network {
    public:
     MOCK_METHOD(void, connectToPeer, (const PeerInfo &), (override));
 
-    MOCK_METHOD(void, reserveStreams, (const PeerId &), (const, override));
-
-    MOCK_METHOD(void,
-                reserveStatusStreams,
-                (const PeerId &),
-                (const, override));
-
     MOCK_METHOD(void, keepAlive, (const PeerId &), (override));
 
     MOCK_METHOD(void, startPingingPeer, (const PeerId &), (override));
-
-    MOCK_METHOD(std::shared_ptr<StreamEngine>, getStreamEngine, (), (override));
 
     MOCK_METHOD(AdvResult,
                 retrieveCollatorData,

@@ -51,15 +51,15 @@ namespace kagome::network {
 
     using PeerId = libp2p::peer::PeerId;
 
-    using MyViewSubscriptionEngine =
-        subscription::SubscriptionEngine<EventType, bool, network::ExView>;
+    using MyViewSubscriptionEngine = subscription::
+        SubscriptionEngine<EventType, std::monostate, network::ExView>;
     using MyViewSubscriptionEnginePtr =
         std::shared_ptr<MyViewSubscriptionEngine>;
     using MyViewSubscriber = MyViewSubscriptionEngine::SubscriberType;
     using MyViewSubscriberPtr = std::shared_ptr<MyViewSubscriber>;
 
     using PeerViewSubscriptionEngine = subscription::
-        SubscriptionEngine<EventType, bool, PeerId, network::View>;
+        SubscriptionEngine<EventType, std::monostate, PeerId, network::View>;
     using PeerViewSubscriptionEnginePtr =
         std::shared_ptr<PeerViewSubscriptionEngine>;
     using PeerViewSubscriber = PeerViewSubscriptionEngine::SubscriberType;
@@ -83,19 +83,21 @@ namespace kagome::network {
 
     void removePeer(const PeerId &peer_id);
     void updateRemoteView(const PeerId &peer_id, network::View &&view);
-    std::optional<std::reference_wrapper<const ExView>> getMyView() const;
+    auto &getMyView() const {
+      return my_view_;
+    }
 
    private:
-    void updateMyView(network::ExView &&view);
+    void updateMyView(const primitives::BlockHeader &header);
 
     primitives::events::ChainSub chain_sub_;
+    LazySPtr<blockchain::BlockTree> block_tree_;
 
     MyViewSubscriptionEnginePtr my_view_update_observable_;
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
 
-    std::optional<ExView> my_view_;
+    View my_view_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
-    LazySPtr<blockchain::BlockTree> block_tree_;
   };
 
 }  // namespace kagome::network

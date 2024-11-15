@@ -37,18 +37,8 @@ namespace kagome::network {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<ValidationProtocolVStaging>,
-                getValidationProtocolVStaging,
-                (),
-                (const, override));
-
     MOCK_METHOD(std::shared_ptr<BlockAnnounceProtocol>,
                 getBlockAnnounceProtocol,
-                (),
-                (const, override));
-
-    MOCK_METHOD(std::shared_ptr<CollationProtocolVStaging>,
-                getCollationProtocolVStaging,
                 (),
                 (const, override));
 
@@ -138,8 +128,6 @@ namespace kagome::network {
       // ON_CALL(*this, getPropagateTransactionsProtocol()).WillByDefault(testing::Return(propagate_transactions));
       // ON_CALL(*this, getValidationProtocol()).WillByDefault(testing::Return(validation));
       // ON_CALL(*this, getCollationProtocol()).WillByDefault(testing::Return(collation));
-      // ON_CALL(*this, getCollationProtocolVStaging()).WillByDefault(testing::Return(collation_vstaging));
-      // ON_CALL(*this, getValidationProtocolVStaging()).WillByDefault(testing::Return(validation_vstaging));
       // ON_CALL(*this, getReqCollationProtocol()).WillByDefault(testing::Return(req_collation));
       // ON_CALL(*this, getReqPovProtocol()).WillByDefault(testing::Return(req_pov));
       fetch_chunk = std::make_shared<FetchChunkProtocolMock>();

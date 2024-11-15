@@ -9,6 +9,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <charconv>
 #include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include <sstream>
 #include <system_error>
 

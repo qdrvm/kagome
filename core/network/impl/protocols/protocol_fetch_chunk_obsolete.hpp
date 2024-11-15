@@ -17,7 +17,6 @@
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/non_copyable.hpp"
 

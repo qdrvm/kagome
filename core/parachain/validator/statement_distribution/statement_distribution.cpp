@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <parachain/validator/statement_distribution/statement_distribution.hpp>
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
+
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "utils/weak_macro.hpp"
 
 #define COMPONENT_NAME "StatementDistribution"
 
@@ -117,10 +119,8 @@ namespace kagome::parachain::statement_distribution {
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(_prospective_parachains,
-                      _parachain_host,
-                      _block_tree,
-                      std::nullopt),
+      : implicit_view(
+          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -144,11 +144,11 @@ namespace kagome::parachain::statement_distribution {
         babe_config_repo(std::move(_babe_config_repo)),
         peer_state_sub(
             std::make_shared<primitives::events::PeerEventSubscriber>(
-                std::move(_peer_events_engine), false)),
+                std::move(_peer_events_engine))),
         my_view_sub(std::make_shared<network::PeerView::MyViewSubscriber>(
-            _peer_view->getMyViewObservable(), false)),
+            _peer_view->getMyViewObservable())),
         remote_view_sub(std::make_shared<network::PeerView::PeerViewSubscriber>(
-            _peer_view->getRemoteViewObservable(), false)) {
+            _peer_view->getRemoteViewObservable())) {
     BOOST_ASSERT(per_session);
     BOOST_ASSERT(signer_factory);
     BOOST_ASSERT(peer_use_count);
@@ -175,27 +175,26 @@ namespace kagome::parachain::statement_distribution {
     primitives::events::subscribe(
         *remote_view_sub,
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-                                 const network::View &view) {
-          TRY_GET_OR_RET(self, wptr.lock());
+        [WEAK_SELF](const libp2p::peer::PeerId &peer_id,
+                    const network::View &view) {
+          WEAK_LOCK(self);
           self->handle_peer_view_update(peer_id, view);
         });
 
-    peer_state_sub->setCallback(
-        [wptr{weak_from_this()}](subscription::SubscriptionSetId,
-                                 auto &,
-                                 const auto ev_key,
-                                 const libp2p::peer::PeerId &peer) {
-          TRY_GET_OR_RET(self, wptr.lock());
-          switch (ev_key) {
-            case primitives::events::PeerEventType::kConnected:
-              return self->on_peer_connected(peer);
-            case primitives::events::PeerEventType::kDisconnected:
-              return self->on_peer_disconnected(peer);
-            default:
-              break;
-          }
-        });
+    peer_state_sub->setCallback([WEAK_SELF](subscription::SubscriptionSetId,
+                                            auto &,
+                                            const auto ev_key,
+                                            const libp2p::peer::PeerId &peer) {
+      WEAK_LOCK(self);
+      switch (ev_key) {
+        case primitives::events::PeerEventType::kConnected:
+          return self->on_peer_connected(peer);
+        case primitives::events::PeerEventType::kDisconnected:
+          return self->on_peer_disconnected(peer);
+        default:
+          break;
+      }
+    });
     peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(),
                               primitives::events::PeerEventType::kConnected);
     peer_state_sub->subscribe(peer_state_sub->generateSubscriptionSetId(),
@@ -204,8 +203,8 @@ namespace kagome::parachain::statement_distribution {
     primitives::events::subscribe(
         *my_view_sub,
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          TRY_GET_OR_RET(self, wptr.lock());
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
           if (auto result = self->handle_view_event(event);
               result.has_error()) {
             SL_ERROR(self->logger,
@@ -308,13 +307,6 @@ namespace kagome::parachain::statement_distribution {
       SL_ERROR(logger,
                "Handle deactive leaf update inner failed. (relay parent={}, "
                "error={})",
-               event.new_head.hash(),
-               res.error());
-    }
-    if (auto res = update_our_view(event.new_head.hash(), event.view);
-        res.has_error()) {
-      SL_ERROR(logger,
-               "Update our view failed. (relay parent={}, error={})",
                event.new_head.hash(),
                res.error());
     }
@@ -530,80 +522,6 @@ namespace kagome::parachain::statement_distribution {
     return outcome::success();
   }
 
-  outcome::result<void> StatementDistribution::update_our_view(
-      const Hash &relay_parent, const network::View &view) {
-    if (auto parachain_proc = parachain_processor.lock()) {
-      OUTCOME_TRY(parachain_proc->canProcessParachains());
-    }
-
-    OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
-
-    std::unordered_set<libp2p::PeerId> peers_to_send;
-    const auto &per_session_state =
-        per_relay_parent.get().per_session_state->value();
-    const auto &local_validator = per_session_state.local_validator;
-
-    if (local_validator) {
-      if (const auto our_group =
-              per_session_state.groups.byValidatorIndex(*local_validator)) {
-        /// update peers of our group
-        if (const auto group = per_session_state.groups.get(*our_group)) {
-          for (const auto vi : *group) {
-            if (auto peer = query_audi->get(
-                    per_session_state.session_info.discovery_keys[vi])) {
-              peers_to_send.emplace(peer->id);
-            } else {
-              SL_TRACE(logger,
-                       "No audi for {}.",
-                       per_session_state.session_info.discovery_keys[vi]);
-            }
-          }
-        }
-      }
-    }
-
-    /// update peers in grid view
-    if (per_session_state.grid_view) {
-      for (const auto &view : *per_session_state.grid_view) {
-        for (const auto vi : view.sending) {
-          if (auto peer = query_audi->get(
-                  per_session_state.session_info.discovery_keys[vi])) {
-            peers_to_send.emplace(peer->id);
-          } else {
-            SL_TRACE(logger,
-                     "No audi for {}.",
-                     per_session_state.session_info.discovery_keys[vi]);
-          }
-        }
-        for (const auto vi : view.receiving) {
-          if (auto peer = query_audi->get(
-                  per_session_state.session_info.discovery_keys[vi])) {
-            peers_to_send.emplace(peer->id);
-          } else {
-            SL_TRACE(logger,
-                     "No audi for {}.",
-                     per_session_state.session_info.discovery_keys[vi]);
-          }
-        }
-      }
-    }
-
-    for (const auto &[peer, _] : peers) {
-      peers_to_send.emplace(peer);
-    }
-
-    SL_INFO(logger, "Send my view. (peers_count={})", peers_to_send.size());
-    auto message = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        network::ViewUpdate{
-            .view = view,
-        });
-    network_bridge->connect_to_peers(peers_to_send);
-    network_bridge->send_to_peers(
-        peers_to_send, router->getValidationProtocolVStaging(), message);
-    return outcome::success();
-  }
-
   std::unordered_map<ParachainId, std::vector<GroupIndex>>
   StatementDistribution::determine_groups_per_para(
       const std::vector<runtime::CoreState> &availability_cores,
@@ -690,7 +608,7 @@ namespace kagome::parachain::statement_distribution {
   // outcome::result<network::vstaging::AttestedCandidateResponse>
   void StatementDistribution::OnFetchAttestedCandidateRequest(
       const network::vstaging::AttestedCandidateRequest &request,
-      std::shared_ptr<network::Stream> stream) {
+      std::shared_ptr<libp2p::connection::Stream> stream) {
     REINVOKE(*statements_distribution_thread_handler,
              OnFetchAttestedCandidateRequest,
              request,
@@ -1075,13 +993,13 @@ namespace kagome::parachain::statement_distribution {
             .candidate_hash = candidate_hash,
             .mask = unwanted_mask,
         },
-        [wptr{weak_from_this()},
+        [WEAK_SELF,
          relay_parent{relay_parent},
          candidate_hash{candidate_hash},
          group_index{group_index}](
             outcome::result<network::vstaging::AttestedCandidateResponse>
                 r) mutable {
-          TRY_GET_OR_RET(self, wptr.lock());
+          WEAK_LOCK(self);
           self->handle_response(
               std::move(r), relay_parent, candidate_hash, group_index);
         });
@@ -1319,15 +1237,7 @@ namespace kagome::parachain::statement_distribution {
 
     SL_TRACE(logger, "Sending messages. (relay_parent = {})", relay_parent);
     for (auto &msg : messages) {
-      if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-        auto message = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            std::move(m->get()));
-        network_bridge->send_to_peer(
-            peer_id, router->getValidationProtocolVStaging(), message);
-      } else {
-        assert(false);
-      }
+      router->getValidationProtocol()->write(peer_id, msg);
     }
   }
 
@@ -1474,16 +1384,7 @@ namespace kagome::parachain::statement_distribution {
                manifest.relay_parent,
                manifest.candidate_hash);
       for (auto &[peers, msg] : messages) {
-        if (auto m =
-                if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-          auto message = std::make_shared<network::WireMessage<
-              network::vstaging::ValidatorProtocolMessage>>(
-              std::move(m->get()));
-          network_bridge->send_to_peers(
-              peers, router->getValidationProtocolVStaging(), message);
-        } else {
-          assert(false);
-        }
+        router->getValidationProtocol()->write(peers, msg);
       }
     } else if (!candidates.is_confirmed(manifest.candidate_hash)) {
       SL_TRACE(
@@ -1953,14 +1854,7 @@ namespace kagome::parachain::statement_distribution {
                "Sending manifest to v2 peers. (candidate_hash={}, n_peers={})",
                candidate_hash,
                manifest_peers.size());
-      auto message = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          kagome::network::vstaging::ValidatorProtocolMessage{
-              kagome::network::vstaging::StatementDistributionMessage{
-                  manifest}});
-
-      network_bridge->send_to_peers(
-          manifest_peers, router->getValidationProtocolVStaging(), message);
+      router->getValidationProtocol()->write(manifest_peers, manifest);
     }
 
     if (!ack_peers.empty()) {
@@ -1969,13 +1863,7 @@ namespace kagome::parachain::statement_distribution {
                "n_peers={})",
                candidate_hash,
                ack_peers.size());
-      auto message = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          kagome::network::vstaging::ValidatorProtocolMessage{
-              kagome::network::vstaging::StatementDistributionMessage{
-                  acknowledgement}});
-      network_bridge->send_to_peers(
-          ack_peers, router->getValidationProtocolVStaging(), message);
+      router->getValidationProtocol()->write(ack_peers, acknowledgement);
     }
 
     if (!post_statements.empty()) {
@@ -1986,16 +1874,7 @@ namespace kagome::parachain::statement_distribution {
           post_statements.size());
 
       for (auto &[peers, msg] : post_statements) {
-        if (auto m =
-                if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-          auto message = std::make_shared<network::WireMessage<
-              network::vstaging::ValidatorProtocolMessage>>(
-              std::move(m->get()));
-          network_bridge->send_to_peers(
-              peers, router->getValidationProtocolVStaging(), message);
-        } else {
-          assert(false);
-        }
+        router->getValidationProtocol()->write(peers, msg);
       }
     }
   }
@@ -2455,23 +2334,16 @@ namespace kagome::parachain::statement_distribution {
       }
     }
 
-    auto message_v2 = std::make_shared<
-        network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-        kagome::network::vstaging::ValidatorProtocolMessage{
-            kagome::network::vstaging::StatementDistributionMessage{
-                kagome::network::vstaging::
-                    StatementDistributionMessageStatement{
-                        .relay_parent = relay_parent,
-                        .compact = statement,
-                    }}});
+    network::vstaging::StatementDistributionMessageStatement message_v2{
+        .relay_parent = relay_parent,
+        .compact = statement,
+    };
     SL_TRACE(
         logger,
         "Send statements to validators. (relay_parent={}, validators_count={})",
         relay_parent,
         statement_to_peers.size());
-    network_bridge->send_to_peers(statement_to_peers,
-                                  router->getValidationProtocolVStaging(),
-                                  message_v2);
+    router->getValidationProtocol()->write(statement_to_peers, message_v2);
   }
 
   void StatementDistribution::share_local_statement(
@@ -2721,15 +2593,7 @@ namespace kagome::parachain::statement_distribution {
     }
 
     for (auto &[peers, msg] : messages) {
-      if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-        auto message = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            std::move(m->get()));
-        network_bridge->send_to_peers(
-            peers, router->getValidationProtocolVStaging(), message);
-      } else {
-        assert(false);
-      }
+      router->getValidationProtocol()->write(peers, msg);
     }
   }
 
@@ -2770,15 +2634,7 @@ namespace kagome::parachain::statement_distribution {
     }
 
     for (auto &[peers, msg] : messages) {
-      if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
-        auto message = std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            std::move(m->get()));
-        network_bridge->send_to_peers(
-            peers, router->getValidationProtocolVStaging(), message);
-      } else {
-        BOOST_ASSERT(false);
-      }
+      router->getValidationProtocol()->write(peers, msg);
     }
   }
 

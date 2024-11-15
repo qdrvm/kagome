@@ -43,6 +43,12 @@ hunter_config(
     VERSION 1.85.0
 )
 
+hunter_config(
+    BoringSSL
+    URL  https://github.com/qdrvm/boringssl/archive/bc72a3fa91d52d6c1db45c24efd863d180c7d98c.zip
+    SHA1 64b281459365194c7d1f561b075c25138e122926
+)
+
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
@@ -72,6 +78,16 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       KEEP_PACKAGE_SOURCES
   )
 endif ()
+
+hunter_config(
+      WasmEdge
+      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/fix/libdir.zip
+      SHA1 0bd0d0d5dc3e377c65a17f2fe309c5cdb9668755
+      CMAKE_ARGS
+        WASMEDGE_BUILD_STATIC_LIB=ON
+        WASMEDGE_BUILD_SHARED_LIB=OFF
+      KEEP_PACKAGE_SOURCES
+)
 
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_config(
@@ -124,9 +140,8 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-#    VERSION 0.0.8
-    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
-    SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/heads/master.zip
+    SHA1 5b5970cce37c33f55929a0585445b05f27956dda
     KEEP_PACKAGE_SOURCES
 )
 
@@ -137,4 +152,3 @@ hunter_config(
     SHA1 1de495d8a3a73c1e940be3fdddf263a2d673aec1
     KEEP_PACKAGE_SOURCES
 )
-

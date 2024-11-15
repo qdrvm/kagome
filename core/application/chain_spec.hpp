@@ -8,7 +8,7 @@
 
 #include <set>
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -38,8 +38,8 @@ namespace kagome::application {
     virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()
         const = 0;
 
-    virtual const std::vector<std::pair<std::string, size_t>> &
-    telemetryEndpoints() const = 0;
+    virtual const std::vector<std::pair<std::string, size_t>>
+        &telemetryEndpoints() const = 0;
 
     virtual const std::string &protocolId() const = 0;
 

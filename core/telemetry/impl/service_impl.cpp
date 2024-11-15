@@ -48,14 +48,14 @@ namespace kagome::telemetry {
       const libp2p::Host &host,
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<storage::SpacedStorage> storage,
-      std::shared_ptr<const network::PeerManager> peer_manager,
+      PeerCount peer_count,
       TelemetryThreadPool &telemetry_thread_pool)
       : app_configuration_{app_configuration},
         chain_spec_{chain_spec},
         host_{host},
         tx_pool_{std::move(tx_pool)},
         buffer_storage_{storage->getSpace(storage::Space::kDefault)},
-        peer_manager_{std::move(peer_manager)},
+        peer_count_{std::move(peer_count)},
         io_context_{telemetry_thread_pool.io_context()},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
@@ -65,7 +65,6 @@ namespace kagome::telemetry {
         log_{log::createLogger("TelemetryService", "telemetry")} {
     BOOST_ASSERT(tx_pool_);
     BOOST_ASSERT(buffer_storage_);
-    BOOST_ASSERT(peer_manager_);
     if (enabled_) {
       pool_handler_ = poolHandlerReadyMake(
           this, app_state_manager, telemetry_thread_pool, log_);
@@ -451,7 +450,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType);
 
     rapidjson::Value peers_count;
-    peers_count.SetUint(peer_manager_->activePeersNumber());
+    peers_count.SetUint(*peer_count_.v);
 
     auto bandwidth = getBandwidth();
     rapidjson::Value upBandwidth, downBandwidth;

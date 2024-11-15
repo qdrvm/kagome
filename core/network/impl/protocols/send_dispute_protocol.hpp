@@ -21,7 +21,7 @@
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/dispute_request_observer.hpp"
-#include "network/impl/stream_engine.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "utils/non_copyable.hpp"
 
