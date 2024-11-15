@@ -285,11 +285,10 @@ namespace kagome::api {
                 auto &session = session_context.storage_sub;
                 const auto id = session->generateSubscriptionSetId();
                 const auto &best_block_hash = block_tree_->bestBlock().hash;
-                const auto &header =
-                    block_tree_->getBlockHeader(best_block_hash);
-                BOOST_ASSERT(header.has_value());
-                auto batch_res = trie_storage_->getEphemeralBatchAt(
-                    header.value().state_root);
+                OUTCOME_TRY(header,
+                            block_tree_->getBlockHeader(best_block_hash));
+                auto batch_res =
+                    trie_storage_->getEphemeralBatchAt(header.state_root);
                 if (!batch_res.has_value()) {
                   SL_ERROR(logger_,
                            "Failed to get storage state for block {}, required "

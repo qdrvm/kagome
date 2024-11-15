@@ -8,7 +8,6 @@
 
 #include <boost/range/algorithm.hpp>
 
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/profiling_logger.hpp"
@@ -19,12 +18,10 @@
 namespace kagome::runtime {
   outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>>
   RuntimeUpgradeTrackerImpl::create(
-      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
       std::shared_ptr<blockchain::BlockStorage> block_storage) {
-    BOOST_ASSERT(header_repo);
     BOOST_ASSERT(storage);
     BOOST_ASSERT(code_substitutes);
     BOOST_ASSERT(block_storage);
@@ -41,22 +38,19 @@ namespace kagome::runtime {
       saved_data = std::move(decoded);
     }
     return std::unique_ptr<RuntimeUpgradeTrackerImpl>{
-        new RuntimeUpgradeTrackerImpl(std::move(header_repo),
-                                      std::move(storage),
+        new RuntimeUpgradeTrackerImpl(std::move(storage),
                                       std::move(code_substitutes),
                                       std::move(saved_data),
                                       std::move(block_storage))};
   }
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
-      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
       std::vector<RuntimeUpgradeData> &&saved_data,
       std::shared_ptr<blockchain::BlockStorage> block_storage)
       : runtime_upgrades_{std::move(saved_data)},
-        header_repo_{std::move(header_repo)},
         storage_{storage->getSpace(storage::Space::kDefault)},
         known_code_substitutes_{std::move(code_substitutes)},
         block_storage_{std::move(block_storage)},
@@ -145,7 +139,7 @@ namespace kagome::runtime {
     if (latest_upgrade == runtime_upgrades_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
-      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+      OUTCOME_TRY(block_header, block_storage_->getBlockHeader(block.hash));
       SL_DEBUG(
           logger_, "Pick runtime state at block {} for the same block", block);
       return block_header.state_root;
@@ -166,7 +160,7 @@ namespace kagome::runtime {
     }
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
-    OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+    OUTCOME_TRY(block_header, block_storage_->getBlockHeader(block.hash));
     logger_->warn("Block {}, a child of block {} is orphan",
                   block,
                   primitives::BlockInfo(block_header.number - 1,
@@ -203,9 +197,9 @@ namespace kagome::runtime {
                   .get();
           auto res = push(block_hash);
           if (res.has_value() and res.value().second) {
-            auto header_res = header_repo_->getBlockHeader(block_hash);
+            auto header_res = block_storage_->getBlockHeader(block_hash);
             if (header_res.has_value()) {
-              auto &header = header_res.value();
+              const auto &header = header_res.value();
               primitives::BlockInfo block_info{header.number, block_hash};
               SL_INFO(logger_, "Runtime upgrade at block {}", block_info);
             }
@@ -215,7 +209,7 @@ namespace kagome::runtime {
 
   outcome::result<std::pair<storage::trie::RootHash, bool>>
   RuntimeUpgradeTrackerImpl::push(const primitives::BlockHash &hash) {
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
+    OUTCOME_TRY(header, block_storage_->getBlockHeader(hash));
     primitives::BlockInfo block_info{header.number, hash};
 
     bool is_new_upgrade =

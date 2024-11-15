@@ -60,7 +60,7 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockHash> putBlockHeader(
         const primitives::BlockHeader &header) override;
 
-    outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
+    outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockHash &block_hash) const override;
 
     // -- body --

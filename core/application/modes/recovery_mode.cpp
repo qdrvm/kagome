@@ -19,21 +19,18 @@ namespace kagome::application::mode {
       const AppConfiguration &app_config,
       std::shared_ptr<storage::SpacedStorage> spaced_storage,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree)
       : app_config_(app_config),
         spaced_storage_(std::move(spaced_storage)),
         storage_(std::move(storage)),
-        header_repo_(std::move(header_repo)),
         trie_storage_(std::move(trie_storage)),
         authority_manager_(std::move(authority_manager)),
         block_tree_(std::move(block_tree)),
         log_(log::createLogger("RecoveryMode", "main")) {
     BOOST_ASSERT(spaced_storage_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -44,7 +41,6 @@ namespace kagome::application::mode {
     auto res =
         blockchain::BlockTreeImpl::recover(app_config_.recoverState().value(),
                                            storage_,
-                                           header_repo_,
                                            trie_storage_,
                                            block_tree_);
     if (res.has_error()) {

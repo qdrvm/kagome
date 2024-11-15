@@ -7,7 +7,6 @@
 #include <kagome/application/impl/app_configuration_impl.hpp>
 #include <kagome/application/impl/app_state_manager_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
-#include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bandersnatch/bandersnatch_provider_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
