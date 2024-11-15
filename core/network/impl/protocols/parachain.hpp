@@ -11,8 +11,6 @@
 #include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
 
-// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
-
 namespace kagome::blockchain {
   class BlockTree;
   class GenesisBlockHash;
@@ -69,6 +67,7 @@ namespace kagome::network {
                    Observer &observer);
     void write(const View &view);
 
+    // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
     std::shared_ptr<notifications::Protocol> notifications_;
     std::vector<CollationVersion> collation_versions_;
     Roles roles_;
@@ -77,6 +76,7 @@ namespace kagome::network {
     primitives::events::SyncStateSubscriptionEnginePtr sync_engine_;
     std::shared_ptr<void> sync_sub_;
     std::shared_ptr<void> my_view_sub_;
+    // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
   };
 
   class CollationProtocol final : public ParachainProtocol {
