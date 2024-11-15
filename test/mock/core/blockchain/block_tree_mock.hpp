@@ -123,6 +123,16 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
+                getHashByNumber,
+                (primitives::BlockNumber),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockNumber>,
+                getNumberByHash,
+                (const primitives::BlockHash &),
+                (const, override));
+
     MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
 
     MOCK_METHOD(void, warp, (const primitives::BlockInfo &), (override));
