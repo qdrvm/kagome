@@ -71,7 +71,12 @@ RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
 RUN install_packages \
     libc6 \
     libstdc++6 \
-    libgcc-s1 
+    libgcc-s1 \
+    libnsl2 \
+    zlib1g \
+    libtinfo6 \
+    libseccomp2 \
+    libatomic1
 
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
 
