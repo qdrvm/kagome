@@ -63,7 +63,7 @@ namespace kagome::telemetry {
         const libp2p::Host &host,
         std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<storage::SpacedStorage> storage,
-        PeerCount peer_count,
+        std::shared_ptr<PeerCount> peer_count,
         TelemetryThreadPool &telemetry_thread_pool);
     TelemetryServiceImpl(const TelemetryServiceImpl &) = delete;
     TelemetryServiceImpl(TelemetryServiceImpl &&) = delete;
@@ -146,7 +146,7 @@ namespace kagome::telemetry {
     const libp2p::Host &host_;
     std::shared_ptr<const transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<const storage::BufferStorage> buffer_storage_;
-    PeerCount peer_count_;
+    std::shared_ptr<PeerCount> peer_count_;
     std::shared_ptr<PoolHandlerReady> pool_handler_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

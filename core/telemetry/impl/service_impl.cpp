@@ -48,7 +48,7 @@ namespace kagome::telemetry {
       const libp2p::Host &host,
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<storage::SpacedStorage> storage,
-      PeerCount peer_count,
+      std::shared_ptr<PeerCount> peer_count,
       TelemetryThreadPool &telemetry_thread_pool)
       : app_configuration_{app_configuration},
         chain_spec_{chain_spec},
@@ -450,7 +450,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType);
 
     rapidjson::Value peers_count;
-    peers_count.SetUint(*peer_count_.v);
+    peers_count.SetUint(peer_count_->v);
 
     auto bandwidth = getBandwidth();
     rapidjson::Value upBandwidth, downBandwidth;

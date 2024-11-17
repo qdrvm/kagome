@@ -16,8 +16,7 @@ namespace kagome::telemetry {
    * `TelemetryServiceImpl` reads value.
    */
   struct PeerCount {
-    using T = std::atomic_size_t;
-    PeerCount() : v{std::make_shared<T>()} {}
-    std::shared_ptr<T> v;
+    PeerCount() : v{0} {}
+    std::atomic_size_t v;
   };
 }  // namespace kagome::telemetry

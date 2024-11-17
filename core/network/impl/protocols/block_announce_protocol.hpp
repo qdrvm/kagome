@@ -57,7 +57,7 @@ namespace kagome::network {
         LazySPtr<GrandpaProtocol> grandpa_protocol,
         LazySPtr<PropagateTransactionsProtocol> transaction_protocol,
         std::shared_ptr<crypto::Hasher> hasher,
-        telemetry::PeerCount telemetry_peer_count,
+        std::shared_ptr<telemetry::PeerCount> telemetry_peer_count,
         std::shared_ptr<PeerManager> peer_manager);
 
     // Controller
@@ -81,7 +81,7 @@ namespace kagome::network {
     LazySPtr<GrandpaProtocol> grandpa_protocol_;
     LazySPtr<PropagateTransactionsProtocol> transaction_protocol_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    telemetry::PeerCount telemetry_peer_count_;
+    std::shared_ptr<telemetry::PeerCount> telemetry_peer_count_;
     std::shared_ptr<PeerManager> peer_manager_;
     MapLruSet<PeerId, Hash256> seen_;
   };

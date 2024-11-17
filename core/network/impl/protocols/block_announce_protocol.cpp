@@ -60,7 +60,7 @@ namespace kagome::network {
       LazySPtr<GrandpaProtocol> grandpa_protocol,
       LazySPtr<PropagateTransactionsProtocol> transaction_protocol,
       std::shared_ptr<crypto::Hasher> hasher,
-      telemetry::PeerCount telemetry_peer_count,
+      std::shared_ptr<telemetry::PeerCount> telemetry_peer_count,
       std::shared_ptr<PeerManager> peer_manager)
       : main_pool_handler_{main_thread_pool.handlerStarted()},
         notifications_{notifications_factory.make(
@@ -98,7 +98,7 @@ namespace kagome::network {
     }
     if (seen_.add(peer_id)) {
       metric_peers.inc(true);
-      ++*telemetry_peer_count_.v;
+      ++telemetry_peer_count_->v;
     }
     grandpa_protocol_.get()->notifications_->reserve(peer_id, true);
     transaction_protocol_.get()->notifications_->reserve(peer_id, true);
@@ -131,7 +131,7 @@ namespace kagome::network {
 
   void BlockAnnounceProtocol::onClose(const PeerId &peer_id) {
     metric_peers.inc(false);
-    --*telemetry_peer_count_.v;
+    --telemetry_peer_count_->v;
     seen_.remove(peer_id);
     grandpa_protocol_.get()->notifications_->reserve(peer_id, false);
     transaction_protocol_.get()->notifications_->reserve(peer_id, false);
