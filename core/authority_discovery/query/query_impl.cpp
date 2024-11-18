@@ -178,7 +178,6 @@ namespace kagome::authority_discovery {
         }
       }
     }
-    queue_ = std::move(authorities);
     pop();
     return outcome::success();
   }
