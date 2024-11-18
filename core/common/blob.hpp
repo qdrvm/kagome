@@ -14,6 +14,7 @@
 
 #include "common/buffer_view.hpp"
 #include "common/hexutil.hpp"
+#include "common/span_adl.hpp"
 #include "macro/endianness_utils.hpp"
 
 #define KAGOME_BLOB_STRICT_TYPEDEF(space_name, class_name, blob_size)          \
@@ -89,8 +90,8 @@
   struct fmt::formatter<space_name::class_name>                                \
       : fmt::formatter<space_name::class_name::Base> {                         \
     template <typename FormatCtx>                                              \
-    auto format(const space_name::class_name &blob,                            \
-                FormatCtx &ctx) const -> decltype(ctx.out()) {                 \
+    auto format(const space_name::class_name &blob, FormatCtx &ctx) const      \
+        -> decltype(ctx.out()) {                                               \
       return fmt::formatter<space_name::class_name::Base>::format(blob, ctx);  \
     }                                                                          \
   };
@@ -211,6 +212,13 @@ namespace kagome::common {
       std::ranges::copy(span, blob.begin());
       return blob;
     }
+
+    auto operator<=>(const Blob<size_> &other) const {
+      return SpanAdl{*this} <=> other;
+    }
+    bool operator==(const Blob<size_> &other) const {
+      return SpanAdl{*this} == other;
+    }
   };
 
   // extern specification of the most frequently instantiated blob
@@ -269,8 +277,8 @@ struct fmt::formatter<kagome::common::Blob<N>> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const kagome::common::Blob<N> &blob,
-              FormatContext &ctx) const -> decltype(ctx.out()) {
+  auto format(const kagome::common::Blob<N> &blob, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
     if (presentation == 's') {
       if constexpr (N > 4) {
         uint16_t head = static_cast<uint16_t>(blob[1])

@@ -181,6 +181,44 @@ namespace kagome::network {
       };
     }
   };
+
+  /**
+   * Contains information about the candidate and a proof of the results of its
+   * execution.
+   */
+  struct CandidateReceipt {
+    CandidateDescriptor descriptor;    /// Candidate descriptor
+    parachain::Hash commitments_hash;  /// Hash of candidate commitments
+    mutable std::optional<parachain::Hash> hash_{};
+
+    const parachain::Hash &hash(const crypto::Hasher &hasher) const {
+      if (not hash_.has_value()) {
+        hash_.emplace(hasher.blake2b_256(
+            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
+      }
+      return hash_.value();
+    }
+
+    SCALE_TIE_ONLY(descriptor, commitments_hash);
+  };
+
+  struct CommittedCandidateReceipt {
+    SCALE_TIE(2);
+
+    CandidateDescriptor descriptor;    /// Candidate descriptor
+    CandidateCommitments commitments;  /// commitments retrieved from validation
+    /// result and produced by the execution
+    /// and validation parachain candidate
+
+    CandidateReceipt to_plain(const crypto::Hasher &hasher) const {
+      CandidateReceipt receipt;
+      receipt.descriptor = descriptor,
+      receipt.commitments_hash =
+          hasher.blake2b_256(scale::encode(commitments).value());
+      return receipt;
+    }
+  };
+
 }  // namespace kagome::network
 
 namespace kagome::parachain::fragment {

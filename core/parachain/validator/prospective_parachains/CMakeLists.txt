@@ -22,5 +22,6 @@ target_link_libraries(prospective_parachains
     logger
     Boost::boost
     outcome
+    backing_implicit_view
     )
 

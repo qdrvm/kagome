@@ -41,9 +41,9 @@ namespace kagome::parachain {
       network::VersionedCollatorProtocolMessage &&msg) {
     visit_in_place(
         std::move(msg),
-        [&](kagome::network::CollationMessage &&collation_msg) {
+        [&](kagome::network::CollationMessage0 &&msg0) {
           visit_in_place(
-              std::move(collation_msg),
+              std::move(boost::get<network::CollationMessage>(msg0)),
               [&](network::CollatorDeclaration &&collation_decl) {
                 onDeclare(peer_id,
                           collation_decl.collator_id,
@@ -60,8 +60,7 @@ namespace kagome::parachain {
                 SL_WARN(logger_, "Unexpected V1 collation message from.");
               });
         },
-        [&](kagome::network::vstaging::CollatorProtocolMessage
-                &&collation_msg) {
+        [&](kagome::network::vstaging::CollationMessage0 &&collation_msg) {
           if (auto m =
                   if_type<network::vstaging::CollationMessage>(collation_msg)) {
             visit_in_place(
@@ -97,16 +96,6 @@ namespace kagome::parachain {
         });
   }
 
-  void ParachainObserverImpl::onIncomingCollationStream(
-      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    processor_->onIncomingCollationStream(peer_id, version);
-  }
-
-  void ParachainObserverImpl::onIncomingValidationStream(
-      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    processor_->onIncomingValidationStream(peer_id, version);
-  }
-
   void ParachainObserverImpl::onIncomingMessage(
       const libp2p::peer::PeerId &peer_id,
       network::VersionedValidatorProtocolMessage &&message) {
@@ -139,7 +128,7 @@ namespace kagome::parachain {
       primitives::BlockHash relay_parent,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate,
       network::CollationVersion collator_protocol_version) {
-    processor_->handleAdvertisement(
+    processor_->handle_advertisement(
         relay_parent, peer_id, std::move(prospective_candidate));
   }
 

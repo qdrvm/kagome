@@ -17,8 +17,9 @@ namespace kagome {
                 v.begin(), v.end(), [&](T &v) { return not predicate(v); }),
             v.end());
   }
-  template <typename T>
-  void retain_if(std::unordered_set<T> &v, auto &&predicate) {
+  template <typename C>
+    requires requires { typename C::key_type; }
+  void retain_if(C &v, auto &&predicate) {
     for (auto it = v.begin(); it != v.end();) {
       if (!predicate(*it)) {
         it = v.erase(it);
@@ -27,4 +28,5 @@ namespace kagome {
       }
     }
   }
+
 }  // namespace kagome
