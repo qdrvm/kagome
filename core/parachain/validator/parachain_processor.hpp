@@ -669,11 +669,6 @@ namespace kagome::parachain {
           });
     }
 
-    const network::CollatorPublicKey &collatorIdFromDescriptor(
-        const network::CandidateDescriptor &descriptor) {
-      return descriptor.collator_id;
-    }
-
     /*
      * Notification
      */

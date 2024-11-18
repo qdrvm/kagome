@@ -104,7 +104,6 @@ namespace kagome::network {
 template <>
 struct std::hash<kagome::network::FetchedCollation> {
   size_t operator()(const kagome::network::FetchedCollation &value) const {
-    using CollatorId = kagome::parachain::CollatorId;
     using CandidateHash = kagome::parachain::CandidateHash;
     using RelayHash = kagome::parachain::RelayHash;
     using ParachainId = kagome::parachain::ParachainId;
@@ -113,7 +112,6 @@ struct std::hash<kagome::network::FetchedCollation> {
     boost::hash_combine(result, std::hash<ParachainId>()(value.para_id));
     boost::hash_combine(result,
                         std::hash<CandidateHash>()(value.candidate_hash));
-    boost::hash_combine(result, std::hash<CollatorId>()(value.collator_id));
 
     return result;
   }
