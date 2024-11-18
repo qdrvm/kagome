@@ -19,10 +19,8 @@ namespace kagome::network {
     virtual ~TransactionsTransmitter() = default;
 
     /**
-     * Send Transactions message
-     * @param txs - list of transaction to be sent
+     * Send Transaction message
      */
-    virtual void propagateTransactions(
-        std::span<const primitives::Transaction> txs) = 0;
+    virtual void propagateTransaction(primitives::Transaction tx) = 0;
   };
 }  // namespace kagome::network

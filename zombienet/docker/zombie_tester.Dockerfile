@@ -119,7 +119,6 @@ RUN ln -s /home/nonroot/bin/zombienet-linux-x64 /usr/local/bin/zombienet && \
     ln -s /home/nonroot/bin/polkadot-prepare-worker /usr/local/bin/polkadot-prepare-worker
 
 RUN install_packages  \
-      curl  \
       gpg  \
       gpg-agent  \
       git \
@@ -132,6 +131,5 @@ RUN install_packages  \
       libseccomp2 \
       libatomic1 \
       ssh \
-      libc6 \
-      libstdc++6 \
-      libgcc-s1
+      libgcc-s1 \
+      zlib1g

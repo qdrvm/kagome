@@ -25,7 +25,6 @@
 
 namespace kagome::network {
 
-  constexpr size_t kPeerStateMaxKnownBlocks = 1024;
   constexpr size_t kPeerStateMaxKnownGrandpaMessages = 8192;
   using RoundNumber = consensus::grandpa::RoundNumber;
   using VoterSetId = consensus::grandpa::VoterSetId;
@@ -53,10 +52,6 @@ namespace kagome::network {
     std::optional<RoundNumber> round_number = std::nullopt;
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
-    LruSet<primitives::BlockHash> known_blocks{kPeerStateMaxKnownBlocks};
-    LruSet<common::Hash256> known_grandpa_messages{
-        kPeerStateMaxKnownGrandpaMessages,
-    };
 
     /// @brief parachain peer state
     std::optional<CollatingPeerState> collator_state = std::nullopt;
