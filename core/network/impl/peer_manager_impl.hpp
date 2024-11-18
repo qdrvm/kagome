@@ -27,10 +27,7 @@
 #include "crypto/hasher.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-#include "metrics/metrics.hpp"
-#include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/reputation_repository.hpp"
@@ -69,7 +66,6 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SteadyClock> clock,
         const BootstrapNodes &bootstrap_nodes,
@@ -90,15 +86,6 @@ namespace kagome::network {
 
     /** @see PeerManager::connectToPeer */
     void connectToPeer(const PeerInfo &peer_info) override;
-
-    /** @see PeerManager::reserveStreams */
-    void reserveStreams(const PeerId &peer_id) const override;
-
-    /** @see PeerManager::reserveStatusStreams */
-    void reserveStatusStreams(const PeerId &peer_id) const override;
-
-    /** @see PeerManager::getStreamEngine */
-    std::shared_ptr<StreamEngine> getStreamEngine() override;
 
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;
@@ -164,17 +151,6 @@ namespace kagome::network {
 
     void processFullyConnectedPeer(const PeerId &peer_id);
 
-    template <typename F>
-    void openBlockAnnounceProtocol(
-        const PeerInfo &peer_info,
-        const libp2p::network::ConnectionManager::ConnectionSPtr &connection,
-        F &&opened_callback);
-    void tryOpenGrandpaProtocol(const PeerInfo &peer_info,
-                                PeerState &peer_state);
-    void tryOpenValidationProtocol(const PeerInfo &peer_info,
-                                   PeerState &peer_state,
-                                   network::CollationVersion proto_version);
-
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
 
@@ -199,7 +175,6 @@ namespace kagome::network {
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SteadyClock> clock_;
     const BootstrapNodes &bootstrap_nodes_;
@@ -212,6 +187,7 @@ namespace kagome::network {
     std::shared_ptr<network::PeerView> peer_view_;
 
     libp2p::event::Handle add_peer_handle_;
+    libp2p::event::Handle peer_connected_sub_;
     libp2p::event::Handle peer_disconnected_handler_;
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<PeerId> queue_to_connect_;
@@ -224,11 +200,6 @@ namespace kagome::network {
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
     primitives::events::PeerSubscriptionEnginePtr peer_event_engine_;
-
-    // metrics
-    metrics::RegistryPtr registry_ = metrics::createRegistry();
-    metrics::Gauge *sync_peer_num_;
-    metrics::Gauge *peers_count_metric_;
   };
 
 }  // namespace kagome::network

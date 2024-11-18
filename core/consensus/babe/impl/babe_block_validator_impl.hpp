@@ -126,7 +126,7 @@ namespace kagome::consensus::babe {
     primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;
 
     bool was_synchronized_ = false;
-    primitives::events::SyncStateEventSubscriberPtr sync_state_observer_;
+    std::shared_ptr<void> sync_state_observer_;
   };
 
 }  // namespace kagome::consensus::babe

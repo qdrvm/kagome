@@ -27,7 +27,7 @@ namespace kagome::metrics {
       metric_ = registry_->registerGaugeMetric(name);
     }
 
-    auto *operator->() {
+    auto *operator->() const {
       return metric_;
     }
 
