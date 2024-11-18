@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <boost/endian/conversion.hpp>
+
 #include "crypto/sr25519_provider.hpp"
 #include "parachain/pvf/pvf_error.hpp"
 #include "parachain/types.hpp"
@@ -38,5 +40,21 @@ namespace kagome::network {
       return PvfError::SIGNATURE;
     }
     return outcome::success();
+  }
+
+  inline std::optional<parachain::CoreIndex> coreIndex(
+      const CandidateDescriptor &descriptor) {
+    if (isV1(descriptor)) {
+      return std::nullopt;
+    }
+    return boost::endian::load_little_u16(&descriptor.reserved_1[1]);
+  }
+
+  inline std::optional<parachain::SessionIndex> sessionIndex(
+      const CandidateDescriptor &descriptor) {
+    if (isV1(descriptor)) {
+      return std::nullopt;
+    }
+    return boost::endian::load_little_u32(&descriptor.reserved_1[3]);
   }
 }  // namespace kagome::network
