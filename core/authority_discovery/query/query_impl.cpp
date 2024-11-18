@@ -169,8 +169,11 @@ namespace kagome::authority_discovery {
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
+
+    // reorder queue to query unknown authorities first
     queue_.resize(0);
     queue_.reserve(authorities.size());
+    // `queue_` is a stack, so push known first
     for (auto &known : {true, false}) {
       for (auto &id : authorities) {
         if (auth_to_peer_cache_.contains(id) == known) {
@@ -178,6 +181,7 @@ namespace kagome::authority_discovery {
         }
       }
     }
+
     pop();
     return outcome::success();
   }
