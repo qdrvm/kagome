@@ -45,7 +45,7 @@ We will then take care of the issue as soon as possible. Be patient, as we are a
 3. New code cannot be merged into master if it contains unresolved TODOs without a link to the opened issue, where this TODO should be resolved.
 4. New code should be covered by unit tests using gtest/gmock. Make sure to write and run tests to ensure your code works as expected.
 5. Use `clang-format` to maintain the code style.
-7. Open PR with base branch = `master`, fix CI and follow guide in PR template.
+7. Open PR with base branch = `master`, fix CI and follow the guide in PR template.
 
 #### Documentation
 
@@ -145,7 +145,7 @@ In addition, GitHub recognizes certain keywords to close an issue automatically 
 Closes #123
 ```
 
-This will automatically close the issue #123 when the PR is merged into the main branch. This practice helps to automate the issue tracking process and ensures that no issue is accidentally left open after its corresponding changes are merged.
+This will automatically close the issue #123 when the PR is merged into the main branch. This practice helps to automate the issue-tracking process and ensures that no issue is accidentally left open after its corresponding changes are merged.
 
 5. **Small, Focused PRs**: Try to keep your PRs small and focused on a single task, feature, or bug fix. This makes the PR easier to review and understand. Large, complex PRs can be difficult to review and may delay the merging process.
 

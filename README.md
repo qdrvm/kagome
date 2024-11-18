@@ -255,7 +255,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
 * [utils](./core/utils)
     * Utils such as profiler, pruner, thread pool
 
-You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in official documentation: https://kagome.readthedocs.io/
+You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in the official documentation: https://kagome.readthedocs.io/
 
 ## KAGOME in media
 
