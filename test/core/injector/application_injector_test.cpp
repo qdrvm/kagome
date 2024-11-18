@@ -96,6 +96,8 @@ namespace {
         .WillRepeatedly(testing::Return(db_path));
     EXPECT_CALL(config_mock, keystorePath(_))
         .WillRepeatedly(testing::Return(db_path / "keys"));
+    EXPECT_CALL(config_mock, enableDbMigration())
+        .WillRepeatedly(testing::Return(true));
     kagome::network::Roles roles;
     roles.flags.full = 1;
     roles.flags.authority = 1;
