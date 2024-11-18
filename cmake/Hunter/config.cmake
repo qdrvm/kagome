@@ -35,7 +35,7 @@ hunter_config(
 hunter_config(
     rocksdb
     VERSION 9.6.1
-    CMAKE_ARGS WITH_GFLAGS=OFF
+    CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
 hunter_config(
