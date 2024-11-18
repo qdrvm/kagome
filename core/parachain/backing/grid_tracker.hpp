@@ -16,6 +16,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "log/logger.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/backing/grid.hpp"
 #include "parachain/groups.hpp"
@@ -312,6 +313,7 @@ namespace kagome::parachain::grid {
         std::unordered_set<
             std::pair<ValidatorIndex, network::vstaging::CompactStatement>>>
         pending_statements;
+    log::Logger logger = log::createLogger("GridTracker", "parachain");
   };
 
 }  // namespace kagome::parachain::grid

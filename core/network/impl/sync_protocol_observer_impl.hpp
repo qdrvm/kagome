@@ -14,7 +14,6 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
-#include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "primitives/common.hpp"
 
@@ -32,10 +31,7 @@ namespace kagome::network {
     SyncProtocolObserverImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-        std::shared_ptr<Beefy> beefy,
-        std::shared_ptr<PeerManager> peer_manager);
-
-    ~SyncProtocolObserverImpl() override = default;
+        std::shared_ptr<Beefy> beefy);
 
     outcome::result<BlocksResponse> onBlocksRequest(
         const BlocksRequest &request,
@@ -56,7 +52,6 @@ namespace kagome::network {
     std::shared_ptr<Beefy> beefy_;
 
     mutable std::unordered_set<BlocksRequest::Fingerprint> requested_ids_;
-    std::shared_ptr<PeerManager> peer_manager_;
 
     log::Logger log_;
   };

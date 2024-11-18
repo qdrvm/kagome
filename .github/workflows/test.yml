@@ -29,6 +29,16 @@ on:
         options:
           - 'true'
           - 'false'
+      builder_latest_tag:
+        description: 'Custom Builder tag'
+        default: 'latest'
+        required: false
+        type: 'string'
+      zombie_tester_latest_tag:
+        description: 'Custom Zombie Tester tag'
+        default: 'latest'
+        required: false
+        type: 'string'
 
 env:
   BUILD_DIR: build
@@ -52,6 +62,8 @@ env:
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 
 jobs:
@@ -205,19 +217,6 @@ jobs:
         if: github.ref != 'refs/heads/master'
         run: git fetch origin master:master || true
 
-      - name: "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
       - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make get_versions
@@ -242,9 +241,9 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         run:
           make kagome_dev_docker_build_tidy \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
           CI="true"
 
       - name: "Cleaning cache"
@@ -271,11 +270,11 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Self-hosted: Minideb: Build Debug"
+          - name: "Self-hosted docker: Build Debug"
             build_type: "Debug"
-          - name: "Self-hosted: Minideb: Build Release"
+          - name: "Self-hosted docker: Build Release"
             build_type: "Release"
-          - name: "Self-hosted: Minideb: Build RelWithDebInfo"
+          - name: "Self-hosted docker: Build RelWithDebInfo"
             build_type: "RelWithDebInfo"
     name: "${{ matrix.options.name }}"
 
@@ -338,6 +337,7 @@ jobs:
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
           BUILD_TYPE=${{ matrix.options.build_type }}
 
       - name: "Push Kagome APT Package"
@@ -348,7 +348,7 @@ jobs:
           make upload_apt_package \
           BUILD_TYPE=${{ matrix.options.build_type }}
 
-      - name: Set up Docker Buildx
+      - name: "Set up Docker Buildx"
         if: env.package_exist == 'False'
         uses: docker/setup-buildx-action@v3.6.1
 
@@ -500,7 +500,7 @@ jobs:
 
       - name: "Get Zombie Tester Version"
         run: |
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:latest
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${{ env.TESTER_LATEST_TAG }}
           echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
           echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
 

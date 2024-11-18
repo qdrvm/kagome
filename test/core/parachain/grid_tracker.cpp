@@ -898,3 +898,108 @@ TEST_F(GridTrackerTest, session_grid_topology_consistent) {
     }
   }
 }
+
+TEST_F(GridTrackerTest, knowledge_rejects_conflicting_manifest) {
+  ReceivedManifests knowledge;
+
+  const ManifestSummary expected_manifest_summary{
+      .claimed_parent_hash = fromNumber(2),
+      .claimed_group_index = GroupIndex(0),
+      .statement_knowledge =
+          create_filter({{true, true, false}, {false, true, true}}),
+  };
+
+  ASSERT_TRUE(
+      knowledge.import_received(3, 2, fromNumber(1), expected_manifest_summary)
+          .has_value());
+
+  // conflicting group
+  {
+    auto s = expected_manifest_summary;
+    s.claimed_group_index = GroupIndex(1);
+    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
+              GridTracker::Error::CONFLICTING);
+  }
+
+  // conflicting parent hash
+  {
+    auto s = expected_manifest_summary;
+    s.claimed_parent_hash = fromNumber(3);
+    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
+              GridTracker::Error::CONFLICTING);
+  }
+
+  // conflicting seconded statements bitfield
+  {
+    auto s = expected_manifest_summary;
+    s.statement_knowledge.seconded_in_group.bits = {false, true, false};
+    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
+              GridTracker::Error::CONFLICTING);
+  }
+
+  // conflicting valid statements bitfield
+  {
+    auto s = expected_manifest_summary;
+    s.statement_knowledge.validated_in_group.bits = {false, true, false};
+    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
+              GridTracker::Error::CONFLICTING);
+  }
+}
+
+TEST_F(GridTrackerTest, reject_overflowing_manifests) {
+  ReceivedManifests knowledge;
+
+  ASSERT_TRUE(
+      knowledge
+          .import_received(3,
+                           2,
+                           fromNumber(1),
+                           ManifestSummary{
+                               .claimed_parent_hash = fromNumber(0xA),
+                               .claimed_group_index = GroupIndex(0),
+                               .statement_knowledge = create_filter(
+                                   {{true, true, false}, {false, true, true}}),
+                           })
+          .has_value());
+
+  ASSERT_TRUE(
+      knowledge
+          .import_received(3,
+                           2,
+                           fromNumber(2),
+                           ManifestSummary{
+                               .claimed_parent_hash = fromNumber(0xB),
+                               .claimed_group_index = GroupIndex(0),
+                               .statement_knowledge = create_filter(
+                                   {{true, false, true}, {false, true, true}}),
+                           })
+          .has_value());
+
+  // Reject a seconding validator that is already at the seconding limit.
+  // Seconding counts for the validators should not be applied.
+  EXPECT_EC(knowledge.import_received(
+                3,
+                2,
+                fromNumber(3),
+                ManifestSummary{
+                    .claimed_parent_hash = fromNumber(0xC),
+                    .claimed_group_index = GroupIndex(0),
+                    .statement_knowledge = create_filter(
+                        {{true, true, true}, {false, true, true}}),
+                }),
+            GridTracker::Error::SECONDING_OVERFLOW);
+
+  // Don't reject validators that have seconded less than the limit so far.
+  ASSERT_TRUE(
+      knowledge
+          .import_received(3,
+                           2,
+                           fromNumber(3),
+                           ManifestSummary{
+                               .claimed_parent_hash = fromNumber(0xC),
+                               .claimed_group_index = GroupIndex(0),
+                               .statement_knowledge = create_filter(
+                                   {{false, true, true}, {false, true, true}}),
+                           })
+          .has_value());
+}

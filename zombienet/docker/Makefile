@@ -1,16 +1,26 @@
 # Shared Environment Variables
 # bookworm (Debian 12)
 MINIDEB_IMAGE=bitnami/minideb@sha256:6cc3baf349947d587a9cd4971e81ff3ffc0d17382f2b5b6de63d6542bff10c16
+OS_IMAGE_NAME ?= ubuntu
+OS_IMAGE_TAG ?= 24.04
+OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
 GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= amd64
 
+# Generated versions
+OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
+
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
-RUST_IMAGE=rust:1.81-slim-bookworm
+RUST_VERSION ?= 1.81.0
 SCCACHE_VERSION ?= 0.7.4
+BUILDER_LATEST_TAG ?= latest
+TESTER_LATEST_TAG ?= latest
 
 # polkadot_binary Variables
 SCCACHE_GCS_BUCKET ?=
@@ -34,7 +44,8 @@ HOST_LOGS_PATH ?= /tmp/test_logs
 CONTAINER_NAME ?= zombienet-test
 
 # tests Variables
-ZOMBIE_TESTER_IMAGE ?= zombie_tester:latest
+ZOMBIE_TESTER_IMAGE_TAG ?= latest
+ZOMBIE_TESTER_IMAGE ?= zombie_tester:$(ZOMBIE_TESTER_IMAGE_TAG)
 KAGOME_PACKAGE_VERSION ?=
 WORKING_DIR := $(shell pwd)/../../../kagome
 DELETE_IMAGE_AFTER_TEST ?= true
@@ -101,9 +112,11 @@ polkadot_builder:
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker build --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:latest \
+		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		-f polkadot_builder.Dockerfile \
-		--build-arg RUST_IMAGE=$(RUST_IMAGE) \
+		--build-arg RUST_VERSION=$(RUST_VERSION) \
+		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
 	else \
@@ -114,7 +127,7 @@ polkadot_builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
-		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:latest ; \
+		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) ; \
 	else \
 		echo "One or more files are missing."; \
 	fi
@@ -185,12 +198,14 @@ zombie_tester:
 		docker build \
 			--platform $(PLATFORM) \
 			--no-cache \
-			-t $(DOCKER_REGISTRY_PATH)zombie_tester:latest \
+			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) \
 			-t $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} \
 			--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
 			-f zombie_tester.Dockerfile \
-			--build-arg BASE_IMAGE=$(MINIDEB_IMAGE) \
+			--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+			--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 			--build-arg PROJECT_ID=$$PROJECT_ID \
+			--build-arg RUST_VERSION=$(RUST_VERSION) \
 			--build-arg POLKADOT_BINARY_PACKAGE_VERSION="$(POLKADOT_BINARY_PACKAGE_VERSION)" \
 			--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
 			--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
@@ -203,7 +218,7 @@ zombie_tester_push:
 		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
-		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:latest ; \
+		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) ; \
 	else \
 		echo "One or more files are missing."; \
 	fi

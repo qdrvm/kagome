@@ -24,9 +24,6 @@
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
-
-  struct StreamEngine;
-
   /**
    * Manage active peers:
    * - peer discovery (internally)
@@ -50,21 +47,6 @@ namespace kagome::network {
      * Force connect to peer by {@param peer_info}
      */
     virtual void connectToPeer(const PeerInfo &peer_info) = 0;
-
-    /**
-     * Reserves stream slots of needed protocols for peer by {@param peer_id}
-     */
-    virtual void reserveStreams(const PeerId &peer_id) const = 0;
-
-    /**
-     * Reserves streams needed to update our status.
-     */
-    virtual void reserveStatusStreams(const PeerId &peer_id) const = 0;
-
-    /**
-     * Return stream engine object.
-     */
-    virtual std::shared_ptr<StreamEngine> getStreamEngine() = 0;
 
     /**
      * Keeps peer with {@param peer_id} alive

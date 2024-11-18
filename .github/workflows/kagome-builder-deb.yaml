@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name: Kagome Builder | Debian (Bookworm)
+name: Kagome Builder | Ubuntu (24.04_LTS)
 
 on:
   #  schedule:
@@ -12,21 +12,33 @@ on:
   workflow_dispatch:
     inputs:
       kagome_image_rebuild:
-        description: 'Rebuild Kagome Builder Minideb image'
+        description: 'Rebuild Kagome Builder image'
         required: false
         default: 'false'
         type: 'boolean'
       runtime_cache_rebuild:
-        description: 'Rebuild Kagome Runtime Cache'
+        description: 'Rebuild Kagome Runtime cache'
         required: false
         default: 'false'
         type: 'boolean'
+      builder_latest_tag:
+        description: 'Custom Kagome Builder tag'
+        default: 'latest'
+        required: false
+        type: 'string'
+      zombie_tester_latest_tag:
+        description: 'Custom Zombie Tester tag'
+        default: 'latest'
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 jobs:
-  build_polkadot_builder:
+  build_kagome_builder:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -50,28 +62,42 @@ jobs:
         id: check-tag
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          IMAGE_TAG=$(grep '^MINIDEB_IMAGE' Makefile | awk -F '[@:]' '{print $3}' | cut -c 1-7)_rust-$(grep '^RUST_VERSION' Makefile | sed 's/.*?= //')
-          KAGOME_BUILDER_DEB_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
-          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_DEB_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
+          IMAGE_TAG=$(make builder_image_tag)
+          KAGOME_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
+          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "kagome_builder_deb=$KAGOME_BUILDER_DEB_IMAGE" >> $GITHUB_OUTPUT
+          echo "kagome_builder=$KAGOME_BUILDER_IMAGE" >> $GITHUB_OUTPUT
 
-      - name: "Build Polkadot Builder"
+      - name: "Build Kagome Builder"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb \
+        run: make kagome_builder \
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          BUILDER_LATEST_TAG=${BUILDER_LATEST_TAG}
+
+      - name: "Push Kagome Builder"
+        working-directory: ./housekeeping/docker/kagome-dev
+        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        run: make kagome_builder_push \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
 
-      - name: "Push Polkadot Builder"
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+        
+      - name: "Push Kagome Builder (DockerHub)"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_deb_push \
+        run: make kagome_builder_push_dockerhub \
           DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
         
       - name: "Versions Info"
         if: always()
         run: |
-          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder_deb }}"
+          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder }}"
 
   build_kagome_runtime:
     runs-on: [ actions-runner-controller ]
@@ -97,7 +123,8 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         if: github.event.inputs.runtime_cache_rebuild == 'true'
         run: make runtime_cache \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
+          TESTER_LATEST_TAG=${{ env.TESTER_LATEST_TAG }}
 
       - name: "Push Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev

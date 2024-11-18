@@ -15,8 +15,7 @@ namespace kagome::network {
    public:
     TransactionsTransmitterImpl(std::shared_ptr<Router> router);
 
-    void propagateTransactions(
-        std::span<const primitives::Transaction> txs) override;
+    void propagateTransaction(primitives::Transaction tx) override;
 
    private:
     std::shared_ptr<Router> router_;

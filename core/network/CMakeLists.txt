@@ -9,6 +9,7 @@ add_subdirectory(protobuf)
 
 add_library(network
     impl/protocols/light.cpp
+    impl/protocols/parachain.cpp
     impl/state_protocol_observer_impl.cpp
     impl/state_sync_request_flow.cpp
     impl/synchronizer_impl.cpp
@@ -18,7 +19,6 @@ add_library(network
     impl/extrinsic_observer_impl.cpp
     impl/transactions_transmitter_impl.cpp
     impl/sync_protocol_observer_impl.cpp
-    impl/stream_engine.cpp
     impl/protocols/protocol_error.cpp
     impl/protocols/state_protocol_impl.cpp
     impl/protocols/sync_protocol_impl.cpp
@@ -32,6 +32,7 @@ add_library(network
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
     helpers/scale_message_read_writer.cpp
+    notifications/protocol.cpp
     adapters/adapter_errors.cpp
     impl/protocols/protocol_req_pov.cpp
     warp/cache.cpp
