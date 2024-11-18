@@ -169,6 +169,15 @@ namespace kagome::authority_discovery {
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
+    queue_.resize(0);
+    queue_.reserve(authorities.size());
+    for (auto &known : {true, false}) {
+      for (auto &id : authorities) {
+        if (auth_to_peer_cache_.contains(id) == known) {
+          queue_.emplace_back(id);
+        }
+      }
+    }
     queue_ = std::move(authorities);
     pop();
     return outcome::success();
@@ -198,7 +207,8 @@ namespace kagome::authority_discovery {
                             hash = common::Buffer{crypto::sha256(authority)},
                             authority] {
         if (auto self = wp.lock()) {
-          SL_DEBUG(self->log_, "start lookup({})", common::hex_lower(authority));
+          SL_DEBUG(
+              self->log_, "start lookup({})", common::hex_lower(authority));
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
@@ -216,9 +226,9 @@ namespace kagome::authority_discovery {
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
     SL_TRACE(log_,
-            "lookup : add addresses for authority {}, _res {}",
-            common::hex_lower(authority),
-            _res.has_value() ? "ok" : "error: " + _res.error().message());
+             "lookup : add addresses for authority {}, _res {}",
+             common::hex_lower(authority),
+             _res.has_value() ? "ok" : "error: " + _res.error().message());
     OUTCOME_TRY(signed_record_pb, _res);
     auto it = auth_to_peer_cache_.find(authority);
     if (it != auth_to_peer_cache_.end()
@@ -271,9 +281,9 @@ namespace kagome::authority_discovery {
     libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
     auto peer_id_str = peer.id.toBase58();
     SL_TRACE(log_,
-            "lookup: adding {} addresses for authority {}",
-            record.addresses().size(),
-            authority);
+             "lookup: adding {} addresses for authority {}",
+             record.addresses().size(),
+             authority);
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
       auto id = address.getPeerId();
