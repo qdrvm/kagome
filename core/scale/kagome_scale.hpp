@@ -42,6 +42,12 @@ namespace kagome::scale {
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
 
   template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockHeaderReflection &bh);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockReflection &bh);
+
+  template <typename F>
   constexpr void encode(const F &func, const network::BlocksResponse &b);
 
 //  template <typename F>
@@ -102,16 +108,31 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh) {
-    encode(func, bh.parent_hash);
-    encodeCompact(func, bh.number);
-    encode(func, bh.state_root);
-    encode(func, bh.extrinsics_root);
-    encode(func, bh.digest);
+    kagome::scale::encode(func, bh.parent_hash);
+    kagome::scale::encodeCompact(func, bh.number);
+    kagome::scale::encode(func, bh.state_root);
+    kagome::scale::encode(func, bh.extrinsics_root);
+    kagome::scale::encode(func, bh.digest);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockReflection &bh) {
+    kagome::scale::encode(func, bh.header);
+    kagome::scale::encode(func, bh.body);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockHeaderReflection &bh) {
+    kagome::scale::encode(func, bh.parent_hash);
+    kagome::scale::encodeCompact(func, bh.number);
+    kagome::scale::encode(func, bh.state_root);
+    kagome::scale::encode(func, bh.extrinsics_root);
+    kagome::scale::encode(func, bh.digest);
   }
 
   template <typename F>
   constexpr void encode(const F &func, const network::BlocksResponse &b) {
-    encode(func, b.blocks);
+    kagome::scale::encode(func, b.blocks);
   }
 
 //  template <typename F>
@@ -123,12 +144,12 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh) {
-    encode(func, bh.slot_assignment_type);
-    encode(func, bh.authority_index);
-    encode(func, bh.slot_number);
+    kagome::scale::encode(func, bh.slot_assignment_type);
+    kagome::scale::encode(func, bh.authority_index);
+    kagome::scale::encode(func, bh.slot_number);
 
     if (bh.needVRFCheck()) {
-      encode(func, bh.vrf_output);
+      kagome::scale::encode(func, bh.vrf_output);
     }
   }
 
@@ -139,56 +160,56 @@ namespace kagome::scale {
   constexpr void encode(
       const F &func,
       const common::SLVector<ElementType, MaxSize, Allocator> &c) {
-    encode(func, static_cast<const std::vector<ElementType, Allocator> &>(c));
+    kagome::scale::encode(func, static_cast<const std::vector<ElementType, Allocator> &>(c));
   }
 
   template <typename F, typename T, typename Tag, typename Base>
   constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c) {
     if constexpr (std::is_scalar_v<T>) {
-      encode(func, c.Wrapper<T>::value);
+      kagome::scale::encode(func, c.Wrapper<T>::value);
     } else {
-      encode(func, static_cast<const T &>(c));
+      kagome::scale::encode(func, static_cast<const T &>(c));
     }
   }
 
   template <typename F, size_t MaxSize>
   constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c) {
-    encode(func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
+    kagome::scale::encode(func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
   }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Other &c) {
-    encode(func, static_cast<const common::Buffer &>(c));
+    kagome::scale::encode(func, static_cast<const common::Buffer &>(c));
   }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Consensus &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+    kagome::scale::encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
   template <typename F>
   constexpr void encode(const F &func,
                         const kagome::runtime::PersistedValidationData &c) {
-    encode(func, c.parent_head);
-    encode(func, c.relay_parent_number);
-    encode(func, c.relay_parent_storage_root);
-    encode(func, c.max_pov_size);
+    kagome::scale::encode(func, c.parent_head);
+    kagome::scale::encode(func, c.relay_parent_number);
+    kagome::scale::encode(func, c.relay_parent_storage_root);
+    kagome::scale::encode(func, c.max_pov_size);
   }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Seal &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+    kagome::scale::encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::PreRuntime &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+    kagome::scale::encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockInfo &c) {
-    encode(func, c.number);
-    encode(func, c.hash);
+    kagome::scale::encode(func, c.number);
+    kagome::scale::encode(func, c.hash);
   }
 
   template <typename F>
@@ -202,7 +223,7 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const network::Roles &c) {
-    encode(func, c.value);
+    kagome::scale::encode(func, c.value);
   }
 
 }  // namespace kagome::scale

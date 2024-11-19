@@ -88,10 +88,10 @@ namespace kagome::scale {
   template <typename F, typename T>
   void encode(const F &func, const std::optional<T> &value);
 
-  template <typename F,
-            typename T,
-            std::enable_if_t<!std::is_enum_v<std::decay_t<T>>, bool> = true>
-  constexpr void encode(const F &func, const T &v) {
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const T &v) requires (!std::is_enum_v<std::decay_t<T>>) && 
+      std::is_invocable_v<F, const uint8_t *const, size_t>
+{
     using I = std::decay_t<T>;
     if constexpr (std::is_integral_v<I>) {
       if constexpr (std::is_same_v<I, bool>) {
@@ -109,28 +109,28 @@ namespace kagome::scale {
       const auto val = math::toLE(v);
       putByte(func, (uint8_t *)&val, size);
     } else {
-      encode(func, utils::to_tuple_refs(v));
+      kagome::scale::encode(func, utils::to_tuple_refs(v));
     }
   }
 
-  template <typename F,
-            typename T,
-            std::enable_if_t<std::is_enum_v<std::decay_t<T>>, bool> = true>
-  constexpr void encode(const F &func, const T &value) {
-    encode(func, static_cast<std::underlying_type_t<std::decay_t<T>>>(value));
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const T &value) requires std::is_enum_v<std::decay_t<T>> &&
+  std::is_invocable_v<F, const uint8_t *const, size_t>
+  {
+    kagome::scale::encode(func, static_cast<std::underlying_type_t<std::decay_t<T>>>(value));
   }
 
   template <typename F, typename T, typename... Args>
-  constexpr void encode(const F &func, const T &t, const Args &...args) {
-    encode(func, t);
-    encode(func, args...);
+  constexpr void encode(const F &func, const T &t, const Args &...args) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, t);
+    kagome::scale::encode(func, args...);
   }
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    auto ref = ::scale::encode(args...).value();
+    //auto ref = ::scale::encode(args...).value();
     std::vector<uint8_t> res;
-    encode(
+    kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
           if (count != 0ull) {
             res.insert(res.end(), &val[0], &val[count]);
@@ -138,9 +138,27 @@ namespace kagome::scale {
         },
         args...);
 
-    if (res != ref) {
-      __builtin_trap();
-    }
+    //if (res != ref) {
+    //  __builtin_trap();
+    //}
+    return res;
+  }
+
+  template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode_v1(const Args &...args) {
+    //auto ref = ::scale::encode(args...).value();
+    std::vector<uint8_t> res;
+    kagome::scale::encode(
+        [&](const uint8_t *const val, size_t count) {
+          if (count != 0ull) {
+            res.insert(res.end(), &val[0], &val[count]);
+          }
+        },
+        args...);
+
+    //if (res != ref) {
+    //  __builtin_trap();
+    //}
     return res;
   }
 
@@ -194,12 +212,12 @@ namespace kagome::scale {
   void encode(const F &func, const boost::variant<Ts...> &v) {
     using T = std::tuple_element_t<I, std::tuple<Ts...>>;
     if (v.which() == I) {
-      encode(func, I);
-      encode(func, boost::get<T>(v));
+      kagome::scale::encode(func, I);
+      kagome::scale::encode(func, boost::get<T>(v));
       return;
     }
     if constexpr (sizeof...(Ts) > I + 1) {
-      encode<F, I + 1>(func, v);
+      kagome::scale::encode<F, I + 1>(func, v);
     }
   }
 
@@ -210,14 +228,14 @@ namespace kagome::scale {
       putByte(func, c, N);
     } else {
       for (const auto &e : c) {
-        encode(func, e);
+        kagome::scale::encode(func, e);
       }
     }
   }
 
   template <typename F, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v) {
-    encode<F, 0>(func, v);
+    kagome::scale::encode<F, 0>(func, v);
   }
 
   template <typename F,
@@ -230,23 +248,23 @@ namespace kagome::scale {
     val <<= 2;
     val |= (sizeof(I) / 2ull);
 
-    encode(func, val);
+    kagome::scale::encode(func, val);
   }
 
   template <typename F>
   void encodeCompact(const F &func, uint64_t val) {
     if (val < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
-      encodeCompactSmall(func, static_cast<uint8_t>(val));
+      kagome::scale::encodeCompactSmall(func, static_cast<uint8_t>(val));
       return;
     }
 
     if (val < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
-      encodeCompactSmall(func, static_cast<uint16_t>(val));
+      kagome::scale::encodeCompactSmall(func, static_cast<uint16_t>(val));
       return;
     }
 
     if (val < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
-      encodeCompactSmall(func, static_cast<uint32_t>(val));
+      kagome::scale::encodeCompactSmall(func, static_cast<uint32_t>(val));
       return;
     }
 
@@ -261,12 +279,12 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const std::string &v) {
-    encode(func, std::string_view{v});
+    kagome::scale::encode(func, std::string_view{v});
   }
 
   template <typename F>
   constexpr void encode(const F &func, const std::string_view &v) {
-    encodeCompact(func, v.size());
+    kagome::scale::encodeCompact(func, v.size());
     putByte(func, (const uint8_t *)v.data(), v.size());
   }
 
@@ -276,7 +294,7 @@ namespace kagome::scale {
     const size_t bytesCount = ((bitsCount + 7ull) >> 3ull);
     const size_t blocksCount = ((bytesCount + 7ull) >> 3ull);
 
-    encodeCompact(func, bitsCount);
+    kagome::scale::encodeCompact(func, bitsCount);
     uint64_t result;
     size_t bitCounter = 0ull;
     for (size_t ix = 0ull; ix < blocksCount; ++ix) {
@@ -304,17 +322,17 @@ namespace kagome::scale {
 
     const size_t bit_border = bitUpperBorder(value);
     if (bit_border <= 6) {  // kMinUint16
-      encodeCompactSmall(func, value.convert_to<uint8_t>());
+      kagome::scale::encodeCompactSmall(func, value.convert_to<uint8_t>());
       return;
     }
 
     if (bit_border <= 14) {  // kMinUint32
-      encodeCompactSmall(func, value.convert_to<uint16_t>());
+      kagome::scale::encodeCompactSmall(func, value.convert_to<uint16_t>());
       return;
     }
 
     if (bit_border <= 30) {  // kMinBigInteger
-      encodeCompactSmall(func, value.convert_to<uint32_t>());
+      kagome::scale::encodeCompactSmall(func, value.convert_to<uint32_t>());
       return;
     }
 
@@ -349,22 +367,22 @@ namespace kagome::scale {
           !std::is_same_v<typename std::iterator_traits<It>::value_type, void>>>
   constexpr void encode(const F &func, It begin, It end) {
     while (begin != end) {
-      encode(func, *begin);
+      kagome::scale::encode(func, *begin);
       ++begin;
     }
   }
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::span<T> &c) {
-    encodeCompact(func, c.size());
-    encode(func, c.begin(), c.end());
+    kagome::scale::encodeCompact(func, c.size());
+    kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T, ssize_t S>
   constexpr void encode(const F &func, const std::span<T, S> &c) {
     if constexpr (S == -1) {
-      encodeCompact(func, c.size());
-      encode(func, c.begin(), c.end());
+      kagome::scale::encodeCompact(func, c.size());
+      kagome::scale::encode(func, c.begin(), c.end());
     } else {
       using E = std::decay_t<T>;
       if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
@@ -380,26 +398,26 @@ namespace kagome::scale {
   template <typename F, typename T, size_t size>
   constexpr void encode(const F &func, const std::array<T, size> &c) {
     for (const auto &e : c) {
-      encode(func, e);
+      kagome::scale::encode(func, e);
     }
   }
 
   template <typename F, typename K, typename V>
   constexpr void encode(const F &func, const std::map<K, V> &c) {
-    encodeCompact(func, c.size());
-    encode(func, c.begin(), c.end());
+    kagome::scale::encodeCompact(func, c.size());
+    kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename FN, typename F, typename S>
   constexpr void encode(const FN &func, const std::pair<F, S> &p) {
-    encode(func, p.first);
-    encode(func, p.second);
+    kagome::scale::encode(func, p.first);
+    kagome::scale::encode(func, p.second);
   }
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::vector<T> &c) {
-    encodeCompact(func, c.size());
-    encode(func, c.begin(), c.end());
+    kagome::scale::encodeCompact(func, c.size());
+    kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T>
@@ -407,7 +425,7 @@ namespace kagome::scale {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
-    encode(func, *v);
+    kagome::scale::encode(func, *v);
   }
 
   template <typename F, typename T>
@@ -415,25 +433,25 @@ namespace kagome::scale {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
-    encode(func, *v);
+    kagome::scale::encode(func, *v);
   }
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::list<T> &c) {
-    encodeCompact(func, c.size());
-    encode(func, c.begin(), c.end());
+    kagome::scale::encodeCompact(func, c.size());
+    kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::deque<T> &c) {
-    encodeCompact(func, c.size());
-    encode(func, c.begin(), c.end());
+    kagome::scale::encodeCompact(func, c.size());
+    kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename... Ts>
   constexpr void encode(const F &func, const std::tuple<Ts...> &v) {
     if constexpr (sizeof...(Ts) > 0) {
-      std::apply([&](const auto &...s) { (..., encode(func, s)); }, v);
+      std::apply([&](const auto &...s) { (..., kagome::scale::encode(func, s)); }, v);
     }
   }
 
@@ -451,16 +469,16 @@ namespace kagome::scale {
     } else if (!*v) {
       result = OptionalBool::OPT_FALSE;
     }
-    encode(func, result);
+    kagome::scale::encode(func, result);
   }
 
   template <typename F, typename T>
   void encode(const F &func, const std::optional<T> &v) {
     if (!v.has_value()) {
-      encode(func, uint8_t(0u));
+      kagome::scale::encode(func, uint8_t(0u));
     } else {
-      encode(func, uint8_t(1u));
-      encode(func, *v);
+      kagome::scale::encode(func, uint8_t(1u));
+      kagome::scale::encode(func, *v);
     }
   }
 

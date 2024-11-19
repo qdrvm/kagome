@@ -18,6 +18,7 @@
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/ptr_size.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::runtime {
   class Module;
@@ -43,7 +44,8 @@ namespace kagome::runtime {
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
-        return common::map_result(scale::encode(args...), [](auto &&vec) {
+        outcome::result<std::vector<uint8_t>> r = kagome::scale::encode_v1(args...);
+        return common::map_result(std::move(r), [](auto &&vec) {
           return common::Buffer{vec};
         });
       }
