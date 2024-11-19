@@ -29,6 +29,8 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "scale/kagome_scale.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -158,6 +160,9 @@ struct TrieNodeDesc {
 class TriePrunerTest : public testing::Test {
  public:
   void SetUp() {
+    kagome::network::vstaging::AttestedCandidateRequest r;
+    auto d = kagome::scale::encode(r).value();
+
     testutil::prepareLoggers(soralog::Level::DEBUG);
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
