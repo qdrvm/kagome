@@ -300,12 +300,12 @@ namespace kagome::runtime {
         ctx, "ParachainHost_disabled_validators"));
   }
 
-  outcome::result<std::optional<ParachainHost::NodeFeatures>>
-  ParachainHostImpl::node_features(const primitives::BlockHash &block,
-                                   SessionIndex index) {
+  outcome::result<NodeFeatures> ParachainHostImpl::node_features(
+      const primitives::BlockHash &block, SessionIndex index) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return ifExport(executor_->call<ParachainHost::NodeFeatures>(
-        ctx, "ParachainHost_node_features"));
+    OUTCOME_TRY(r,
+                ifExport(executor_->call<scale::BitVec>(
+                    ctx, "ParachainHost_node_features")));
+    return NodeFeatures{std::move(r)};
   }
-
 }  // namespace kagome::runtime

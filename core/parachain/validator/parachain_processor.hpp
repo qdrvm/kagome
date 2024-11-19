@@ -399,6 +399,8 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes;
 
       bool inject_core_index;
+      bool v2_receipts;
+      CoreIndex current_core;
       std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
           per_session_state;
     };

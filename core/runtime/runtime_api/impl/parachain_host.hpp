@@ -115,7 +115,7 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorIndex>> disabled_validators(
         const primitives::BlockHash &block) override;
 
-    outcome::result<std::optional<NodeFeatures>> node_features(
+    outcome::result<NodeFeatures> node_features(
         const primitives::BlockHash &block, SessionIndex index) override;
 
     ClaimQueueResult claim_queue(const primitives::BlockHash &block) override;

@@ -70,23 +70,22 @@ namespace kagome::network {
 
   enum class CheckCoreIndexError {
     InvalidCoreIndex,
-    CoreIndexMismatch,
     NoAssignment,
     UnknownVersion,
+    InvalidSession,
   };
   Q_ENUM_ERROR_CODE(CheckCoreIndexError) {
     using E = decltype(e);
     switch (e) {
       case E::InvalidCoreIndex:
         return "The specified core index is invalid";
-      case E::CoreIndexMismatch:
-        return "The core index in commitments doesn't match the one in "
-               "descriptor";
       case E::NoAssignment:
         return "The parachain is not assigned to any core at specified claim "
                "queue offset";
       case E::UnknownVersion:
         return "Unknown internal version";
+      case E::InvalidSession:
+        return "Invalid session";
     }
     abort();
   }
@@ -131,6 +130,29 @@ namespace kagome::network {
         (selector ? selector->core_selector % assigned_cores.size() : 0));
     if (core != expected_core) {
       return CheckCoreIndexError::InvalidCoreIndex;
+    }
+    return outcome::success();
+  }
+
+  inline outcome::result<void> descriptorVersionSanityCheck(
+      const CandidateDescriptor &descriptor,
+      bool v2_receipts,
+      CoreIndex expected_core,
+      SessionIndex expected_session) {
+    if (isV1(descriptor)) {
+      return outcome::success();
+    }
+    if (not isV2(descriptor)) {
+      return CheckCoreIndexError::UnknownVersion;
+    }
+    if (not v2_receipts) {
+      return CheckCoreIndexError::UnknownVersion;
+    }
+    if (coreIndex(descriptor) != expected_core) {
+      return CheckCoreIndexError::InvalidCoreIndex;
+    }
+    if (sessionIndex(descriptor) != expected_session) {
+      return CheckCoreIndexError::InvalidSession;
     }
     return outcome::success();
   }
