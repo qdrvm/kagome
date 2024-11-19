@@ -281,7 +281,7 @@ namespace kagome::parachain {
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
 
-    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    auto data_hash = hasher_->blake2b_256(scale::encode(pvd).value());
     if (receipt.descriptor.persisted_data_hash != data_hash) {
       return cb(PvfError::PERSISTED_DATA_HASH);
     }

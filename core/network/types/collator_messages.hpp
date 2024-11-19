@@ -458,7 +458,7 @@ namespace kagome::network {
     auto commitments_hash =
         hasher.blake2b_256(scale::encode(receipt.commitments).value());
     return hasher.blake2b_256(
-        ::scale::encode(std::tie(receipt.descriptor, commitments_hash))
+        scale::encode(std::tie(receipt.descriptor, commitments_hash))
             .value());
   }
 

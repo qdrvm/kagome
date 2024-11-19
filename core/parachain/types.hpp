@@ -93,7 +93,7 @@ namespace kagome::parachain {
 
     auto signable() {
       constexpr std::array<uint8_t, 4> kMagic{'V', 'C', 'P', 'C'};
-      return ::scale::encode(std::make_tuple(kMagic, *this)).value();
+      return scale::encode(std::make_tuple(kMagic, *this)).value();
     }
   };
 }  // namespace kagome::parachain
@@ -172,7 +172,7 @@ namespace kagome::network {
 
     common::Buffer signable() const {
       return common::Buffer{
-          ::scale::encode(relay_parent,
+          scale::encode(relay_parent,
                           para_id,
                           persisted_data_hash,
                           pov_hash,
@@ -194,7 +194,7 @@ namespace kagome::network {
     const parachain::Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
-            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
+            scale::encode(std::tie(descriptor, commitments_hash)).value()));
       }
       return hash_.value();
     }
