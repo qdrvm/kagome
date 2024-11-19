@@ -23,70 +23,70 @@
 namespace kagome::scale {
 
   template <typename F>
-  constexpr void putByte(const F &func, const uint8_t *const val, size_t count);
+  constexpr void putByte(const F &func, const uint8_t *const val, size_t count) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename... Ts>
-  constexpr void encode(const F &func, const std::tuple<Ts...> &v);
+  constexpr void encode(const F &func, const std::tuple<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T, typename... Args>
-  constexpr void encode(const F &func, const T &t, const Args &...args);
+  constexpr void encode(const F &func, const T &t, const Args &...args) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::vector<T> &c);
+  constexpr void encode(const F &func, const std::vector<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename FN, typename F, typename S>
-  constexpr void encode(const FN &func, const std::pair<F, S> &p);
+  constexpr void encode(const FN &func, const std::pair<F, S> &p) requires std::is_invocable_v<FN, const uint8_t *const, size_t>;
 
   template <typename F, typename T, ssize_t S>
-  constexpr void encode(const F &func, const std::span<T, S> &c);
+  constexpr void encode(const F &func, const std::span<T, S> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::span<T> &c);
+  constexpr void encode(const F &func, const std::span<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T, size_t size>
-  constexpr void encode(const F &func, const std::array<T, size> &c);
+  constexpr void encode(const F &func, const std::array<T, size> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T, size_t N>
-  constexpr void encode(const F &func, const T (&c)[N]);
+  constexpr void encode(const F &func, const T (&c)[N]) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename K, typename V>
-  constexpr void encode(const F &func, const std::map<K, V> &c);
+  constexpr void encode(const F &func, const std::map<K, V> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::shared_ptr<T> &v);
+  constexpr void encode(const F &func, const std::shared_ptr<T> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
-  constexpr void encode(const F &func, const std::string_view &v);
+  constexpr void encode(const F &func, const std::string_view &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
-  constexpr void encode(const F &func, const std::string &v);
+  constexpr void encode(const F &func, const std::string &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::unique_ptr<T> &v);
+  constexpr void encode(const F &func, const std::unique_ptr<T> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::list<T> &c);
+  constexpr void encode(const F &func, const std::list<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::deque<T> &c);
+  constexpr void encode(const F &func, const std::deque<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, uint8_t I, typename... Ts>
-  void encode(const F &func, const boost::variant<Ts...> &v);
+  void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename... Ts>
-  void encode(const F &func, const boost::variant<Ts...> &v);
+  void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
-  void encode(const F &func, const ::scale::CompactInteger &value);
+  void encode(const F &func, const ::scale::CompactInteger &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
-  void encode(const F &func, const ::scale::BitVec &value);
+  void encode(const F &func, const ::scale::BitVec &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
-  void encode(const F &func, const std::optional<bool> &value);
+  void encode(const F &func, const std::optional<bool> &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
-  void encode(const F &func, const std::optional<T> &value);
+  void encode(const F &func, const std::optional<T> &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const T &v) requires (!std::is_enum_v<std::decay_t<T>>) && 
@@ -114,9 +114,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const T &value) requires std::is_enum_v<std::decay_t<T>> &&
-  std::is_invocable_v<F, const uint8_t *const, size_t>
-  {
+  constexpr void encode(const F &func, const T &value) requires std::is_enum_v<std::decay_t<T>> && std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode(func, static_cast<std::underlying_type_t<std::decay_t<T>>>(value));
   }
 
@@ -204,12 +202,12 @@ namespace kagome::scale {
   template <typename F>
   constexpr void putByte(const F &func,
                          const uint8_t *const val,
-                         size_t count) {
+                         size_t count) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     func(val, count);
   }
 
   template <typename F, uint8_t I, typename... Ts>
-  void encode(const F &func, const boost::variant<Ts...> &v) {
+  void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     using T = std::tuple_element_t<I, std::tuple<Ts...>>;
     if (v.which() == I) {
       kagome::scale::encode(func, I);
@@ -222,7 +220,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T, size_t N>
-  constexpr void encode(const F &func, const T (&c)[N]) {
+  constexpr void encode(const F &func, const T (&c)[N]) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     using E = std::decay_t<T>;
     if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
       putByte(func, c, N);
@@ -234,7 +232,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename... Ts>
-  void encode(const F &func, const boost::variant<Ts...> &v) {
+  void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode<F, 0>(func, v);
   }
 
@@ -242,7 +240,7 @@ namespace kagome::scale {
             typename T,
             typename I = std::decay_t<T>,
             std::enable_if_t<std::is_unsigned_v<I>, bool> = true>
-  constexpr void encodeCompactSmall(const F &func, T val) {
+  constexpr void encodeCompactSmall(const F &func, T val) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     BOOST_ASSERT_MSG((val >> (8 * sizeof(I) - 2)) == 0,
                      "Unexpected compact value in encoder");
     val <<= 2;
@@ -252,7 +250,7 @@ namespace kagome::scale {
   }
 
   template <typename F>
-  void encodeCompact(const F &func, uint64_t val) {
+  void encodeCompact(const F &func, uint64_t val) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     if (val < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
       kagome::scale::encodeCompactSmall(func, static_cast<uint8_t>(val));
       return;
@@ -278,18 +276,18 @@ namespace kagome::scale {
   }
 
   template <typename F>
-  constexpr void encode(const F &func, const std::string &v) {
+  constexpr void encode(const F &func, const std::string &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode(func, std::string_view{v});
   }
 
   template <typename F>
-  constexpr void encode(const F &func, const std::string_view &v) {
+  constexpr void encode(const F &func, const std::string_view &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encodeCompact(func, v.size());
     putByte(func, (const uint8_t *)v.data(), v.size());
   }
 
   template <typename F>
-  void encode(const F &func, const ::scale::BitVec &v) {
+  void encode(const F &func, const ::scale::BitVec &v)  requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     const size_t bitsCount = v.bits.size();
     const size_t bytesCount = ((bitsCount + 7ull) >> 3ull);
     const size_t blocksCount = ((bytesCount + 7ull) >> 3ull);
@@ -315,7 +313,7 @@ namespace kagome::scale {
   }
 
   template <typename F>
-  void encode(const F &func, const ::scale::CompactInteger &value) {
+  void encode(const F &func, const ::scale::CompactInteger &value) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     if (value < 0) {
       raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
     }
@@ -365,7 +363,7 @@ namespace kagome::scale {
       typename It,
       typename = std::enable_if_t<
           !std::is_same_v<typename std::iterator_traits<It>::value_type, void>>>
-  constexpr void encode(const F &func, It begin, It end) {
+  constexpr void encode(const F &func, It begin, It end) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     while (begin != end) {
       kagome::scale::encode(func, *begin);
       ++begin;
@@ -373,13 +371,13 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::span<T> &c) {
+  constexpr void encode(const F &func, const std::span<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encodeCompact(func, c.size());
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T, ssize_t S>
-  constexpr void encode(const F &func, const std::span<T, S> &c) {
+  constexpr void encode(const F &func, const std::span<T, S> &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     if constexpr (S == -1) {
       kagome::scale::encodeCompact(func, c.size());
       kagome::scale::encode(func, c.begin(), c.end());
@@ -403,25 +401,25 @@ namespace kagome::scale {
   }
 
   template <typename F, typename K, typename V>
-  constexpr void encode(const F &func, const std::map<K, V> &c) {
+  constexpr void encode(const F &func, const std::map<K, V> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encodeCompact(func, c.size());
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename FN, typename F, typename S>
-  constexpr void encode(const FN &func, const std::pair<F, S> &p) {
+  constexpr void encode(const FN &func, const std::pair<F, S> &p) requires std::is_invocable_v<FN, const uint8_t *const, size_t> {
     kagome::scale::encode(func, p.first);
     kagome::scale::encode(func, p.second);
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::vector<T> &c) {
+  constexpr void encode(const F &func, const std::vector<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encodeCompact(func, c.size());
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::shared_ptr<T> &v) {
+  constexpr void encode(const F &func, const std::shared_ptr<T> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
@@ -429,7 +427,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::unique_ptr<T> &v) {
+  constexpr void encode(const F &func, const std::unique_ptr<T> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
@@ -437,26 +435,26 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::list<T> &c) {
+  constexpr void encode(const F &func, const std::list<T> &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t>{
     kagome::scale::encodeCompact(func, c.size());
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T>
-  constexpr void encode(const F &func, const std::deque<T> &c) {
+  constexpr void encode(const F &func, const std::deque<T> &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t>{
     kagome::scale::encodeCompact(func, c.size());
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename... Ts>
-  constexpr void encode(const F &func, const std::tuple<Ts...> &v) {
+  constexpr void encode(const F &func, const std::tuple<Ts...> &v)  requires std::is_invocable_v<F, const uint8_t *const, size_t>{
     if constexpr (sizeof...(Ts) > 0) {
       std::apply([&](const auto &...s) { (..., kagome::scale::encode(func, s)); }, v);
     }
   }
 
   template <typename F>
-  void encode(const F &func, const std::optional<bool> &v) {
+  void encode(const F &func, const std::optional<bool> &v)  requires std::is_invocable_v<F, const uint8_t *const, size_t>{
     enum class OptionalBool : uint8_t {
       NONE = 0u,
       OPT_TRUE = 1u,
@@ -473,7 +471,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T>
-  void encode(const F &func, const std::optional<T> &v) {
+  void encode(const F &func, const std::optional<T> &v)  requires std::is_invocable_v<F, const uint8_t *const, size_t>{
     if (!v.has_value()) {
       kagome::scale::encode(func, uint8_t(0u));
     } else {
