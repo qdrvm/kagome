@@ -6,7 +6,7 @@
 
 #include "parachain/availability/store/store_impl.hpp"
 
-constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 10 * 60;
+constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 1 * 60;
 
 namespace kagome::parachain {
   AvailabilityStoreImpl::AvailabilityStoreImpl(clock::SteadyClock &steady_clock)
