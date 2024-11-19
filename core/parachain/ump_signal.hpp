@@ -18,12 +18,12 @@ namespace kagome::parachain {
   inline const Buffer kUmpSeparator;
 
   enum class UmpError {
-    TOO_MANY_UMP_SIGNALS,
+    TooManyUMPSignals,
   };
   Q_ENUM_ERROR_CODE(UmpError) {
     using E = decltype(e);
     switch (e) {
-      case E::TOO_MANY_UMP_SIGNALS:
+      case E::TooManyUMPSignals:
         return "Too many UMP signals";
     }
     abort();
@@ -63,7 +63,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(signal, scale::decode<UMPSignal>(*it));
     ++it;
     if (it != commitments.upward_msgs.end()) {
-      return UmpError::TOO_MANY_UMP_SIGNALS;
+      return UmpError::TooManyUMPSignals;
     }
     return boost::get<UMPSignalSelectCore>(signal);
   }
