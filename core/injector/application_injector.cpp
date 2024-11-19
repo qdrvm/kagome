@@ -379,8 +379,7 @@ namespace {
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
 
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
-                                                         block_tree);
+    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine);
 
     cached = block_tree;
     return block_tree;
@@ -481,12 +480,9 @@ namespace {
     auto substitutes =
         injector
             .template create<sptr<const primitives::CodeSubstituteBlockIds>>();
-    auto block_storage =
-        injector.template create<sptr<blockchain::BlockStorage>>();
-    auto res =
-        runtime::RuntimeUpgradeTrackerImpl::create(std::move(storage),
-                                                   std::move(substitutes),
-                                                   std::move(block_storage));
+    auto block_tree = get_block_tree(injector);
+    auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+        std::move(storage), std::move(substitutes), std::move(block_tree));
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
@@ -937,7 +933,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

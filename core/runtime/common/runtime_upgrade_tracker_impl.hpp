@@ -20,7 +20,6 @@
 
 namespace kagome::blockchain {
   class BlockTree;
-  class BlockStorage;
 }  // namespace kagome::blockchain
 
 namespace kagome::runtime {
@@ -35,7 +34,7 @@ namespace kagome::runtime {
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
-        std::shared_ptr<blockchain::BlockStorage> block_storage);
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     struct RuntimeUpgradeData {
       SCALE_TIE(2);
@@ -53,8 +52,7 @@ namespace kagome::runtime {
 
     void subscribeToBlockchainEvents(
         std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-            chain_sub_engine,
-        std::shared_ptr<const blockchain::BlockTree> block_tree);
+            chain_sub_engine);
 
     outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
         const primitives::BlockInfo &block) override;
@@ -68,7 +66,7 @@ namespace kagome::runtime {
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
         std::vector<RuntimeUpgradeData> &&saved_data,
-        std::shared_ptr<blockchain::BlockStorage> block_storage);
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     outcome::result<bool> isStateInChain(
         const primitives::BlockInfo &state,
@@ -100,11 +98,10 @@ namespace kagome::runtime {
 
     std::shared_ptr<primitives::events::ChainEventSubscriber>
         chain_subscription_;
-    std::weak_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<const primitives::CodeSubstituteBlockIds>
         known_code_substitutes_;
-    std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger_;
   };
 
