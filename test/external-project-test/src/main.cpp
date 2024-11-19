@@ -121,7 +121,7 @@ int main() {
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
       runtime_upgrade_tracker =
           std::move(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-                        header_repo, database, code_substitutes, block_storage)
+                        header_repo, database, code_substitutes, std::make_shared<kagome::blockchain::BlockTreeMock>())
                         .value());
 
   auto storage_batch =
