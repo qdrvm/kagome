@@ -15,7 +15,8 @@ namespace kagome::runtime {
    */
   enum class RuntimeExecutionError : uint8_t {  // 0 is reserved for success
     NO_TRANSACTIONS_WERE_STARTED = 1,
-    EXPORT_FUNCTION_NOT_FOUND
+    EXPORT_FUNCTION_NOT_FOUND,
+    RUNTIME_CODE_NOT_FOUND
   };
 }  // namespace kagome::runtime
 

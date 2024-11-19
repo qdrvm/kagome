@@ -12,6 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, RuntimeExecutionError, e) {
       return "No storage transactions were started";
     case E::EXPORT_FUNCTION_NOT_FOUND:
       return "Export function not found";
+    case E::RUNTIME_CODE_NOT_FOUND:
+      return "Runtime code not found";
   }
   return "Unknown RuntimeExecutionError";
 }

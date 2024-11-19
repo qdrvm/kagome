@@ -169,7 +169,7 @@ namespace kagome::parachain {
               "No validation code found for parachain {} with 'included' "
               "occupied assumption",
               para_id);
-      return outcome::success();
+      return outcome::failure(runtime::RuntimeExecutionError::RUNTIME_CODE_NOT_FOUND);
     }
     auto &code = *code_opt;
     auto hash = hasher_->blake2b_256(code);
