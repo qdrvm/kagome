@@ -25,6 +25,7 @@ namespace kagome::network {
     return not isV1(descriptor) and descriptor.reserved_1[0] == 0;
   }
 
+  /// Check the signature of the collator within this descriptor.
   inline outcome::result<void> checkSignature(
       const crypto::Sr25519Provider &sr25519,
       const CandidateDescriptor &descriptor) {
@@ -42,6 +43,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  /// Returns the `core_index` of `V2` candidate descriptors, `None` otherwise.
   inline std::optional<parachain::CoreIndex> coreIndex(
       const CandidateDescriptor &descriptor) {
     if (isV1(descriptor)) {
@@ -50,6 +52,7 @@ namespace kagome::network {
     return boost::endian::load_little_u16(&descriptor.reserved_1[1]);
   }
 
+  /// Returns the `core_index` of `V2` candidate descriptors, `None` otherwise.
   inline std::optional<parachain::SessionIndex> sessionIndex(
       const CandidateDescriptor &descriptor) {
     if (isV1(descriptor)) {
