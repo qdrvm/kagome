@@ -26,7 +26,6 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
-using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypes;
 using kagome::host_api::HostApi;
