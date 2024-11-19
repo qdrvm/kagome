@@ -51,18 +51,18 @@ namespace kagome::parachain {
   /// Returns the core selector and claim queue offset determined by
   /// `UMPSignal::SelectCore` commitment, if present.
   inline outcome::result<std::optional<UMPSignalSelectCore>> coreSelector(
-      const network::CandidateCommitments &receipt) {
-    auto it = std::ranges::find(receipt.upward_msgs, kUmpSeparator);
-    if (it == receipt.upward_msgs.end()) {
+      const network::CandidateCommitments &commitments) {
+    auto it = std::ranges::find(commitments.upward_msgs, kUmpSeparator);
+    if (it == commitments.upward_msgs.end()) {
       return std::nullopt;
     }
     ++it;
-    if (it == receipt.upward_msgs.end()) {
+    if (it == commitments.upward_msgs.end()) {
       return std::nullopt;
     }
     OUTCOME_TRY(signal, scale::decode<UMPSignal>(*it));
     ++it;
-    if (it != receipt.upward_msgs.end()) {
+    if (it != commitments.upward_msgs.end()) {
       return UmpError::TOO_MANY_UMP_SIGNALS;
     }
     return boost::get<UMPSignalSelectCore>(signal);
