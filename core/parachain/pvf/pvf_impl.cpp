@@ -264,7 +264,8 @@ namespace kagome::parachain {
                CB_TRY(auto result, std::move(r));
                CB_TRY(auto commitments,
                       self->fromOutputs(receipt, std::move(result)));
-               if (timeout_kind == runtime::PvfExecTimeoutKind::Backing) {
+               if (timeout_kind == runtime::PvfExecTimeoutKind::Backing
+                   and coreIndex(receipt.descriptor)) {
                  CB_TRY(auto claims,
                         self->parachain_api_->claim_queue(
                             receipt.descriptor.relay_parent));
@@ -277,6 +278,15 @@ namespace kagome::parachain {
                          .commitments = commitments,
                      },
                      transposeClaimQueue(*claims)));
+                 if (auto session = sessionIndex(receipt.descriptor)) {
+                   CB_TRY(auto expected_session,
+                          self->parachain_api_->session_index_for_child(
+                              receipt.descriptor.relay_parent));
+                   if (session != expected_session) {
+                     cb(network::CheckCoreIndexError::InvalidSession);
+                     return;
+                   }
+                 }
                }
                cb(std::make_pair(std::move(commitments), data));
              }});

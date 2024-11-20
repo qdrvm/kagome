@@ -1111,6 +1111,11 @@ namespace kagome::parachain::statement_distribution {
         not r) {
       return false;
     }
+    if (auto session = sessionIndex(response.candidate_receipt.descriptor)) {
+      if (session != per_relay_parent.session) {
+        return false;
+      }
+    }
     return true;
   }
 
