@@ -12,9 +12,28 @@ constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 1 * 60;
 namespace kagome::parachain {
   AvailabilityStoreImpl::AvailabilityStoreImpl(
       clock::SteadyClock &steady_clock,
-      std::shared_ptr<storage::SpacedStorage> storage)
-      : steady_clock_{steady_clock}, storage_{std::move(storage)} {
+      std::shared_ptr<storage::SpacedStorage> storage,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+      : steady_clock_{steady_clock},
+        storage_{std::move(storage)},
+        chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(chain_sub_ != nullptr);
+
+    chain_sub_.onDeactivate(
+        [this](
+            const primitives::events::RemoveAfterFinalizationParams &params) {
+          SL_INFO(
+              logger, "Deactivate after finalization of {}", params.finalized);
+          if (params.removed.empty()) {
+            return;
+          }
+          state_.exclusiveAccess([this, &params](auto &state) {
+            for (const auto &header_info : params.removed) {
+              remove_no_lock(state, header_info.hash);
+            }
+          });
+        });
   }
 
   bool AvailabilityStoreImpl::hasChunk(const CandidateHash &candidate_hash,
