@@ -162,9 +162,13 @@ class BabeWrapper : public Babe {
       kagome::clock::SteadyClock::TimePoint proposal_start,
       std::shared_ptr<kagome::storage::changes_trie::StorageChangesTrackerImpl>
           &&changes_tracker,
-      kagome::primitives::Block &&block) override {
-    auto res = Babe::processSlotLeadershipProposed(
-        now, proposal_start, std::move(changes_tracker), std::move(block));
+      kagome::primitives::Block &&block,
+      std::optional<CandidatesMetricInfo> candidates_metrics) override {
+    auto res = Babe::processSlotLeadershipProposed(now,
+                                                   proposal_start,
+                                                   std::move(changes_tracker),
+                                                   std::move(block),
+                                                   candidates_metrics);
     if (on_proposed) {
       on_proposed();
     }
