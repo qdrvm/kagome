@@ -18,7 +18,6 @@ namespace kagome::parachain {
         storage_{std::move(storage)},
         chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(chain_sub_ != nullptr);
 
     chain_sub_.onDeactivate(
         [this](
