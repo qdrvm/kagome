@@ -133,7 +133,7 @@ namespace kagome::storage::trie {
                  bool dirty = true)
         : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
 
-    operator bool() const {
+    explicit operator bool() const {
       return is_some();
     }
 

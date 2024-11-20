@@ -110,7 +110,8 @@ namespace kagome::network {
           if (it == nodes.end()) {
             return outcome::success();
           }
-          OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
+          OUTCOME_TRY(
+              node_db_->nodes().put(it->first, std::move(it->second.first)));
           known_.emplace(it->first);
         }
         for (level.branchInit(); not level.branch_end; level.branchNext()) {
@@ -126,7 +127,7 @@ namespace kagome::network {
         }
         if (level.branch_end) {
           auto &t = level.stack.back().t;
-          OUTCOME_TRY(node_db_->put(t.hash, std::move(t.encoded)));
+          OUTCOME_TRY(node_db_->nodes().put(t.hash, std::move(t.encoded)));
           known_.emplace(t.hash);
           level.pop();
           if (not level.stack.empty()) {
@@ -149,9 +150,8 @@ namespace kagome::network {
     if (known_.find(hash) != known_.end()) {
       return true;
     }
-    if (auto node_res = node_db_->contains(hash),
-        value_res = node_db_->contains(hash);
-        (node_res and node_res.value()) or (value_res and value_res.value())) {
+    if (auto node_res = node_db_->nodes().contains(hash);
+        node_res and node_res.value()) {
       known_.emplace(hash);
       return true;
     }

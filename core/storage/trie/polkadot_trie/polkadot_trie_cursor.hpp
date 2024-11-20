@@ -28,6 +28,14 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<void> seekUpperBound(
         const common::BufferView &key) = 0;
+
+    struct CertainlyValueAndHash {
+      BufferView value;
+      Hash256 hash;
+    };
+
+    [[nodiscard]] virtual std::optional<CertainlyValueAndHash> value_and_hash()
+        const = 0;
   };
 
 }  // namespace kagome::storage::trie

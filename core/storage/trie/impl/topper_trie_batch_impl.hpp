@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "common/buffer.hpp"
+#include "storage/buffer_map_types.hpp"
+#include "storage/face/writeable.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 #include <deque>
@@ -48,7 +51,7 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<std::shared_ptr<TrieBatch>>> createChildBatch(
         common::BufferView path) override;
 
-    outcome::result<void> apply(storage::BufferStorage &map);
+    outcome::result<void> apply(face::Writeable<Buffer, Buffer> &map);
 
    private:
     std::map<Buffer, std::optional<Buffer>> cache_;

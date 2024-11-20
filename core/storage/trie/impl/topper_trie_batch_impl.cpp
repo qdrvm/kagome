@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "common/buffer.hpp"
+#include "storage/face/generic_maps.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
@@ -116,7 +117,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::apply(
-      storage::BufferStorage &map) {
+      face::Writeable<Buffer, Buffer> &map) {
     for (auto &[k, v] : cache_) {
       if (v) {
         OUTCOME_TRY(map.put(k, BufferView{*v}));

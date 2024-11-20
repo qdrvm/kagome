@@ -351,6 +351,32 @@ namespace kagome::storage::trie {
     return std::nullopt;
   }
 
+  std::optional<CertainlyValueAndHash> PolkadotTrieCursorImpl::value_and_hash()
+      const {
+    if (const auto *search_state = std::get_if<SearchState>(&state_);
+        search_state != nullptr) {
+      const auto &value_opt = search_state->getCurrent().getValue();
+
+      if (value_opt) {
+        // TODO(turuslan): #1470, return error
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        auto r = trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
+        if (r.has_error()) {
+          SL_WARN(log_,
+                  "PolkadotTrieCursorImpl::value {}: {}",
+                  common::hex_lower_0x(collectKey()),
+                  r.error());
+          return std::nullopt;
+        }
+        if (!value_opt.hash) {
+          value_opt.hash =
+        }
+      }
+      return std::nullopt;
+    }
+    return std::nullopt;
+  }
+
   auto PolkadotTrieCursorImpl::makeSearchStateAt(const common::BufferView &key)
       -> outcome::result<SearchState> {
     if (trie_->getRoot() == nullptr) {

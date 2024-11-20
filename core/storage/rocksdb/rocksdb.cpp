@@ -5,11 +5,14 @@
  */
 
 #include "storage/rocksdb/rocksdb.hpp"
+#include <rocksdb/db.h>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
+#include <qtils/outcome.hpp>
 
 #include "filesystem/common.hpp"
 
+#include "storage/buffer_map_types.hpp"
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb_batch.hpp"
 #include "storage/rocksdb/rocksdb_cursor.hpp"
@@ -25,8 +28,8 @@ namespace kagome::storage {
   }
 
   RocksDb::~RocksDb() {
-    for (auto *handle : column_family_handles_) {
-      db_->DestroyColumnFamilyHandle(handle);
+    for (auto [_, handle] : spaces_) {
+      db_->DestroyColumnFamilyHandle(handle->column_);
     }
     delete db_;
   }
@@ -42,7 +45,7 @@ namespace kagome::storage {
     auto absolute_path = fs::absolute(path);
 
     std::error_code ec;
-    if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
+    if (not fs::create_directory(absolute_path.native(), ec) and ec) {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),
                  ec);
@@ -93,12 +96,19 @@ namespace kagome::storage {
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
+    std::vector<rocksdb::ColumnFamilyHandle *> cf_handles;
     auto status = rocksdb::DB::Open(options,
                                     path.native(),
                                     column_family_descriptors,
-                                    &rocks_db->column_family_handles_,
+                                    &cf_handles,
                                     &rocks_db->db_);
     if (status.ok()) {
+      for (auto *handle : cf_handles) {
+        auto space = spaceByName(handle->GetName());
+        BOOST_ASSERT(space.has_value());
+        rocks_db->spaces_[*space] = std::make_shared<RocksDbSpace>(
+            rocks_db->weak_from_this(), handle, rocks_db->logger_);
+      }
       return rocks_db;
     }
 
@@ -110,45 +120,27 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
-    if (spaces_.contains(space)) {
-      return spaces_[space];
-    }
-    auto space_name = spaceName(space);
-    auto column = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column) {
-      throw DatabaseError::INVALID_ARGUMENT;
-    }
-    auto space_ptr =
-        std::make_shared<RocksDbSpace>(weak_from_this(), *column, logger_);
-    spaces_[space] = space_ptr;
-    return space_ptr;
+  std::shared_ptr<BufferBatchableStorage> RocksDb::getSpace(Space space) {
+    return spaces_[space];
   }
 
-  void RocksDb::dropColumn(kagome::storage::Space space) {
-    auto space_name = spaceName(space);
-    auto column_it = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column_it) {
-      throw DatabaseError::INVALID_ARGUMENT;
-    }
-    auto &handle = *column_it;
-    auto e = [this](const rocksdb::Status &status) {
+  outcome::result<void> RocksDb::dropColumn(kagome::storage::Space space) {
+    auto column = getCFHandle(space);
+    auto check_status =
+        [this](const rocksdb::Status &status) -> outcome::result<void> {
       if (!status.ok()) {
         logger_->error("DB operation failed: {}", status.ToString());
-        throw status_as_error(status);
+        return status_as_error(status);
       }
+      return outcome::success();
     };
-    e(db_->DropColumnFamily(handle));
-    e(db_->DestroyColumnFamilyHandle(handle));
-    e(db_->CreateColumnFamily({}, space_name, &handle));
+    OUTCOME_TRY(check_status(db_->DropColumnFamily(column)));
+    OUTCOME_TRY(check_status(db_->DestroyColumnFamilyHandle(column)));
+    rocksdb::ColumnFamilyHandle *new_handle{};
+    OUTCOME_TRY(check_status(
+        db_->CreateColumnFamily({}, spaceName(space), &new_handle)));
+    spaces_[space]->column_ = new_handle;
+    return outcome::success();
   }
 
   rocksdb::BlockBasedTableOptions RocksDb::tableOptionsConfiguration(
@@ -156,11 +148,19 @@ namespace kagome::storage {
     rocksdb::BlockBasedTableOptions table_options;
     table_options.format_version = 5;
     table_options.block_cache = rocksdb::NewLRUCache(
-        static_cast<uint64_t>(lru_cache_size_mib * 1024 * 1024));
-    table_options.block_size = static_cast<size_t>(block_size_kib * 1024);
+        static_cast<uint64_t>(lru_cache_size_mib) * 1024 * 1024);
+    table_options.block_size = static_cast<size_t>(block_size_kib) * 1024;
     table_options.cache_index_and_filter_blocks = true;
     table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
     return table_options;
+  }
+
+  rocksdb::ColumnFamilyHandle *RocksDb::getCFHandle(Space space) {
+    auto it = spaces_.find(space);
+    BOOST_ASSERT_MSG(it != spaces_.end(),
+                     "All spaces should have an associated column family");
+    BOOST_ASSERT(it->second != nullptr);
+    return it->second->column_;
   }
 
   rocksdb::ColumnFamilyOptions RocksDb::configureColumn(
@@ -172,16 +172,17 @@ namespace kagome::storage {
     return options;
   }
 
+  std::unique_ptr<BufferSpacedBatch> RocksDb::createBatch() {
+    return std::make_unique<RocksDbBatch>(shared_from_this(),
+                                          getCFHandle(Space::kDefault));
+  }
+
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                             const RocksDb::ColumnFamilyHandlePtr &column,
+                             rocksdb::ColumnFamilyHandle *column,
                              log::Logger logger)
       : storage_{std::move(storage)},
         column_{column},
         logger_{std::move(logger)} {}
-
-  std::unique_ptr<BufferBatch> RocksDbSpace::batch() {
-    return std::make_unique<RocksDbBatch>(*this);
-  }
 
   std::optional<size_t> RocksDbSpace::byteSizeHint() const {
     auto rocks = storage_.lock();
@@ -204,6 +205,15 @@ namespace kagome::storage {
       }
     }
     return usage_bytes;
+  }
+
+  std::unique_ptr<face::WriteBatch<Buffer, Buffer>> RocksDbSpace::batch() {
+    auto rocks = storage_.lock();
+    if (!rocks) {
+      throw DatabaseError::STORAGE_GONE;
+    }
+    auto batch = std::make_unique<RocksDbBatch>(rocks, column_);
+    return batch;
   }
 
   std::unique_ptr<RocksDbSpace::Cursor> RocksDbSpace::cursor() {
