@@ -19,6 +19,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
+#include "network/impl/state_sync_request_flow.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
@@ -820,7 +821,13 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_node_db_, block, header);
+      auto flow_res =
+          StateSyncRequestFlow::create(trie_node_db_, block, header);
+      if (!flow_res) {
+        handler(flow_res.error());
+        return;
+      }
+      state_sync_flow_.emplace(std::move(*flow_res.value()));
     }
     state_sync_.emplace(StateSync{
         .peer = peer_id,

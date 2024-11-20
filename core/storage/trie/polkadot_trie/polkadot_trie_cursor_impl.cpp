@@ -8,6 +8,7 @@
 
 #include <utility>
 
+#include "crypto/blake2/blake2b.h"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -351,8 +352,8 @@ namespace kagome::storage::trie {
     return std::nullopt;
   }
 
-  std::optional<CertainlyValueAndHash> PolkadotTrieCursorImpl::value_and_hash()
-      const {
+  std::optional<PolkadotTrieCursor::CertainlyValueAndHash>
+  PolkadotTrieCursorImpl::value_and_hash() const {
     if (const auto *search_state = std::get_if<SearchState>(&state_);
         search_state != nullptr) {
       const auto &value_opt = search_state->getCurrent().getValue();
@@ -369,7 +370,8 @@ namespace kagome::storage::trie {
           return std::nullopt;
         }
         if (!value_opt.hash) {
-          value_opt.hash =
+          const_cast<ValueAndHash &>(value_opt).hash =
+              crypto::blake2b<32>(*value_opt.value);
         }
       }
       return std::nullopt;

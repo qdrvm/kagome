@@ -78,6 +78,7 @@ namespace kagome::storage::trie {
     outcome::result<void> prev() override;
     std::optional<Buffer> key() const override;
     std::optional<BufferOrView> value() const override;
+    std::optional<CertainlyValueAndHash> value_and_hash() const override;
 
     outcome::result<void> seekLowerBound(const BufferView &key) override;
     outcome::result<void> seekUpperBound(const BufferView &key) override;
@@ -91,7 +92,7 @@ namespace kagome::storage::trie {
     struct Choice {
       Choice(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
 
-      operator bool() const {
+      explicit operator bool() const {
         return parent || overlay;
       }
 

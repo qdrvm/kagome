@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <gtest/gtest.h>
+
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"

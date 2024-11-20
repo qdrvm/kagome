@@ -128,7 +128,7 @@ namespace kagome::storage::trie {
   outcome::result<std::optional<common::Buffer>>
   TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
                                     const OnNodeLoaded &on_node_loaded) const {
-    OUTCOME_TRY(value, storage_backend_->nodes().tryGet(hash));
+    OUTCOME_TRY(value, storage_backend_->values().tryGet(hash));
     return common::map_optional(std::move(value),
                                 [&](common::BufferOrView &&value) {
                                   if (on_node_loaded) {

@@ -137,6 +137,8 @@ namespace kagome::storage::trie {
       return is_some();
     }
 
+    bool operator==(const ValueAndHash &) const = default;
+
     bool is_none() const {
       return !is_some();
     }
