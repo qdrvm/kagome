@@ -116,7 +116,7 @@ namespace kagome::runtime {
         const primitives::BlockHash &block) override;
 
     outcome::result<NodeFeatures> node_features(
-        const primitives::BlockHash &block, SessionIndex index) override;
+        const primitives::BlockHash &block) override;
 
     ClaimQueueResult claim_queue(const primitives::BlockHash &block) override;
 

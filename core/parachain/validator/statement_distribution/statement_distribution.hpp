@@ -147,6 +147,10 @@ namespace kagome::parachain::statement_distribution {
     outcome::result<std::reference_wrapper<PerRelayParentState>>
     getStateByRelayParent(const primitives::BlockHash &relay_parent);
 
+    bool validate(
+        const PerRelayParentState &per_relay_parent,
+        const CandidateHash &candidate_hash,
+        const network::vstaging::AttestedCandidateResponse &response) const;
     void handle_response(
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
         const RelayHash &relay_parent,

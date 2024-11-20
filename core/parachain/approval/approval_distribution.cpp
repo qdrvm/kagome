@@ -1119,8 +1119,7 @@ namespace kagome::parachain {
     }
 
     bool enable_v2_assignments = false;
-    if (auto r = parachain_host_->node_features(block_hash, session_index);
-        r.has_value()) {
+    if (auto r = parachain_host_->node_features(block_hash); r.has_value()) {
       enable_v2_assignments =
           r.value().has(runtime::NodeFeatures::EnableAssignmentsV2);
     }

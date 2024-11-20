@@ -301,7 +301,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<NodeFeatures> ParachainHostImpl::node_features(
-      const primitives::BlockHash &block, SessionIndex index) {
+      const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     OUTCOME_TRY(r,
                 ifExport(executor_->call<scale::BitVec>(

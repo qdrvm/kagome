@@ -588,8 +588,7 @@ namespace kagome::parachain {
       return Error::NO_SESSION_INFO;
     }
 
-    OUTCOME_TRY(node_features,
-                parachain_host_->node_features(relay_parent, session_index));
+    OUTCOME_TRY(node_features, parachain_host_->node_features(relay_parent));
     auto inject_core_index =
         node_features.has(runtime::NodeFeatures::ElasticScalingMVP);
 

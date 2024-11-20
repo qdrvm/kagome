@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <parachain/validator/statement_distribution/statement_distribution.hpp>
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
+
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/parachain_protocols.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 
 #define COMPONENT_NAME "StatementDistribution"
@@ -117,10 +119,8 @@ namespace kagome::parachain::statement_distribution {
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(_prospective_parachains,
-                      _parachain_host,
-                      _block_tree,
-                      std::nullopt),
+      : implicit_view(
+          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -435,6 +435,11 @@ namespace kagome::parachain::statement_distribution {
       const auto &[_, group_rotation_info] = groups;
 
       OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
+      TransposedClaimQueue transposed_claim_queue;
+      if (maybe_claim_queue) {
+        transposed_claim_queue = transposeClaimQueue(*maybe_claim_queue);
+      }
+      OUTCOME_TRY(node_features, parachain_host->node_features(relay_parent));
 
       auto local_validator = [&]() -> std::optional<LocalValidatorState> {
         if (!per_session_state.value()->value().v_index) {
@@ -468,6 +473,9 @@ namespace kagome::parachain::statement_distribution {
               .session = session_index,
               .groups_per_para = std::move(groups_per_para),
               .disabled_validators = std::move(disabled_validators),
+              .v2_receipts =
+                  node_features.has(runtime::NodeFeatures::CandidateReceiptV2),
+              .transposed_claim_queue = transposed_claim_queue,
               .per_session_state = per_session_state.value(),
           });
     }  // for
@@ -1087,6 +1095,25 @@ namespace kagome::parachain::statement_distribution {
         });
   }
 
+  bool StatementDistribution::validate(
+      const PerRelayParentState &per_relay_parent,
+      const CandidateHash &candidate_hash,
+      const network::vstaging::AttestedCandidateResponse &response) const {
+    if (candidateHash(*hasher, response.candidate_receipt) != candidate_hash) {
+      return false;
+    }
+    if (not per_relay_parent.v2_receipts
+        and isV2(response.candidate_receipt.descriptor)) {
+      return false;
+    }
+    if (auto r = checkCoreIndex(response.candidate_receipt,
+                                per_relay_parent.transposed_claim_queue);
+        not r) {
+      return false;
+    }
+    return true;
+  }
+
   void StatementDistribution::handle_response(
       outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
       const RelayHash &relay_parent,
@@ -1125,6 +1152,15 @@ namespace kagome::parachain::statement_distribution {
             candidate_hash,
             group_index,
             response.statements.size());
+
+    if (not validate(parachain_state->get(), candidate_hash, response)) {
+      SL_WARN(logger,
+              "Invalid response receipt relay_parent={} candidate={}",
+              relay_parent,
+              candidate_hash);
+      return;
+    }
+
     for (const auto &statement : response.statements) {
       parachain_state->get().statement_store.insert(
           parachain_state->get().per_session_state->value().groups,
