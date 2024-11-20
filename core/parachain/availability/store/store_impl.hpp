@@ -10,19 +10,25 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include "application/app_state_manager.hpp"
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
 
 namespace kagome::parachain {
-  class AvailabilityStoreImpl : public AvailabilityStore {
+  class AvailabilityStoreImpl
+      : public AvailabilityStore,
+        public std::enable_shared_from_this<AvailabilityStoreImpl> {
    public:
     AvailabilityStoreImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         clock::SteadyClock &steady_clock,
         std::shared_ptr<storage::SpacedStorage> storage,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
     ~AvailabilityStoreImpl() override = default;
+
+    bool start();
 
     bool hasChunk(const CandidateHash &candidate_hash,
                   ValidatorIndex index) const override;
@@ -67,8 +73,8 @@ namespace kagome::parachain {
 
     log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
     clock::SteadyClock &steady_clock_;
-    SafeObject<State> state_{};
     std::shared_ptr<storage::SpacedStorage> storage_;
     primitives::events::ChainSub chain_sub_;
+    SafeObject<State> state_{};
   };
 }  // namespace kagome::parachain
