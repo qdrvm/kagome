@@ -93,7 +93,7 @@ namespace kagome::blockchain {
      * Tries to get block header by {@param block_hash}
      * @returns block header or error
      */
-    virtual outcome::result<std::optional<primitives::BlockHeader>>
+    virtual outcome::result<primitives::BlockHeader>
     getBlockHeader(const primitives::BlockHash &block_hash) const = 0;
 
     // -- body --

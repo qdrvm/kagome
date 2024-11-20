@@ -28,16 +28,12 @@ namespace kagome::api {
   using primitives::BlockNumber;
 
   ChainApiImpl::ChainApiImpl(
-      std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockStorage> block_storage,
       LazySPtr<api::ApiService> api_service)
-      : header_repo_{std::move(block_repo)},
-        block_tree_{std::move(block_tree)},
+      : block_tree_{std::move(block_tree)},
         api_service_{api_service},
         block_storage_{std::move(block_storage)} {
-    BOOST_ASSERT_MSG(header_repo_ != nullptr,
-                     "block repo parameter is nullptr");
     BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree parameter is nullptr");
     BOOST_ASSERT(block_storage_);
   }
@@ -48,7 +44,7 @@ namespace kagome::api {
   }
   outcome::result<common::Hash256> ChainApiImpl::getBlockHash(
       BlockNumber value) const {
-    return header_repo_->getHashByNumber(value);
+    return block_tree_->getHashByNumber(value);
   }
 
   outcome::result<BlockHash> ChainApiImpl::getBlockHash(

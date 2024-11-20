@@ -84,5 +84,6 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     wasm_compiler
+    zstd::libzstd_static
     )
 kagome_clear_objects(application_injector)
