@@ -375,13 +375,13 @@ namespace {
       common::raise(block_tree_res.error());
     }
     auto &block_tree = block_tree_res.value();
+    cached = block_tree;
 
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
 
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine);
 
-    cached = block_tree;
     return block_tree;
   }
 
