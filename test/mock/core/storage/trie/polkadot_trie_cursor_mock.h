@@ -38,6 +38,10 @@ namespace kagome::storage::trie {
     MOCK_METHOD(std::optional<common::Buffer>, key, (), (const, override));
 
     MOCK_METHOD(std::optional<BufferOrView>, value, (), (const, override));
+    MOCK_METHOD(std::optional<CertainlyValueAndHash>,
+                value_and_hash,
+                (),
+                (const, override));
   };
 }  // namespace kagome::storage::trie
 

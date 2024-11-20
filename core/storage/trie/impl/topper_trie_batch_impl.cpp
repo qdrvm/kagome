@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "common/buffer.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/face/generic_maps.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -162,7 +163,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return choice_;
+    return static_cast<bool>(choice_);
   }
 
   outcome::result<void> TopperTrieCursor::next() {
@@ -182,6 +183,15 @@ namespace kagome::storage::trie {
   std::optional<BufferOrView> TopperTrieCursor::value() const {
     return choice_.overlay ? Buffer{*overlay_it_->second}
                            : parent_cursor_->value();
+  }
+
+  std::optional<PolkadotTrieCursor::CertainlyValueAndHash>
+  TopperTrieCursor::value_and_hash() const {
+    auto value_opt = value();
+    if (!value_opt) {
+      return std::nullopt;
+    }
+    return CertainlyValueAndHash{*value_opt, crypto::blake2b<32>(*value_opt)};
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(

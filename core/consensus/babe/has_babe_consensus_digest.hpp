@@ -48,7 +48,7 @@ namespace kagome::consensus::babe {
       }
     }
 
-    operator bool() const {
+    explicit operator bool() const {
       return epoch.has_value();
     }
 
