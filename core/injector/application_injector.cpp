@@ -347,13 +347,8 @@ namespace {
         std::move(identify_config));
   }
 
-  static std::optional<sptr<blockchain::BlockTreeImpl>> cached = std::nullopt;
-
   template <typename Injector>
   sptr<blockchain::BlockTreeImpl> get_block_tree(const Injector &injector) {
-    if (cached.has_value()) {
-      return cached.value();
-    }
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
@@ -375,7 +370,6 @@ namespace {
       common::raise(block_tree_res.error());
     }
     auto &block_tree = block_tree_res.value();
-    cached = block_tree;
 
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
@@ -480,7 +474,7 @@ namespace {
     auto substitutes =
         injector
             .template create<sptr<const primitives::CodeSubstituteBlockIds>>();
-    auto block_tree = get_block_tree(injector);
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto res = runtime::RuntimeUpgradeTrackerImpl::create(
         std::move(storage), std::move(substitutes), std::move(block_tree));
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
@@ -742,8 +736,11 @@ namespace {
                   .value();
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
-            di::bind<blockchain::BlockTree>.template to([](const auto &injector) { return get_block_tree(injector); }),
-            di::bind<blockchain::BlockHeaderRepository>.template to([](const auto &injector) { return get_block_tree(injector); }),
+            bind_by_lambda<blockchain::BlockTree>(
+                [](const auto &injector) {
+                  return get_block_tree(injector);
+                }),
+            di::bind<blockchain::BlockHeaderRepository>.template to([](const auto &injector) { return injector.template create<sptr<blockchain::BlockTree>>(); }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
