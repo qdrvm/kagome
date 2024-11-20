@@ -7,7 +7,6 @@
 #include <kagome/application/impl/app_configuration_impl.hpp>
 #include <kagome/application/impl/app_state_manager_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
-#include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bandersnatch/bandersnatch_provider_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
@@ -122,7 +121,7 @@ int main() {
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
       runtime_upgrade_tracker =
           std::move(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-                        header_repo, database, code_substitutes, block_storage)
+                        header_repo, database, code_substitutes, std::make_shared<kagome::blockchain::BlockTreeMock>())
                         .value());
 
   auto storage_batch =

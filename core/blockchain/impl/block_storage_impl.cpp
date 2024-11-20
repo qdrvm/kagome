@@ -118,26 +118,19 @@ namespace kagome::blockchain {
       if (j_opt.has_value()) {
         break;
       }
-      OUTCOME_TRY(header_opt, getBlockHeader(current_hash));
-      if (header_opt.has_value()) {
-        auto header = header_opt.value();
-        if (header.number == 0) {
-          SL_TRACE(logger_,
-                   "Not found block with justification. "
-                   "Genesis block will be used as last finalized ({})",
-                   current_hash);
-          return {0, current_hash};  // genesis
-        }
-        current_hash = header.parent_hash;
-      } else {
-        SL_ERROR(
-            logger_, "Failed to fetch header for block ({})", current_hash);
-        return BlockStorageError::HEADER_NOT_FOUND;
+      OUTCOME_TRY(header, getBlockHeader(current_hash));
+      if (header.number == 0) {
+        SL_TRACE(logger_,
+                 "Not found block with justification. "
+                 "Genesis block will be used as last finalized ({})",
+                 current_hash);
+        return {0, current_hash};  // genesis
       }
+      current_hash = header.parent_hash;
     }
 
     OUTCOME_TRY(header, getBlockHeader(current_hash));
-    primitives::BlockInfo found_block{header.value().number, current_hash};
+    primitives::BlockInfo found_block{header.number, current_hash};
     SL_TRACE(logger_,
              "Justification is found in block {}. "
              "This block will be used as last finalized",
@@ -206,8 +199,7 @@ namespace kagome::blockchain {
     return block_hash;
   }
 
-  outcome::result<std::optional<primitives::BlockHeader>>
-  BlockStorageImpl::getBlockHeader(
+  outcome::result<primitives::BlockHeader> BlockStorageImpl::getBlockHeader(
       const primitives::BlockHash &block_hash) const {
     OUTCOME_TRY(encoded_header_opt,
                 getFromSpace(*storage_, Space::kHeader, block_hash));
@@ -218,7 +210,7 @@ namespace kagome::blockchain {
       header.hash_opt.emplace(block_hash);
       return header;
     }
-    return std::nullopt;
+    return BlockStorageError::HEADER_NOT_FOUND;
   }
 
   outcome::result<void> BlockStorageImpl::putBlockBody(
@@ -309,11 +301,7 @@ namespace kagome::blockchain {
     primitives::BlockData block_data{.hash = block_hash};
 
     // Block header
-    OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
-    if (not header_opt.has_value()) {
-      return std::nullopt;
-    }
-    auto &header = header_opt.value();
+    OUTCOME_TRY(header, getBlockHeader(block_hash));
     block_data.header = std::move(header);
 
     // Block body
@@ -332,11 +320,11 @@ namespace kagome::blockchain {
   outcome::result<void> BlockStorageImpl::removeBlock(
       const primitives::BlockHash &block_hash) {
     // Check if block still in storage
-    OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
-    if (not header_opt.has_value()) {
+    const auto header_res = getBlockHeader(block_hash);
+    if (not header_res) {
       return outcome::success();
     }
-    const auto &header = header_opt.value();
+    const auto &header = header_res.value();
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
