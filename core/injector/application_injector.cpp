@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "injector/application_injector.hpp"
-
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   32  // TODO(Harrm): #2104 check how it influences on compilation time
+
+#include "injector/application_injector.hpp"
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -119,10 +119,11 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
@@ -258,6 +259,7 @@ namespace {
       const sptr<application::ChainSpec> &chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
+    bool enable_migration = app_config.enableDbMigration();
 
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
@@ -273,11 +275,15 @@ namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
+    const std::unordered_map<std::string, int32_t> column_ttl = {
+        {"avaliability_storage", 25 * 60 * 60}};  // 25 hours
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  app_config.dbCacheSize(),
-                                 prevent_destruction);
+                                 prevent_destruction,
+                                 column_ttl,
+                                 enable_migration);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical(
@@ -328,7 +334,6 @@ namespace {
     libp2p::protocol::kademlia::Config kademlia_config;
     kademlia_config.protocols =
         network::make_protocols("/{}/kad", genesis, chain_spec);
-    kademlia_config.maxBucketSize = 1000;
     kademlia_config.randomWalk.enabled = false;
     kademlia_config.valueLookupsQuorum = 4;
 
@@ -757,7 +762,6 @@ namespace {
             di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
             di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
             di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-            di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
             di::bind<network::ReputationRepository>.template to<network::ReputationRepositoryImpl>(),
             di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
             di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
@@ -935,7 +939,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(std::move(app_config)))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

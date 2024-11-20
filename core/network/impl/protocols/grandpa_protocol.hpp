@@ -6,63 +6,62 @@
 
 #pragma once
 
-#include "network/protocol_base.hpp"
-
-#include <memory>
 #include <random>
+#include <set>
 
-#include <libp2p/basic/scheduler.hpp>
-#include <libp2p/connection/stream.hpp>
-#include <libp2p/host/host.hpp>
-
-#include "consensus/grandpa/grandpa_observer.hpp"
-#include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
-#include "network/impl/protocols/protocol_base_impl.hpp"
-#include "network/impl/stream_engine.hpp"
-#include "network/peer_manager.hpp"
-#include "network/types/own_peer_info.hpp"
+#include "network/notifications/protocol.hpp"
+#include "network/types/grandpa_message.hpp"
+#include "network/types/roles.hpp"
+#include "utils/lru.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::blockchain {
-  class BlockTree;
   class GenesisBlockHash;
 }  // namespace kagome::blockchain
 
-namespace kagome::network {
+namespace kagome::consensus::grandpa {
+  class GrandpaObserver;
+}  // namespace kagome::consensus::grandpa
 
-  KAGOME_DECLARE_CACHE(GrandpaProtocol, KAGOME_CACHE_UNIT(GrandpaMessage));
+namespace kagome::crypto {
+  class Hasher;
+}  // namespace kagome::crypto
+
+namespace kagome::network {
+  struct OwnPeerInfo;
+  class PeerManager;
+}  // namespace kagome::network
+
+namespace kagome::network {
+  using libp2p::PeerId;
 
   class GrandpaProtocol final
-      : public ProtocolBase,
-        public std::enable_shared_from_this<GrandpaProtocol>,
+      : public std::enable_shared_from_this<GrandpaProtocol>,
+        public notifications::Controller,
         NonCopyable,
         NonMovable {
    public:
-    GrandpaProtocol() = delete;
-    ~GrandpaProtocol() override = default;
-
     GrandpaProtocol(
-        libp2p::Host &host,
+        const notifications::Factory &notifications_factory,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<boost::asio::io_context> io_context,
         Roles roles,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-    bool start() override;
+    // Controller
+    Buffer handshake() override;
+    bool onHandshake(const PeerId &peer_id,
+                     size_t,
+                     bool out,
+                     Buffer &&handshake) override;
+    bool onMessage(const PeerId &peer_id, size_t, Buffer &&message) override;
+    void onClose(const PeerId &peer_id) override;
 
-    const std::string &protocolName() const override;
-
-    void onIncomingStream(std::shared_ptr<Stream> stream) override;
-    void newOutgoingStream(
-        const PeerId &peer_id,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
-        override;
+    void start();
 
     void vote(network::GrandpaVote &&vote_message,
               std::optional<const libp2p::peer::PeerId> peer_id);
@@ -75,15 +74,18 @@ namespace kagome::network {
                          CatchUpResponse &&catch_up_response);
 
    private:
-    inline static const auto kGrandpaProtocolName = "GrandpaProtocol"s;
+    static constexpr auto kGrandpaProtocolName = "GrandpaProtocol";
 
-    void onMessage(const PeerId &peer_id, GrandpaMessage message);
-
-    common::Hash256 getHash(const GrandpaMessage &message) const;
-    bool addKnown(const PeerId &peer, const common::Hash256 &hash);
-
+    struct RawMessage {
+      std::shared_ptr<Buffer> raw;
+      std::optional<Hash256> hash;
+    };
+    std::optional<Hash256> rawMessageHash(const GrandpaMessage &message,
+                                          BufferView message_raw) const;
+    RawMessage rawMessage(const GrandpaMessage &message) const;
+    bool write(const PeerId &peer_id, RawMessage message);
     template <typename F>
-    void broadcast(std::shared_ptr<GrandpaMessage> message, const F &predicate);
+    void broadcast(const RawMessage &message, const F &predicate);
 
     /// Node should send catch-up requests rarely to be polite, because
     /// processing of them consume more enough resources.
@@ -91,15 +93,15 @@ namespace kagome::network {
     static constexpr std::chrono::milliseconds kRecentnessDuration =
         std::chrono::seconds(300);
 
-    ProtocolBaseImpl base_;
+    log::Logger log_;
+    std::shared_ptr<notifications::Protocol> notifications_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
     Roles roles_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     const OwnPeerInfo &own_info_;
-    std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    MapLruSet<PeerId, Hash256> seen_;
 
     std::set<std::tuple<consensus::grandpa::RoundNumber,
                         consensus::grandpa::VoterSetId>>
@@ -110,6 +112,8 @@ namespace kagome::network {
     std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
 
     std::default_random_engine random_;
+
+    friend class BlockAnnounceProtocol;
   };
 
 }  // namespace kagome::network

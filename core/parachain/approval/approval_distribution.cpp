@@ -8,6 +8,7 @@
 
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <future>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/shared_fn.hpp>
@@ -20,8 +21,7 @@
 #include "crypto/hasher.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
-#include "network/impl/stream_engine.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
@@ -29,8 +29,11 @@
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
+#include "parachain/pvf/pvf.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "utils/map.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_macro.hpp"
 
@@ -634,35 +637,28 @@ namespace kagome::parachain {
   }
 
   bool ApprovalDistribution::tryStart() {
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->on_active_leaves_update(event);
-          }
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
+          self->on_active_leaves_update(event);
         });
 
-    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
-        peer_view_->getRemoteViewObservable(), false);
-    primitives::events::subscribe(
-        *remote_view_sub_,
+    remote_view_sub_ = primitives::events::subscribe(
+        peer_view_->getRemoteViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const libp2p::peer::PeerId &peer_id,
-                                 const network::View &view) {
-          if (auto self = wptr.lock()) {
-            self->store_remote_view(peer_id, view);
-          }
+        [WEAK_SELF](const libp2p::peer::PeerId &peer_id,
+                    const network::View &view) {
+          WEAK_LOCK(self);
+          self->store_remote_view(peer_id, view);
         });
 
     chain_sub_.onDeactivate(
-        [wptr{weak_from_this()}](
+        [WEAK_SELF](
             const primitives::events::RemoveAfterFinalizationParams &event) {
-          if (auto self = wptr.lock()) {
-            self->clearCaches(event);
-          }
+          WEAK_LOCK(self);
+          self->clearCaches(event);
         });
 
     /// TODO(iceseer): clear `known_by` when peer disconnected
@@ -2581,20 +2577,14 @@ namespace kagome::parachain {
              "Distributing assignment on candidate (block hash={})",
              indirect_cert.block_hash);
 
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Assignments{
-                    .assignments = {network::vstaging::Assignment{
-                        .indirect_assignment_cert = indirect_cert,
-                        .candidate_bitfield = candidate_indices,
-                    }}}}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    router_->getValidationProtocol()->write(
+        peers,
+        network::vstaging::Assignments{
+            .assignments = {network::vstaging::Assignment{
+                .indirect_assignment_cert = indirect_cert,
+                .candidate_bitfield = candidate_indices,
+            }},
+        });
   }
 
   void ApprovalDistribution::send_assignments_batched(
@@ -2604,9 +2594,6 @@ namespace kagome::parachain {
              send_assignments_batched,
              std::move(assignments),
              peer_id);
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);  // kMaxAssignmentBatchSize
 
     /** TODO(iceseer): optimize
         std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>>
@@ -2627,16 +2614,11 @@ namespace kagome::parachain {
       auto end = (assignments.size() > kMaxAssignmentBatchSize)
                    ? assignments.begin() + kMaxAssignmentBatchSize
                    : assignments.end();
-
-      auto msg = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{
-              network::vstaging::Assignments{
-                  .assignments =
-                      std::vector<network::vstaging::Assignment>(begin, end),
-              }});
-
-      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
+      router_->getValidationProtocol()->write(
+          peer_id,
+          network::vstaging::Assignments{
+              .assignments = std::vector(begin, end),
+          });
       assignments.erase(begin, end);
     }
   }
@@ -2648,9 +2630,6 @@ namespace kagome::parachain {
              send_approvals_batched,
              std::move(approvals),
              peer_id);
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);  // kMaxApprovalBatchSize
 
     /** TODO(iceseer): optimize
         std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>>
@@ -2676,17 +2655,11 @@ namespace kagome::parachain {
       auto end = (approvals.size() > kMaxApprovalBatchSize)
                    ? approvals.begin() + kMaxApprovalBatchSize
                    : approvals.end();
-
-      auto msg = std::make_shared<
-          network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-          network::vstaging::ApprovalDistributionMessage{
-              network::vstaging::Approvals{
-                  .approvals =
-                      std::vector<approval::IndirectSignedApprovalVoteV2>(begin,
-                                                                          end),
-              }});
-
-      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
+      router_->getValidationProtocol()->write(
+          peer_id,
+          network::vstaging::Approvals{
+              .approvals = std::vector(begin, end),
+          });
       approvals.erase(begin, end);
     }
   }
@@ -2702,18 +2675,10 @@ namespace kagome::parachain {
             vote.payload.payload.block_hash,
             peers.size());
 
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    se->broadcast(
-        router_->getValidationProtocolVStaging(),
-        std::make_shared<
-            network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(
-            network::vstaging::ApprovalDistributionMessage{
-                network::vstaging::Approvals{
-                    .approvals = {vote},
-                }}),
-        [&](const libp2p::peer::PeerId &p) { return peers.contains(p); });
+    router_->getValidationProtocol()->write(peers,
+                                            network::vstaging::Approvals{
+                                                .approvals = {vote},
+                                            });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,

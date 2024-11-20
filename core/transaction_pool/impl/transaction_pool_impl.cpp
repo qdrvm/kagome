@@ -123,8 +123,7 @@ namespace kagome::transaction_pool {
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic, hash));
 
     if (tx.should_propagate) {
-      std::vector txs{tx};
-      tx_transmitter_->propagateTransactions(txs);
+      tx_transmitter_->propagateTransaction(tx);
     }
 
     OUTCOME_TRY(

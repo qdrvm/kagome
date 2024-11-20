@@ -409,7 +409,7 @@ namespace kagome::network {
       StatementDistributionMessage,  /// statement distribution message
       ApprovalDistributionMessage    /// approval distribution message
       >;
-  using CollationProtocolMessage = boost::variant<CollationMessage>;
+  using CollationMessage0 = boost::variant<CollationMessage>;
 
   template <typename T, typename... AllowedTypes>
   struct AllowerTypeChecker {
