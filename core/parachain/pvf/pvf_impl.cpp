@@ -278,14 +278,12 @@ namespace kagome::parachain {
                          .commitments = commitments,
                      },
                      transposeClaimQueue(*claims)));
-                 if (auto session = sessionIndex(receipt.descriptor)) {
-                   CB_TRY(auto expected_session,
-                          self->parachain_api_->session_index_for_child(
-                              receipt.descriptor.relay_parent));
-                   if (session != expected_session) {
-                     cb(network::CheckCoreIndexError::InvalidSession);
-                     return;
-                   }
+                 CB_TRY(auto expected_session,
+                        self->parachain_api_->session_index_for_child(
+                            receipt.descriptor.relay_parent));
+                 if (sessionIndex(receipt.descriptor) != expected_session) {
+                   cb(network::CheckCoreIndexError::InvalidSession);
+                   return;
                  }
                }
                cb(std::make_pair(std::move(commitments), data));
