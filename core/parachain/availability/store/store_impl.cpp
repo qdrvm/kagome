@@ -23,8 +23,6 @@ namespace kagome::parachain {
     chain_sub_.onDeactivate(
         [this](
             const primitives::events::RemoveAfterFinalizationParams &params) {
-          SL_INFO(
-              logger, "Deactivate after finalization of {}", params.finalized);
           if (params.removed.empty()) {
             return;
           }
