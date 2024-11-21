@@ -144,8 +144,8 @@ kagome_dev_docker_build:
 				kagome \
 				/tmp/kagome \
 				'Kagome Ubuntu Package' \
-				'$(DEPENDENCIES)' \
-		fi \
+				'$(DEPENDENCIES)' ; \
+		fi; \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -255,10 +255,10 @@ upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb \
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb ; \
 	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ]; then \
 		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=./pkg/kagome_$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb \
-	fi \
+	fi;
 
 runtime_cache:
 	CONTAINER_NAME=kagome_dev_runtime_cache_$$(openssl rand -hex 6); \
