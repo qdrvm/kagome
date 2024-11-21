@@ -37,7 +37,7 @@ BUILDER_IMAGE_TAG ?= $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
 DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
-KAGOME_SANITIZED_VERSION = `cd $(WORKING_DIR) && ./get_version.sh --sanitized`
+KAGOME_SANITIZED_VERSION = $(shell cd $(WORKING_DIR) && ./get_version.sh --sanitized)
 
 # kagome_runtime_cache and kagome_image_build Variables
 KAGOME_PACKAGE_VERSION ?=
