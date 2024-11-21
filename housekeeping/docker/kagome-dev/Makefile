@@ -45,7 +45,7 @@ KAGOME_PACKAGE_VERSION ?=
 
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
-PUBLIC_ARTIFACTS_REPO =? kagome
+PUBLIC_ARTIFACTS_REPO ?= kagome
 REGION ?= europe-north1
 
 # CI Variables
@@ -137,7 +137,7 @@ kagome_dev_docker_build:
 			/tmp/kagome \
 			'Kagome Dev Ubuntu Package' \
 			'$(DEPENDENCIES)' && \
-		if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ]; then \
+		if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
 			./build_apt_package.sh \
 				\"$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)\" \
 				$(PACKAGE_ARCHITECTURE) \
@@ -256,8 +256,8 @@ upload_apt_package:
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb ; \
-	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ]; then \
-		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=./pkg/kagome_$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb \
+	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
+		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=./pkg/kagome_$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb ; \
 	fi;
 
 runtime_cache:
