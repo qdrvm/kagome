@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 
 #include "common/buffer.hpp"
 

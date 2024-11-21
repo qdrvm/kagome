@@ -21,15 +21,6 @@ namespace kagome {
       return false;
     }
   };
-
-  template <typename Tag>
-  [[noreturn]] scale::ScaleEncoderStream &operator<<(
-      scale::ScaleEncoderStream &s, const Stub<Tag> &data) {
-    throw std::runtime_error(fmt::format(
-        "Can not encode: encoding object is stubbed type tagged by {}",
-        typeid(Tag).name()));
-  }
-
   template <typename Tag>
   [[noreturn]] scale::ScaleDecoderStream &operator>>(
       scale::ScaleDecoderStream &s, Stub<Tag> &data) {

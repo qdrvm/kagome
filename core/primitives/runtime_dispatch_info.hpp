@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 #include <scale/tie.hpp>
 
 #include "common/unused.hpp"
@@ -66,12 +66,6 @@ namespace kagome::primitives {
     stream >> dispatch_class_byte;
     dispatch_class = static_cast<DispatchClass>(dispatch_class_byte);
     return stream;
-  }
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &stream, DispatchClass dispatch_class) {
-    return stream << dispatch_class;
   }
 
   struct Balance : public scale::Fixed<scale::uint128_t> {};

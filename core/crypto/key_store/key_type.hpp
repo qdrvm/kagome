@@ -38,10 +38,6 @@ namespace kagome::crypto {
 
     constexpr auto operator<=>(const KeyType &other) const = default;
 
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const KeyType &v) {
-      return s << v.id_;
-    }
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, KeyType &v) {

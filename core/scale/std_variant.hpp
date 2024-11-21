@@ -7,17 +7,9 @@
 
 #include <variant>
 
-#include <scale/scale.hpp>
+#include "scale/encoder/primitives.hpp"
 
 namespace scale {
-
-  template <typename Stream, typename... Options>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &stream, const std::variant<Options...> &variant) {
-    stream << static_cast<uint8_t>(variant.index());
-    std::visit([&stream](const auto &v) { stream << v; }, variant);
-    return stream;
-  }
 
   template <typename Option, typename Stream, typename... Options>
     requires Stream::is_decoder_stream

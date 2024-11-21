@@ -119,15 +119,6 @@ namespace scale {
 
   constexpr auto as_tie_sfinae = [](auto &&) {};
 
-  template <typename T,
-            typename = decltype(scale::as_tie(std::declval<T>(),
-                                              as_tie_sfinae))>
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const T &v) {
-    as_tie(v, [&](auto v) {
-      std::apply([&](const auto &...v) { (..., (s << v)); }, v);
-    });
-    return s;
-  }
 
   template <typename T,
             typename = decltype(scale::as_tie(std::declval<T>(),

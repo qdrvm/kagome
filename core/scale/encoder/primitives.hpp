@@ -12,16 +12,33 @@
 #include <optional>
 #include <scale/outcome/outcome_throw.hpp>
 #include <scale/types.hpp>
-#include "crypto/ecdsa_types.hpp"
+#include "scale/big_fixed_integers.hpp"
+#include "scale/encode_append.hpp"
+#include "scale/libp2p_types.hpp"
 #include <span>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 #include <iostream>
 
+#include "primitives/math.hpp"
 #include "utils/struct_to_tuple.hpp"
 
 namespace kagome::scale {
+
+  using CompactInteger = ::scale::CompactInteger;
+  using BitVec = ::scale::BitVec;
+  using ScaleDecoderStream = ::scale::ScaleDecoderStream;
+  using ScaleEncoderStream = ::scale::ScaleEncoderStream;
+  using PeerInfoSerializable = ::scale::PeerInfoSerializable;
+  using DecodeError = ::scale::DecodeError;
+  template <typename T>
+  using Fixed = ::scale::Fixed<T>;
+  template <typename T>
+  using Compact = ::scale::Compact<T>;
+  using uint128_t = ::scale::uint128_t;
+
+  using ::scale::decode;  
 
   template <typename F>
   constexpr void putByte(const F &func, const uint8_t *const val, size_t count) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
@@ -91,12 +108,6 @@ namespace kagome::scale {
 
   template <typename F, typename T>
   void encode(const F &func, const std::optional<T> &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaSignature &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaPublicKey &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const T &v) requires (!std::is_enum_v<std::decay_t<T>>) && 
@@ -478,16 +489,6 @@ namespace kagome::scale {
       kagome::scale::encode(func, uint8_t(1u));
       kagome::scale::encode(func, *v);
     }
-  }
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaSignature &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE> &>(data));
-  }
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaPublicKey &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
   }
 
 }  // namespace kagome::scale

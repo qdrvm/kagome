@@ -7,7 +7,7 @@
 #include "network/types/block_direction.hpp"
 
 #include <gtest/gtest.h>
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 
 #include "testutil/outcome.hpp"
 #include "testutil/testparam.hpp"

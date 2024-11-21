@@ -11,7 +11,7 @@
 #include "consensus/timeline/types.hpp"
 #include "primitives/common.hpp"
 
-#include <scale/scale.hpp>
+#include "scale/encoder/primitives.hpp"
 
 namespace kagome::consensus::babe {
   /**
@@ -48,21 +48,6 @@ namespace kagome::consensus::babe {
     bool isProducedInSecondarySlot() const {
       return slot_assignment_type == SlotType::SecondaryPlain
           or slot_assignment_type == SlotType::SecondaryVRF;
-    }
-
-    /**
-     * @brief outputs object of type BabeBlockHeader to stream
-     * @param s stream reference
-     * @param v value to output
-     * @return reference to stream
-     */
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const BabeBlockHeader &bh) {
-      s << bh.slot_assignment_type << bh.authority_index << bh.slot_number;
-      if (bh.needVRFCheck()) {
-        s << bh.vrf_output;
-      }
-      return s;
     }
 
     /**

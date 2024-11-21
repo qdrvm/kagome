@@ -121,12 +121,6 @@ namespace kagome::network::vstaging {
         : inner_value{std::move(val)} {}
     CompactStatement() = default;
 
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const CompactStatement &c) {
-      s << c.header << c.inner_value;
-      return s;
-    }
-
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, CompactStatement &c) {
       s >> c.header >> c.inner_value;

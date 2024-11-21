@@ -100,20 +100,6 @@ namespace kagome::offchain {
   };
 
   template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
-    s << v.peer_id.toVector();
-
-    s << scale::CompactInteger(v.address.size());
-
-    for (auto &address : v.address) {
-      s << address.getBytesAddress();
-    }
-
-    return s;
-  }
-
-  template <class Stream>
     requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, OpaqueNetworkState &v) {
     common::Buffer buff;

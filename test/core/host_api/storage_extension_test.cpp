@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
