@@ -12,7 +12,7 @@ We define categories of rules:
 - **Guidelines** - suggested practices of a more abstract nature for which exceptions are sometimes legitimately made.
 - **Principles** - certain observations and truths that have often proved useful during the design process but must be evaluated in the context of a specific design.
 
-All of these rules are described in the [^1], readers are welcomed *not to ask rationale here*, but search through the book by themselves for answers.
+All of these rules are described in the [^1], readers are welcomed *not to ask rationale here*, but to search through the book by themselves for answers.
 
 All used terms are described in [terms.md](./terms.md).
 
@@ -89,7 +89,7 @@ All used terms are described in [terms.md](./terms.md).
 
 16. **guideline** - clients should include header files providing required type definitions directly; except for non-private inheritance, avoid relying on one header file to include another.
 
-17. **major design rule** - avoid definitions with *external linkage* in the `.cpp` file of a component that are not declared explicitly in the corresponding `.hpp` file.
+17. **major design rule** - avoid definitions with *external linkage* in the `.cpp` file of a component that is not declared explicitly in the corresponding `.hpp` file.
 
 18.  **major design rule** - avoid accessing a *definition* with *external linkage* in another component via a local declaration; instead, include the `.hpp` file for that component.
 

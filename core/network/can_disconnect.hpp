@@ -18,6 +18,6 @@ namespace kagome::network {
    public:
     virtual ~CanDisconnect() = default;
 
-    virtual bool canDisconnect(const libp2p::PeerId &) const = 0;
+    virtual bool can_disconnect(const libp2p::PeerId &) const = 0;
   };
 }  // namespace kagome::network

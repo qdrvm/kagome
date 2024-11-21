@@ -24,6 +24,7 @@
 #include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "threshold_util.hpp"
+#include "utils/weak_macro.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BabeBlockValidatorImpl::ValidationError,
@@ -77,22 +78,9 @@ namespace kagome::consensus::babe {
 
   void BabeBlockValidatorImpl::prepare() {
     sync_state_observer_ =
-        std::make_shared<primitives::events::SyncStateEventSubscriber>(
-            sync_state_observable_, false);
-    sync_state_observer_->subscribe(
-        sync_state_observer_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
-    sync_state_observer_->setCallback(
-        [wp{weak_from_this()}](
-            auto /*set_id*/,
-            bool &synchronized,
-            auto /*event_type*/,
-            const primitives::events::SyncStateEventParams &event) mutable {
-          if (auto self = wp.lock()) {
-            if (event == consensus::SyncState::SYNCHRONIZED) {
-              self->was_synchronized_ = true;
-            }
-          }
+        primitives::events::onSync(sync_state_observable_, [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->was_synchronized_ = true;
         });
   }
 
@@ -148,14 +136,8 @@ namespace kagome::consensus::babe {
     // If we were synchronized,
     // we have available runtime to check disabled validators
     if (was_synchronized_) {
-      std::vector<AuthorityIndex> disabled_validators;
-      if (auto res = babe_api_->disabled_validators(block_header.parent_hash);
-          res.has_error()) {
-        SL_CRITICAL(log_,
-                    "Can't obtain disabled validators list for block {}",
-                    block_header.blockInfo());
-      }
-
+      OUTCOME_TRY(disabled_validators,
+                  babe_api_->disabled_validators(block_header.parent_hash));
       if (std::ranges::binary_search(disabled_validators,
                                      babe_header.authority_index)) {
         SL_VERBOSE(log_,

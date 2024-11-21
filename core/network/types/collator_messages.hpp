@@ -88,41 +88,6 @@ namespace kagome::network {
   using RequestPov = CandidateHash;
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
 
-  /**
-   * Contains information about the candidate and a proof of the results of its
-   * execution.
-   */
-  struct CandidateReceipt {
-    CandidateDescriptor descriptor;  /// Candidate descriptor
-    Hash commitments_hash;           /// Hash of candidate commitments
-
-    const Hash &hash(const crypto::Hasher &hasher) const {
-      if (not hash_.has_value()) {
-        hash_.emplace(hasher.blake2b_256(
-            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
-      }
-      return hash_.value();
-    }
-
-    inline bool operator==(const CandidateReceipt &other) const {
-      return descriptor == other.descriptor
-         and commitments_hash == other.commitments_hash;
-    }
-
-    friend inline scale::ScaleDecoderStream &operator>>(
-        scale::ScaleDecoderStream &s, CandidateReceipt &cr) {
-      return s >> cr.descriptor >> cr.commitments_hash;
-    }
-
-    friend inline scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const CandidateReceipt &cr) {
-      return s << cr.descriptor << cr.commitments_hash;
-    }
-
-   private:
-    mutable std::optional<Hash> hash_{};
-  };
-
   struct CollationResponse {
     SCALE_TIE(2);
 
@@ -211,23 +176,6 @@ namespace kagome::network {
   using FetchAvailableDataRequest = CandidateHash;
   using FetchAvailableDataResponse =
       boost::variant<runtime::AvailableData, Empty>;
-
-  struct CommittedCandidateReceipt {
-    SCALE_TIE(2);
-
-    CandidateDescriptor descriptor;    /// Candidate descriptor
-    CandidateCommitments commitments;  /// commitments retrieved from validation
-    /// result and produced by the execution
-    /// and validation parachain candidate
-
-    CandidateReceipt to_plain(const crypto::Hasher &hasher) const {
-      CandidateReceipt receipt;
-      receipt.descriptor = descriptor,
-      receipt.commitments_hash =
-          hasher.blake2b_256(scale::encode(commitments).value());
-      return receipt;
-    }
-  };
 
   struct FetchStatementRequest {
     SCALE_TIE(2);
@@ -461,7 +409,7 @@ namespace kagome::network {
       StatementDistributionMessage,  /// statement distribution message
       ApprovalDistributionMessage    /// approval distribution message
       >;
-  using CollationProtocolMessage = boost::variant<CollationMessage>;
+  using CollationMessage0 = boost::variant<CollationMessage>;
 
   template <typename T, typename... AllowedTypes>
   struct AllowerTypeChecker {

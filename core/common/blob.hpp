@@ -14,6 +14,7 @@
 
 #include "common/buffer_view.hpp"
 #include "common/hexutil.hpp"
+#include "common/span_adl.hpp"
 #include "macro/endianness_utils.hpp"
 
 #define KAGOME_BLOB_STRICT_TYPEDEF(space_name, class_name, blob_size)          \
@@ -211,6 +212,13 @@ namespace kagome::common {
       std::ranges::copy(span, blob.begin());
       return blob;
     }
+
+    auto operator<=>(const Blob<size_> &other) const {
+      return SpanAdl{*this} <=> other;
+    }
+    bool operator==(const Blob<size_> &other) const {
+      return SpanAdl{*this} == other;
+    }
   };
 
   // extern specification of the most frequently instantiated blob
@@ -271,17 +279,15 @@ struct fmt::formatter<kagome::common::Blob<N>> {
   template <typename FormatContext>
   auto format(const kagome::common::Blob<N> &blob, FormatContext &ctx) const
       -> decltype(ctx.out()) {
-    // ctx.out() is an output iterator to write to.
-
     if (presentation == 's') {
-      return fmt::format_to(
-          ctx.out(),
-          "0x{:04x}…{:04x}",
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          htobe16(*reinterpret_cast<const uint16_t *>(blob.data())),
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          htobe16(*reinterpret_cast<const uint16_t *>(blob.data() + blob.size()
-                                                      - sizeof(uint16_t))));
+      if constexpr (N > 4) {
+        uint16_t head = static_cast<uint16_t>(blob[1])
+                      | (static_cast<uint16_t>(blob[0]) << 8);
+        uint16_t tail = static_cast<uint16_t>(blob[blob.size() - 1])
+                      | (static_cast<uint16_t>(blob[blob.size() - 2]) << 8);
+        return fmt::format_to(ctx.out(), "0x{:04x}…{:04x}", head, tail);
+      }
+      // else fallback to normal print
     }
 
     return fmt::format_to(ctx.out(), "0x{}", blob.toHex());

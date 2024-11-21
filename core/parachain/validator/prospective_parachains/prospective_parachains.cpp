@@ -285,8 +285,18 @@ namespace kagome::parachain {
   ProspectiveParachains::fetchUpcomingParas(
       const RelayHash &relay_parent,
       std::unordered_set<CandidateHash> &pending_availability) {
-    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
+    OUTCOME_TRY(claim, parachain_host_->claim_queue(relay_parent));
+    if (claim) {
+      std::unordered_set<ParachainId> result;
+      for (const auto &[_, paras] : claim->claimes) {
+        for (const auto &para : paras) {
+          result.emplace(para);
+        }
+      }
+      return result;
+    }
 
+    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
     std::unordered_set<ParachainId> upcoming;
     for (const auto &core : cores) {
       visit_in_place(
@@ -305,6 +315,7 @@ namespace kagome::parachain {
           },
           [](const auto &) {});
     }
+
     return upcoming;
   }
 

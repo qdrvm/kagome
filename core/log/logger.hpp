@@ -31,6 +31,8 @@ namespace kagome::log {
 
   void tuneLoggingSystem(const std::vector<std::string> &cfg);
 
+  void doLogRotate();
+
   static const std::string defaultGroupName("kagome");
 
   [[nodiscard]] Logger createLogger(const std::string &tag);

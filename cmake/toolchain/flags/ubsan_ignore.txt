@@ -1,0 +1,2 @@
+# false-positive on applying non-zero offset to null pointer: the pointer is never dereferenced
+fun:_ZN9rapidjson8internal5StackINS_12CrtAllocatorEE7Reserve*

@@ -16,8 +16,6 @@ using kagome::application::GenesisRawData;
 using kagome::common::Buffer;
 using kagome::crypto::Sr25519PublicKey;
 using libp2p::multi::Multiaddress;
-using libp2p::peer::PeerId;
-using libp2p::peer::PeerInfo;
 
 class ConfigurationStorageTest : public ::testing::Test {
  protected:

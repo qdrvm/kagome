@@ -35,7 +35,7 @@
 #include "offchain/offchain_worker_pool.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
-#include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/backed_candidates_source.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
@@ -57,6 +57,23 @@ namespace {
 
   constexpr const char *kIsRelayChainValidator =
       "kagome_node_is_active_validator";
+
+  constexpr const char *kBackedCandidatesInBlock =
+      "kagome_node_backed_candidates_in_block";
+
+  constexpr const char *kIncludeCandidatesInBlock =
+      "kagome_node_include_candidates_in_block";
+
+  constexpr const char *kNoBackedCandidatesInBlock =
+      "kagome_node_no_backed_candidates_in_block";
+
+  constexpr const char *kNoIncludeCandidatesInBlock =
+      "kagome_node_no_include_candidates_in_block";
+
+  constexpr const char *kNoBackedNoIncludeCandidatesInBlock =
+      "kagome_node_no_backed_no_include_candidates_in_block";
+
+  constexpr const char *kTotalBlocks = "kagome_node_total_blocks";
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   kagome::metrics::HistogramTimer metric_block_proposal_time{
@@ -149,6 +166,43 @@ namespace kagome::consensus::babe {
     metric_is_relaychain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
     metric_is_relaychain_validator_->set(false);
+
+    metrics_registry_->registerGaugeFamily(
+        kBackedCandidatesInBlock, "Number of backed candidates in the block");
+    metric_backed_candidates_in_block_ =
+        metrics_registry_->registerGaugeMetric(kBackedCandidatesInBlock);
+    metric_backed_candidates_in_block_->set(0);
+
+    metrics_registry_->registerGaugeFamily(
+        kIncludeCandidatesInBlock,
+        "Number of candidates included in the block");
+    metric_include_candidates_in_block_ =
+        metrics_registry_->registerGaugeMetric(kIncludeCandidatesInBlock);
+    metric_include_candidates_in_block_->set(0);
+
+    metrics_registry_->registerCounterFamily(
+        kNoBackedCandidatesInBlock,
+        "Number of blocks with no backed candidates");
+    metric_no_backed_candidates_in_block_ =
+        metrics_registry_->registerCounterMetric(kNoBackedCandidatesInBlock);
+
+    metrics_registry_->registerCounterFamily(
+        kNoIncludeCandidatesInBlock,
+        "Number of blocks with no include candidates");
+    metric_no_include_candidates_in_block_ =
+        metrics_registry_->registerCounterMetric(kNoIncludeCandidatesInBlock);
+
+    metrics_registry_->registerCounterFamily(
+        kNoBackedNoIncludeCandidatesInBlock,
+        "Number of blocks with no backed and no include candidates");
+    metric_no_backed_no_include_candidates_in_block_ =
+        metrics_registry_->registerCounterMetric(
+            kNoBackedNoIncludeCandidatesInBlock);
+
+    metrics_registry_->registerCounterFamily(kTotalBlocks,
+                                             "Total number of blocks produced");
+    metric_total_blocks_ =
+        metrics_registry_->registerCounterMetric(kTotalBlocks);
   }
 
   bool Babe::isGenesisConsensus() const {
@@ -495,6 +549,11 @@ namespace kagome::consensus::babe {
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
 
+    CandidatesMetricInfo candidates{
+        .backed = parachain_inherent_data.backed_candidates.size(),
+        .included = parachain_inherent_data.bitfields.size(),
+    };
+
     auto proposal_start = std::chrono::steady_clock::now();
 
     auto pre_digest_res = makePreDigest();
@@ -512,7 +571,8 @@ namespace kagome::consensus::babe {
                     proposal_start,
                     pre_digest{std::move(pre_digest)},
                     slot = slot_,
-                    parent = parent_]() mutable {
+                    parent = parent_,
+                    candidates]() mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -538,12 +598,14 @@ namespace kagome::consensus::babe {
                        now,
                        proposal_start,
                        changes_tracker{std::move(changes_tracker)},
-                       unsealed_block{std::move(unsealed_block)}]() mutable {
+                       unsealed_block{std::move(unsealed_block)},
+                       candidates]() mutable {
         auto res =
             self->processSlotLeadershipProposed(now,
                                                 proposal_start,
                                                 std::move(changes_tracker),
-                                                std::move(unsealed_block));
+                                                std::move(unsealed_block),
+                                                candidates);
         if (res.has_error()) {
           SL_ERROR(self->log_, "Cannot propose a block: {}", res.error());
           return;
@@ -561,7 +623,8 @@ namespace kagome::consensus::babe {
       clock::SteadyClock::TimePoint proposal_start,
       std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
           &&changes_tracker,
-      primitives::Block &&block) {
+      primitives::Block &&block,
+      std::optional<CandidatesMetricInfo> candidates_metrics) {
     auto duration_ms =
         metric_block_proposal_time.observe(proposal_start).count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
@@ -647,6 +710,20 @@ namespace kagome::consensus::babe {
                     ocw_res.error());
       }
     }
+
+    if (candidates_metrics) {
+      if (candidates_metrics->backed == 0
+          and candidates_metrics->included == 0) {
+        metric_no_backed_no_include_candidates_in_block_->inc();
+      } else if (candidates_metrics->backed == 0) {
+        metric_no_backed_candidates_in_block_->inc();
+      } else if (candidates_metrics->included == 0) {
+        metric_no_include_candidates_in_block_->inc();
+      }
+      metric_backed_candidates_in_block_->set(candidates_metrics->backed);
+      metric_include_candidates_in_block_->set(candidates_metrics->included);
+    }
+    metric_total_blocks_->inc();
 
     return outcome::success();
   }

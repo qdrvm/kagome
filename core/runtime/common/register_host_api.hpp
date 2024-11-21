@@ -35,7 +35,7 @@
     REGISTER_HOST_METHOD(int32_t, ext_crypto_sr25519_verify_version_2, int32_t, int64_t, int32_t) \
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ecdsa_public_keys_version_1, int32_t) \
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ecdsa_sign_version_1, int32_t, int32_t, int64_t) \
-    REGISTER_HOST_METHOD(int64_t, ext_crypto_ecdsa_sign_prehashed_version_1, int32_t, int32_t, int64_t) \
+    REGISTER_HOST_METHOD(int64_t, ext_crypto_ecdsa_sign_prehashed_version_1, int32_t, int32_t, int32_t) \
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_generate_version_1, int32_t, int64_t) \
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_version_1, int32_t, int64_t, int32_t) \
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_prehashed_version_1, int32_t, int32_t, int32_t) \

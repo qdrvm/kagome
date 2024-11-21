@@ -208,6 +208,9 @@ namespace kagome::application {
     std::optional<uint32_t> blocksPruning() const override {
       return blocks_pruning_;
     }
+    bool enableDbMigration() const override {
+      return enable_db_migration_;
+    }
     std::optional<std::string_view> devMnemonicPhrase() const override {
       if (dev_mnemonic_phrase_) {
         return *dev_mnemonic_phrase_;
@@ -375,6 +378,7 @@ namespace kagome::application {
     bool prune_discarded_states_ = false;
     bool enable_thorough_pruning_ = false;
     std::optional<uint32_t> blocks_pruning_;
+    bool enable_db_migration_ = false;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;
