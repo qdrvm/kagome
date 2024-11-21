@@ -501,7 +501,7 @@ namespace kagome::consensus::grandpa {
       SL_WARN(logger_,
               "Round #{}: can't submit equivocation report: {}",
               equivocation.round(),
-              key_owner_proof_res.error());
+              submit_res.error());
       return submit_res.as_failure();
     }
 
