@@ -739,7 +739,10 @@ namespace {
                 [](const auto &injector) {
                   return get_block_tree(injector);
                 }),
-            di::bind<blockchain::BlockHeaderRepository>.template to([](const auto &injector) { return injector.template create<sptr<blockchain::BlockTree>>(); }),
+            bind_by_lambda<blockchain::BlockHeaderRepository>(
+                [](const auto &injector) {
+                  return get_block_tree(injector);
+                }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
