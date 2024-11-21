@@ -60,6 +60,17 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx,
                 executor_->ctx().persistentAt(block.header.parent_hash,
                                               std::move(changes_tracker)));
+
+    kagome::scale::encode(block.body).value();
+    kagome::scale::encode(block.header.parent_hash);
+    kagome::scale::encode(block.header.number);
+    kagome::scale::encode(block.header.state_root);
+    kagome::scale::encode(block.header.extrinsics_root);
+    kagome::scale::encode(block.header.digest);
+    kagome::scale::encode(block.header).value();    
+
+    
+
     return executor_->call<void>(ctx, "Core_execute_block", block);
   }
 
