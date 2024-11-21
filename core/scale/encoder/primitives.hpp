@@ -136,24 +136,6 @@ namespace kagome::scale {
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    auto ref = ::scale::encode(args...).value();
-    std::vector<uint8_t> res;
-    kagome::scale::encode(
-        [&](const uint8_t *const val, size_t count) {
-          if (count != 0ull) {
-            res.insert(res.end(), &val[0], &val[count]);
-          }
-        },
-        args...);
-
-    if (res != ref) {
-      __builtin_trap();
-    }
-    return res;
-  }
-
-  template <typename... Args>
-  outcome::result<std::vector<uint8_t>> encode_v1(const Args &...args) {
     //auto ref = ::scale::encode(args...).value();
     std::vector<uint8_t> res;
     kagome::scale::encode(
