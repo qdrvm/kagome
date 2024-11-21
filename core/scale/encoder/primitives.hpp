@@ -12,6 +12,7 @@
 #include <optional>
 #include <scale/outcome/outcome_throw.hpp>
 #include <scale/types.hpp>
+#include "crypto/ecdsa_types.hpp"
 #include <span>
 #include <tuple>
 #include <type_traits>
@@ -76,6 +77,9 @@ namespace kagome::scale {
   template <typename F, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
+  template <typename F, typename... Ts>
+  void encode(const F &func, const std::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
   template <typename F>
   void encode(const F &func, const ::scale::CompactInteger &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
@@ -87,6 +91,12 @@ namespace kagome::scale {
 
   template <typename F, typename T>
   void encode(const F &func, const std::optional<T> &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  void encode(const F &func, const crypto::EcdsaSignature &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  void encode(const F &func, const crypto::EcdsaPublicKey &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const T &v) requires (!std::is_enum_v<std::decay_t<T>>) && 
@@ -234,6 +244,14 @@ namespace kagome::scale {
   template <typename F, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode<F, 0>(func, v);
+  }
+
+  template <typename F, typename... Ts>
+  void encode(const F &func, const std::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, v.index());
+    std::visit([&](const auto &s) {
+      kagome::scale::encode(func, s);
+    }, v);
   }
 
   template <typename F,
@@ -394,7 +412,7 @@ namespace kagome::scale {
   }
 
   template <typename F, typename T, size_t size>
-  constexpr void encode(const F &func, const std::array<T, size> &c) {
+  constexpr void encode(const F &func, const std::array<T, size> &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     for (const auto &e : c) {
       kagome::scale::encode(func, e);
     }
@@ -478,6 +496,16 @@ namespace kagome::scale {
       kagome::scale::encode(func, uint8_t(1u));
       kagome::scale::encode(func, *v);
     }
+  }
+
+  template <typename F>
+  void encode(const F &func, const crypto::EcdsaSignature &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE> &>(data));
+  }
+
+  template <typename F>
+  void encode(const F &func, const crypto::EcdsaPublicKey &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
   }
 
 }  // namespace kagome::scale

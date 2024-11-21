@@ -163,6 +163,25 @@ class TriePrunerTest : public testing::Test {
     kagome::network::vstaging::AttestedCandidateRequest r;
     auto d = kagome::scale::encode(r).value();
 
+    //kagome::consensus::beefy::DoubleVotingProof pr;
+    //auto v = kagome::scale::encode(pr).value();
+    kagome::network::CandidateCommitments s;
+
+    
+
+    auto q = kagome::utils::is_braces_constructible<kagome::network::CandidateCommitments, 
+    kagome::utils::any_type, 
+    kagome::utils::any_type, 
+    kagome::utils::any_type, 
+    kagome::utils::any_type, 
+    kagome::utils::any_type, 
+    kagome::utils::any_type
+    >{};
+    static_assert(std::is_same_v<decltype(q), std::false_type>, "");
+
+    //auto q = kagome::utils::to_tuple_refs(s);
+    //auto o = std::get<0>(q);
+
     testutil::prepareLoggers(soralog::Level::DEBUG);
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();

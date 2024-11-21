@@ -21,7 +21,10 @@
 #include "scale/big_fixed_integers.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
-//#include "network/types/collator_messages_vstaging.hpp"
+#include "consensus/beefy/types.hpp"
+#include "consensus/grandpa/types/equivocation_proof.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
+#include "network/types/dispute_messages.hpp"
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
@@ -42,6 +45,9 @@ namespace kagome::scale {
   constexpr void encode(const F &func, const primitives::BlockHeader &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
+  constexpr void encode(const F &func, const consensus::grandpa::Equivocation &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeaderReflection &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
@@ -49,9 +55,13 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const network::BlocksResponse &b) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+  
+  //template <typename F>
+  //constexpr void encode(const F &func, const kagome::consensus::beefy::SignedCommitment &b) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
-//  template <typename F>
-//  constexpr void encode(const F &func, const kagome::network::vstaging::AttestedCandidateRequest &b);
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::vstaging::CompactStatement &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F,
             typename ElementType,
@@ -100,6 +110,21 @@ namespace kagome::scale {
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::CandidateCommitments &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::CandidateReceipt &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::InvalidDisputeVote &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::ValidDisputeVote &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+
+  template <typename F>
+  constexpr void encode(const F &func, const consensus::grandpa::SignedPrecommit &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+  
 }  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
@@ -172,6 +197,12 @@ namespace kagome::scale {
     }
   }
 
+  //template <typename F>
+  //constexpr void encode(const F &func, const kagome::consensus::beefy::SignedCommitment &b) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+  //  kagome::scale::encode(func, b.commitment);
+  //  kagome::scale::encode(func, b.signatures);
+  //}
+
   template <typename F, size_t MaxSize>
   constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode(func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
@@ -226,6 +257,54 @@ namespace kagome::scale {
     kagome::scale::encode(func, c.value);
   }
 
+  template <typename F>
+  constexpr void encode(const F &func, const consensus::grandpa::Equivocation &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, bh.stage);
+    kagome::scale::encode(func, bh.round_number);
+    kagome::scale::encode(func, bh.first);
+    kagome::scale::encode(func, bh.second);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::CandidateCommitments &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, c.upward_msgs);
+    kagome::scale::encode(func, c.outbound_hor_msgs);
+    kagome::scale::encode(func, c.opt_para_runtime);
+    kagome::scale::encode(func, c.para_head);
+    kagome::scale::encode(func, c.downward_msgs_count);
+    kagome::scale::encode(func, c.watermark);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::CandidateReceipt &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, c.descriptor);
+    kagome::scale::encode(func, c.commitments_hash);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::vstaging::CompactStatement &c)  requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, c.header);
+    kagome::scale::encode(func, c.inner_value);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::InvalidDisputeVote &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, c.index);
+    kagome::scale::encode(func, c.signature);
+    kagome::scale::encode(func, c.kind);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::network::ValidDisputeVote &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, c.index);
+    kagome::scale::encode(func, c.signature);
+    kagome::scale::encode(func, c.kind);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const consensus::grandpa::SignedPrecommit &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, static_cast<const consensus::grandpa::SignedMessage &>(c));
+  }
 }  // namespace kagome::scale
 
 #endif  // KAGOME_KAGOME_SCALE_HPP
