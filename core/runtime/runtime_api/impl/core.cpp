@@ -66,6 +66,10 @@ namespace kagome::runtime {
     kagome::scale::encode(block.header.number);
     kagome::scale::encode(block.header.state_root);
     kagome::scale::encode(block.header.extrinsics_root);
+
+    for (const auto &d : block.header.digest) {
+      kagome::scale::encode(d);  
+    }
     kagome::scale::encode(block.header.digest);
     kagome::scale::encode(block.header).value();    
 
@@ -93,6 +97,15 @@ namespace kagome::runtime {
                 executor_->ctx().persistentAt(header.parent_hash,
                                               std::move(changes_tracker)));
     auto mode = ExtrinsicInclusionMode::AllExtrinsics;
+
+    kagome::scale::encode(header.parent_hash);
+    kagome::scale::encode(header.number);
+    kagome::scale::encode(header.state_root);
+    kagome::scale::encode(header.extrinsics_root);
+    for (const auto &d : header.digest) {
+      kagome::scale::encode(d);  
+    }
+
     auto call = [&]<typename T>() {
       return executor_->call<T>(ctx, "Core_initialize_block", header);
     };

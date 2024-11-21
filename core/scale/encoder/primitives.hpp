@@ -246,14 +246,6 @@ namespace kagome::scale {
     kagome::scale::encode<F, 0>(func, v);
   }
 
-  template <typename F, typename... Ts>
-  void encode(const F &func, const std::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
-    kagome::scale::encode(func, v.index());
-    std::visit([&](const auto &s) {
-      kagome::scale::encode(func, s);
-    }, v);
-  }
-
   template <typename F,
             typename T,
             typename I = std::decay_t<T>,
@@ -291,6 +283,14 @@ namespace kagome::scale {
 
     *(uint64_t *)&result[1] = math::toLE(val);
     putByte(func, result, bigIntLength + 1ull);
+  }
+
+  template <typename F, typename... Ts>
+  void encode(const F &func, const std::variant<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+    kagome::scale::encode(func, (uint8_t)v.index());
+    std::visit([&](const auto &s) {
+      kagome::scale::encode(func, s);
+    }, v);
   }
 
   template <typename F>
