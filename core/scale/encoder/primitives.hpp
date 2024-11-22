@@ -23,9 +23,9 @@
 
 namespace kagome::scale {
   template<typename F>
-  concept Invokable = std::is_invocable_v<F, const uint8_t *const, size_t>;
+  concept Invocable = std::is_invocable_v<F, const uint8_t *const, size_t>;
 
-  constexpr void putByte(const Invokable auto &func, const uint8_t *const val, size_t count);
+  constexpr void putByte(const Invocable auto &func, const uint8_t *const val, size_t count);
 
   template <typename F, typename... Ts>
   constexpr void encode(const F &func, const std::tuple<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
@@ -36,8 +36,8 @@ namespace kagome::scale {
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::vector<T> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
-  template <typename FN, typename F, typename S>
-  constexpr void encode(const FN &func, const std::pair<F, S> &p) requires std::is_invocable_v<FN, const uint8_t *const, size_t>;
+  template <typename F, typename S>
+  constexpr void encode(const Invocable auto &func, const std::pair<F, S> &p);
 
   template <typename F, typename T, ssize_t S>
   constexpr void encode(const F &func, const std::span<T, S> &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
@@ -137,7 +137,7 @@ namespace kagome::scale {
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    //auto ref = ::scale::encode(args...).value();
+    auto ref = ::scale::encode(args...).value();
     std::vector<uint8_t> res;
     kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
@@ -147,9 +147,9 @@ namespace kagome::scale {
         },
         args...);
 
-    //if (res != ref) {
-    //  __builtin_trap();
-    //}
+    if (res != ref) {
+      __builtin_trap();
+    }
     return res;
   }
 
@@ -192,7 +192,7 @@ namespace kagome::scale {
     return counter;
   }
 
-  constexpr void putByte(const Invokable auto &func,
+  constexpr void putByte(const Invocable auto &func,
                          const uint8_t *const val,
                          size_t count) {
     func(val, count);
@@ -406,8 +406,8 @@ namespace kagome::scale {
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
-  template <typename FN, typename F, typename S>
-  constexpr void encode(const FN &func, const std::pair<F, S> &p) requires std::is_invocable_v<FN, const uint8_t *const, size_t> {
+  template <typename F, typename S>
+  constexpr void encode(const Invocable auto &func, const std::pair<F, S> &p) {
     kagome::scale::encode(func, p.first);
     kagome::scale::encode(func, p.second);
   }
