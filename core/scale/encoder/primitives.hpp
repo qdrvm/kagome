@@ -22,9 +22,10 @@
 #include "utils/struct_to_tuple.hpp"
 
 namespace kagome::scale {
+  template<typename F>
+  concept Invokable = std::is_invocable_v<F, const uint8_t *const, size_t>;
 
-  template <typename F>
-  constexpr void putByte(const F &func, const uint8_t *const val, size_t count) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
+  constexpr void putByte(const Invokable auto &func, const uint8_t *const val, size_t count);
 
   template <typename F, typename... Ts>
   constexpr void encode(const F &func, const std::tuple<Ts...> &v) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
@@ -191,10 +192,9 @@ namespace kagome::scale {
     return counter;
   }
 
-  template <typename F>
-  constexpr void putByte(const F &func,
+  constexpr void putByte(const Invokable auto &func,
                          const uint8_t *const val,
-                         size_t count) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
+                         size_t count) {
     func(val, count);
   }
 
