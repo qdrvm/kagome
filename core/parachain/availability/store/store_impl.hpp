@@ -11,11 +11,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "log/logger.hpp"
+#include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
-
 namespace kagome::parachain {
   class AvailabilityStoreImpl : public AvailabilityStore {
    public:
+    AvailabilityStoreImpl(clock::SteadyClock &steady_clock,
+                          std::shared_ptr<storage::SpacedStorage> storage);
     ~AvailabilityStoreImpl() override = default;
 
     bool hasChunk(const CandidateHash &candidate_hash,
@@ -52,9 +54,16 @@ namespace kagome::parachain {
       std::unordered_map<CandidateHash, PerCandidate> per_candidate_{};
       std::unordered_map<network::RelayHash, std::unordered_set<CandidateHash>>
           candidates_{};
+      std::deque<std::pair<uint64_t, network::RelayHash>>
+          candidates_living_keeper_;
     };
 
+    void prune_candidates_no_lock(State &state);
+    void remove_no_lock(State &state, const network::RelayHash &relay_parent);
+
     log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
+    clock::SteadyClock &steady_clock_;
     SafeObject<State> state_{};
+    std::shared_ptr<storage::SpacedStorage> storage_;
   };
 }  // namespace kagome::parachain

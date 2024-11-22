@@ -267,6 +267,11 @@ namespace kagome::application {
      */
     virtual bool disableSecureMode() const = 0;
 
+    /**
+     * Whether to enable automatic database migration.
+     */
+    virtual bool enableDbMigration() const = 0;
+
     enum class OffchainWorkerMode : uint8_t {
       WhenValidating,
       Always,

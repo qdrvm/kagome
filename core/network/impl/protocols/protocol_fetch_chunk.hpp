@@ -16,8 +16,8 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/non_copyable.hpp"
@@ -45,15 +45,15 @@ namespace kagome::network {
         std::shared_ptr<parachain::ParachainProcessorImpl> pp,
         std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
-            FetchChunkRequest,
-            FetchChunkResponse,
-            ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                    host,
-                                    make_protocols(kFetchChunkProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kFetchChunkProtocolName,
-                                                      "req_chunk_protocol")},
+              FetchChunkRequest,
+              FetchChunkResponse,
+              ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                      host,
+                                      make_protocols(kFetchChunkProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kFetchChunkProtocolName,
+                                                        "req_chunk_protocol")},
           pp_{std::move(pp)},
           pm_{std::move(pm)} {
       BOOST_ASSERT(pp_);

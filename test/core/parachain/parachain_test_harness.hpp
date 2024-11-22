@@ -144,7 +144,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
                           std::move(candidate));
   }
 
-  Hash fromNumber(uint64_t n) const {
+  static Hash fromNumber(uint64_t n) {
     assert(n <= 255);
     Hash h{};
     memset(&h[0], n, 32);

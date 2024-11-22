@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 8. **public API** - is an interface which is programmatically accessible or detectable by a client.
 9. **component** - is the smallest unit of physical design. Or, a set of *translation units*, compiled in a single *target* as a single *library* or *executable*.
 10. **unit test** - a set of *translation units* intended to test *public API* of a specific *component* (exactly one!).
-11. **regression test** - refers to the practice of comparing the results of running a program given a specific input with a fixed set of expected results, in order to verify that the program continues to behave as expected from one version to the next. In other words, tests which persist actoss versions.
+11. **regression test** - refers to the practice of comparing the results of running a program given a specific input with a fixed set of expected results, in order to verify that the program continues to behave as expected from one version to the next. In other words, tests which persist across versions.
 12. **integration test** - refers to the practice when group of *components* (or *packages*) is grouped and tested together as a single unit. Example: session manager with postgres database.
 13. **white-box testing** - refers to the practice of verifying the expected behavior of a component by exploiting knowledge of its underlying implementation.
 14. **black-box testing** - refers to the practice of verifying the expected behavior of a component based solely on its specification (without knowledge of its implementation).

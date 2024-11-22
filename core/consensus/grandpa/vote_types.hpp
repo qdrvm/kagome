@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace kagome::consensus::grandpa {
-  enum class VoteType { Prevote, Precommit };
+  enum class VoteType : uint8_t { Prevote, Precommit };
 }

@@ -21,7 +21,7 @@
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/dispute_request_observer.hpp"
-#include "network/impl/stream_engine.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -47,15 +47,16 @@ namespace kagome::network {
                             std::shared_ptr<network::DisputeRequestObserver>
                                 dispute_request_observer)
         : RequestResponseProtocolImpl<
-            DisputeRequest,
-            DisputeResponse,
-            ScaleMessageReadWriter>{kSendDisputeProtocolName,
-                                    host,
-                                    make_protocols(kSendDisputeProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kSendDisputeProtocolName,
-                                                      "dispute_protocol")},
+              DisputeRequest,
+              DisputeResponse,
+              ScaleMessageReadWriter>{kSendDisputeProtocolName,
+                                      host,
+                                      make_protocols(kSendDisputeProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kSendDisputeProtocolName,
+                                          "dispute_protocol")},
           dispute_request_observer_{std::move(dispute_request_observer)} {
       BOOST_ASSERT(dispute_request_observer_);
     }

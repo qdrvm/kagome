@@ -14,6 +14,7 @@
 
 #include "common/buffer_view.hpp"
 #include "common/hexutil.hpp"
+#include "common/span_adl.hpp"
 #include "macro/endianness_utils.hpp"
 
 #define KAGOME_BLOB_STRICT_TYPEDEF(space_name, class_name, blob_size)          \
@@ -210,6 +211,13 @@ namespace kagome::common {
       Blob<size_> blob;
       std::ranges::copy(span, blob.begin());
       return blob;
+    }
+
+    auto operator<=>(const Blob<size_> &other) const {
+      return SpanAdl{*this} <=> other;
+    }
+    bool operator==(const Blob<size_> &other) const {
+      return SpanAdl{*this} == other;
     }
   };
 

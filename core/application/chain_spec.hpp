@@ -8,7 +8,7 @@
 
 #include <set>
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"

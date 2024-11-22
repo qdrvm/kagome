@@ -13,16 +13,15 @@
 #include <string_view>
 
 namespace kagome::storage {
-  static constexpr std::array kSpaceNames{
-      "lookup_key",
-      "header",
-      "block_body",
-      "justification",
-      "trie_node",
-      "trie_value",
-      "dispute_data",
-      "beefy_justification",
-  };
+  static constexpr std::array kSpaceNames{"lookup_key",
+                                          "header",
+                                          "block_body",
+                                          "justification",
+                                          "trie_node",
+                                          "trie_value",
+                                          "dispute_data",
+                                          "beefy_justification",
+                                          "avaliability_storage"};
 
   std::string spaceName(Space space) {
     static_assert(kSpaceNames.size() == Space::kTotal - 1);

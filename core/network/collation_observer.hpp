@@ -19,11 +19,6 @@ namespace kagome::network {
    public:
     virtual ~CollationObserver() = default;
 
-    /// Handle incoming collation stream.
-    virtual void onIncomingCollationStream(
-        const libp2p::peer::PeerId &peer_id,
-        network::CollationVersion version) = 0;
-
     /// Handle incoming collation message.
     virtual void onIncomingMessage(
         const libp2p::peer::PeerId &peer_id,

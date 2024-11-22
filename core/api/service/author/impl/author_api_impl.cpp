@@ -107,36 +107,20 @@ namespace kagome::api {
     return encoded_session_keys;
   }
 
-  // logic here is polkadot specific only!
-  // it could be extended by reading config from chainspec palletSession/keys
-  // value
   outcome::result<bool> AuthorApiImpl::hasSessionKeys(const BufferView &keys) {
-    if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
-      SL_WARN(logger_,
-              "not valid key sequence, author_hasSessionKeys RPC call expects "
-              "no more than 6 public keys in concatenated string, keys should "
-              "be 32 byte in size");
+    OUTCOME_TRY(decoded,
+                keys_api_->decode_session_keys(
+                    block_tree_.get()->bestBlock().hash, keys));
+    if (not decoded) {
       return false;
     }
-    scale::ScaleDecoderStream stream(keys);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-    std::array<uint8_t, 32> key;
-    stream >> key;
-    if (store_->ed25519().findKeypair(
-            crypto::KeyTypes::GRANDPA,
-            crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
-      auto it = crypto::polkadot_key_order.begin();
-      while (stream.currentIndex() < keys.size()) {
-        ++it;
-        stream >> key;
-        if (not store_->sr25519().findKeypair(
-                *it, crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
-          return false;
-        }
+    for (auto &[key, type] : *decoded) {
+      OUTCOME_TRY(has, key_store_->searchForKey(type, key));
+      if (not has) {
+        return false;
       }
-      return true;
     }
-    return false;
+    return true;
   }
 
   outcome::result<bool> AuthorApiImpl::hasKey(const BufferView &public_key,
