@@ -16,6 +16,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
                             BlockExecutionBenchmark::Error,

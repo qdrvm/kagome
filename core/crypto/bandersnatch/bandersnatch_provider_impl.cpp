@@ -5,6 +5,7 @@
  */
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
+#include "scale/kagome_scale.hpp"
 
 #include "crypto/hasher.hpp"
 

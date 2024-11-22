@@ -20,6 +20,7 @@
 #include "scale/scale.hpp"
 #include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
+#include "scale/encoder/external_scale.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.

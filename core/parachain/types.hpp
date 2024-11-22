@@ -7,7 +7,6 @@
 #pragma once
 
 #include <boost/variant.hpp>
-#include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -22,6 +21,7 @@
 #include "primitives/digest.hpp"
 #include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
+#include "scale/encoder/external_scale.hpp"
 
 namespace kagome::parachain {
 

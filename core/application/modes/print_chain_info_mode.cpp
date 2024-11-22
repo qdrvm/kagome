@@ -16,6 +16,7 @@ namespace rapidjson {
 #include <iostream>
 
 #include "blockchain/block_tree.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::application::mode {
   using common::hex_lower_0x;

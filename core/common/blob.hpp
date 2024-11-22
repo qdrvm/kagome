@@ -10,7 +10,7 @@
 
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 #include "common/buffer_view.hpp"
 #include "common/hexutil.hpp"
@@ -65,14 +65,14 @@
         return class_name{std::move(blob)};                                    \
       }                                                                        \
                                                                                \
-      friend inline ::scale::ScaleEncoderStream &operator<<(                   \
-          ::scale::ScaleEncoderStream &s,                                      \
+      friend inline scale::ScaleEncoderStream &operator<<(                   \
+          scale::ScaleEncoderStream &s,                                      \
           const space_name::class_name &data) {                                \
         return s << static_cast<const Base &>(data);                           \
       }                                                                        \
                                                                                \
-      friend inline ::scale::ScaleDecoderStream &operator>>(                   \
-          ::scale::ScaleDecoderStream &s, space_name::class_name &data) {      \
+      friend inline scale::ScaleDecoderStream &operator>>(                   \
+          scale::ScaleDecoderStream &s, space_name::class_name &data) {      \
         return s >> static_cast<Base &>(data);                                 \
       }                                                                        \
     };                                                                         \

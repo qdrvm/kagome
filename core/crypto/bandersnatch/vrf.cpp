@@ -5,6 +5,7 @@
  */
 
 #include "crypto/bandersnatch/vrf.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto::bandersnatch::vrf {
 
