@@ -49,6 +49,7 @@ using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::crypto::KeyType;
+using kagome::crypto::KeyTypes;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -111,7 +112,7 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<SessionKeys> keys;
   sptr<KeyFileStorage> key_store;
   Sr25519Keypair key_pair;
-  sptr<SessionKeysApi> key_api;
+  sptr<SessionKeysApiMock> key_api;
   sptr<TransactionPoolMock> transaction_pool;
   sptr<ApiServiceMock> api_service_mock;
   sptr<AuthorApiImpl> author_api;
@@ -267,123 +268,47 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
 }
 
 /**
- * @given empty keys sequence
+ * @given invalid keys
  * @when hasSessionKeys called
  * @then call succeeds, false result
  * NOTE could be special error
  */
-TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
-  Buffer keys;
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
+TEST_F(AuthorApiTest, HasSessionKeysInvalid) {
+  EXPECT_CALL(*key_api, decode_session_keys(_, _))
+      .WillOnce(Return(std::nullopt));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys({}));
   EXPECT_EQ(res.value(), false);
 }
 
 /**
- * @given keys sequence less than 1 key
+ * @given keystore contains some keys
  * @when hasSessionKeys called
  * @then call succeeds, false result
  * NOTE could be special error
  */
-TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
-  Buffer keys;
-  keys.resize(31);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
+TEST_F(AuthorApiTest, HasSessionKeysSome) {
+  EXPECT_CALL(*key_api, decode_session_keys(_, _))
+      .WillOnce(Return(std::vector{
+          std::make_pair(Buffer{key_pair.public_key}, KeyTypes::BABE),
+          std::make_pair(Buffer{}, KeyTypes::AURA),
+      }));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys({}));
   EXPECT_EQ(res.value(), false);
 }
 
 /**
- * @given keys sequence greater than 6 keys
+ * @given keystore contains all keys
  * @when hasSessionKeys called
- * @then call succeeds, false result
- * NOTE could be special error
- */
-TEST_F(AuthorApiTest, HasSessionKeysOverload) {
-  Buffer keys;
-  keys.resize(32 * 6 + 1);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
-}
-
-/**
- * @given keys sequence not equal to n*32 in size
- * @when hasSessionKeys called
- * @then call succeeds, false result
- * NOTE could be special error
- */
-TEST_F(AuthorApiTest, HasSessionKeysNotEqualKeys) {
-  Buffer keys;
-  keys.resize(32 * 5 + 1);
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
-}
-
-/**
- * @given keys sequence of 6 keys
- * @when hasSessionKeys called, all keys found
  * @then call succeeds, true result
+ * NOTE could be special error
  */
-TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
-  Buffer keys;
-  keys.resize(32 * 6);
-  const Ed25519Keypair edOk{};
-  const Sr25519Keypair srOk{};
-  InSequence s;
-  EXPECT_CALL(store->ed25519(), findKeypair(KeyTypes::GRANDPA, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(edOk)));
-  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::BABE, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(srOk)));
-  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::IM_ONLINE, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(srOk)));
-  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::PARACHAIN, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(srOk)));
-  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::ASSIGNMENT, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(srOk)));
-  EXPECT_CALL(store->sr25519(), findKeypair(KeyTypes::AUTHORITY_DISCOVERY, _))
-      .Times(1)
-      .WillOnce(Return(OptRef(srOk)));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
+TEST_F(AuthorApiTest, HasSessionKeysAll) {
+  EXPECT_CALL(*key_api, decode_session_keys(_, _))
+      .WillOnce(Return(std::vector{
+          std::make_pair(Buffer{key_pair.public_key}, KeyTypes::BABE),
+      }));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys({}));
   EXPECT_EQ(res.value(), true);
-}
-
-/**
- * @given keys sequence of 1 key
- * @when hasSessionKeys called, all keys found
- * @then call succeeds, true result
- */
-TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
-  Buffer keys;
-  keys.resize(32);
-  Ed25519Keypair edOk{};
-  EXPECT_CALL(store->ed25519(), findKeypair(KeyTypes::GRANDPA, _))
-      .Times(1)
-      .WillOnce(Return(edOk));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), true);
-}
-
-/**
- * @given keys sequence of 6 keys
- * @when hasSessionKeys called, 1 key not found
- * @then call succeeds, false result
- */
-TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
-  Buffer keys;
-  keys.resize(32 * 6);
-  Ed25519Keypair edOk{};
-  auto srErr = std::nullopt;
-  EXPECT_CALL(store->ed25519(), findKeypair(_, _))
-      .Times(1)
-      .WillOnce(Return(edOk));
-  EXPECT_CALL(store->sr25519(), findKeypair(_, _))
-      .Times(1)
-      .WillOnce(Return(srErr));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
-  EXPECT_EQ(res.value(), false);
 }
 
 /**
