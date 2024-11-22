@@ -10,6 +10,7 @@
 
 #include "authority_discovery/timestamp.hpp"
 #include "crypto/sha/sha256.hpp"
+#include "scale/kagome_scale.hpp"
 
 #define _PB_SPAN(f) \
   [&](::kagome::common::BufferView a) { (f)(a.data(), a.size()); }

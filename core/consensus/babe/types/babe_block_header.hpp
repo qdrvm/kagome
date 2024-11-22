@@ -11,7 +11,7 @@
 #include "consensus/timeline/types.hpp"
 #include "primitives/common.hpp"
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 namespace kagome::consensus::babe {
   /**

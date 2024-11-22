@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 #include "common/blob.hpp"
 #include "crypto/hasher.hpp"

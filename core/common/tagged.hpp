@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 namespace kagome {
 

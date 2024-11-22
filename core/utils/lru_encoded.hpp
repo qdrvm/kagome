@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 #include <boost/container_hash/hash.hpp>
 

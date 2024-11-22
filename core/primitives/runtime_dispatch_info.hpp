@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 #include <scale/tie.hpp>
 
 #include "common/unused.hpp"

@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <optional>
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 
 #include "common/monadic_utils.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"

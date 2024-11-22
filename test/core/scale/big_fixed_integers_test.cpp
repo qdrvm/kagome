@@ -7,7 +7,7 @@
 #include "scale/big_fixed_integers.hpp"
 
 #include <gtest/gtest.h>
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

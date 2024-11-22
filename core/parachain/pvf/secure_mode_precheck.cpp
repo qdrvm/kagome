@@ -16,7 +16,7 @@
 #include <iostream>
 #include <libp2p/log/configurator.hpp>
 #include <qtils/bytestr.hpp>
-#include <scale/scale.hpp>
+#include "scale/kagome_scale.hpp"
 #include <soralog/macro.hpp>
 
 #include "common/buffer.hpp"

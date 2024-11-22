@@ -10,6 +10,7 @@
 #include "scale/encode_append.hpp"
 #include "scale/encoder/concepts.hpp"
 #include "scale/libp2p_types.hpp"
+#include <scale/types.hpp>
 #include "common/size_limited_containers.hpp"
 //#include "common/tagged.hpp"
 //#include "common/buffer.hpp"
@@ -77,6 +78,8 @@ namespace kagome::scale {
   template <typename T>
   using Compact = ::scale::Compact<T>;
   using uint128_t = ::scale::uint128_t;
+  using Timestamp = scale::uint128_t;
+  using TimestampScale = scale::Fixed<Timestamp>;
 
   using ::scale::decode;
   using ::scale::append_or_new_vec;

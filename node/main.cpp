@@ -24,6 +24,7 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
+#include "scale/kagome_scale.hpp"
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
