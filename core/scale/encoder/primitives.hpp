@@ -7,37 +7,34 @@
 #ifndef KAGOME_SCALE_ENCODER_PRIMITIVES_HPP
 #define KAGOME_SCALE_ENCODER_PRIMITIVES_HPP
 
+#include <any>
 #include <deque>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <scale/outcome/outcome_throw.hpp>
 #include <scale/types.hpp>
-#include "crypto/ecdsa_types.hpp"
 #include <span>
 #include <tuple>
 #include <type_traits>
 #include <vector>
-#include <iostream>
+#include "crypto/ecdsa_types.hpp"
+#include "scale/encoder/concepts.hpp"
 
 #include "utils/struct_to_tuple.hpp"
 
 namespace kagome::scale {
-  template<typename F>
-  concept Invocable = std::is_invocable_v<F, const uint8_t *const, size_t>;
-
-  template<typename T>
-  concept IsEnum = std::is_enum_v<std::decay_t<T>>;
-
-  template<typename T>
-  concept IsNotEnum = !std::is_enum_v<std::decay_t<T>>;
-
-  constexpr void putByte(const Invocable auto &func, const uint8_t *const val, size_t count);
+  constexpr void putByte(const Invocable auto &func,
+                         const uint8_t *const val,
+                         size_t count);
 
   template <typename... Ts>
   constexpr void encode(const Invocable auto &func, const std::tuple<Ts...> &v);
 
   template <typename T, typename... Args>
-  constexpr void encode(const Invocable auto &func, const T &t, const Args &...args);
+  constexpr void encode(const Invocable auto &func,
+                        const T &t,
+                        const Args &...args);
 
   template <typename T>
   constexpr void encode(const Invocable auto &func, const std::vector<T> &c);
@@ -52,7 +49,8 @@ namespace kagome::scale {
   constexpr void encode(const Invocable auto &func, const std::span<T> &c);
 
   template <typename T, size_t size>
-  constexpr void encode(const Invocable auto &func, const std::array<T, size> &c);
+  constexpr void encode(const Invocable auto &func,
+                        const std::array<T, size> &c);
 
   template <typename T, size_t N>
   constexpr void encode(const Invocable auto &func, const T (&c)[N]);
@@ -61,14 +59,16 @@ namespace kagome::scale {
   constexpr void encode(const Invocable auto &func, const std::map<K, V> &c);
 
   template <typename T>
-  constexpr void encode(const Invocable auto &func, const std::shared_ptr<T> &v);
+  constexpr void encode(const Invocable auto &func,
+                        const std::shared_ptr<T> &v);
 
   constexpr void encode(const Invocable auto &func, const std::string_view &v);
 
   constexpr void encode(const Invocable auto &func, const std::string &v);
 
   template <typename T>
-  constexpr void encode(const Invocable auto &func, const std::unique_ptr<T> &v);
+  constexpr void encode(const Invocable auto &func,
+                        const std::unique_ptr<T> &v);
 
   template <typename T>
   constexpr void encode(const Invocable auto &func, const std::list<T> &c);
@@ -121,18 +121,22 @@ namespace kagome::scale {
   }
 
   constexpr void encode(const Invocable auto &func, const IsEnum auto &value) {
-    kagome::scale::encode(func, static_cast<std::underlying_type_t<std::decay_t<decltype(value)>>>(value));
+    kagome::scale::encode(
+        func,
+        static_cast<std::underlying_type_t<std::decay_t<decltype(value)>>>(
+            value));
   }
 
   template <typename T, typename... Args>
-  constexpr void encode(const Invocable auto &func, const T &t, const Args &...args) {
+  constexpr void encode(const Invocable auto &func,
+                        const T &t,
+                        const Args &...args) {
     kagome::scale::encode(func, t);
     kagome::scale::encode(func, args...);
   }
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    auto ref = ::scale::encode(args...).value();
     std::vector<uint8_t> res;
     kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
@@ -141,10 +145,6 @@ namespace kagome::scale {
           }
         },
         args...);
-
-    if (res != ref) {
-      __builtin_trap();
-    }
     return res;
   }
 
@@ -263,9 +263,7 @@ namespace kagome::scale {
   template <typename... Ts>
   void encode(const Invocable auto &func, const std::variant<Ts...> &v) {
     kagome::scale::encode(func, (uint8_t)v.index());
-    std::visit([&](const auto &s) {
-      kagome::scale::encode(func, s);
-    }, v);
+    std::visit([&](const auto &s) { kagome::scale::encode(func, s); }, v);
   }
 
   constexpr void encode(const Invocable auto &func, const std::string &v) {
@@ -302,7 +300,8 @@ namespace kagome::scale {
     }
   }
 
-  void encode(const Invocable auto &func, const ::scale::CompactInteger &value) {
+  void encode(const Invocable auto &func,
+              const ::scale::CompactInteger &value) {
     if (value < 0) {
       raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
     }
@@ -382,7 +381,8 @@ namespace kagome::scale {
   }
 
   template <typename T, size_t size>
-  constexpr void encode(const Invocable auto &func, const std::array<T, size> &c) {
+  constexpr void encode(const Invocable auto &func,
+                        const std::array<T, size> &c) {
     for (const auto &e : c) {
       kagome::scale::encode(func, e);
     }
@@ -407,7 +407,8 @@ namespace kagome::scale {
   }
 
   template <typename T>
-  constexpr void encode(const Invocable auto &func, const std::shared_ptr<T> &v){
+  constexpr void encode(const Invocable auto &func,
+                        const std::shared_ptr<T> &v) {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
@@ -415,7 +416,8 @@ namespace kagome::scale {
   }
 
   template <typename T>
-  constexpr void encode(const Invocable auto &func, const std::unique_ptr<T> &v){
+  constexpr void encode(const Invocable auto &func,
+                        const std::unique_ptr<T> &v) {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
@@ -435,13 +437,15 @@ namespace kagome::scale {
   }
 
   template <typename... Ts>
-  constexpr void encode(const Invocable auto &func, const std::tuple<Ts...> &v) {
+  constexpr void encode(const Invocable auto &func,
+                        const std::tuple<Ts...> &v) {
     if constexpr (sizeof...(Ts) > 0) {
-      std::apply([&](const auto &...s) { (..., kagome::scale::encode(func, s)); }, v);
+      std::apply(
+          [&](const auto &...s) { (..., kagome::scale::encode(func, s)); }, v);
     }
   }
 
-  void encode(const Invocable auto &func, const std::optional<bool> &v)  {
+  void encode(const Invocable auto &func, const std::optional<bool> &v) {
     enum class OptionalBool : uint8_t {
       NONE = 0u,
       OPT_TRUE = 1u,
@@ -468,11 +472,17 @@ namespace kagome::scale {
   }
 
   void encode(const Invocable auto &func, const crypto::EcdsaSignature &data) {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE> &>(data));
+    kagome::scale::encode(
+        func,
+        static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE>
+                        &>(data));
   }
 
   void encode(const Invocable auto &func, const crypto::EcdsaPublicKey &data) {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
+    kagome::scale::encode(
+        func,
+        static_cast<
+            const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
   }
 
 }  // namespace kagome::scale
