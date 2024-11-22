@@ -33,6 +33,7 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "utils/profiler.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace di = boost::di;
 using namespace kagome;         // NOLINT(google-build-using-namespace)
@@ -362,7 +363,7 @@ int db_editor_main(int argc, const char **argv) {
           runtime_upgrade_data{};
       runtime_upgrade_data.emplace_back(last_finalized_block,
                                         last_finalized_block_header.state_root);
-      auto encoded_res = check(scale::encode(runtime_upgrade_data));
+      auto encoded_res = check(kagome::scale::encode(runtime_upgrade_data));
       check(buffer_storage->put(storage::kRuntimeHashesLookupKey,
                                 common::Buffer(encoded_res.value())))
           .value();

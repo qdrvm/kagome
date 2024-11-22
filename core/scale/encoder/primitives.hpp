@@ -288,12 +288,8 @@ namespace kagome::scale {
     kagome::scale::encode(func, c.begin(), c.end());
   }
 
-  template <typename T, ssize_t S>
+  template <typename T, size_t S>
   constexpr void encode(const Invocable auto &func, const std::span<T, S> &c) {
-    if constexpr (S == -1) {
-      kagome::scale::encodeCompact(func, c.size());
-      kagome::scale::encode(func, c.begin(), c.end());
-    } else {
       using E = std::decay_t<T>;
       if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
         putByte(func, c.data(), c.size());
@@ -302,6 +298,24 @@ namespace kagome::scale {
           encode(func, e);
         }
       }
+  }
+
+  template <typename T, ssize_t S>
+  constexpr void encode(const Invocable auto &func, const std::span<T, S> &c) {
+    if constexpr (S == -1) {
+      kagome::scale::encodeCompact(func, c.size());
+      kagome::scale::encode(func, c.begin(), c.end());
+    } else {
+      kagome::scale::encode<T, size_t(S)>(func, c);
+
+      //using E = std::decay_t<T>;
+      //if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
+      //  putByte(func, c.data(), c.size());
+      //} else {
+      //  for (const auto &e : c) {
+      //    encode(func, e);
+      //  }
+      //}
     }
   }
 
@@ -580,5 +594,18 @@ namespace kagome::scale {
                         const Args &...args) {
     kagome::scale::encode(func, t);
     kagome::scale::encode(func, args...);
+  }
+
+  template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
+    std::vector<uint8_t> res;
+    kagome::scale::encode(
+        [&](const uint8_t *const val, size_t count) {
+          if (count != 0ull) {
+            res.insert(res.end(), &val[0], &val[count]);
+          }
+        },
+        args...);
+    return res;
   }
 }  // namespace kagome::scale

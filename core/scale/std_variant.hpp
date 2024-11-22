@@ -7,7 +7,7 @@
 
 #include <variant>
 
-#include <scale/scale.hpp>
+#include "scale/encoder/external_scale.hpp"
 
 namespace scale {
 

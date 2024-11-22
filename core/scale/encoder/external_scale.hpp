@@ -79,6 +79,7 @@ namespace kagome::scale {
   using uint128_t = ::scale::uint128_t;
 
   using ::scale::decode;
+  using ::scale::append_or_new_vec;
 
   constexpr void encode(const Invocable auto &func,
                         const primitives::BlockHeader &bh);
@@ -194,6 +195,9 @@ namespace kagome::scale {
   constexpr void encode(const Invocable auto &func, const std::string_view &v);
 
   constexpr void encode(const Invocable auto &func, const std::string &v);
+  
+  template <typename T, size_t S>
+  constexpr void encode(const Invocable auto &func, const std::span<T, S> &c);
 
   template <typename T>
   constexpr void encode(const Invocable auto &func,
@@ -235,17 +239,7 @@ namespace kagome::scale {
   constexpr void encode(const Invocable auto &func,
                         const T &t,
                         const Args &...args);
-  
-  template <typename... Args>
-  outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    std::vector<uint8_t> res;
-    kagome::scale::encode(
-        [&](const uint8_t *const val, size_t count) {
-          if (count != 0ull) {
-            res.insert(res.end(), &val[0], &val[count]);
-          }
-        },
-        args...);
-    return res;
-  }
+ 
+ template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode(const Args &...args);
 }  // namespace kagome::scale
