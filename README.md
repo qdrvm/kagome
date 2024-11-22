@@ -121,6 +121,33 @@ make debug_docker
 make clear
 ```
 
+### Installation from APT Package
+
+To install KAGOME releases using the provided package repository, follow these steps (tested on Ubuntu 24.04.1 LTS (Noble Numbat)):
+
+Update your package lists and install necessary utilities:
+    
+```sh
+apt update && apt install -y gpg curl
+```
+
+Add the repository’s GPG signing key:
+    
+```sh
+curl -fsSL https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg | gpg --dearmor -o /usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg
+```
+
+Add the KAGOME package repository to your sources list:
+```sh
+echo "deb [signed-by=/usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg] https://europe-north1-apt.pkg.dev/projects/kagome-408211 kagome main" > /etc/apt/sources.list.d/kagome.list
+```
+
+Update the package lists and install KAGOME:
+
+```sh
+apt update && apt install -y kagome
+```
+
 ### Using KAGOME
 
 #### Obtaining database snapshot (optional)

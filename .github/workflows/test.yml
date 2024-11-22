@@ -338,6 +338,7 @@ jobs:
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
           BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
+          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
           BUILD_TYPE=${{ matrix.options.build_type }}
 
       - name: "Push Kagome APT Package"
