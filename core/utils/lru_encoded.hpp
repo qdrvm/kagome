@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "scale/kagome_scale.hpp"
+#include <scale/scale.hpp>
 
 #include <boost/container_hash/hash.hpp>
 

@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "scale/encoder/primitives.hpp"
+#include <scale/scale.hpp>
 
 namespace kagome {
 
@@ -56,6 +56,14 @@ namespace kagome {
     }
 
    private:
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const Tagged<T, Tag> &tagged) {
+      if constexpr (std::is_scalar_v<T>) {
+        return s << tagged.Wrapper<T>::value;
+      } else {
+        return s << static_cast<const T &>(tagged);
+      }
+    }
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, Tagged<T, Tag> &tagged) {

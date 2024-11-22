@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "scale/encoder/primitives.hpp"
+#include <scale/scale.hpp>
 
 namespace kagome {
 
@@ -15,6 +15,11 @@ namespace kagome {
   struct Empty {
     inline constexpr bool operator==(const Empty &) const {
       return true;
+    }
+
+    template <class Stream>
+    friend inline Stream &operator<<(Stream &s, const Empty &) {
+      return s;
     }
 
     template <class Stream>

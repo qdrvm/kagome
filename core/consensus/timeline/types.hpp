@@ -62,13 +62,19 @@ namespace kagome::consensus {
       return count() <=> r.count();
     }
 
+    friend ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const SlotDuration &duration) {
+      return s << duration.count();
+    }
+
     friend ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, SlotDuration &duration) {
       uint64_t v;  // NOLINT(cppcoreguidelines-init-variables)
       s >> v;
       duration = {v};
       return s;
-    }  };
+    }
+  };
 
   /// number of the epoch in the block production
   using EpochNumber = uint64_t;

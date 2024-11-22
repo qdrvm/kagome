@@ -22,6 +22,14 @@ namespace kagome::primitives {
   };
 
   template <class Stream>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &s, const ArithmeticError &v) {
+    // index shift is required for compatibility with rust implementation.
+    // std::error_code policy preserves 0 index for success cases.
+    return s << static_cast<uint8_t>(v) - 1;
+  }
+
+  template <class Stream>
     requires Stream::is_decoder_stream
   Stream &operator>>(Stream &s, ArithmeticError &v) {
     uint8_t value = 0u;

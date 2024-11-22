@@ -68,6 +68,31 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
+  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
+                                                 const SignedCommitment &v) {
+    s << v.commitment;
+    size_t count = 0;
+    common::Buffer bits;
+    // https://github.com/paritytech/substrate/blob/55bb6298e74d86be12732fd0f120185ee8fbfe97/primitives/consensus/beefy/src/commitment.rs#L149-L152
+    bits.resize(v.signatures.size() / 8 + 1);
+    auto i = 0;
+    for (auto &sig : v.signatures) {
+      if (sig) {
+        ++count;
+        bits[i / 8] |= 1 << (7 - i % 8);
+      }
+      ++i;
+    }
+    s << bits;
+    s << static_cast<uint32_t>(v.signatures.size());
+    s << ::scale::CompactInteger{count};
+    for (auto &sig : v.signatures) {
+      if (sig) {
+        s << *sig;
+      }
+    }
+    return s;
+  }
   inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                                  SignedCommitment &v) {
     s >> v.commitment;

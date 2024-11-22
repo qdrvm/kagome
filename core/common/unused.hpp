@@ -47,6 +47,13 @@ namespace kagome {
     return true;
   }
 
+  /// To raise failure while attempt to encode unused entity
+  template <size_t N>
+  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
+                                                 const Unused<N> &) {
+    ::scale::raise(UnusedError::AttemptToEncodeUnused);
+    return s;
+  }
 
   /// To raise failure while attempt to decode unused entity
   template <size_t N>

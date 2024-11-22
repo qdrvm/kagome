@@ -11,7 +11,6 @@
 #include <type_traits>
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
-#include "crypto/ecdsa_types.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "network/types/blocks_response.hpp"
 #include "network/types/roles.hpp"
@@ -28,6 +27,20 @@
 #include "network/types/dispute_messages.hpp"
 
 namespace kagome::scale {
+  using CompactInteger = ::scale::CompactInteger;
+  using BitVec = ::scale::BitVec;
+  using ScaleDecoderStream = ::scale::ScaleDecoderStream;
+  using ScaleEncoderStream = ::scale::ScaleEncoderStream;
+  using PeerInfoSerializable = ::scale::PeerInfoSerializable;
+  using DecodeError = ::scale::DecodeError;
+  template <typename T>
+  using Fixed = ::scale::Fixed<T>;
+  template <typename T>
+  using Compact = ::scale::Compact<T>;
+  using uint128_t = ::scale::uint128_t;
+
+  using ::scale::decode;
+
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
@@ -89,12 +102,6 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func,
                         const primitives::RuntimeEnvironmentUpdated &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaSignature &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaPublicKey &value) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
 
   template <typename F>
   constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) requires std::is_invocable_v<F, const uint8_t *const, size_t>;
@@ -297,16 +304,6 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const consensus::grandpa::SignedPrecommit &c) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
     kagome::scale::encode(func, static_cast<const consensus::grandpa::SignedMessage &>(c));
-  }
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaSignature &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE> &>(data));
-  }
-
-  template <typename F>
-  void encode(const F &func, const crypto::EcdsaPublicKey &data) requires std::is_invocable_v<F, const uint8_t *const, size_t> {
-    kagome::scale::encode(func, static_cast<const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
   }
 }  // namespace kagome::scale
 

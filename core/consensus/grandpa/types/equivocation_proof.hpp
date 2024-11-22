@@ -57,6 +57,13 @@ namespace kagome::consensus::grandpa {
     RoundNumber round() const {
       return round_number;
     }
+
+    friend scale::ScaleEncoderStream &operator<<(
+        scale::ScaleEncoderStream &s, const Equivocation &equivocation) {
+      return s << equivocation.stage << equivocation.round_number
+               << equivocation.first.id << equivocation.first
+               << equivocation.second;
+    }
   };
 
   /// Proof of voter misbehavior on a given set id. Misbehavior/equivocation

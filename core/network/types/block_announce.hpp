@@ -36,6 +36,18 @@ namespace kagome::network {
          and this->data == other.data;
     }
 
+    friend inline scale::ScaleEncoderStream &operator<<(
+        scale::ScaleEncoderStream &s, const BlockAnnounce &v) {
+      s << v.header;
+      if (v.state.has_value()) {
+        s << v.state.value();
+        if (v.data.has_value()) {
+          s << v.data.value();
+        }
+      }
+      return s;
+    }
+
     friend inline scale::ScaleDecoderStream &operator>>(
         scale::ScaleDecoderStream &s, BlockAnnounce &v) {
       s >> v.header;

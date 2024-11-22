@@ -18,6 +18,8 @@ namespace scale {
     static libp2p::peer::PeerId dummyPeerId();
   };
 
+  ::scale::ScaleEncoderStream &operator<<(
+      ::scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info);
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           libp2p::peer::PeerInfo &peer_info);

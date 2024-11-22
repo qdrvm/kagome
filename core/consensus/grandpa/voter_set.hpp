@@ -86,8 +86,16 @@ namespace kagome::consensus::grandpa {
     size_t total_weight_{0};
 
     template <class Stream>
+    friend Stream &operator<<(Stream &s, const VoterSet &voters);
+    template <class Stream>
     friend Stream &operator>>(Stream &s, VoterSet &voters);
   };
+
+  template <class Stream>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &s, const VoterSet &voters) {
+    return s << voters.list_ << voters.id_;
+  }
 
   template <class Stream>
     requires Stream::is_decoder_stream

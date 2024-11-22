@@ -8,7 +8,7 @@
 
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 #include <libp2p/connection/stream.hpp>
-#include "scale/kagome_scale.hpp"
+#include <scale/scale.hpp>
 
 namespace kagome::network::notifications {
   using libp2p::basic::MessageReadWriterUvarint;

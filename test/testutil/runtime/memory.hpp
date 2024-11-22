@@ -7,7 +7,7 @@
 #pragma once
 
 #include <memory>
-#include "scale/kagome_scale.hpp"
+#include <scale/scale.hpp>
 
 #include "common/buffer.hpp"
 #include "common/span_adl.hpp"

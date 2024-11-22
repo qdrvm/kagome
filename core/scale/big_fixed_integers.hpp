@@ -94,11 +94,29 @@ namespace scale {
   }
 
   template <typename Stream, typename N>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &stream, const Fixed<N> &fixed) {
+    constexpr size_t bits = Fixed<N>::kByteSize * 8;
+    for (size_t i = 0; i < bits; i += 8) {
+      stream << convert_to<uint8_t>((*fixed >> i) & 0xFFu);
+    }
+    return stream;
+  }
+
+  template <typename Stream, typename N>
     requires Stream::is_decoder_stream
   Stream &operator>>(Stream &stream, Compact<N> &compact) {
     scale::CompactInteger n;
     stream >> n;
     compact.number = n.convert_to<N>();
+    return stream;
+  }
+
+  template <typename Stream, typename N>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &stream, const Compact<N> &compact) {
+    scale::CompactInteger n = *compact;
+    stream << n;
     return stream;
   }
 

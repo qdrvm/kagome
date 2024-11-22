@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "scale/encoder/primitives.hpp"
+#include <scale/scale.hpp>
 
 #include "common/blob.hpp"
 #include "crypto/hasher.hpp"
@@ -103,6 +103,27 @@ namespace kagome::primitives {
     const BlockHash hash;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
+
+  template <class Stream>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
+    return s << bhr.parent_hash << CompactInteger(bhr.number) << bhr.state_root
+             << bhr.extrinsics_root << bhr.digest;
+  }
+  /**
+   *
+   * @brief outputs object of type BlockHeader to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &s, const BlockHeader &bh) {
+    return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
+             << bh.extrinsics_root << bh.digest;
+  }
 
   /**
    * @brief decodes object of type BlockHeader from stream

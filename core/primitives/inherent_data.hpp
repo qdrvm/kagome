@@ -86,6 +86,26 @@ namespace kagome::primitives {
   };
 
   /**
+   * @brief output InherentData object instance to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+    requires Stream::is_encoder_stream
+  Stream &operator<<(Stream &s, const InherentData &v) {
+    const auto &data = v.data;
+    std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
+    vec.reserve(data.size());
+    for (auto &pair : data) {
+      vec.emplace_back(pair);
+    }
+    s << vec;
+    return s;
+  }
+
+  /**
    * @brief decodes InherentData object instance from stream
    * @tparam Stream input stream type
    * @param s stream reference
