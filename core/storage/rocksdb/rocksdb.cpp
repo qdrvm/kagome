@@ -73,7 +73,12 @@ namespace kagome::storage {
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
-    const auto ttl_migrated_path = path.parent_path() / "ttl_migrated";
+    const auto ttl_migrated_path =
+        fs::absolute(path.parent_path() / "ttl_migrated");
+    SL_INFO(log,
+            "TTL migrated path: {} do exist: {}",
+            ttl_migrated_path.native(),
+            fs::exists(ttl_migrated_path));
     const auto ttl_migrated_exists = fs::exists(ttl_migrated_path);
 
     if (no_db_presented or ttl_migrated_exists) {
@@ -152,7 +157,7 @@ namespace kagome::storage {
           &column_family_descriptors,
       const std::vector<int32_t> &ttls,
       std::shared_ptr<RocksDb> &rocks_db,
-      const filesystem::path &ttl_migrated_path,
+      const filesystem::path &absolute_ttl_path,
       log::Logger &log) {
     const auto status =
         rocksdb::DBWithTTL::Open(options,
@@ -168,15 +173,18 @@ namespace kagome::storage {
                status.ToString());
       return status_as_error(status);
     }
-    if (not fs::exists(ttl_migrated_path)) {
-      std::ofstream file(ttl_migrated_path.native());
+    if (not fs::exists(absolute_ttl_path)) {
+      SL_INFO(log, "Creating file {} for database", absolute_ttl_path.native());
+      std::ofstream file(absolute_ttl_path.native());
       if (not file) {
         SL_ERROR(log,
                  "Can't create file {} for database",
-                 ttl_migrated_path.native());
+                 absolute_ttl_path.native());
         return DatabaseError::IO_ERROR;
       }
       file.close();
+    } else {
+      SL_INFO(log, "File {} for database exists", absolute_ttl_path.native());
     }
     return outcome::success();
   }
@@ -293,11 +301,18 @@ namespace kagome::storage {
                status.ToString());
       return status_as_error(status);
     }
-    std::ofstream file(ttl_migrated_path.native());
+    const auto absolute_ttl_migrated_path_native =
+        fs::absolute(ttl_migrated_path).native();
+    std::ofstream file(absolute_ttl_migrated_path_native);
     if (not file) {
-      SL_ERROR(
-          log, "Can't create file {} for database", ttl_migrated_path.native());
+      SL_ERROR(log,
+               "Can't create file {} for database",
+               absolute_ttl_migrated_path_native);
       return DatabaseError::IO_ERROR;
+    } else {
+      SL_INFO(log,
+              "File {} for database created",
+              absolute_ttl_migrated_path_native);
     }
     file.close();
     return outcome::success();

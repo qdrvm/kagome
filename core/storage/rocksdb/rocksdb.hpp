@@ -116,7 +116,7 @@ namespace kagome::storage {
             &column_family_descriptors,
         const std::vector<int32_t> &ttls,
         std::shared_ptr<RocksDb> &rocks_db,
-        const filesystem::path &ttl_migrated_path,
+        const filesystem::path &absolute_ttl_path,
         log::Logger &log);
 
     static outcome::result<void> migrateDatabase(
