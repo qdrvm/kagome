@@ -224,6 +224,17 @@ namespace kagome::parachain {
              code_zstd,
              timeout_kind,
              std::move(cb));
+    auto session = sessionIndex(receipt.descriptor);
+    if (session and timeout_kind == runtime::PvfExecTimeoutKind::Backing) {
+      CB_TRY(auto expected_session,
+             parachain_api_->session_index_for_child(
+                 receipt.descriptor.relay_parent));
+      if (sessionIndex(receipt.descriptor) != expected_session) {
+        cb(network::CheckCoreIndexError::InvalidSession);
+        return;
+      }
+    }
+
     CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return cb(PvfError::POV_SIZE);
@@ -278,13 +289,6 @@ namespace kagome::parachain {
                          .commitments = commitments,
                      },
                      transposeClaimQueue(*claims)));
-                 CB_TRY(auto expected_session,
-                        self->parachain_api_->session_index_for_child(
-                            receipt.descriptor.relay_parent));
-                 if (sessionIndex(receipt.descriptor) != expected_session) {
-                   cb(network::CheckCoreIndexError::InvalidSession);
-                   return;
-                 }
                }
                cb(std::make_pair(std::move(commitments), data));
              }});
