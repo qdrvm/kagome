@@ -218,9 +218,6 @@ namespace kagome::parachain {
     metric_is_parachain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsParachainValidator);
     metric_is_parachain_validator_->set(false);
-
-    std::vector<uint8_t> test = {1, 2};
-    auto v = scale::encode(test);
   }
 
   void ParachainProcessorImpl::OnBroadcastBitfields(

@@ -44,8 +44,7 @@ namespace kagome::runtime {
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
-        outcome::result<std::vector<uint8_t>> r = kagome::scale::encode(args...);
-        return common::map_result(std::move(r), [](auto &&vec) {
+        return common::map_result(kagome::scale::encode(args...), [](auto &&vec) {
           return common::Buffer{vec};
         });
       }

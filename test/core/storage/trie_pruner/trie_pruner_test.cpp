@@ -29,8 +29,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "scale/kagome_scale.hpp"
-#include "network/types/collator_messages_vstaging.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -157,90 +155,9 @@ struct TrieNodeDesc {
   std::map<uint8_t, TrieNodeDesc> children;
 };
 
-template<typename T>
-to_tuple_1(T const &v) -> auto {
-  auto const &[a0] = v;
-  return std::tuple{a0};
-}
-
-template<typename T>
-to_tuple_2(T const &v) -> auto {
-  auto const &[x, y] = v;
-  return std::tuple{x, y};
-}
-
-template<typename T>
-to_tuple_3(T const &v) -> auto {
-  auto const &[a0, a1, a2] = v;
-  return std::tuple{a0, a1, a2};
-}
-
-template<typename T>
-concept Has1Members = requires(T t) {
-  requires std::tuple_size_v<decltype(to_tuple(t))> == 1;
-};
-
-template<typename T>
-concept Has2Members = requires(T t) {
-  requires std::tuple_size_v<decltype(to_tuple(t))> == 2;
-};
-
-template<typename T>
-concept Has3Members = requires(T t) {
-  requires std::tuple_size_v<decltype(to_tuple(t))> == 3;
-};
-
-void q(const Has1Members auto &a) {
-  std::cout << "1";
-}
-
-void q(const Has2Members auto &a) {
-  std::cout << "2";
-}
-
-void q(const Has3Members auto &a) {
-  std::cout << "3";
-}
-
-struct T {
-  int p, s;
-  std::string l;
-};
-
 class TriePrunerTest : public testing::Test {
  public:
   void SetUp() {
-
-    T t;
-    q(t);
-
-    //kagome::network::vstaging::AttestedCandidateRequest r;
-    //auto d = kagome::scale::encode(r).value();
-
-    //kagome::consensus::beefy::DoubleVotingProof pr;
-    //auto v = kagome::scale::encode(pr).value();
-    //kagome::network::CandidateCommitments s;
-
-    
-
-    //auto q = kagome::utils::is_braces_constructible<kagome::network::CandidateCommitments, 
-    //kagome::utils::any_type, 
-    //kagome::utils::any_type, 
-    //kagome::utils::any_type, 
-    //kagome::utils::any_type, 
-    //kagome::utils::any_type, 
-    //kagome::utils::any_type
-    //>{};
-    //static_assert(std::is_same_v<decltype(q), std::false_type>, "");
-
-    //auto q = kagome::utils::to_tuple_refs(s);
-    //auto o = std::get<0>(q);
-
-    //unsigned char data[32] = {1};
-    //std::span<const unsigned char, 32> r(data);
-
-    //kagome::scale::encode(r);
-
     testutil::prepareLoggers(soralog::Level::DEBUG);
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
