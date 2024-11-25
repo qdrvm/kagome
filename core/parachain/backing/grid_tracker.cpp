@@ -633,9 +633,9 @@ namespace kagome::parachain::grid {
           group_size,
           seconding_limit,
           fresh_seconded.bits);
-      if (!within_limits) {
-        return GridTracker::Error::SECONDING_OVERFLOW;
-      }
+      //if (!within_limits) {
+      //  return GridTracker::Error::SECONDING_OVERFLOW;
+      //}
       it->second = manifest_summary;
       return outcome::success();
     }
@@ -646,11 +646,11 @@ namespace kagome::parachain::grid {
         group_size,
         seconding_limit,
         manifest_summary.statement_knowledge.seconded_in_group.bits);
-    if (within_limits) {
+    //if (within_limits) {
       received[candidate_hash] = manifest_summary;
       return outcome::success();
-    }
-    return GridTracker::Error::SECONDING_OVERFLOW;
+    //}
+    //return GridTracker::Error::SECONDING_OVERFLOW;
   }
 
   bool ReceivedManifests::updating_ensure_within_seconding_limit(
