@@ -15,11 +15,13 @@
 #include "parachain/ump_signal.hpp"
 
 namespace kagome::network {
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L44
   /// The default claim queue offset to be used if it's not
   /// configured/accessible in the parachain
   /// runtime
   constexpr uint8_t kDefaultClaimQueueOffset = 0;
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L532-L534
   inline bool isV1(const CandidateDescriptor &descriptor) {
     constexpr auto is_zero = [](BufferView xs) {
       return static_cast<size_t>(std::ranges::count(xs, 0)) == xs.size();
@@ -28,10 +30,12 @@ namespace kagome::network {
         or not is_zero(descriptor.reserved_2);
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L532-L537
   inline bool isV2(const CandidateDescriptor &descriptor) {
     return not isV1(descriptor) and descriptor.reserved_1[0] == 0;
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L179
   /// Check the signature of the collator within this descriptor.
   inline outcome::result<void> checkSignature(
       const crypto::Sr25519Provider &sr25519,
@@ -50,6 +54,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L580
   /// Returns the `core_index` of `V2` candidate descriptors, `None` otherwise.
   inline std::optional<parachain::CoreIndex> coreIndex(
       const CandidateDescriptor &descriptor) {
@@ -59,6 +64,7 @@ namespace kagome::network {
     return boost::endian::load_little_u16(&descriptor.reserved_1[1]);
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L589
   /// Returns the `core_index` of `V2` candidate descriptors, `None` otherwise.
   inline std::optional<parachain::SessionIndex> sessionIndex(
       const CandidateDescriptor &descriptor) {
@@ -90,6 +96,7 @@ namespace kagome::network {
     abort();
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L602
   /// Checks if descriptor core index is equal to the committed core index.
   /// Input `cores_per_para` is a claim queue snapshot at the candidate's relay
   /// parent, stored as a mapping between `ParaId` and the cores assigned per
@@ -134,6 +141,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L2114
   inline outcome::result<void> descriptorVersionSanityCheck(
       const CandidateDescriptor &descriptor,
       bool v2_receipts,

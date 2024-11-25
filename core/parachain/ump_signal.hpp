@@ -14,6 +14,7 @@
 #include "scale/tie.hpp"
 
 namespace kagome::parachain {
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L435
   /// Separator between `XCM` and `UMPSignal`.
   inline const Buffer kUmpSeparator;
 
@@ -29,6 +30,7 @@ namespace kagome::parachain {
     abort();
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L432
   /// A message sent by a parachain to select the core the candidate is
   /// committed to. Relay chain validators, in particular backers, use the
   /// `CoreSelector` and `ClaimQueueOffset` to compute the index of the core the
@@ -39,15 +41,18 @@ namespace kagome::parachain {
     uint8_t core_selector;
     uint8_t claim_queue_offset;
   };
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L428
   /// Signals that a parachain can send to the relay chain via the UMP queue.
   using UMPSignal = boost::variant<UMPSignalSelectCore>;
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L438
   /// Utility function for skipping the ump signals.
   inline auto skipUmpSignals(std::span<const Buffer> messages) {
     return messages.first(std::ranges::find(messages, kUmpSeparator)
                           - messages.begin());
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L447
   /// Returns the core selector and claim queue offset determined by
   /// `UMPSignal::SelectCore` commitment, if present.
   inline outcome::result<std::optional<UMPSignalSelectCore>> coreSelector(

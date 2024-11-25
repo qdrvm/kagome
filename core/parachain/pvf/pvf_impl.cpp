@@ -224,6 +224,7 @@ namespace kagome::parachain {
              code_zstd,
              timeout_kind,
              std::move(cb));
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L763-L782
     auto session = sessionIndex(receipt.descriptor);
     if (session and timeout_kind == runtime::PvfExecTimeoutKind::Backing) {
       CB_TRY(auto expected_session,
@@ -275,6 +276,7 @@ namespace kagome::parachain {
                CB_TRY(auto result, std::move(r));
                CB_TRY(auto commitments,
                       self->fromOutputs(receipt, std::move(result)));
+               // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L915-L951
                if (timeout_kind == runtime::PvfExecTimeoutKind::Backing
                    and coreIndex(receipt.descriptor)) {
                  CB_TRY(auto claims,

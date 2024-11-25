@@ -7,8 +7,8 @@
 #include "parachain/validator/statement_distribution/statement_distribution.hpp"
 
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
-#include "parachain/candidate_descriptor_v2.hpp"
 #include "network/impl/protocols/parachain.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/weak_macro.hpp"
 
@@ -1021,6 +1021,7 @@ namespace kagome::parachain::statement_distribution {
     if (candidateHash(*hasher, response.candidate_receipt) != candidate_hash) {
       return false;
     }
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/statement-distribution/src/v2/requests.rs#L744-L772
     if (not per_relay_parent.v2_receipts
         and isV2(response.candidate_receipt.descriptor)) {
       return false;

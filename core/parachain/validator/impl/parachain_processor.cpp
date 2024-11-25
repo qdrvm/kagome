@@ -486,6 +486,7 @@ namespace kagome::parachain {
     }
 
     std::optional<ValidatorIndex> validator_index;
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L487-L495
     CoreIndex current_core = 0;
     if (validator) {
       validator_index = validator->validatorIndex();
