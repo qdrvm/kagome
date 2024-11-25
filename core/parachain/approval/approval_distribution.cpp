@@ -3396,7 +3396,11 @@ namespace kagome::parachain {
           libp2p::SharedFn{[&, promise{std::move(promise)}]() mutable {
             promise.set_value(approvedAncestor(min, max));
           }});
-      return future.get();
+      try {
+        return future.get();
+      } catch (std::future_error &) {
+        return block_tree_->getLastFinalized();
+      }
     }
 
     if (max.number <= min.number) {

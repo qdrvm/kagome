@@ -31,14 +31,15 @@ namespace kagome::runtime {
         const primitives::BlockHash &block_hash,
         std::optional<common::Buffer> seed) = 0;
 
+    using DecodeSessionKeysResult =
+        std::optional<std::vector<std::pair<Buffer, crypto::KeyType>>>;
     /**
      * @brief Decode the given public session keys.
      * @return the list of public raw public keys + key type.
      */
-    virtual outcome::result<
-        std::vector<std::pair<crypto::KeyType, common::Buffer>>>
-    decode_session_keys(const primitives::BlockHash &block_hash,
-                        common::BufferView encoded) const = 0;
+    virtual outcome::result<DecodeSessionKeysResult> decode_session_keys(
+        const primitives::BlockHash &block_hash,
+        common::BufferView encoded) const = 0;
   };
 
 }  // namespace kagome::runtime
