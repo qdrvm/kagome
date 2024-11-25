@@ -154,7 +154,7 @@ namespace kagome::scale {
       };
       (append(args), ...);
       std::cout << "[Inconsistent data]: " << s << std::endl;
-    }        
+    }
     return res;
   }
 

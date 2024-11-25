@@ -44,9 +44,9 @@ namespace kagome::runtime {
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
-        return common::map_result(kagome::scale::encode(args...), [](auto &&vec) {
-          return common::Buffer{vec};
-        });
+        return common::map_result(
+            kagome::scale::encode(args...),
+            [](auto &&vec) { return common::Buffer{vec}; });
       }
       return outcome::success();
     }

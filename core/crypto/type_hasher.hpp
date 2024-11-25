@@ -15,9 +15,11 @@ namespace kagome::crypto {
 
   template <typename H, typename... T>
   inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
-    scale::encode([&](const uint8_t *const ptr, size_t count) {
-      hasher.update(std::span<const uint8_t>(ptr, count));
-    }, std::forward<T>(t)...).value();
+    scale::encode(
+        [&](const uint8_t *const ptr, size_t count) {
+          hasher.update(std::span<const uint8_t>(ptr, count));
+        },
+        std::forward<T>(t)...);
     hasher.get_final(out);
   }
 
