@@ -19,15 +19,6 @@ PACKAGE_ARCHITECTURE ?= amd64
 # Debug, Release, RelWithDebInfo
 BUILD_TYPE ?= Release
 
-# Generated versions
-OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
-OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
-OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
-BUILDER_IMAGE_TAG ?= $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
-BUILDER_LATEST_TAG ?= latest
-TESTER_LATEST_TAG ?= latest
-DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
-
 # kagome_dev_docker_build Variables
 BUILD_DIR ?= build
 CACHE_DIR := $(shell pwd)/../../../../kagome/$(BUILD_DIR)/cache
@@ -38,12 +29,23 @@ GITHUB_HUNTER_TOKEN ?=
 CTEST_OUTPUT_ON_FAILURE ?= 1
 WERROR ?= OFF
 
+# Generated versions
+OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
+OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
+BUILDER_IMAGE_TAG ?= $(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
+BUILDER_LATEST_TAG ?= latest
+TESTER_LATEST_TAG ?= latest
+DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
+KAGOME_SANITIZED_VERSION = $(shell cd $(WORKING_DIR) && ./get_version.sh --sanitized)
+
 # kagome_runtime_cache and kagome_image_build Variables
 KAGOME_PACKAGE_VERSION ?=
 #KAGOME_RUNTIME_PACKAGE_VERSION ?=
 
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
+PUBLIC_ARTIFACTS_REPO ?= kagome
 REGION ?= europe-north1
 
 # CI Variables
@@ -55,11 +57,11 @@ export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
 export BUILDKIT_PROGRESS=auto
 
-
 get_versions:
 	@echo "full_commit_hash: `git rev-parse HEAD`" | tee commit_hash.txt
 	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
 	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
+	@echo "kagome_sanitized_version: $(KAGOME_SANITIZED_VERSION)" | tee -a kagome_version.txt
 
 builder_image_tag:
 	@echo $(BUILDER_IMAGE_TAG)
@@ -133,8 +135,17 @@ kagome_dev_docker_build:
 			$(PACKAGE_ARCHITECTURE) \
 			kagome-dev \
 			/tmp/kagome \
-			'Kagome Dev Debian Package' \
-			'$(DEPENDENCIES)' ; \
+			'Kagome Dev Ubuntu Package' \
+			'$(DEPENDENCIES)' && \
+		if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
+			./build_apt_package.sh \
+				\"$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)\" \
+				$(PACKAGE_ARCHITECTURE) \
+				kagome \
+				/tmp/kagome \
+				'Kagome Ubuntu Package' \
+				'$(DEPENDENCIES)' ; \
+		fi; \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -244,7 +255,10 @@ upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev_$$(date +'%y.%m.%d')-$${SHORT_COMMIT_HASH}-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb ; \
+	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
+		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=./pkg/kagome_$(KAGOME_SANITIZED_VERSION)-$(BUILD_TYPE)_$(PACKAGE_ARCHITECTURE).deb ; \
+	fi;
 
 runtime_cache:
 	CONTAINER_NAME=kagome_dev_runtime_cache_$$(openssl rand -hex 6); \
@@ -274,7 +288,7 @@ runtime_cache:
 			$(PACKAGE_ARCHITECTURE) \
 			kagome-dev-runtime \
 			/tmp/kagome_runtime \
-			'Kagome Runtime Dev Debian Package' \
+			'Kagome Runtime Dev Ubuntu Package' \
 			'kagome-dev' \
 			 /tmp/kagome/runtimes-cache/ ; \
 		" || DOCKER_EXEC_RESULT=$$? ; \

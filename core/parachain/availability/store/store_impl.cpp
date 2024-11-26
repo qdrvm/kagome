@@ -7,14 +7,40 @@
 #include "parachain/availability/store/store_impl.hpp"
 #include "candidate_chunk_key.hpp"
 
-constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 10 * 60;
+constexpr uint64_t KEEP_CANDIDATES_TIMEOUT = 1 * 60;
 
 namespace kagome::parachain {
   AvailabilityStoreImpl::AvailabilityStoreImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       clock::SteadyClock &steady_clock,
-      std::shared_ptr<storage::SpacedStorage> storage)
-      : steady_clock_{steady_clock}, storage_{std::move(storage)} {
+      std::shared_ptr<storage::SpacedStorage> storage,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+      : steady_clock_{steady_clock},
+        storage_{std::move(storage)},
+        chain_sub_{std::move(chain_sub_engine)} {
     BOOST_ASSERT(storage_ != nullptr);
+
+    app_state_manager->takeControl(*this);
+  }
+
+  bool AvailabilityStoreImpl::start() {
+    chain_sub_.onDeactivate(
+        [weak{weak_from_this()}](
+            const primitives::events::RemoveAfterFinalizationParams &params) {
+          auto self = weak.lock();
+          if (not self) {
+            return;
+          }
+          if (params.removed.empty()) {
+            return;
+          }
+          self->state_.exclusiveAccess([self, &params](auto &state) {
+            for (const auto &header_info : params.removed) {
+              self->remove_no_lock(state, header_info.hash);
+            }
+          });
+        });
+    return true;
   }
 
   bool AvailabilityStoreImpl::hasChunk(const CandidateHash &candidate_hash,
