@@ -137,7 +137,6 @@ namespace kagome::scale {
 
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
-    auto ref = ::scale::encode(args...).value();
     std::vector<uint8_t> res;
     kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
@@ -146,15 +145,6 @@ namespace kagome::scale {
           }
         },
         args...);
-    if (res != ref) {
-      std::string s;
-      auto append = [&](const auto &a) {
-        s += "\n";
-        s += typeid(a).name();
-      };
-      (append(args), ...);
-      std::cout << "[Inconsistent data]: " << s << std::endl;
-    }
     return res;
   }
 
