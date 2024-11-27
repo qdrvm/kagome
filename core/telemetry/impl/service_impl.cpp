@@ -337,17 +337,6 @@ namespace kagome::telemetry {
                     allocator);
       return val;
     };
-    auto u64_val = [&allocator](uint64_t val) -> rapidjson::Value & {
-      static rapidjson::Value v;
-      v.SetUint64(val);
-      return v;
-    };
-
-    auto u32_val = [&allocator](uint32_t val) -> rapidjson::Value & {
-      static rapidjson::Value v;
-      v.SetUint(val);
-      return v;
-    };
 
     auto startup_time =
         std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -366,13 +355,15 @@ namespace kagome::telemetry {
     }
     const auto sys_info = gatherLinuxSysInfo();
     if (const auto &memory = sys_info.memory) {
-      sys_info_json.AddMember("memory", u64_val(*memory), allocator);
+      sys_info_json.AddMember(
+          "memory", rapidjson::Value{}.SetUint64(*memory), allocator);
     }
     if (const auto &cpu = sys_info.cpu) {
       sys_info_json.AddMember("cpu", str_val(*cpu), allocator);
     }
     if (const auto &core_count = sys_info.core_count) {
-      sys_info_json.AddMember("core_count", u32_val(*core_count), allocator);
+      sys_info_json.AddMember(
+          "core_count", rapidjson::Value{}.SetUint(*core_count), allocator);
     }
     if (const auto &linux_distro = sys_info.linux_distro) {
       sys_info_json.AddMember(
