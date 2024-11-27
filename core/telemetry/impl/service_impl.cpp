@@ -87,12 +87,13 @@ namespace {
       sysinfo.core_count = core_count;
     }
 
-    // Get the CPU model
-    char cpu_model[256];
-    len = sizeof(cpu_model);
-    mib[1] = HW_MODEL;
-    if (sysctl(mib, 2, &cpu_model, &len, nullptr, 0) == 0) {
-      sysinfo.cpu = std::string(cpu_model);
+    // Get the CPU brand string
+    char cpu_brand[256];
+    len = sizeof(cpu_brand);
+    mib[0] = CTL_HW;
+    mib[1] = HW_MACHINE;
+    if (sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, nullptr, 0) == 0) {
+      sysinfo.cpu = std::string(cpu_brand);
     }
 
     // Get the memory size
