@@ -420,10 +420,10 @@ namespace kagome::telemetry {
     struct utsname utsname_info = {};
     if (uname(&utsname_info) == 0) {
 #ifndef __APPLE__
+      payload.AddMember("target_os", str_val(utsname_info.sysname), allocator);
+#endif
       payload.AddMember(
           "target_arch", str_val(utsname_info.machine), allocator);
-#endif
-      payload.AddMember("target_os", str_val(utsname_info.sysname), allocator);
       sys_info_json.AddMember(
           "linux_kernel", str_val(utsname_info.release), allocator);
     }
