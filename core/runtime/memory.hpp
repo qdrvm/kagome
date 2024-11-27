@@ -112,6 +112,9 @@ namespace kagome::runtime {
     }
 
     void storeBuffer(WasmPointer ptr, common::BufferView v) {
+      if (v.empty()) {
+        return;
+      }
       memcpy(handle_->view(ptr, v.size()).value().data(), v.data(), v.size());
     }
 

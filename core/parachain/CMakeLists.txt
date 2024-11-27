@@ -19,6 +19,19 @@ target_link_libraries(grid_tracker
     outcome
     )
 
+add_library(backing_implicit_view
+    validator/backing_implicit_view.cpp
+    )
+
+target_link_libraries(backing_implicit_view
+    fmt::fmt
+    scale::scale
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
+    )
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -40,7 +53,7 @@ add_library(validator_parachain
     approval/approval.cpp
     backing/store_impl.cpp
     backing/cluster.cpp
-    validator/backing_implicit_view.cpp
+    validator/statement_distribution/statement_distribution.cpp
     )
 
 target_link_libraries(validator_parachain
@@ -54,6 +67,7 @@ target_link_libraries(validator_parachain
     kagome_pvf_worker
     runtime_common
     prospective_parachains
+    backing_implicit_view
     )
 
 add_library(kagome_pvf_worker

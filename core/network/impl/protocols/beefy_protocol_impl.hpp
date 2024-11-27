@@ -6,51 +6,51 @@
 
 #pragma once
 
-#include "consensus/beefy/types.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
-#include "network/impl/protocols/request_response_protocol.hpp"
+#include "network/notifications/protocol.hpp"
 #include "network/protocols/beefy_protocol.hpp"
 #include "network/types/roles.hpp"
 
 namespace kagome::blockchain {
   class GenesisBlockHash;
-}
+}  // namespace kagome::blockchain
 
 namespace kagome::network {
   class Beefy;
-  struct StreamEngine;
 }  // namespace kagome::network
 
 namespace kagome::network {
+  using libp2p::PeerId;
 
   class BeefyProtocolImpl final
-      : public BeefyProtocol,
-        public std::enable_shared_from_this<BeefyProtocolImpl> {
+      : public std::enable_shared_from_this<BeefyProtocolImpl>,
+        public notifications::Controller,
+        public BeefyProtocol {
     static constexpr auto kName = "BeefyProtocol";
 
    public:
-    BeefyProtocolImpl(libp2p::Host &host,
+    BeefyProtocolImpl(const notifications::Factory &notifications_factory,
                       const blockchain::GenesisBlockHash &genesis,
                       Roles roles,
-                      std::shared_ptr<Beefy> beefy,
-                      std::shared_ptr<StreamEngine> stream_engine);
+                      std::shared_ptr<Beefy> beefy);
 
-    bool start() override;
-    const std::string &protocolName() const override;
-    void onIncomingStream(std::shared_ptr<Stream> stream) override;
-    void newOutgoingStream(
-        const PeerId &peer_id,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
-        override;
+    // Controller
+    Buffer handshake() override;
+    bool onHandshake(const PeerId &peer_id,
+                     size_t,
+                     bool,
+                     Buffer &&handshake) override;
+    bool onMessage(const PeerId &peer_id, size_t, Buffer &&message) override;
+    void onClose(const PeerId &peer_id) override;
 
+    // BeefyProtocol
     void broadcast(
         std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) override;
 
+    void start();
+
    private:
-    ProtocolBaseImpl base_;
+    std::shared_ptr<notifications::Protocol> notifications_;
     Roles roles_;
     std::shared_ptr<Beefy> beefy_;
-    std::shared_ptr<StreamEngine> stream_engine_;
   };
-
 }  // namespace kagome::network

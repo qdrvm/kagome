@@ -7,7 +7,11 @@
 #include "authorship/impl/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/outcome.hpp>
+#include "gmock/gmock.h"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
+#include "mock/core/runtime/module_instance_mock.hpp"
+#include "runtime/runtime_context.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -30,6 +34,9 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::primitives::dispatch_error::Other;
 using kagome::runtime::BlockBuilderApiMock;
+using kagome::runtime::ModuleInstanceMock;
+using kagome::runtime::RuntimeContext;
+using kagome::runtime::RuntimeContextFactory;
 using kagome::storage::trie::RootHash;
 
 class BlockBuilderTest : public ::testing::Test {
@@ -46,8 +53,14 @@ class BlockBuilderTest : public ::testing::Test {
 
     parent_block_ = BlockInfo{block_number_ - 1, expected_header_.parent_hash};
 
+    auto instance_mock = std::make_shared<ModuleInstanceMock>();
+    EXPECT_CALL(*instance_mock, stateless())
+        .WillOnce(Return(outcome::success()));
     block_builder_ = std::make_shared<BlockBuilderImpl>(
-        expected_header_, nullptr, block_builder_api_);
+        expected_header_,
+        std::make_unique<RuntimeContext>(
+            RuntimeContextFactory::stateless(instance_mock).value()),
+        block_builder_api_);
   }
 
  protected:

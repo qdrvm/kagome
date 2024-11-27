@@ -164,14 +164,8 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &, SessionIndex),
                 (override));
 
-    MOCK_METHOD(
-        (outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>),
-        claim_queue,
-        (const primitives::BlockHash &),
-        (override));
-
-    MOCK_METHOD(outcome::result<uint32_t>,
-                runtime_api_version,
+    MOCK_METHOD(ClaimQueueResult,
+                claim_queue,
                 (const primitives::BlockHash &),
                 (override));
   };

@@ -34,6 +34,16 @@ on:
         options:
           - 'true'
           - 'false'
+      builder_latest_tag:
+        description: 'Custom Builder tag'
+        default: 'latest'
+        required: false
+        type: 'string'
+      zombie_tester_latest_tag:
+        description: 'Custom Zombie Tester tag'
+        default: 'latest'
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -45,6 +55,8 @@ env:
   CACHE_VERSION: v01
   CACHE_PATH: ./build/cache
   USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 jobs:
   kagome_dev_docker_build:
@@ -111,6 +123,7 @@ jobs:
           GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
           GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
           BUILD_TYPE=${{ github.event.inputs.build_type }} \
+          BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
           WERROR=${{ github.event.inputs.werror }}
 
       - name: "Push Kagome APT Package"
@@ -236,7 +249,7 @@ jobs:
           
       - name: "Get Zombie Tester Version"
         run: |
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:latest
+          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${{ env.TESTER_LATEST_TAG }}
           echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
           echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
         

@@ -143,6 +143,8 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, disableSecureMode, (), (const, override));
 
+    MOCK_METHOD(bool, enableDbMigration, (), (const, override));
+
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
     MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));

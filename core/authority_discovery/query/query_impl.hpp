@@ -26,6 +26,10 @@
 #include <mutex>
 #include <random>
 
+namespace kagome::network {
+  class ValidationProtocol;
+}  // namespace kagome::network
+
 namespace kagome::authority_discovery {
   class QueryImpl : public Query,
                     public libp2p::protocol::kademlia::Validator,
@@ -43,6 +47,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+        LazySPtr<network::ValidationProtocol> validation_protocol,
         std::shared_ptr<crypto::KeyStore> key_store,
         std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
         std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
@@ -85,6 +90,7 @@ namespace kagome::authority_discovery {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
+    LazySPtr<network::ValidationProtocol> validation_protocol_;
     std::shared_ptr<crypto::KeyStore> key_store_;
     std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;
     std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider_;

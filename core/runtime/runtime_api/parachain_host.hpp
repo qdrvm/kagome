@@ -268,10 +268,8 @@ namespace kagome::runtime {
     virtual outcome::result<std::optional<NodeFeatures>> node_features(
         const primitives::BlockHash &block, SessionIndex index) = 0;
 
-    virtual outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>
-    claim_queue(const primitives::BlockHash &block) = 0;
-
-    virtual outcome::result<uint32_t> runtime_api_version(
+    using ClaimQueueResult = outcome::result<std::optional<ClaimQueueSnapshot>>;
+    virtual ClaimQueueResult claim_queue(
         const primitives::BlockHash &block) = 0;
   };
 

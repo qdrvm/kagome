@@ -144,7 +144,7 @@ class AppConfigurationTest : public testing::Test {
  * @then only default values are available
  */
 TEST_F(AppConfigurationTest, DefaultValuesTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
   const char *args[] = {"/path/",
                         "--chain",
@@ -165,7 +165,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
  * @then we must receive correct endpoints on call
  */
 TEST_F(AppConfigurationTest, EndpointsTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
   const char *args[] = {
       "/path/",
@@ -208,7 +208,7 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
  * @then we must select cmd line version
  */
 TEST_F(AppConfigurationTest, CrossConfigTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
   const char *args[] = {
       "/path/",
@@ -303,7 +303,7 @@ TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
  * @then we must put to config data from file
  */
 TEST_F(AppConfigurationTest, ConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("2.2.2.2", 3456);
 
   const char *args[] = {"/path/", "--config-file", config_path.c_str()};
@@ -328,7 +328,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
   const char *args[] = {"/path/",
@@ -356,7 +356,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
   const char *args[] = {"/path/",
@@ -384,7 +384,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, NoConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const ws_endpoint =
+  const boost::asio::ip::tcp::endpoint ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
   const char *args[] = {"/path/",
