@@ -11,6 +11,10 @@
 
 #include <fmt/core.h>
 
+#if __APPLE__
+#include <sys/sysctl.h>
+#endif
+
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   using SizeType = size_t;
@@ -70,6 +74,47 @@ namespace {
     return std::nullopt;
   }
 
+  SysInfo gatherMacSysInfo() {
+    SysInfo sysinfo;
+
+    // Get the number of CPU cores
+    int mib[2];
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    int core_count;
+    size_t len = sizeof(core_count);
+    if (sysctl(mib, 2, &core_count, &len, nullptr, 0) == 0) {
+      sysinfo.core_count = core_count;
+    }
+
+    // Get the CPU model
+    char cpu_model[256];
+    len = sizeof(cpu_model);
+    mib[1] = HW_MODEL;
+    if (sysctl(mib, 2, &cpu_model, &len, nullptr, 0) == 0) {
+      sysinfo.cpu = std::string(cpu_model);
+    }
+
+    // Get the memory size
+    uint64_t memory;
+    len = sizeof(memory);
+    mib[1] = HW_MEMSIZE;
+    if (sysctl(mib, 2, &memory, &len, nullptr, 0) == 0) {
+      sysinfo.memory = memory;
+    }
+
+    // Check if running on a virtual machine
+    char hw_target[256];
+    len = sizeof(hw_target);
+    mib[1] = HW_TARGET;
+    if (sysctl(mib, 2, &hw_target, &len, nullptr, 0) == 0) {
+      sysinfo.is_virtual_machine =
+          std::string(hw_target).find("VMware") != std::string::npos;
+    }
+
+    return sysinfo;
+  }
+
   SysInfo gatherLinuxSysInfo() {
     const std::regex LINUX_REGEX_CPU(R"(^model name\s*:\s*([^\n]+))",
                                      std::regex_constants::multiline);
@@ -122,6 +167,14 @@ namespace {
     }
 
     return sysinfo;
+  }
+
+  SysInfo gatherSysInfo() {
+#ifdef __APPLE__
+    return gatherMacSysInfo();
+#else
+    return gatherLinuxSysInfo();
+#endif
   }
 }  // namespace
 
@@ -347,13 +400,17 @@ namespace kagome::telemetry {
     rapidjson::Value sys_info_json(rapidjson::kObjectType);
     struct utsname utsmame_info;
     if (uname(&utsmame_info) == 0) {
+#ifdef __APPLE__
+      payload.AddMember("target_os", str_val("macos"), allocator);
+#else
+      payload.AddMember("target_os", str_val(utsmame_info.sysname), allocator);
+#endif
       payload.AddMember(
           "target_arch", str_val(utsmame_info.machine), allocator);
-      payload.AddMember("target_os", str_val(utsmame_info.sysname), allocator);
       sys_info_json.AddMember(
           "linux_kernel", str_val(utsmame_info.release), allocator);
     }
-    const auto sys_info = gatherLinuxSysInfo();
+    const auto sys_info = gatherSysInfo();
     if (const auto &memory = sys_info.memory) {
       sys_info_json.AddMember(
           "memory", rapidjson::Value{}.SetUint64(*memory), allocator);
