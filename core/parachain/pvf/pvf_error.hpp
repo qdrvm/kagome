@@ -9,7 +9,7 @@
 #include <qtils/enum_error_code.hpp>
 
 namespace kagome::parachain {
-  enum class PvfError {
+  enum class PvfError : uint8_t {
     // NO_DATA conflicted with <netdb.h>
     NO_PERSISTED_DATA = 1,
     POV_SIZE,

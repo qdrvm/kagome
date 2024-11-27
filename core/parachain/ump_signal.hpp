@@ -10,15 +10,14 @@
 
 #include <qtils/enum_error_code.hpp>
 
-#include "common/buffer.hpp"
-#include "scale/tie.hpp"
+#include "parachain/types.hpp"
 
 namespace kagome::parachain {
   // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/vstaging/mod.rs#L435
   /// Separator between `XCM` and `UMPSignal`.
   inline const Buffer kUmpSeparator;
 
-  enum class UmpError {
+  enum class UmpError : uint8_t {
     TooManyUMPSignals,
   };
   Q_ENUM_ERROR_CODE(UmpError) {

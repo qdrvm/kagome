@@ -74,7 +74,7 @@ namespace kagome::network {
     return boost::endian::load_little_u32(&descriptor.reserved_1[3]);
   }
 
-  enum class CheckCoreIndexError {
+  enum class CheckCoreIndexError : uint8_t {
     InvalidCoreIndex,
     NoAssignment,
     UnknownVersion,
@@ -132,9 +132,11 @@ namespace kagome::network {
       }
       return outcome::success();
     }
-    auto expected_core = *std::next(
-        assigned_cores.begin(),
-        (selector ? selector->core_selector % assigned_cores.size() : 0));
+    auto expected_core =
+        *std::next(assigned_cores.begin(),
+                   selector ? static_cast<ptrdiff_t>(selector->core_selector
+                                                     % assigned_cores.size())
+                            : 0);
     if (core != expected_core) {
       return CheckCoreIndexError::InvalidCoreIndex;
     }
