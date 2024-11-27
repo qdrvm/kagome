@@ -31,6 +31,10 @@ namespace rapidjson {
 #include "telemetry/impl/telemetry_thread_pool.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
+
 namespace {
   std::string json2string(rapidjson::Document &document) {
     rapidjson::StringBuffer buffer;
@@ -345,13 +349,23 @@ namespace kagome::telemetry {
 
     rapidjson::Value payload(rapidjson::kObjectType);
     rapidjson::Value sys_info_json(rapidjson::kObjectType);
-    struct utsname utsmame_info;
-    if (uname(&utsmame_info) == 0) {
+#ifdef __APPLE__
+    payload.AddMember("target_os", str_val("macos"), allocator);
+    char buffer[256];
+    auto size = sizeof(buffer);
+    if (sysctlbyname("hw.machine", buffer, &size, NULL, 0) == 0) {
       payload.AddMember(
-          "target_arch", str_val(utsmame_info.machine), allocator);
-      payload.AddMember("target_os", str_val(utsmame_info.sysname), allocator);
+          "target_arch", rapidjson::Value{}.SetString(buffer, size), allocator);
+    }
+#else
+    struct utsname utsname_info;
+    std::memset(&utsname_info, 0, sizeof(utsname_info));
+    if (uname(&utsname_info) == 0) {
+      payload.AddMember(
+          "target_arch", str_val(utsname_info.machine), allocator);
+      payload.AddMember("target_os", str_val(utsname_info.sysname), allocator);
       sys_info_json.AddMember(
-          "linux_kernel", str_val(utsmame_info.release), allocator);
+          "linux_kernel", str_val(utsname_info.release), allocator);
     }
     const auto sys_info = gatherLinuxSysInfo();
     if (const auto &memory = sys_info.memory) {
@@ -374,6 +388,7 @@ namespace kagome::telemetry {
                               rapidjson::Value{}.SetBool(*is_virtual),
                               allocator);
     }
+#endif
 
     payload
         .AddMember(
