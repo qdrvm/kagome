@@ -6,14 +6,16 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
+
 #include <scale/bitvec.hpp>
 
 namespace kagome::runtime {
   struct NodeFeatures {
     /// A feature index used to identify a bit into the node_features array
     /// stored in the HostConfiguration.
-    enum Index {
+    enum Index : uint8_t {
       /// Tells if tranch0 assignments could be sent in a single certificate.
       /// Reserved for:
       /// `<https://github.com/paritytech/polkadot-sdk/issues/628>`
