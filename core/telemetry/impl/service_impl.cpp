@@ -65,9 +65,9 @@ namespace {
   std::optional<T> extract(const std::string &data, const std::regex &pattern) {
     std::smatch match;
     if (std::regex_search(data, match, pattern)) {
-      if constexpr (std::is_same<T, std::string>::value) {
+      if constexpr (std::is_same_v<T, std::string>) {
         return match[1].str();
-      } else if constexpr (std::is_integral<T>::value) {
+      } else if constexpr (std::is_integral_v<T>) {
         return static_cast<T>(std::stoull(match[1].str()));
       }
     }
@@ -358,8 +358,7 @@ namespace kagome::telemetry {
           "target_arch", rapidjson::Value{}.SetString(buffer, size), allocator);
     }
 #else
-    struct utsname utsname_info;
-    std::memset(&utsname_info, 0, sizeof(utsname_info));
+    struct utsname utsname_info = {};
     if (uname(&utsname_info) == 0) {
       payload.AddMember(
           "target_arch", str_val(utsname_info.machine), allocator);
