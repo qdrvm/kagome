@@ -350,7 +350,6 @@ namespace kagome::parachain {
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
     std::shared_ptr<runtime::Module> module;
     while (true) {
-      auto _measure = std::make_shared<TicToc>("PVF validate block", logger);
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
 
       if (auto *code_params = std::get_if<PvfWorkerInputCodeParams>(&input)) {
@@ -368,6 +367,7 @@ namespace kagome::parachain {
       OUTCOME_TRY(instance, module->instantiate());
 
       OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
+      auto _measure = std::make_shared<TicToc>("PVF worker validate block", logger);
       OUTCOME_TRY(
           result,
           instance->callExportFunction(ctx, "validate_block", input_args));

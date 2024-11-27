@@ -7,6 +7,7 @@
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include <libp2p/common/shared_fn.hpp>
+#include <utils/profiler.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -222,6 +223,13 @@ namespace kagome::parachain {
              code_zstd,
              timeout_kind,
              std::move(cb));
+
+    std::shared_ptr<TicToc> _measure;
+    if (runtime::PvfExecTimeoutKind::Backing == timeout_kind) {
+      _measure =
+          std::make_shared<TicToc>("PVF impl validate block for Backing", log_);
+    }
+
     CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return cb(PvfError::POV_SIZE);
