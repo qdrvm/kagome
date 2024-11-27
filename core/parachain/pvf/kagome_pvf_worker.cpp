@@ -35,6 +35,9 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
+
+
+#include "utils/profiler.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/secure_mode.hpp"
@@ -347,6 +350,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
     std::shared_ptr<runtime::Module> module;
     while (true) {
+      auto _measure = std::make_shared<TicToc>("PVF validate block", logger);
       OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
 
       if (auto *code_params = std::get_if<PvfWorkerInputCodeParams>(&input)) {
