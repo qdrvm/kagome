@@ -40,7 +40,7 @@ namespace kagome::storage {
       bool prevent_destruction,
       const std::unordered_map<std::string, int32_t> &column_ttl,
       bool enable_migration) {
-    const auto no_db_presented = not fs::exists(path);
+    const auto no_db_exists = not fs::exists(path);
     OUTCOME_TRY(mkdirs(path));
 
     auto log = log::createLogger("RocksDB", "storage");
@@ -79,7 +79,7 @@ namespace kagome::storage {
     const auto ttl_migrated_path = path.parent_path() / "ttl_migrated";
     const auto ttl_migrated_exists = fs::exists(ttl_migrated_path);
 
-    if (no_db_presented or ttl_migrated_exists) {
+    if (no_db_exists or ttl_migrated_exists) {
       OUTCOME_TRY(openDatabaseWithTTL(options,
                                       path,
                                       column_family_descriptors,
@@ -289,27 +289,14 @@ namespace kagome::storage {
                ec);
       return DatabaseError::IO_ERROR;
     }
-    status = rocksdb::DBWithTTL::Open(options,
-                                      path.native(),
-                                      column_family_descriptors,
-                                      &rocks_db->column_family_handles_,
-                                      &rocks_db->db_,
-                                      ttls);
-    if (not status.ok()) {
-      SL_ERROR(log,
-               "Can't open database in {}: {}",
-               path.native(),
-               status.ToString());
-      return status_as_error(status);
-    }
-    std::ofstream file(ttl_migrated_path.native());
-    if (not file) {
-      SL_ERROR(
-          log, "Can't create file {} for database", ttl_migrated_path.native());
-      return DatabaseError::IO_ERROR;
-    }
-    file.close();
-    return outcome::success();
+
+    return openDatabaseWithTTL(options,
+                               path,
+                               column_family_descriptors,
+                               ttls,
+                               rocks_db,
+                               ttl_migrated_path,
+                               log);
   }
 
   std::shared_ptr<BufferBatchableStorage> RocksDb::getSpace(Space space) {
