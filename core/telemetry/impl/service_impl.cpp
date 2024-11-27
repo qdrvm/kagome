@@ -50,6 +50,62 @@ namespace {
     std::optional<std::string> linux_distro;
   };
 
+#ifdef __APPLE__
+  SysInfo gatherMacSysInfo() {
+    SysInfo sysinfo;
+
+    // Get the number of CPU cores
+    int mib[2];
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    int core_count;
+    size_t len = sizeof(core_count);
+    if (sysctl(mib, 2, &core_count, &len, nullptr, 0) == 0) {
+      sysinfo.core_count = core_count;
+    }
+
+    // Get the CPU brand string
+    char cpu_brand[256];
+    len = sizeof(cpu_brand);
+    mib[0] = CTL_HW;
+    mib[1] = HW_MACHINE;
+    if (sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, nullptr, 0)
+        == 0) {
+      sysinfo.cpu = std::string(cpu_brand);
+    }
+
+    // Get the memory size
+    uint64_t memory;
+    len = sizeof(memory);
+    mib[1] = HW_MEMSIZE;
+    if (sysctl(mib, 2, &memory, &len, nullptr, 0) == 0) {
+      sysinfo.memory = memory;
+    }
+
+    // Get the macOS version name
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(
+        popen("sw_vers -productVersion", "r"), pclose);
+    if (pipe) {
+      while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+      }
+      sysinfo.linux_distro = "MacOS " + result;
+    }
+
+    // Check if running on a virtual machine
+    char hw_target[256];
+    len = sizeof(hw_target);
+    mib[1] = HW_TARGET;
+    if (sysctl(mib, 2, &hw_target, &len, nullptr, 0) == 0) {
+      sysinfo.is_virtual_machine =
+          std::string(hw_target).find("VMware") != std::string::npos;
+    }
+
+    return sysinfo;
+  }
+#else
   // Function to read file content into a string
   std::optional<std::string> read_file(const std::string &filepath) {
     std::ifstream file(filepath);
@@ -96,7 +152,7 @@ namespace {
           std::regex_search(*cpuinfo, LINUX_REGEX_HYPERVISOR);
 
       // Extract unique {physical_id, core_id} pairs
-      std::set<std::pair<uint32_t, uint32_t>> cores;
+      std::set<std::pair<uint32_t, uint32_t> > cores;
       std::regex section_split("\n\n");
       std::sregex_token_iterator sections(
           cpuinfo->begin(), cpuinfo->end(), section_split, -1);
@@ -126,6 +182,15 @@ namespace {
     }
 
     return sysinfo;
+  }
+#endif
+
+  SysInfo gatherSysInfo() {
+#ifdef __APPLE__
+    return gatherMacSysInfo();
+#else
+    return gatherLinuxSysInfo();
+#endif
   }
 }  // namespace
 
@@ -351,22 +416,18 @@ namespace kagome::telemetry {
     rapidjson::Value sys_info_json(rapidjson::kObjectType);
 #ifdef __APPLE__
     payload.AddMember("target_os", str_val("macos"), allocator);
-    char buffer[256];
-    auto size = sizeof(buffer);
-    if (sysctlbyname("hw.machine", buffer, &size, NULL, 0) == 0) {
-      payload.AddMember(
-          "target_arch", rapidjson::Value{}.SetString(buffer, size), allocator);
-    }
-#else
+#endif
     struct utsname utsname_info = {};
     if (uname(&utsname_info) == 0) {
+#ifndef __APPLE__
       payload.AddMember(
           "target_arch", str_val(utsname_info.machine), allocator);
+#endif
       payload.AddMember("target_os", str_val(utsname_info.sysname), allocator);
       sys_info_json.AddMember(
           "linux_kernel", str_val(utsname_info.release), allocator);
     }
-    const auto sys_info = gatherLinuxSysInfo();
+    const auto sys_info = gatherSysInfo();
     if (const auto &memory = sys_info.memory) {
       sys_info_json.AddMember(
           "memory", rapidjson::Value{}.SetUint64(*memory), allocator);
@@ -387,7 +448,6 @@ namespace kagome::telemetry {
                               rapidjson::Value{}.SetBool(*is_virtual),
                               allocator);
     }
-#endif
 
     payload
         .AddMember(
