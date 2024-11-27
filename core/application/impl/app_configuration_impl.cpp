@@ -90,7 +90,7 @@ namespace {
   }();
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
-      kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+      kagome::application::AppConfiguration::RuntimeExecutionMethod::Compile;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
   const auto def_purge_wavm_cache_ = false;
