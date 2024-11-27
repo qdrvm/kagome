@@ -92,7 +92,8 @@ namespace {
     len = sizeof(cpu_brand);
     mib[0] = CTL_HW;
     mib[1] = HW_MACHINE;
-    if (sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, nullptr, 0) == 0) {
+    if (sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, nullptr, 0)
+        == 0) {
       sysinfo.cpu = std::string(cpu_brand);
     }
 
@@ -102,6 +103,18 @@ namespace {
     mib[1] = HW_MEMSIZE;
     if (sysctl(mib, 2, &memory, &len, nullptr, 0) == 0) {
       sysinfo.memory = memory;
+    }
+
+    // Get the macOS version name
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(
+        popen("sw_vers -productVersion", "r"), pclose);
+    if (pipe) {
+      while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+      }
+      sysinfo.linux_distro = "MacOS " + result;
     }
 
     // Check if running on a virtual machine
