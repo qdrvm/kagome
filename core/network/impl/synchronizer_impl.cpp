@@ -823,7 +823,7 @@ namespace kagome::network {
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
       auto flow_res =
           StateSyncRequestFlow::create(trie_node_db_, block, header);
-      if (!flow_res) {
+      if (not flow_res) {
         handler(flow_res.error());
         return;
       }

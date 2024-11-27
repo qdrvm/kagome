@@ -313,7 +313,9 @@ namespace kagome::storage {
   }
 
   std::shared_ptr<BufferBatchableStorage> RocksDb::getSpace(Space space) {
-    return spaces_[space];
+    auto it = spaces_.find(space);
+    BOOST_ASSERT(it != spaces_.end());
+    return it->second;
   }
 
   outcome::result<void> RocksDb::dropColumn(kagome::storage::Space space) {
