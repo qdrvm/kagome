@@ -2019,7 +2019,7 @@ namespace kagome::parachain {
                                          rp_state.table_context,
                                          rp_state.inject_core_index)) {
           const auto para_id = backed->candidate.descriptor.para_id;
-          SL_INFO(
+          SL_DEBUG(
               logger_,
               "Candidate backed.(candidate={}, para id={}, relay_parent={})",
               summary->candidate,

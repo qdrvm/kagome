@@ -588,7 +588,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-          this, app_state_manager, approval_thread_pool, logger_)},
+            this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(slots_util),
@@ -1663,17 +1663,18 @@ namespace kagome::parachain {
 
           const auto &candidate_receipt = hashed_candidate.get();
           if (!opt_result) {  // Unavailable
-            self->logger_->warn(
-                "No available parachain data.(session index={}, candidate "
-                "hash={}, relay block hash={})",
-                session_index,
-                hashed_candidate.getHash(),
-                relay_block_hash);
+            SL_DEBUG(self->logger_,
+                     "No available parachain data. (session index={}, "
+                     "candidate hash={}, relay block hash={})",
+                     session_index,
+                     hashed_candidate.getHash(),
+                     relay_block_hash);
             return;
           }
 
           if (opt_result->has_error()) {
-            self->logger_->warn(
+            SL_WARN(
+                self->logger_,
                 "Parachain data recovery failed.(error={}, session index={}, "
                 "candidate hash={}, relay block hash={})",
                 opt_result->error(),
@@ -1691,7 +1692,8 @@ namespace kagome::parachain {
           auto result = self->parachain_host_->validation_code_by_hash(
               block_hash, candidate_receipt.descriptor.validation_code_hash);
           if (result.has_error() || !result.value()) {
-            self->logger_->warn(
+            SL_WARN(
+                self->logger_,
                 "Approval state is failed. Block hash {}, session index {}, "
                 "validator index {}, relay parent {}",
                 block_hash,
@@ -1701,12 +1703,12 @@ namespace kagome::parachain {
             return;  /// ApprovalState::failed
           }
 
-          self->logger_->info(
-              "Make exhaustive validation. Candidate hash {}, validator index "
-              "{}, block hash {}",
-              hashed_candidate.getHash(),
-              validator_index,
-              block_hash);
+          SL_DEBUG(self->logger_,
+                   "Make exhaustive validation. Candidate hash {}, validator "
+                   "index {}, block hash {}",
+                   hashed_candidate.getHash(),
+                   validator_index,
+                   block_hash);
 
           runtime::ValidationCode &validation_code = *result.value();
 
@@ -1732,12 +1734,12 @@ namespace kagome::parachain {
               }
             });
             if (outcome.has_error()) {
-              self->logger_->warn(
-                  "Approval validation failed.(parachain id={}, relay "
-                  "parent={}, error={})",
-                  candidate_receipt.descriptor.para_id,
-                  candidate_receipt.descriptor.relay_parent,
-                  outcome.error());
+              SL_WARN(self->logger_,
+                      "Approval validation failed.(parachain id={}, relay "
+                      "parent={}, error={})",
+                      candidate_receipt.descriptor.para_id,
+                      candidate_receipt.descriptor.relay_parent,
+                      outcome.error());
               self->dispute_coordinator_.get()->issueLocalStatement(
                   session_index,
                   hashed_candidate.getHash(),
@@ -2676,10 +2678,10 @@ namespace kagome::parachain {
     REINVOKE(
         *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
-    SL_INFO(logger_,
-            "Sending an approval to peers. (block={}, num peers={})",
-            vote.payload.payload.block_hash,
-            peers.size());
+    SL_DEBUG(logger_,
+             "Sending an approval to peers. (block={}, num peers={})",
+             vote.payload.payload.block_hash,
+             peers.size());
 
     router_->getValidationProtocol()->write(peers,
                                             network::vstaging::Approvals{
@@ -2898,9 +2900,10 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
@@ -3166,7 +3169,7 @@ namespace kagome::parachain {
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
 
     if (!opt_block_entry || !opt_candidate_entry) {
-      SL_ERROR(logger_, "Block entry or candidate entry not exists.");
+      SL_TRACE(logger_, "Block entry or candidate entry not exists.");
       return;
     }
 

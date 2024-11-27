@@ -1036,7 +1036,7 @@ namespace kagome::parachain::statement_distribution {
     [[maybe_unused]] const auto disabled_mask =
         parachain_state->get().disabled_bitmask(*group);
     const network::vstaging::AttestedCandidateResponse &response = r.value();
-    SL_INFO(logger,
+    SL_DEBUG(logger,
             "Fetch attested candidate success. (relay parent={}, "
             "candidate={}, group index={}, statements={})",
             relay_parent,
