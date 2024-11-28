@@ -15,8 +15,10 @@
 #include "common/visitor.hpp"
 #include "log/profiling_logger.hpp"
 #include "metrics/histogram_timer.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/pvf_error.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/session_params.hpp"
@@ -223,11 +225,16 @@ namespace kagome::parachain {
              code_zstd,
              timeout_kind,
              std::move(cb));
-
-    std::shared_ptr<TicToc> _measure;
-    if (runtime::PvfExecTimeoutKind::Backing == timeout_kind) {
-      _measure =
-          std::make_shared<TicToc>("PVF impl validate block for Backing", log_);
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L763-L782
+    auto session = sessionIndex(receipt.descriptor);
+    if (session and timeout_kind == runtime::PvfExecTimeoutKind::Backing) {
+      CB_TRY(auto expected_session,
+             parachain_api_->session_index_for_child(
+                 receipt.descriptor.relay_parent));
+      if (sessionIndex(receipt.descriptor) != expected_session) {
+        cb(network::CheckCoreIndexError::InvalidSession);
+        return;
+      }
     }
 
     CB_TRY(auto pov_encoded, scale::encode(pov));
@@ -242,13 +249,7 @@ namespace kagome::parachain {
     if (code_hash != receipt.descriptor.validation_code_hash) {
       return cb(PvfError::CODE_HASH);
     }
-    CB_TRY(auto signature_valid,
-           sr25519_provider_->verify(receipt.descriptor.signature,
-                                     receipt.descriptor.signable(),
-                                     receipt.descriptor.collator_id));
-    if (!signature_valid) {
-      return cb(PvfError::SIGNATURE);
-    }
+    CB_TRYV(checkSignature(*sr25519_provider_, receipt.descriptor));
 
     auto timer = metric_pvf_execution_time.timer();
     ValidationParams params;
@@ -265,6 +266,7 @@ namespace kagome::parachain {
              libp2p::SharedFn{[weak_self{weak_from_this()},
                                data,
                                receipt,
+                               timeout_kind,
                                cb{std::move(cb)},
                                timer{std::move(timer)}](
                                   outcome::result<ValidationResult> r) {
@@ -275,6 +277,22 @@ namespace kagome::parachain {
                CB_TRY(auto result, std::move(r));
                CB_TRY(auto commitments,
                       self->fromOutputs(receipt, std::move(result)));
+               // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L915-L951
+               if (timeout_kind == runtime::PvfExecTimeoutKind::Backing
+                   and coreIndex(receipt.descriptor)) {
+                 CB_TRY(auto claims,
+                        self->parachain_api_->claim_queue(
+                            receipt.descriptor.relay_parent));
+                 if (not claims) {
+                   claims.emplace();
+                 }
+                 CB_TRYV(network::checkCoreIndex(
+                     {
+                         .descriptor = receipt.descriptor,
+                         .commitments = commitments,
+                     },
+                     transposeClaimQueue(*claims)));
+               }
                cb(std::make_pair(std::move(commitments), data));
              }});
   }

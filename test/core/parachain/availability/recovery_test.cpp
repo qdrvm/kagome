@@ -46,6 +46,7 @@ using kagome::parachain::ValidatorId;
 using kagome::primitives::AuthorityDiscoveryId;
 using kagome::primitives::BlockInfo;
 using kagome::runtime::AvailableData;
+using kagome::runtime::NodeFeatures;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
 using kagome::runtime::SessionInfo;
@@ -92,13 +93,12 @@ class RecoveryTest : public testing::Test {
     parachain_api = std::make_shared<ParachainHostMock>();
     ON_CALL(*parachain_api, session_info(best_block.hash, session_index))
         .WillByDefault(Invoke([&] { return session; }));
-    ON_CALL(*parachain_api, node_features(best_block.hash, session_index))
+    ON_CALL(*parachain_api, node_features(best_block.hash))
         .WillByDefault(Invoke([&] {
-          scale::BitVec nf{};
-          nf.bits.resize(ParachainHost::NodeFeatureIndex::FirstUnassigned);
-          nf.bits[ParachainHost::NodeFeatureIndex::AvailabilityChunkMapping] =
-              true;
-          return std::optional{nf};
+          scale::BitVec bits;
+          bits.bits.resize(NodeFeatures::FirstUnassigned);
+          bits.bits[NodeFeatures::AvailabilityChunkMapping] = true;
+          return NodeFeatures{.bits = std::move(bits)};
         }));
 
     av_store = std::make_shared<AvailabilityStoreMock>();
