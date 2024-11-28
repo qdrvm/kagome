@@ -111,7 +111,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-24.04
     timeout-minutes: 120
-    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
+    container: qdrvm/kagome-dev:9-minideb
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -133,44 +133,44 @@ jobs:
           df -m || true
           du -hd1 /__w /github || true
 
-  Linux-self-hosted:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Self-hosted: Linux: gcc-13 ASAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
-          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
-          - name: "Self-hosted: Linux: clang-16 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
-            env: UBSAN_OPTIONS=print_stacktrace=1
-        # Need to fix
-        #  - name: "Self-hosted: Linux: clang-16 External Project"
-        #    run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
-
-    name: "${{ matrix.options.name }}"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        if: ${{ env.USE_CACHE == 'true' }}
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
-      - name: "${{ matrix.options.name }}"
-        run: "${{ matrix.options.run }}"
+#  Linux-self-hosted:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "Self-hosted: Linux: gcc-13 ASAN"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
+#          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+#          - name: "Self-hosted: Linux: clang-16 UBSAN"
+#            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
+#            env: UBSAN_OPTIONS=print_stacktrace=1
+#        # Need to fix
+#        #  - name: "Self-hosted: Linux: clang-16 External Project"
+#        #    run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-16_cxx20.cmake
+#
+#    name: "${{ matrix.options.name }}"
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 120
+#    container: qdrvm/kagome-dev:9-minideb
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/cache@v4
+#        if: ${{ env.USE_CACHE == 'true' }}
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+#      - name: Install mold
+#        run: ./housekeeping/ci_install_mold.sh --make-default
+#      - name: "${{ matrix.options.name }}"
+#        run: "${{ matrix.options.run }}"
 
   coverage-self-hosted:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-13 coverage/sonar"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
-    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
+    container: qdrvm/kagome-dev:9-minideb
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -201,6 +201,73 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ github.ref }}
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+
+  kagome_dev_docker_build_sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Self-hosted: Linux: gcc-13 ASAN"
+            params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
+          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
+            params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+          - name: "Self-hosted: Linux: clang-16 UBSAN"
+            params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-16_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
+
+    name: "${{ matrix.options.name }}"
+    runs-on: [ actions-runner-controller ]
+    timeout-minutes: 180
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
+        run: git fetch origin master:master || true
+
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make get_versions
+
+      - name: "Check version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          echo "short_commit_hash=${SHORT_COMMIT_HASH}" | tee $GITHUB_ENV
+
+      - name: "Cache dependencies"
+        id: cache-restore
+        if: ${{ env.USE_CACHE == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-sanitizers-${{ env.short_commit_hash }}
+          restore-keys: |
+            ${{ github.job }}-${{ env.CACHE_VERSION }}-sanitizers-
+
+      - name: "Build target"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run:
+          make kagome_dev_docker_build_sanitizers \
+          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
+          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
+          BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
+          CI="true"
+          SAN_PARAMS="${{ matrix.options.params }}"
+
+      - name: "Cleaning cache"
+        run: |
+          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
+
+      - name: "Always Save Cache"
+        id: cache-save
+        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   kagome_dev_docker_build_tidy:
     runs-on: ubuntu-24.04
