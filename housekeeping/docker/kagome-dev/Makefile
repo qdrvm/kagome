@@ -243,7 +243,7 @@ kagome_dev_docker_build_sanitizers:
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DBACKWARD=OFF -DWERROR=$(WERROR) $(SAN_PARAMS) && \
+		cmake . -B\"$(BUILD_DIR)\" -DBACKWARD=OFF -DWERROR=$(WERROR) $(SAN_PARAMS) && \
 		cmake --build \"$(BUILD_DIR)\" --target test -- -j${BUILD_THREADS} \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
