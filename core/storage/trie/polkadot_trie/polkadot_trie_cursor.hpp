@@ -29,13 +29,12 @@ namespace kagome::storage::trie {
     virtual outcome::result<void> seekUpperBound(
         const common::BufferView &key) = 0;
 
-    struct CertainlyValueAndHash {
-      BufferView value;
+    // small values (less than hash size) are not hashed
+    struct ValueHash {
       Hash256 hash;
+      size_t len;
     };
-
-    [[nodiscard]] virtual std::optional<CertainlyValueAndHash> value_and_hash()
-        const = 0;
+    [[nodiscard]] virtual std::optional<ValueHash> valueHash() const = 0;
   };
 
 }  // namespace kagome::storage::trie

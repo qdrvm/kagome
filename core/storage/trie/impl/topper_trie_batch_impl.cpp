@@ -13,6 +13,7 @@
 #include "storage/face/generic_maps.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             TopperTrieBatchImpl::Error,
@@ -185,14 +186,18 @@ namespace kagome::storage::trie {
                            : parent_cursor_->value();
   }
 
-  std::optional<PolkadotTrieCursor::CertainlyValueAndHash>
-  TopperTrieCursor::value_and_hash() const {
+  std::optional<TopperTrieCursor::ValueHash> TopperTrieCursor::valueHash()
+      const {
     auto value_opt = value();
     if (!value_opt) {
       return std::nullopt;
     }
-    return CertainlyValueAndHash{.value = *value_opt,
-                                 .hash = crypto::blake2b<32>(*value_opt)};
+    if (value_opt->size() >= Hash256::size()) {
+      return ValueHash{crypto::blake2b<32>(*value_opt), Hash256::size()};
+    }
+    Hash256 value_as_hash{};
+    std::copy(value_opt->begin(), value_opt->end(), value_as_hash.begin());
+    return ValueHash{value_as_hash, value_opt->size()};
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(

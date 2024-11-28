@@ -8,6 +8,7 @@
 
 #include <utility>
 
+#include "common/blob.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
@@ -352,29 +353,26 @@ namespace kagome::storage::trie {
     return std::nullopt;
   }
 
-  std::optional<PolkadotTrieCursor::CertainlyValueAndHash>
-  PolkadotTrieCursorImpl::value_and_hash() const {
+  std::optional<PolkadotTrieCursor::ValueHash>
+  PolkadotTrieCursorImpl::valueHash() const {
     if (const auto *search_state = std::get_if<SearchState>(&state_);
         search_state != nullptr) {
       const auto &value_opt = search_state->getCurrent().getValue();
 
-      if (value_opt) {
-        // TODO(turuslan): #1470, return error
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-        auto r = trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
-        if (r.has_error()) {
-          SL_WARN(log_,
-                  "PolkadotTrieCursorImpl::value {}: {}",
-                  common::hex_lower_0x(collectKey()),
-                  r.error());
-          return std::nullopt;
-        }
-        if (!value_opt.hash) {
-          const_cast<ValueAndHash &>(value_opt).hash =
-              crypto::blake2b<32>(*value_opt.value);
-        }
+      if (value_opt.hash) {
+        return ValueHash{value_opt.hash.value(), value_opt.hash->size()};
       }
-      return std::nullopt;
+      if (value_opt.value) {
+        if (value_opt.value->size() >= Hash256::size() + 1) {
+          return ValueHash{crypto::blake2b<32>(value_opt.value.value()),
+                           Hash256::size()};
+        }
+        Hash256 value_as_hash{};
+        std::copy(value_opt.value.value().begin(),
+                  value_opt.value.value().end(),
+                  value_as_hash.begin());
+        return ValueHash{value_as_hash, value_opt.value->size()};
+      }
     }
     return std::nullopt;
   }

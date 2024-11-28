@@ -6,9 +6,11 @@
 
 #pragma once
 
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/face/writeable.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 #include <deque>
@@ -78,7 +80,7 @@ namespace kagome::storage::trie {
     outcome::result<void> prev() override;
     std::optional<Buffer> key() const override;
     std::optional<BufferOrView> value() const override;
-    std::optional<CertainlyValueAndHash> value_and_hash() const override;
+    std::optional<ValueHash> valueHash() const override;
 
     outcome::result<void> seekLowerBound(const BufferView &key) override;
     outcome::result<void> seekUpperBound(const BufferView &key) override;

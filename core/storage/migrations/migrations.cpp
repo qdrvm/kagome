@@ -13,28 +13,34 @@
 #include "log/logger.hpp"
 #include "primitives/common.hpp"
 #include "storage/spaced_storage.hpp"
+#include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::migrations {
 
   outcome::result<void> migrateTree(SpacedStorage &storage,
-                                    const trie::TrieStorage &trie_storage,
-                                    common::Hash256 state_root) {
+                                    trie::TrieBatch &trie_batch,
+                                    log::Logger &logger) {
     auto batch = storage.createBatch();
-    OUTCOME_TRY(trie_batch, trie_storage.getEphemeralBatchAt(state_root));
-    auto cursor = trie_batch->trieCursor();
+    auto cursor = trie_batch.trieCursor();
+    OUTCOME_TRY(cursor->next());
+
+    auto nodes = storage.getSpace(Space::kTrieNode);
+    auto values = storage.getSpace(Space::kTrieValue);
     while (cursor->isValid()) {
-      auto value_and_hash = cursor->value_and_hash();
-      if (!value_and_hash) {
-        continue;
+      auto value_hash = cursor->valueHash();
+      BOOST_ASSERT(value_hash.has_value());  // because cursor isValid
+      if (value_hash->len == Hash256::size() + 1) {
+        OUTCOME_TRY(present_in_values, values->contains(value_hash->hash));
+        if (!present_in_values) {
+          OUTCOME_TRY(value, nodes->get(value_hash->hash));
+          OUTCOME_TRY(batch->put(
+              Space::kTrieValue, value_hash->hash, std::move(value)));
+          OUTCOME_TRY(batch->remove(Space::kTrieNode, value_hash->hash));
+        }
       }
-      auto &[value, hash] = *value_and_hash;
-      OUTCOME_TRY(present, storage.getSpace(Space::kTrieValue)->contains(hash));
-      if (!present) {
-        OUTCOME_TRY(batch->put(Space::kTrieValue, hash, value));
-        OUTCOME_TRY(batch->remove(Space::kTrieNode, hash));
-      }
+
       OUTCOME_TRY(cursor->next());
     }
     OUTCOME_TRY(batch->commit());
@@ -60,8 +66,17 @@ namespace kagome::storage::migrations {
     for (auto header = block_tree.getBlockHeader(current); header.has_value();
          header = block_tree.getBlockHeader(current)) {
       SL_VERBOSE(logger, "Migrating block {}...", header.value().blockInfo());
-      OUTCOME_TRY(
-          migrateTree(storage, trie_storage, header.value().state_root));
+      auto trie_batch_res =
+          trie_storage.getEphemeralBatchAt(header.value().state_root);
+      if (!trie_batch_res) {
+        SL_VERBOSE(logger,
+                   "State trie for block #{} is absent, assume we've reached "
+                   "fast-synced blocks.",
+                   header.value().number);
+        break;
+      }
+
+      OUTCOME_TRY(migrateTree(storage, *trie_batch_res.value(), logger));
       current = header.value().parent_hash;
     }
 
@@ -82,9 +97,9 @@ namespace kagome::storage::migrations {
       OUTCOME_TRY(children, block_tree.getChildren(current));
       std::ranges::copy(children, std::back_inserter(pending));
       SL_VERBOSE(logger, "Migrating block {}...", header.value().blockInfo());
-
-      OUTCOME_TRY(
-          migrateTree(storage, trie_storage, header.value().state_root));
+      OUTCOME_TRY(batch,
+                  trie_storage.getEphemeralBatchAt(header.value().state_root));
+      OUTCOME_TRY(migrateTree(storage, *batch, logger));
     }
 
     SL_INFO(logger, "Trie storage migration ended successfully");
