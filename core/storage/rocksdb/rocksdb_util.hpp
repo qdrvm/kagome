@@ -10,6 +10,7 @@
 #include <qtils/outcome.hpp>
 
 #include "common/buffer.hpp"
+#include "log/logger.hpp"
 #include "storage/database_error.hpp"
 
 namespace kagome::storage {

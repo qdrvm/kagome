@@ -153,7 +153,7 @@ namespace kagome::storage {
 
     std::optional<size_t> byteSizeHint() const override;
 
-    virtual std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
+    std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
 
     std::unique_ptr<Cursor> cursor() override;
 

@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  enum RawCursorError {
+  enum RawCursorError : uint8_t {
     EmptyStack = 1,
     ChildBranchNotFound,
     StackBackIsNotBranch

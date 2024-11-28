@@ -88,15 +88,15 @@ struct TrieTrackerBackend : TrieStorageBackend {
   TrieTrackerBackend(std::shared_ptr<TrieStorageBackend> backend)
       : backend{std::move(backend)}, node_tracker{backend->nodes()} {}
 
-  virtual storage::BufferStorage &nodes() override {
+  storage::BufferStorage &nodes() override {
     return node_tracker;
   }
 
-  virtual storage::BufferStorage &values() override {
+  storage::BufferStorage &values() override {
     return backend->values();
   }
 
-  virtual std::unique_ptr<storage::BufferSpacedBatch> batch() override {
+  std::unique_ptr<storage::BufferSpacedBatch> batch() override {
     return backend->batch();
   }
 

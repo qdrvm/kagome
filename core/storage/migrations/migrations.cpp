@@ -47,10 +47,10 @@ namespace kagome::storage::migrations {
       SpacedStorage &storage) {
     auto logger = log::createLogger("Migration", "storage");
     SL_INFO(logger,
-            "Begin trie storate migration to separate nodes and values");
+            "Begin trie storage migration to separate nodes and values");
     if (storage.getSpace(Space::kTrieValue)->cursor()->isValid()) {
       SL_INFO(logger,
-              "Stop trie storate migration, trie values column is not empty "
+              "Stop trie storage migration, trie values column is not empty "
               "(migration is not required).");
       return outcome::success();
     }
@@ -87,7 +87,7 @@ namespace kagome::storage::migrations {
           migrateTree(storage, trie_storage, header.value().state_root));
     }
 
-    SL_INFO(logger, "Trie storate migration ended successfully");
+    SL_INFO(logger, "Trie storage migration ended successfully");
     return outcome::success();
   }
 

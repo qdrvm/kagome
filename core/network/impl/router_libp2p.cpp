@@ -5,6 +5,7 @@
  */
 
 #include "network/impl/router_libp2p.hpp"
+#include <bits/chrono.h>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/protocol/ping.hpp>
@@ -179,7 +180,7 @@ namespace kagome::network {
     auto &addr_repo = host_.getPeerRepository().getAddressRepository();
     // here we put our known public addresses to the repository
     auto upsert_res = addr_repo.upsertAddresses(
-        own_info_.id, own_info_.addresses, libp2p::peer::ttl::kPermanent);
+        own_info_.id, own_info_.addresses, std::chrono::years(100));
     if (!upsert_res) {
       log_->error("Cannot add own addresses to repo: {}", upsert_res.error());
     }

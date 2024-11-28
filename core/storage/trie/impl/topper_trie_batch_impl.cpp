@@ -191,7 +191,8 @@ namespace kagome::storage::trie {
     if (!value_opt) {
       return std::nullopt;
     }
-    return CertainlyValueAndHash{*value_opt, crypto::blake2b<32>(*value_opt)};
+    return CertainlyValueAndHash{.value = *value_opt,
+                                 .hash = crypto::blake2b<32>(*value_opt)};
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(
