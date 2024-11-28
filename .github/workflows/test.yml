@@ -106,12 +106,12 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: clang-16 External Project"
+          - name: "Linux: clang-19 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-19_cxx20.cmake
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-24.04
     timeout-minutes: 120
-    container: kamilsa/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
+    container: qdrvm/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -140,9 +140,9 @@ jobs:
         options:
           - name: "Self-hosted: Linux: gcc-13 ASAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
-          - name: "Self-hosted: Linux: clang-16 TSAN WAVM"
+          - name: "Self-hosted: Linux: clang-19 TSAN WAVM"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
-          - name: "Self-hosted: Linux: clang-16 UBSAN"
+          - name: "Self-hosted: Linux: clang-19 UBSAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
             env: UBSAN_OPTIONS=print_stacktrace=1
         # Need to fix
@@ -152,7 +152,7 @@ jobs:
     name: "${{ matrix.options.name }}"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
-    container: kamilsa/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
+    container: qdrvm/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -170,7 +170,7 @@ jobs:
     name: "Self-hosted: Linux: gcc-13 coverage/sonar"
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 120
-    container: kamilsa/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
+    container: qdrvm/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
