@@ -79,7 +79,8 @@ kagome_builder:
     		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
     		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
     		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
-    		--build-arg ARCHITECTURE=$(ARCHITECTURE) .
+    		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
+			--no-cache .
 
 kagome_builder_push:
 	docker push $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) ; \
@@ -223,6 +224,7 @@ kagome_dev_docker_build_sanitizers:
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 		-e UBSAN_OPTIONS=$(UBSAN_OPTIONS) \
+		-e CMAKE_GENERATOR="Ninja" \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
@@ -237,9 +239,11 @@ kagome_dev_docker_build_sanitizers:
 		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
-		echo \"Building in $$(pwd)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -DBACKWARD=OFF $(SAN_PARAMS) && \
-		cmake --build \"$(BUILD_DIR)\" --target test -- -j$(BUILD_THREADS) \
+		echo \"Building in \`pwd\`\" && \
+		ninja --version && \
+		cmake . -B\"$(BUILD_DIR)\" -GNinja -DBACKWARD=OFF $(SAN_PARAMS) -DWERROR=$(WERROR) && \
+		cmake --build build -- -j$(BUILD_THREADS) && \
+		cmake --build \"$(BUILD_DIR)\" --target test \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
