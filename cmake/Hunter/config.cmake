@@ -69,9 +69,11 @@ endif ()
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_config(
       LLVM
-      VERSION 12.0.1-p4
+      VERSION 19.1.0
+      URL https://github.com/llvm/llvm-project/archive/llvmorg-19.1.0.tar.gz
+      SHA1 e0774157025dc687dce35ae3c1be6eddab65c4e7
       CMAKE_ARGS
-        LLVM_ENABLE_PROJECTS=ir
+        LLVM_ENABLE_PROJECTS=compiler-rt;mlir;clang
         KEEP_PACKAGE_SOURCES
   )
 
