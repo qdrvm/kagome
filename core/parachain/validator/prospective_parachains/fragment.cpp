@@ -5,6 +5,8 @@
  */
 
 #include "parachain/validator/prospective_parachains/fragment.hpp"
+
+#include "parachain/ump_signal.hpp"
 #include "utils/stringify.hpp"
 
 #define COMPONENT Fragment
@@ -142,7 +144,7 @@ namespace kagome::parachain::fragment {
     }
 
     uint32_t ump_sent_bytes = 0ull;
-    for (const auto &m : commitments.upward_msgs) {
+    for (const auto &m : skipUmpSignals(commitments.upward_msgs)) {
       ump_sent_bytes += uint32_t(m.size());
     }
 
@@ -150,9 +152,9 @@ namespace kagome::parachain::fragment {
         .required_parent = commitments.para_head,
         .hrmp_watermark = ((commitments.watermark == relay_parent.number)
                                ? HrmpWatermarkUpdate{HrmpWatermarkUpdateHead{
-                                     .v = commitments.watermark}}
+                                   .v = commitments.watermark}}
                                : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{
-                                     .v = commitments.watermark}}),
+                                   .v = commitments.watermark}}),
         .outbound_hrmp = outbound_hrmp,
         .ump_messages_sent = uint32_t(commitments.upward_msgs.size()),
         .ump_bytes_sent = ump_sent_bytes,

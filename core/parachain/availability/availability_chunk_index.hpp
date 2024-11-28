@@ -44,23 +44,8 @@ namespace kagome::parachain {
   }
 
   inline bool availability_chunk_mapping_is_enabled(
-      std::optional<runtime::ParachainHost::NodeFeatures> node_features) {
-    // none if node_features is not defined
-    [[unlikely]] if (not node_features.has_value()) {  //
-      return false;
-    }
-
-    const auto &features = node_features.value();
-
-    static const auto feature =
-        runtime::ParachainHost::NodeFeatureIndex::AvailabilityChunkMapping;
-
-    // none if needed feature is out of bound
-    [[unlikely]] if (feature >= features.bits.size()) {  //
-      return false;
-    }
-
-    return features.bits[feature];
+      const runtime::NodeFeatures &node_features) {
+    return node_features.has(runtime::NodeFeatures::AvailabilityChunkMapping);
   }
 
   /// Compute the per-validator availability chunk index.
@@ -68,7 +53,7 @@ namespace kagome::parachain {
   /// Any modification to the output of the function needs to be coordinated via
   /// the runtime. It's best to use minimal/no external dependencies.
   inline outcome::result<ChunkIndex> availability_chunk_index(
-      std::optional<runtime::ParachainHost::NodeFeatures> node_features,
+      const runtime::NodeFeatures &node_features,
       size_t n_validators,
       CoreIndex core_index,
       ValidatorIndex validator_index) {
