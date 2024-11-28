@@ -5,10 +5,10 @@
  */
 
 #include "network/impl/router_libp2p.hpp"
-#include <bits/chrono.h>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/protocol/ping.hpp>
+
 #include "common/main_thread_pool.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
