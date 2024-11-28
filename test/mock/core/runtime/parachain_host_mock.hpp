@@ -159,9 +159,9 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(outcome::result<std::optional<NodeFeatures>>,
+    MOCK_METHOD(outcome::result<NodeFeatures>,
                 node_features,
-                (const primitives::BlockHash &, SessionIndex),
+                (const primitives::BlockHash &),
                 (override));
 
     MOCK_METHOD(ClaimQueueResult,
