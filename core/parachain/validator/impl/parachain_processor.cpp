@@ -28,6 +28,7 @@
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
@@ -468,17 +469,9 @@ namespace kagome::parachain {
       return Error::NO_SESSION_INFO;
     }
 
-    bool inject_core_index = false;
-    if (auto r = parachain_host_->node_features(relay_parent, session_index);
-        r.has_value()) {
-      if (r.value()
-          && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::
-                     ElasticScalingMVP) {
-        inject_core_index =
-            r.value()->bits
-                [runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP];
-      }
-    }
+    OUTCOME_TRY(node_features, parachain_host_->node_features(relay_parent));
+    auto inject_core_index =
+        node_features.has(runtime::NodeFeatures::ElasticScalingMVP);
 
     uint32_t minimum_backing_votes = 2;  /// legacy value
     if (auto r =
@@ -493,8 +486,20 @@ namespace kagome::parachain {
     }
 
     std::optional<ValidatorIndex> validator_index;
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L487-L495
+    CoreIndex current_core = 0;
     if (validator) {
       validator_index = validator->validatorIndex();
+
+      size_t i_group = 0;
+      for (auto &group : validator_groups) {
+        if (group.contains(validator->validatorIndex())) {
+          current_core =
+              group_rotation_info.coreForGroup(i_group, cores.size());
+          break;
+        }
+        ++i_group;
+      }
     }
 
     OUTCOME_TRY(global_v_index,
@@ -592,6 +597,9 @@ namespace kagome::parachain {
         .fallbacks = {},
         .backed_hashes = {},
         .inject_core_index = inject_core_index,
+        .v2_receipts =
+            node_features.has(runtime::NodeFeatures::CandidateReceiptV2),
+        .current_core = current_core,
         .per_session_state = per_session_state,
     };
   }
@@ -2679,6 +2687,13 @@ namespace kagome::parachain {
     auto relay_parent = pending_collation.relay_parent;
 
     OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
+
+    OUTCOME_TRY(descriptorVersionSanityCheck(
+        pending_collation_fetch.candidate_receipt.descriptor,
+        per_relay_parent.get().v2_receipts,
+        per_relay_parent.get().current_core,
+        per_relay_parent.get().per_session_state->value().session));
+
     auto &collations = per_relay_parent.get().collations;
     auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);
