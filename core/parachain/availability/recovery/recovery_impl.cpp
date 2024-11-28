@@ -134,8 +134,7 @@ namespace kagome::parachain {
       cb(_min.error());
       return;
     }
-    auto _node_features =
-        parachain_api_->node_features(block.hash, session_index);
+    auto _node_features = parachain_api_->node_features(block.hash);
     if (_node_features.has_error()) {
       lock.unlock();
       cb(_node_features.error());

@@ -79,9 +79,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session,
         parachain_api_->session_info(relay_parent, signer->getSessionIndex()));
-    OUTCOME_TRY(
-        node_features,
-        parachain_api_->node_features(relay_parent, signer->getSessionIndex()));
+    OUTCOME_TRY(node_features, parachain_api_->node_features(relay_parent));
     candidates.reserve(cores.size());
     for (CoreIndex core_index = 0; core_index < cores.size(); ++core_index) {
       auto &core = cores[core_index];

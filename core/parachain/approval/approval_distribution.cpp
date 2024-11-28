@@ -1115,15 +1115,9 @@ namespace kagome::parachain {
     }
 
     bool enable_v2_assignments = false;
-    if (auto r = parachain_host_->node_features(block_hash, session_index);
-        r.has_value()) {
-      if (r.value()
-          && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::
-                     EnableAssignmentsV2) {
-        enable_v2_assignments =
-            r.value()->bits
-                [runtime::ParachainHost::NodeFeatureIndex::EnableAssignmentsV2];
-      }
+    if (auto r = parachain_host_->node_features(block_hash); r.has_value()) {
+      enable_v2_assignments =
+          r.value().has(runtime::NodeFeatures::EnableAssignmentsV2);
     }
 
     approval::UnsafeVRFOutput unsafe_vrf{
