@@ -7,6 +7,7 @@
 #ifndef KAGOME_POLKADOT_TRIE_CURSOR_MOCK_H
 #define KAGOME_POLKADOT_TRIE_CURSOR_MOCK_H
 
+#include "common/blob.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
 namespace kagome::storage::trie {
@@ -38,8 +39,8 @@ namespace kagome::storage::trie {
     MOCK_METHOD(std::optional<common::Buffer>, key, (), (const, override));
 
     MOCK_METHOD(std::optional<BufferOrView>, value, (), (const, override));
-    MOCK_METHOD(std::optional<CertainlyValueAndHash>,
-                value_and_hash,
+    MOCK_METHOD(std::optional<ValueHash>,
+                valueHash,
                 (),
                 (const, override));
   };

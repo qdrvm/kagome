@@ -7,7 +7,9 @@
 #pragma once
 
 #include "common/blob.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
@@ -71,8 +73,9 @@ namespace kagome::storage::trie {
       return BufferView{current_->second};
     }
 
-    std::optional<CertainlyValueAndHash> value_and_hash() const override {
-      return CertainlyValueAndHash{current_->second, Hash256{}};
+    std::optional<ValueHash> valueHash() const override {
+      return ValueHash{crypto::blake2b<32>(current_->second),
+                       current_->second.size()};
     }
   };
 }  // namespace kagome::storage::trie

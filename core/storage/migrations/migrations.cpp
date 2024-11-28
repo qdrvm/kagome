@@ -60,25 +60,6 @@ namespace kagome::storage::migrations {
               "(migration is not required).");
       return outcome::success();
     }
-    auto current = block_tree.getLastFinalized().hash;
-
-    // TODO: an error other than just an absent block may occur
-    for (auto header = block_tree.getBlockHeader(current); header.has_value();
-         header = block_tree.getBlockHeader(current)) {
-      SL_VERBOSE(logger, "Migrating block {}...", header.value().blockInfo());
-      auto trie_batch_res =
-          trie_storage.getEphemeralBatchAt(header.value().state_root);
-      if (!trie_batch_res) {
-        SL_VERBOSE(logger,
-                   "State trie for block #{} is absent, assume we've reached "
-                   "fast-synced blocks.",
-                   header.value().number);
-        break;
-      }
-
-      OUTCOME_TRY(migrateTree(storage, *trie_batch_res.value(), logger));
-      current = header.value().parent_hash;
-    }
 
     std::deque<primitives::BlockHash> pending;
     {
@@ -100,6 +81,26 @@ namespace kagome::storage::migrations {
       OUTCOME_TRY(batch,
                   trie_storage.getEphemeralBatchAt(header.value().state_root));
       OUTCOME_TRY(migrateTree(storage, *batch, logger));
+    }
+
+    auto current = block_tree.getLastFinalized().hash;
+
+    // TODO: an error other than just an absent block may occur
+    for (auto header = block_tree.getBlockHeader(current); header.has_value();
+         header = block_tree.getBlockHeader(current)) {
+      SL_VERBOSE(logger, "Migrating block {}...", header.value().blockInfo());
+      auto trie_batch_res =
+          trie_storage.getEphemeralBatchAt(header.value().state_root);
+      if (!trie_batch_res) {
+        SL_VERBOSE(logger,
+                   "State trie for block #{} is absent, assume we've reached "
+                   "fast-synced blocks.",
+                   header.value().number);
+        break;
+      }
+
+      OUTCOME_TRY(migrateTree(storage, *trie_batch_res.value(), logger));
+      current = header.value().parent_hash;
     }
 
     SL_INFO(logger, "Trie storage migration ended successfully");
