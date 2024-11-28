@@ -14,6 +14,7 @@
 #include "common/ref_cache.hpp"
 #include "parachain/backing/cluster.hpp"
 #include "parachain/backing/grid_tracker.hpp"
+#include "parachain/transpose_claim_queue.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/impl/statements_store.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
@@ -47,6 +48,8 @@ namespace kagome::parachain::statement_distribution {
     SessionIndex session;
     std::unordered_map<ParachainId, std::vector<GroupIndex>> groups_per_para;
     std::unordered_set<ValidatorIndex> disabled_validators;
+    bool v2_receipts;
+    TransposedClaimQueue transposed_claim_queue;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
         per_session_state;
 
