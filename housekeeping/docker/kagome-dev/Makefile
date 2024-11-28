@@ -54,6 +54,7 @@ REGION ?= europe-north1
 IS_MAIN_OR_TAG ?= false
 GIT_REF_NAME ?=
 CI ?= false
+BUILD_THREADS=$(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -99,7 +100,6 @@ kagome_dev_docker_build:
 		$(CACHE_DIR)/.cache/ccache  ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -107,7 +107,6 @@ kagome_dev_docker_build:
 		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
-		-e BUILD_THREADS=$$BUILD_THREADS \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
@@ -128,7 +127,7 @@ kagome_dev_docker_build:
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j${BUILD_THREADS} && \
+		cmake --build \"$(BUILD_DIR)\" --target kagome -- -j$(BUILD_THREADS) && \
 		mkdir -p /tmp/kagome && \
 		cp /opt/kagome/$(BUILD_DIR)/node/kagome /tmp/kagome/kagome && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
@@ -165,7 +164,6 @@ kagome_dev_docker_build_tidy_inhouse:
 		$(CACHE_DIR)/.cache/ccache  ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -173,7 +171,6 @@ kagome_dev_docker_build_tidy_inhouse:
 		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
-		-e BUILD_THREADS=$$BUILD_THREADS \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
@@ -195,7 +192,7 @@ kagome_dev_docker_build_tidy_inhouse:
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(BUILD_DIR)\" --target generated -- -j${BUILD_THREADS} && \
+		cmake --build \"$(BUILD_DIR)\" --target generated -- -j$(BUILD_THREADS) && \
 		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
@@ -214,7 +211,6 @@ kagome_dev_docker_build_sanitizers:
 		$(CACHE_DIR)/.cache/ccache  ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -222,7 +218,6 @@ kagome_dev_docker_build_sanitizers:
 		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
-		-e BUILD_THREADS=$$BUILD_THREADS \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
@@ -244,7 +239,7 @@ kagome_dev_docker_build_sanitizers:
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -DBACKWARD=OFF $(SAN_PARAMS) && \
-		cmake --build \"$(BUILD_DIR)\" --target test -- -j${BUILD_THREADS} \
+		cmake --build \"$(BUILD_DIR)\" --target test -- -j$(BUILD_THREADS) \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
@@ -262,7 +257,6 @@ kagome_dev_docker_build_tidy:
 		$(CACHE_DIR)/.cache/ccache  ; \
 	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	BUILD_THREADS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -270,7 +264,6 @@ kagome_dev_docker_build_tidy:
 		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
-		-e BUILD_THREADS=$$BUILD_THREADS \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
@@ -291,7 +284,7 @@ kagome_dev_docker_build_tidy:
 		git submodule update --init && \
 		echo \"Building in $$(pwd)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(BUILD_DIR)\" --target generated -- -j${BUILD_THREADS} && \
+		cmake --build \"$(BUILD_DIR)\" --target generated -- -j$(BUILD_THREADS) && \
 		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
