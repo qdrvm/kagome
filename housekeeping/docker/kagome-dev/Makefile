@@ -224,7 +224,6 @@ kagome_dev_docker_build_sanitizers:
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 		-e UBSAN_OPTIONS=$(UBSAN_OPTIONS) \
-		-e CMAKE_GENERATOR="Ninja" \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
@@ -240,8 +239,7 @@ kagome_dev_docker_build_sanitizers:
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in \`pwd\`\" && \
-		ninja --version && \
-		cmake . -B\"$(BUILD_DIR)\" -GNinja -DBACKWARD=OFF $(SAN_PARAMS) -DWERROR=$(WERROR) && \
+		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DBACKWARD=OFF $(SAN_PARAMS) -DWERROR=$(WERROR) && \
 		cmake --build build -- -j$(BUILD_THREADS) && \
 		cmake --build \"$(BUILD_DIR)\" --target test \
 		" || DOCKER_EXEC_RESULT=$$? ; \
