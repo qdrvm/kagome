@@ -447,16 +447,12 @@ namespace kagome::network {
   };
 
   struct FetchedCollation {
-    SCALE_TIE(4);
-
     /// Candidate's relay parent.
     RelayHash relay_parent;
     /// Parachain id.
     ParachainId para_id;
     /// Candidate hash.
     CandidateHash candidate_hash;
-    /// Id of the collator the collation was fetched from.
-    CollatorId collator_id;
 
     static FetchedCollation from(const network::CandidateReceipt &receipt,
                                  const crypto::Hasher &hasher) {
@@ -465,9 +461,10 @@ namespace kagome::network {
           .relay_parent = descriptor.relay_parent,
           .para_id = descriptor.para_id,
           .candidate_hash = receipt.hash(hasher),
-          .collator_id = descriptor.collator_id,
       };
     }
+
+    bool operator==(const FetchedCollation &) const = default;
   };
 
   /**
