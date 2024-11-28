@@ -159,7 +159,7 @@ namespace kagome::runtime {
                     block,
                     "ParachainHost_candidates_pending_availability",
                     id));
-    return *ref;
+    return std::move(*ref);
   }
 
   outcome::result<std::vector<CandidateEvent>>
