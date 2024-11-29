@@ -26,13 +26,6 @@ hunter_config(
 )
 
 hunter_config(
-    benchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
-    SHA1 bf9870756ee3f8d2d3b346b24ee3600a41c74d3d
-    CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
-)
-
-hunter_config(
     rocksdb
     VERSION 9.6.1
     CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
@@ -112,29 +105,23 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/ec7c3338d83676b5f97647ee39c35c9cc73c3ae0.zip
-    SHA1 d96905974d12ccc390f4ea0f1f63394f849e8c1a
+    VERSION 0.1.28
 )
 
 hunter_config(
     scale
-    URL  https://github.com/qdrvm/scale-codec-cpp/archive/e1a3c7afafc2eeda0c8e2daed08da6b7789f44b3.zip
-    SHA1 b56bcda34fb0d293c88d8b642b2f3fdc2d16a3e5
+    VERSION 1.1.4
 )
 
 hunter_config(
     erasure_coding_crust
-#    VERSION 0.0.8
-    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
-    SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    VERSION 0.0.8
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     soralog
-#    VERSION 0.2.4
-    URL  https://github.com/qdrvm/soralog/archive/refs/tags/v0.2.4.tar.gz
-    SHA1 1de495d8a3a73c1e940be3fdddf263a2d673aec1
+    VERSION 0.2.4
     KEEP_PACKAGE_SOURCES
 )
 

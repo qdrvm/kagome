@@ -41,6 +41,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://ap
 
 RUN install_packages \
         build-essential \
+        ninja-build \
         ccache \
         clang-format-${LLVM_VERSION} \
         clang-tidy-${LLVM_VERSION} \
