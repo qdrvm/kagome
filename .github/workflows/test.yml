@@ -109,8 +109,8 @@ jobs:
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-19_cxx20.cmake
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
-    container: qdrvm/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
+    timeout-minutes: 120
+    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -136,8 +136,8 @@ jobs:
     if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-13 coverage/sonar"
     runs-on: [ actions-runner-controller ]
-    timeout-minutes: 240
-    container: qdrvm/kagome_builder_deb:99c3519_rust1.81.0_gcc13_llvm19
+    timeout-minutes: 120
+    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
