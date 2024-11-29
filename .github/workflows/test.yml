@@ -177,7 +177,7 @@ jobs:
           - name: "Self-hosted: Linux: gcc-13 ASAN"
             params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
           - name: "Self-hosted: Linux: clang-19 TSAN WAVM"
-            params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DTSAN=ON -DWASM_COMPILER=WAVM
+            params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DTSAN=ON
           - name: "Self-hosted: Linux: clang-19 UBSAN"
             params: -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
 
