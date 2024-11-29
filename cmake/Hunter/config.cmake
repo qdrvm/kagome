@@ -99,8 +99,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/1.0.2.tar.gz
-    SHA1 946c48508545380e155ab831be54228b916544d3
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.3.tar.gz
+    SHA1 4207446a0e45764b814805821aa6860924b03cb7
 )
 
 hunter_config(
@@ -112,8 +112,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/c96d45f792fafd6970a7e37ec816b02a9167e2b6.zip
-    SHA1 884932112bc75996eeecd4a7bbcb932565fe9859
+    URL  https://github.com/libp2p/cpp-libp2p/archive/ec7c3338d83676b5f97647ee39c35c9cc73c3ae0.zip
+    SHA1 d96905974d12ccc390f4ea0f1f63394f849e8c1a
 )
 
 hunter_config(

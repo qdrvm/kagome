@@ -22,6 +22,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
+#include <libp2p/transport/tcp/tcp_util.hpp>
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -175,11 +176,12 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters{
+      interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-          "WasmEdge",
+    "WasmEdge",
 #endif
-          "Binaryen"};
+        "Binaryen"
+  };
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -606,52 +608,6 @@ namespace kagome::application {
     return endpoint;
   }
 
-  outcome::result<boost::asio::ip::tcp::endpoint>
-  AppConfigurationImpl::getEndpointFrom(
-      const libp2p::multi::Multiaddress &multiaddress) const {
-    using proto = libp2p::multi::Protocol::Code;
-    constexpr auto NOT_SUPPORTED = std::errc::address_family_not_supported;
-    constexpr auto BAD_ADDRESS = std::errc::bad_address;
-    auto host = multiaddress.getFirstValueForProtocol(proto::IP4);
-    if (not host) {
-      host = multiaddress.getFirstValueForProtocol(proto::IP6);
-    }
-    if (not host) {
-      SL_ERROR(logger_,
-               "Address cannot be used to bind to ({}). Only IPv4 and IPv6 "
-               "interfaces are supported",
-               multiaddress.getStringAddress());
-      return NOT_SUPPORTED;
-    }
-    auto port = multiaddress.getFirstValueForProtocol(proto::TCP);
-    if (not port) {
-      return NOT_SUPPORTED;
-    }
-    uint16_t port_number = 0;
-    try {
-      auto wide_port = std::stoul(port.value());
-      constexpr auto max_port = std::numeric_limits<uint16_t>::max();
-      if (wide_port > max_port or 0 == wide_port) {
-        SL_ERROR(
-            logger_,
-            "Port value ({}) cannot be zero or greater than {} (address {})",
-            wide_port,
-            max_port,
-            multiaddress.getStringAddress());
-        return BAD_ADDRESS;
-      }
-      port_number = static_cast<uint16_t>(wide_port);
-    } catch (...) {
-      // only std::out_of_range or std::invalid_argument are possible
-      SL_ERROR(logger_,
-               "Passed value {} is not a valid port number within address {}",
-               port.value(),
-               multiaddress.getStringAddress());
-      return BAD_ADDRESS;
-    }
-    return getEndpointFrom(host.value(), port_number);
-  }
-
   bool AppConfigurationImpl::testListenAddresses() const {
     auto temp_context = std::make_shared<boost::asio::io_context>();
     constexpr auto kZeroPortTolerance = 0;
@@ -664,23 +620,31 @@ namespace kagome::application {
                  addr.getStringAddress());
         return false;
       }
-      auto endpoint = getEndpointFrom(addr);
-      if (not endpoint) {
+      auto tcp = libp2p::transport::detail::asTcp(addr);
+      auto quic = libp2p::transport::detail::asQuic(addr);
+      if (not(tcp and tcp.value().first.asTcp())
+          and not(quic and quic.value().asUdp())) {
         SL_ERROR(logger_,
                  "Endpoint cannot be constructed from address {}",
                  addr.getStringAddress());
         return false;
       }
-      try {
-        boost::system::error_code error_code;
-        auto acceptor = api::acceptOnFreePort(
-            temp_context, endpoint.value(), kZeroPortTolerance, logger_);
-        acceptor->cancel(error_code);
-        acceptor->close(error_code);
-      } catch (...) {
-        SL_ERROR(
-            logger_, "Unable to listen on address {}", addr.getStringAddress());
-        return false;
+      if (tcp) {
+        try {
+          boost::system::error_code error_code;
+          auto acceptor =
+              api::acceptOnFreePort(temp_context,
+                                    tcp.value().first.asTcp().value(),
+                                    kZeroPortTolerance,
+                                    logger_);
+          acceptor->cancel(error_code);
+          acceptor->close(error_code);
+        } catch (...) {
+          SL_ERROR(logger_,
+                   "Unable to listen on address {}",
+                   addr.getStringAddress());
+          return false;
+        }
       }
     }
     return true;
