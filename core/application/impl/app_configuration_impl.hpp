@@ -302,16 +302,6 @@ namespace kagome::application {
                                                    uint16_t port) const;
 
     /**
-     * Convert a given libp2p multiaddress into a boost tcp::endpoint format.
-     * @param multiaddress - an address to be converted. Should contain a valid
-     * interface name or IP4/IP6 address and a port value to listen on.
-     * @return boost tcp::endpoint when well-formed multiaddress is passed,
-     * otherwise - an error
-     */
-    outcome::result<boost::asio::ip::tcp::endpoint> getEndpointFrom(
-        const libp2p::multi::Multiaddress &multiaddress) const;
-
-    /**
      * Checks whether configured listen addresses are available.
      * @return true when addresses are available, false - when at least one
      * address is not available
