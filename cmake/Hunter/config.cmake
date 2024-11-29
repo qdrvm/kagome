@@ -105,7 +105,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.27
+    VERSION 0.1.28
 )
 
 hunter_config(
