@@ -29,10 +29,11 @@ namespace kagome::storage::trie {
     virtual outcome::result<void> seekUpperBound(
         const common::BufferView &key) = 0;
 
-    // small values (less than hash size) are not hashed
+    // small values (less than hash size) are not hashed and stored as-is inside
+    // their node
     struct ValueHash {
       Hash256 hash;
-      size_t len;
+      bool small;
     };
     [[nodiscard]] virtual std::optional<ValueHash> valueHash() const = 0;
   };

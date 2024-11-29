@@ -360,18 +360,17 @@ namespace kagome::storage::trie {
       const auto &value_opt = search_state->getCurrent().getValue();
 
       if (value_opt.hash) {
-        return ValueHash{value_opt.hash.value(), value_opt.hash->size()};
+        return ValueHash{value_opt.hash.value(), false};
       }
       if (value_opt.value) {
         if (value_opt.value->size() >= Hash256::size() + 1) {
-          return ValueHash{crypto::blake2b<32>(value_opt.value.value()),
-                           Hash256::size()};
+          return ValueHash{crypto::blake2b<32>(value_opt.value.value()), false};
         }
         Hash256 value_as_hash{};
         std::copy(value_opt.value.value().begin(),
                   value_opt.value.value().end(),
                   value_as_hash.begin());
-        return ValueHash{value_as_hash, value_opt.value->size()};
+        return ValueHash{value_as_hash, true};
       }
     }
     return std::nullopt;

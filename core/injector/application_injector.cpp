@@ -1126,6 +1126,12 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
   }
 
+  std::shared_ptr<runtime::RuntimeUpgradeTracker>
+  KagomeNodeInjector::injectRuntimeUpgradeTracker() {
+    return pimpl_->injector_
+        .template create<sptr<runtime::RuntimeUpgradeTracker>>();
+  }
+
   void KagomeNodeInjector::kademliaRandomWalk() {
     pimpl_->injector_.create<sptr<KademliaRandomWalk>>();
   }

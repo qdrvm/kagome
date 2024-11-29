@@ -74,8 +74,7 @@ namespace kagome::storage::trie {
     }
 
     std::optional<ValueHash> valueHash() const override {
-      return ValueHash{crypto::blake2b<32>(current_->second),
-                       current_->second.size()};
+      return ValueHash{crypto::blake2b<32>(current_->second), false};
     }
   };
 }  // namespace kagome::storage::trie
