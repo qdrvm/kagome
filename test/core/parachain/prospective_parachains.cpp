@@ -348,11 +348,11 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     return network::CandidateDescriptor{
         .para_id = 0,
         .relay_parent = relay_parent,
-        .collator_id = {},
+        .reserved_1 = {},
         .persisted_data_hash = fromNumber(0),
         .pov_hash = fromNumber(0),
         .erasure_encoding_root = fromNumber(0),
-        .signature = {},
+        .reserved_2 = {},
         .para_head_hash = fromNumber(0),
         .validation_code_hash =
             crypto::Hashed<runtime::ValidationCode,

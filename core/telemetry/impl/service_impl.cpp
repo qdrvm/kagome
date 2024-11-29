@@ -6,6 +6,7 @@
 
 #include "telemetry/impl/service_impl.hpp"
 
+#include <sys/utsname.h>
 #include <regex>
 
 #include <fmt/core.h>
@@ -30,12 +31,166 @@ namespace rapidjson {
 #include "telemetry/impl/telemetry_thread_pool.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
+
 namespace {
   std::string json2string(rapidjson::Document &document) {
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
     document.Accept(writer);
     return buffer.GetString();
+  }
+  struct SysInfo {
+    std::optional<std::string> cpu;
+    std::optional<bool> is_virtual_machine;
+    std::optional<size_t> core_count;
+    std::optional<uint64_t> memory;
+    std::optional<std::string> linux_distro;
+  };
+
+#ifdef __APPLE__
+  SysInfo gatherMacSysInfo() {
+    SysInfo sysinfo;
+
+    // Get the number of CPU cores
+    int mib[2];
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    int core_count;
+    size_t len = sizeof(core_count);
+    if (sysctl(mib, 2, &core_count, &len, nullptr, 0) == 0) {
+      sysinfo.core_count = core_count;
+    }
+
+    // Get the CPU brand string
+    char cpu_brand[256];
+    len = sizeof(cpu_brand);
+    mib[0] = CTL_HW;
+    mib[1] = HW_MACHINE;
+    if (sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, nullptr, 0)
+        == 0) {
+      sysinfo.cpu = std::string(cpu_brand);
+    }
+
+    // Get the memory size
+    uint64_t memory;
+    len = sizeof(memory);
+    mib[1] = HW_MEMSIZE;
+    if (sysctl(mib, 2, &memory, &len, nullptr, 0) == 0) {
+      sysinfo.memory = memory;
+    }
+
+    // Get the macOS version name
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(
+        popen("sw_vers -productVersion", "r"), pclose);
+    if (pipe) {
+      while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+      }
+      sysinfo.linux_distro = "MacOS " + result;
+    }
+
+    // Check if running on a virtual machine
+    char hw_target[256];
+    len = sizeof(hw_target);
+    mib[1] = HW_TARGET;
+    if (sysctl(mib, 2, &hw_target, &len, nullptr, 0) == 0) {
+      sysinfo.is_virtual_machine =
+          std::string(hw_target).find("VMware") != std::string::npos;
+    }
+
+    return sysinfo;
+  }
+#else
+  // Function to read file content into a string
+  std::optional<std::string> read_file(const std::string &filepath) {
+    std::ifstream file(filepath);
+    if (not file.is_open()) {
+      return std::nullopt;
+    }
+    return {std::string((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>())};
+  }
+
+  // Function to extract a single match using regex
+  template <typename T>
+  std::optional<T> extract(const std::string &data, const std::regex &pattern) {
+    std::smatch match;
+    if (std::regex_search(data, match, pattern)) {
+      if constexpr (std::is_same_v<T, std::string>) {
+        return match[1].str();
+      } else if constexpr (std::is_integral_v<T>) {
+        return static_cast<T>(std::stoull(match[1].str()));
+      }
+    }
+    return std::nullopt;
+  }
+
+  SysInfo gatherLinuxSysInfo() {
+    const std::regex LINUX_REGEX_CPU(R"(^model name\s*:\s*([^\n]+))",
+                                     std::regex_constants::multiline);
+    const std::regex LINUX_REGEX_PHYSICAL_ID(R"(^physical id\s*:\s*(\d+))",
+                                             std::regex_constants::multiline);
+    const std::regex LINUX_REGEX_CORE_ID(R"(^core id\s*:\s*(\d+))",
+                                         std::regex_constants::multiline);
+    const std::regex LINUX_REGEX_HYPERVISOR(R"(^flags\s*:.+?\bhypervisor\b)",
+                                            std::regex_constants::multiline);
+    const std::regex LINUX_REGEX_MEMORY(R"(^MemTotal:\s*(\d+) kB)",
+                                        std::regex_constants::multiline);
+    const std::regex LINUX_REGEX_DISTRO(R"(PRETTY_NAME\s*=\s*\"([^\"]+)\")",
+                                        std::regex_constants::multiline);
+
+    SysInfo sysinfo;
+
+    if (auto cpuinfo = read_file("/proc/cpuinfo")) {
+      sysinfo.cpu = extract<std::string>(*cpuinfo, LINUX_REGEX_CPU);
+      sysinfo.is_virtual_machine =
+          std::regex_search(*cpuinfo, LINUX_REGEX_HYPERVISOR);
+
+      // Extract unique {physical_id, core_id} pairs
+      std::set<std::pair<uint32_t, uint32_t> > cores;
+      std::regex section_split("\n\n");
+      std::sregex_token_iterator sections(
+          cpuinfo->begin(), cpuinfo->end(), section_split, -1);
+      std::sregex_token_iterator end;
+      for (; sections != end; ++sections) {
+        std::optional<uint32_t> pid =
+            extract<uint32_t>(*sections, LINUX_REGEX_PHYSICAL_ID);
+        std::optional<uint32_t> cid =
+            extract<uint32_t>(*sections, LINUX_REGEX_CORE_ID);
+        if (pid && cid) {
+          cores.emplace(*pid, *cid);
+        }
+      }
+      if (not cores.empty()) {
+        sysinfo.core_count = static_cast<uint32_t>(cores.size());
+      }
+    }
+
+    if (auto meminfo = read_file("/proc/meminfo")) {
+      sysinfo.memory =
+          extract<uint64_t>(*meminfo, LINUX_REGEX_MEMORY).value_or(0) * 1024;
+    }
+
+    if (auto os_release = read_file("/etc/os-release")) {
+      sysinfo.linux_distro =
+          extract<std::string>(*os_release, LINUX_REGEX_DISTRO);
+    }
+
+    return sysinfo;
+  }
+#endif
+
+  SysInfo gatherSysInfo() {
+#ifdef __APPLE__
+    return gatherMacSysInfo();
+#else
+    return gatherLinuxSysInfo();
+#endif
   }
 }  // namespace
 
@@ -258,6 +413,42 @@ namespace kagome::telemetry {
                            .count());
 
     rapidjson::Value payload(rapidjson::kObjectType);
+    rapidjson::Value sys_info_json(rapidjson::kObjectType);
+#ifdef __APPLE__
+    payload.AddMember("target_os", str_val("macos"), allocator);
+#endif
+    struct utsname utsname_info = {};
+    if (uname(&utsname_info) == 0) {
+#ifndef __APPLE__
+      payload.AddMember("target_os", str_val(utsname_info.sysname), allocator);
+#endif
+      payload.AddMember(
+          "target_arch", str_val(utsname_info.machine), allocator);
+      sys_info_json.AddMember(
+          "linux_kernel", str_val(utsname_info.release), allocator);
+    }
+    const auto sys_info = gatherSysInfo();
+    if (const auto &memory = sys_info.memory) {
+      sys_info_json.AddMember(
+          "memory", rapidjson::Value{}.SetUint64(*memory), allocator);
+    }
+    if (const auto &cpu = sys_info.cpu) {
+      sys_info_json.AddMember("cpu", str_val(*cpu), allocator);
+    }
+    if (const auto &core_count = sys_info.core_count) {
+      sys_info_json.AddMember(
+          "core_count", rapidjson::Value{}.SetUint(*core_count), allocator);
+    }
+    if (const auto &linux_distro = sys_info.linux_distro) {
+      sys_info_json.AddMember(
+          "linux_distro", str_val(*linux_distro), allocator);
+    }
+    if (const auto &is_virtual = sys_info.is_virtual_machine) {
+      sys_info_json.AddMember("is_virtual_machine",
+                              rapidjson::Value{}.SetBool(*is_virtual),
+                              allocator);
+    }
+
     payload
         .AddMember(
             "authority", app_configuration_.roles().isAuthority(), allocator)
@@ -270,7 +461,8 @@ namespace kagome::telemetry {
         .AddMember("network_id", str_val(host_.getId().toBase58()), allocator)
         .AddMember("startup_time", str_val(startup_time), allocator)
         .AddMember(
-            "version", str_val(app_configuration_.nodeVersion()), allocator);
+            "version", str_val(app_configuration_.nodeVersion()), allocator)
+        .AddMember("sysinfo", sys_info_json, allocator);
 
     greeting_json_.AddMember("id", 1, allocator)
         .AddMember("payload", payload, allocator)
