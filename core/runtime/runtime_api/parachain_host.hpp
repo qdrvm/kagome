@@ -140,6 +140,16 @@ namespace kagome::runtime {
     candidate_pending_availability(const primitives::BlockHash &block,
                                    ParachainId id) = 0;
 
+    /**
+     * @brief Get the receipts of all candidates pending availability.
+     * @param id parachain id
+     * @return vector of CommittedCandidateReceipt
+     */
+    virtual outcome::result<
+        std::vector<std::optional<CommittedCandidateReceipt>>>
+    candidates_pending_availability(const primitives::BlockHash &block,
+                                    ParachainId id) = 0;
+
     ///
     /**
      * @brief Get a vector of events concerning candidates that occurred within
