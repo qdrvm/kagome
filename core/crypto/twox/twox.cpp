@@ -52,7 +52,7 @@ namespace kagome::crypto {
     ptr[2] = XXH64(in, len, 2);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ptr[3] = XXH64(in, len, 3);
-    std::memcpy(out, aligned_out, 4 * sizeof(uint64_t));
+    std::memcpy(out, aligned_out.data(), 4 * sizeof(uint64_t));
   }
 
   common::Hash256 make_twox256(common::BufferView buf) {
