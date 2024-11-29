@@ -180,7 +180,7 @@ namespace {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     "WasmEdge",
 #endif
-        "Binaryen"
+    "Binaryen"
   };
 
   static const std::string interpreters_str =
