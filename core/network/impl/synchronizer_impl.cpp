@@ -905,7 +905,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::applyNextBlock() {
-    auto any = false;
+    auto any_block_applied = false;
     if (generations_.empty()) {
       return;
     }
@@ -924,7 +924,7 @@ namespace kagome::network {
         break;
       }
       pop();
-      any = true;
+      any_block_applied = true;
 
       const auto &last_finalized_block = block_tree_->getLastFinalized();
 
@@ -996,7 +996,7 @@ namespace kagome::network {
       }
       ancestry_.erase(block_info.hash);
     }
-    if (any) {
+    if (any_block_applied) {
       postApplyBlock();
     }
   }
