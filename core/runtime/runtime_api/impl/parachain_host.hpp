@@ -68,6 +68,10 @@ namespace kagome::runtime {
     candidate_pending_availability(const primitives::BlockHash &block,
                                    ParachainId id) override;
 
+    outcome::result<std::vector<std::optional<CommittedCandidateReceipt>>>
+    candidates_pending_availability(const primitives::BlockHash &block,
+                                    ParachainId id) override;
+
     outcome::result<std::vector<CandidateEvent>> candidate_events(
         const primitives::BlockHash &block) override;
 
@@ -144,6 +148,9 @@ namespace kagome::runtime {
     };
     RuntimeApiLruBlockArg<ParachainId, std::optional<CommittedCandidateReceipt>>
         candidate_pending_availability_{10};
+    RuntimeApiLruBlockArg<ParachainId,
+                          std::vector<std::optional<CommittedCandidateReceipt>>>
+        candidates_pending_availability_{10};
     RuntimeApiLruBlock<std::vector<CandidateEvent>> candidate_events_{10};
     RuntimeApiLruBlockArg<SessionIndex, std::optional<SessionInfo>>
         session_info_{10};
