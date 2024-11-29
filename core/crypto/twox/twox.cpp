@@ -42,7 +42,7 @@ namespace kagome::crypto {
     // Ensure the buffer is aligned to the boundary required for uint64_t
     // (required for happy UBSAN)
     std::array<uint8_t, 4 * sizeof(uint64_t)> aligned_out{};
-    // get pointer to the beginning of the aligned buffer
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto *ptr = reinterpret_cast<uint64_t *>(aligned_out.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ptr[0] = XXH64(in, len, 0);
