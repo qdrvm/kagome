@@ -64,6 +64,7 @@ target_link_libraries(binaryen_parachain_test
     hasher
     pbkdf2_provider
     network
+    logger_for_tests
     )
 
 addtest(metadata_test
