@@ -145,7 +145,8 @@ namespace kagome::parachain {
 
   PvfImpl::PvfImpl(
       const Config &config,
-      std::shared_ptr<PvfWorkers> workers,
+      std::unique_ptr<PvfWorkers> backing_workers,
+      std::unique_ptr<PvfWorkers> approval_workers,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PvfPool> pvf_pool,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -157,7 +158,8 @@ namespace kagome::parachain {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<application::AppConfiguration> app_configuration)
       : config_{config},
-        workers_{std::move(workers)},
+        backing_workers_{std::move(backing_workers)},
+        approval_workers_{std::move(approval_workers)},
         hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -381,22 +383,35 @@ namespace kagome::parachain {
     kagome::parachain::PvfWorkerInputCodeParams code_params{
         .path = pvf_pool_->getCachePath(code_hash, context_params),
         .context_params = context_params};
-    workers_->execute({
-        .code_params = std::move(code_params),
-        .args = scale::encode(params).value(),
-        .cb =
-            [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
-              if (r.has_error()) {
-                return cb(r.error());
-              }
-              cb(scale::decode<ValidationResult>(r.value()));
-            },
-        .timeout =
-            std::chrono::milliseconds{
-                timeout_kind == runtime::PvfExecTimeoutKind::Backing
-                    ? executor_params.pvf_exec_timeout_backing_ms
-                    : executor_params.pvf_exec_timeout_approval_ms},
-    });
+    switch (timeout_kind) {
+      case runtime::PvfExecTimeoutKind::Backing:
+        backing_workers_->execute(
+            {.code_params = std::move(code_params),
+             .args = scale::encode(params).value(),
+             .cb =
+                 [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+                   if (r.has_error()) {
+                     return cb(r.error());
+                   }
+                   cb(scale::decode<ValidationResult>(r.value()));
+                 },
+             .timeout = std::chrono::milliseconds{
+                 executor_params.pvf_exec_timeout_backing_ms}});
+        break;
+      case runtime::PvfExecTimeoutKind::Approval:
+        backing_workers_->execute(
+            {.code_params = std::move(code_params),
+             .args = scale::encode(params).value(),
+             .cb =
+                 [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
+                   if (r.has_error()) {
+                     return cb(r.error());
+                   }
+                   cb(scale::decode<ValidationResult>(r.value()));
+                 },
+             .timeout = std::chrono::milliseconds{
+                 executor_params.pvf_exec_timeout_approval_ms}});
+    }
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

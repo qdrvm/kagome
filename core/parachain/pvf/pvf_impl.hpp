@@ -62,7 +62,8 @@ namespace kagome::parachain {
     };
 
     PvfImpl(const Config &config,
-            std::shared_ptr<PvfWorkers> workers,
+            std::unique_ptr<PvfWorkers> backing_workers,
+            std::unique_ptr<PvfWorkers> approval_workers,
             std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<PvfPool> pvf_pool,
             std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -107,7 +108,8 @@ namespace kagome::parachain {
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
     Config config_;
-    std::shared_ptr<PvfWorkers> workers_;
+    std::unique_ptr<PvfWorkers> backing_workers_;
+    std::unique_ptr<PvfWorkers> approval_workers_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
