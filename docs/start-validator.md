@@ -38,5 +38,18 @@ We refer to Polkadot-SDK's [https://wiki.polkadot.network/docs/maintain-guides-h
 
 The specs posted above are not a hard requirement to run a validator, but are considered best practice. Running a validator is a responsible task; using professional hardware is a must in any way. 
 
+## Setting up a KAGOME node
+To set up a KAGOME node, you need to obtain the latest version of the KAGOME software. To do so, you can either build the software from source or download the pre-built binaries from the [KAGOME GitHub repository](https://github.com/qdrvm/kagome), use docker-compose, or use service files.
+
+### Building from source
+
+Follow the guide: [Building from source](https://github.com/qdrvm/kagome?tab=readme-ov-file#build)
+
+### Installation from APT package
+
+Follow the guide: [Installation from APT package](https://github.com/qdrvm/kagome?tab=readme-ov-file#installation-from-apt-package)
+
+### 
+
 
 
