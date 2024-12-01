@@ -1,7 +1,7 @@
 # KAGOME v0.9.6 Setup guide
 
 :::info
-**Note:** This guide assumes you are using KAGOME v0.9.6 or later. Please be aware that data from previous versions is compatible with the latest version. To migrate your data, please add include the `--enable-db-migration` flag when starting the node.
+**Note:** This guide assumes you are using KAGOME v0.9.6 or later. Please be aware that data from previous versions is not compatible with the latest version. To migrate your data, please add include the `--enable-db-migration` flag when starting the node.
 :::
 
 **Table of Contents**
@@ -43,11 +43,51 @@ To set up a KAGOME node, you need to obtain the latest version of the KAGOME bin
 
 ### Building from source
 
-Follow the guide: [Building from source](https://github.com/qdrvm/kagome?tab=readme-ov-file#build)
+1. Clone the KAGOME repository:
+
+```sh
+git clone https://github.com/qdrvm/kagome.git && cd kagome
+```
+
+2. 
+
+Run installation scripts:
+
+```sh
+chmod +x scripts/init.sh scripts/build.sh # might require sudo
+./scripts/init.sh # might require sudo
+./scripts/build.sh
+```
+
+This will build the KAGOME binary and place it in the `build/node` directory. Ensure to add the `build/node` directory to your PATH environment variable.
+
 
 ### Installation from APT package
 
-Follow the guide: [Installation from APT package](https://github.com/qdrvm/kagome?tab=readme-ov-file#installation-from-apt-package)
+To install KAGOME releases using the provided package repository, follow these steps (tested on Ubuntu 24.04.1 LTS (Noble Numbat)):
+
+Update your package lists and install necessary utilities:
+
+```sh
+apt update && apt install -y gpg curl
+```
+
+Add the repository’s GPG signing key:
+
+```sh
+curl -fsSL https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg | gpg --dearmor -o /usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg
+```
+
+Add the KAGOME package repository to your sources list:
+```sh
+echo "deb [signed-by=/usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg] https://europe-north1-apt.pkg.dev/projects/kagome-408211 kagome main" > /etc/apt/sources.list.d/kagome.list
+```
+
+Update the package lists and install KAGOME:
+
+```sh
+apt update && apt install -y kagome
+```
 
 ## Running a KAGOME node
 
@@ -90,7 +130,8 @@ ExecStart=kagome \  # should be in path
   --wasm-execution Compiled \
   --telemetry-url 'wss://telemetry.polkadot.io/submit/ 1' \
   --rpc-port=9944 \
-  --node-key 63808171009b35fc218f207442e355b0634561c84e0aec2093e3515113475624 # replace with your node key
+  --node-key 63808171009b35fc218f207442e355b0634561c84e0aec2093e3515113475624 \  # replace with your node key
+  --sync Warp # recommended for the first start to quickly sync up the chain, remove it if your node is already synced
 
 Restart=always
 RestartSec=10
@@ -99,5 +140,14 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
+## Setting up session keys
 
+Once your node is synced and running, you can set up session keys to start validating. To set up session keys, you need to invoke ``author_rotateKeys`` RPC method. You can do this using the following command:
+
+```sh
+curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' http://localhost:9944
+{"jsonrpc":"2.0","id":1,"result":"0xfdd8adfa9839d2b73b8a1be2a737ff01d41e6837415b2fcbbcb3b2795eea75877a28e58509e567c352bf074fa8990cf2635d87c897ab39862a4411c6857b900fd416403da10819c02951d9ff66001d8558f031a0ebec7114386b944d1f50c9426624937c34a92ea55c497aee3b08e85a7d5681f157f2e88e8c964a2df4a9c76bb6f48b591a4f950734df8305d493b8fc68a0defd1e31cc9d4d56ca04274e6f05"}%
+```
+
+Result field from response json is a session key. You can assign this key to your validator account using Polkadot JS. Use this guide if you are unfamiliar with the process: [link](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#bond-dot)
 
