@@ -100,7 +100,20 @@ namespace kagome::parachain {
   };
 
   /// Creates validator signer.
-  class ValidatorSignerFactory {
+  class IValidatorSignerFactory {
+   public:
+    virtual ~IValidatorSignerFactory() = default;
+
+    /// Create validator signer if keypair belongs to validator at given block.
+    virtual outcome::result<std::optional<ValidatorSigner>> at(
+        const primitives::BlockHash &relay_parent) = 0;
+
+    virtual outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(
+        const primitives::BlockHash &relay_parent) = 0;
+  };
+
+  /// Creates validator signer.
+  class ValidatorSignerFactory : public IValidatorSignerFactory, std::enable_shared_from_this<ValidatorSignerFactory> {
    public:
     ValidatorSignerFactory(
         std::shared_ptr<runtime::ParachainHost> parachain_api,
@@ -110,10 +123,10 @@ namespace kagome::parachain {
 
     /// Create validator signer if keypair belongs to validator at given block.
     outcome::result<std::optional<ValidatorSigner>> at(
-        const primitives::BlockHash &relay_parent);
+        const primitives::BlockHash &relay_parent) override;
 
     outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(
-        const primitives::BlockHash &relay_parent);
+        const primitives::BlockHash &relay_parent) override;
 
    private:
     std::shared_ptr<runtime::ParachainHost> parachain_api_;

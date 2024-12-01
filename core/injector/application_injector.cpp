@@ -795,6 +795,7 @@ namespace {
             di::bind<parachain::IBitfieldSigner>.template to<parachain::BitfieldSigner>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
+            di::bind<parachain::IValidatorSignerFactory>.template to<parachain::ValidatorSignerFactory>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),

@@ -145,7 +145,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::AvailabilityStore> av_store,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
-      std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
+      std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
