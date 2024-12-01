@@ -132,12 +132,11 @@ namespace kagome::parachain {
 
   ParachainProcessorImpl::ParachainProcessorImpl(
       std::shared_ptr<network::PeerManager> pm,
-      std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       common::MainThreadPool &main_thread_pool,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<network::PeerView> peer_view,
+      std::shared_ptr<network::IPeerView> peer_view,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
@@ -158,7 +157,6 @@ namespace kagome::parachain {
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<statement_distribution::IStatementDistribution> sd)
       : pm_(std::move(pm)),
-        runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
@@ -273,7 +271,7 @@ namespace kagome::parachain {
     // view.
     my_view_sub_ = primitives::events::subscribe(
         peer_view_->getMyViewObservable(),
-        network::PeerView::EventType::kViewUpdated,
+        network::IPeerView::EventType::kViewUpdated,
         [WEAK_SELF](const network::ExView &event) {
           WEAK_LOCK(self);
           self->onViewUpdated(event);

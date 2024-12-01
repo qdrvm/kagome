@@ -59,6 +59,7 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+#include "network/i_peer_view.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -789,6 +790,7 @@ namespace {
             di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
             di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+            di::bind<network::IPeerView>.template to<network::PeerView>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),

@@ -23,7 +23,7 @@
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_manager.hpp"
-#include "network/peer_view.hpp"
+#include "network/i_peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/router.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
@@ -166,12 +166,11 @@ namespace kagome::parachain {
 
     ParachainProcessorImpl(
         std::shared_ptr<network::PeerManager> pm,
-        std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
         common::MainThreadPool &main_thread_pool,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<network::PeerView> peer_view,
+        std::shared_ptr<network::IPeerView> peer_view,
         common::WorkerThreadPool &worker_thread_pool,
         std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
         std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
@@ -764,7 +763,6 @@ namespace kagome::parachain {
         const network::SignedStatement &statement);
 
     std::shared_ptr<network::PeerManager> pm_;
-    std::shared_ptr<dispute::RuntimeInfo> runtime_info_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::Router> router_;
     log::Logger logger_ =
@@ -793,8 +791,8 @@ namespace kagome::parachain {
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<network::PeerView> peer_view_;
-    network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    std::shared_ptr<network::IPeerView> peer_view_;
+    network::IPeerView::MyViewSubscriberPtr my_view_sub_;
 
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory_;
