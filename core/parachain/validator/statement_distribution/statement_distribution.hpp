@@ -22,6 +22,7 @@
 #include "parachain/validator/network_bridge.hpp"
 #include "parachain/validator/signer.hpp"
 #include "parachain/validator/statement_distribution/peer_state.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -34,6 +35,7 @@ namespace kagome::parachain::statement_distribution {
 
   class StatementDistribution
       : public std::enable_shared_from_this<StatementDistribution>,
+        public IStatementDistribution,
         public network::CanDisconnect {
    public:
     enum class Error : uint8_t {
@@ -97,11 +99,11 @@ namespace kagome::parachain::statement_distribution {
     // outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
-        std::shared_ptr<libp2p::connection::Stream> stream);
+        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
-    void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp) {
+    void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp)  override {
       BOOST_ASSERT(!pp.expired());
       parachain_processor = std::move(pp);
     }
@@ -113,21 +115,21 @@ namespace kagome::parachain::statement_distribution {
     // validators group or sends a request to fetch the attested candidate.
     void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateManifest &msg);
+        const network::vstaging::BackedCandidateManifest &msg) override;
 
     void handle_incoming_acknowledgement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::BackedCandidateAcknowledgement
-            &acknowledgement);
+            &acknowledgement) override;
 
     void handle_incoming_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm);
+        const network::vstaging::StatementDistributionMessageStatement &stm) override;
 
-    void handle_backed_candidate_message(const CandidateHash &candidate_hash);
+    void handle_backed_candidate_message(const CandidateHash &candidate_hash) override;
 
     void share_local_statement(const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement);
+                               const SignedFullStatementWithPVD &statement) override;
 
    private:
     struct ManifestImportSuccess {

@@ -39,7 +39,7 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
-#include "parachain/validator/statement_distribution/statement_distribution.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
@@ -191,7 +191,7 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<statement_distribution::StatementDistribution>
+        std::shared_ptr<statement_distribution::IStatementDistribution>
             statement_distribution);
     ~ParachainProcessorImpl() = default;
 
@@ -817,7 +817,7 @@ namespace kagome::parachain {
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<statement_distribution::StatementDistribution>
+    std::shared_ptr<statement_distribution::IStatementDistribution>
         statement_distribution;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
 

@@ -150,4 +150,10 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     memset(&h[0], n, 32);
     return h;
   }
+
+  static Hash get_parent_hash(const Hash &parent) {
+    const auto val = *(uint8_t *)&parent[0];
+    return fromNumber(val + 1);
+  }
+
 };

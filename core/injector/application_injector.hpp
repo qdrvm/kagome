@@ -63,6 +63,7 @@ namespace kagome {
 
     namespace statement_distribution {
       class StatementDistribution;
+      class IStatementDistribution;
     }
   }  // namespace parachain
 

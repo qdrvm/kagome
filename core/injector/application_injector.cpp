@@ -155,6 +155,7 @@
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
@@ -793,7 +794,14 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
-            di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
+            bind_by_lambda<network::CanDisconnect>(
+                [](const auto &injector) {
+                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
+                }),
+            bind_by_lambda<parachain::statement_distribution::IStatementDistribution>(
+                [](const auto &injector) {
+                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
+                }),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),

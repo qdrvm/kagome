@@ -30,6 +30,18 @@ target_link_libraries(scope_test
     logger
     )
 
+addtest(backing_test
+    backing.cpp
+    )
+
+target_link_libraries(backing_test
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(fragment_chain_test
     fragment_chain.cpp
     )

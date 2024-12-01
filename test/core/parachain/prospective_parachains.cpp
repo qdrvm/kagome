@@ -108,11 +108,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     };
   }
 
-  static Hash get_parent_hash(const Hash &parent) {
-    const auto val = *(uint8_t *)&parent[0];
-    return fromNumber(val + 1);
-  }
-
   void handle_leaf_activation_2(
       const network::ExView &update,
       const TestLeaf &leaf,
