@@ -40,6 +40,7 @@ The specs posted above are not a hard requirement to run a validator, but are co
 
 ## Setting up a KAGOME node
 To set up a KAGOME node, you need to obtain the latest version of the KAGOME binary. To do so, you can build KAGOME from source, download pre-built binaries from the [KAGOME GitHub repository](https://github.com/qdrvm/kagome), or install from APK packages.
+Alternatively, you can use the provided docker-compose files to run a KAGOME node. If you are using docker-compose, you can skip the rest of this section and move to the Running a KAGOME node part of this guide.
 
 ### Building from source
 
@@ -49,9 +50,7 @@ To set up a KAGOME node, you need to obtain the latest version of the KAGOME bin
 git clone https://github.com/qdrvm/kagome.git && cd kagome
 ```
 
-2. 
-
-Run installation scripts:
+2. Run installation scripts:
 
 ```sh
 chmod +x scripts/init.sh scripts/build.sh # might require sudo
@@ -101,10 +100,6 @@ Once you have the KAGOME binary installed on your machine, you can start running
 **Note:** To run a KAGOME validator node you need to have a publicly accessible IP address.
 :::
 
-### Running a KAGOME node using docker-compose
-
-[//]: # (TODO)
-
 ### Running a KAGOME node using service files
 
 You can run KAGOME as a service using a systemd service file. Below is an example of a service file to launch KAGOME Kusama validator:
@@ -139,6 +134,45 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 ```
+
+#### Adding the Service File
+
+1. Copy the service file content into a new file named kagome.service.
+2. Move the file to the systemd directory:
+
+`sudo mv kagome.service /etc/systemd/system/`
+
+#### Managing the Kagome Node
+
+To start the Kagome node using systemd:
+1. Reload the systemd manager configuration:
+```sh
+sudo systemctl daemon-reload
+```
+
+2. (Optionally) Enable the Kagome service to start on boot:
+```sh
+sudo systemctl enable kagome
+```
+
+3. Start the Kagome service:
+```sh
+sudo systemctl start kagome
+```
+
+4. Check the status of the Kagome service:
+```sh
+sudo systemctl status kagome
+```
+
+5. To stop the Kagome service:
+```sh
+sudo systemctl stop kagome
+```
+
+### Running a KAGOME node using docker-compose
+
+[//]: # (TODO)
 
 ## Setting up session keys
 
