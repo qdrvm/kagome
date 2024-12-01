@@ -59,7 +59,6 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "network/i_peer_view.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -114,6 +113,7 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/i_peer_view.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
@@ -152,12 +152,11 @@
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
-#include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
+#include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
-#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
@@ -166,6 +165,7 @@
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
@@ -954,7 +954,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

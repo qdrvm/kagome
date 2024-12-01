@@ -32,9 +32,9 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
-    class IProspectiveParachains {
-        public:
-        virtual ~IProspectiveParachains() = default;
+  class IProspectiveParachains {
+   public:
+    virtual ~IProspectiveParachains() = default;
 
     // Debug print of all internal buffers load.
     virtual void printStoragesLoad() = 0;
@@ -44,11 +44,11 @@ namespace kagome::parachain {
     virtual std::vector<std::pair<ParachainId, BlockNumber>>
     answerMinimumRelayParentsRequest(const RelayHash &relay_parent) = 0;
 
-    virtual std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
-        const RelayHash &relay_parent,
-        ParachainId para,
-        uint32_t count,
-        const fragment::Ancestors &ancestors) = 0;
+    virtual std::vector<std::pair<CandidateHash, Hash>>
+    answerGetBackableCandidates(const RelayHash &relay_parent,
+                                ParachainId para,
+                                uint32_t count,
+                                const fragment::Ancestors &ancestors) = 0;
 
     virtual outcome::result<std::optional<runtime::PersistedValidationData>>
     answerProspectiveValidationDataRequest(
@@ -70,7 +70,7 @@ namespace kagome::parachain {
             &fragment_tree_relay_parent) = 0;
 
     virtual void candidate_backed(ParachainId para,
-                          const CandidateHash &candidate_hash) = 0;
+                                  const CandidateHash &candidate_hash) = 0;
 
     virtual bool introduce_seconded_candidate(
         ParachainId para,
@@ -79,10 +79,11 @@ namespace kagome::parachain {
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) = 0;
-    };
+  };
 
   class ProspectiveParachains
-      : public IProspectiveParachains, public std::enable_shared_from_this<ProspectiveParachains> {
+      : public IProspectiveParachains,
+        public std::enable_shared_from_this<ProspectiveParachains> {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING

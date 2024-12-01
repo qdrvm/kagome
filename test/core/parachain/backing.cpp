@@ -93,7 +93,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     //        fmt::format("{}  {}", n, h) << std::endl;
     //}
 
-	size_t requested_len = 0;
+    size_t requested_len = 0;
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
       const auto &hash = ancestry_hashes[i];
       const auto &number = ancestry_numbers[i];
@@ -111,18 +111,17 @@ class BackingTest : public ProspectiveParachainsTestHarness {
               .hash_opt = {},
           }));
 
-			if (requested_len == 0) {
-				assert_matches!(
-					virtual_overseer.recv().await,
-					AllMessages::ProspectiveParachains(
-						ProspectiveParachainsMessage::GetMinimumRelayParents(parent, tx)
-					) if parent == leaf_hash => {
-						tx.send(min_relay_parents.clone()).unwrap();
-					}
-				);
-			}
+      if (requested_len == 0) {
+        assert_matches !(
+            virtual_overseer.recv().await,
+            AllMessages::ProspectiveParachains(
+                ProspectiveParachainsMessage::GetMinimumRelayParents(
+                    parent, tx)) if parent
+                == leaf_hash =
+                > { tx.send(min_relay_parents.clone()).unwrap(); });
+      }
 
-			requested_len += 1;
+      requested_len += 1;
     }
   }
 };

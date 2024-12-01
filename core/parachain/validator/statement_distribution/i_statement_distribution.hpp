@@ -40,7 +40,8 @@ namespace kagome::parachain::statement_distribution {
         const network::vstaging::AttestedCandidateRequest &request,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
-    virtual void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp) = 0;
+    virtual void store_parachain_processor(
+        std::weak_ptr<ParachainProcessorImpl> pp) = 0;
 
     virtual void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
@@ -53,12 +54,15 @@ namespace kagome::parachain::statement_distribution {
 
     virtual void handle_incoming_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm) = 0;
+        const network::vstaging::StatementDistributionMessageStatement
+            &stm) = 0;
 
-    virtual void handle_backed_candidate_message(const CandidateHash &candidate_hash) = 0;
+    virtual void handle_backed_candidate_message(
+        const CandidateHash &candidate_hash) = 0;
 
-    virtual void share_local_statement(const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement) = 0;
+    virtual void share_local_statement(
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement) = 0;
   };
 
 }  // namespace kagome::parachain::statement_distribution

@@ -61,7 +61,8 @@ namespace kagome::network {
     virtual PeerViewSubscriptionEnginePtr getRemoteViewObservable() = 0;
 
     virtual void removePeer(const PeerId &peer_id) = 0;
-    virtual void updateRemoteView(const PeerId &peer_id, network::View &&view) = 0;
+    virtual void updateRemoteView(const PeerId &peer_id,
+                                  network::View &&view) = 0;
     virtual const View &getMyView() const = 0;
   };
 

@@ -155,5 +155,4 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     const auto val = *(uint8_t *)&parent[0];
     return fromNumber(val + 1);
   }
-
 };

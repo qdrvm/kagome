@@ -19,23 +19,24 @@
 
 namespace kagome::parachain {
   class IBitfieldSigner {
-    public:
-      using BroadcastCallback = std::function<void(
-          const primitives::BlockHash &, const network::SignedBitfield &)>;
-      using Candidates = std::vector<std::optional<network::CandidateHash>>;
+   public:
+    using BroadcastCallback = std::function<void(
+        const primitives::BlockHash &, const network::SignedBitfield &)>;
+    using Candidates = std::vector<std::optional<network::CandidateHash>>;
 
-      virtual ~IBitfieldSigner() = default;
-      virtual void start() = 0;
+    virtual ~IBitfieldSigner() = default;
+    virtual void start() = 0;
 
-      /// Sign bitfield for given block.
-      virtual outcome::result<void> sign(const ValidatorSigner &signer,
-                                const Candidates &candidates) = 0;
+    /// Sign bitfield for given block.
+    virtual outcome::result<void> sign(const ValidatorSigner &signer,
+                                       const Candidates &candidates) = 0;
 
-      virtual void setBroadcastCallback(BroadcastCallback &&callback) = 0;
+    virtual void setBroadcastCallback(BroadcastCallback &&callback) = 0;
   };
 
   /// Signs, stores and broadcasts bitfield for every new head.
-  class BitfieldSigner : public IBitfieldSigner, public std::enable_shared_from_this<BitfieldSigner> {
+  class BitfieldSigner : public IBitfieldSigner,
+                         public std::enable_shared_from_this<BitfieldSigner> {
    public:
     BitfieldSigner(
         std::shared_ptr<crypto::Hasher> hasher,

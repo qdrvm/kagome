@@ -5,12 +5,12 @@
  */
 #pragma once
 
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
+#include "injector/lazy.hpp"
 #include "network/i_peer_view.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
-#include "injector/lazy.hpp"
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;

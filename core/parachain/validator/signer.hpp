@@ -108,12 +108,14 @@ namespace kagome::parachain {
     virtual outcome::result<std::optional<ValidatorSigner>> at(
         const primitives::BlockHash &relay_parent) = 0;
 
-    virtual outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(
-        const primitives::BlockHash &relay_parent) = 0;
+    virtual outcome::result<std::optional<ValidatorIndex>>
+    getAuthorityValidatorIndex(const primitives::BlockHash &relay_parent) = 0;
   };
 
   /// Creates validator signer.
-  class ValidatorSignerFactory : public IValidatorSignerFactory, std::enable_shared_from_this<ValidatorSignerFactory> {
+  class ValidatorSignerFactory
+      : public IValidatorSignerFactory,
+        std::enable_shared_from_this<ValidatorSignerFactory> {
    public:
     ValidatorSignerFactory(
         std::shared_ptr<runtime::ParachainHost> parachain_api,

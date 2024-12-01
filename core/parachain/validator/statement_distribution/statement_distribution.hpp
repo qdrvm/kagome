@@ -21,8 +21,8 @@
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/network_bridge.hpp"
 #include "parachain/validator/signer.hpp"
-#include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
+#include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -103,7 +103,8 @@ namespace kagome::parachain::statement_distribution {
 
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
-    void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp)  override {
+    void store_parachain_processor(
+        std::weak_ptr<ParachainProcessorImpl> pp) override {
       BOOST_ASSERT(!pp.expired());
       parachain_processor = std::move(pp);
     }
@@ -124,12 +125,15 @@ namespace kagome::parachain::statement_distribution {
 
     void handle_incoming_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm) override;
+        const network::vstaging::StatementDistributionMessageStatement &stm)
+        override;
 
-    void handle_backed_candidate_message(const CandidateHash &candidate_hash) override;
+    void handle_backed_candidate_message(
+        const CandidateHash &candidate_hash) override;
 
-    void share_local_statement(const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement) override;
+    void share_local_statement(
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement) override;
 
    private:
     struct ManifestImportSuccess {

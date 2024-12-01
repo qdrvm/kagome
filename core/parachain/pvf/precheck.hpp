@@ -52,7 +52,8 @@ namespace kagome::parachain {
   };
 
   /// Signs pvf check statement for every new head.
-  class PvfPrecheck : public IPvfPrecheck, public std::enable_shared_from_this<PvfPrecheck> {
+  class PvfPrecheck : public IPvfPrecheck,
+                      public std::enable_shared_from_this<PvfPrecheck> {
    public:
     PvfPrecheck(
         std::shared_ptr<crypto::Hasher> hasher,
