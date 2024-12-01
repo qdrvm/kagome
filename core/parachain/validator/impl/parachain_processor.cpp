@@ -151,7 +151,7 @@ namespace kagome::parachain {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
-      std::shared_ptr<ProspectiveParachains> prospective_parachains,
+      std::shared_ptr<IProspectiveParachains> prospective_parachains,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,

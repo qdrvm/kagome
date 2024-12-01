@@ -106,7 +106,7 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<parachain::ValidatorSignerFactory> sf,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       StatementDistributionThreadPool &statements_distribution_thread_pool,
-      std::shared_ptr<ProspectiveParachains> _prospective_parachains,
+      std::shared_ptr<IProspectiveParachains> _prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> _parachain_host,
       std::shared_ptr<blockchain::BlockTree> _block_tree,
       std::shared_ptr<authority_discovery::Query> _query_audi,

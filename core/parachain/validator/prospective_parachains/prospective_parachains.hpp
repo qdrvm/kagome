@@ -32,8 +32,57 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
+    class IProspectiveParachains {
+        public:
+        virtual ~IProspectiveParachains() = default;
+
+    // Debug print of all internal buffers load.
+    virtual void printStoragesLoad() = 0;
+
+    virtual std::shared_ptr<blockchain::BlockTree> getBlockTree() = 0;
+
+    virtual std::vector<std::pair<ParachainId, BlockNumber>>
+    answerMinimumRelayParentsRequest(const RelayHash &relay_parent) = 0;
+
+    virtual std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
+        const RelayHash &relay_parent,
+        ParachainId para,
+        uint32_t count,
+        const fragment::Ancestors &ancestors) = 0;
+
+    virtual outcome::result<std::optional<runtime::PersistedValidationData>>
+    answerProspectiveValidationDataRequest(
+        const RelayHash &candidate_relay_parent,
+        const ParentHeadData &parent_head_data,
+        ParachainId para_id) = 0;
+
+    virtual std::optional<ProspectiveParachainsMode> prospectiveParachainsMode(
+        const RelayHash &relay_parent) = 0;
+
+    virtual outcome::result<void> onActiveLeavesUpdate(
+        const network::ExViewRef &update) = 0;
+
+    virtual std::vector<
+        std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
+    answer_hypothetical_membership_request(
+        const std::span<const HypotheticalCandidate> &candidates,
+        const std::optional<std::reference_wrapper<const Hash>>
+            &fragment_tree_relay_parent) = 0;
+
+    virtual void candidate_backed(ParachainId para,
+                          const CandidateHash &candidate_hash) = 0;
+
+    virtual bool introduce_seconded_candidate(
+        ParachainId para,
+        const network::CommittedCandidateReceipt &candidate,
+        const crypto::Hashed<runtime::PersistedValidationData,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>> &pvd,
+        const CandidateHash &candidate_hash) = 0;
+    };
+
   class ProspectiveParachains
-      : public std::enable_shared_from_this<ProspectiveParachains> {
+      : public IProspectiveParachains, public std::enable_shared_from_this<ProspectiveParachains> {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING
@@ -86,27 +135,27 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree);
 
     // Debug print of all internal buffers load.
-    void printStoragesLoad();
+    void printStoragesLoad() override;
 
-    std::shared_ptr<blockchain::BlockTree> getBlockTree();
+    std::shared_ptr<blockchain::BlockTree> getBlockTree() override;
 
     std::vector<std::pair<ParachainId, BlockNumber>>
-    answerMinimumRelayParentsRequest(const RelayHash &relay_parent);
+    answerMinimumRelayParentsRequest(const RelayHash &relay_parent) override;
 
     std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
         const RelayHash &relay_parent,
         ParachainId para,
         uint32_t count,
-        const fragment::Ancestors &ancestors);
+        const fragment::Ancestors &ancestors) override;
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     answerProspectiveValidationDataRequest(
         const RelayHash &candidate_relay_parent,
         const ParentHeadData &parent_head_data,
-        ParachainId para_id);
+        ParachainId para_id) override;
 
     std::optional<ProspectiveParachainsMode> prospectiveParachainsMode(
-        const RelayHash &relay_parent);
+        const RelayHash &relay_parent) override;
 
     outcome::result<std::optional<
         std::pair<fragment::Constraints,
@@ -130,7 +179,7 @@ namespace kagome::parachain {
             &pending_availability);
 
     outcome::result<void> onActiveLeavesUpdate(
-        const network::ExViewRef &update);
+        const network::ExViewRef &update) override;
 
     /// @brief calculates hypothetical candidate and fragment tree membership
     /// @param candidates Candidates, in arbitrary order, which should be
@@ -144,10 +193,10 @@ namespace kagome::parachain {
     answer_hypothetical_membership_request(
         const std::span<const HypotheticalCandidate> &candidates,
         const std::optional<std::reference_wrapper<const Hash>>
-            &fragment_tree_relay_parent);
+            &fragment_tree_relay_parent) override;
 
     void candidate_backed(ParachainId para,
-                          const CandidateHash &candidate_hash);
+                          const CandidateHash &candidate_hash) override;
 
     bool introduce_seconded_candidate(
         ParachainId para,
@@ -155,7 +204,7 @@ namespace kagome::parachain {
         const crypto::Hashed<runtime::PersistedValidationData,
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
-        const CandidateHash &candidate_hash);
+        const CandidateHash &candidate_hash) override;
   };
 
 }  // namespace kagome::parachain

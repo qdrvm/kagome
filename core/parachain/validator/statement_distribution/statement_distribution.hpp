@@ -76,7 +76,7 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<parachain::ValidatorSignerFactory> sf,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         StatementDistributionThreadPool &statements_distribution_thread_pool,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<authority_discovery::Query> query_audi,
@@ -367,7 +367,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<network::Router> router;
     std::shared_ptr<PoolHandler> main_pool_handler;
     std::shared_ptr<crypto::Hasher> hasher;
-    std::shared_ptr<ProspectiveParachains> prospective_parachains;
+    std::shared_ptr<IProspectiveParachains> prospective_parachains;
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider;
     std::shared_ptr<network::PeerView> peer_view;

@@ -186,7 +186,7 @@ namespace kagome::parachain {
         primitives::events::SyncStateSubscriptionEnginePtr
             sync_state_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
@@ -813,7 +813,7 @@ namespace kagome::parachain {
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;
-    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    std::shared_ptr<IProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<statement_distribution::IStatementDistribution>
         statement_distribution;

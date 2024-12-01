@@ -22,7 +22,7 @@
 
 namespace kagome::parachain {
 
-  class ProspectiveParachains;
+  class IProspectiveParachains;
 
   // Always aim to retain 1 block before the active leaves.
   constexpr BlockNumber MINIMUM_RETAIN_LENGTH = 2ull;
@@ -124,7 +124,7 @@ namespace kagome::parachain {
                block_info_storage.size());
     }
 
-    ImplicitView(std::weak_ptr<ProspectiveParachains> prospective_parachains,
+    ImplicitView(std::weak_ptr<IProspectiveParachains> prospective_parachains,
                  std::shared_ptr<runtime::ParachainHost> parachain_host_,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::optional<ParachainId> collating_for_);
@@ -161,7 +161,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::optional<ParachainId> collating_for;
 
-    std::weak_ptr<ProspectiveParachains> prospective_parachains_;
+    std::weak_ptr<IProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger = log::createLogger("BackingImplicitView", "parachain");
   };
