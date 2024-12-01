@@ -1,0 +1,104 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+### Runs a temporary Polkadot container to generate node keys:
+# docker run --rm --platform='linux/amd64' \
+#   parity/polkadot:latest key generate-node-key 2>&1 | \
+#   awk 'NR==1 {print "public="$0} NR==2 {print "private="$0}' > \
+#   ./kagome-node/node-key
+
+### Set up session keys:
+# curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' 127.0.0.1:9944
+
+services:
+  kagome-node:
+    image: qdrvm/kagome:master
+    container_name: kagome-node
+    healthcheck:
+      test: |
+        CMD-SHELL curl -Ss -H 'Content-Type: application/json' \
+        -d '{"id":1, "jsonrpc":"2.0", "method": "system_health", "params":[]}' \
+        127.0.0.1:9944 | grep 'result'
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+    command:
+      - "kagome"
+      - "--chain=kusama"
+      - "--sync=Warp"
+      - "--base-path=/opt/kagome/chain-data"
+      - "--rpc-port=9944"
+      - "--logcfg=/opt/kagome/logcfg.yaml"
+      - "--name=kagome-qdrvm-compose"
+      - "--wasm-execution=Compiled"
+      - "--listen-addr=/ip4/0.0.0.0/tcp/30363"
+      - "--public-addr=/ip4/INSERT_ACTUAL_IP_HERE/tcp/30363/p2p/INSERT_PUBLIC_NODE_KEY_HERE"
+      - "--telemetry-url=wss://telemetry.polkadot.io/submit/ 1"
+      - "--validator"
+      - "--node-key=INSERT_PRIVATE_NODE_KEY_HERE"
+      - "--insecure-validator-i-know-what-i-do"
+      - "--prometheus-port=9615"
+      - "--prometheus-external"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    volumes:
+      - ./kagome-node/chain-data:/opt/kagome/chain-data
+      - ./kagome-node/tmp:/tmp/kagome
+      - ./logcfg.yaml:/opt/kagome/logcfg.yaml:ro
+    ports:
+      - "30363:30363"
+      - "127.0.0.1:9944:9944"
+      - "9615:9615"
+    networks:
+      - kagome-net
+    restart: "always"
+    platform: linux/amd64
+    stdin_open: true
+    tty: true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/config:/etc/prometheus
+      - ./prometheus/data:/prometheus
+    networks:
+      - kagome-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin 
+    volumes:
+      - ./grafana/provisioning/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./grafana/provisioning/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - kagome-net
+
+
+networks:
+  kagome-net:
+    name: kagome-net
+    external: true
