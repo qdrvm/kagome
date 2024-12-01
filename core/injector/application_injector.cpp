@@ -153,6 +153,7 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
@@ -791,6 +792,7 @@ namespace {
             di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
             di::bind<network::IPeerView>.template to<network::PeerView>(),
+            di::bind<parachain::IBitfieldSigner>.template to<parachain::BitfieldSigner>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
