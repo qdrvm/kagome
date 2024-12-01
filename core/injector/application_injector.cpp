@@ -799,6 +799,7 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
+            di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
             bind_by_lambda<network::CanDisconnect>(
                 [](const auto &injector) {
                   return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();

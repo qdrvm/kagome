@@ -139,7 +139,7 @@ namespace kagome::parachain {
       std::shared_ptr<network::IPeerView> peer_view,
       common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
-      std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
+      std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<parachain::Pvf> pvf,
