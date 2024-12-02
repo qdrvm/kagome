@@ -6,6 +6,7 @@
 
 #include "core/parachain/parachain_test_harness.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "mock/core/parachain/prospective_parachains_mock.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -112,13 +113,13 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           }));
 
       if (requested_len == 0) {
-        assert_matches !(
-            virtual_overseer.recv().await,
-            AllMessages::ProspectiveParachains(
-                ProspectiveParachainsMessage::GetMinimumRelayParents(
-                    parent, tx)) if parent
-                == leaf_hash =
-                > { tx.send(min_relay_parents.clone()).unwrap(); });
+        //assert_matches !(
+        //    virtual_overseer.recv().await,
+        //    AllMessages::ProspectiveParachains(
+        //        ProspectiveParachainsMessage::GetMinimumRelayParents(
+        //            parent, tx)) if parent
+        //        == leaf_hash =
+        //        > { tx.send(min_relay_parents.clone()).unwrap(); });
       }
 
       requested_len += 1;
