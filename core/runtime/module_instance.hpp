@@ -63,12 +63,15 @@ namespace kagome::runtime {
         res += std::to_string(value[i]);
         if (i < value.size() - 1) {
           res += ", ";
+        } else {
+          res += "]";
         }
       }
-      res += "]";
 
-      SL_INFO(logger, "Decoding result of method {} from buffer {}",
-               method_name, res);
+      SL_INFO(logger,
+              "Decoding result of method {} from buffer {}",
+              method_name,
+              res);
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
@@ -90,6 +93,19 @@ namespace kagome::runtime {
           }
           return outcome::success(std::move(t));
         } catch (std::system_error &e) {
+          if (method_name == "ParachainHost_para_backing_state") {
+            std::ofstream outputFile("/home/kagome/dev/kagome-funvalue.scale", std::ios::binary);
+
+            if (!outputFile.is_open()) {
+              std::cerr << "Error opening file for writing!" << std::endl;
+            }
+
+            // Write the bytes to the file
+            outputFile.write(reinterpret_cast<char*>(value.data()), value.size());
+
+            // Close the file
+            outputFile.close();
+          }
           return outcome::failure(e.code());
         }
       }
