@@ -36,4 +36,5 @@ add_library(in_memory_storage in_memory/in_memory_storage.cpp)
 target_link_libraries(in_memory_storage PUBLIC
     outcome
     blob
+    storage
     )
