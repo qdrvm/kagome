@@ -12,6 +12,7 @@
 #include "host_api/impl/host_api_impl.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::HostApiImpl;
@@ -30,8 +31,19 @@ using ::testing::Return;
 
 namespace fs = kagome::filesystem;
 
+/**
+ * @class ParachainHostTest
+ *
+ * All tests are currently disabled as they require storage
+ * with information for runtime.
+ *
+ */
 class ParachainHostTest : public BinaryenRuntimeTest {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     BinaryenRuntimeTest::SetUp();
 
@@ -165,6 +177,16 @@ TEST_F(ParachainHostTest, DISABLED_ValidationCodeByHashTest) {
 TEST_F(ParachainHostTest, DISABLED_CandidatePendingAvailabilityTest) {
   auto id = createParachainId();
   ASSERT_TRUE(api_->candidate_pending_availability("block_hash"_hash256, id));
+}
+
+/**
+ * @given initialized parachain host api
+ * @when candidates_pending_availability() is invoked
+ * @then successful result is returned
+ */
+TEST_F(ParachainHostTest, DISABLED_CandidatesPendingAvailabilityTest) {
+  auto id = createParachainId();
+  ASSERT_TRUE(api_->candidates_pending_availability("block_hash"_hash256, id));
 }
 
 /**
