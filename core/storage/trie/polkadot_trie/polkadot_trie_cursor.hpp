@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
     // their node
     struct ValueHash {
       Hash256 hash;
-      bool small;
+      bool small = false;
     };
     [[nodiscard]] virtual std::optional<ValueHash> valueHash() const = 0;
   };

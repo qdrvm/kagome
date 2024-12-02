@@ -193,11 +193,11 @@ namespace kagome::storage::trie {
       return std::nullopt;
     }
     if (value_opt->size() >= Hash256::size() + 1) {
-      return ValueHash{crypto::blake2b<32>(*value_opt), false};
+      return ValueHash{.hash = crypto::blake2b<32>(*value_opt), .small = false};
     }
     Hash256 value_as_hash{};
     std::copy(value_opt->begin(), value_opt->end(), value_as_hash.begin());
-    return ValueHash{value_as_hash, true};
+    return ValueHash{.hash = value_as_hash, .small = true};
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(

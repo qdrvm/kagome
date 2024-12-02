@@ -13,6 +13,7 @@
 #include "log/logger.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "storage/database_error.hpp"
 #include "storage/spaced_storage.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -84,8 +85,10 @@ namespace kagome::storage::migrations {
       primitives::BlockHash current = pending.front();
       pending.pop_front();
       auto header = block_tree.getBlockHeader(current);
-      // TODO: an error other than just an absent block may occur
       if (!header) {
+        if (header.error() != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+          return header.error();
+        }
         continue;
       }
       OUTCOME_TRY(children, block_tree.getChildren(current));
@@ -123,7 +126,7 @@ namespace kagome::storage::migrations {
             "blocks are not required, the migration may be stopped, because it "
             "will take a long time. It can be restarted later, if needed.");
     header = block_tree.getBlockHeader(header.value().parent_hash);
-    // TODO: an error other than just an absent block may occur
+
     for (; header.has_value();
          header = block_tree.getBlockHeader(header.value().parent_hash)) {
       SL_VERBOSE(logger, "Migrating block {}...", header.value().blockInfo());
@@ -138,6 +141,10 @@ namespace kagome::storage::migrations {
       }
 
       OUTCOME_TRY(migrateTree(storage, *trie_batch_res.value(), logger));
+    }
+    if (header.has_error()
+        && header.error() != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+      return header.error();
     }
 
     SL_INFO(logger, "Trie storage migration ended successfully");

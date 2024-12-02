@@ -80,6 +80,7 @@ struct TrieTracker : storage::BufferStorage {
     return keys.contains(common::Hash256::fromSpan(key).value());
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   storage::BufferStorage &inner;
   mutable std::set<common::Hash256> keys;
 };
