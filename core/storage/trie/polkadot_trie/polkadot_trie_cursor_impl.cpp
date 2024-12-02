@@ -8,6 +8,8 @@
 
 #include <utility>
 
+#include "common/blob.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -347,6 +349,30 @@ namespace kagome::storage::trie {
         return BufferView{*value_opt.value};
       }
       return std::nullopt;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<PolkadotTrieCursor::ValueHash>
+  PolkadotTrieCursorImpl::valueHash() const {
+    if (const auto *search_state = std::get_if<SearchState>(&state_);
+        search_state != nullptr) {
+      const auto &value_opt = search_state->getCurrent().getValue();
+
+      if (value_opt.hash) {
+        return ValueHash{.hash = value_opt.hash.value(), .small = false};
+      }
+      if (value_opt.value) {
+        if (value_opt.value->size() >= Hash256::size() + 1) {
+          return ValueHash{.hash = crypto::blake2b<32>(value_opt.value.value()),
+                           .small = false};
+        }
+        Hash256 value_as_hash{};
+        std::copy(value_opt.value.value().begin(),
+                  value_opt.value.value().end(),
+                  value_as_hash.begin());
+        return ValueHash{.hash = value_as_hash, .small = true};
+      }
     }
     return std::nullopt;
   }

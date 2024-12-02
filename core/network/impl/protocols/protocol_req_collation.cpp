@@ -62,9 +62,9 @@ namespace kagome::network {
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : v1_impl_{std::make_shared<
-          ReqCollationProtocolImpl<CollationFetchingRequest,
-                                   CollationFetchingResponse>>(
-          host, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
+            ReqCollationProtocolImpl<CollationFetchingRequest,
+                                     CollationFetchingResponse>>(
+            host, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
         vstaging_impl_{std::make_shared<
             ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
                                      vstaging::CollationFetchingResponse>>(

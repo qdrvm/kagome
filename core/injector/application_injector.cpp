@@ -939,7 +939,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
@@ -1124,6 +1124,12 @@ namespace kagome::injector {
   std::shared_ptr<common::MainThreadPool>
   KagomeNodeInjector::injectMainThreadPool() {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
+  }
+
+  std::shared_ptr<runtime::RuntimeUpgradeTracker>
+  KagomeNodeInjector::injectRuntimeUpgradeTracker() {
+    return pimpl_->injector_
+        .template create<sptr<runtime::RuntimeUpgradeTracker>>();
   }
 
   void KagomeNodeInjector::kademliaRandomWalk() {
