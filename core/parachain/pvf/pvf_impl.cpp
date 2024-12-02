@@ -245,9 +245,12 @@ namespace kagome::parachain {
     if (pov_hash != receipt.descriptor.pov_hash) {
       return cb(PvfError::POV_HASH);
     }
-    auto code_hash = hasher_->blake2b_256(code_zstd);
-    if (code_hash != receipt.descriptor.validation_code_hash) {
-      return cb(PvfError::CODE_HASH);
+    {
+      auto _measure = std::make_shared<TicToc>("PVF Code hash validation", log_);
+      auto code_hash = hasher_->blake2b_256(code_zstd);
+      if (code_hash != receipt.descriptor.validation_code_hash) {
+        return cb(PvfError::CODE_HASH);
+      }
     }
     CB_TRYV(checkSignature(*sr25519_provider_, receipt.descriptor));
 
