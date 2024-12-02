@@ -191,6 +191,9 @@ namespace kagome::network {
 
     // Enqueue bootstrap nodes with permanent lifetime
     for (const auto &bootstrap_node : bootstrap_nodes_) {
+      if (own_peer_info_.id == bootstrap_node.id) {
+        continue;
+      }
       kademlia_->addPeer(bootstrap_node, true);
     }
 
