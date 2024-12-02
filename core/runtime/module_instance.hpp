@@ -55,6 +55,11 @@ namespace kagome::runtime {
         [[maybe_unused]] std::string_view method_name,
         outcome::result<common::Buffer> &&result) {
       OUTCOME_TRY(value, std::move(result));
+
+      static auto logger = log::createLogger("Executor", "runtime");
+
+      SL_INFO(logger, "Decoding result of method {} from buffer {}",
+               method_name, common::hex_lower(value));
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
@@ -64,7 +69,6 @@ namespace kagome::runtime {
           s >> t;
           // Check whether the whole byte buffer was consumed
           if (s.hasMore(1)) {
-            static auto logger = log::createLogger("Executor", "runtime");
             SL_ERROR(
                 logger,
                 "Runtime API call '{}' result size exceeds the size of the "
