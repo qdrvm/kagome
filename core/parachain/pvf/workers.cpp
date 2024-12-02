@@ -137,6 +137,7 @@ namespace kagome::parachain {
 
   void PvfWorkers::execute(Job &&job) {
     REINVOKE(*main_pool_handler_, execute, std::move(job));
+    std::cout << std::endl << "PVF queue size " << queue_.size() << std::endl;
     if (free_.empty()) {
       if (used_ >= max_) {
         queue_.emplace(std::move(job));
