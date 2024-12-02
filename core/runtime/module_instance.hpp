@@ -58,8 +58,17 @@ namespace kagome::runtime {
 
       static auto logger = log::createLogger("Executor", "runtime");
 
+      std::string res = "[";
+      for (size_t i = 0; i < value.size(); i++) {
+        res += std::to_string(value[i]);
+        if (i < value.size() - 1) {
+          res += ", ";
+        }
+      }
+      res += "]";
+
       SL_INFO(logger, "Decoding result of method {} from buffer {}",
-               method_name, value.toHex());
+               method_name, res);
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
