@@ -17,6 +17,9 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/parachain/pvf_precheck_mock.hpp"
+#include "mock/core/parachain/pvf_mock.hpp"
+#include "mock/core/parachain/bitfield_store_mock.hpp"
+#include "mock/core/parachain/backing_store_mock.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -30,7 +33,6 @@ using kagome::network::PeerViewMock;
 using kagome::network::PeerManagerMock;
 using kagome::network::RouterMock;
 using kagome::crypto::Sr25519ProviderMock;
-
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -46,6 +48,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     peer_view_ = std::make_shared<PeerViewMock>();
     bitfield_signer_ = std::make_shared<BitfieldSignerMock>();
     pvf_precheck_ = std::make_shared<PvfPrecheckMock>();
+    bitfield_store_ = std::make_shared<BitfieldStoreMock>();
+    backing_store_ = std::make_shared<BackingStoreMock>();
+    pvf_ = std::make_shared<PvfMock>();
 
     StartApp app_state_manager;
 
@@ -60,10 +65,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         peer_view_,
         *worker_thread_pool_,
         bitfield_signer_,
-        std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
-        std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-        std::shared_ptr<parachain::BackingStore> backing_store,
-        std::shared_ptr<parachain::Pvf> pvf,
+        pvf_precheck_,
+        bitfield_store_,
+        backing_store_,
+        pvf_,
         std::shared_ptr<parachain::AvailabilityStore> av_store,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
@@ -99,6 +104,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<network::PeerViewMock> peer_view_;
   std::shared_ptr<BitfieldSignerMock> bitfield_signer_;
   std::shared_ptr<PvfPrecheckMock> pvf_precheck_;
+  std::shared_ptr<BitfieldStoreMock> bitfield_store_;
+  std::shared_ptr<BackingStoreMock> backing_store_;
+  std::shared_ptr<PvfMock> pvf_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
