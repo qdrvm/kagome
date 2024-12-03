@@ -9,6 +9,7 @@
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "mock/core/parachain/prospective_parachains_mock.hpp"
+#include "mock/core/parachain/bitfield_signer_mock.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/network/peer_view_mock.hpp"
@@ -42,20 +43,21 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     sr25519_provider_ = std::make_shared<Sr25519ProviderMock>();
     router_ = std::make_shared<RouterMock>();
     peer_view_ = std::make_shared<PeerViewMock>();
+    bitfield_signer_ = std::make_shared<BitfieldSignerMock>();
 
     StartApp app_state_manager;
 
 
     
-    ParachainProcessorImpl(
+    /*ParachainProcessorImpl(
         peer_manager_,
         sr25519_provider_,
         router_,
         *main_thread_pool_,
         hasher_,
-        std::shared_ptr<network::IPeerView> peer_view,
-        common::WorkerThreadPool &worker_thread_pool,
-        std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
+        peer_view_,
+        *worker_thread_pool_,
+        bitfield_signer_,
         std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackingStore> backing_store,
@@ -74,7 +76,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<statement_distribution::IStatementDistribution>
-            statement_distribution);
+            statement_distribution);*/
   }
 
   void TearDown() override {
@@ -93,6 +95,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider_;
   std::shared_ptr<RouterMock> router_;
   std::shared_ptr<network::PeerViewMock> peer_view_;
+  std::shared_ptr<BitfieldSignerMock> bitfield_signer_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
