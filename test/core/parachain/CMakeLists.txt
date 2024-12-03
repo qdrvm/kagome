@@ -35,6 +35,9 @@ addtest(backing_test
     )
 
 target_link_libraries(backing_test
+    Boost::Boost.DI
+    Boost::boost
+    validator_parachain
     prospective_parachains
     log_configurator
     base_fs_test

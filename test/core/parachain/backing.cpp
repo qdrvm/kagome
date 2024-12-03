@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/di.hpp>
+//#include <boost/di.hpp>
 #include "core/parachain/parachain_test_harness.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "common/main_thread_pool.hpp"
@@ -31,27 +31,38 @@
 #include "mock/core/authority_discovery/query_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "injector/bind_by_lambda.hpp"
+#include "testutil/lazy.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
 
 using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
+using kagome::application::AppConfiguration;
 using kagome::application::StartApp;
 using kagome::common::MainThreadPool;
 using kagome::common::WorkerThreadPool;
 using kagome::network::PeerViewMock;
+using kagome::network::IPeerView;
 using kagome::network::PeerManagerMock;
+using kagome::network::PeerManager;
 using kagome::network::RouterMock;
+using kagome::network::Router;
 using kagome::crypto::Sr25519ProviderMock;
+using kagome::crypto::Sr25519Provider;
 using kagome::runtime::ParachainHostMock;
+using kagome::runtime::ParachainHost;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
 using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::authority_discovery::QueryMock;
+using kagome::authority_discovery::Query;
 using kagome::blockchain::BlockTreeMock;
+using kagome::blockchain::BlockTree;
 using kagome::consensus::SlotsUtilMock;
+using kagome::consensus::SlotsUtil;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::babe::BabeConfigRepository;
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -82,45 +93,14 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     statement_distribution_ = std::make_shared<statement_distribution::StatementDistributionMock>();
 
-    const auto injector = boost::di::make_injector(
-               kagome::injector::bind_by_lambda<Watchdog>(
-                [](const auto &injector) {
-                  return std::make_shared<Watchdog>(std::chrono::milliseconds(1));
-                }),
-               kagome::injector::bind_by_lambda<MainThreadPool>([](const auto &injector) { return std::make_shared<MainThreadPool>(watchdog_, std::make_shared<boost::asio::io_context>()); }),
-    kagome::injector::bind_by_lambda<WorkerThreadPool>([](const auto &injector) { return  std::make_shared<WorkerThreadPool>(watchdog_, 1); }),
+    my_view_observable_ = std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
 
-    kagome::injector::bind_by_lambda<PeerManager>([](const auto &injector) { return  std::make_shared<PeerManagerMock>(); }),
-    kagome::injector::bind_by_lambda<Sr25519Provider>([](const auto &injector) { return  std::make_shared<Sr25519ProviderMock>(); }),
-    kagome::injector::bind_by_lambda<Router>([](const auto &injector) { return  std::make_shared<RouterMock>(); }),
-    kagome::injector::bind_by_lambda<IPeerView>([](const auto &injector) { return  std::make_shared<PeerViewMock>(); }),
-    kagome::injector::bind_by_lambda<IBitfieldSigner>([](const auto &injector) { return  std::make_shared<BitfieldSignerMock>(); }),
-    kagome::injector::bind_by_lambda<IPvfPrecheck>([](const auto &injector) { return  std::make_shared<PvfPrecheckMock>(); }),
-    kagome::injector::bind_by_lambda<BitfieldStore>([](const auto &injector) { return  std::make_shared<BitfieldStoreMock>(); }),
-    kagome::injector::bind_by_lambda<BackingStore>([](const auto &injector) { return  std::make_shared<BackingStoreMock>(); }),
-    kagome::injector::bind_by_lambda<Pvf>([](const auto &injector) { return  std::make_shared<PvfMock>(); }),
-    kagome::injector::bind_by_lambda<AvailabilityStore>([](const auto &injector) { return  std::make_shared<AvailabilityStoreMock>(); }),
-    kagome::injector::bind_by_lambda<ParachainHost>([](const auto &injector) { return  std::make_shared<ParachainHostMock>(); }),
-    kagome::injector::bind_by_lambda<IValidatorSignerFactory>([](const auto &injector) { return  std::make_shared<ValidatorSignerFactoryMock>(); }),
-    kagome::injector::bind_by_lambda<Query>([](const auto &injector) { return  std::make_shared<QueryMock>(); }),
-    kagome::injector::bind_by_lambda<IProspectiveParachains>([](const auto &injector) { return  std::make_shared<ProspectiveParachainsMock>(); }),
-    kagome::injector::bind_by_lambda<BlockTree>([](const auto &injector) { return  std::make_shared<BlockTreeMock>(); }),
-    kagome::injector::bind_by_lambda<SlotsUtil>([](const auto &injector) { return  std::make_shared<SlotsUtilMock>(); }),
-    kagome::injector::bind_by_lambda<BabeConfigRepository>([](const auto &injector) { return  std::make_shared<BabeConfigRepositoryMock>(); }),
-    kagome::injector::bind_by_lambda<statement_distribution::IStatementDistribution>([](const auto &injector) { return  std::make_shared<statement_distribution::StatementDistributionMock>(); }),
-    //kagome::injector::bind_by_lambda<ChainSubscriptionEngine>([](const auto &injector) { return  std::make_shared<ChainSubscriptionEngine>(); }),
-    //kagome::injector::bind_by_lambda<SyncStateSubscriptionEngine>([](const auto &injector) { return  std::make_shared<SyncStateSubscriptionEngine>(); }),
-
-    di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
-
-      //di::bind<int>.to(42)[boost::di::override],
-      //di::bind<double>.to(87.0),
-      //useBind<Derived>()
-    );
+  EXPECT_CALL(*peer_view_, getMyViewObservable())
+      .WillRepeatedly(Return(my_view_observable_));
 
 
     StartApp app_state_manager;
-    /*parachain_processor_ = std::make_shared<ParachainProcessorImpl>(
+    parachain_processor_ = std::make_shared<ParachainProcessorImpl>(
         peer_manager_,
         sr25519_provider_,
         router_,
@@ -143,9 +123,11 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         query_audi_,
         prospective_parachains_,
         block_tree_,
-        slots_util_,
+        testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         babe_config_repo_,
-        statement_distribution_);*/
+        statement_distribution_);
+
+        app_state_manager.start();
   }
 
   void TearDown() override {
@@ -181,6 +163,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<statement_distribution::StatementDistributionMock> statement_distribution_;
   std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
+
+  PeerViewMock::MyViewSubscriptionEnginePtr my_view_observable_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
