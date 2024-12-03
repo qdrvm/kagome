@@ -19,7 +19,11 @@
 #include "mock/core/parachain/pvf_precheck_mock.hpp"
 #include "mock/core/parachain/pvf_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
+#include "mock/core/parachain/availability_store_mock.hpp"
+#include "mock/core/parachain/signer_factory_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/runtime/parachain_host_mock.hpp"
+#include "primitives/event_types.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -33,6 +37,8 @@ using kagome::network::PeerViewMock;
 using kagome::network::PeerManagerMock;
 using kagome::network::RouterMock;
 using kagome::crypto::Sr25519ProviderMock;
+using kagome::runtime::ParachainHostMock;
+using kagome::primitives::events::ChainSubscriptionEngine;
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -51,6 +57,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     bitfield_store_ = std::make_shared<BitfieldStoreMock>();
     backing_store_ = std::make_shared<BackingStoreMock>();
     pvf_ = std::make_shared<PvfMock>();
+    av_store_ = std::make_shared<AvailabilityStoreMock>();
+    parachain_host_ = std::make_shared<ParachainHostMock>();
+    signer_factory_ = std::make_shared<ValidatorSignerFactoryMock>();
+    chain_sub_engine_ = std::make_shared<ChainSubscriptionEngine>();
 
     StartApp app_state_manager;
 
@@ -69,11 +79,11 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         bitfield_store_,
         backing_store_,
         pvf_,
-        std::shared_ptr<parachain::AvailabilityStore> av_store,
-        std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
-        const application::AppConfiguration &app_config,
-        application::AppStateManager &app_state_manager,
+        av_store_,
+        parachain_host_,
+        signer_factory_,
+        app_config_,
+        app_state_manager,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::SyncStateSubscriptionEnginePtr
             sync_state_observable,
@@ -107,6 +117,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<BitfieldStoreMock> bitfield_store_;
   std::shared_ptr<BackingStoreMock> backing_store_;
   std::shared_ptr<PvfMock> pvf_;
+  std::shared_ptr<AvailabilityStoreMock> av_store_;
+  std::shared_ptr<ParachainHostMock> parachain_host_;
+  std::shared_ptr<ValidatorSignerFactoryMock> signer_factory_;
+  std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
