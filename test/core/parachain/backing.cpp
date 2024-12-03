@@ -23,6 +23,10 @@
 #include "mock/core/parachain/signer_factory_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/authority_discovery/query_mock.hpp"
 #include "primitives/event_types.hpp"
 
 using namespace kagome::parachain;
@@ -39,6 +43,11 @@ using kagome::network::RouterMock;
 using kagome::crypto::Sr25519ProviderMock;
 using kagome::runtime::ParachainHostMock;
 using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
+using kagome::authority_discovery::QueryMock;
+using kagome::blockchain::BlockTreeMock;
+using kagome::consensus::SlotsUtilMock;
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -61,6 +70,12 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     parachain_host_ = std::make_shared<ParachainHostMock>();
     signer_factory_ = std::make_shared<ValidatorSignerFactoryMock>();
     chain_sub_engine_ = std::make_shared<ChainSubscriptionEngine>();
+    sync_state_observable_ = std::make_shared<SyncStateSubscriptionEngine>();
+    query_audi_ = std::make_shared<QueryMock>();
+    prospective_parachains_ = std::make_shared<ProspectiveParachainsMock>();
+    block_tree_ = std::make_shared<BlockTreeMock>();
+    slots_util_ = std::make_shared<SlotsUtilMock>();
+    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
 
     StartApp app_state_manager;
 
@@ -84,14 +99,14 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         signer_factory_,
         app_config_,
         app_state_manager,
-        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        primitives::events::SyncStateSubscriptionEnginePtr
-            sync_state_observable,
-        std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<IProspectiveParachains> prospective_parachains,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        LazySPtr<consensus::SlotsUtil> slots_util,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        chain_sub_engine_,
+        sync_state_observable_,
+        query_audi_,
+        prospective_parachains_,
+        block_tree_,
+        slots_util_,
+        babe_config_repo_,
+        
         std::shared_ptr<statement_distribution::IStatementDistribution>
             statement_distribution);*/
   }
@@ -121,6 +136,12 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<ParachainHostMock> parachain_host_;
   std::shared_ptr<ValidatorSignerFactoryMock> signer_factory_;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine_;
+  SyncStateSubscriptionEnginePtr sync_state_observable_;
+  std::shared_ptr<QueryMock> query_audi_;
+  std::shared_ptr<ProspectiveParachainsMock> prospective_parachains_;
+  std::shared_ptr<BlockTreeMock> block_tree_;
+  std::shared_ptr<SlotsUtilMock> slots_util_;
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
