@@ -7,6 +7,7 @@
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 
 #include <array>
+#include <algorithm>
 
 #include <rocksdb/db.h>
 #include <boost/assert.hpp>
