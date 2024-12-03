@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/di.hpp>
 #include "core/parachain/parachain_test_harness.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "common/main_thread_pool.hpp"
@@ -17,6 +18,7 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/parachain/pvf_precheck_mock.hpp"
+#include "mock/core/parachain/statement_distribution_mock.hpp"
 #include "mock/core/parachain/pvf_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
 #include "mock/core/parachain/availability_store_mock.hpp"
@@ -28,6 +30,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/authority_discovery/query_mock.hpp"
 #include "primitives/event_types.hpp"
+#include "injector/bind_by_lambda.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -48,6 +51,7 @@ using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::authority_discovery::QueryMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::consensus::SlotsUtilMock;
+using kagome::consensus::babe::BabeConfigRepositoryMock;
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -76,12 +80,47 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     block_tree_ = std::make_shared<BlockTreeMock>();
     slots_util_ = std::make_shared<SlotsUtilMock>();
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
+    statement_distribution_ = std::make_shared<statement_distribution::StatementDistributionMock>();
+
+    const auto injector = boost::di::make_injector(
+               kagome::injector::bind_by_lambda<Watchdog>(
+                [](const auto &injector) {
+                  return std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+                }),
+               kagome::injector::bind_by_lambda<MainThreadPool>([](const auto &injector) { return std::make_shared<MainThreadPool>(watchdog_, std::make_shared<boost::asio::io_context>()); }),
+    kagome::injector::bind_by_lambda<WorkerThreadPool>([](const auto &injector) { return  std::make_shared<WorkerThreadPool>(watchdog_, 1); }),
+
+    kagome::injector::bind_by_lambda<PeerManager>([](const auto &injector) { return  std::make_shared<PeerManagerMock>(); }),
+    kagome::injector::bind_by_lambda<Sr25519Provider>([](const auto &injector) { return  std::make_shared<Sr25519ProviderMock>(); }),
+    kagome::injector::bind_by_lambda<Router>([](const auto &injector) { return  std::make_shared<RouterMock>(); }),
+    kagome::injector::bind_by_lambda<IPeerView>([](const auto &injector) { return  std::make_shared<PeerViewMock>(); }),
+    kagome::injector::bind_by_lambda<IBitfieldSigner>([](const auto &injector) { return  std::make_shared<BitfieldSignerMock>(); }),
+    kagome::injector::bind_by_lambda<IPvfPrecheck>([](const auto &injector) { return  std::make_shared<PvfPrecheckMock>(); }),
+    kagome::injector::bind_by_lambda<BitfieldStore>([](const auto &injector) { return  std::make_shared<BitfieldStoreMock>(); }),
+    kagome::injector::bind_by_lambda<BackingStore>([](const auto &injector) { return  std::make_shared<BackingStoreMock>(); }),
+    kagome::injector::bind_by_lambda<Pvf>([](const auto &injector) { return  std::make_shared<PvfMock>(); }),
+    kagome::injector::bind_by_lambda<AvailabilityStore>([](const auto &injector) { return  std::make_shared<AvailabilityStoreMock>(); }),
+    kagome::injector::bind_by_lambda<ParachainHost>([](const auto &injector) { return  std::make_shared<ParachainHostMock>(); }),
+    kagome::injector::bind_by_lambda<IValidatorSignerFactory>([](const auto &injector) { return  std::make_shared<ValidatorSignerFactoryMock>(); }),
+    kagome::injector::bind_by_lambda<Query>([](const auto &injector) { return  std::make_shared<QueryMock>(); }),
+    kagome::injector::bind_by_lambda<IProspectiveParachains>([](const auto &injector) { return  std::make_shared<ProspectiveParachainsMock>(); }),
+    kagome::injector::bind_by_lambda<BlockTree>([](const auto &injector) { return  std::make_shared<BlockTreeMock>(); }),
+    kagome::injector::bind_by_lambda<SlotsUtil>([](const auto &injector) { return  std::make_shared<SlotsUtilMock>(); }),
+    kagome::injector::bind_by_lambda<BabeConfigRepository>([](const auto &injector) { return  std::make_shared<BabeConfigRepositoryMock>(); }),
+    kagome::injector::bind_by_lambda<statement_distribution::IStatementDistribution>([](const auto &injector) { return  std::make_shared<statement_distribution::StatementDistributionMock>(); }),
+    //kagome::injector::bind_by_lambda<ChainSubscriptionEngine>([](const auto &injector) { return  std::make_shared<ChainSubscriptionEngine>(); }),
+    //kagome::injector::bind_by_lambda<SyncStateSubscriptionEngine>([](const auto &injector) { return  std::make_shared<SyncStateSubscriptionEngine>(); }),
+
+    di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
+
+      //di::bind<int>.to(42)[boost::di::override],
+      //di::bind<double>.to(87.0),
+      //useBind<Derived>()
+    );
+
 
     StartApp app_state_manager;
-
-
-    
-    /*ParachainProcessorImpl(
+    /*parachain_processor_ = std::make_shared<ParachainProcessorImpl>(
         peer_manager_,
         sr25519_provider_,
         router_,
@@ -106,9 +145,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         block_tree_,
         slots_util_,
         babe_config_repo_,
-        
-        std::shared_ptr<statement_distribution::IStatementDistribution>
-            statement_distribution);*/
+        statement_distribution_);*/
   }
 
   void TearDown() override {
@@ -142,6 +179,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<SlotsUtilMock> slots_util_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
+  std::shared_ptr<statement_distribution::StatementDistributionMock> statement_distribution_;
+  std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
