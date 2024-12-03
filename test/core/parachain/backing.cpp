@@ -16,6 +16,7 @@
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/parachain/pvf_precheck_mock.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -44,6 +45,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     router_ = std::make_shared<RouterMock>();
     peer_view_ = std::make_shared<PeerViewMock>();
     bitfield_signer_ = std::make_shared<BitfieldSignerMock>();
+    pvf_precheck_ = std::make_shared<PvfPrecheckMock>();
 
     StartApp app_state_manager;
 
@@ -96,6 +98,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<RouterMock> router_;
   std::shared_ptr<network::PeerViewMock> peer_view_;
   std::shared_ptr<BitfieldSignerMock> bitfield_signer_;
+  std::shared_ptr<PvfPrecheckMock> pvf_precheck_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
