@@ -6,24 +6,94 @@
 
 #include "core/parachain/parachain_test_harness.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "common/main_thread_pool.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "mock/core/parachain/prospective_parachains_mock.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/network/peer_view_mock.hpp"
+#include "mock/core/network/peer_manager_mock.hpp"
+#include "mock/core/network/router_mock.hpp"
+#include "mock/core/crypto/sr25519_provider_mock.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
+
+using kagome::Watchdog;
+using kagome::application::AppConfigurationMock;
+using kagome::application::StartApp;
+using kagome::common::MainThreadPool;
+using kagome::common::WorkerThreadPool;
+using kagome::network::PeerViewMock;
+using kagome::network::PeerManagerMock;
+using kagome::network::RouterMock;
+using kagome::crypto::Sr25519ProviderMock;
+
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
     parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
+
+    watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+    main_thread_pool_ = std::make_shared<MainThreadPool>(watchdog_, std::make_shared<boost::asio::io_context>());
+    worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
+    peer_manager_ = std::make_shared<PeerManagerMock>();
+    sr25519_provider_ = std::make_shared<Sr25519ProviderMock>();
+    router_ = std::make_shared<RouterMock>();
+    peer_view_ = std::make_shared<PeerViewMock>();
+
+    StartApp app_state_manager;
+
+
+    
+    ParachainProcessorImpl(
+        peer_manager_,
+        sr25519_provider_,
+        router_,
+        *main_thread_pool_,
+        hasher_,
+        std::shared_ptr<network::IPeerView> peer_view,
+        common::WorkerThreadPool &worker_thread_pool,
+        std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
+        std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
+        std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+        std::shared_ptr<parachain::BackingStore> backing_store,
+        std::shared_ptr<parachain::Pvf> pvf,
+        std::shared_ptr<parachain::AvailabilityStore> av_store,
+        std::shared_ptr<runtime::ParachainHost> parachain_host,
+        std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
+        const application::AppConfiguration &app_config,
+        application::AppStateManager &app_state_manager,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        primitives::events::SyncStateSubscriptionEnginePtr
+            sync_state_observable,
+        std::shared_ptr<authority_discovery::Query> query_audi,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<consensus::SlotsUtil> slots_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<statement_distribution::IStatementDistribution>
+            statement_distribution);
   }
 
   void TearDown() override {
+    watchdog_->stop();
     parachain_api_.reset();
     ProspectiveParachainsTestHarness::TearDown();
   }
 
  public:
   std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
+  AppConfigurationMock app_config_;
+  std::shared_ptr<Watchdog> watchdog_;
+  std::shared_ptr<MainThreadPool> main_thread_pool_;
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_;
+  std::shared_ptr<PeerManagerMock> peer_manager_;
+  std::shared_ptr<Sr25519ProviderMock> sr25519_provider_;
+  std::shared_ptr<RouterMock> router_;
+  std::shared_ptr<network::PeerViewMock> peer_view_;
+
   struct TestState {
     std::vector<ParachainId> chain_ids;
 
