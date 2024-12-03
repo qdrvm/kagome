@@ -6,6 +6,7 @@
 
 #include "application/impl/kagome_application_impl.hpp"
 
+#include <cstdlib>
 #include <soralog/macro.hpp>
 #include <thread>
 
@@ -17,6 +18,7 @@
 #include "injector/application_injector.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/pvf/secure_mode_precheck.hpp"
+#include "storage/migrations/migrations.hpp"
 #include "telemetry/service.hpp"
 #include "utils/watchdog.hpp"
 
@@ -70,10 +72,11 @@ namespace kagome::application {
                   getpid());
 
     auto chain_path = app_config_->chainPath(chain_spec_->id());
-    auto storage_backend = app_config_->storageBackend()
-                                == AppConfiguration::StorageBackend::RocksDB
-                             ? "RocksDB"
-                             : "Unknown";
+    const char *storage_backend =
+        app_config_->storageBackend()
+                == AppConfiguration::StorageBackend::RocksDB
+            ? "RocksDB"
+            : "Unknown";
     logger_->info("Chain path is {}, storage backend is {}",
                   chain_path.native(),
                   storage_backend);
@@ -143,6 +146,13 @@ namespace kagome::application {
             "Secure validator mode is not implemented for the current "
             "platform. Proceed at your own risk.");
 #endif
+
+    if (app_config_->enableDbMigration()) {
+      if (auto res = storage::migrations::runMigrations(injector_); !res) {
+        SL_ERROR(logger_, "Failed to migrate the database: {}", res.error());
+        exit(EXIT_FAILURE);
+      }
+    }
 
     app_state_manager->run();
 

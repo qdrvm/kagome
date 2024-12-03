@@ -5,11 +5,14 @@
  */
 
 #include "storage/rocksdb/rocksdb.hpp"
+#include <rocksdb/db.h>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
+#include <qtils/outcome.hpp>
 
 #include "filesystem/common.hpp"
 
+#include "storage/buffer_map_types.hpp"
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb_batch.hpp"
 #include "storage/rocksdb/rocksdb_cursor.hpp"
@@ -37,7 +40,7 @@ namespace kagome::storage {
       bool prevent_destruction,
       const std::unordered_map<std::string, int32_t> &column_ttl,
       bool enable_migration) {
-    const auto no_db_presented = not fs::exists(path);
+    const auto no_db_exists = not fs::exists(path);
     OUTCOME_TRY(mkdirs(path));
 
     auto log = log::createLogger("RocksDB", "storage");
@@ -76,7 +79,7 @@ namespace kagome::storage {
     const auto ttl_migrated_path = path.parent_path() / "ttl_migrated";
     const auto ttl_migrated_exists = fs::exists(ttl_migrated_path);
 
-    if (no_db_presented or ttl_migrated_exists) {
+    if (no_db_exists or ttl_migrated_exists) {
       OUTCOME_TRY(openDatabaseWithTTL(options,
                                       path,
                                       column_family_descriptors,
@@ -168,6 +171,12 @@ namespace kagome::storage {
                status.ToString());
       return status_as_error(status);
     }
+    for (auto *handle : rocks_db->column_family_handles_) {
+      auto space = spaceByName(handle->GetName());
+      BOOST_ASSERT(space.has_value());
+      rocks_db->spaces_[*space] = std::make_shared<RocksDbSpace>(
+          rocks_db->weak_from_this(), *space, rocks_db->logger_);
+    }
     if (not fs::exists(ttl_migrated_path)) {
       std::ofstream file(ttl_migrated_path.native());
       if (not file) {
@@ -191,7 +200,7 @@ namespace kagome::storage {
       const filesystem::path &ttl_migrated_path,
       log::Logger &log) {
     rocksdb::DB *db_raw = nullptr;
-    std::vector<ColumnFamilyHandlePtr> column_family_handles;
+    std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;
     auto status = rocksdb::DB::Open(options,
                                     path.native(),
                                     column_family_descriptors,
@@ -208,7 +217,7 @@ namespace kagome::storage {
     auto defer_db =
         std::make_unique<DatabaseGuard>(db, column_family_handles, log);
 
-    std::vector<ColumnFamilyHandlePtr> column_family_handles_with_ttl;
+    std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles_with_ttl;
     const auto ttl_path = path.parent_path() / "db_ttl";
     std::error_code ec;
     fs::create_directories(ttl_path, ec);
@@ -280,68 +289,39 @@ namespace kagome::storage {
                ec);
       return DatabaseError::IO_ERROR;
     }
-    status = rocksdb::DBWithTTL::Open(options,
-                                      path.native(),
-                                      column_family_descriptors,
-                                      &rocks_db->column_family_handles_,
-                                      &rocks_db->db_,
-                                      ttls);
-    if (not status.ok()) {
-      SL_ERROR(log,
-               "Can't open database in {}: {}",
-               path.native(),
-               status.ToString());
-      return status_as_error(status);
-    }
-    std::ofstream file(ttl_migrated_path.native());
-    if (not file) {
-      SL_ERROR(
-          log, "Can't create file {} for database", ttl_migrated_path.native());
-      return DatabaseError::IO_ERROR;
-    }
-    file.close();
-    return outcome::success();
+
+    return openDatabaseWithTTL(options,
+                               path,
+                               column_family_descriptors,
+                               ttls,
+                               rocks_db,
+                               ttl_migrated_path,
+                               log);
   }
 
-  std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
-    if (spaces_.contains(space)) {
-      return spaces_[space];
-    }
-    auto space_name = spaceName(space);
-    auto column = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column) {
-      throw DatabaseError::INVALID_ARGUMENT;
-    }
-    auto space_ptr =
-        std::make_shared<RocksDbSpace>(weak_from_this(), *column, logger_);
-    spaces_[space] = space_ptr;
-    return space_ptr;
+  std::shared_ptr<BufferBatchableStorage> RocksDb::getSpace(Space space) {
+    auto it = spaces_.find(space);
+    BOOST_ASSERT(it != spaces_.end());
+    return it->second;
   }
 
-  void RocksDb::dropColumn(kagome::storage::Space space) {
-    auto space_name = spaceName(space);
-    auto column_it = std::ranges::find_if(
-        column_family_handles_,
-        [&space_name](const ColumnFamilyHandlePtr &handle) {
-          return handle->GetName() == space_name;
-        });
-    if (column_family_handles_.end() == column_it) {
-      throw DatabaseError::INVALID_ARGUMENT;
-    }
-    auto &handle = *column_it;
-    auto e = [this](const rocksdb::Status &status) {
+  outcome::result<void> RocksDb::dropColumn(kagome::storage::Space space) {
+    auto column = getCFHandle(space);
+    auto check_status =
+        [this](const rocksdb::Status &status) -> outcome::result<void> {
       if (!status.ok()) {
         logger_->error("DB operation failed: {}", status.ToString());
-        throw status_as_error(status);
+        return status_as_error(status);
       }
+      return outcome::success();
     };
-    e(db_->DropColumnFamily(handle));
-    e(db_->DestroyColumnFamilyHandle(handle));
-    e(db_->CreateColumnFamily({}, space_name, &handle));
+    OUTCOME_TRY(check_status(db_->DropColumnFamily(column)));
+    OUTCOME_TRY(check_status(db_->DestroyColumnFamilyHandle(column)));
+    rocksdb::ColumnFamilyHandle *new_handle{};
+    OUTCOME_TRY(check_status(
+        db_->CreateColumnFamily({}, spaceName(space), &new_handle)));
+    column_family_handles_[static_cast<size_t>(space)] = new_handle;
+    return outcome::success();
   }
 
   rocksdb::BlockBasedTableOptions RocksDb::tableOptionsConfiguration(
@@ -349,11 +329,19 @@ namespace kagome::storage {
     rocksdb::BlockBasedTableOptions table_options;
     table_options.format_version = 5;
     table_options.block_cache = rocksdb::NewLRUCache(
-        static_cast<uint64_t>(lru_cache_size_mib * 1024 * 1024));
-    table_options.block_size = static_cast<size_t>(block_size_kib * 1024);
+        static_cast<uint64_t>(lru_cache_size_mib) * 1024 * 1024);
+    table_options.block_size = static_cast<size_t>(block_size_kib) * 1024;
     table_options.cache_index_and_filter_blocks = true;
     table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
     return table_options;
+  }
+
+  rocksdb::ColumnFamilyHandle *RocksDb::getCFHandle(Space space) {
+    BOOST_ASSERT_MSG(static_cast<size_t>(space) < column_family_handles_.size(),
+                     "All spaces should have an associated column family");
+    auto handle = column_family_handles_[static_cast<size_t>(space)];
+    BOOST_ASSERT(handle != nullptr);
+    return handle;
   }
 
   rocksdb::ColumnFamilyOptions RocksDb::configureColumn(
@@ -363,6 +351,11 @@ namespace kagome::storage {
     auto table_options = tableOptionsConfiguration();
     options.table_factory.reset(NewBlockBasedTableFactory(table_options));
     return options;
+  }
+
+  std::unique_ptr<BufferSpacedBatch> RocksDb::createBatch() {
+    return std::make_unique<RocksDbBatch>(shared_from_this(),
+                                          getCFHandle(Space::kDefault));
   }
 
   RocksDb::DatabaseGuard::DatabaseGuard(
@@ -413,15 +406,11 @@ namespace kagome::storage {
   }
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                             const RocksDb::ColumnFamilyHandlePtr &column,
+                             Space space,
                              log::Logger logger)
       : storage_{std::move(storage)},
-        column_{column},
+        space_{space},
         logger_{std::move(logger)} {}
-
-  std::unique_ptr<BufferBatch> RocksDbSpace::batch() {
-    return std::make_unique<RocksDbBatch>(*this);
-  }
 
   std::optional<size_t> RocksDbSpace::byteSizeHint() const {
     auto rocks = storage_.lock();
@@ -446,20 +435,31 @@ namespace kagome::storage {
     return usage_bytes;
   }
 
+  std::unique_ptr<face::WriteBatch<Buffer, Buffer>> RocksDbSpace::batch() {
+    auto rocks = storage_.lock();
+    if (!rocks) {
+      throw DatabaseError::STORAGE_GONE;
+    }
+    auto batch =
+        std::make_unique<RocksDbBatch>(rocks, rocks->getCFHandle(space_));
+    return batch;
+  }
+
   std::unique_ptr<RocksDbSpace::Cursor> RocksDbSpace::cursor() {
     auto rocks = storage_.lock();
     if (!rocks) {
       throw DatabaseError::STORAGE_GONE;
     }
     auto it = std::unique_ptr<rocksdb::Iterator>(
-        rocks->db_->NewIterator(rocks->ro_, column_));
+        rocks->db_->NewIterator(rocks->ro_, rocks->getCFHandle(space_)));
     return std::make_unique<RocksDBCursor>(std::move(it));
   }
 
   outcome::result<bool> RocksDbSpace::contains(const BufferView &key) const {
     OUTCOME_TRY(rocks, use());
     std::string value;
-    auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
+    auto status = rocks->db_->Get(
+        rocks->ro_, rocks->getCFHandle(space_), make_slice(key), &value);
     if (status.ok()) {
       return true;
     }
@@ -474,7 +474,8 @@ namespace kagome::storage {
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
     OUTCOME_TRY(rocks, use());
     std::string value;
-    auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
+    auto status = rocks->db_->Get(
+        rocks->ro_, rocks->getCFHandle(space_), make_slice(key), &value);
     if (status.ok()) {
       // cannot move string content to a buffer
       return Buffer(
@@ -488,7 +489,8 @@ namespace kagome::storage {
       const BufferView &key) const {
     OUTCOME_TRY(rocks, use());
     std::string value;
-    auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
+    auto status = rocks->db_->Get(
+        rocks->ro_, rocks->getCFHandle(space_), make_slice(key), &value);
     if (status.ok()) {
       auto buf = Buffer(
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
@@ -506,8 +508,10 @@ namespace kagome::storage {
   outcome::result<void> RocksDbSpace::put(const BufferView &key,
                                           BufferOrView &&value) {
     OUTCOME_TRY(rocks, use());
-    auto status = rocks->db_->Put(
-        rocks->wo_, column_, make_slice(key), make_slice(std::move(value)));
+    auto status = rocks->db_->Put(rocks->wo_,
+                                  rocks->getCFHandle(space_),
+                                  make_slice(key),
+                                  make_slice(std::move(value)));
     if (status.ok()) {
       return outcome::success();
     }
@@ -517,7 +521,8 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
     OUTCOME_TRY(rocks, use());
-    auto status = rocks->db_->Delete(rocks->wo_, column_, make_slice(key));
+    auto status = rocks->db_->Delete(
+        rocks->wo_, rocks->getCFHandle(space_), make_slice(key));
     if (status.ok()) {
       return outcome::success();
     }
@@ -532,15 +537,15 @@ namespace kagome::storage {
     }
     if (rocks->db_) {
       std::unique_ptr<rocksdb::Iterator> begin(
-          rocks->db_->NewIterator(rocks->ro_, column_));
+          rocks->db_->NewIterator(rocks->ro_, rocks->getCFHandle(space_)));
       first.empty() ? begin->SeekToFirst() : begin->Seek(make_slice(first));
       auto bk = begin->key();
       std::unique_ptr<rocksdb::Iterator> end(
-          rocks->db_->NewIterator(rocks->ro_, column_));
+          rocks->db_->NewIterator(rocks->ro_, rocks->getCFHandle(space_)));
       last.empty() ? end->SeekToLast() : end->Seek(make_slice(last));
       auto ek = end->key();
       rocksdb::CompactRangeOptions options;
-      rocks->db_->CompactRange(options, column_, &bk, &ek);
+      rocks->db_->CompactRange(options, rocks->getCFHandle(space_), &bk, &ek);
     }
   }
 

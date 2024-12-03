@@ -7,7 +7,7 @@
 #pragma once
 
 #include "common/buffer.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "testutil/storage/in_memory/in_memory_storage.hpp"
 
 namespace kagome::storage {
   class InMemoryCursor : public BufferStorageCursor {

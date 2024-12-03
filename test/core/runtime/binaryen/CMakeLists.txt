@@ -37,6 +37,7 @@ target_link_libraries(tagged_transaction_queue_test
     core_api_factory
     logger_for_tests
     filesystem
+    in_memory_storage
     )
 
 addtest(block_builder_api_test
@@ -49,6 +50,7 @@ target_link_libraries(block_builder_api_test
     core_api
     filesystem
     logger_for_tests
+    in_memory_storage
     )
 
 addtest(binaryen_parachain_test
@@ -64,6 +66,7 @@ target_link_libraries(binaryen_parachain_test
     hasher
     pbkdf2_provider
     network
+    in_memory_storage
     logger_for_tests
     )
 
@@ -78,6 +81,7 @@ target_link_libraries(metadata_test
     core_api
     core_api_factory
     logger_for_tests
+    in_memory_storage
     )
 
 addtest(runtime_external_interface_test
