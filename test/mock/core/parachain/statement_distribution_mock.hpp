@@ -16,7 +16,8 @@ namespace kagome::parachain::statement_distribution {
    public:
     MOCK_METHOD(void,
                 OnFetchAttestedCandidateRequest,
-                (const network::vstaging::AttestedCandidateRequest &, std::shared_ptr<libp2p::connection::Stream>),
+                (const network::vstaging::AttestedCandidateRequest &,
+                 std::shared_ptr<libp2p::connection::Stream>),
                 (override));
 
     MOCK_METHOD(void,
@@ -26,18 +27,22 @@ namespace kagome::parachain::statement_distribution {
 
     MOCK_METHOD(void,
                 handle_incoming_manifest,
-                (const libp2p::peer::PeerId &, const network::vstaging::BackedCandidateManifest &),
+                (const libp2p::peer::PeerId &,
+                 const network::vstaging::BackedCandidateManifest &),
                 (override));
 
     MOCK_METHOD(void,
                 handle_incoming_acknowledgement,
-                (const libp2p::peer::PeerId &, const network::vstaging::BackedCandidateAcknowledgement &),
+                (const libp2p::peer::PeerId &,
+                 const network::vstaging::BackedCandidateAcknowledgement &),
                 (override));
 
-    MOCK_METHOD(void,
-                handle_incoming_statement,
-                (const libp2p::peer::PeerId &, const network::vstaging::StatementDistributionMessageStatement &),
-                (override));
+    MOCK_METHOD(
+        void,
+        handle_incoming_statement,
+        (const libp2p::peer::PeerId &,
+         const network::vstaging::StatementDistributionMessageStatement &),
+        (override));
 
     MOCK_METHOD(void,
                 handle_backed_candidate_message,
@@ -46,7 +51,8 @@ namespace kagome::parachain::statement_distribution {
 
     MOCK_METHOD(void,
                 share_local_statement,
-                (const primitives::BlockHash &, const SignedFullStatementWithPVD &),
+                (const primitives::BlockHash &,
+                 const SignedFullStatementWithPVD &),
                 (override));
   };
 

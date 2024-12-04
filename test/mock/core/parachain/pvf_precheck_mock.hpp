@@ -14,10 +14,7 @@ namespace kagome::parachain {
 
   class PvfPrecheckMock : public IPvfPrecheck {
    public:
-    MOCK_METHOD(void,
-                start,
-                (),
-                (override));
+    MOCK_METHOD(void, start, (), (override));
   };
 
 }  // namespace kagome::parachain

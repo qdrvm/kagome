@@ -13,10 +13,7 @@
 namespace kagome::network {
   class PeerViewMock : public IPeerView {
    public:
-    MOCK_METHOD(size_t,
-                peersCount,
-                (),
-                (const, override));
+    MOCK_METHOD(size_t, peersCount, (), (const, override));
 
     MOCK_METHOD(MyViewSubscriptionEnginePtr,
                 getMyViewObservable,
@@ -28,19 +25,13 @@ namespace kagome::network {
                 (),
                 (override));
 
-    MOCK_METHOD(void,
-                removePeer,
-                (const PeerId &),
-                (override));
+    MOCK_METHOD(void, removePeer, (const PeerId &), (override));
 
     MOCK_METHOD(void,
                 updateRemoteView,
                 (const PeerId &, network::View &&),
                 (override));
 
-    MOCK_METHOD(const View &,
-                getMyView,
-                (),
-                (const, override));
+    MOCK_METHOD(const View &, getMyView, (), (const, override));
   };
 }  // namespace kagome::network

@@ -4,70 +4,70 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//#include <boost/di.hpp>
-#include "core/parachain/parachain_test_harness.hpp"
-#include "parachain/validator/parachain_processor.hpp"
+// #include <boost/di.hpp>
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
-#include "mock/core/parachain/prospective_parachains_mock.hpp"
-#include "mock/core/parachain/bitfield_signer_mock.hpp"
-#include "mock/core/application/app_configuration_mock.hpp"
-#include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/network/peer_view_mock.hpp"
-#include "mock/core/network/peer_manager_mock.hpp"
-#include "mock/core/network/router_mock.hpp"
-#include "mock/core/crypto/sr25519_provider_mock.hpp"
-#include "mock/core/parachain/pvf_precheck_mock.hpp"
-#include "mock/core/parachain/statement_distribution_mock.hpp"
-#include "mock/core/parachain/pvf_mock.hpp"
-#include "mock/core/parachain/bitfield_store_mock.hpp"
-#include "mock/core/parachain/availability_store_mock.hpp"
-#include "mock/core/parachain/signer_factory_mock.hpp"
-#include "mock/core/parachain/backing_store_mock.hpp"
-#include "mock/core/runtime/parachain_host_mock.hpp"
-#include "mock/core/consensus/timeline/slots_util_mock.hpp"
-#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/authority_discovery/query_mock.hpp"
-#include "primitives/event_types.hpp"
-#include "injector/bind_by_lambda.hpp"
-#include "testutil/lazy.hpp"
-#include "parachain/availability/chunks.hpp"
-#include "parachain/availability/proof.hpp"
+#include "core/parachain/parachain_test_harness.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "injector/bind_by_lambda.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/authority_discovery/query_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
+#include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/network/peer_manager_mock.hpp"
+#include "mock/core/network/peer_view_mock.hpp"
+#include "mock/core/network/router_mock.hpp"
+#include "mock/core/parachain/availability_store_mock.hpp"
+#include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/parachain/bitfield_signer_mock.hpp"
+#include "mock/core/parachain/bitfield_store_mock.hpp"
+#include "mock/core/parachain/prospective_parachains_mock.hpp"
+#include "mock/core/parachain/pvf_mock.hpp"
+#include "mock/core/parachain/pvf_precheck_mock.hpp"
+#include "mock/core/parachain/signer_factory_mock.hpp"
+#include "mock/core/parachain/statement_distribution_mock.hpp"
+#include "mock/core/runtime/parachain_host_mock.hpp"
+#include "parachain/availability/chunks.hpp"
+#include "parachain/availability/proof.hpp"
+#include "parachain/validator/parachain_processor.hpp"
+#include "primitives/event_types.hpp"
+#include "testutil/lazy.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
 
 using kagome::Watchdog;
-using kagome::application::AppConfigurationMock;
 using kagome::application::AppConfiguration;
+using kagome::application::AppConfigurationMock;
 using kagome::application::StartApp;
+using kagome::authority_discovery::Query;
+using kagome::authority_discovery::QueryMock;
+using kagome::blockchain::BlockTree;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::MainThreadPool;
 using kagome::common::WorkerThreadPool;
-using kagome::network::PeerViewMock;
-using kagome::network::IPeerView;
-using kagome::network::PeerManagerMock;
-using kagome::network::PeerManager;
-using kagome::network::RouterMock;
-using kagome::network::Router;
-using kagome::crypto::Sr25519ProviderMock;
-using kagome::crypto::Sr25519Provider;
-using kagome::runtime::ParachainHostMock;
-using kagome::runtime::ParachainHost;
-using kagome::primitives::events::ChainSubscriptionEngine;
-using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
-using kagome::primitives::events::SyncStateSubscriptionEngine;
-using kagome::authority_discovery::QueryMock;
-using kagome::authority_discovery::Query;
-using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::BlockTree;
-using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::SlotsUtil;
-using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::babe::BabeConfigRepository;
+using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::crypto::Sr25519Provider;
+using kagome::crypto::Sr25519ProviderMock;
+using kagome::network::IPeerView;
+using kagome::network::PeerManager;
+using kagome::network::PeerManagerMock;
+using kagome::network::PeerViewMock;
+using kagome::network::Router;
+using kagome::network::RouterMock;
+using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
+using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
+using kagome::runtime::ParachainHost;
+using kagome::runtime::ParachainHostMock;
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -75,7 +75,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
 
     watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
-    main_thread_pool_ = std::make_shared<MainThreadPool>(watchdog_, std::make_shared<boost::asio::io_context>());
+    main_thread_pool_ = std::make_shared<MainThreadPool>(
+        watchdog_, std::make_shared<boost::asio::io_context>());
     worker_thread_pool_ = std::make_shared<WorkerThreadPool>(watchdog_, 1);
     peer_manager_ = std::make_shared<PeerManagerMock>();
     sr25519_provider_ = std::make_shared<Sr25519ProviderMock>();
@@ -96,13 +97,14 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     block_tree_ = std::make_shared<BlockTreeMock>();
     slots_util_ = std::make_shared<SlotsUtilMock>();
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
-    statement_distribution_ = std::make_shared<statement_distribution::StatementDistributionMock>();
+    statement_distribution_ =
+        std::make_shared<statement_distribution::StatementDistributionMock>();
 
-    my_view_observable_ = std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
+    my_view_observable_ =
+        std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
 
-  EXPECT_CALL(*peer_view_, getMyViewObservable())
-      .WillRepeatedly(Return(my_view_observable_));
-
+    EXPECT_CALL(*peer_view_, getMyViewObservable())
+        .WillRepeatedly(Return(my_view_observable_));
 
     StartApp app_state_manager;
     parachain_processor_ = std::make_shared<ParachainProcessorImpl>(
@@ -132,7 +134,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         babe_config_repo_,
         statement_distribution_);
 
-        app_state_manager.start();
+    app_state_manager.start();
   }
 
   void TearDown() override {
@@ -166,15 +168,16 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<SlotsUtilMock> slots_util_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
-  std::shared_ptr<statement_distribution::StatementDistributionMock> statement_distribution_;
+  std::shared_ptr<statement_distribution::StatementDistributionMock>
+      statement_distribution_;
   std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
 
   PeerViewMock::MyViewSubscriptionEnginePtr my_view_observable_;
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
-   	std::unordered_map<ParachainId, HeadData> head_data;
-  	std::vector<crypto::Sr25519PublicKey> validators;
+    std::unordered_map<ParachainId, HeadData> head_data;
+    std::vector<crypto::Sr25519PublicKey> validators;
 
     TestState() {
       const ParachainId chain_a(1);
@@ -193,10 +196,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderImpl>();
       auto f = [&](std::string_view phrase) {
         auto bip = bip_provider.generateSeed(phrase).value();
-        auto keys =
-            sr25519_provider
-                ->generateKeypair(crypto::Sr25519Seed::from(bip.seed), bip.junctions)
-                .value();
+        auto keys = sr25519_provider
+                        ->generateKeypair(crypto::Sr25519Seed::from(bip.seed),
+                                          bip.junctions)
+                        .value();
         return keys.public_key;
       };
       validators.emplace_back(f("//Alice"));
@@ -286,19 +289,20 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           }));
 
       if (requested_len == 0) {
-        //assert_matches !(
-        //    virtual_overseer.recv().await,
-        //    AllMessages::ProspectiveParachains(
-        //        ProspectiveParachainsMessage::GetMinimumRelayParents(
-        //            parent, tx)) if parent
-        //        == leaf_hash =
-        //        > { tx.send(min_relay_parents.clone()).unwrap(); });
+        // assert_matches !(
+        //     virtual_overseer.recv().await,
+        //     AllMessages::ProspectiveParachains(
+        //         ProspectiveParachainsMessage::GetMinimumRelayParents(
+        //             parent, tx)) if parent
+        //         == leaf_hash =
+        //         > { tx.send(min_relay_parents.clone()).unwrap(); });
       }
 
       requested_len += 1;
     }
 
-    chain_sub_engine_->notify(kagome::primitives::events::ChainEventType::kNewHeads, update.new_head);
+    chain_sub_engine_->notify(
+        kagome::primitives::events::ChainEventType::kNewHeads, update.new_head);
   }
 
   runtime::PersistedValidationData dummy_pvd() {
@@ -310,26 +314,28 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     };
   }
 
-  template<typename T>
+  template <typename T>
   inline Hash hash_of(T &&t) {
     return hasher_->blake2b_256(scale::encode(std::forward<T>(t)).value());
   }
 
-  template<typename T>
+  template <typename T>
   static Hash hash_of(const kagome::crypto::Hasher &hasher, T &&t) {
     return hasher.blake2b_256(scale::encode(std::forward<T>(t)).value());
   }
 
-  Hash make_erasure_root(const TestState &test, const network::PoV &pov, const runtime::PersistedValidationData &validation_data) {
-    const runtime::AvailableData available_data { 
-      .pov = pov,
-      .validation_data = validation_data, 
+  Hash make_erasure_root(
+      const TestState &test,
+      const network::PoV &pov,
+      const runtime::PersistedValidationData &validation_data) {
+    const runtime::AvailableData available_data{
+        .pov = pov,
+        .validation_data = validation_data,
     };
 
     auto chunks = toChunks(test.validators.size(), available_data).value();
     return makeTrieProof(chunks);
   }
-
 
   struct TestCandidateBuilder {
     ParachainId para_id;
@@ -340,31 +346,34 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     Hash persisted_validation_data_hash;
     std::vector<uint8_t> validation_code;
 
-    network::CommittedCandidateReceipt build(const kagome::crypto::Hasher &hasher) {
-      return network::CommittedCandidateReceipt {
-        .descriptor = network::CandidateDescriptor {
-          .para_id = para_id,
-          .relay_parent = relay_parent,
-          .collator_id = {},
-          .persisted_data_hash = persisted_validation_data_hash,
-          .pov_hash = pov_hash,
-          .erasure_encoding_root = erasure_root,
-          .signature = {},
-          .para_head_hash = hash_of(hasher, head_data),
-          .validation_code_hash = hash_of(hasher, kagome::runtime::ValidationCode(validation_code)),
-        },
-        .commitments = network::CandidateCommitments {
-          .upward_msgs = {},
-          .outbound_hor_msgs = {},
-          .opt_para_runtime = std::nullopt,
-          .para_head = head_data,
-          .downward_msgs_count = 0,
-          .watermark = 0,
-        },
+    network::CommittedCandidateReceipt build(
+        const kagome::crypto::Hasher &hasher) {
+      return network::CommittedCandidateReceipt{
+          .descriptor =
+              network::CandidateDescriptor{
+                  .para_id = para_id,
+                  .relay_parent = relay_parent,
+                  .collator_id = {},
+                  .persisted_data_hash = persisted_validation_data_hash,
+                  .pov_hash = pov_hash,
+                  .erasure_encoding_root = erasure_root,
+                  .signature = {},
+                  .para_head_hash = hash_of(hasher, head_data),
+                  .validation_code_hash = hash_of(
+                      hasher, kagome::runtime::ValidationCode(validation_code)),
+              },
+          .commitments =
+              network::CandidateCommitments{
+                  .upward_msgs = {},
+                  .outbound_hor_msgs = {},
+                  .opt_para_runtime = std::nullopt,
+                  .para_head = head_data,
+                  .downward_msgs_count = 0,
+                  .watermark = 0,
+              },
       };
     }
   };
-
 };
 
 TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
@@ -400,23 +409,22 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
   activate_leaf(test_leaf_a, test_state);
   activate_leaf(test_leaf_b, test_state);
 
-		kagome::network::PoV pov{ 
-      .payload = {42, 43, 44}
-    };
-		const auto pvd = dummy_pvd();
-		kagome::runtime::ValidationCode validation_code = {1, 2, 3};
+  kagome::network::PoV pov{.payload = {42, 43, 44}};
+  const auto pvd = dummy_pvd();
+  kagome::runtime::ValidationCode validation_code = {1, 2, 3};
 
-		const auto &expected_head_data = test_state.head_data[para_id];
-		const auto pov_hash = hash_of(pov);
+  const auto &expected_head_data = test_state.head_data[para_id];
+  const auto pov_hash = hash_of(pov);
 
-		const auto candidate = TestCandidateBuilder{
-			.para_id = para_id,
-			.head_data = expected_head_data,
-			.pov_hash = pov_hash,
-			.relay_parent = leaf_a_parent,
-			.erasure_root = make_erasure_root(test_state, pov, pvd),
-			.persisted_validation_data_hash = hash_of(pvd),
-			.validation_code = validation_code,
-		}.build(*hasher_);
-
+  const auto candidate =
+      TestCandidateBuilder{
+          .para_id = para_id,
+          .head_data = expected_head_data,
+          .pov_hash = pov_hash,
+          .relay_parent = leaf_a_parent,
+          .erasure_root = make_erasure_root(test_state, pov, pvd),
+          .persisted_validation_data_hash = hash_of(pvd),
+          .validation_code = validation_code,
+      }
+          .build(*hasher_);
 }

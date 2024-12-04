@@ -74,11 +74,12 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 namespace boost {
-  inline auto &operator<<(std::ostream &s, const kagome::parachain::ParentHeadData &) {
+  inline auto &operator<<(std::ostream &s,
+                          const kagome::parachain::ParentHeadData &) {
     return s;
   }
-  inline auto &operator<<(std::ostream &s, const kagome::parachain::HypotheticalCandidate &) {
+  inline auto &operator<<(std::ostream &s,
+                          const kagome::parachain::HypotheticalCandidate &) {
     return s;
   }
-}  // kagome::parachain
-
+}  // namespace boost
