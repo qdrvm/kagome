@@ -113,6 +113,7 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/i_peer_view.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
@@ -151,6 +152,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
+#include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
@@ -163,6 +165,7 @@
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
@@ -788,12 +791,24 @@ namespace {
             di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
             di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+            di::bind<network::IPeerView>.template to<network::PeerView>(),
+            di::bind<parachain::IBitfieldSigner>.template to<parachain::BitfieldSigner>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
+            di::bind<parachain::IValidatorSignerFactory>.template to<parachain::ValidatorSignerFactory>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
+            di::bind<parachain::IProspectiveParachains>.template to<parachain::ProspectiveParachains>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
-            di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
+            di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
+            bind_by_lambda<network::CanDisconnect>(
+                [](const auto &injector) {
+                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
+                }),
+            bind_by_lambda<parachain::statement_distribution::IStatementDistribution>(
+                [](const auto &injector) {
+                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
+                }),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),

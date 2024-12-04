@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
 namespace kagome::parachain {
 
   ImplicitView::ImplicitView(
-      std::weak_ptr<ProspectiveParachains> prospective_parachains,
+      std::weak_ptr<IProspectiveParachains> prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> parachain_host_,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::optional<ParachainId> collating_for_)

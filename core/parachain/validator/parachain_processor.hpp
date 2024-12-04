@@ -22,8 +22,8 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "metrics/metrics.hpp"
+#include "network/i_peer_view.hpp"
 #include "network/peer_manager.hpp"
-#include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/router.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
@@ -39,7 +39,7 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
-#include "parachain/validator/statement_distribution/statement_distribution.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
@@ -166,32 +166,31 @@ namespace kagome::parachain {
 
     ParachainProcessorImpl(
         std::shared_ptr<network::PeerManager> pm,
-        std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
         common::MainThreadPool &main_thread_pool,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<network::PeerView> peer_view,
+        std::shared_ptr<network::IPeerView> peer_view,
         common::WorkerThreadPool &worker_thread_pool,
-        std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
-        std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
+        std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
+        std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::AvailabilityStore> av_store,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
+        std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
         const application::AppConfiguration &app_config,
         application::AppStateManager &app_state_manager,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::SyncStateSubscriptionEnginePtr
             sync_state_observable,
         std::shared_ptr<authority_discovery::Query> query_audi,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<statement_distribution::StatementDistribution>
+        std::shared_ptr<statement_distribution::IStatementDistribution>
             statement_distribution);
     ~ParachainProcessorImpl() = default;
 
@@ -761,7 +760,6 @@ namespace kagome::parachain {
         const network::SignedStatement &statement);
 
     std::shared_ptr<network::PeerManager> pm_;
-    std::shared_ptr<dispute::RuntimeInfo> runtime_info_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::Router> router_;
     log::Logger logger_ =
@@ -790,13 +788,13 @@ namespace kagome::parachain {
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<network::PeerView> peer_view_;
-    network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    std::shared_ptr<network::IPeerView> peer_view_;
+    network::IPeerView::MyViewSubscriberPtr my_view_sub_;
 
     std::shared_ptr<parachain::Pvf> pvf_;
-    std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory_;
-    std::shared_ptr<parachain::BitfieldSigner> bitfield_signer_;
-    std::shared_ptr<parachain::PvfPrecheck> pvf_precheck_;
+    std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory_;
+    std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer_;
+    std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<parachain::AvailabilityStore> av_store_;
@@ -812,14 +810,26 @@ namespace kagome::parachain {
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<PoolHandler> worker_pool_handler_;
     std::default_random_engine random_;
-    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    std::shared_ptr<IProspectiveParachains> prospective_parachains_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<statement_distribution::StatementDistribution>
+    std::shared_ptr<statement_distribution::IStatementDistribution>
         statement_distribution;
     std::shared_ptr<RefCache<SessionIndex, PerSessionState>> per_session;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
+
+    public:
+    void handle_second_message(const network::CandidateReceipt &candidate,
+                       const network::ParachainBlock &pov,
+                       const runtime::PersistedValidationData &pvd,
+                       const primitives::BlockHash &relay_parent) {
+      validateAsync<ValidationTaskType::kSecond>(
+          candidate,
+          network::ParachainBlock(pov),
+          runtime::PersistedValidationData(pvd),
+          relay_parent);
+    }
   };
 
 }  // namespace kagome::parachain
