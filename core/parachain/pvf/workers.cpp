@@ -139,7 +139,8 @@ namespace kagome::parachain {
     REINVOKE(*main_pool_handler_, execute, std::move(job));
     if (free_.empty()) {
       if (used_ >= max_) {
-        queue_.emplace(std::move(job));
+        auto &queue = queues_[job.kind];
+        queue.emplace_back(std::move(job));
         return;
       }
       auto used = std::make_shared<Used>(*this);
@@ -157,10 +158,9 @@ namespace kagome::parachain {
             if (not r) {
               return job.cb(r.error());
             }
-            self->writeCode(
-                std::move(job),
-                {.process = std::move(process)},
-                std::move(used));
+            self->writeCode(std::move(job),
+                            {.process = std::move(process)},
+                            std::move(used));
           });
       return;
     }
@@ -244,11 +244,15 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::dequeue() {
-    if (queue_.empty()) {
-      return;
+    for (auto &kind :
+         {PvfExecTimeoutKind::Approval, PvfExecTimeoutKind::Backing}) {
+      auto &queue = queues_[kind];
+      if (queue.empty()) {
+        continue;
+      }
+      auto job = std::move(queue.front());
+      queue.pop_front();
+      findFree(std::move(job));
     }
-    auto job = std::move(queue_.front());
-    queue_.pop();
-    findFree(std::move(job));
   }
 }  // namespace kagome::parachain
