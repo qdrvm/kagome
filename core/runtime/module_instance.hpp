@@ -94,7 +94,7 @@ namespace kagome::runtime {
           return outcome::success(std::move(t));
         } catch (std::system_error &e) {
           if (method_name == "ParachainHost_para_backing_state") {
-            std::ofstream outputFile("/home/kagome/dev/kagome-funvalue.scale", std::ios::binary);
+            std::ofstream outputFile("/chain-data/tmp/kagome-funvalue.scale", std::ios::binary);
 
             if (!outputFile.is_open()) {
               std::cerr << "Error opening file for writing!" << std::endl;
