@@ -821,6 +821,18 @@ namespace kagome::parachain {
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
+
+    public:
+    void handle_second_message(const network::CandidateReceipt &candidate,
+                       const network::ParachainBlock &pov,
+                       const runtime::PersistedValidationData &pvd,
+                       const primitives::BlockHash &relay_parent) {
+      validateAsync<ValidationTaskType::kSecond>(
+          candidate,
+          network::ParachainBlock(pov),
+          runtime::PersistedValidationData(pvd),
+          relay_parent);
+    }
   };
 
 }  // namespace kagome::parachain

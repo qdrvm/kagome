@@ -103,9 +103,6 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     my_view_observable_ =
         std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
 
-    EXPECT_CALL(*peer_view_, getMyViewObservable())
-        .WillRepeatedly(Return(my_view_observable_));
-
     StartApp app_state_manager;
     parachain_processor_ = std::make_shared<ParachainProcessorImpl>(
         peer_manager_,
@@ -133,6 +130,13 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         babe_config_repo_,
         statement_distribution_);
+
+    EXPECT_CALL(*peer_view_, getMyViewObservable())
+        .WillRepeatedly(Return(my_view_observable_));
+    EXPECT_CALL(*statement_distribution_, store_parachain_processor(testing::_)).Times(1);
+    EXPECT_CALL(*bitfield_signer_, setBroadcastCallback(testing::_)).Times(1);
+    EXPECT_CALL(app_config_, roles())
+      .WillRepeatedly(Return(network::Roles(0xff)));
 
     app_state_manager.start();
   }
@@ -178,6 +182,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::vector<ParachainId> chain_ids;
     std::unordered_map<ParachainId, HeadData> head_data;
     std::vector<crypto::Sr25519PublicKey> validators;
+    //std::vector<ValidatorId> validator_public: ,
 
     TestState() {
       const ParachainId chain_a(1);
@@ -238,6 +243,20 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         .WillRepeatedly(Return(outcome::success(fragment::AsyncBackingParams{
             .max_candidate_depth = 4, .allowed_ancestry_len = 3})));
 
+    EXPECT_CALL(*prospective_parachains_, prospectiveParachainsMode(leaf_hash))
+      .WillRepeatedly(Return(ProspectiveParachainsMode {
+        .max_candidate_depth = 4,
+        .allowed_ancestry_len = 3,
+      }));
+
+
+//    network::ExViewRef ev_ref{
+//                .new_head = {update.new_head},
+//                .lost = update.lost,
+//            };
+    EXPECT_CALL(*prospective_parachains_, onActiveLeavesUpdate(testing::_))
+      .WillRepeatedly(Return(outcome::success()));
+
     const BlockNumber min_min = [&]() -> BlockNumber {
       std::optional<BlockNumber> min_min;
       for (const auto &[_, block_num] : min_relay_parents) {
@@ -288,6 +307,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
               .hash_opt = {},
           }));
 
+      EXPECT_CALL(*parachain_api_, validators(hash))
+          .WillRepeatedly(Return(test_state.validators));
+
+
       if (requested_len == 0) {
         // assert_matches !(
         //     virtual_overseer.recv().await,
@@ -301,8 +324,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       requested_len += 1;
     }
 
-    chain_sub_engine_->notify(
-        kagome::primitives::events::ChainEventType::kNewHeads, update.new_head);
+    my_view_observable_->notify(PeerViewMock::EventType::kViewUpdated, update);
   }
 
   runtime::PersistedValidationData dummy_pvd() {
@@ -335,6 +357,35 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
     auto chunks = toChunks(test.validators.size(), available_data).value();
     return makeTrieProof(chunks);
+  }
+
+  void assert_validation_requests(const runtime::ValidationCode &validation_code) {
+  }
+
+  void assert_validate_seconded_candidate(
+    const Hash &relay_parent,
+    const network::CommittedCandidateReceipt &candidate,
+    const network::PoV &assert_pov,
+    const runtime::PersistedValidationData &assert_pvd,
+    const runtime::ValidationCode &assert_validation_code,
+    const HeadData &expected_head_data,
+    bool fetch_pov) {
+    assert_validation_requests(assert_validation_code);
+
+    if (fetch_pov) {
+      //assert_matches!(
+      //  virtual_overseer.recv().await,
+      //  AllMessages::AvailabilityDistribution(
+      //    AvailabilityDistributionMessage::FetchPoV {
+      //      relay_parent: hash,
+      //      tx,
+      //      ..
+      //    }
+      //  ) if hash == relay_parent => {
+      //    tx.send(assert_pov.clone()).unwrap();
+      //  }
+      //);
+    }//
   }
 
   struct TestCandidateBuilder {
@@ -406,6 +457,10 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
                              LEAF_B_BLOCK_NUMBER - LEAF_B_ANCESTRY_LEN}},
   };
 
+  sync_state_observable_->notify(
+    kagome::primitives::events::SyncStateEventType::kSyncState, 
+    kagome::primitives::events::SyncStateEventParams::SYNCHRONIZED);
+
   activate_leaf(test_leaf_a, test_state);
   activate_leaf(test_leaf_b, test_state);
 
@@ -427,4 +482,23 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
           .validation_code = validation_code,
       }
           .build(*hasher_);
+
+  std::cout << fmt::format("======> {}", candidate.descriptor.erasure_encoding_root) << std::endl;
+  parachain_processor_->handle_second_message(
+    candidate.to_plain(*hasher_),
+    pov,
+    pvd,
+    leaf_a_hash
+  );
+
+		assert_validate_seconded_candidate(
+			leaf_a_parent,
+			candidate,
+			pov,
+			pvd,
+			validation_code,
+			expected_head_data,
+			false
+		);
+
 }
