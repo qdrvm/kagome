@@ -47,18 +47,18 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
           CMAKE_POSITION_INDEPENDENT_CODE=TRUE
   )
 
-#   hunter_config(
-#       spdlog
-#       VERSION 1.12.0-p0
-#       CMAKE_ARGS
-#           SPDLOG_BUILD_PIC=ON
-#           SPDLOG_FMT_EXTERNAL=ON
-#   )
+  hunter_config(
+      spdlog
+      VERSION 1.12.0-p0
+      CMAKE_ARGS
+          SPDLOG_BUILD_PIC=ON
+          SPDLOG_FMT_EXTERNAL=ON
+  )
 
   hunter_config(
       WasmEdge
-      URL https://github.com/qdrvm/WasmEdge/archive/c3bfaed5dfc82264e6111b0e01b0b3cc80e16b7a.zip
-      SHA1 25d0989eca88f0c7afa8d32a9ad1c87d5351b157
+      URL https://github.com/qdrvm/WasmEdge/archive/cb4d56d3a38d4c227b5c8a713733f7835a86b005.zip
+      SHA1 a0fb9b66556ba9c50d8b7ccf83b32d9959c1be1d
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
