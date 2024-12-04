@@ -168,12 +168,16 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
   struct TestState {
     std::vector<ParachainId> chain_ids;
+   	std::unordered_map<ParachainId, HeadData> head_data;
 
     TestState() {
       const ParachainId chain_a(1);
       const ParachainId chain_b(2);
 
       chain_ids = {chain_a, chain_b};
+
+      head_data[chain_a] = {4, 5, 6};
+      head_data[chain_b] = {5, 6, 7};
     }
   };
 
@@ -266,7 +270,63 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
       requested_len += 1;
     }
+
+    chain_sub_engine_->notify(kagome::primitives::events::ChainEventType::kNewHeads, update.new_head);
   }
+
+  runtime::PersistedValidationData dummy_pvd() {
+    return runtime::PersistedValidationData{
+        .parent_head = {7, 8, 9},
+        .relay_parent_number = 0,
+        .relay_parent_storage_root = fromNumber(0),
+        .max_pov_size = 1024,
+    };
+  }
+
+  template<typename T>
+  inline Hash hash_of(T &&t) {
+    return hasher_->blake2b_256(scale::encode(std::forward<T>(t)).value());
+  }
+
+  template<typename T>
+  static Hash hash_of(const kagome::crypto::HasherImpl &hasher, T &&t) {
+    return hasher.blake2b_256(scale::encode(std::forward<T>(t)).value());
+  }
+
+  struct TestCandidateBuilder {
+    ParachainId para_id;
+    HeadData head_data;
+    Hash pov_hash;
+    Hash relay_parent;
+    Hash erasure_root;
+    Hash persisted_validation_data_hash;
+    std::vector<uint8_t> validation_code;
+
+    network::CommittedCandidateReceipt build(const kagome::crypto::HasherImpl &hasher) {
+      return network::CommittedCandidateReceipt {
+        .descriptor = network::CandidateDescriptor {
+          .para_id = para_id,
+          .relay_parent = relay_parent,
+          .collator_id = {},
+          .persisted_data_hash = persisted_validation_data_hash,
+          .pov_hash = pov_hash,
+          .erasure_encoding_root = erasure_root,
+          .signature = {},
+          .para_head_hash = hash_of(hasher, head_data),
+          .validation_code_hash = hash_of(hasher, kagome::runtime::ValidationCode(validation_code)),
+        },
+        .commitments = network::CandidateCommitments {
+          .upward_msgs = {},
+          .outbound_hor_msgs = {},
+          .opt_para_runtime = std::nullopt,
+          .para_head = head_data,
+          .downward_msgs_count = 0,
+          .watermark = 0,
+        },
+      };
+    }
+  };
+
 };
 
 TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
@@ -301,4 +361,25 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
 
   activate_leaf(test_leaf_a, test_state);
   activate_leaf(test_leaf_b, test_state);
+
+		kagome::network::PoV pov{ 
+      .payload = {42, 43, 44}
+    };
+		const auto pvd = dummy_pvd();
+		kagome::runtime::ValidationCode validation_code = {1, 2, 3};
+
+		const auto &expected_head_data = test_state.head_data[para_id];
+		const auto pov_hash = hash_of(pov);
+
+		//let candidate = TestCandidateBuilder {
+		//	para_id,
+		//	relay_parent: leaf_a_parent,
+		//	pov_hash,
+		//	head_data: expected_head_data.clone(),
+		//	erasure_root: make_erasure_root(&test_state, pov.clone(), pvd.clone()),
+		//	persisted_validation_data_hash: pvd.hash(),
+		//	validation_code: validation_code.0.clone(),
+		//}
+		//.build();
+
 }
