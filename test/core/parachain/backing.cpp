@@ -32,6 +32,11 @@
 #include "primitives/event_types.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "testutil/lazy.hpp"
+#include "parachain/availability/chunks.hpp"
+#include "parachain/availability/proof.hpp"
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -169,6 +174,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   struct TestState {
     std::vector<ParachainId> chain_ids;
    	std::unordered_map<ParachainId, HeadData> head_data;
+  	std::vector<crypto::Sr25519PublicKey> validators;
 
     TestState() {
       const ParachainId chain_a(1);
@@ -178,6 +184,27 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
       head_data[chain_a] = {4, 5, 6};
       head_data[chain_b] = {5, 6, 7};
+
+      crypto::Bip39ProviderImpl bip_provider{
+          std::make_shared<crypto::Pbkdf2ProviderImpl>(),
+          std::make_shared<crypto::HasherImpl>(),
+      };
+
+      auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderImpl>();
+      auto f = [&](std::string_view phrase) {
+        auto bip = bip_provider.generateSeed(phrase).value();
+        auto keys =
+            sr25519_provider
+                ->generateKeypair(crypto::Sr25519Seed::from(bip.seed), bip.junctions)
+                .value();
+        return keys.public_key;
+      };
+      validators.emplace_back(f("//Alice"));
+      validators.emplace_back(f("//Bob"));
+      validators.emplace_back(f("//Charlie"));
+      validators.emplace_back(f("//Dave"));
+      validators.emplace_back(f("//Ferdie"));
+      validators.emplace_back(f("//One"));
     }
   };
 
@@ -289,9 +316,20 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   }
 
   template<typename T>
-  static Hash hash_of(const kagome::crypto::HasherImpl &hasher, T &&t) {
+  static Hash hash_of(const kagome::crypto::Hasher &hasher, T &&t) {
     return hasher.blake2b_256(scale::encode(std::forward<T>(t)).value());
   }
+
+  Hash make_erasure_root(const TestState &test, const network::PoV &pov, const runtime::PersistedValidationData &validation_data) {
+    const runtime::AvailableData available_data { 
+      .pov = pov,
+      .validation_data = validation_data, 
+    };
+
+    auto chunks = toChunks(test.validators.size(), available_data).value();
+    return makeTrieProof(chunks);
+  }
+
 
   struct TestCandidateBuilder {
     ParachainId para_id;
@@ -302,7 +340,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     Hash persisted_validation_data_hash;
     std::vector<uint8_t> validation_code;
 
-    network::CommittedCandidateReceipt build(const kagome::crypto::HasherImpl &hasher) {
+    network::CommittedCandidateReceipt build(const kagome::crypto::Hasher &hasher) {
       return network::CommittedCandidateReceipt {
         .descriptor = network::CandidateDescriptor {
           .para_id = para_id,
@@ -371,15 +409,14 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
 		const auto &expected_head_data = test_state.head_data[para_id];
 		const auto pov_hash = hash_of(pov);
 
-		//let candidate = TestCandidateBuilder {
-		//	para_id,
-		//	relay_parent: leaf_a_parent,
-		//	pov_hash,
-		//	head_data: expected_head_data.clone(),
-		//	erasure_root: make_erasure_root(&test_state, pov.clone(), pvd.clone()),
-		//	persisted_validation_data_hash: pvd.hash(),
-		//	validation_code: validation_code.0.clone(),
-		//}
-		//.build();
+		const auto candidate = TestCandidateBuilder{
+			.para_id = para_id,
+			.head_data = expected_head_data,
+			.pov_hash = pov_hash,
+			.relay_parent = leaf_a_parent,
+			.erasure_root = make_erasure_root(test_state, pov, pvd),
+			.persisted_validation_data_hash = hash_of(pvd),
+			.validation_code = validation_code,
+		}.build(*hasher_);
 
 }
