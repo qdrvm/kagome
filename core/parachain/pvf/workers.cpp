@@ -20,6 +20,8 @@
 #include "utils/weak_macro.hpp"
 
 namespace kagome::parachain {
+  constexpr auto kMetricQueueSize = "kagome_pvf_queue_size";
+
   struct AsyncPipe : boost::process::async_pipe {
     using async_pipe::async_pipe;
     using lowest_layer_type = AsyncPipe;
@@ -133,7 +135,18 @@ namespace kagome::parachain {
             .cache_dir = app_config.runtimeCacheDirPath(),
             .log_params = app_config.log(),
             .force_disable_secure_mode = app_config.disableSecureMode(),
-        } {}
+        } {
+    metrics_registry_->registerGaugeFamily(kMetricQueueSize, "pvf queue size");
+    std::unordered_map<PvfExecTimeoutKind, std::string> kind_name{
+        {PvfExecTimeoutKind::Approval, "Approval"},
+        {PvfExecTimeoutKind::Backing, "Backing"},
+    };
+    for (auto &[kind, name] : kind_name) {
+      metric_queue_size_.emplace(kind,
+                                 metrics_registry_->registerGaugeMetric(
+                                     kMetricQueueSize, {{"kind", name}}));
+    }
+  }
 
   void PvfWorkers::execute(Job &&job) {
     REINVOKE(*main_pool_handler_, execute, std::move(job));
@@ -141,6 +154,7 @@ namespace kagome::parachain {
       if (used_ >= max_) {
         auto &queue = queues_[job.kind];
         queue.emplace_back(std::move(job));
+        metric_queue_size_.at(job.kind)->set(queue.size());
         return;
       }
       auto used = std::make_shared<Used>(*this);
@@ -252,6 +266,7 @@ namespace kagome::parachain {
       }
       auto job = std::move(queue.front());
       queue.pop_front();
+      metric_queue_size_.at(kind)->set(queue.size());
       findFree(std::move(job));
     }
   }

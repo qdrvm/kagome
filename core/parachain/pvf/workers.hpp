@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <list>
 
+#include "metrics/metrics.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
@@ -82,5 +83,8 @@ namespace kagome::parachain {
     std::list<Worker> free_;
     size_t used_ = 0;
     std::unordered_map<PvfExecTimeoutKind, std::deque<Job>> queues_;
+
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    std::unordered_map<PvfExecTimeoutKind, metrics::Gauge *> metric_queue_size_;
   };
 }  // namespace kagome::parachain
