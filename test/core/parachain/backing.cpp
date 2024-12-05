@@ -69,10 +69,93 @@ using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
 
+static std::vector<unsigned char> read_binary_file (const std::string filename)
+{
+    // binary mode is only for switching off newline translation
+    std::ifstream file(filename, std::ios::binary);
+    file.unsetf(std::ios::skipws);
+
+    std::streampos file_size;
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<unsigned char> vec;
+    vec.reserve(file_size);
+    vec.insert(vec.begin(),
+               std::istream_iterator<unsigned char>(file),
+               std::istream_iterator<unsigned char>());
+    return (vec);
+}
+
+  struct CCC {
+    SCALE_TIE(14);
+    enum class Error {
+      DISALLOWED_HRMP_WATERMARK,
+      NO_SUCH_HRMP_CHANNEL,
+      HRMP_BYTES_OVERFLOW,
+      HRMP_MESSAGE_OVERFLOW,
+      UMP_MESSAGE_OVERFLOW,
+      UMP_BYTES_OVERFLOW,
+      DMP_MESSAGE_UNDERFLOW,
+      APPLIED_NONEXISTENT_CODE_UPGRADE,
+    };
+
+    /// The minimum relay-parent number accepted under these constraints.
+    BlockNumber min_relay_parent_number;
+    /// The maximum Proof-of-Validity size allowed, in bytes.
+    uint32_t max_pov_size;
+    /// The maximum new validation code size allowed, in bytes.
+    uint32_t max_code_size;
+    /// The amount of UMP messages remaining.
+    uint32_t ump_remaining;
+    /// The amount of UMP bytes remaining.
+    uint32_t ump_remaining_bytes;
+    /// The maximum number of UMP messages allowed per candidate.
+    uint32_t max_ump_num_per_candidate;
+    /// Remaining DMP queue. Only includes sent-at block numbers.
+    std::vector<BlockNumber> dmp_remaining_messages;
+    /// The limitations of all registered inbound HRMP channels.
+    kagome::parachain::fragment::InboundHrmpLimitations hrmp_inbound;
+    /// The limitations of all registered outbound HRMP channels.
+    std::unordered_map<ParachainId, kagome::parachain::fragment::OutboundHrmpChannelLimitations>
+        hrmp_channels_out;
+    /// The maximum number of HRMP messages allowed per candidate.
+    uint32_t max_hrmp_num_per_candidate;
+    /// The required parent head-data of the parachain.
+    HeadData required_parent;
+    /// The expected validation-code-hash of this parachain.
+    ValidationCodeHash validation_code_hash;
+    /// The code upgrade restriction signal as-of this parachain.
+    std::optional<kagome::parachain::fragment::UpgradeRestriction> upgrade_restriction;
+    /// The future validation code hash, if any, and at what relay-parent
+    /// number the upgrade would be minimally applied.
+    std::optional<std::pair<BlockNumber, ValidationCodeHash>> future_validation_code;
+
+    outcome::result<kagome::parachain::fragment::Constraints> apply_modifications(
+        const kagome::parachain::fragment::ConstraintModifications &modifications) const;
+
+    outcome::result<void> check_modifications(
+        const kagome::parachain::fragment::ConstraintModifications &modifications) const;
+  };
+
+
+  struct BS {
+    SCALE_TIE(2);
+    CCC constraints;
+    std::vector<kagome::parachain::fragment::CandidatePendingAvailability> pending_availability;
+  };
+
+
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
-    parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
+
+    const auto data = read_binary_file("/home/iceseer/Tmp/scale");
+    auto res = scale::decode<std::optional<BS>>(data);
+    assert(res.has_value());
+
+    auto k = res.value();
 
     watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
     main_thread_pool_ = std::make_shared<MainThreadPool>(
@@ -137,18 +220,18 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     EXPECT_CALL(*bitfield_signer_, setBroadcastCallback(testing::_)).Times(1);
     EXPECT_CALL(app_config_, roles())
       .WillRepeatedly(Return(network::Roles(0xff)));
+    EXPECT_CALL(*prospective_parachains_, getBlockTree()).WillRepeatedly(Return(block_tree_));
 
     app_state_manager.start();
   }
 
   void TearDown() override {
     watchdog_->stop();
-    parachain_api_.reset();
+    parachain_host_.reset();
     ProspectiveParachainsTestHarness::TearDown();
   }
 
  public:
-  std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
   AppConfigurationMock app_config_;
   std::shared_ptr<Watchdog> watchdog_;
   std::shared_ptr<MainThreadPool> main_thread_pool_;
@@ -183,6 +266,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::unordered_map<ParachainId, HeadData> head_data;
     std::vector<crypto::Sr25519PublicKey> validators;
     //std::vector<ValidatorId> validator_public: ,
+    struct {
+      std::vector<runtime::ValidatorGroup> groups;  
+      runtime::GroupDescriptor group_rotation;
+    } validator_groups;
 
     TestState() {
       const ParachainId chain_a(1);
@@ -213,6 +300,18 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       validators.emplace_back(f("//Dave"));
       validators.emplace_back(f("//Ferdie"));
       validators.emplace_back(f("//One"));
+
+      validator_groups.groups = {runtime::ValidatorGroup {
+        .validators = {2, 0, 3, 5},
+      },
+      runtime::ValidatorGroup {
+        .validators = {1},
+      }};
+      validator_groups.group_rotation = runtime::GroupDescriptor {
+        .session_start_block = 0,
+        .group_rotation_frequency = 100,
+        .now_block_num = 1,
+      };
     }
   };
 
@@ -239,7 +338,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     };
     update.new_head.hash_opt = leaf_hash;
 
-    EXPECT_CALL(*parachain_api_, staging_async_backing_params(leaf_hash))
+    EXPECT_CALL(*parachain_host_, staging_async_backing_params(leaf_hash))
         .WillRepeatedly(Return(outcome::success(fragment::AsyncBackingParams{
             .max_candidate_depth = 4, .allowed_ancestry_len = 3})));
 
@@ -307,11 +406,21 @@ class BackingTest : public ProspectiveParachainsTestHarness {
               .hash_opt = {},
           }));
 
-      EXPECT_CALL(*parachain_api_, validators(hash))
+      EXPECT_CALL(*parachain_host_, validators(hash))
           .WillRepeatedly(Return(test_state.validators));
 
+      EXPECT_CALL(*parachain_host_, validator_groups(hash))
+          .WillRepeatedly(Return(std::make_tuple(
+            test_state.validator_groups.groups,
+            runtime::GroupDescriptor {
+              .session_start_block = test_state.validator_groups.group_rotation.session_start_block,
+              .group_rotation_frequency = test_state.validator_groups.group_rotation.group_rotation_frequency,
+              .now_block_num = number,
+            })));
 
       if (requested_len == 0) {
+        EXPECT_CALL(*prospective_parachains_, answerMinimumRelayParentsRequest(leaf_hash))
+            .WillRepeatedly(Return(min_relay_parents));
         // assert_matches !(
         //     virtual_overseer.recv().await,
         //     AllMessages::ProspectiveParachains(
@@ -483,7 +592,6 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
       }
           .build(*hasher_);
 
-  std::cout << fmt::format("======> {}", candidate.descriptor.erasure_encoding_root) << std::endl;
   parachain_processor_->handle_second_message(
     candidate.to_plain(*hasher_),
     pov,
