@@ -377,12 +377,22 @@ class BackingTest : public ProspectiveParachainsTestHarness {
             .allowed_ancestry_len = 3,
         }));
 
+    EXPECT_CALL(*signer_, validatorIndex()).WillRepeatedly(Return(0));
+
+    EXPECT_CALL(*bitfield_store_, printStoragesLoad()).WillRepeatedly(Return());
+    EXPECT_CALL(*backing_store_, printStoragesLoad()).WillRepeatedly(Return());
+    EXPECT_CALL(*av_store_, printStoragesLoad()).WillRepeatedly(Return());
+    EXPECT_CALL(*prospective_parachains_, printStoragesLoad()).WillRepeatedly(Return());
+    
+
     //    network::ExViewRef ev_ref{
     //                .new_head = {update.new_head},
     //                .lost = update.lost,
     //            };
+    EXPECT_CALL(*backing_store_, onActivateLeaf(testing::_)).WillRepeatedly(Return());
     EXPECT_CALL(*prospective_parachains_, onActiveLeavesUpdate(testing::_))
         .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*peer_manager_, enumeratePeerState(testing::_)).WillRepeatedly(Return());
 
     const BlockNumber min_min = [&]() -> BlockNumber {
       std::optional<BlockNumber> min_min;
@@ -528,7 +538,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   }
 
   void assert_validation_requests(
-      const runtime::ValidationCode &validation_code) {}
+      const runtime::ValidationCode &validation_code) {
+
+      }
 
   void assert_validate_seconded_candidate(
       const Hash &relay_parent,
@@ -661,4 +673,6 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
                                      validation_code,
                                      expected_head_data,
                                      false);
+
+  std::this_thread::sleep_for(std::chrono::seconds(10));
 }

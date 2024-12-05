@@ -284,6 +284,7 @@ namespace kagome::parachain {
     REINVOKE(*main_pool_handler_, onViewUpdated, event);
     CHECK_OR_RET(canProcessParachains().has_value());
     const auto &relay_parent = event.new_head.hash();
+    std::cout << fmt::format("===> ACTIVE LEAF {}\n", relay_parent);
 
     /// init `prospective_parachains` subsystem
     if (const auto r =
@@ -342,6 +343,7 @@ namespace kagome::parachain {
           mode ? std::move(pruned_h) : std::vector<Hash>{removed};
 
       for (const auto &removed : pruned) {
+        std::cout << fmt::format("---> PRUNED {}\n", removed);
         our_current_state_.state_by_relay_parent.erase(removed);
 
         {  /// remove cancelations
@@ -433,6 +435,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::construct_per_relay_parent_state(
       const primitives::BlockHash &relay_parent,
       const ProspectiveParachainsModeOpt &mode) {
+    std::cout << fmt::format("===> CONSTRUCT RELAY PARENT {}\n", relay_parent);
     /**
      * It first checks if our node is a parachain validator for the relay
      * parent. If it is not, it returns an error. If the node is a validator, it
@@ -444,8 +447,6 @@ namespace kagome::parachain {
      * group. Finally, it returns a `RelayParentState` object that contains the
      * assignment, validator index, required collator, and table context.
      */
-    std::cout << fmt::format("===> ask data with {}", relay_parent)
-              << std::endl;
 
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater{
@@ -646,6 +647,7 @@ namespace kagome::parachain {
           ++it;
         } else {
           _keeper_.emplace_back(it->second.per_session_state);
+          std::cout << fmt::format("---> ERASED {}\n", it->first);
           it = our_current_state_.state_by_relay_parent.erase(it);
         }
       }
@@ -701,9 +703,11 @@ namespace kagome::parachain {
     }
 
     for (const auto &maybe_new : fresh_relay_parents) {
+      //std::cout << fmt::format("---> MAYBE_NEW {}\n", maybe_new);
       if (our_current_state_.state_by_relay_parent.contains(maybe_new)) {
         continue;
       }
+      //std::cout << fmt::format("---> NEW {}\n", maybe_new);
 
       ProspectiveParachainsModeOpt mode_;
       if (auto l = utils::get(our_current_state_.per_leaf, maybe_new)) {
@@ -715,12 +719,12 @@ namespace kagome::parachain {
       auto rps_result = construct_per_relay_parent_state(maybe_new, mode_);
       if (rps_result.has_value()) {
         our_current_state_.state_by_relay_parent.insert_or_assign(
-            relay_parent, std::move(rps_result.value()));
+            maybe_new, std::move(rps_result.value()));
       } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
         SL_TRACE(
             logger_,
             "Relay parent state was not created. (relay parent={}, error={})",
-            relay_parent,
+            maybe_new,
             rps_result.error());
       }
     }
