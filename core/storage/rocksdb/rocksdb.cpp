@@ -93,7 +93,7 @@ namespace kagome::storage {
     if (not enable_migration) {
       SL_ERROR(log,
                "Database migration is disabled, use older kagome version or "
-               "run with migration enabling flag");
+               "run with --enable-db-migration flag");
       return DatabaseError::IO_ERROR;
     }
 
