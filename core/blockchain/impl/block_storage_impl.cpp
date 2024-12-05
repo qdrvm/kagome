@@ -201,16 +201,17 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHeader> BlockStorageImpl::getBlockHeader(
       const primitives::BlockHash &block_hash) const {
-    OUTCOME_TRY(encoded_header_opt,
-                getFromSpace(*storage_, Space::kHeader, block_hash));
-    if (encoded_header_opt.has_value()) {
-      OUTCOME_TRY(
-          header,
-          scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
-      header.hash_opt.emplace(block_hash);
-      return header;
+    OUTCOME_TRY(header_opt, fetchBlockHeader(block_hash));
+    if (header_opt.has_value()) {
+      return header_opt.value();
     }
     return BlockStorageError::HEADER_NOT_FOUND;
+  }
+
+  outcome::result<std::optional<primitives::BlockHeader>>
+  BlockStorageImpl::tryGetBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    return fetchBlockHeader(block_hash);
   }
 
   outcome::result<void> BlockStorageImpl::putBlockBody(
@@ -320,11 +321,11 @@ namespace kagome::blockchain {
   outcome::result<void> BlockStorageImpl::removeBlock(
       const primitives::BlockHash &block_hash) {
     // Check if block still in storage
-    const auto header_res = getBlockHeader(block_hash);
-    if (not header_res) {
+    OUTCOME_TRY(header_opt, fetchBlockHeader(block_hash));
+    if (not header_opt) {
       return outcome::success();
     }
-    const auto &header = header_res.value();
+    const auto &header = header_opt.value();
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
@@ -385,4 +386,18 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<std::optional<primitives::BlockHeader>>
+  BlockStorageImpl::fetchBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(encoded_header_opt,
+                getFromSpace(*storage_, Space::kHeader, block_hash));
+    if (encoded_header_opt.has_value()) {
+      OUTCOME_TRY(
+          header,
+          scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
+      header.hash_opt.emplace(block_hash);
+      return std::make_optional(std::move(header));
+    }
+    return std::nullopt;
+  }
 }  // namespace kagome::blockchain
