@@ -34,6 +34,7 @@ function(external_project_link_libraries target prefix)
         blockchain
         runtime_upgrade_tracker
         runtime_properties_cache
+        GTest::gmock
         )
     list(TRANSFORM targets PREPEND "${prefix}")
     target_link_libraries(${target} ${targets})
