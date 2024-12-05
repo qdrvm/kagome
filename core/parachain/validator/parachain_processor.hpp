@@ -531,8 +531,8 @@ namespace kagome::parachain {
         AttestedCandidate &&attested,
         TableContext &table_context,
         bool inject_core_index);
-    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> isParachainValidator(
-        const primitives::BlockHash &relay_parent) const;
+    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
+    isParachainValidator(const primitives::BlockHash &relay_parent) const;
 
     /*
      * Logic.
@@ -822,11 +822,11 @@ namespace kagome::parachain {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
 
-    public:
+   public:
     void handle_second_message(const network::CandidateReceipt &candidate,
-                       const network::ParachainBlock &pov,
-                       const runtime::PersistedValidationData &pvd,
-                       const primitives::BlockHash &relay_parent) {
+                               const network::ParachainBlock &pov,
+                               const runtime::PersistedValidationData &pvd,
+                               const primitives::BlockHash &relay_parent) {
       validateAsync<ValidationTaskType::kSecond>(
           candidate,
           network::ParachainBlock(pov),

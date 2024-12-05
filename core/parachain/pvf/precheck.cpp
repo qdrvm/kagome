@@ -74,7 +74,7 @@ namespace kagome::parachain {
       return outcome::success();
     }
     auto &signer = *opt_signer;
-    
+
     if (not session_code_accept_.empty()
         and signer->getSessionIndex() < session_code_accept_.begin()->first) {
       SL_WARN(logger_, "past session");
@@ -102,7 +102,8 @@ namespace kagome::parachain {
         auto &code_zstd = *code_zstd_res.value();
         auto res = [&]() -> outcome::result<void> {
           OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
-          OUTCOME_TRY(pvf_pool_->precompile(code_hash, code_zstd, config.context_params));
+          OUTCOME_TRY(pvf_pool_->precompile(
+              code_hash, code_zstd, config.context_params));
           return outcome::success();
         }();
         if (res) {

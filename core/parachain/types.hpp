@@ -222,7 +222,7 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 namespace kagome::parachain::fragment {
-  enum UpgradeRestriction: uint8_t {
+  enum UpgradeRestriction : uint8_t {
     /// There is an upgrade restriction and there are no details about its
     /// specifics nor how long
     /// it could last.

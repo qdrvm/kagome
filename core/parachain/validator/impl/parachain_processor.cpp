@@ -444,7 +444,8 @@ namespace kagome::parachain {
      * group. Finally, it returns a `RelayParentState` object that contains the
      * assignment, validator index, required collator, and table context.
      */
-    std::cout << fmt::format("===> ask data with {}", relay_parent) << std::endl;
+    std::cout << fmt::format("===> ask data with {}", relay_parent)
+              << std::endl;
 
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater{
@@ -1360,9 +1361,10 @@ namespace kagome::parachain {
                   return std::nullopt;
                 }
 
-                const auto our_index = utils::map(
-                    table_context.validator,
-                    [](const auto &signer) { return signer->validatorIndex(); });
+                const auto our_index =
+                    utils::map(table_context.validator, [](const auto &signer) {
+                      return signer->validatorIndex();
+                    });
                 if (our_index && *our_index == statement.payload.ix) {
                   return std::nullopt;
                 }
@@ -2089,8 +2091,8 @@ namespace kagome::parachain {
       T &&payload, RelayParentState &parachain_state) {
     /// TODO(iceseer):
     /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
-    auto sign_result =
-        (*parachain_state.table_context.validator)->sign(std::forward<T>(payload));
+    auto sign_result = (*parachain_state.table_context.validator)
+                           ->sign(std::forward<T>(payload));
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",

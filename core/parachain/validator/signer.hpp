@@ -58,16 +58,19 @@ namespace kagome::parachain {
   };
 
   class IValidatorSigner {
-    public:
+   public:
     virtual ~IValidatorSigner() = default;
 
-    virtual outcome::result<IndexedAndSigned<network::Statement>> sign(const network::Statement &payload) const = 0;
-    virtual outcome::result<IndexedAndSigned<scale::BitVec>> sign(const scale::BitVec &payload) const = 0;
+    virtual outcome::result<IndexedAndSigned<network::Statement>> sign(
+        const network::Statement &payload) const = 0;
+    virtual outcome::result<IndexedAndSigned<scale::BitVec>> sign(
+        const scale::BitVec &payload) const = 0;
 
     virtual ValidatorIndex validatorIndex() const = 0;
     virtual SessionIndex getSessionIndex() const = 0;
     virtual const primitives::BlockHash &relayParent() const = 0;
-    virtual outcome::result<Signature> signRaw(common::BufferView data) const = 0;
+    virtual outcome::result<Signature> signRaw(
+        common::BufferView data) const = 0;
   };
 
   /// Signs payload with signing context and validator keypair.
@@ -81,10 +84,12 @@ namespace kagome::parachain {
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
-    outcome::result<IndexedAndSigned<network::Statement>> sign(const network::Statement &payload) const override {
+    outcome::result<IndexedAndSigned<network::Statement>> sign(
+        const network::Statement &payload) const override {
       return sign_obj(payload);
     }
-    outcome::result<IndexedAndSigned<scale::BitVec>> sign(const scale::BitVec &payload) const override {
+    outcome::result<IndexedAndSigned<scale::BitVec>> sign(
+        const scale::BitVec &payload) const override {
       return sign_obj(payload);
     }
 
@@ -125,8 +130,8 @@ namespace kagome::parachain {
     virtual ~IValidatorSignerFactory() = default;
 
     /// Create validator signer if keypair belongs to validator at given block.
-    virtual outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> at(
-        const primitives::BlockHash &relay_parent) = 0;
+    virtual outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
+    at(const primitives::BlockHash &relay_parent) = 0;
 
     virtual outcome::result<std::optional<ValidatorIndex>>
     getAuthorityValidatorIndex(const primitives::BlockHash &relay_parent) = 0;

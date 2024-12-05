@@ -13,7 +13,7 @@
 namespace kagome::parachain {
 
   class ValidatorSignerMock : public IValidatorSigner {
-    public:
+   public:
     MOCK_METHOD(outcome::result<IndexedAndSigned<network::Statement>>,
                 sign,
                 (const network::Statement &),
@@ -24,15 +24,9 @@ namespace kagome::parachain {
                 (const scale::BitVec &),
                 (const, override));
 
-    MOCK_METHOD(ValidatorIndex,
-                validatorIndex,
-                (),
-                (const, override));
+    MOCK_METHOD(ValidatorIndex, validatorIndex, (), (const, override));
 
-    MOCK_METHOD(SessionIndex,
-                getSessionIndex,
-                (),
-                (const, override));
+    MOCK_METHOD(SessionIndex, getSessionIndex, (), (const, override));
 
     MOCK_METHOD(const primitives::BlockHash &,
                 relayParent,
@@ -47,10 +41,11 @@ namespace kagome::parachain {
 
   class ValidatorSignerFactoryMock : public IValidatorSignerFactory {
    public:
-    MOCK_METHOD(outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>,
-                at,
-                (const primitives::BlockHash &),
-                (override));
+    MOCK_METHOD(
+        outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>,
+        at,
+        (const primitives::BlockHash &),
+        (override));
 
     MOCK_METHOD(outcome::result<std::optional<ValidatorIndex>>,
                 getAuthorityValidatorIndex,
