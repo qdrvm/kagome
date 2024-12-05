@@ -68,7 +68,7 @@ mkdir -p ./pkg/${DIR_NAME}${BINARY_INSTALL_DIR}
 log "Working directory: $(pwd)/pkg/"
 
 log "Copying artifacts..."
-mv -f ${ARTIFACTS_DIR}/* ./pkg/${DIR_NAME}${BINARY_INSTALL_DIR}/
+cp -rf ${ARTIFACTS_DIR}/* ./pkg/${DIR_NAME}${BINARY_INSTALL_DIR}/
 
 log "Package: ${PACKAGE_NAME}"
 log "Version: ${VERSION}"

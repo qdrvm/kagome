@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "storage/buffer_map_types.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 #include "storage/rocksdb/rocksdb.hpp"
@@ -24,7 +25,7 @@ namespace test {
     void TearDown() override;
 
     std::shared_ptr<RocksDB> rocks_;
-    std::shared_ptr<kagome::storage::BufferStorage> db_;
+    std::shared_ptr<kagome::storage::BufferBatchableStorage> db_;
   };
 
 }  // namespace test

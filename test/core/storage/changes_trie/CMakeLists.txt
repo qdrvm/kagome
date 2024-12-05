@@ -10,5 +10,6 @@ addtest(changes_tracker_test
 target_link_libraries(changes_tracker_test
     storage
     logger_for_tests
+    in_memory_storage
     )
 

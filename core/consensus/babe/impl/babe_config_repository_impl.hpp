@@ -120,7 +120,7 @@ namespace kagome::consensus::babe {
 
     void warp(Indexer &indexer_, const primitives::BlockInfo &block);
 
-    std::shared_ptr<storage::BufferStorage> persistent_storage_;
+    std::shared_ptr<storage::BufferBatchableStorage> persistent_storage_;
     bool config_warp_sync_;
     EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

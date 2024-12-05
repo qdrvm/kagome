@@ -37,6 +37,7 @@ target_link_libraries(trie_storage_provider_test
     trie_storage_provider
     storage
     logger_for_tests
+    in_memory_storage
     )
 
 addtest(uncompress_code_test
@@ -85,6 +86,7 @@ target_link_libraries(runtime_upgrade_tracker_test
     logger
     log_configurator
     scale::scale
+    in_memory_storage
     )
 
 addtest(instance_pool_test instance_pool_test.cpp)

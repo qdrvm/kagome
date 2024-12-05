@@ -6,11 +6,14 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <memory>
 
+#include "gmock/gmock.h"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
+#include "mock/core/storage/write_batch_mock.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -21,6 +24,8 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
+#include "testutil/storage/in_memory/in_memory_batch.hpp"
+#include "testutil/storage/in_memory/in_memory_storage.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::api::Session;
@@ -205,6 +210,9 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto spaced_db = std::make_shared<SpacedStorageMock>();
   ON_CALL(*spaced_db, getSpace(Space::kTrieNode)).WillByDefault(Return(db));
   ON_CALL(*spaced_db, getSpace(Space::kTrieValue)).WillByDefault(Return(db));
+  ON_CALL(*spaced_db, createBatch()).WillByDefault(Invoke([&spaced_db]() {
+    return std::make_unique<kagome::storage::InMemorySpacedBatch>(*spaced_db);
+  }));
 
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();

@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "storage/buffer_map_types.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 #if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
 #endif
@@ -23,6 +25,7 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
+#include "storage/face/map_cursor.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -41,20 +44,16 @@ using common::BufferView;
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-struct TrieTracker : TrieStorageBackend {
-  TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
-      : inner{std::move(inner)} {}
+struct TrieTracker : storage::BufferStorage {
+  TrieTracker(storage::BufferStorage &inner) : inner{inner} {}
 
   std::unique_ptr<Cursor> cursor() override {
-    abort();
-  }
-  std::unique_ptr<storage::BufferBatch> batch() override {
     abort();
   }
 
   outcome::result<BufferOrView> get(const BufferView &key) const override {
     track(key);
-    return inner->get(key);
+    return inner.get(key);
   }
   outcome::result<std::optional<BufferOrView>> tryGet(
       const BufferView &key) const override {
@@ -68,6 +67,7 @@ struct TrieTracker : TrieStorageBackend {
                             BufferOrView &&value) override {
     abort();
   }
+
   outcome::result<void> remove(const common::BufferView &key) override {
     abort();
   }
@@ -79,8 +79,29 @@ struct TrieTracker : TrieStorageBackend {
     return keys.contains(common::Hash256::fromSpan(key).value());
   }
 
-  std::shared_ptr<TrieStorageBackend> inner;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  storage::BufferStorage &inner;
   mutable std::set<common::Hash256> keys;
+};
+
+struct TrieTrackerBackend : TrieStorageBackend {
+  TrieTrackerBackend(std::shared_ptr<TrieStorageBackend> backend)
+      : backend{std::move(backend)}, node_tracker{backend->nodes()} {}
+
+  storage::BufferStorage &nodes() override {
+    return node_tracker;
+  }
+
+  storage::BufferStorage &values() override {
+    return backend->values();
+  }
+
+  std::unique_ptr<storage::BufferSpacedBatch> batch() override {
+    return backend->batch();
+  }
+
+  std::shared_ptr<TrieStorageBackend> backend;
+  TrieTracker node_tracker;
 };
 
 template <class T>
@@ -237,11 +258,11 @@ int db_editor_main(int argc, const char **argv) {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
     std::shared_ptr<storage::RocksDb> storage;
-    std::shared_ptr<storage::BufferStorage> buffer_storage;
+    std::shared_ptr<storage::BufferBatchableStorage> buffer_storage;
     try {
       storage =
           storage::RocksDb::create(argv[DB_PATH], rocksdb::Options()).value();
-      storage->dropColumn(storage::Space::kBlockBody);
+      storage->dropColumn(storage::Space::kBlockBody).value();
       buffer_storage = storage->getSpace(storage::Space::kDefault);
     } catch (std::system_error &e) {
       log->error("{}", e.what());
@@ -249,7 +270,7 @@ int db_editor_main(int argc, const char **argv) {
       return 0;
     }
 
-    auto trie_node_tracker = std::make_shared<TrieTracker>(
+    auto trie_node_tracker = std::make_shared<TrieTrackerBackend>(
         std::make_shared<TrieStorageBackendImpl>(storage));
 
     auto injector = di::make_injector(
@@ -406,7 +427,7 @@ int db_editor_main(int argc, const char **argv) {
           TicToc t2("Process DB.", log);
           while (db_cursor->isValid() && db_cursor->key().has_value()) {
             auto key = db_cursor->key().value();
-            if (tracker->tracked(key)) {
+            if (tracker->node_tracker.tracked(key)) {
               db_cursor->next().value();
               continue;
             }

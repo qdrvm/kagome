@@ -15,8 +15,8 @@
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/storage/in_memory/in_memory_storage.hpp"
 
 using namespace kagome;
 using application::AppStateManagerMock;

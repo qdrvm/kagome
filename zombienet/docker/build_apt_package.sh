@@ -71,7 +71,7 @@ mkdir -p ./pkg/${DIR_NAME}/DEBIAN
 mkdir -p ./pkg/${DIR_NAME}/usr/local/bin
 
 log "Copying artifacts..."
-mv -f ${ARTIFACTS_DIR}/* ./pkg/${DIR_NAME}/usr/local/bin/
+cp -rf ${ARTIFACTS_DIR}/* ./pkg/${DIR_NAME}/usr/local/bin/
 
 log "Creating control file..."
 cat <<EOF > ./pkg/${DIR_NAME}/DEBIAN/control

@@ -39,8 +39,11 @@ namespace kagome::crypto {
   }
 
   void make_twox256(const uint8_t *in, uint32_t len, uint8_t *out) {
+    // Ensure the buffer is aligned to the boundary required for uint64_t
+    // (required for happy UBSAN)
+    std::array<uint8_t, 4 * sizeof(uint64_t)> aligned_out{};
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto *ptr = reinterpret_cast<uint64_t *>(out);
+    auto *ptr = reinterpret_cast<uint64_t *>(aligned_out.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ptr[0] = XXH64(in, len, 0);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -49,6 +52,7 @@ namespace kagome::crypto {
     ptr[2] = XXH64(in, len, 2);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ptr[3] = XXH64(in, len, 3);
+    std::memcpy(out, aligned_out.data(), 4 * sizeof(uint64_t));
   }
 
   common::Hash256 make_twox256(common::BufferView buf) {

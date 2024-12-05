@@ -156,15 +156,14 @@ namespace kagome::network {
     primitives::BlockHash
         relay_parent;  /// Hash of the relay chain block the candidate is
     /// executed in the context of
-    parachain::CollatorPublicKey collator_id;  /// Collators public key.
+    common::Blob<32> reserved_1;
     primitives::BlockHash
         persisted_data_hash;         /// Hash of the persisted validation data
     primitives::BlockHash pov_hash;  /// Hash of the PoV block.
     storage::trie::RootHash
         erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
     /// tree.
-    parachain::Signature
-        signature;  /// Collator signature of the concatenated components
+    common::Blob<64> reserved_2;
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash
@@ -222,7 +221,7 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 namespace kagome::parachain::fragment {
-  enum UpgradeRestriction {
+  enum UpgradeRestriction : uint8_t {
     /// There is an upgrade restriction and there are no details about its
     /// specifics nor how long
     /// it could last.

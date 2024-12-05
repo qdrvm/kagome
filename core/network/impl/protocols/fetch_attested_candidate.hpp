@@ -38,17 +38,17 @@ namespace kagome::network {
             parachain::statement_distribution::StatementDistribution>
             statement_distribution)
         : RequestResponseProtocolImpl<
-            vstaging::AttestedCandidateRequest,
-            vstaging::AttestedCandidateResponse,
-            ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
-                                    host,
-                                    make_protocols(
-                                        kFetchAttestedCandidateProtocol,
-                                        genesis_hash,
-                                        kProtocolPrefixPolkadot),
-                                    log::createLogger(
-                                        kFetchAttestedCandidateProtocolName,
-                                        "req_attested_candidate_protocol")},
+              vstaging::AttestedCandidateRequest,
+              vstaging::AttestedCandidateResponse,
+              ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
+                                      host,
+                                      make_protocols(
+                                          kFetchAttestedCandidateProtocol,
+                                          genesis_hash,
+                                          kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kFetchAttestedCandidateProtocolName,
+                                          "req_attested_candidate_protocol")},
           statement_distribution_(std::move(statement_distribution)) {
       BOOST_ASSERT(statement_distribution_);
     }
