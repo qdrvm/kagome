@@ -25,7 +25,8 @@ namespace kagome::authority_discovery {
     std::optional<AuthorityPeerInfo> get(
         const primitives::AuthorityDiscoveryId &authority) const override;
 
-    bool remove(const primitives::AuthorityDiscoveryId &authority) override;
+    outcome::result<void> remove(
+        const primitives::AuthorityDiscoveryId &authority) override;
 
     bool contains(
         const primitives::AuthorityDiscoveryId &authority) const override;
@@ -33,6 +34,9 @@ namespace kagome::authority_discovery {
     void forEach(
         std::function<void(const primitives::AuthorityDiscoveryId &,
                            const AuthorityPeerInfo &)> f) const override;
+
+    void retainIf(std::function<bool(const primitives::AuthorityDiscoveryId &,
+                                     const AuthorityPeerInfo &)> f) override;
 
    private:
     std::shared_ptr<storage::BufferBatchableStorage> space_;

@@ -59,16 +59,9 @@ namespace kagome::authority_discovery {
     return decoded.value();
   }
 
-  bool AudiStoreImpl::remove(
+  outcome::result<void> AudiStoreImpl::remove(
       const primitives::AuthorityDiscoveryId &authority) {
-    if (auto res = space_->remove(authority); not res) {
-      SL_ERROR(log_,
-               "Failed to remove authority {} error {}",
-               authority,
-               res.error());
-      return false;
-    }
-    return true;
+    return space_->remove(authority);
   }
 
   bool AudiStoreImpl::contains(
@@ -99,6 +92,26 @@ namespace kagome::authority_discovery {
         SL_ERROR(log_, "Failed to decode PeerInfo");
       }
       std::ignore = cursor->next();
+    }
+  }
+
+  void AudiStoreImpl::retainIf(
+      std::function<bool(const primitives::AuthorityDiscoveryId &,
+                         const AuthorityPeerInfo &)> f) {
+    std::deque<primitives::AuthorityDiscoveryId> to_remove;
+    forEach([&](const auto &authority, const auto &peer_info) {
+      if (not f(authority, peer_info)) {
+        to_remove.push_back(authority);
+      }
+    });
+    for (const auto &authority : to_remove) {
+      auto res = remove(authority);
+      if (not res) {
+        SL_ERROR(log_,
+                 "Failed to remove authority {} due to db error {}",
+                 authority,
+                 res.error());
+      }
     }
   }
 

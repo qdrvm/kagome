@@ -41,9 +41,8 @@ namespace kagome::authority_discovery {
     /**
      * Remove authority discovery data
      * @param authority the authority to remove
-     * @return true if the authority was removed, false if it didn't exist
      */
-    virtual bool remove(const primitives::AuthorityDiscoveryId &authority) = 0;
+    virtual outcome::result<void> remove(const primitives::AuthorityDiscoveryId &authority) = 0;
 
     /**
      * Check if the store contains the authority
@@ -56,6 +55,10 @@ namespace kagome::authority_discovery {
     virtual void forEach(
         std::function<void(const primitives::AuthorityDiscoveryId &,
                            const AuthorityPeerInfo &)> f) const = 0;
+
+    virtual void retainIf(
+        std::function<bool(const primitives::AuthorityDiscoveryId &,
+                           const AuthorityPeerInfo &)> f) = 0;
   };
 
 }  // namespace kagome::authority_discovery

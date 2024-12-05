@@ -166,18 +166,14 @@ namespace kagome::authority_discovery {
       return not has(local_keys, id);
     });
     // remove outdated authorities
-    std::deque<std::pair<primitives::AuthorityDiscoveryId, AuthorityPeerInfo>>
-        to_remove;
-    audi_store_->forEach([&](const primitives::AuthorityDiscoveryId &id,
-                             const AuthorityPeerInfo &info) {
-      if (not has(authorities, id)) {
-        to_remove.emplace_back(id, info);
+    audi_store_->retainIf([&](const primitives::AuthorityDiscoveryId &id,
+                              const AuthorityPeerInfo &info) {
+      if (has(authorities, id)) {
+        return true;
       }
+      validation_protocol_.get()->reserve(info.peer.id, false);
+      return false;
     });
-    for (auto &pair : to_remove) {
-      audi_store_->remove(pair.first);
-      validation_protocol_.get()->reserve(pair.second.peer.id, false);
-    }
     for (auto it = peer_to_auth_cache_.begin();
          it != peer_to_auth_cache_.end();) {
       if (has(authorities, it->second)) {
