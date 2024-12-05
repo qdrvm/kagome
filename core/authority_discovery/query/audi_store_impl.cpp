@@ -74,7 +74,7 @@ namespace kagome::authority_discovery {
   bool AudiStoreImpl::contains(
       const primitives::AuthorityDiscoveryId &authority) const {
     auto res = space_->tryGet(authority);
-    return res.has_value() ? res.value().has_value() : false;
+    return res.has_value() and res.value().has_value();
   }
 
   void AudiStoreImpl::forEach(
