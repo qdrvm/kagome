@@ -23,7 +23,8 @@ namespace kagome::storage {
                                           "dispute_data",
                                           "beefy_justification",
                                           "avaliability_storage",
-                                          "audi_peers"};
+                                          "audi_peers",
+                                        };
 
   std::string spaceName(Space space) {
     static_assert(kSpaceNames.size() == Space::kTotal - 1);
