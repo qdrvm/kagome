@@ -3,7 +3,7 @@
  * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "blockchain/impl/block_tree_impl.hpp"
@@ -15,7 +15,6 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
@@ -30,7 +29,6 @@
 using namespace kagome;
 using application::AppConfigurationMock;
 using application::AppStateManagerMock;
-using blockchain::BlockHeaderRepositoryMock;
 using blockchain::BlockStorageMock;
 using blockchain::BlockTreeError;
 using blockchain::BlockTreeImpl;
@@ -114,12 +112,10 @@ struct BlockTreeTest : public testing::Test {
           return outcome::success();
         }));
 
-    EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
-        .WillRepeatedly(Return(kFinalizedBlockInfo.number));
-
-    EXPECT_CALL(*header_repo_, getHashByNumber(_))
-        .WillRepeatedly(
-            Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
+    EXPECT_CALL(*storage_, getBlockHash(testing::Matcher<BlockNumber>(_)))
+        .WillRepeatedly(Invoke(
+            [&](BlockNumber n)
+                -> outcome::result<std::optional<primitives::BlockHash>> {
               auto it = num_to_hash_.find(n);
               if (it == num_to_hash_.end()) {
                 return BlockTreeError::HEADER_NOT_FOUND;
@@ -127,12 +123,10 @@ struct BlockTreeTest : public testing::Test {
               return it->second;
             }));
 
-    EXPECT_CALL(*header_repo_,
+    EXPECT_CALL(*storage_,
                 getBlockHeader({finalized_block_header_.parent_hash}))
         .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
 
-    EXPECT_CALL(*header_repo_, getBlockHeader(kFinalizedBlockInfo.hash))
-        .WillRepeatedly(Return(finalized_block_header_));
     EXPECT_CALL(*storage_, getBlockHeader(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(finalized_block_header_));
 
@@ -170,9 +164,7 @@ struct BlockTreeTest : public testing::Test {
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
     block_tree_ = BlockTreeImpl::create(*app_config_,
-                                        header_repo_,
                                         storage_,
-                                        extrinsic_observer_,
                                         hasher_,
                                         chain_events_engine,
                                         ext_events_engine,
@@ -237,8 +229,6 @@ struct BlockTreeTest : public testing::Test {
 
     // hash for header repo and number for block storage just because tests
     // currently require so
-    EXPECT_CALL(*header_repo_, getBlockHeader(hash))
-        .WillRepeatedly(Return(header));
     EXPECT_CALL(*storage_, getBlockHeader(hash)).WillRepeatedly(Return(header));
 
     return {hash, header};
@@ -269,9 +259,6 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<AppConfigurationMock> app_config_ =
       std::make_shared<AppConfigurationMock>();
-
-  std::shared_ptr<BlockHeaderRepositoryMock> header_repo_ =
-      std::make_shared<BlockHeaderRepositoryMock>();
 
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
@@ -703,10 +690,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
 
-  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
-      .WillRepeatedly(Return(0));
-  EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
-  EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
+  EXPECT_CALL(*storage_, getBlockHeader({kFinalizedBlockInfo.hash}))
       .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 
   std::vector<BlockHash> expected_chain{hash2, hash1};
@@ -725,27 +709,10 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
  * present in the storage, but is not connected to the base block in the tree
  * @then BLOCK_NOT_FOUND error is returned
  */
-TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
-  BlockInfo target(1337, "TargetBlock#1337"_hash256);
-  EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
-      .WillRepeatedly(Return(BlockTreeError::EXISTING_BLOCK_NOT_FOUND));
-
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
-                       BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
-}
-
-/**
- * @given a block tree with one block in it
- * @when trying to obtain the best chain that contais a block, which is
- * present in the storage, but is not connected to the base block in the tree
- * @then BLOCK_NOT_FOUND error is returned
- */
 TEST_F(BlockTreeTest, GetBestChain_DiscardedBlock) {
   BlockInfo target = kFirstBlockInfo;
   BlockInfo other(kFirstBlockInfo.number, "OtherBlock#1"_hash256);
-  EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
-      .WillRepeatedly(Return(target.number));
-  EXPECT_CALL(*header_repo_, getHashByNumber(target.number))
+  EXPECT_CALL(*storage_, getBlockHash(target.number))
       .WillRepeatedly(Return(other.hash));
 
   ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),

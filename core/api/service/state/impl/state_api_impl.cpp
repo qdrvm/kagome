@@ -39,21 +39,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
 namespace kagome::api {
 
   StateApiImpl::StateApiImpl(
-      std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata,
       std::shared_ptr<runtime::Executor> executor,
       LazySPtr<api::ApiService> api_service)
-      : header_repo_{std::move(block_repo)},
-        storage_{std::move(trie_storage)},
+      : storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
         api_service_{api_service},
         metadata_{std::move(metadata)},
         executor_{std::move(executor)} {
-    BOOST_ASSERT(nullptr != header_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
     BOOST_ASSERT(nullptr != runtime_core_);
@@ -81,7 +78,7 @@ namespace kagome::api {
     const auto &block_hash =
         block_hash_opt.value_or(block_tree_->getLastFinalized().hash);
 
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+    OUTCOME_TRY(header, block_tree_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     auto cursor = initial_trie_reader->trieCursor();
@@ -121,7 +118,7 @@ namespace kagome::api {
 
   outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorageAt(
       common::BufferView key, const primitives::BlockHash &at) const {
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(header, block_tree_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
@@ -134,7 +131,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     auto at = block_hash_opt ? block_hash_opt.value()
                              : block_tree_->getLastFinalized().hash;
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(header, block_tree_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(res, trie_reader->tryGet(key));
     return res ? std::make_optional(res->size()) : std::nullopt;
@@ -152,8 +149,8 @@ namespace kagome::api {
     }
 
     if (from != to) {
-      OUTCOME_TRY(from_number, header_repo_->getNumberByHash(from));
-      OUTCOME_TRY(to_number, header_repo_->getNumberByHash(to));
+      OUTCOME_TRY(from_number, block_tree_->getNumberByHash(from));
+      OUTCOME_TRY(to_number, block_tree_->getNumberByHash(to));
       if (to_number < from_number) {
         return Error::END_BLOCK_LOWER_THAN_BEGIN_BLOCK;
       }
@@ -169,7 +166,7 @@ namespace kagome::api {
     // returning the whole vector with block ids
     OUTCOME_TRY(range, block_tree_->getChainByBlocks(from, to));
     for (auto &block : range) {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(block));
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
       StorageChangeSet change{.block = block};
       for (auto &key : keys) {
@@ -206,7 +203,7 @@ namespace kagome::api {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
     storage::trie::OnRead db;
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(header, block_tree_->getBlockHeader(at));
     OUTCOME_TRY(
         trie, storage_->getProofReaderBatchAt(header.state_root, db.onRead()));
     for (auto &key : keys) {

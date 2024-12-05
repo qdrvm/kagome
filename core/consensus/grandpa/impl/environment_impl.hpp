@@ -22,7 +22,6 @@ namespace kagome::application {
 }  // namespace kagome::application
 
 namespace kagome::blockchain {
-  class BlockHeaderRepository;
   class BlockTree;
 }  // namespace kagome::blockchain
 
@@ -65,7 +64,6 @@ namespace kagome::consensus::grandpa {
     EnvironmentImpl(
         application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::GrandpaTransmitter> transmitter,
         std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
@@ -150,7 +148,6 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor_;
