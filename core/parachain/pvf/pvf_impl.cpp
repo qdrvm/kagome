@@ -391,6 +391,7 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
+        .kind = timeout_kind,
         .timeout =
             std::chrono::milliseconds{
                 timeout_kind == runtime::PvfExecTimeoutKind::Backing
