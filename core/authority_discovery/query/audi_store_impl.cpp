@@ -81,6 +81,7 @@ namespace kagome::authority_discovery {
       std::function<void(const primitives::AuthorityDiscoveryId &,
                          const AuthorityPeerInfo &)> f) const {
     auto cursor = space_->cursor();
+    std::ignore = cursor->seekFirst();
     while (cursor->isValid()) {
       auto key = cursor->key();
       auto value = cursor->value();
