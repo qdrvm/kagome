@@ -182,6 +182,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     statement_distribution_ =
         std::make_shared<statement_distribution::StatementDistributionMock>();
+    signer_ = std::make_shared<ValidatorSignerMock>();
 
     my_view_observable_ =
         std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
@@ -258,6 +259,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   std::shared_ptr<statement_distribution::StatementDistributionMock>
       statement_distribution_;
   std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
+  std::shared_ptr<ValidatorSignerMock> signer_;
 
   PeerViewMock::MyViewSubscriptionEnginePtr my_view_observable_;
 
@@ -266,6 +268,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::unordered_map<ParachainId, HeadData> head_data;
     std::vector<crypto::Sr25519PublicKey> validators;
     std::vector<runtime::CoreState> availability_cores;
+    SigningContext signing_context;
+
     struct {
       std::vector<runtime::ValidatorGroup> groups;  
       runtime::GroupDescriptor group_rotation;
@@ -323,6 +327,14 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           .collator = std::nullopt,
         }
       };
+
+		const auto relay_parent = fromNumber(5);
+
+		signing_context = SigningContext { 
+      .session_index = 1, 
+      .relay_parent = relay_parent,
+      };
+
     }
   };
 
@@ -407,6 +419,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           ((i == ancestry_hashes.size() - 1) ? get_parent_hash(hash)
                                              : ancestry_hashes[i + 1]);
 
+      EXPECT_CALL(*parachain_host_, session_index_for_child(hash))
+          .WillRepeatedly(Return(test_state.signing_context.session_index));
+
       EXPECT_CALL(*block_tree_, getBlockHeader(hash))
           .WillRepeatedly(Return(BlockHeader{
               .number = number,
@@ -431,6 +446,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
       EXPECT_CALL(*parachain_host_, availability_cores(hash))
           .WillRepeatedly(Return(test_state.availability_cores));
+
+      EXPECT_CALL(*signer_factory_, at(hash))
+          .WillRepeatedly(Return(signer_));
+
 
       if (requested_len == 0) {
         EXPECT_CALL(*prospective_parachains_, answerMinimumRelayParentsRequest(leaf_hash))
