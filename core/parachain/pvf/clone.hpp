@@ -33,9 +33,15 @@ namespace kagome::parachain::clone {
   }
 
 #ifdef __linux__
+  // https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/core/pvf/common/src/worker/security/clone.rs#L35-L54
+  /// Try to run clone(2) on the current worker.
+  ///
+  /// SAFETY: new process should be either spawned within a single threaded
+  /// process, or use only async-signal-safe functions.
   template <typename Cb>
   inline outcome::result<pid_t> clone(bool have_unshare_newuser, const Cb &cb) {
     Buffer stack(kCloneStackSize);
+    // https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/core/pvf/common/src/worker/security/clone.rs#L75-L93
     int flags = CLONE_NEWCGROUP | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS
               | CLONE_NEWPID | CLONE_NEWUTS | SIGCHLD;
     if (not have_unshare_newuser) {
@@ -67,6 +73,8 @@ namespace kagome::parachain::clone {
     return outcome::success();
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/core/pvf/execute-worker/src/lib.rs#L245-L293
+  /// Call callback either directly, or inside `clone`, or inside `fork`.
   inline outcome::result<void> cloneOrFork(const log::Logger &log,
                                            const PvfWorkerInputConfig &config,
                                            const auto &cb) {
@@ -102,6 +110,13 @@ namespace kagome::parachain::clone {
     return wait(*pid);
   }
 
+  // https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/core/pvf/common/src/worker/security/clone.rs#L56-L63
+  /// Runs a check for clone(2) with all sandboxing flags and returns an error
+  /// indicating whether it can be fully enabled on the current Linux
+  /// environment.
+  ///
+  /// SAFETY: new process should be either spawned within a single threaded
+  /// process, or use only async-signal-safe functions.
   inline outcome::result<void> check() {
 #ifdef __linux__
     OUTCOME_TRY(pid, clone(false, [] { return true; }));
