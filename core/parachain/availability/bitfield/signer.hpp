@@ -28,7 +28,7 @@ namespace kagome::parachain {
     virtual void start() = 0;
 
     /// Sign bitfield for given block.
-    virtual outcome::result<void> sign(const ValidatorSigner &signer,
+    virtual outcome::result<void> sign(const IValidatorSigner &signer,
                                        const Candidates &candidates) = 0;
 
     virtual void setBroadcastCallback(BroadcastCallback &&callback) = 0;
@@ -51,7 +51,7 @@ namespace kagome::parachain {
     /// Subscribes to new heads.
     void start() override;
 
-    outcome::result<void> sign(const ValidatorSigner &signer,
+    outcome::result<void> sign(const IValidatorSigner &signer,
                                const Candidates &candidates) override;
 
     void setBroadcastCallback(BroadcastCallback &&callback) override;

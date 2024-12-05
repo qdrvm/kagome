@@ -57,8 +57,21 @@ namespace kagome::parachain {
     primitives::BlockHash relay_parent;
   };
 
+  class IValidatorSigner {
+    public:
+    virtual ~IValidatorSigner() = default;
+
+    virtual outcome::result<IndexedAndSigned<network::Statement>> sign(const network::Statement &payload) const = 0;
+    virtual outcome::result<IndexedAndSigned<scale::BitVec>> sign(const scale::BitVec &payload) const = 0;
+
+    virtual ValidatorIndex validatorIndex() const = 0;
+    virtual SessionIndex getSessionIndex() const = 0;
+    virtual const primitives::BlockHash &relayParent() const = 0;
+    virtual outcome::result<Signature> signRaw(common::BufferView data) const = 0;
+  };
+
   /// Signs payload with signing context and validator keypair.
-  class ValidatorSigner {
+  class ValidatorSigner : public IValidatorSigner {
    public:
     using ValidatorIndex = network::ValidatorIndex;
 
@@ -68,9 +81,16 @@ namespace kagome::parachain {
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
+    outcome::result<IndexedAndSigned<network::Statement>> sign(const network::Statement &payload) const override {
+      return sign_obj(payload);
+    }
+    outcome::result<IndexedAndSigned<scale::BitVec>> sign(const scale::BitVec &payload) const override {
+      return sign_obj(payload);
+    }
+
     /// Sign payload.
     template <typename T>
-    outcome::result<parachain::IndexedAndSigned<T>> sign(T payload) const {
+    outcome::result<parachain::IndexedAndSigned<T>> sign_obj(T payload) const {
       auto data = context_.signable(*hasher_, payload);
       OUTCOME_TRY(signature, sr25519_provider_->sign(*keypair_, data));
       return parachain::IndexedAndSigned<T>{
@@ -79,17 +99,17 @@ namespace kagome::parachain {
       };
     }
 
-    outcome::result<Signature> signRaw(common::BufferView data) const {
+    outcome::result<Signature> signRaw(common::BufferView data) const override {
       return sr25519_provider_->sign(*keypair_, data);
     }
 
-    SessionIndex getSessionIndex() const;
+    SessionIndex getSessionIndex() const override;
 
     /// Get validator index.
-    ValidatorIndex validatorIndex() const;
+    ValidatorIndex validatorIndex() const override;
 
     /// Get relay parent hash.
-    const primitives::BlockHash &relayParent() const;
+    const primitives::BlockHash &relayParent() const override;
 
    private:
     ValidatorIndex validator_index_;
@@ -105,7 +125,7 @@ namespace kagome::parachain {
     virtual ~IValidatorSignerFactory() = default;
 
     /// Create validator signer if keypair belongs to validator at given block.
-    virtual outcome::result<std::optional<ValidatorSigner>> at(
+    virtual outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> at(
         const primitives::BlockHash &relay_parent) = 0;
 
     virtual outcome::result<std::optional<ValidatorIndex>>
@@ -124,7 +144,7 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
     /// Create validator signer if keypair belongs to validator at given block.
-    outcome::result<std::optional<ValidatorSigner>> at(
+    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> at(
         const primitives::BlockHash &relay_parent) override;
 
     outcome::result<std::optional<ValidatorIndex>> getAuthorityValidatorIndex(

@@ -50,7 +50,7 @@ namespace kagome::parachain {
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)} {}
 
-  outcome::result<std::optional<ValidatorSigner>> ValidatorSignerFactory::at(
+  outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> ValidatorSignerFactory::at(
       const primitives::BlockHash &relay_parent) {
     OUTCOME_TRY(validators, parachain_api_->validators(relay_parent));
     auto keypair = session_keys_->getParaKeyPair(validators);
@@ -58,13 +58,13 @@ namespace kagome::parachain {
       return std::nullopt;
     }
     OUTCOME_TRY(context, SigningContext::make(parachain_api_, relay_parent));
-    return ValidatorSigner{
+    return std::make_shared<ValidatorSigner>(
         keypair->second,
         context,
         std::move(keypair->first),
         hasher_,
-        sr25519_provider_,
-    };
+        sr25519_provider_
+    );
   }
 
   outcome::result<std::optional<ValidatorIndex>>

@@ -14,7 +14,7 @@ namespace kagome::parachain {
 
   class ValidatorSignerFactoryMock : public IValidatorSignerFactory {
    public:
-    MOCK_METHOD(outcome::result<std::optional<ValidatorSigner>>,
+    MOCK_METHOD(outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>,
                 at,
                 (const primitives::BlockHash &),
                 (override));

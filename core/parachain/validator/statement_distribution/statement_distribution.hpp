@@ -327,7 +327,7 @@ namespace kagome::parachain::statement_distribution {
         std::vector<std::pair<HypotheticalCandidate,
                               fragment::HypotheticalMembership>> frontier);
 
-    outcome::result<std::optional<ValidatorSigner>> is_parachain_validator(
+    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> is_parachain_validator(
         const primitives::BlockHash &relay_parent) const;
 
     std::unordered_map<ParachainId, std::vector<GroupIndex>>

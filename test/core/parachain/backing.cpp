@@ -265,7 +265,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::vector<ParachainId> chain_ids;
     std::unordered_map<ParachainId, HeadData> head_data;
     std::vector<crypto::Sr25519PublicKey> validators;
-    //std::vector<ValidatorId> validator_public: ,
+    std::vector<runtime::CoreState> availability_cores;
     struct {
       std::vector<runtime::ValidatorGroup> groups;  
       runtime::GroupDescriptor group_rotation;
@@ -311,6 +311,17 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         .session_start_block = 0,
         .group_rotation_frequency = 100,
         .now_block_num = 1,
+      };
+
+      availability_cores = {
+        runtime::ScheduledCore {
+          .para_id = chain_a,
+          .collator = std::nullopt,
+        },
+        runtime::ScheduledCore {
+          .para_id = chain_b,
+          .collator = std::nullopt,
+        }
       };
     }
   };
@@ -417,6 +428,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
               .group_rotation_frequency = test_state.validator_groups.group_rotation.group_rotation_frequency,
               .now_block_num = number,
             })));
+
+      EXPECT_CALL(*parachain_host_, availability_cores(hash))
+          .WillRepeatedly(Return(test_state.availability_cores));
 
       if (requested_len == 0) {
         EXPECT_CALL(*prospective_parachains_, answerMinimumRelayParentsRequest(leaf_hash))

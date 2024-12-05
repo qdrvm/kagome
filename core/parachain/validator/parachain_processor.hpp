@@ -325,7 +325,7 @@ namespace kagome::parachain {
     };
 
     struct TableContext {
-      std::optional<ValidatorSigner> validator;
+      std::optional<std::shared_ptr<IValidatorSigner>> validator;
       std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> groups;
       std::vector<ValidatorId> validators;
 
@@ -531,7 +531,7 @@ namespace kagome::parachain {
         AttestedCandidate &&attested,
         TableContext &table_context,
         bool inject_core_index);
-    outcome::result<std::optional<ValidatorSigner>> isParachainValidator(
+    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>> isParachainValidator(
         const primitives::BlockHash &relay_parent) const;
 
     /*

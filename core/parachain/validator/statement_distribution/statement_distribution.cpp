@@ -232,7 +232,7 @@ namespace kagome::parachain::statement_distribution {
     peers.erase(peer);
   }
 
-  outcome::result<std::optional<ValidatorSigner>>
+  outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
   StatementDistribution::is_parachain_validator(
       const primitives::BlockHash &relay_parent) const {
     BOOST_ASSERT(main_pool_handler->isInCurrentThread());
@@ -269,7 +269,7 @@ namespace kagome::parachain::statement_distribution {
       if (auto res = is_parachain_validator(new_relay_parent);
           res.has_value()) {
         validator_index = utils::map(res.value(), [](const auto &signer) {
-          return signer.validatorIndex();
+          return signer->validatorIndex();
         });
       }
 

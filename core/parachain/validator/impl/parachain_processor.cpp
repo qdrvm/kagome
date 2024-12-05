@@ -400,7 +400,7 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<std::optional<ValidatorSigner>>
+  outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
   ParachainProcessorImpl::isParachainValidator(
       const primitives::BlockHash &relay_parent) const {
     return signer_factory_->at(relay_parent);
@@ -444,6 +444,8 @@ namespace kagome::parachain {
      * group. Finally, it returns a `RelayParentState` object that contains the
      * assignment, validator index, required collator, and table context.
      */
+    std::cout << fmt::format("===> ask data with {}", relay_parent) << std::endl;
+
     bool is_parachain_validator = false;
     ::libp2p::common::FinalAction metric_updater{
         [&] { metric_is_parachain_validator_->set(is_parachain_validator); }};
@@ -492,7 +494,7 @@ namespace kagome::parachain {
 
     std::optional<ValidatorIndex> validator_index;
     if (validator) {
-      validator_index = validator->validatorIndex();
+      validator_index = (*validator)->validatorIndex();
     }
 
     OUTCOME_TRY(global_v_index,
@@ -1360,7 +1362,7 @@ namespace kagome::parachain {
 
                 const auto our_index = utils::map(
                     table_context.validator,
-                    [](const auto &signer) { return signer.validatorIndex(); });
+                    [](const auto &signer) { return signer->validatorIndex(); });
                 if (our_index && *our_index == statement.payload.ix) {
                   return std::nullopt;
                 }
@@ -2088,7 +2090,7 @@ namespace kagome::parachain {
     /// TODO(iceseer):
     /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
     auto sign_result =
-        parachain_state.table_context.validator->sign(std::forward<T>(payload));
+        (*parachain_state.table_context.validator)->sign(std::forward<T>(payload));
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",

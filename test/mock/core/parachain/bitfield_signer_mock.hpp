@@ -18,7 +18,7 @@ namespace kagome::parachain {
 
     MOCK_METHOD(outcome::result<void>,
                 sign,
-                (const ValidatorSigner &, const Candidates &),
+                (const IValidatorSigner &, const Candidates &),
                 (override));
 
     MOCK_METHOD(void, setBroadcastCallback, (BroadcastCallback &&), (override));
