@@ -17,16 +17,5 @@ namespace kagome::authority_discovery {
     scale::PeerInfoSerializable peer{};
   };
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const AuthorityPeerInfo &api) {
-    return s << api.raw << api.time << api.peer;
-  }
-
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, AuthorityPeerInfo &api) {
-    return s >> api.raw >> api.time >> api.peer;
-  }
 
 }  // namespace kagome::authority_discovery
