@@ -64,6 +64,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
 
   static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
   static constexpr uint32_t MAX_POV_SIZE = 1000000;
+  static constexpr uint32_t LEGACY_MIN_BACKING_VOTES = 2;
 
   Hash hashFromStrData(std::span<const char> data) {
     return ghashFromStrData(hasher_, data);

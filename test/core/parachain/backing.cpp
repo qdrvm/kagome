@@ -275,6 +275,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::vector<crypto::Sr25519PublicKey> validators;
     std::vector<runtime::CoreState> availability_cores;
     SigningContext signing_context;
+    uint32_t minimum_backing_votes;
 
     struct {
       std::vector<runtime::ValidatorGroup> groups;
@@ -338,6 +339,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           .session_index = 1,
           .relay_parent = relay_parent,
       };
+
+      minimum_backing_votes = LEGACY_MIN_BACKING_VOTES;
     }
   };
 
@@ -454,6 +457,24 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           .WillRepeatedly(Return(test_state.availability_cores));
 
       EXPECT_CALL(*signer_factory_, at(hash)).WillRepeatedly(Return(signer_));
+      EXPECT_CALL(*signer_factory_, getAuthorityValidatorIndex(hash))
+          .WillRepeatedly(Return(0));
+
+      runtime::SessionInfo si;
+      si.validators = test_state.validators;
+      si.discovery_keys = test_state.validators;
+      EXPECT_CALL(*parachain_host_,
+                  session_info(hash, test_state.signing_context.session_index))
+          .WillRepeatedly(Return(si));
+
+      EXPECT_CALL(*parachain_host_,
+                  node_features(hash, test_state.signing_context.session_index))
+          .WillRepeatedly(Return(runtime::ParachainHost::NodeFeatures()));
+
+      EXPECT_CALL(
+          *parachain_host_,
+          minimum_backing_votes(hash, test_state.signing_context.session_index))
+          .WillRepeatedly(Return(test_state.minimum_backing_votes));
 
       if (requested_len == 0) {
         EXPECT_CALL(*prospective_parachains_,
