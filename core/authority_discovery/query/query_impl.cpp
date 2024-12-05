@@ -88,8 +88,15 @@ namespace kagome::authority_discovery {
     std::unique_lock lock{mutex_};
     auto authority_opt = audi_store_->get(authority);
     if (authority_opt == std::nullopt) {
+      SL_TRACE(log_,
+               "No authority peer found in storage {}",
+               common::hex_lower(authority));
       return std::nullopt;
     }
+    SL_TRACE(log_,
+             "Authority id {} {} addresses found in storage",
+             common::hex_lower(authority),
+             authority_opt.value().peer.addresses.size());
     return authority_opt.value().peer;
   }
 
@@ -287,7 +294,7 @@ namespace kagome::authority_discovery {
                   scale::decode<TimestampScale>(
                       qtils::str2byte(record.creation_time().timestamp())));
       time = *tmp;
-      if (it != std::nullopt and time <= it->time->number) {
+      if (it and it->time and time <= it->time->number) {
         SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }
