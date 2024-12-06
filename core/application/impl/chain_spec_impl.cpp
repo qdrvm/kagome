@@ -17,6 +17,8 @@
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 
+#include "log/westend.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, ChainSpecImpl::Error, e) {
   using E = kagome::application::ChainSpecImpl::Error;
   switch (e) {
@@ -78,6 +80,8 @@ namespace kagome::application {
 
     OUTCOME_TRY(id, ensure("id", tree.get_child_optional("id")));
     id_ = id.get<std::string>("");
+
+    log::westend::chainSpec(id_);
 
     // acquiring "chainType" value
     if (auto entry = tree.get_child_optional("chainType"); entry.has_value()) {

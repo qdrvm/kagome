@@ -20,6 +20,8 @@
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_macro.hpp"
 
+#include "log/westend.hpp"
+
 namespace {
   /// Reputation value for a node when we get disconnected from it.
   static constexpr int32_t kDisconnectReputation = -256;
@@ -135,6 +137,9 @@ namespace kagome::network {
                   WEAK_LOCK(self);
                   WEAK_LOCK(conn);
                   auto peer_id = conn->remotePeer().value();
+
+                  log::westend::connected(peer_id, conn->isInitiator());
+
                   for (auto &conn2 : self->host_.getNetwork()
                                          .getConnectionManager()
                                          .getConnectionsToPeer(peer_id)) {
@@ -152,6 +157,8 @@ namespace kagome::network {
         host_.getBus()
             .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
             .subscribe([wp{weak_from_this()}](const PeerId &peer_id) {
+              log::westend::disconnected(peer_id);
+
               if (auto self = wp.lock()) {
                 SL_DEBUG(self->log_,
                          "OnPeerDisconnectedChannel handler from peer {}",

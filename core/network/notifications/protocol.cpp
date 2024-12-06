@@ -160,6 +160,9 @@ namespace kagome::network::notifications {
       peer_in.remove();
       closed = not peer_out_open;
     }
+    if (auto controller = controller_.lock()) {
+      controller->onClose2(peer_id, out);
+    }
     if (closed) {
       if (auto controller = controller_.lock()) {
         controller->onClose(peer_id);

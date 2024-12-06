@@ -17,6 +17,8 @@
 #include "utils/weak_macro.hpp"
 #include "utils/with_type.hpp"
 
+#include "log/westend.hpp"
+
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
   {}
@@ -64,9 +66,11 @@ namespace kagome::network {
       ParachainProtocolInject &&inject,
       notifications::ProtocolsGroups protocols_groups,
       size_t limit_in,
-      size_t limit_out)
+      size_t limit_out,
+      bool collation)
       : notifications_{inject.notifications_factory->make(
-            std::move(protocols_groups), limit_in, limit_out)},
+          std::move(protocols_groups), limit_in, limit_out)},
+        collation_{collation},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
@@ -81,18 +85,27 @@ namespace kagome::network {
                                       size_t protocol_group,
                                       bool out,
                                       Buffer &&handshake) {
+    log::westend::stream_open(peer_id, out, collation_);
+
     TRY_FALSE(scale::decode<Roles>(handshake));
     auto state = peer_manager_->createDefaultPeerState(peer_id);
     state.value().get().collation_version =
         collation_versions_.at(protocol_group);
     if (out) {
-      notifications_->write(
-          peer_id, protocol_group, encodeView(peer_view_->getMyView()));
+      auto view = peer_view_->getMyView();
+
+      log::westend::write_view(view)(peer_id)();
+
+      notifications_->write(peer_id, protocol_group, encodeView(view));
     }
     return true;
   }
 
   void ParachainProtocol::onClose(const PeerId &peer_id) {}
+
+  void ParachainProtocol::onClose2(const PeerId &peer_id, bool out) {
+    log::westend::stream_close(peer_id, out, collation_);
+  }
 
   void ParachainProtocol::start() {
     if (not roles_.isAuthority()) {
@@ -116,11 +129,17 @@ namespace kagome::network {
   }
 
   void ParachainProtocol::write(const View &view) {
+    auto log = log::westend::write_view(view);
+
     auto message = encodeView(view);
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
+      log(peer_id);
+
       notifications_->write(peer_id, protocol_group, message);
       return true;
     });
+
+    log();
   }
 
   template <typename Types, typename Observer>
@@ -131,8 +150,12 @@ namespace kagome::network {
     return Types::with(protocol_group, [&]<typename M>() {
       auto message = TRY_FALSE(scale::decode<WireMessage<M>>(message_raw));
       if (auto *view = boost::get<ViewUpdate>(&message)) {
+        log::westend::read_view(peer_id, view->view);
+
         peer_view_->updateRemoteView(peer_id, std::move(view->view));
       } else {
+        log::westend::read_message(peer_id, boost::get<M>(message));
+
         observer.onIncomingMessage(peer_id, std::move(boost::get<M>(message)));
       }
       return true;
@@ -150,6 +173,7 @@ namespace kagome::network {
           },
           kCollationPeersLimit,
           0,
+          true,
       },
       observer_{std::move(observer)} {}
 
@@ -166,6 +190,9 @@ namespace kagome::network {
     if (not protocol_group) {
       return;
     }
+
+    log::westend::write_message(seconded)(peer_id)();
+
     CollationTypes::with(*protocol_group, [&]<typename M>() {
       notifications_->write(
           peer_id, *protocol_group, encodeMessage<M>(seconded));
@@ -183,6 +210,7 @@ namespace kagome::network {
           },
           kValidationPeersLimit,
           kValidationPeersLimit,
+          false,
       },
       observer_{std::move(observer)} {}
 
@@ -194,12 +222,23 @@ namespace kagome::network {
   }
 
   void ValidationProtocol::write(
-      const PeerId &peer_id,
-      std::pair<size_t, std::shared_ptr<Buffer>> message) {
-    notifications_->write(peer_id, message.first, std::move(message.second));
+      const std::vector<PeerId> &peers,
+      const VersionedValidatorProtocolMessage &message) {
+    auto log = log::westend::write_message(message);
+
+    auto [group, raw] = encodeMessage(message);
+    for (auto &peer_id : peers) {
+      log(peer_id);
+
+      notifications_->write(peer_id, group, raw);
+    }
+
+    log();
   }
 
   void ValidationProtocol::write(const BitfieldDistribution &message) {
+    auto log = log::westend::write_message(message);
+
     std::vector<std::shared_ptr<Buffer>> messages;
     for (size_t i = 0; i < collation_versions_.size(); ++i) {
       ValidationTypes::with(i, [&]<typename M>() {
@@ -207,10 +246,14 @@ namespace kagome::network {
       });
     }
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
+      log(peer_id);
+
       notifications_->write(
           peer_id, protocol_group, messages.at(protocol_group));
       return true;
     });
+
+    log();
   }
 
   void ValidationProtocol::reserve(const PeerId &peer_id, bool add) {

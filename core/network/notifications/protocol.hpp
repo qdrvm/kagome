@@ -124,6 +124,8 @@ namespace kagome::network::notifications {
      * Both incoming/outgoing streams with peer were closed.
      */
     virtual void onClose(const PeerId &peer_id) = 0;
+
+    virtual void onClose2(const PeerId &peer_id, bool out) {}
   };
 
   /**

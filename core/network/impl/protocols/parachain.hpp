@@ -47,7 +47,8 @@ namespace kagome::network {
     ParachainProtocol(ParachainProtocolInject &&inject,
                       notifications::ProtocolsGroups protocols_groups,
                       size_t limit_in,
-                      size_t limit_out);
+                      size_t limit_out,
+                      bool collation);
 
     // Controller
     Buffer handshake() override;
@@ -56,6 +57,7 @@ namespace kagome::network {
                      bool out,
                      Buffer &&handshake) override;
     void onClose(const PeerId &peer_id) override;
+    void onClose2(const PeerId &peer_id, bool out) override;
 
     void start();
 
@@ -69,6 +71,7 @@ namespace kagome::network {
 
     // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
     std::shared_ptr<notifications::Protocol> notifications_;
+    bool collation_;
     std::vector<CollationVersion> collation_versions_;
     Roles roles_;
     std::shared_ptr<PeerManager> peer_manager_;
@@ -105,21 +108,15 @@ namespace kagome::network {
                    size_t protocol_group,
                    Buffer &&message) override;
 
-    void write(const PeerId &peer_id,
-               std::pair<size_t, std::shared_ptr<Buffer>> message);
-    void write(const PeerId &peer_id,
+    void write(const std::vector<PeerId> &peers,
+               const VersionedValidatorProtocolMessage &message);
+    void write(const std::unordered_set<PeerId> &peers,
                const VersionedValidatorProtocolMessage &message) {
-      write(peer_id, encodeMessage(message));
+      write(std::vector(peers.begin(), peers.end()), message);
     }
-    void write(const auto &peers,
+    void write(const PeerId &peer,
                const VersionedValidatorProtocolMessage &message) {
-      if (peers.empty()) {
-        return;
-      }
-      auto message_raw = encodeMessage(message);
-      for (auto &peer_id : peers) {
-        write(peer_id, message_raw);
-      }
+      write(std::vector{peer}, message);
     }
     void write(const BitfieldDistribution &message);
     void reserve(const PeerId &peer_id, bool add);

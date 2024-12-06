@@ -13,6 +13,8 @@
 #include "network/impl/protocols/parachain.hpp"
 #include "utils/retain_if.hpp"
 
+#include "log/westend.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
   using E = decltype(e);
   switch (e) {
@@ -338,6 +340,8 @@ namespace kagome::authority_discovery {
                                          });
 
     validation_protocol_.get()->reserve(peer.id, true);
+
+    log::westend::audi(authority, peer.id);
 
     return outcome::success();
   }
