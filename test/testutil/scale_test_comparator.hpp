@@ -14,7 +14,7 @@ namespace testutil {
   template <typename... T>
   inline outcome::result<std::vector<uint8_t>> scaleEncodeAndCompareWithRef(
       T &&...t) {
-    return ::scale::encode(std::forward<T>(t)...);
+    return scale::encode(std::forward<T>(t)...);
   }
 
 }  // namespace testutil

@@ -17,7 +17,7 @@
 template <>
 struct std::hash<scale::BitVec> {
   auto operator()(const scale::BitVec &v) const {
-    auto s = ::scale::encode(v).value();
+    auto s = scale::encode(v).value();
     return boost::hash_range(s.begin(), s.end());
   }
 };

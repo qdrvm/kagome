@@ -48,7 +48,7 @@ namespace kagome::parachain {
     template <typename T>
     auto signable(const crypto::Hasher &hasher, const T &payload) const {
       auto &&signable = toSignable(hasher, payload);
-      return ::scale::encode(std::tie(signable, *this)).value();
+      return scale::encode(std::tie(signable, *this)).value();
     }
 
     /// Current session index.

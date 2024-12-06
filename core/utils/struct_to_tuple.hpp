@@ -75,7 +75,7 @@
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
-  decltype(void(T{{std::declval<TArgs>()}...}), std::true_type{})
+  decltype(void(T{std::declval<TArgs>()...}), std::true_type())
   test_is_braces_constructible(int);
 
   template <typename, typename...>
