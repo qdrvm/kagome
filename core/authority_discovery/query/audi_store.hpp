@@ -42,7 +42,8 @@ namespace kagome::authority_discovery {
      * Remove authority discovery data
      * @param authority the authority to remove
      */
-    virtual outcome::result<void> remove(const primitives::AuthorityDiscoveryId &authority) = 0;
+    virtual outcome::result<void> remove(
+        const primitives::AuthorityDiscoveryId &authority) = 0;
 
     /**
      * Check if the store contains the authority
@@ -52,10 +53,16 @@ namespace kagome::authority_discovery {
     virtual bool contains(
         const primitives::AuthorityDiscoveryId &authority) const = 0;
 
+    /**
+     * Apply a function to each entry in the store
+     */
     virtual void forEach(
         std::function<void(const primitives::AuthorityDiscoveryId &,
                            const AuthorityPeerInfo &)> f) const = 0;
 
+    /**
+     * Retain only the entries that satisfy the predicate
+     */
     virtual void retainIf(
         std::function<bool(const primitives::AuthorityDiscoveryId &,
                            const AuthorityPeerInfo &)> f) = 0;
