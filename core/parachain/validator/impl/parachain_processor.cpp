@@ -274,6 +274,9 @@ namespace kagome::parachain {
         network::IPeerView::EventType::kViewUpdated,
         [WEAK_SELF](const network::ExView &event) {
           WEAK_LOCK(self);
+          for (const auto &l : self->block_tree_->getLeaves()) {
+            SL_TRACE(self->logger_, "EXISTED LEAF IN TRIE {}", l);
+          }
           self->onViewUpdated(event);
         });
 
@@ -282,9 +285,35 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
     REINVOKE(*main_pool_handler_, onViewUpdated, event);
-    CHECK_OR_RET(canProcessParachains().has_value());
+
     const auto &relay_parent = event.new_head.hash();
-    std::cout << fmt::format("===> ACTIVE LEAF {}\n", relay_parent);
+    existed_leaves_[relay_parent] = event.new_head.number;
+    for (const auto &l : event.lost) {
+      existed_leaves_.erase(l);
+    }
+
+    if ((event.new_head.number % 10) == 0) {
+      std::map<BlockNumber, std::deque<Hash>> tmp;
+      for (const auto &[h, i] : existed_leaves_)  {
+        tmp[i].emplace_back(h);
+      }
+
+      size_t counter = 0;
+      for (const auto &[n, hs] : tmp) {
+        for (const auto &h : hs) {
+          SL_TRACE(logger_, "[PARACHAIN PROC]: ACTIVE LEAF {}  -   {}", n, h);
+          if (++counter >= 10) {
+            break;
+          }
+        }
+        if (counter >= 10) {
+          break;
+        }
+      }
+    }
+
+    CHECK_OR_RET(canProcessParachains().has_value());
+    SL_TRACE(logger_, "===> ACTIVE LEAF {}", relay_parent);
 
     /// init `prospective_parachains` subsystem
     if (const auto r =

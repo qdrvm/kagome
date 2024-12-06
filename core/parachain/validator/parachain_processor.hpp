@@ -821,6 +821,7 @@ namespace kagome::parachain {
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
+    std::unordered_map<Hash, BlockNumber> existed_leaves_;
 
    public:
     void handle_second_message(const network::CandidateReceipt &candidate,
