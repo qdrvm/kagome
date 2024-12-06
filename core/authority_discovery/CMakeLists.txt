@@ -9,9 +9,12 @@ add_subdirectory(protobuf)
 add_library(address_publisher
     publisher/address_publisher.cpp
     query/query_impl.cpp
-    )
+    query/audi_store_impl.cpp
+    query/audi_store_impl.hpp
+)
 target_link_libraries(address_publisher
     authority_discovery_proto
     logger
+    scale_libp2p_types
     sha
-    )
+)

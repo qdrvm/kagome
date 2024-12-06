@@ -51,6 +51,7 @@
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
+#include "authority_discovery/query/audi_store_impl.hpp"
 #include "authority_discovery/query/query_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
@@ -869,6 +870,7 @@ namespace {
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<authority_discovery::AudiStore>.template to<authority_discovery::AudiStoreImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<libp2p::protocol::kademlia::Validator>.template to<authority_discovery::QueryImpl>()[boost::di::override],
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),

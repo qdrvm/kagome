@@ -22,6 +22,8 @@
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 
+#include <authority_discovery/query/authority_peer_info.hpp>
+
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
@@ -89,6 +91,10 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh);
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c);
 
 }  // namespace kagome::scale
 
@@ -193,6 +199,14 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const network::Roles &c) {
     encode(func, c.value);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c) {
+    encode(func, c.raw);
+    encode(func, c.time);
+    encode(func, c.peer);
   }
 
 }  // namespace kagome::scale

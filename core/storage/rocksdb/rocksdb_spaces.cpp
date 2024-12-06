@@ -6,8 +6,8 @@
 
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 
-#include <array>
 #include <algorithm>
+#include <array>
 
 #include <rocksdb/db.h>
 #include <boost/assert.hpp>
@@ -22,7 +22,9 @@ namespace kagome::storage {
                                           "trie_value",
                                           "dispute_data",
                                           "beefy_justification",
-                                          "avaliability_storage"};
+                                          "avaliability_storage",
+                                          "audi_peers",
+                                        };
 
   std::string spaceName(Space space) {
     static_assert(kSpaceNames.size() == Space::kTotal - 1);
