@@ -27,17 +27,9 @@ namespace kagome {
                         .value();
         auto keypair = ed25519_provider->generateKeypair(seed, {}).value();
         auto libp2p_key = crypto::ed25519KeyToLibp2pKeypair(keypair);
-        // auto key_marshaller =
-        //     std::make_shared<libp2p::crypto::marshaller::KeyMarshaller>();
-        // libp2p::crypto::ProtobufKey libp2p_key_pb = {
-        //     key_marshaller->marshal(libp2p_key.publicKey).value()};
-        // auto peer_id = libp2p::peer::PeerId::fromPublicKey(libp2p_key_pb);
-
-        auto protofbuf_key_from_keypair =
-            libp2p::crypto::ProtobufKey{std::vector<uint8_t>(
-                keypair.public_key.begin(), keypair.public_key.end())};
-        auto peer_id =
-            libp2p::peer::PeerId::fromPublicKey(protofbuf_key_from_keypair);
+        libp2p::crypto::ProtobufKey protobuf_key{
+            common::Buffer{libp2p_key.publicKey.data}};
+        auto peer_id = libp2p::peer::PeerId::fromPublicKey(protobuf_key);
         std::cerr << peer_id.value().toBase58() << std::endl;
         std::cout << kagome::common::hex_lower(keypair.secret_key.unsafeBytes())
                   << std::endl;
