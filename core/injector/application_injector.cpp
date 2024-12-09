@@ -107,6 +107,7 @@
 #include "injector/calculate_genesis_state.hpp"
 #include "injector/get_peer_keypair.hpp"
 #include "injector/idle_trie_pruner.hpp"
+#include "key/key.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
@@ -1115,6 +1116,10 @@ namespace kagome::injector {
   KagomeNodeInjector::injectBlockBenchmark() {
     return pimpl_->injector_
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
+  }
+
+  std::shared_ptr<key::Key> KagomeNodeInjector::injectKey() {
+    return pimpl_->injector_.template create<sptr<key::Key>>();
   }
 
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {

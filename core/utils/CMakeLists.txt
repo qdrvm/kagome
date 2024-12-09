@@ -42,5 +42,5 @@ add_library(kagome-key
     )
 
 target_link_libraries(kagome-key
-    ed25519_provider
+    application_injector
     )
