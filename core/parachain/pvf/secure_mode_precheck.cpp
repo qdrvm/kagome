@@ -23,6 +23,7 @@
 #include "common/buffer_view.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/secure_mode.hpp"
 #include "utils/get_exe_path.hpp"
 
@@ -62,6 +63,14 @@ namespace kagome::parachain {
     } else {
       SL_WARN(logger,
               "Secure mode incomplete, cannot enable seccomp for PVF "
+              "worker: {}",
+              res.error());
+    }
+    if (auto res = clone::check()) {
+      support.can_do_secure_clone = true;
+    } else {
+      SL_WARN(logger,
+              "Secure mode incomplete, cannot enable clone for PVF "
               "worker: {}",
               res.error());
     }

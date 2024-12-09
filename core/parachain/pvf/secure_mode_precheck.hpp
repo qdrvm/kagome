@@ -6,12 +6,15 @@
 
 #pragma once
 
-#include <boost/asio/io_context.hpp>
 #include <filesystem>
 
 #include "parachain/pvf/secure_mode.hpp"
 #include "qtils/outcome.hpp"
 #include "scale/tie.hpp"
+
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
 
 namespace kagome::parachain {
 
@@ -20,7 +23,7 @@ namespace kagome::parachain {
    * platform
    */
   struct SecureModeSupport {
-    SCALE_TIE(3);
+    SCALE_TIE(4);
 
     // The filesystem root of the PVF process can be set to the worker directory
     bool chroot;
@@ -32,8 +35,16 @@ namespace kagome::parachain {
     // process
     bool seccomp;
 
+    // Whether we are able to call `clone` with all sandboxing flags.
+    bool can_do_secure_clone;
+
     static SecureModeSupport none() {
-      return {false, false, false};
+      return {
+          .chroot = false,
+          .landlock = false,
+          .seccomp = false,
+          .can_do_secure_clone = false,
+      };
     }
 
     bool isTotallySupported() const {
