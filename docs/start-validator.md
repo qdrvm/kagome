@@ -44,6 +44,10 @@ Alternatively, you can use the provided docker-compose files to run a KAGOME nod
 
 ### Building from source
 
+> **Note:** By default, the project is built using `gcc`. Ensure that `gcc` is installed on your system.
+> To use a different compiler, update the `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` variables with the path to corresponding compilers in the `scripts/.env` file.
+> KAGOME can be built with `gcc` of version 13 or higher, or `clang` of version 16 or higher.
+
 1. Clone the KAGOME repository:
 
 ```sh
