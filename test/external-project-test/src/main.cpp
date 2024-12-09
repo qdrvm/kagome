@@ -7,7 +7,6 @@
 #include <kagome/application/impl/app_configuration_impl.hpp>
 #include <kagome/application/impl/app_state_manager_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
-#include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bandersnatch/bandersnatch_provider_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
@@ -42,6 +41,8 @@
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <libp2p/log/configurator.hpp>
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 
 int main() {
   libp2p::common::FinalAction flush_std_streams_at_exit([] {
@@ -69,9 +70,6 @@ int main() {
       kagome::storage::RocksDb::create("/tmp/kagome_tmp_db", db_options)
           .value();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
-  auto header_repo =
-      std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(database,
-                                                                      hasher);
 
   using std::string_literals::operator""s;
 
@@ -116,7 +114,9 @@ int main() {
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
       runtime_upgrade_tracker =
           std::move(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-                        header_repo, database, code_substitutes, block_storage)
+                        database,
+                        code_substitutes,
+                        std::make_shared<kagome::blockchain::BlockTreeMock>())
                         .value());
 
   auto storage_batch =
@@ -224,6 +224,7 @@ int main() {
           app_config,
           module_factory,
           std::make_shared<kagome::runtime::WasmInstrumenter>());
+  auto header_repo = std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       hasher,

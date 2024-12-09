@@ -60,7 +60,10 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockHash> putBlockHeader(
         const primitives::BlockHeader &header) override;
 
-    outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
+    outcome::result<primitives::BlockHeader> getBlockHeader(
+        const primitives::BlockHash &block_hash) const override;
+
+    outcome::result<std::optional<primitives::BlockHeader>> tryGetBlockHeader(
         const primitives::BlockHash &block_hash) const override;
 
     // -- body --
@@ -101,6 +104,9 @@ namespace kagome::blockchain {
    private:
     BlockStorageImpl(std::shared_ptr<storage::SpacedStorage> storage,
                      std::shared_ptr<crypto::Hasher> hasher);
+
+    outcome::result<std::optional<primitives::BlockHeader>> fetchBlockHeader(
+        const primitives::BlockHash &block_hash) const;
 
     std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
