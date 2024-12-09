@@ -71,15 +71,17 @@ namespace kagome::dispute {
     // onchain - don't skip it. In this case we'd better push as much fresh
     // votes as possible to bring it to conclusion faster.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/provisioner/src/disputes/prioritized_selection/mod.rs#L146
-    for (auto &recent_dispute : std::move(recent_disputes)) {
+    decltype(recent_disputes) filtered_disputes;
+    for (auto &recent_dispute : recent_disputes) {
       auto &dispute_status = std::get<2>(recent_dispute);
 
       if (is_type<Active>(dispute_status)  // is_confirmed_concluded
           or onchain.contains(std::tie(std::get<0>(recent_dispute),
                                        std::get<1>(recent_dispute)))) {
-        recent_disputes.emplace_back(std::move(recent_dispute));
+        filtered_disputes.emplace_back(std::move(recent_dispute));
       }
     }
+    recent_disputes = std::move(filtered_disputes);
 
     auto partitioned = partition_recent_disputes(recent_disputes, onchain);
 

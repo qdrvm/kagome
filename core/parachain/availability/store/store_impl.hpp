@@ -10,14 +10,25 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include "application/app_state_manager.hpp"
 #include "log/logger.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
+
 namespace kagome::parachain {
-  class AvailabilityStoreImpl : public AvailabilityStore {
+  class AvailabilityStoreImpl
+      : public AvailabilityStore,
+        public std::enable_shared_from_this<AvailabilityStoreImpl> {
    public:
+    AvailabilityStoreImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        clock::SteadyClock &steady_clock,
+        std::shared_ptr<storage::SpacedStorage> storage,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
     ~AvailabilityStoreImpl() override = default;
-    AvailabilityStoreImpl(std::shared_ptr<storage::SpacedStorage> storage);
+
+    bool start();
 
     bool hasChunk(const CandidateHash &candidate_hash,
                   ValidatorIndex index) const override;
@@ -53,10 +64,17 @@ namespace kagome::parachain {
       std::unordered_map<CandidateHash, PerCandidate> per_candidate_{};
       std::unordered_map<network::RelayHash, std::unordered_set<CandidateHash>>
           candidates_{};
+      std::deque<std::pair<uint64_t, network::RelayHash>>
+          candidates_living_keeper_;
     };
 
+    void prune_candidates_no_lock(State &state);
+    void remove_no_lock(State &state, const network::RelayHash &relay_parent);
+
     log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
-    SafeObject<State> state_{};
+    clock::SteadyClock &steady_clock_;
     std::shared_ptr<storage::SpacedStorage> storage_;
+    primitives::events::ChainSub chain_sub_;
+    SafeObject<State> state_{};
   };
 }  // namespace kagome::parachain

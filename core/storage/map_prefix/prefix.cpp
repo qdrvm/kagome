@@ -7,6 +7,7 @@
 #include "storage/map_prefix/prefix.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
   inline std::optional<Buffer> afterPrefix(Buffer key) {
@@ -99,7 +100,8 @@ namespace kagome::storage {
     batch->clear();
   }
 
-  MapPrefix::MapPrefix(BufferView prefix, std::shared_ptr<BufferStorage> map)
+  MapPrefix::MapPrefix(BufferView prefix,
+                       std::shared_ptr<BufferBatchableStorage> map)
       : prefix{prefix},
         after_prefix{afterPrefix(this->prefix)},
         map{std::move(map)} {}

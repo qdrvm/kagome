@@ -89,7 +89,7 @@ namespace kagome::network::vstaging {
                      Dummy,
                      CollatorProtocolMessageCollationSeconded>;
 
-  using CollatorProtocolMessage = boost::variant<CollationMessage>;
+  using CollationMessage0 = boost::variant<CollationMessage>;
 
   struct SecondedCandidateHash {
     SCALE_TIE(1);
@@ -447,16 +447,12 @@ namespace kagome::network {
   };
 
   struct FetchedCollation {
-    SCALE_TIE(4);
-
     /// Candidate's relay parent.
     RelayHash relay_parent;
     /// Parachain id.
     ParachainId para_id;
     /// Candidate hash.
     CandidateHash candidate_hash;
-    /// Id of the collator the collation was fetched from.
-    CollatorId collator_id;
 
     static FetchedCollation from(const network::CandidateReceipt &receipt,
                                  const crypto::Hasher &hasher) {
@@ -465,9 +461,10 @@ namespace kagome::network {
           .relay_parent = descriptor.relay_parent,
           .para_id = descriptor.para_id,
           .candidate_hash = receipt.hash(hasher),
-          .collator_id = descriptor.collator_id,
       };
     }
+
+    bool operator==(const FetchedCollation &) const = default;
   };
 
   /**
@@ -476,22 +473,21 @@ namespace kagome::network {
   template <typename T>
   using WireMessage = boost::variant<
       Dummy,  /// not used
-      std::enable_if_t<
-          AllowerTypeChecker<T,
-                             ValidatorProtocolMessage,
-                             CollationProtocolMessage,
-                             vstaging::ValidatorProtocolMessage,
-                             vstaging::CollatorProtocolMessage>::allowed,
-          T>,     /// protocol message
-      ViewUpdate  /// view update message
+      std::enable_if_t<AllowerTypeChecker<T,
+                                          ValidatorProtocolMessage,
+                                          CollationMessage0,
+                                          vstaging::ValidatorProtocolMessage,
+                                          vstaging::CollationMessage0>::allowed,
+                       T>,  /// protocol message
+      ViewUpdate            /// view update message
       >;
 
   template <typename V1, typename VStaging>
   using Versioned = boost::variant<V1, VStaging>;
 
   using VersionedCollatorProtocolMessage =
-      Versioned<kagome::network::CollationMessage,
-                kagome::network::vstaging::CollatorProtocolMessage>;
+      Versioned<kagome::network::CollationMessage0,
+                kagome::network::vstaging::CollationMessage0>;
   using VersionedValidatorProtocolMessage =
       Versioned<kagome::network::ValidatorProtocolMessage,
                 kagome::network::vstaging::ValidatorProtocolMessage>;

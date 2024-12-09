@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/buffer_view.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
 #include "log/logger.hpp"

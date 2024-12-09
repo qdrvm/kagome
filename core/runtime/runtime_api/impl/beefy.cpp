@@ -8,6 +8,7 @@
 
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/runtime_api/impl/if_export.hpp"
 
 namespace kagome::runtime {
   BeefyApiImpl::BeefyApiImpl(std::shared_ptr<Executor> executor)
@@ -18,15 +19,11 @@ namespace kagome::runtime {
   outcome::result<std::optional<primitives::BlockNumber>> BeefyApiImpl::genesis(
       const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    auto r = executor_->call<std::optional<primitives::BlockNumber>>(
-        ctx, "BeefyApi_beefy_genesis");
-    if (r) {
-      return r.value();
-    }
-    if (r.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
-      return std::nullopt;
-    }
-    return r.error();
+    OUTCOME_TRY(
+        r,
+        ifExport(executor_->call<std::optional<primitives::BlockNumber>>(
+            ctx, "BeefyApi_beefy_genesis")));
+    return r.value_or(std::nullopt);
   }
 
   outcome::result<std::optional<consensus::beefy::ValidatorSet>>

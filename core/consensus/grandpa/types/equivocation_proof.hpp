@@ -61,8 +61,10 @@ namespace kagome::consensus::grandpa {
     friend scale::ScaleEncoderStream &operator<<(
         scale::ScaleEncoderStream &s, const Equivocation &equivocation) {
       return s << equivocation.stage << equivocation.round_number
-               << equivocation.first.id << equivocation.first
-               << equivocation.second;
+               << equivocation.first.id << equivocation.first.getBlockInfo()
+               << equivocation.first.signature
+               << equivocation.second.getBlockInfo()
+               << equivocation.second.signature;
     }
   };
 

@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "common/blob.hpp"
+#include "common/buffer.hpp"
+#include "storage/buffer_map_types.hpp"
+#include "storage/face/writeable.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 #include <deque>
@@ -48,7 +53,7 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<std::shared_ptr<TrieBatch>>> createChildBatch(
         common::BufferView path) override;
 
-    outcome::result<void> apply(storage::BufferStorage &map);
+    outcome::result<void> apply(face::Writeable<Buffer, Buffer> &map);
 
    private:
     std::map<Buffer, std::optional<Buffer>> cache_;
@@ -75,6 +80,7 @@ namespace kagome::storage::trie {
     outcome::result<void> prev() override;
     std::optional<Buffer> key() const override;
     std::optional<BufferOrView> value() const override;
+    std::optional<ValueHash> valueHash() const override;
 
     outcome::result<void> seekLowerBound(const BufferView &key) override;
     outcome::result<void> seekUpperBound(const BufferView &key) override;
@@ -88,7 +94,7 @@ namespace kagome::storage::trie {
     struct Choice {
       Choice(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
 
-      operator bool() const {
+      explicit operator bool() const {
         return parent || overlay;
       }
 

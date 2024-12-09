@@ -156,15 +156,14 @@ namespace kagome::network {
     primitives::BlockHash
         relay_parent;  /// Hash of the relay chain block the candidate is
     /// executed in the context of
-    parachain::CollatorPublicKey collator_id;  /// Collators public key.
+    common::Blob<32> reserved_1;
     primitives::BlockHash
         persisted_data_hash;         /// Hash of the persisted validation data
     primitives::BlockHash pov_hash;  /// Hash of the PoV block.
     storage::trie::RootHash
         erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
     /// tree.
-    parachain::Signature
-        signature;  /// Collator signature of the concatenated components
+    common::Blob<64> reserved_2;
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash
@@ -181,10 +180,48 @@ namespace kagome::network {
       };
     }
   };
+
+  /**
+   * Contains information about the candidate and a proof of the results of its
+   * execution.
+   */
+  struct CandidateReceipt {
+    CandidateDescriptor descriptor;    /// Candidate descriptor
+    parachain::Hash commitments_hash;  /// Hash of candidate commitments
+    mutable std::optional<parachain::Hash> hash_{};
+
+    const parachain::Hash &hash(const crypto::Hasher &hasher) const {
+      if (not hash_.has_value()) {
+        hash_.emplace(hasher.blake2b_256(
+            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
+      }
+      return hash_.value();
+    }
+
+    SCALE_TIE_ONLY(descriptor, commitments_hash);
+  };
+
+  struct CommittedCandidateReceipt {
+    SCALE_TIE(2);
+
+    CandidateDescriptor descriptor;    /// Candidate descriptor
+    CandidateCommitments commitments;  /// commitments retrieved from validation
+    /// result and produced by the execution
+    /// and validation parachain candidate
+
+    CandidateReceipt to_plain(const crypto::Hasher &hasher) const {
+      CandidateReceipt receipt;
+      receipt.descriptor = descriptor,
+      receipt.commitments_hash =
+          hasher.blake2b_256(scale::encode(commitments).value());
+      return receipt;
+    }
+  };
+
 }  // namespace kagome::network
 
 namespace kagome::parachain::fragment {
-  enum UpgradeRestriction {
+  enum UpgradeRestriction : uint8_t {
     /// There is an upgrade restriction and there are no details about its
     /// specifics nor how long
     /// it could last.

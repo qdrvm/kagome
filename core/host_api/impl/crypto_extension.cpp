@@ -616,14 +616,14 @@ namespace kagome::host_api {
   runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_sign_prehashed_version_1(
       runtime::WasmPointer key_type_ptr,
       runtime::WasmPointer key,
-      runtime::WasmSpan msg) {
+      runtime::WasmPointer msg_data) {
     using ResultType = std::optional<crypto::EcdsaSignature>;
 
     crypto::KeyType key_type = loadKeyType(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
     auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
-    auto [msg_data, msg_len] = runtime::PtrSize(msg);
+    runtime::WasmSize msg_len = 32;
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
 
     crypto::EcdsaPublicKey pk;

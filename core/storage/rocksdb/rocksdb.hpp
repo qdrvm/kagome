@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/buffer.hpp"
 #include "storage/buffer_map_types.hpp"
 
 #include <rocksdb/db.h>
@@ -15,15 +16,14 @@
 
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
+#include "storage/face/batch_writeable.hpp"
+#include "storage/rocksdb/rocksdb_spaces.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace kagome::storage {
 
   class RocksDb : public SpacedStorage,
                   public std::enable_shared_from_this<RocksDb> {
-   private:
-    using ColumnFamilyHandlePtr = rocksdb::ColumnFamilyHandle *;
-
    public:
     ~RocksDb() override;
 
@@ -50,16 +50,19 @@ namespace kagome::storage {
         rocksdb::Options options = rocksdb::Options(),
         uint32_t memory_budget_mib = kDefaultStateCacheSizeMiB,
         bool prevent_destruction = false,
-        const std::unordered_map<std::string, int32_t>& column_ttl = {});
+        const std::unordered_map<std::string, int32_t> &column_ttl = {},
+        bool enable_migration = true);
 
-    std::shared_ptr<BufferStorage> getSpace(Space space) override;
+    std::shared_ptr<BufferBatchableStorage> getSpace(Space space) override;
+
+    std::unique_ptr<BufferSpacedBatch> createBatch() override;
 
     /**
      * Implementation specific way to erase the whole space data.
      * Not exposed at SpacedStorage level as only used in pruner.
      * @param space - storage space identifier to clear
      */
-    void dropColumn(Space space);
+    outcome::result<void> dropColumn(Space space);
 
     /**
      * Prepare configuration structure
@@ -75,29 +78,82 @@ namespace kagome::storage {
     friend class RocksDbBatch;
 
    private:
+    struct DatabaseGuard {
+      DatabaseGuard(
+          std::shared_ptr<rocksdb::DB> db,
+          std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles,
+          log::Logger log);
+
+      DatabaseGuard(
+          std::shared_ptr<rocksdb::DBWithTTL> db_ttl,
+          std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles,
+          log::Logger log);
+
+      ~DatabaseGuard();
+
+     private:
+      std::shared_ptr<rocksdb::DB> db_;
+      std::shared_ptr<rocksdb::DBWithTTL> db_ttl_;
+      std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles_;
+      log::Logger log_;
+    };
+
     RocksDb();
 
+    rocksdb::ColumnFamilyHandle *getCFHandle(Space space);
+
     static rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget);
+    static outcome::result<void> createDirectory(
+        const std::filesystem::path &absolute_path, log::Logger &log);
+
+    static void configureColumnFamilies(
+        std::vector<rocksdb::ColumnFamilyDescriptor> &column_family_descriptors,
+        std::vector<int32_t> &ttls,
+        const std::unordered_map<std::string, int32_t> &column_ttl,
+        uint32_t trie_space_cache_size,
+        uint32_t other_spaces_cache_size,
+        log::Logger &log);
+
+    static outcome::result<void> openDatabaseWithTTL(
+        const rocksdb::Options &options,
+        const filesystem::path &path,
+        const std::vector<rocksdb::ColumnFamilyDescriptor>
+            &column_family_descriptors,
+        const std::vector<int32_t> &ttls,
+        std::shared_ptr<RocksDb> &rocks_db,
+        const filesystem::path &ttl_migrated_path,
+        log::Logger &log);
+
+    static outcome::result<void> migrateDatabase(
+        const rocksdb::Options &options,
+        const filesystem::path &path,
+        const std::vector<rocksdb::ColumnFamilyDescriptor>
+            &column_family_descriptors,
+        const std::vector<int32_t> &ttls,
+        std::shared_ptr<RocksDb> &rocks_db,
+        const filesystem::path &ttl_migrated_path,
+        log::Logger &log);
 
     rocksdb::DBWithTTL *db_{};
-    std::vector<ColumnFamilyHandlePtr> column_family_handles_;
-    boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
+    std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles_;
+    boost::container::flat_map<Space, std::shared_ptr<class RocksDbSpace>>
+        spaces_;
     rocksdb::ReadOptions ro_;
     rocksdb::WriteOptions wo_;
     log::Logger logger_;
   };
 
-  class RocksDbSpace : public BufferStorage {
+  class RocksDbSpace : public BufferBatchableStorage {
    public:
     ~RocksDbSpace() override = default;
 
     RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                 const RocksDb::ColumnFamilyHandlePtr &column,
+                 Space space,
                  log::Logger logger);
 
-    std::unique_ptr<BufferBatch> batch() override;
-
     std::optional<size_t> byteSizeHint() const override;
+
+    std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
 
     std::unique_ptr<Cursor> cursor() override;
 
@@ -116,14 +172,14 @@ namespace kagome::storage {
     void compact(const Buffer &first, const Buffer &last);
 
     friend class RocksDbBatch;
+    friend class RocksDb;
 
    private:
     // gather storage instance from weak ptr
     outcome::result<std::shared_ptr<RocksDb>> use() const;
 
     std::weak_ptr<RocksDb> storage_;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const RocksDb::ColumnFamilyHandlePtr &column_;
+    Space space_;
     log::Logger logger_;
   };
 }  // namespace kagome::storage

@@ -12,6 +12,7 @@
 
 #include "clock/clock.hpp"
 #include "network/dispute_request_observer.hpp"
+#include "runtime/runtime_upgrade_tracker.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace soralog {
@@ -58,8 +59,12 @@ namespace kagome {
 
   namespace parachain {
     class ParachainObserver;
-    struct ParachainProcessorImpl;
-    struct ApprovalDistribution;
+    class ParachainProcessorImpl;
+    class ApprovalDistribution;
+
+    namespace statement_distribution {
+      class StatementDistribution;
+    }
   }  // namespace parachain
 
   namespace runtime {
@@ -131,6 +136,8 @@ namespace kagome::injector {
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
+    std::shared_ptr<parachain::statement_distribution::StatementDistribution>
+    injectStatementDistribution();
     std::shared_ptr<parachain::ApprovalDistribution>
     injectApprovalDistribution();
     std::shared_ptr<network::DisputeRequestObserver>
@@ -146,6 +153,8 @@ namespace kagome::injector {
     std::shared_ptr<storage::SpacedStorage> injectStorage();
     std::shared_ptr<authority_discovery::AddressPublisher>
     injectAddressPublisher();
+    std::shared_ptr<runtime::RuntimeUpgradeTracker>
+    injectRuntimeUpgradeTracker();
     void kademliaRandomWalk();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>

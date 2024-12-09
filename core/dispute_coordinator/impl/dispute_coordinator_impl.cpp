@@ -15,6 +15,7 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/main_thread_pool.hpp"
@@ -35,6 +36,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/tuple_hash.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::dispute {
 
@@ -238,15 +240,12 @@ namespace kagome::dispute {
     active_heads_.insert(leaves.begin(), leaves.end());
 
     // subscribe to leaves update
-    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
-        peer_view_->getMyViewObservable(), false);
-    primitives::events::subscribe(
-        *my_view_sub_,
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
-        [wptr{weak_from_this()}](const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->on_active_leaves_update(event);
-          }
+        [WEAK_SELF](const network::ExView &event) {
+          WEAK_LOCK(self);
+          self->on_active_leaves_update(event);
         });
 
     // subscribe to finalization
@@ -1233,12 +1232,12 @@ namespace kagome::dispute {
     auto is_old_concluded_for =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                intermediate_result.old_state.dispute_status.value())
+                  intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_for =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                intermediate_result.new_state.dispute_status.value())
+                  intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_for =
         not is_old_concluded_for and is_new_concluded_for;
@@ -1246,12 +1245,12 @@ namespace kagome::dispute {
     auto is_old_concluded_against =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                intermediate_result.old_state.dispute_status.value())
+                  intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_against =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                intermediate_result.new_state.dispute_status.value())
+                  intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_against =
         not is_old_concluded_against and is_new_concluded_against;
@@ -1262,12 +1261,12 @@ namespace kagome::dispute {
     auto is_old_confirmed_concluded =
         intermediate_result.old_state.dispute_status.has_value()
             ? not is_type<Active>(
-                intermediate_result.old_state.dispute_status.value())
+                  intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_confirmed_concluded =
         intermediate_result.new_state.dispute_status.has_value()
             ? not is_type<Active>(
-                intermediate_result.new_state.dispute_status.value())
+                  intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_confirmed =
         not is_old_confirmed_concluded and is_new_confirmed_concluded;

@@ -121,11 +121,11 @@ class ProspectiveParachainsTestHarness : public testing::Test {
             network::CandidateDescriptor{
                 .para_id = para_id,
                 .relay_parent = relay_parent,
-                .collator_id = {},
+                .reserved_1 = {},
                 .persisted_data_hash = persisted_validation_data.getHash(),
                 .pov_hash = fromNumber(1),
                 .erasure_encoding_root = fromNumber(1),
-                .signature = {},
+                .reserved_2 = {},
                 .para_head_hash = hasher_->blake2b_256(para_head),
                 .validation_code_hash = fromNumber(42),
             },
@@ -144,7 +144,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
                           std::move(candidate));
   }
 
-  Hash fromNumber(uint64_t n) const {
+  static Hash fromNumber(uint64_t n) {
     assert(n <= 255);
     Hash h{};
     memset(&h[0], n, 32);
