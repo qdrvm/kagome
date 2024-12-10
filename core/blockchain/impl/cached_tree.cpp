@@ -98,7 +98,7 @@ namespace kagome::blockchain {
   void CachedTree::forceRefreshBest() {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
-      auto node = find(leaf);
+      auto node = find(leaf.first);
       BOOST_ASSERT(node);
       candidates.emplace(std::move(node));
     }
@@ -125,8 +125,9 @@ namespace kagome::blockchain {
   CachedTree::CachedTree(const primitives::BlockInfo &root)
       : root_{std::make_shared<TreeNode>(root)},
         best_{root_},
-        nodes_{{root.hash, root_}},
-        leaves_{root.hash, root.number} {}
+        nodes_{{root.hash, root_}} {
+    leaves_.emplace(root.hash, root.number);
+  }
 
   primitives::BlockInfo CachedTree::finalized() const {
     return root_->info;
@@ -143,11 +144,10 @@ namespace kagome::blockchain {
   std::vector<primitives::BlockInfo> CachedTree::leafInfo() const {
     std::vector<primitives::BlockInfo> output;
     output.reserve(leaves_.size());
-    std::ranges::transform(leaves_,
-                            std::back_inserter(output),
-                            [](const auto &v) { 
-                              return primitives::BlockInfo(v.first, v.second);
-                              });
+    std::ranges::transform(
+        leaves_, std::back_inserter(output), [](const auto &v) {
+          return primitives::BlockInfo(v.first, v.second);
+        });
     return output;
   }
 
@@ -155,8 +155,8 @@ namespace kagome::blockchain {
     std::vector<primitives::BlockHash> output;
     output.reserve(leaves_.size());
     std::ranges::transform(leaves_,
-                            std::back_inserter(output),
-                            [](const auto &v) { return v.first; });
+                           std::back_inserter(output),
+                           [](const auto &v) { return v.first; });
     return output;
   }
 
