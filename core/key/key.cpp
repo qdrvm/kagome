@@ -22,20 +22,22 @@ namespace kagome::key {
   }
 
   outcome::result<void> Key::run() {
-    auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
-
-    auto seed = kagome::crypto::Ed25519Seed::from(
-                    crypto::SecureCleanGuard{random_generator->randomBytes(
-                        kagome::crypto::Ed25519Seed::size())})
-                    .value();
-    auto keypair = ed_crypto_provider_->generateKeypair(seed, {}).value();
-    auto libp2p_key = crypto::ed25519KeyToLibp2pKeypair(keypair);
-    libp2p::crypto::ProtobufKey protobuf_key{
+    auto random_generator = std::make_unique<crypto::BoostRandomGenerator>();
+    OUTCOME_TRY(
+        seed,
+        crypto::Ed25519Seed::from(crypto::SecureCleanGuard{
+            random_generator->randomBytes(crypto::Ed25519Seed::size())}));
+    OUTCOME_TRY(keypair, ed_crypto_provider_->generateKeypair(seed, {}));
+    const auto libp2p_key = crypto::ed25519KeyToLibp2pKeypair(keypair);
+    const libp2p::crypto::ProtobufKey protobuf_key{
         key_marshaller_->marshal(libp2p_key.publicKey).value()};
     auto peer_id = libp2p::peer::PeerId::fromPublicKey(protobuf_key);
-    std::cerr << peer_id.value().toBase58() << std::endl;
+    if (not peer_id) {
+      return peer_id.error();
+    }
+    std::cerr << peer_id.value().toBase58() << "\n";
     std::cout << kagome::common::hex_lower(keypair.secret_key.unsafeBytes())
-              << std::endl;
+              << "\n";
 
     return outcome::success();
   }
