@@ -9,10 +9,7 @@
 
 namespace kagome {
   int key_main(int argc, const char **argv) {
-    std::vector<std::string> args;
-    for (int i = 0; i < argc; i++) {
-      args.push_back(argv[i]);
-    }
+    std::vector<std::string> args(argv, argv + argc);
     const auto &key_command = args.at(0);
     if (argc == 2) {
       const auto &command = args.at(1);
