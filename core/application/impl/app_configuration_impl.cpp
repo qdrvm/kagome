@@ -913,7 +913,7 @@ namespace kagome::application {
 
     if (vm.count("help") > 0) {
       std::cout
-          << "Available subcommands: storage-explorer db-editor benchmark\n";
+          << "Available subcommands: storage-explorer db-editor benchmark key\n";
       std::cout << desc << '\n';
       return false;
     }

@@ -74,6 +74,7 @@ target_link_libraries(application_modes
     hexutil
     RapidJSON::rapidjson
     benchmark::benchmark
+    kagome_keys
     )
 
 add_library(recovery_mode
