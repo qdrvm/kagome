@@ -722,12 +722,12 @@ namespace kagome::parachain {
       auto rps_result = construct_per_relay_parent_state(maybe_new, mode_);
       if (rps_result.has_value()) {
         our_current_state_.state_by_relay_parent.insert_or_assign(
-            relay_parent, std::move(rps_result.value()));
+            maybe_new, std::move(rps_result.value()));
       } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
         SL_TRACE(
             logger_,
             "Relay parent state was not created. (relay parent={}, error={})",
-            relay_parent,
+            maybe_new,
             rps_result.error());
       }
     }
