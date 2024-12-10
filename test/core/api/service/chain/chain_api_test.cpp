@@ -11,7 +11,6 @@
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "primitives/block.hpp"
@@ -28,7 +27,6 @@ using kagome::api::ChainApi;
 using kagome::api::ChainApiImpl;
 using kagome::api::ChainApiMock;
 using kagome::api::chain::request::SubscribeFinalizedHeads;
-using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockStorageMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
@@ -44,13 +42,11 @@ using testing::Return;
 
 struct ChainApiTest : public ::testing::Test {
   void SetUp() override {
-    header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     block_storage = std::make_shared<BlockStorageMock>();
     api_service = std::make_shared<ApiServiceMock>();
 
     api = std::make_shared<ChainApiImpl>(
-        header_repo,
         block_tree,
         block_storage,
         testutil::sptr_to_lazy<ApiService>(api_service));
@@ -62,7 +58,6 @@ struct ChainApiTest : public ::testing::Test {
         "0f82403bcd4f7d4d23ce04775d112cd5dede13633924de6cb048d2676e322950"_hash256;
   }
 
-  std::shared_ptr<BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<BlockTreeMock> block_tree;
   std::shared_ptr<ApiServiceMock> api_service;
   std::shared_ptr<ChainApi> api;
@@ -108,7 +103,7 @@ TEST_F(ChainApiTest, GetBlockHashNoParam) {
  */
 TEST_F(ChainApiTest, GetBlockHashByNumber) {
   //  kagome::primitives::BlockId did = "D"_hash256;
-  EXPECT_CALL(*header_repo, getHashByNumber(42))
+  EXPECT_CALL(*block_tree, getHashByNumber(42))
       .WillOnce(Return("CDE"_hash256));
 
   EXPECT_OUTCOME_TRUE(r, api->getBlockHash(42));
@@ -121,7 +116,7 @@ TEST_F(ChainApiTest, GetBlockHashByNumber) {
  * @then the correct hash value is returned
  */
 TEST_F(ChainApiTest, GetBlockHashByHexNumber) {
-  EXPECT_CALL(*header_repo, getHashByNumber(42))
+  EXPECT_CALL(*block_tree, getHashByNumber(42))
       .WillOnce(Return("CDE"_hash256));
 
   EXPECT_OUTCOME_TRUE(r, api->getBlockHash("0x2a"));
@@ -134,9 +129,9 @@ TEST_F(ChainApiTest, GetBlockHashByHexNumber) {
  * @then the correct vector of hash values is returned
  */
 TEST_F(ChainApiTest, GetBlockHashArray) {
-  EXPECT_CALL(*header_repo, getHashByNumber(50)).WillOnce(Return(hash1));
-  EXPECT_CALL(*header_repo, getHashByNumber(100)).WillOnce(Return(hash2));
-  EXPECT_CALL(*header_repo, getHashByNumber(200)).WillOnce(Return(hash3));
+  EXPECT_CALL(*block_tree, getHashByNumber(50)).WillOnce(Return(hash1));
+  EXPECT_CALL(*block_tree, getHashByNumber(100)).WillOnce(Return(hash2));
+  EXPECT_CALL(*block_tree, getHashByNumber(200)).WillOnce(Return(hash3));
   std::vector<boost::variant<uint32_t, std::string>> request_data = {
       50, "0x64", 200};
   EXPECT_OUTCOME_TRUE(
@@ -153,7 +148,7 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
  */
 TEST_F(ChainApiTest, GetHeader) {
   BlockHash a = hash1;
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
+  EXPECT_CALL(*block_tree, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, *data.header);
@@ -169,7 +164,7 @@ TEST_F(ChainApiTest, GetHeaderLats) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
+  EXPECT_CALL(*block_tree, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader());
   ASSERT_EQ(r, *data.header);

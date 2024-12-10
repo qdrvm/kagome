@@ -19,6 +19,7 @@
 using ::testing::_;
 using ::testing::Return;
 
+using kagome::blockchain::BlockTreeMock;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -39,7 +40,7 @@ class MetadataTest : public BinaryenRuntimeTest {
     prepareEphemeralStorageExpects();
 
     api_ = std::make_shared<MetadataImpl>(
-        executor_, header_repo_, runtime_upgrade_tracker_);
+        executor_, block_tree_, runtime_upgrade_tracker_);
   }
 
  protected:
@@ -55,9 +56,9 @@ class MetadataTest : public BinaryenRuntimeTest {
  */
 TEST_F(MetadataTest, metadata) {
   BlockInfo info{42, "block_hash"_hash256};
-  EXPECT_CALL(*header_repo_, getBlockHeader(info.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(info.hash))
       .WillRepeatedly(Return(BlockHeader{info.number, {}, {}, {}, {}}));
-  EXPECT_CALL(*header_repo_, getNumberByHash(info.hash))
+  EXPECT_CALL(*block_tree_, getNumberByHash(info.hash))
       .WillOnce(Return(info.number));
   EXPECT_CALL(*runtime_upgrade_tracker_, getLastCodeUpdateState(info))
       .WillOnce(Return(info.hash));

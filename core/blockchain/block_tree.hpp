@@ -10,6 +10,7 @@
 #include <optional>
 #include <vector>
 
+#include "blockchain/block_header_repository.hpp"
 #include "consensus/timeline/types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
@@ -27,7 +28,7 @@ namespace kagome::blockchain {
    *      production (handling forks, pruning the blocks, resolving child-parent
    *      relations, etc)
    */
-  class BlockTree {
+  class BlockTree : public BlockHeaderRepository {
    public:
     using BlockHashVecRes = outcome::result<std::vector<primitives::BlockHash>>;
 
@@ -52,14 +53,6 @@ namespace kagome::blockchain {
      * @return containing block header or does not, or error
      */
     virtual bool has(const primitives::BlockHash &hash) const = 0;
-
-    /**
-     * Get block header by provided block id
-     * @param block_hash hash of the block header we are looking for
-     * @return result containing block header if it exists, error otherwise
-     */
-    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
-        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Get a body (extrinsics) of the block (if present)

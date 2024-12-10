@@ -9,7 +9,6 @@
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/child_state/child_state_api_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/metadata_mock.hpp"
@@ -22,7 +21,6 @@
 #include "testutil/outcome.hpp"
 
 using kagome::api::ChildStateApiMock;
-using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
@@ -44,14 +42,12 @@ namespace kagome::api {
    public:
     void SetUp() override {
       api_ = std::make_unique<api::ChildStateApiImpl>(
-          block_header_repo_, storage_, block_tree_, runtime_core_, metadata_);
+          storage_, block_tree_, runtime_core_, metadata_);
     }
 
    protected:
     std::shared_ptr<TrieStorageMock> storage_ =
         std::make_shared<TrieStorageMock>();
-    std::shared_ptr<BlockHeaderRepositoryMock> block_header_repo_ =
-        std::make_shared<BlockHeaderRepositoryMock>();
     std::shared_ptr<BlockTreeMock> block_tree_ =
         std::make_shared<BlockTreeMock>();
     std::shared_ptr<CoreMock> runtime_core_ = std::make_shared<CoreMock>();
@@ -80,7 +76,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_tree_, getLastFinalized())
         .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
 
-    EXPECT_CALL(*block_header_repo_, getBlockHeader("D"_hash256))
+    EXPECT_CALL(*block_tree_, getBlockHeader("D"_hash256))
         .WillOnce(testing::Return(makeBlockHeaderOfStateRoot("CDE"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("CDE"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
@@ -107,7 +103,7 @@ namespace kagome::api {
   }
 
   TEST_F(ChildStateApiTest, GetStorageAt) {
-    EXPECT_CALL(*block_header_repo_, getBlockHeader("B"_hash256))
+    EXPECT_CALL(*block_tree_, getBlockHeader("B"_hash256))
         .WillOnce(testing::Return(makeBlockHeaderOfStateRoot("ABC"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("ABC"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
@@ -151,7 +147,7 @@ namespace kagome::api {
 
     EXPECT_CALL(*block_tree_, getLastFinalized())
         .WillOnce(Return(BlockInfo(10, block_hash)));
-    EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
+    EXPECT_CALL(*block_tree_, getBlockHeader(block_hash))
         .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
@@ -206,7 +202,7 @@ namespace kagome::api {
 
     EXPECT_CALL(*block_tree_, getLastFinalized())
         .WillOnce(Return(BlockInfo{10, block_hash}));
-    EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
+    EXPECT_CALL(*block_tree_, getBlockHeader(block_hash))
         .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
@@ -258,7 +254,7 @@ namespace kagome::api {
     auto block_hash_opt = std::make_optional<BlockHash>(block_hash);
     auto expected_result = "3030"_buf;
 
-    EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
+    EXPECT_CALL(*block_tree_, getBlockHeader(block_hash))
         .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     auto batch = std::make_unique<TrieBatchMock>();
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
