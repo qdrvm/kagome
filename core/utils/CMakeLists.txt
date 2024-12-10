@@ -36,11 +36,3 @@ add_library(kagome-benchmark
 target_link_libraries(kagome-benchmark
     application_injector
     )
-
-add_library(kagome-key
-    key_main.cpp
-    )
-
-target_link_libraries(kagome-key
-    application_injector
-    )

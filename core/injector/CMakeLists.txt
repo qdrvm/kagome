@@ -45,7 +45,7 @@ target_link_libraries(application_injector
     grandpa_api
     host_api_factory
     kagome_benchmarks
-    kagome_keys
+    kagome_key
     log_configurator
     metadata_api
     metrics

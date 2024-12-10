@@ -5,16 +5,11 @@
  */
 #include "application/impl/app_configuration_impl.hpp"
 #include "injector/application_injector.hpp"
-#include "key/key.hpp"
+#include "key.hpp"
 
 namespace kagome {
   int key_main(int argc, const char **argv) {
-    std::vector<std::string> args;
-    args.reserve(argc);
-    std::transform(
-        argv, argv + argc, std::back_inserter(args), [](const char *arg) {
-          return std::string(arg);
-        });
+    std::vector<std::string> args(argv, argv + static_cast<std::size_t>(argc));
     const auto &key_command = args.at(0);
     if (argc == 2) {
       const auto &command = args.at(1);

@@ -32,7 +32,7 @@ target_link_libraries(kagome
     kagome-db-editor
     storage_explorer
     filesystem
-    kagome-key
+    kagome_key
     )
 if (BACKWARD)
   add_backward(kagome)
