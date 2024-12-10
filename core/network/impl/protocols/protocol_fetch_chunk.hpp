@@ -45,15 +45,15 @@ namespace kagome::network {
         std::shared_ptr<parachain::ParachainProcessorImpl> pp,
         std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
-            FetchChunkRequest,
-            FetchChunkResponse,
-            ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                    host,
-                                    make_protocols(kFetchChunkProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kFetchChunkProtocolName,
-                                                      "req_chunk_protocol")},
+              FetchChunkRequest,
+              FetchChunkResponse,
+              ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                      host,
+                                      make_protocols(kFetchChunkProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kFetchChunkProtocolName,
+                                                        "req_chunk_protocol")},
           pp_{std::move(pp)},
           pm_{std::move(pm)} {
       BOOST_ASSERT(pp_);

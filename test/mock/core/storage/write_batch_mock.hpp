@@ -29,4 +29,25 @@ namespace kagome::storage::face {
     MOCK_METHOD1_T(remove, outcome::result<void>(const View<K> &key));
   };
 
+  template <typename Space, typename K, typename V>
+  class SpacedBatchMock : public SpacedBatch<Space, K, V> {
+   public:
+    MOCK_METHOD(outcome::result<void>, commit, (), (override));
+
+    MOCK_METHOD(void, clear, (), (override));
+
+    MOCK_METHOD3_T(put,
+                   outcome::result<void>(Space space,
+                                         const View<K> &key,
+                                         const V &value));
+    outcome::result<void> put(Space space,
+                              const View<K> &key,
+                              OwnedOrView<V> &&value) override {
+      return put(space, key, value.mut());
+    }
+
+    MOCK_METHOD2_T(remove,
+                   outcome::result<void>(Space space, const View<K> &key));
+  };
+
 }  // namespace kagome::storage::face

@@ -45,4 +45,5 @@ target_link_libraries(authority_manager_test
     dummy_error
     logger_for_tests
     storage
+    in_memory_storage
 )

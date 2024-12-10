@@ -12,16 +12,15 @@
 #include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
+
   /**
-   * @brief An abstraction over a readable, writeable, iterable key-value map.
+   * @brief An abstraction over a readable, writeable, iterable, batchable
+   * key-value map.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct GenericStorage : Readable<K, V>,
-                          Iterable<K, V>,
-                          Writeable<K, V>,
-                          BatchWriteable<K, V> {
+  struct GenericStorage : Readable<K, V>, Iterable<K, V>, Writeable<K, V> {
     /**
      * Reports RAM state size
      * @return size in bytes
@@ -30,5 +29,8 @@ namespace kagome::storage::face {
       return std::nullopt;
     }
   };
+
+  template <typename K, typename V>
+  struct BatchableStorage : GenericStorage<K, V>, BatchWriteable<K, V> {};
 
 }  // namespace kagome::storage::face

@@ -6,10 +6,24 @@
 
 #include "storage/trie/compact_encode.hpp"
 
+#include <qtils/enum_error_code.hpp>
 #include <unordered_set>
 
 #include "storage/trie/raw_cursor.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, RawCursorError, e) {
+  using E = kagome::storage::trie::RawCursorError;
+  switch (e) {
+    case E::EmptyStack:
+      return "Unexpected empty stack";
+    case E::ChildBranchNotFound:
+      return "Expected child branch is not found";
+    case E::StackBackIsNotBranch:
+      return "No branch at the end of the stack";
+  }
+  return "Unknown RawCursorError";
+}
 
 namespace kagome::storage::trie {
   outcome::result<common::Buffer> compactEncode(const OnRead &db,
@@ -20,7 +34,7 @@ namespace kagome::storage::trie {
     level.child = {};
     std::unordered_set<common::Hash256> seen, value_seen;
     std::vector<std::vector<common::Buffer>> proofs(2);
-    auto push = [&](const common::Hash256 &hash) {
+    auto push = [&](const common::Hash256 &hash) -> outcome::result<bool> {
       auto it = db.db.find(hash);
       if (it == db.db.end()) {
         return false;
@@ -42,11 +56,11 @@ namespace kagome::storage::trie {
       }
       auto &level = levels.back();
       auto &proof = proofs[levels.size() - 1];
-      level.push({
+      OUTCOME_TRY(level.push({
           .node = std::move(node),
           .child = level.child,
           .t = proof.size(),
-      });
+      }));
       proof.emplace_back();
       if (compact) {
         proof.back().putUint8(kEscapeCompactHeader);
@@ -54,7 +68,7 @@ namespace kagome::storage::trie {
       }
       return true;
     };
-    push(root);
+    OUTCOME_TRY(push(root));
     while (not levels.empty()) {
       auto &level = levels.back();
       auto pop_level = true;
@@ -62,24 +76,27 @@ namespace kagome::storage::trie {
         auto child = level.value_child;
         if (child and seen.emplace(*child).second) {
           levels.emplace_back();
-          push(*child);
+          OUTCOME_TRY(push(*child));
           pop_level = false;
           break;
         }
-        for (level.branchInit(); not level.branch_end; level.branchNext()) {
+        OUTCOME_TRY(level.branchInit());
+        while (not level.branch_end) {
+          OUTCOME_TRY(push_success, push(*level.branch_hash));
           if (level.branch_hash and seen.emplace(*level.branch_hash).second
-              and push(*level.branch_hash)) {
+              and push_success) {
             break;
           }
+          OUTCOME_TRY(level.branchNext());
         }
         if (level.branch_end) {
           auto &item = level.stack.back();
           auto &proof = proofs[levels.size() - 1][item.t];
           proof.put(codec.encodeNode(*item.node, StateVersion::V0).value());
-          level.pop();
+          OUTCOME_TRY(level.pop());
           if (not level.stack.empty()) {
             *level.branch_merkle = MerkleValue::create({}).value();
-            level.branchNext();
+            OUTCOME_TRY(level.branchNext());
           }
         }
       }
