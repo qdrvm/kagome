@@ -9,10 +9,11 @@
 
 namespace kagome {
   int key_main(int argc, const char **argv) {
-    std::vector<std::string> args(argv, argv + static_cast<std::size_t>(argc));
-    const auto &key_command = args.at(0);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const std::string_view key_command = argv[0];
     if (argc == 2) {
-      const auto &command = args.at(1);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      const std::string_view command = argv[1];
       if (command == "--generate-node-key") {
         auto injector = std::make_unique<injector::KagomeNodeInjector>(
             std::make_shared<application::AppConfigurationImpl>());
