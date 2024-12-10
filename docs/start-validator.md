@@ -180,7 +180,31 @@ sudo systemctl stop kagome
 
 ### Running a KAGOME node using docker-compose
 
-[//]: # (TODO)
+If you prefer running KAGOME using docker, you can use docker-compose file provided stored in KAGOME repo. To start using it navigate to folder with docker-compose.yaml file and start the node.
+
+> **Note:** Make sure you have docker and docker-compose installed on your machine.
+
+> Before starting the node, make sure to update docker-compose.yaml file with your node's key and public address.
+
+```bash
+cd housekeeping/docker-compose/kagome/
+docker-compose up -d
+```
+
+This will start a KAGOME node in the background. 
+You can check the logs using 
+```bash
+docker-compose logs -f
+```
+
+You may connect to your local node via polkadot-js apps by using the following address: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/
+
+To connect to graphana monitoring, use the following address: http://127.0.0.1:3000/
+
+To stop the node: 
+```bash
+docker-compose down
+```
 
 ## Setting up session keys
 
