@@ -29,14 +29,14 @@ services:
     command:
       - "kagome"
       - "--chain=kusama"
-      - "--sync=Warp"
+      - "--sync=Warp" # remove after first sync
       - "--base-path=/opt/kagome/chain-data"
       - "--rpc-port=9944"
       - "--logcfg=/opt/kagome/logcfg.yaml"
       - "--name=kagome-qdrvm-compose"
       - "--wasm-execution=Compiled"
-      - "--listen-addr=/ip4/0.0.0.0/tcp/30363"
-      - "--public-addr=/ip4/INSERT_ACTUAL_IP_HERE/tcp/30363/p2p/INSERT_PUBLIC_NODE_KEY_HERE"
+      - "--listen-addr=/ip4/0.0.0.0/tcp/30363" # ensure 30363 port is publicly accessible
+      - "--public-addr=/ip4/INSERT_ACTUAL_IP_HERE/tcp/30363"
       - "--telemetry-url=wss://telemetry.polkadot.io/submit/ 1"
       - "--validator"
       - "--node-key=INSERT_PRIVATE_NODE_KEY_HERE"

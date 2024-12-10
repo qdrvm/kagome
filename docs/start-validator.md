@@ -20,19 +20,23 @@ This guide assumes you have the knowledge and experience to set up a server and 
 
 ## Recommended Hardware Requirements
 
-We refer to Polkadot-SDK's [https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware) for running a validator node. The following are the recommended hardware requirements:
+We refer to Polkadot-SDK's [reference hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware) for running a validator node. The following are the recommended hardware requirements:
 
 **CPU**
 * x86-64 compatible
 * Intel Ice Lake, or newer (Xeon or Core series); AMD Zen3, or newer (EPYC or Ryzen)
 * 8 physical cores @ 3.4GHz
 * Simultaneous multithreading disabled (Hyper-Threading on Intel, SMT on AMD)
+
 **Storage**
 * An NVMe SSD of 1 TB (As it should be reasonably sized to deal with blockchain growth). An estimation of current chain snapshot sizes can be found here. In general, the latency is more important than the throughput.
-**Memory**
+
+* **Memory**
 * 32 GB DDR4 ECC
+
 **System**
 * Linux Kernel 5.16 or newer
+
 **Network**
 * The minimum symmetric networking speed is set to 500 Mbit/s (= 62.5 MB/s). This is required to support a large number of parachains and allow for proper congestion control in busy network situations.
 
@@ -117,7 +121,7 @@ User=kagome
 Group=kagome
 # LimitCORE=infinity # Uncomment if you want to generate core dumps 
 LimitNOFILE=65536
-ExecStart=kagome \  # should be in path
+ExecStart=kagome
   --name kagome-validator \
   --base-path /home/kagome/dev/kagome-fun/kusama-node-1 \
   --public-addr=/ip4/212.11.12.32/tcp/30334 \  # Address should be publicly accessible
