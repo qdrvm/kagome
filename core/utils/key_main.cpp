@@ -9,25 +9,34 @@
 
 namespace kagome {
   int key_main(int argc, const char **argv) {
+    std::vector<std::string> args;
+    args.reserve(argc);
+    std::transform(
+        argv, argv + argc, std::back_inserter(args), [](const char *arg) {
+          return std::string(arg);
+        });
+    const auto &key_command = args.at(0);
     if (argc == 2) {
-      if (std::string(argv[1]) == "--generate-node-key") {
-        injector::KagomeNodeInjector injector{
-            std::make_shared<application::AppConfigurationImpl>()};
-        auto key = injector.injectKey();
-        auto res = key->run();
-      } else if (std::string(argv[1]) == "--help") {
-        std::cerr << "Usage: " << argv[0] << " --generate-node-key"
+      const auto &command = args.at(1);
+      if (command == "--generate-node-key") {
+        auto injector = std::make_unique<injector::KagomeNodeInjector>(
+            std::make_shared<application::AppConfigurationImpl>());
+        auto key = injector->injectKey();
+        if (auto res = key->run(); not res) {
+          std::cerr << "Error: " << res.error().message() << "\n";
+          return 2;
+        }
+      } else if (command == "--help") {
+        std::cerr << "Usage: " << key_command << " --generate-node-key"
                   << "\nGenerates a node key and prints the peer ID to stderr "
-                     "and the secret key to stdout."
-                  << std::endl;
+                     "and the secret key to stdout.\n";
       } else {
-        std::cerr << "Unknown command: " << argv[1] << std::endl;
-        std::cerr << "Usage: " << argv[0] << " --generate-node-key"
-                  << std::endl;
+        std::cerr << "Unknown command: " << command << "\n";
+        std::cerr << "Usage: " << key_command << " --generate-node-key\n";
         return 3;
       }
     } else {
-      std::cerr << "Usage: " << argv[0] << " --generate-node-key" << std::endl;
+      std::cerr << "Usage: " << key_command << " --generate-node-key\n";
       return 1;
     }
     return 0;
