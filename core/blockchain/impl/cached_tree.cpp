@@ -126,7 +126,7 @@ namespace kagome::blockchain {
       : root_{std::make_shared<TreeNode>(root)},
         best_{root_},
         nodes_{{root.hash, root_}},
-        leaves_{root.hash} {}
+        leaves_{root.hash, root.number} {}
 
   primitives::BlockInfo CachedTree::finalized() const {
     return root_->info;
@@ -140,8 +140,24 @@ namespace kagome::blockchain {
     return leaves_.size();
   }
 
+  std::vector<primitives::BlockInfo> CachedTree::leafInfo() const {
+    std::vector<primitives::BlockInfo> output;
+    output.reserve(leaves_.size());
+    std::ranges::transform(leaves_,
+                            std::back_inserter(output),
+                            [](const auto &v) { 
+                              return primitives::BlockInfo(v.first, v.second);
+                              });
+    return output;
+  }
+
   std::vector<primitives::BlockHash> CachedTree::leafHashes() const {
-    return {leaves_.begin(), leaves_.end()};
+    std::vector<primitives::BlockHash> output;
+    output.reserve(leaves_.size());
+    std::ranges::transform(leaves_,
+                            std::back_inserter(output),
+                            [](const auto &v) { return v.first; });
+    return output;
   }
 
   bool CachedTree::isLeaf(const primitives::BlockHash &hash) const {
@@ -151,7 +167,7 @@ namespace kagome::blockchain {
   primitives::BlockInfo CachedTree::bestWith(
       const std::shared_ptr<TreeNode> &required) const {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
-    for (auto &leaf : leaves_) {
+    for (auto &[leaf, _] : leaves_) {
       auto node = find(leaf);
       BOOST_ASSERT(node);
       candidates.emplace(std::move(node));
@@ -197,7 +213,7 @@ namespace kagome::blockchain {
     parent->children.emplace_back(new_node);
     nodes_.emplace(new_node->info.hash, new_node);
     leaves_.erase(parent->info.hash);
-    leaves_.emplace(new_node->info.hash);
+    leaves_.emplace(new_node->info.hash, new_node->info.number);
     if (not new_node->reverted and new_node->weight() > best_->weight()) {
       auto old_best = best_;
       best_ = new_node;
@@ -279,7 +295,7 @@ namespace kagome::blockchain {
     changes.prune.emplace_back(node->info);
     parent->children.erase(child_it);
     if (parent->children.empty()) {
-      leaves_.emplace(parent->info.hash);
+      leaves_.emplace(parent->info.hash, parent->info.number);
     }
     leaves_.erase(leaf_it);
     if (node == best_) {
