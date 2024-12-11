@@ -11,9 +11,18 @@
 
 namespace kagome::network {
   inline View makeView(const LazySPtr<blockchain::BlockTree> &block_tree) {
+    auto last_finalized = block_tree.get()->getLastFinalized().number;
+
+    std::vector<primitives::BlockHash> heads;
+    for (const auto &bi : block_tree.get()->getLeavesInfo()) {
+      if (bi.number >= last_finalized) {
+        heads.emplace_back(bi.hash);
+      }
+    }
+
     View view{
-        .heads_ = block_tree.get()->getLeaves(),
-        .finalized_number_ = block_tree.get()->getLastFinalized().number,
+        .heads_ = std::move(heads),
+        .finalized_number_ = last_finalized,
     };
     std::ranges::sort(view.heads_);
     return view;
