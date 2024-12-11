@@ -50,6 +50,7 @@
 #include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
+#include "application/modes/key.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
 #include "authority_discovery/query/audi_store_impl.hpp"
 #include "authority_discovery/query/query_impl.hpp"
@@ -1117,6 +1118,10 @@ namespace kagome::injector {
   KagomeNodeInjector::injectBlockBenchmark() {
     return pimpl_->injector_
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
+  }
+
+  std::shared_ptr<key::Key> KagomeNodeInjector::injectKey() {
+    return pimpl_->injector_.template create<sptr<key::Key>>();
   }
 
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
