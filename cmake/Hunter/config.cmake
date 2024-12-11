@@ -36,14 +36,6 @@ hunter_config(
     VERSION 1.85.0
 )
 
-hunter_config(
-    BoringSSL
-    VERSION qdrvm1
-    CMAKE_ARGS
-        CMAKE_C_FLAGS=-Wno-stringop-overflow
-        CMAKE_CXX_FLAGS=-Wno-stringop-overflow
-)
-
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
