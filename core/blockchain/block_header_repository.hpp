@@ -55,6 +55,14 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) const = 0;
 
     /**
+     * @return block header with corresponding {@param block_hash} or a none
+     * optional if the corresponding block header is not in storage or a storage
+     * error
+     */
+    virtual outcome::result<std::optional<primitives::BlockHeader>>
+    tryGetBlockHeader(const primitives::BlockHash &block_hash) const = 0;
+
+    /**
      * @param id of a block which number is returned
      * @return block number or a none optional if the corresponding block header
      * is not in storage or a storage error

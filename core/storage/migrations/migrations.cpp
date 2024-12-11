@@ -84,11 +84,8 @@ namespace kagome::storage::migrations {
     while (!pending.empty()) {
       primitives::BlockHash current = pending.front();
       pending.pop_front();
-      auto header = block_tree.getBlockHeader(current);
-      if (!header) {
-        if (header.error() != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-          return header.error();
-        }
+      OUTCOME_TRY(header, block_tree.tryGetBlockHeader(current));
+      if (not header) {
         continue;
       }
       OUTCOME_TRY(children, block_tree.getChildren(current));

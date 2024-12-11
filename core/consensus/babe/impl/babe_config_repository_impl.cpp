@@ -57,7 +57,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       LazySPtr<SlotsUtil> slots_util)
       : persistent_storage_(
-          persistent_storage->getSpace(storage::Space::kDefault)),
+            persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
                           == application::SyncMethod::Warp},
         timings_(timings),
@@ -103,7 +103,12 @@ namespace kagome::consensus::babe {
     }
 
     auto finalized = block_tree_->getLastFinalized();
-    auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
+    auto block_header_res = block_tree_->getBlockHeader(finalized.hash);
+    if (not block_header_res) {
+      SL_ERROR(logger_, "Can't get block header: {}", block_header_res.error());
+      return false;
+    }
+    auto finalized_header = std::move(block_header_res.value());
 
     SAFE_UNIQUE(indexer_) {
       if (finalized.number - indexer_.last_finalized_indexed_.number

@@ -131,8 +131,12 @@ namespace kagome::consensus {
                     previous_best_block]() mutable {
       auto timer = metric_block_execution_time.manual();
 
-      auto parent =
-          block_tree_->getBlockHeader(block.header.parent_hash).value();
+      auto parent_res = block_tree_->getBlockHeader(block.header.parent_hash);
+      if (not parent_res) {
+        callback(parent_res.as_failure());
+        return;
+      }
+      auto parent = std::move(parent_res.value());
 
       SL_DEBUG(logger_,
                "Execute block {}, state {}, a child of block {}, state {}",

@@ -579,8 +579,15 @@ namespace kagome::consensus {
     state_sub_engine_->notify(
         primitives::events::SyncStateEventType::kSyncState, current_state_);
 
-    auto best_block =
-        block_tree_->getBlockHeader(block_tree_->bestBlock().hash).value();
+    auto best_block_res = block_tree_->getBlockHeader(best_block_.hash);
+    if (not best_block_res) {
+      SL_ERROR(log_,
+               "Can't get header of best block ({}): {}",
+               best_block_,
+               best_block_res.error());
+      return;
+    }
+    auto best_block = std::move(best_block_res.value());
     if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
       current_state_ = SyncState::CATCHING_UP;
       return;
