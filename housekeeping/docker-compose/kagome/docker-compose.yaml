@@ -34,7 +34,7 @@ services:
       - "--rpc-port=9944"
       - "--logcfg=/opt/kagome/logcfg.yaml"
       - "--name=kagome-qdrvm-compose"
-      - "--listen-addr=/ip4/0.0.0.0/tcp/30363" # ensure 30363 port is publicly accessible
+      - "--listen-addr=/ip4/0.0.0.0/tcp/30363" # ensure 30363 port is publicly accessible if running validator
 #      - "--public-addr=/ip4/INSERT_ACTUAL_IP_HERE/tcp/30363"
       - "--telemetry-url=wss://telemetry.polkadot.io/submit/ 1"
       - "--validator"
