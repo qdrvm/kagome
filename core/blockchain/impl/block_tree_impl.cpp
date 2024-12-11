@@ -922,14 +922,14 @@ namespace kagome::blockchain {
     return block_tree_data_.sharedAccess(
         [&](const BlockTreeData &p)
             -> outcome::result<std::optional<primitives::BlockHeader>> {
-          if (auto header = getBlockHeaderNoLock(p, block_hash);
-              header.has_value()) {
+          auto header = getBlockHeaderNoLock(p, block_hash);
+          if (header.has_value()) {
             return header.value();
-          } else if (header.error() == BlockTreeError::HEADER_NOT_FOUND) {
-            return std::nullopt;
-          } else {
-            return header.error();
           }
+          if (header.error() == BlockTreeError::HEADER_NOT_FOUND) {
+            return std::nullopt;
+          }
+          return header.error();
         });
   }
 
