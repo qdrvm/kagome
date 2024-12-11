@@ -217,3 +217,9 @@ curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method":
 
 Result field from response json is a session key. You can assign this key to your validator account using Polkadot JS. Use this guide if you are unfamiliar with the process: [link](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#bond-dot)
 
+## Helpful tips
+
+You can customize your node's configuration by tuning the following parameters:
+* `--in-peers` and `--out-peers` to set the number of incoming and outgoing peers. The more peers you have, the more data you will receive and send, which could lead to faster syncing and better network connectivity
+* `--pvf-max-workers` to set the number of workers for the Parachain Validation Function (PVF). Increasing the number of workers can improve the latency of parachain block validation under high load. By default parameter is set to number of CPU cores
+* `--state-pruning` and `--blocks-pruning` to enable state and block pruning. This can help reduce the size of the chain data on disk, however, it may slow down the node's performance. 
