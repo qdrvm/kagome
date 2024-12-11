@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include <errno.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <cerrno>
 
 #ifdef __linux__
 #include <sched.h>
-#include <signal.h>
+#include <csignal>
 #endif
 
 #include "parachain/pvf/pvf_worker_types.hpp"
@@ -47,13 +47,17 @@ namespace kagome::parachain::clone {
     if (not have_unshare_newuser) {
       flags |= CLONE_NEWUSER;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
     pid_t pid = ::clone(
         [](void *arg) {
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
           auto &cb = *reinterpret_cast<const Cb *>(arg);
           return cb() ? EXIT_SUCCESS : EXIT_FAILURE;
         },
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         stack.data() + stack.size(),
         flags,
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         const_cast<void *>(static_cast<const void *>(&cb)));
     if (pid == -1) {
       return std::errc{errno};
