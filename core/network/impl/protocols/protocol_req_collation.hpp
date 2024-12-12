@@ -15,6 +15,7 @@
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
+#include "common/main_thread_pool.hpp"
 #include "log/logger.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
@@ -41,7 +42,8 @@ namespace kagome::network {
     ReqCollationProtocol(libp2p::Host &host,
                          const application::ChainSpec &chain_spec,
                          const blockchain::GenesisBlockHash &genesis_hash,
-                         std::shared_ptr<ReqCollationObserver> observer);
+                         std::shared_ptr<ReqCollationObserver> observer,
+                         common::MainThreadPool &main_thread_pool);
 
     const Protocol &protocolName() const override;
 

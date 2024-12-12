@@ -36,7 +36,8 @@ namespace kagome::network {
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<
             parachain::statement_distribution::StatementDistribution>
-            statement_distribution)
+            statement_distribution,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
               vstaging::AttestedCandidateRequest,
               vstaging::AttestedCandidateResponse,
@@ -48,7 +49,8 @@ namespace kagome::network {
                                           kProtocolPrefixPolkadot),
                                       log::createLogger(
                                           kFetchAttestedCandidateProtocolName,
-                                          "req_attested_candidate_protocol")},
+                                          "req_attested_candidate_protocol"),
+                                      main_thread_pool},
           statement_distribution_(std::move(statement_distribution)) {
       BOOST_ASSERT(statement_distribution_);
     }
