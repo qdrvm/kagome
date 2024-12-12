@@ -24,7 +24,13 @@ namespace kagome::storage {
      * @param space - identifier of required space
      * @return a pointer buffer storage for a space
      */
-    virtual std::shared_ptr<BufferStorage> getSpace(Space space) = 0;
+    virtual std::shared_ptr<BufferBatchableStorage> getSpace(Space space) = 0;
+
+    /**
+     * Retrieve a batch to write into the storage atomically
+     * @return a new batch
+     */
+    virtual std::unique_ptr<BufferSpacedBatch> createBatch() = 0;
   };
 
 }  // namespace kagome::storage

@@ -12,10 +12,11 @@
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/storage/in_memory/in_memory_storage.hpp"
 
 using kagome::common::Hash256;
 using std::string_literals::operator""s;
@@ -85,7 +86,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
   std::shared_ptr<kagome::primitives::events::ChainSubscriptionEngine>
       sub_engine_;
-  std::shared_ptr<kagome::storage::BufferStorage> buffer_storage_;
+  std::shared_ptr<kagome::storage::BufferBatchableStorage> buffer_storage_;
   std::shared_ptr<kagome::storage::SpacedStorageMock> storage_;
 
   std::shared_ptr<kagome::primitives::CodeSubstituteBlockIds>

@@ -11,30 +11,39 @@
 
 namespace kagome::storage {
 
-  RocksDbBatch::RocksDbBatch(RocksDbSpace &db) : db_(db) {}
+  RocksDbBatch::RocksDbBatch(std::shared_ptr<RocksDb> db,
+                             rocksdb::ColumnFamilyHandle *default_cf)
+      : db_(std::move(db)), default_cf_(default_cf) {
+    BOOST_ASSERT(db_ != nullptr);
+    BOOST_ASSERT(default_cf_ != nullptr);
+  }
 
   outcome::result<void> RocksDbBatch::put(const BufferView &key,
                                           BufferOrView &&value) {
-    batch_.Put(db_.column_, make_slice(key), make_slice(std::move(value)));
-    return outcome::success();
+    return status_as_result(
+        batch_.Put(default_cf_, make_slice(key), make_slice(std::move(value))));
+  }
+
+  outcome::result<void> RocksDbBatch::put(Space space,
+                                          const BufferView &key,
+                                          BufferOrView &&value) {
+    auto handle = db_->getCFHandle(space);
+    return status_as_result(
+        batch_.Put(handle, make_slice(key), make_slice(std::move(value))));
   }
 
   outcome::result<void> RocksDbBatch::remove(const BufferView &key) {
-    batch_.Delete(db_.column_, make_slice(key));
-    return outcome::success();
+    return status_as_result(batch_.Delete(default_cf_, make_slice(key)));
+  }
+
+  outcome::result<void> RocksDbBatch::remove(Space space,
+                                             const BufferView &key) {
+    auto handle = db_->getCFHandle(space);
+    return status_as_result(batch_.Delete(handle, make_slice(key)));
   }
 
   outcome::result<void> RocksDbBatch::commit() {
-    auto rocks = db_.storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
-    auto status = rocks->db_->Write(rocks->wo_, &batch_);
-    if (status.ok()) {
-      return outcome::success();
-    }
-
-    return status_as_error(status);
+    return status_as_result(db_->db_->Write(db_->wo_, &batch_));
   }
 
   void RocksDbBatch::clear() {

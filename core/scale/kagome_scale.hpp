@@ -27,6 +27,8 @@
 #include "scale/encoder/concepts.hpp"
 #include "scale/libp2p_types.hpp"
 
+#include <authority_discovery/query/authority_peer_info.hpp>
+
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
@@ -114,6 +116,10 @@ namespace kagome::scale {
 
   constexpr void encode(const Invocable auto &func,
                         const consensus::grandpa::SignedPrecommit &c);
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c);
+
 }  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
@@ -282,6 +288,15 @@ namespace kagome::scale {
     kagome::scale::encode(
         func, static_cast<const consensus::grandpa::SignedMessage &>(c));
   }
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c) {
+    encode(func, c.raw);
+    encode(func, c.time);
+    encode(func, c.peer);
+  }
+
 }  // namespace kagome::scale
 
 #endif  // KAGOME_KAGOME_SCALE_HPP

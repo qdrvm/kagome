@@ -43,17 +43,19 @@ namespace kagome::network {
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainProcessorImpl> pp,
-        std::shared_ptr<PeerManager> pm)
+        std::shared_ptr<PeerManager> pm,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-            FetchChunkRequest,
-            FetchChunkResponse,
-            ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                    host,
-                                    make_protocols(kFetchChunkProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kFetchChunkProtocolName,
-                                                      "req_chunk_protocol")},
+              FetchChunkRequest,
+              FetchChunkResponse,
+              ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                      host,
+                                      make_protocols(kFetchChunkProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kFetchChunkProtocolName,
+                                                        "req_chunk_protocol"),
+                                      main_thread_pool},
           pp_{std::move(pp)},
           pm_{std::move(pm)} {
       BOOST_ASSERT(pp_);

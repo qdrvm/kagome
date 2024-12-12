@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include "common/blob.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
@@ -14,7 +17,7 @@ namespace kagome::storage::trie {
   class PolkadotTrieCursorDummy : public PolkadotTrieCursor {
    private:
     std::map<common::Buffer, common::Buffer, std::less<>> key_val_;
-    decltype(key_val_.begin()) current_;
+    decltype(key_val_)::iterator current_;
 
    public:
     explicit PolkadotTrieCursorDummy(
@@ -68,6 +71,10 @@ namespace kagome::storage::trie {
 
     std::optional<BufferOrView> value() const override {
       return BufferView{current_->second};
+    }
+
+    std::optional<ValueHash> valueHash() const override {
+      return ValueHash{crypto::blake2b<32>(current_->second), false};
     }
   };
 }  // namespace kagome::storage::trie
