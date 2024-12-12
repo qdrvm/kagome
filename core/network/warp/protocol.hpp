@@ -30,12 +30,14 @@ namespace kagome::network {
     WarpProtocolImpl(libp2p::Host &host,
                      const application::ChainSpec &chain_spec,
                      const blockchain::GenesisBlockHash &genesis,
-                     std::shared_ptr<WarpSyncCache> cache)
+                     std::shared_ptr<WarpSyncCache> cache,
+                     common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl(
-            kName,
-            host,
-            make_protocols(kWarpProtocol, genesis, chain_spec),
-            log::createLogger(kName, "warp_sync_protocol")),
+              kName,
+              host,
+              make_protocols(kWarpProtocol, genesis, chain_spec),
+              log::createLogger(kName, "warp_sync_protocol"),
+              main_thread_pool),
           cache_{std::move(cache)} {}
 
     std::optional<outcome::result<ResponseType>> onRxRequest(

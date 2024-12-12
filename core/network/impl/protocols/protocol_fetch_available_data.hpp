@@ -33,7 +33,8 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::AvailabilityStore> av_store)
+        std::shared_ptr<parachain::AvailabilityStore> av_store,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
               FetchAvailableDataRequest,
               FetchAvailableDataResponse,
@@ -44,8 +45,8 @@ namespace kagome::network {
                                           genesis_hash,
                                           kProtocolPrefixPolkadot),
                                       log::createLogger(
-                                          kName,
-                                          "req_available_data_protocol")},
+                                          kName, "req_available_data_protocol"),
+                                      main_thread_pool},
           av_store_{std::move(av_store)} {}
 
    private:
@@ -77,7 +78,8 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::BackingStore> backing_store)
+        std::shared_ptr<parachain::BackingStore> backing_store,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
               FetchStatementRequest,
               FetchStatementResponse,
@@ -87,7 +89,8 @@ namespace kagome::network {
                                                      genesis_hash,
                                                      kProtocolPrefixPolkadot),
                                       log::createLogger(
-                                          kName, "req_statement_protocol")},
+                                          kName, "req_statement_protocol"),
+                                      main_thread_pool},
           backing_store_{std::move(backing_store)} {}
 
    private:

@@ -29,12 +29,14 @@ namespace kagome::network {
                              const libp2p::peer::ProtocolName &protoname,
                              const application::ChainSpec &chain_spec,
                              const blockchain::GenesisBlockHash &genesis_hash,
-                             std::shared_ptr<ReqCollationObserver> observer)
+                             std::shared_ptr<ReqCollationObserver> observer,
+                             common::MainThreadPool &main_thread_pool)
         : Base{kReqCollationProtocolName,
                host,
                make_protocols(protoname, genesis_hash, kProtocolPrefixPolkadot),
                log::createLogger(kReqCollationProtocolName,
-                                 "req_collation_protocol")},
+                                 "req_collation_protocol"),
+               main_thread_pool},
           observer_{std::move(observer)} {}
 
    protected:
@@ -60,11 +62,17 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<ReqCollationObserver> observer)
+      std::shared_ptr<ReqCollationObserver> observer,
+      common::MainThreadPool &main_thread_pool)
       : v1_impl_{std::make_shared<
             ReqCollationProtocolImpl<CollationFetchingRequest,
                                      CollationFetchingResponse>>(
-            host, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
+            host,
+            kReqCollationProtocol,
+            chain_spec,
+            genesis_hash,
+            observer,
+            main_thread_pool)},
         vstaging_impl_{std::make_shared<
             ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
                                      vstaging::CollationFetchingResponse>>(
@@ -72,7 +80,8 @@ namespace kagome::network {
             kReqCollationVStagingProtocol,
             chain_spec,
             genesis_hash,
-            observer)} {
+            observer,
+            main_thread_pool)} {
     BOOST_ASSERT(v1_impl_);
     BOOST_ASSERT(vstaging_impl_);
   }
