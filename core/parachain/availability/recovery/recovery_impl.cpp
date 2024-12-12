@@ -260,7 +260,6 @@ namespace kagome::parachain {
                    candidate_hash,
                    validator_index,
                    peer->id);
-          lock.unlock();
           send_fetch_available_data_request(
               peer->id,
               candidate_hash,
