@@ -20,7 +20,6 @@
 #include <vector>
 #include "crypto/ecdsa_types.hpp"
 #include "scale/encoder/concepts.hpp"
-
 #include "utils/struct_to_tuple.hpp"
 
 namespace kagome::scale {
@@ -474,15 +473,14 @@ namespace kagome::scale {
   void encode(const Invocable auto &func, const crypto::EcdsaSignature &data) {
     kagome::scale::encode(
         func,
-        static_cast<const common::Blob<crypto::constants::ecdsa::SIGNATURE_SIZE>
-                        &>(data));
+        static_cast<const crypto::EcdsaSignature::Base &>(data));
   }
 
   void encode(const Invocable auto &func, const crypto::EcdsaPublicKey &data) {
     kagome::scale::encode(
         func,
         static_cast<
-            const common::Blob<crypto::constants::ecdsa::PUBKEY_SIZE> &>(data));
+            const crypto::EcdsaPublicKey::Base &>(data));
   }
 
 }  // namespace kagome::scale
