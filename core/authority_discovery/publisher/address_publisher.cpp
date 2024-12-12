@@ -10,6 +10,7 @@
 
 #include "authority_discovery/timestamp.hpp"
 #include "crypto/sha/sha256.hpp"
+#include "scale/encode_vec.hpp"
 
 #define _PB_SPAN(f) \
   [&](::kagome::common::BufferView a) { (f)(a.data(), a.size()); }
@@ -155,9 +156,8 @@ namespace kagome::authority_discovery {
     }
     if (now) {
       TimestampScale time{now->count()};
-      PB_SPAN_SET(*record.mutable_creation_time(),
-                  timestamp,
-                  scale::encode(time).value());
+      PB_SPAN_SET(
+          *record.mutable_creation_time(), timestamp, scale::encodeVec(time));
     }
 
     auto record_pb = pbEncodeVec(record);
