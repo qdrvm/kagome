@@ -74,6 +74,14 @@ namespace kagome::authority_discovery {
   }
 
   bool QueryImpl::start() {
+    // add known peers
+    audi_store_->forEach([this](const auto &id, const auto &info) {
+      hash_to_auth_.emplace(crypto::sha256(id), id);
+      peer_to_auth_cache_.emplace(info.peer.id, id);
+      std::ignore =
+          host_.getPeerRepository().getAddressRepository().addAddresses(
+              info.peer.id, info.peer.addresses, libp2p::peer::ttl::kDay);
+    });
     interval_.start([this] {
       auto r = update();
       if (not r) {
