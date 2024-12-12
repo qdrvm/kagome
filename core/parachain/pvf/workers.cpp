@@ -122,6 +122,7 @@ namespace kagome::parachain {
 
   PvfWorkers::PvfWorkers(const application::AppConfiguration &app_config,
                          common::MainThreadPool &main_thread_pool,
+                         SecureModeSupport secure_mode_support,
                          std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{main_thread_pool.io_context()},
         main_pool_handler_{main_thread_pool.handlerStarted()},
@@ -133,6 +134,7 @@ namespace kagome::parachain {
             .cache_dir = app_config.runtimeCacheDirPath(),
             .log_params = app_config.log(),
             .force_disable_secure_mode = app_config.disableSecureMode(),
+            .secure_mode_support = secure_mode_support,
         } {}
 
   void PvfWorkers::execute(Job &&job) {
@@ -157,10 +159,9 @@ namespace kagome::parachain {
             if (not r) {
               return job.cb(r.error());
             }
-            self->writeCode(
-                std::move(job),
-                {.process = std::move(process)},
-                std::move(used));
+            self->writeCode(std::move(job),
+                            {.process = std::move(process)},
+                            std::move(used));
           });
       return;
     }

@@ -37,8 +37,17 @@ namespace kagome::parachain {
     std::filesystem::path cache_dir = original_cache_dir;
     SecureModeSupport support = SecureModeSupport::none();
     auto logger = log::createLogger("CheckSecureMode", "parachain");
+    if (auto res = clone::check()) {
+      support.can_do_secure_clone = true;
+    } else {
+      SL_WARN(logger,
+              "Secure mode incomplete, cannot enable clone for PVF "
+              "worker: {}",
+              res.error());
+    }
     if (auto res = changeRoot(cache_dir)) {
       support.chroot = true;
+      cache_dir = "/";
     } else {
       SL_WARN(
           logger,
@@ -47,7 +56,6 @@ namespace kagome::parachain {
           cache_dir.c_str(),
           res.error());
     }
-    cache_dir = "/";
 
     if (auto res = enableLandlock(cache_dir)) {
       support.landlock = true;
@@ -66,21 +74,13 @@ namespace kagome::parachain {
               "worker: {}",
               res.error());
     }
-    if (auto res = clone::check()) {
-      support.can_do_secure_clone = true;
-    } else {
-      SL_WARN(logger,
-              "Secure mode incomplete, cannot enable clone for PVF "
-              "worker: {}",
-              res.error());
-    }
     return support;
 #endif
   }
 
   SecureModeOutcome<SecureModeSupport> runSecureModeCheckProcess(
-      boost::asio::io_context &io_context,
       const std::filesystem::path &cache_dir) {
+    boost::asio::io_context io_context;
     namespace process_v2 = boost::process::v2;
     boost::asio::readable_pipe pipe{io_context};
     // input passed as CLI arguments to enable users to manually run the check

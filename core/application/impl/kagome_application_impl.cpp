@@ -125,28 +125,6 @@ namespace kagome::application {
       metric_build_info->set(1);
     }
 
-#ifdef __linux__
-    if (not app_config_->disableSecureMode() and app_config_->usePvfSubprocess()
-        and app_config_->roles().isAuthority()) {
-      auto res = parachain::runSecureModeCheckProcess(
-          *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
-      if (!res) {
-        SL_ERROR(logger_, "Secure mode check failed: {}", res.error());
-        exit(EXIT_FAILURE);
-      }
-      if (!res.assume_value().isTotallySupported()) {
-        SL_ERROR(logger_,
-                 "Secure mode is not supported completely. You can disable it "
-                 "using --insecure-validator-i-know-what-i-do.");
-        exit(EXIT_FAILURE);
-      }
-    }
-#else
-    SL_WARN(logger_,
-            "Secure validator mode is not implemented for the current "
-            "platform. Proceed at your own risk.");
-#endif
-
     if (app_config_->enableDbMigration()) {
       if (auto res = storage::migrations::runMigrations(injector_); !res) {
         SL_ERROR(logger_, "Failed to migrate the database: {}", res.error());

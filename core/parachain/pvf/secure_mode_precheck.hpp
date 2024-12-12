@@ -12,10 +12,6 @@
 #include "qtils/outcome.hpp"
 #include "scale/tie.hpp"
 
-namespace boost::asio {
-  class io_context;
-}  // namespace boost::asio
-
 namespace kagome::parachain {
 
   /**
@@ -62,7 +58,6 @@ namespace kagome::parachain {
    * Spawns a child process that executes checkSecureMode
    */
   SecureModeOutcome<SecureModeSupport> runSecureModeCheckProcess(
-      boost::asio::io_context &io_context,
       const std::filesystem::path &cache_dir);
 
   /**
