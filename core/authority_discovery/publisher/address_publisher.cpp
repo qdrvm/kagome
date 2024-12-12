@@ -155,9 +155,8 @@ namespace kagome::authority_discovery {
     }
     if (now) {
       TimestampScale time{now->count()};
-      PB_SPAN_SET(*record.mutable_creation_time(),
-                  timestamp,
-                  scale::encode(time).value());
+      OUTCOME_TRY(encoded_time, scale::encode(time));
+      PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
     }
 
     auto record_pb = pbEncodeVec(record);
