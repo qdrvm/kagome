@@ -916,6 +916,24 @@ namespace kagome::blockchain {
         });
   }
 
+  outcome::result<std::optional<primitives::BlockHeader>>
+  BlockTreeImpl::tryGetBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    return block_tree_data_.sharedAccess(
+        [&](const BlockTreeData &p)
+            -> outcome::result<std::optional<primitives::BlockHeader>> {
+          auto header = p.storage_->getBlockHeader(block_hash);
+          if (header) {
+            return header.value();
+          }
+          const auto &header_error = header.error();
+          if (header_error == BlockTreeError::HEADER_NOT_FOUND) {
+            return std::nullopt;
+          }
+          return header_error;
+        });
+  }
+
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockHash &block_hash) const {
     return block_tree_data_.sharedAccess(
