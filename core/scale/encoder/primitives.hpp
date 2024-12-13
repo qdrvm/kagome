@@ -10,6 +10,7 @@
 #include <any>
 #include <deque>
 #include <iostream>
+#include <list>
 #include <map>
 #include <optional>
 #include <scale/outcome/outcome_throw.hpp>
@@ -19,6 +20,7 @@
 #include <type_traits>
 #include <vector>
 #include "crypto/ecdsa_types.hpp"
+#include "primitives/math.hpp"
 #include "scale/encoder/concepts.hpp"
 #include "utils/struct_to_tuple.hpp"
 
@@ -51,8 +53,10 @@ namespace kagome::scale {
   constexpr void encode(const Invocable auto &func,
                         const std::array<T, size> &c);
 
+  // NOLINTBEGIN
   template <typename T, size_t N>
   constexpr void encode(const Invocable auto &func, const T (&c)[N]);
+  // NOLINTEND
 
   template <typename K, typename V>
   constexpr void encode(const Invocable auto &func, const std::map<K, V> &c);
@@ -134,6 +138,7 @@ namespace kagome::scale {
     kagome::scale::encode(func, args...);
   }
 
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
     std::vector<uint8_t> res;
@@ -185,6 +190,7 @@ namespace kagome::scale {
     }
     return counter;
   }
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
   constexpr void putByte(const Invocable auto &func,
                          const uint8_t *const val,
@@ -205,6 +211,7 @@ namespace kagome::scale {
     }
   }
 
+  // NOLINTBEGIN
   template <typename T, size_t N>
   constexpr void encode(const Invocable auto &func, const T (&c)[N]) {
     using E = std::decay_t<T>;
@@ -216,6 +223,7 @@ namespace kagome::scale {
       }
     }
   }
+  // NOLINTEND
 
   template <typename... Ts>
   void encode(const Invocable auto &func, const boost::variant<Ts...> &v) {
@@ -472,15 +480,12 @@ namespace kagome::scale {
 
   void encode(const Invocable auto &func, const crypto::EcdsaSignature &data) {
     kagome::scale::encode(
-        func,
-        static_cast<const crypto::EcdsaSignature::Base &>(data));
+        func, static_cast<const crypto::EcdsaSignature::Base &>(data));
   }
 
   void encode(const Invocable auto &func, const crypto::EcdsaPublicKey &data) {
     kagome::scale::encode(
-        func,
-        static_cast<
-            const crypto::EcdsaPublicKey::Base &>(data));
+        func, static_cast<const crypto::EcdsaPublicKey::Base &>(data));
   }
 
 }  // namespace kagome::scale

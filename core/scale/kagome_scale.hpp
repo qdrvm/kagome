@@ -241,7 +241,8 @@ namespace kagome::scale {
   }
 
   constexpr void encode(const Invocable auto &func, const network::Roles &c) {
-    kagome::scale::encode(func, c.value);
+    kagome::scale::encode(
+        func, c.value);  // NOLINT(cppcoreguidelines-pro-type-union-access)
   }
 
   constexpr void encode(const Invocable auto &func,
