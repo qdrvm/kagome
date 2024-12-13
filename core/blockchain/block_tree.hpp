@@ -227,6 +227,7 @@ namespace kagome::blockchain {
      * @return collection of the leaves
      */
     virtual std::vector<primitives::BlockHash> getLeaves() const = 0;
+    virtual std::vector<primitives::BlockInfo> getLeavesInfo() const = 0;
 
     /**
      * Get children of the block with specified hash

@@ -144,6 +144,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &target_hash) const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
+    std::vector<primitives::BlockInfo> getLeavesInfo() const override;
 
     BlockHashVecRes getChildren(
         const primitives::BlockHash &block) const override;

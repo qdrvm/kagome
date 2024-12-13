@@ -118,6 +118,11 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(primitives::BlockInfo, bestBlock, (), (const, override));
 
+    MOCK_METHOD(std::vector<primitives::BlockInfo>,
+                getLeavesInfo,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::vector<primitives::BlockHash>,
                 getLeaves,
                 (),

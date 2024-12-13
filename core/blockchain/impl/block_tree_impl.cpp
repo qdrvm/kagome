@@ -1230,6 +1230,11 @@ namespace kagome::blockchain {
         [&](const BlockTreeData &p) { return getLeavesNoLock(p); });
   }
 
+  std::vector<primitives::BlockInfo> BlockTreeImpl::getLeavesInfo() const {
+    return block_tree_data_.sharedAccess(
+        [&](const BlockTreeData &p) { return p.tree_->leafInfo(); });
+  }
+
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) const {
     return block_tree_data_.sharedAccess(

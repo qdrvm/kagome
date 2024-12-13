@@ -50,7 +50,7 @@ namespace kagome::primitives {
                                   const T &inherent) {
       auto [it, inserted] = data.try_emplace(identifier, common::Buffer());
       if (inserted) {
-        it->second = common::Buffer(::scale::encode(inherent).value());
+        it->second = common::Buffer(scale::encode(inherent).value());
         return outcome::success();
       }
       return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
@@ -62,7 +62,7 @@ namespace kagome::primitives {
      */
     template <typename T>
     void replaceData(InherentIdentifier identifier, const T &inherent) {
-      data[identifier] = common::Buffer(::scale::encode(inherent).value());
+      data[identifier] = common::Buffer(scale::encode(inherent).value());
     }
 
     /**
