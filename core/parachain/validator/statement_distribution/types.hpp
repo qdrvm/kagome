@@ -33,7 +33,7 @@ namespace kagome::parachain {
         statement,
         [&](const StatementWithPVDSeconded &val) {
           return hasher->blake2b_256(
-              ::scale::encode(val.committed_receipt.to_plain(*hasher)).value());
+              scale::encode(val.committed_receipt.to_plain(*hasher)).value());
         },
         [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
   }
