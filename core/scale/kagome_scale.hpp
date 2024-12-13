@@ -120,6 +120,11 @@ namespace kagome::scale {
   constexpr void encode(const F &func,
                         const authority_discovery::AuthorityPeerInfo &c);
 
+  constexpr void encode(const Invocable auto &func,
+                        const scale::PeerInfoSerializable &c);
+
+  template <typename T>
+  constexpr void encode(const Invocable auto &func, const Fixed<T> &c);
 }  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
@@ -295,6 +300,25 @@ namespace kagome::scale {
     encode(func, c.raw);
     encode(func, c.time);
     encode(func, c.peer);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const scale::PeerInfoSerializable &c) {
+    std::vector<std::string> addresses;
+    addresses.reserve(c.addresses.size());
+    for (const auto &addr : c.addresses) {
+      addresses.emplace_back(addr.getStringAddress());
+    }
+    encode(func, c.id.toBase58());
+    encode(func, addresses);
+  }
+
+  template <typename T>
+  constexpr void encode(const Invocable auto &func, const Fixed<T> &c) {
+    constexpr size_t bits = Fixed<T>::kByteSize * 8;
+    for (size_t i = 0; i < bits; i += 8) {
+      encode(func, ::scale::convert_to<uint8_t>((*c >> i) & 0xFFu));
+    }
   }
 
 }  // namespace kagome::scale
