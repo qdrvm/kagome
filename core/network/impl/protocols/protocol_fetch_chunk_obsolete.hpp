@@ -43,7 +43,8 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
               FetchChunkRequest,
               FetchChunkResponseObsolete,
@@ -54,7 +55,8 @@ namespace kagome::network {
                                           genesis_hash,
                                           kProtocolPrefixPolkadot),
                                       log::createLogger(kFetchChunkProtocolName,
-                                                        "req_chunk_protocol")},
+                                                        "req_chunk_protocol"),
+                                      main_thread_pool},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }
