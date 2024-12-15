@@ -344,7 +344,7 @@ namespace kagome::authority_discovery {
         authority,
         AuthorityPeerInfo{
             .raw = std::move(signed_record_pb),
-            .time = time.has_value() ? std::make_optional<TimestampScale>(*time)
+            .time = time.has_value() ? std::make_optional(TimestampScale{*time})
                                      : std::nullopt,
             .peer = peer,
         });

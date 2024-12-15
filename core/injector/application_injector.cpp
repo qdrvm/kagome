@@ -47,10 +47,10 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/key.hpp"
 #include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
-#include "application/modes/key.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
 #include "authority_discovery/query/audi_store_impl.hpp"
 #include "authority_discovery/query/query_impl.hpp"
@@ -195,6 +195,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
@@ -797,6 +798,32 @@ namespace {
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
+            bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
+              auto support = parachain::SecureModeSupport::none();
+              auto log = log::createLogger("Application", "application");
+#ifdef __linux__
+              if (not config->disableSecureMode() and config->usePvfSubprocess()
+                  and config->roles().isAuthority()) {
+                auto res = parachain::runSecureModeCheckProcess(config->runtimeCacheDirPath());
+                if (!res) {
+                  SL_ERROR(log, "Secure mode check failed: {}", res.error());
+                  exit(EXIT_FAILURE);
+                }
+                support = res.value();
+                if (not support.isTotallySupported()) {
+                  SL_ERROR(log,
+                          "Secure mode is not supported completely. You can disable it "
+                          "using --insecure-validator-i-know-what-i-do.");
+                  exit(EXIT_FAILURE);
+                }
+              }
+#else
+              SL_WARN(log,
+                      "Secure validator mode is not implemented for the current "
+                      "platform. Proceed at your own risk.");
+#endif
+              return toSptr(support);
+            }),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -942,7 +969,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(std::move(app_config)))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
