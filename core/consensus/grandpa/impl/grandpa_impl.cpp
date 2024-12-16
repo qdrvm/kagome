@@ -614,7 +614,7 @@ namespace kagome::consensus::grandpa {
     if (peer_state_opt.has_value()) {
       // print the role of peer who sent us catch up response
       SL_INFO(logger_,
-               "Catch-up response (till round #{}) received from {} who is",
+               "Catch-up response (till round #{}) received from {} who is {}",
                msg.round_number,
                peer_id,
                peer_state_opt.value().get().roles.isAuthority() ? "authority"
