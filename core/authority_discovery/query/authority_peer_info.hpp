@@ -18,7 +18,7 @@ namespace kagome::authority_discovery {
 
     common::Buffer raw{};
     std::optional<TimestampScale> time{};
-    scale::PeerInfoSerializable peer{};
+    ::scale::PeerInfoSerializable peer{};
   };
 
 }  // namespace kagome::authority_discovery

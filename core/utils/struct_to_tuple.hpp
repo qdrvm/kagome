@@ -59,10 +59,8 @@
     return std::make_tuple(REPEATY_REF(ONES, p));                             \
   }
 
-#define TO_TUPLE1             \
-  TO_TUPLE_N(1) else {        \
-    return std::make_tuple(); \
-  }
+#define TO_TUPLE1 \
+  TO_TUPLE_N(1) else { return std::make_tuple(); }
 #define TO_TUPLE2 TO_TUPLE_N(2) else TO_TUPLE1
 #define TO_TUPLE3 TO_TUPLE_N(3) else TO_TUPLE2
 #define TO_TUPLE4 TO_TUPLE_N(4) else TO_TUPLE3
@@ -75,7 +73,7 @@
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
-  decltype(void(T{{std::declval<TArgs>()}...}), std::true_type{})
+  decltype(void(T{std::declval<TArgs>()...}), std::true_type())
   test_is_braces_constructible(int);
 
   template <typename, typename...>
