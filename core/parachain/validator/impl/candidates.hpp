@@ -262,7 +262,8 @@ namespace kagome::parachain {
       boost::variant<UnconfirmedCandidate, ConfirmedCandidate>;
 
   struct Candidates {
-    using ByParaId = std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>;
+    using ByParaId =
+        std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>;
     using ByRelayParent = std::unordered_map<Hash, ByParaId>;
     using StateByCandidate = std::unordered_map<CandidateHash, CandidateState>;
 

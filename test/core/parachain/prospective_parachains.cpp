@@ -394,7 +394,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     ASSERT_TRUE(resp.has_value());
     ASSERT_EQ(resp.value(), expected_pvd);
   }
-
 };
 
 TEST_F(ProspectiveParachainsTest,
