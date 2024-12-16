@@ -798,6 +798,15 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     return block_tree_data_.exclusiveAccess([&](BlockTreeData &p)
                                                 -> outcome::result<void> {
+      // do not finalize if the difference between the best block number and the
+      // current finalized block number is less than 10
+      if (bestBlockNoLock(p).number - getLastFinalizedNoLock(p).number < 10) {
+        SL_DEBUG(log_,
+                 "Finalization is impossible: the difference between the best "
+                 "block number and the current finalized block number is less "
+                 "than 10");
+        return BlockTreeError::TARGET_IS_PAST_MAX;
+      }
       auto last_finalized_block_info = getLastFinalizedNoLock(p);
       if (block_hash == last_finalized_block_info.hash) {
         return outcome::success();
