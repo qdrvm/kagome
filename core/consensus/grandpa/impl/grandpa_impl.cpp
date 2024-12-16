@@ -431,9 +431,9 @@ namespace kagome::consensus::grandpa {
         // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.has_value()) {
           SL_INFO(logger_,
-                 "Catch-up request to round #{} will be sent to {}",
-                 current_round_->roundNumber(),
-                 peer_id);
+                  "Catch-up request to round #{} will be sent to {}",
+                  current_round_->roundNumber(),
+                  peer_id);
           environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
           if (pending_catchup_request_.has_value()) {
@@ -610,6 +610,16 @@ namespace kagome::consensus::grandpa {
              peer_id,
              msg,
              allow_missing_blocks);
+    auto peer_state_opt = peer_manager_->getPeerState(peer_id);
+    if (peer_state_opt.has_value()) {
+      // print the role of peer who sent us catch up response
+      SL_INFO(logger_,
+               "Catch-up response (till round #{}) received from {} who is",
+               msg.round_number,
+               peer_id,
+               peer_state_opt.value().get().roles.isAuthority() ? "authority"
+                                                                : "full");
+    }
 
     bool need_cleanup_when_exiting_scope = false;
 
@@ -1132,7 +1142,7 @@ namespace kagome::consensus::grandpa {
     }
 
     SL_INFO(logger_,
-             "Applying justification from GrandpaImpl::onCommitMessage");
+            "Applying justification from GrandpaImpl::onCommitMessage");
     applyJustification(
         justification, [wself{weak_from_this()}, peer_id](auto &&res) mutable {
           if (auto self = wself.lock()) {
@@ -1205,8 +1215,8 @@ namespace kagome::consensus::grandpa {
                 r.error());
       } else {
         SL_INFO(logger_,
-                 "environment_->finalize from GrandpaImpl::applyJustification "
-                 "LOC: 1202");
+                "environment_->finalize from GrandpaImpl::applyJustification "
+                "LOC: 1202");
         r = environment_->finalize(authority_set->id, justification);
       }
       callbackCall(std::move(callback), r);
@@ -1421,7 +1431,7 @@ namespace kagome::consensus::grandpa {
       auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
                   : vote.is<Precommit>() ? &votes.precommit_idx
                                          : nullptr;
-      if (index and not *index) {
+      if (index and not*index) {
         *index = votes.seen.size();
       }
     }
