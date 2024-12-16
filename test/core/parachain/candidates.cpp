@@ -312,3 +312,251 @@ TEST_F(CandidatesTest, confirming_maintains_parent_hash_index) {
             {candidate_head_data_hash_c, {{1, {candidate_hash_d}}}}
         });
 }
+
+TEST_F(CandidatesTest, test_returned_post_confirmation) {
+		const HeadData relay_head_data = {1, 2, 3};
+		const auto relay_hash = hash_of(relay_head_data);
+
+		const HeadData candidate_head_data_a = {1};
+		const HeadData candidate_head_data_b = {2};
+		const HeadData candidate_head_data_c = {3};
+		const HeadData candidate_head_data_d = {4};
+
+		const auto candidate_head_data_hash_a = hash_of(candidate_head_data_a);
+		const auto candidate_head_data_hash_b = hash_of(candidate_head_data_b);
+
+		const auto &[candidate_a, pvd_a] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			relay_head_data,
+			candidate_head_data_a,
+			from_low_u64_be(1000)
+		);
+		const auto &[candidate_b, pvd_b] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_a,
+			candidate_head_data_b,
+			from_low_u64_be(2000)
+		);
+		const auto &[candidate_c, _] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_a,
+			candidate_head_data_c,
+			from_low_u64_be(3000)
+		);
+		const auto &[candidate_d, pvd_d] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_b,
+			candidate_head_data_d,
+			from_low_u64_be(4000)
+		);
+
+		const auto candidate_hash_a = hash_of(candidate_a);
+		const auto candidate_hash_b = hash_of(candidate_b);
+		const auto candidate_hash_c = hash_of(candidate_c);
+		const auto candidate_hash_d = hash_of(candidate_d);
+
+		const auto peer_a = getPeerFrom(1);
+		const auto peer_b = getPeerFrom(2);
+		const auto peer_c = getPeerFrom(3);
+		const auto peer_d = getPeerFrom(4);
+
+		const GroupIndex group_index = 100;
+
+		Candidates candidates;
+
+		// Insert some unconfirmed candidates.
+
+		// Advertise A without parent hash.
+		ASSERT_TRUE(candidates.insert_unconfirmed(peer_a, candidate_hash_a, relay_hash, group_index, std::nullopt));
+
+		// Advertise A with parent hash and ID.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_a,
+				candidate_hash_a,
+				relay_hash,
+				group_index,
+				std::make_pair(relay_hash, 1)
+			));
+
+		// (Correctly) advertise B with parent A. Do it from a couple of peers.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_a,
+				candidate_hash_b,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_b,
+				candidate_hash_b,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+
+		// (Wrongly) advertise C with parent A. Do it from a couple peers.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_b,
+				candidate_hash_c,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_c,
+				candidate_hash_c,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+
+		// Advertise D. Do it correctly from one peer (parent B) and wrongly from another (parent
+		// A).
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_c,
+				candidate_hash_d,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_b, 1)
+			));
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer_d,
+				candidate_hash_d,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+
+        auto ASSERT_RESULT = [&] (const Candidates::ByRelayParent &ref) -> auto {
+		    ASSERT_EQ(candidates.by_parent, ref);
+        };
+
+
+        ASSERT_RESULT({
+            {relay_hash, {{1, {candidate_hash_a}}}},
+            {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c, candidate_hash_d}}}},
+            {candidate_head_data_hash_b, {{1, {candidate_hash_d}}}}
+        });
+
+		// Insert confirmed candidates and check parent hash index.
+
+		// Confirmation matches advertisement.
+        {
+		const auto post_confirmation = candidates.confirm_candidate(
+			candidate_hash_a,
+			candidate_a,
+			pvd_a,
+			group_index,
+            hasher_
+		);
+		ASSERT_EQ(
+			post_confirmation,
+			std::make_optional(PostConfirmation {
+				.hypothetical = HypotheticalCandidateComplete {
+					.candidate_hash = candidate_hash_a,
+					.receipt = candidate_a,
+					.persisted_validation_data = pvd_a,
+				},
+				.reckoning = PostConfirmationReckoning {
+					.correct = {peer_a},
+					.incorrect = {},
+				},
+			})
+		);
+        }
+
+        {
+		const auto post_confirmation = candidates.confirm_candidate(
+			candidate_hash_b,
+			candidate_b,
+			pvd_b,
+			group_index, hasher_
+		);
+		ASSERT_EQ(
+			post_confirmation,
+			std::make_optional(PostConfirmation {
+				.hypothetical = HypotheticalCandidateComplete {
+					.candidate_hash = candidate_hash_b,
+					.receipt = candidate_b,
+					.persisted_validation_data = pvd_b,
+				},
+				.reckoning = PostConfirmationReckoning {
+					.correct = {peer_a, peer_b},
+					.incorrect = {},
+				},
+			})
+		);
+        }
+
+		// Confirm candidate with two wrong peers (different group index).
+		const auto &[new_candidate_c, new_pvd_c] = make_candidate(
+			relay_hash,
+			1,
+			2,
+			candidate_head_data_b,
+			candidate_head_data_c,
+			from_low_u64_be(3000)
+		);
+
+        {
+		const auto post_confirmation = candidates.confirm_candidate(
+			candidate_hash_c,
+			new_candidate_c,
+			new_pvd_c,
+			group_index, hasher_
+		);
+		ASSERT_EQ(
+			post_confirmation,
+			std::make_optional(PostConfirmation {
+				.hypothetical = HypotheticalCandidateComplete {
+					.candidate_hash = candidate_hash_c,
+					.receipt = new_candidate_c,
+					.persisted_validation_data = new_pvd_c,
+				},
+				.reckoning = PostConfirmationReckoning {
+					.correct = {},
+					.incorrect = {peer_b, peer_c},
+				},
+			})
+		);
+        }
+
+		// Confirm candidate with one wrong peer (different parent head data).
+        {
+		const auto post_confirmation = candidates.confirm_candidate(
+			candidate_hash_d,
+			candidate_d,
+			pvd_d,
+			group_index, hasher_
+		);
+		ASSERT_EQ(
+			post_confirmation,
+			std::make_optional(PostConfirmation {
+				.hypothetical = HypotheticalCandidateComplete {
+					.candidate_hash = candidate_hash_d,
+					.receipt = candidate_d,
+					.persisted_validation_data = pvd_d,
+				},
+				.reckoning = PostConfirmationReckoning {
+					.correct = {peer_c},
+					.incorrect = {peer_d},
+				},
+			})
+		);
+        }
+}
