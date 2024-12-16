@@ -40,11 +40,6 @@ class CandidatesTest : public ProspectiveParachainsTestHarness {
         return peer_id;
     }
 
-    template <typename T>
-    void println(std::string_view pref, const T &t) {
-        std::cout << fmt::format("{}   ===>>>   {}\n", pref, t);
-    }
-
     Hash from_low_u64_be(uint64_t v) {
         Hash h{};
         *(uint64_t*)&h[32 - 8] = LE_BE_SWAP64(v);
@@ -59,9 +54,6 @@ TEST_F(CandidatesTest, inserting_unconfirmed_rejects_on_incompatible_claims) {
 		const auto relay_hash_a = hash_of(relay_head_data_a);
 		const auto relay_hash_b = hash_of(relay_head_data_b);
 
-        println("relay_hash_a", relay_hash_a);
-        println("relay_hash_b", relay_hash_b);
-
 		const ParachainId para_id_a = 1;
 		const ParachainId para_id_b = 2;
 
@@ -75,7 +67,6 @@ TEST_F(CandidatesTest, inserting_unconfirmed_rejects_on_incompatible_claims) {
 		);
 
 		const auto candidate_hash_a = hash(candidate_a);
-        println("candidate_hash_a", candidate_hash_a);
 
 		const auto peer = getPeerFrom(1);
 
@@ -560,3 +551,178 @@ TEST_F(CandidatesTest, test_returned_post_confirmation) {
 		);
         }
 }
+
+	TEST_F(CandidatesTest, test_hypothetical_frontiers) {
+		const HeadData relay_head_data = {1, 2, 3};
+		const auto relay_hash = hash_of(relay_head_data);
+
+		const HeadData candidate_head_data_a = {1};
+		const HeadData candidate_head_data_b = {2};
+		const HeadData candidate_head_data_c = {3};
+		const HeadData candidate_head_data_d = {4};
+
+		const auto candidate_head_data_hash_a = hash_of(candidate_head_data_a);
+		const auto candidate_head_data_hash_b = hash_of(candidate_head_data_b);
+		const auto candidate_head_data_hash_d = hash_of(candidate_head_data_d);
+
+		const auto &[candidate_a, pvd_a] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			relay_head_data,
+			candidate_head_data_a,
+			from_low_u64_be(1000)
+		);
+		const auto &[candidate_b, _] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_a,
+			candidate_head_data_b,
+			from_low_u64_be(2000)
+		);
+		const auto &[candidate_c, __] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_a,
+			candidate_head_data_c,
+			from_low_u64_be(3000)
+		);
+		const auto &[candidate_d, ___] = make_candidate(
+			relay_hash,
+			1,
+			1,
+			candidate_head_data_b,
+			candidate_head_data_d,
+			from_low_u64_be(4000)
+		);
+
+		const auto candidate_hash_a = hash_of(candidate_a);
+		const auto candidate_hash_b = hash_of(candidate_b);
+		const auto candidate_hash_c = hash_of(candidate_c);
+		const auto candidate_hash_d = hash_of(candidate_d);
+
+		const auto peer = getPeerFrom(1);
+		const GroupIndex group_index = 100;
+
+		Candidates candidates;
+
+		// Confirm A.
+		candidates.confirm_candidate(
+			candidate_hash_a,
+			candidate_a,
+			pvd_a,
+			group_index,
+            hasher_
+		);
+
+		// Advertise B with parent A.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer,
+				candidate_hash_b,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+
+		// Advertise C with parent A.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer,
+				candidate_hash_c,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_a, 1)
+			));
+
+		// Advertise D with parent B.
+		ASSERT_TRUE(candidates
+			.insert_unconfirmed(
+				peer,
+				candidate_hash_d,
+				relay_hash,
+				group_index,
+				std::make_pair(candidate_head_data_hash_b, 1)
+			));
+
+        auto ASSERT_RESULT = [&] (const Candidates::ByRelayParent &ref) -> auto {
+		    ASSERT_EQ(candidates.by_parent, ref);
+        };
+
+        ASSERT_RESULT({
+            {relay_hash, {{1, {candidate_hash_a}}}},
+            {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c}}}},
+            {candidate_head_data_hash_b, {{1, {candidate_hash_d}}}}
+        });
+
+		const HypotheticalCandidateComplete hypothetical_a {
+			.candidate_hash = candidate_hash_a,
+			.receipt = candidate_a,
+			.persisted_validation_data = pvd_a,
+		};
+		const HypotheticalCandidateIncomplete hypothetical_b {
+			.candidate_hash = candidate_hash_b,
+			.candidate_para = 1,
+			.parent_head_data_hash = candidate_head_data_hash_a,
+			.candidate_relay_parent = relay_hash,
+		};
+		const HypotheticalCandidateIncomplete hypothetical_c {
+			.candidate_hash = candidate_hash_c,
+			.candidate_para = 1,
+			.parent_head_data_hash = candidate_head_data_hash_a,
+			.candidate_relay_parent = relay_hash,
+		};
+		const HypotheticalCandidateIncomplete hypothetical_d{
+			.candidate_hash = candidate_hash_d,
+			.candidate_para = 1,
+			.parent_head_data_hash = candidate_head_data_hash_b,
+			.candidate_relay_parent = relay_hash,
+		};
+
+        auto CONTAINS = [] (const std::vector<HypotheticalCandidate> &a, const HypotheticalCandidate &v) -> bool {
+            for (const auto &ai : a) {
+                if (ai == v) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        {
+		const auto hypotheticals = candidates.frontier_hypotheticals(std::make_pair(relay_hash, 1));
+		ASSERT_EQ(hypotheticals.size(), 1);
+		ASSERT_TRUE(hypotheticals[0] == HypotheticalCandidate(hypothetical_a));
+        }
+
+        {
+		const auto hypotheticals =
+			candidates.frontier_hypotheticals(std::make_pair(candidate_head_data_hash_a, 2));
+		ASSERT_EQ(hypotheticals.size(), 0);
+        }
+
+        {
+		const auto hypotheticals =
+			candidates.frontier_hypotheticals(std::make_pair(candidate_head_data_hash_a, 1));
+		ASSERT_EQ(hypotheticals.size(), 2);
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_b));
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_c));
+        }
+
+{
+		const auto hypotheticals =
+			candidates.frontier_hypotheticals(std::make_pair(candidate_head_data_hash_d, 1));
+		ASSERT_EQ(hypotheticals.size(), 0);
+}
+
+{
+		const auto hypotheticals = candidates.frontier_hypotheticals(std::nullopt);
+		ASSERT_EQ(hypotheticals.size(), 4);
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_a));
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_b));
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_c));
+		ASSERT_TRUE(CONTAINS(hypotheticals, hypothetical_d));
+}
+	}
+
