@@ -419,6 +419,7 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
+    SL_INFO(logger_, "Applying justification from EnvironmentImpl::applyJustification");
     justification_observer_.get()->applyJustification(justification,
                                                       std::move(cb));
   }
@@ -441,6 +442,7 @@ namespace kagome::consensus::grandpa {
           grandpa_justification.round_number);
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
+    SL_INFO(logger_, "verified_justification_queue_->addVerified from EnvironmentImpl::finalize");
     verified_justification_queue_->addVerified(id, grandpa_justification);
     return outcome::success();
   }

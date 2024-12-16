@@ -430,6 +430,10 @@ namespace kagome::consensus::grandpa {
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.has_value()) {
+          SL_INFO(logger_,
+                 "Catch-up request to round #{} will be sent to {}",
+                 current_round_->roundNumber(),
+                 peer_id);
           environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
           if (pending_catchup_request_.has_value()) {
@@ -1127,6 +1131,8 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    SL_INFO(logger_,
+             "Applying justification from GrandpaImpl::onCommitMessage");
     applyJustification(
         justification, [wself{weak_from_this()}, peer_id](auto &&res) mutable {
           if (auto self = wself.lock()) {
@@ -1198,6 +1204,9 @@ namespace kagome::consensus::grandpa {
                 justification.round_number,
                 r.error());
       } else {
+        SL_INFO(logger_,
+                 "environment_->finalize from GrandpaImpl::applyJustification "
+                 "LOC: 1202");
         r = environment_->finalize(authority_set->id, justification);
       }
       callbackCall(std::move(callback), r);
@@ -1291,6 +1300,9 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    SL_INFO(
+        logger_,
+        "Applying justification from GradpaImpl::applyJustification LOC: 1296");
     if (auto r = round->applyJustification(justification); r.has_error()) {
       callbackCall(std::move(callback), r.as_failure());
       return;

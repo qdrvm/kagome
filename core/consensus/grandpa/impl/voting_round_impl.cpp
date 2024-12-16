@@ -604,6 +604,7 @@ namespace kagome::consensus::grandpa {
         .block_info = block,
         .items = getPrecommitJustification(block, precommits_->getMessages())};
 
+    SL_INFO(logger_, "env_->finalize from VotingRoundImpl::doFinalize()");
     auto res = env_->finalize(voter_set_->id(), justification);
     if (res.has_error()) {
       SL_WARN(logger_,
@@ -634,6 +635,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
+    SL_INFO(logger_, "applyJustification from doCommit()");
     std::ignore = applyJustification(justification);
     env_->onCommitted(round_number_, voter_set_->id(), block, justification);
   }
@@ -683,6 +685,7 @@ namespace kagome::consensus::grandpa {
           JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
     }
 
+    SL_INFO(logger_, "env_->finalize from VotingRoundImpl::applyJustification()");
     OUTCOME_TRY(env_->finalize(voter_set_->id(), justification));
     return outcome::success();
   }
@@ -792,6 +795,7 @@ namespace kagome::consensus::grandpa {
     }
 
     if (finalized_.has_value()) {
+      SL_INFO(logger_, "doFinalize from VotingRoundImpl::attemptToFinalizeRound()");
       doFinalize();
       if (on_complete_handler_) {
         on_complete_handler_();

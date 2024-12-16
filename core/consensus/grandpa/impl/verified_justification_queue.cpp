@@ -144,6 +144,7 @@ namespace kagome::consensus::grandpa {
         break;
       }
       if (expected == expected_) {
+        SL_INFO(log_, "VerifiedJustificationQueue::finalize from VerifiedJustificationQueue::verifiedLoop 147");
         finalize(set, justification);
       }
       verified_.erase(verified_.begin());
@@ -153,6 +154,7 @@ namespace kagome::consensus::grandpa {
       if (set < expected_) {
         last_.reset();
       } else if (set == expected_) {
+        SL_INFO(log_, "VerifiedJustificationQueue::finalize from VerifiedJustificationQueue::verifiedLoop 157");
         finalize(std::nullopt, justification);
         last_.reset();
       }
