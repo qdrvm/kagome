@@ -6,11 +6,13 @@
 
 #pragma once
 
+#include <deque>
 #include <filesystem>
 #include <list>
-#include <queue>
 
+#include "metrics/metrics.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace boost::asio {
   class io_context;
@@ -33,6 +35,8 @@ namespace kagome::common {
 }  // namespace kagome::common
 
 namespace kagome::parachain {
+  using runtime::PvfExecTimeoutKind;
+
   struct ProcessAndPipes;
 
   class PvfWorkers : public std::enable_shared_from_this<PvfWorkers> {
@@ -46,6 +50,7 @@ namespace kagome::parachain {
       PvfWorkerInputCodeParams code_params;
       Buffer args;
       Cb cb;
+      PvfExecTimeoutKind kind;
       std::chrono::milliseconds timeout{0};
     };
     void execute(Job &&job);
@@ -77,6 +82,9 @@ namespace kagome::parachain {
     PvfWorkerInputConfig worker_config_;
     std::list<Worker> free_;
     size_t used_ = 0;
-    std::queue<Job> queue_;
+    std::unordered_map<PvfExecTimeoutKind, std::deque<Job>> queues_;
+
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    std::unordered_map<PvfExecTimeoutKind, metrics::Gauge *> metric_queue_size_;
   };
 }  // namespace kagome::parachain
