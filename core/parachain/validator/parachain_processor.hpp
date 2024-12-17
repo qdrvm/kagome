@@ -119,10 +119,8 @@ struct std::hash<kagome::parachain::BlockedCollationId> {
 namespace kagome::parachain {
 
   class ParachainProcessor {
-    public:
+   public:
     virtual ~ParachainProcessor() = default;
-
-
   };
 
   class ParachainProcessorImpl
@@ -246,7 +244,7 @@ namespace kagome::parachain {
         const network::VersionedValidatorProtocolMessage &message);
 
     virtual void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
-                              const network::SignedBitfield &bitfield);
+                                      const network::SignedBitfield &bitfield);
 
     virtual void onViewUpdated(const network::ExView &event);
 
@@ -258,10 +256,11 @@ namespace kagome::parachain {
         network::CollationFetchingResponse &&response);
 
     virtual void notifySeconded(const primitives::BlockHash &relay_parent,
-                        const SignedFullStatementWithPVD &statement);
+                                const SignedFullStatementWithPVD &statement);
 
-    virtual void notifyInvalid(const primitives::BlockHash &parent,
-                       const network::CandidateReceipt &candidate_receipt);
+    virtual void notifyInvalid(
+        const primitives::BlockHash &parent,
+        const network::CandidateReceipt &candidate_receipt);
 
     /**
      * @brief This function is a template function that validates a candidate
@@ -277,12 +276,11 @@ namespace kagome::parachain {
      * @param relay_parent The block hash of the relay parent.
      * @param n_validators The number of validators in the network.
      */
-    virtual void validateAsync(
-    ValidationTaskType kMode,
-                       const  network::CandidateReceipt &candidate,
-                       const network::ParachainBlock &pov,
-                       const runtime::PersistedValidationData &pvd,
-                       const primitives::BlockHash &relay_parent);
+    virtual void validateAsync(ValidationTaskType kMode,
+                               const network::CandidateReceipt &candidate,
+                               const network::ParachainBlock &pov,
+                               const runtime::PersistedValidationData &pvd,
+                               const primitives::BlockHash &relay_parent);
 
     /**
      * @brief Handles an incoming advertisement for a collation.
@@ -309,18 +307,19 @@ namespace kagome::parachain {
      * available.
      * @param result The result of the validation and seconding process.
      */
-    virtual void makeAvailable(    ValidationTaskType kMode,
-const primitives::BlockHash &candidate_hash,
-                       ValidateAndSecondResult &&result);
+    virtual void makeAvailable(ValidationTaskType kMode,
+                               const primitives::BlockHash &candidate_hash,
+                               ValidateAndSecondResult &&result);
 
-    virtual void on_pvf_result_received(ValidationTaskType kMode,
-    size_t n_validators,
-      const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov,
-      const runtime::PersistedValidationData &pvd,
-      const primitives::BlockHash &relay_parent,
-      const Hash &candidate_hash,
-    const outcome::result<Pvf::Result> &validation_result);
+    virtual void on_pvf_result_received(
+        ValidationTaskType kMode,
+        size_t n_validators,
+        const network::CandidateReceipt &candidate,
+        const network::ParachainBlock &pov,
+        const runtime::PersistedValidationData &pvd,
+        const primitives::BlockHash &relay_parent,
+        const Hash &candidate_hash,
+        const outcome::result<Pvf::Result> &validation_result);
 
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
@@ -377,7 +376,7 @@ const primitives::BlockHash &candidate_hash,
      * SignedFullStatementWithPVD object.
      */
     virtual void handleStatement(const primitives::BlockHash &relay_parent,
-                         const SignedFullStatementWithPVD &statement);
+                                 const SignedFullStatementWithPVD &statement);
 
    private:
     enum struct StatementType { kSeconded = 0, kValid };
@@ -475,7 +474,6 @@ const primitives::BlockHash &candidate_hash,
      */
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);
-
 
     /**
      * @brief Processes a bitfield distribution message.
@@ -845,131 +843,150 @@ const primitives::BlockHash &candidate_hash,
                                const network::ParachainBlock &pov,
                                const runtime::PersistedValidationData &pvd,
                                const primitives::BlockHash &relay_parent) {
-      validateAsync(
-        ValidationTaskType::kSecond,
-          candidate,
-          network::ParachainBlock(pov),
-          runtime::PersistedValidationData(pvd),
-          relay_parent);
+      validateAsync(ValidationTaskType::kSecond,
+                    candidate,
+                    network::ParachainBlock(pov),
+                    runtime::PersistedValidationData(pvd),
+                    relay_parent);
     }
   };
 
   class ThreadedParachainProcessorImpl final : public ParachainProcessorImpl {
     std::shared_ptr<PoolHandler> main_pool_handler_;
 
-    public:
-    template<typename...Args>
-    ThreadedParachainProcessorImpl(application::AppStateManager &app_state_manager, common::MainThreadPool &main_thread_pool, Args &&...args) 
-    : ParachainProcessorImpl(std::forward<Args>(args)...), main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
+   public:
+    template <typename... Args>
+    ThreadedParachainProcessorImpl(
+        application::AppStateManager &app_state_manager,
+        common::MainThreadPool &main_thread_pool,
+        Args &&...args)
+        : ParachainProcessorImpl(std::forward<Args>(args)...),
+          main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
       app_state_manager.takeControl(*this);
     }
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message) override {
-          REINVOKE(*main_pool_handler_, ParachainProcessorImpl::onValidationProtocolMsg, peer_id, message);
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::onValidationProtocolMsg,
+               peer_id,
+               message);
     }
 
     void OnBroadcastBitfields(
-      const primitives::BlockHash &relay_parent,
-      const network::SignedBitfield &bitfield) override {
-        REINVOKE(*main_pool_handler_, ParachainProcessorImpl::OnBroadcastBitfields, relay_parent, bitfield);   
-      }
+        const primitives::BlockHash &relay_parent,
+        const network::SignedBitfield &bitfield) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::OnBroadcastBitfields,
+               relay_parent,
+               bitfield);
+    }
 
-      void onViewUpdated(const network::ExView &event) override {
-        REINVOKE(*main_pool_handler_, ParachainProcessorImpl::onViewUpdated, event);
-      }
+    void onViewUpdated(const network::ExView &event) override {
+      REINVOKE(
+          *main_pool_handler_, ParachainProcessorImpl::onViewUpdated, event);
+    }
 
-void onDeactivateBlocks(
-      const primitives::events::RemoveAfterFinalizationParams &event) override {
-    REINVOKE(*main_pool_handler_, ParachainProcessorImpl::onDeactivateBlocks, event);
-      }      
+    void onDeactivateBlocks(
+        const primitives::events::RemoveAfterFinalizationParams &event)
+        override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::onDeactivateBlocks,
+               event);
+    }
 
-  void handle_collation_fetch_response(
-      network::CollationEvent &&collation_event,
-      network::CollationFetchingResponse &&response) override {
-    REINVOKE(*main_pool_handler_,
-             ParachainProcessorImpl::handle_collation_fetch_response,
-             std::move(collation_event),
-             std::move(response));
-      }
+    void handle_collation_fetch_response(
+        network::CollationEvent &&collation_event,
+        network::CollationFetchingResponse &&response) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::handle_collation_fetch_response,
+               std::move(collation_event),
+               std::move(response));
+    }
 
-      void handleStatement(
-      const primitives::BlockHash &relay_parent,
-      const SignedFullStatementWithPVD &statement) override {
-    REINVOKE(*main_pool_handler_, ParachainProcessorImpl::handleStatement, relay_parent, statement);
-      }
+    void handleStatement(const primitives::BlockHash &relay_parent,
+                         const SignedFullStatementWithPVD &statement) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::handleStatement,
+               relay_parent,
+               statement);
+    }
 
-      void notifyInvalid(
-      const primitives::BlockHash &parent,
-      const network::CandidateReceipt &candidate_receipt) override {
-        REINVOKE_ONCE(*main_pool_handler_, ParachainProcessorImpl::notifyInvalid, parent, candidate_receipt);
-      }
+    void notifyInvalid(
+        const primitives::BlockHash &parent,
+        const network::CandidateReceipt &candidate_receipt) override {
+      REINVOKE_ONCE(*main_pool_handler_,
+                    ParachainProcessorImpl::notifyInvalid,
+                    parent,
+                    candidate_receipt);
+    }
 
-  void notifySeconded(
-      const primitives::BlockHash &parent,
-      const SignedFullStatementWithPVD &statement) override {
-    REINVOKE_ONCE(*main_pool_handler_, ParachainProcessorImpl::notifySeconded, parent, statement);
-      }
+    void notifySeconded(const primitives::BlockHash &parent,
+                        const SignedFullStatementWithPVD &statement) override {
+      REINVOKE_ONCE(*main_pool_handler_,
+                    ParachainProcessorImpl::notifySeconded,
+                    parent,
+                    statement);
+    }
 
-        void makeAvailable(
-    ValidationTaskType kMode,
-      const primitives::BlockHash &candidate_hash,
-      ValidateAndSecondResult &&validate_and_second_result) override {
-    REINVOKE(*main_pool_handler_,
-             ParachainProcessorImpl::makeAvailable,
-             kMode,
-             candidate_hash,
-             std::move(validate_and_second_result));
-      }
+    void makeAvailable(
+        ValidationTaskType kMode,
+        const primitives::BlockHash &candidate_hash,
+        ValidateAndSecondResult &&validate_and_second_result) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::makeAvailable,
+               kMode,
+               candidate_hash,
+               std::move(validate_and_second_result));
+    }
 
-  void validateAsync(
-    ValidationTaskType kMode,
-                       const  network::CandidateReceipt &candidate,
+    void validateAsync(ValidationTaskType kMode,
+                       const network::CandidateReceipt &candidate,
                        const network::ParachainBlock &pov,
                        const runtime::PersistedValidationData &pvd,
-      const primitives::BlockHash &relay_parent) override {
-    REINVOKE(*main_pool_handler_,
-             ParachainProcessorImpl::validateAsync,
-              kMode,
-             candidate,
-             pov,
-             pvd,
-             relay_parent);
-      }
+                       const primitives::BlockHash &relay_parent) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::validateAsync,
+               kMode,
+               candidate,
+               pov,
+               pvd,
+               relay_parent);
+    }
 
-      void on_pvf_result_received(ValidationTaskType kMode,
-    size_t n_validators,
-      const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov,
-      const runtime::PersistedValidationData &pvd,
-      const primitives::BlockHash &relay_parent,
-      const Hash &candidate_hash,
-    const outcome::result<Pvf::Result> &validation_result) override {
-        REINVOKE_ONCE(*main_pool_handler_, ParachainProcessorImpl::on_pvf_result_received, 
-kMode,
-    n_validators,
-      candidate,
-      pov,
-      pvd,
-      relay_parent,
-      candidate_hash,
-    validation_result
-        );
-      }
+    void on_pvf_result_received(
+        ValidationTaskType kMode,
+        size_t n_validators,
+        const network::CandidateReceipt &candidate,
+        const network::ParachainBlock &pov,
+        const runtime::PersistedValidationData &pvd,
+        const primitives::BlockHash &relay_parent,
+        const Hash &candidate_hash,
+        const outcome::result<Pvf::Result> &validation_result) override {
+      REINVOKE_ONCE(*main_pool_handler_,
+                    ParachainProcessorImpl::on_pvf_result_received,
+                    kMode,
+                    n_validators,
+                    candidate,
+                    pov,
+                    pvd,
+                    relay_parent,
+                    candidate_hash,
+                    validation_result);
+    }
 
-  void handle_advertisement(
-      const RelayHash &relay_parent,
-      const libp2p::peer::PeerId &peer_id,
-      std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) override {
-    REINVOKE(*main_pool_handler_,
-             ParachainProcessorImpl::handle_advertisement,
-             relay_parent,
-             peer_id,
-             std::move(prospective_candidate));
-      }
+    void handle_advertisement(const RelayHash &relay_parent,
+                              const libp2p::peer::PeerId &peer_id,
+                              std::optional<std::pair<CandidateHash, Hash>>
+                                  &&prospective_candidate) override {
+      REINVOKE(*main_pool_handler_,
+               ParachainProcessorImpl::handle_advertisement,
+               relay_parent,
+               peer_id,
+               std::move(prospective_candidate));
+    }
   };
-
 
 }  // namespace kagome::parachain
 

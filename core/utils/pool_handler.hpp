@@ -103,18 +103,17 @@ namespace kagome {
 /// Reinvokes function once.
 /// If `true` reinvoke takes place, otherwise direct call. After reinvoke called
 /// function has `false` in kReinvoke.
-#define REINVOKE_ONCE(ctx, func, ...)                                         \
-  ({                                                                          \
-      return post(                                                            \
-          ctx,                                                                \
-          [weak{weak_from_this()},                                            \
-           args = std::make_tuple(__VA_ARGS__)]() mutable {                   \
-            if (auto self = weak.lock()) {                                    \
-              std::apply(                                                     \
-                  [&](auto &&...args) mutable {                               \
-                    self->func(std::forward<decltype(args)>(args)...); \
-                  },                                                          \
-                  std::move(args));                                           \
-            }                                                                 \
-          });                                                                 \
+#define REINVOKE_ONCE(ctx, func, ...)                                        \
+  ({                                                                         \
+    return post(ctx,                                                         \
+                [weak{weak_from_this()},                                     \
+                 args = std::make_tuple(__VA_ARGS__)]() mutable {            \
+                  if (auto self = weak.lock()) {                             \
+                    std::apply(                                              \
+                        [&](auto &&...args) mutable {                        \
+                          self->func(std::forward<decltype(args)>(args)...); \
+                        },                                                   \
+                        std::move(args));                                    \
+                  }                                                          \
+                });                                                          \
   })

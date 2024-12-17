@@ -33,11 +33,13 @@ namespace kagome::parachain {
       std::weak_ptr<IProspectiveParachains> prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> parachain_host_,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::optional<ParachainId> collating_for_, bool trace_insertions)
+      std::optional<ParachainId> collating_for_,
+      bool trace_insertions)
       : parachain_host(std::move(parachain_host_)),
         collating_for{collating_for_},
         prospective_parachains_{std::move(prospective_parachains)},
-        block_tree_{std::move(block_tree)}, trace_insertions_(trace_insertions) {
+        block_tree_{std::move(block_tree)},
+        trace_insertions_(trace_insertions) {
     BOOST_ASSERT(!prospective_parachains_.expired());
     BOOST_ASSERT(parachain_host);
     BOOST_ASSERT(block_tree_);
@@ -88,7 +90,9 @@ namespace kagome::parachain {
 
     for (const auto &ancestor : ancestors) {
       if (trace_insertions_) {
-        SL_TRACE(logger, "activate_leaf_from_prospective_parachains(ancestors): {}", ancestor.hash);
+        SL_TRACE(logger,
+                 "activate_leaf_from_prospective_parachains(ancestors): {}",
+                 ancestor.hash);
       }
       block_info_storage.insert_or_assign(
           ancestor.hash,
@@ -102,7 +106,10 @@ namespace kagome::parachain {
     }
 
     if (trace_insertions_) {
-      SL_TRACE(logger, "activate_leaf_from_prospective_parachains: {}  {}", leaf.hash, retain_minimum);
+      SL_TRACE(logger,
+               "activate_leaf_from_prospective_parachains: {}  {}",
+               leaf.hash,
+               retain_minimum);
     }
     block_info_storage.insert_or_assign(
         leaf.hash,
@@ -181,7 +188,11 @@ namespace kagome::parachain {
         math::sat_sub_unsigned(fetched.leaf_number, MINIMUM_RETAIN_LENGTH));
 
     if (trace_insertions_) {
-      SL_TRACE(logger, "activate_leaf(-): {}    {}", fetched.minimum_ancestor_number, math::sat_sub_unsigned(fetched.leaf_number, MINIMUM_RETAIN_LENGTH));
+      SL_TRACE(
+          logger,
+          "activate_leaf(-): {}    {}",
+          fetched.minimum_ancestor_number,
+          math::sat_sub_unsigned(fetched.leaf_number, MINIMUM_RETAIN_LENGTH));
     }
     leaves.insert_or_assign(
         leaf_hash, ActiveLeafPruningInfo{.retain_minimum = retain_minimum});
@@ -259,7 +270,10 @@ namespace kagome::parachain {
       }
     }
     if (trace_insertions_) {
-      SL_TRACE(logger, "fetch_fresh_leaf_and_insert_ancestry(-): {}    {}", min_min, leaf_header.number);
+      SL_TRACE(logger,
+               "fetch_fresh_leaf_and_insert_ancestry(-): {}    {}",
+               min_min,
+               leaf_header.number);
     }
 
     const size_t expected_ancestry_len =
@@ -280,7 +294,9 @@ namespace kagome::parachain {
         } else {
           OUTCOME_TRY(header, block_tree->getBlockHeader(next_ancestor_hash));
           if (trace_insertions_) {
-            SL_TRACE(logger, "activate_leaf(next_ancestor_number): {}", next_ancestor_hash);
+            SL_TRACE(logger,
+                     "activate_leaf(next_ancestor_number): {}",
+                     next_ancestor_hash);
           }
           block_info_storage.emplace(
               next_ancestor_hash,

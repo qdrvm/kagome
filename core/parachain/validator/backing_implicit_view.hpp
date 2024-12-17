@@ -127,7 +127,8 @@ namespace kagome::parachain {
     ImplicitView(std::weak_ptr<IProspectiveParachains> prospective_parachains,
                  std::shared_ptr<runtime::ParachainHost> parachain_host_,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
-                 std::optional<ParachainId> collating_for_, bool trace_insertions = false);
+                 std::optional<ParachainId> collating_for_,
+                 bool trace_insertions = false);
 
    private:
     struct ActiveLeafPruningInfo {
