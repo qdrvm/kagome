@@ -45,6 +45,7 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
+#include "parachain/validator/i_parachain_processor.hpp"
 
 /**
  * @file parachain_processor_impl.hpp
@@ -118,50 +119,11 @@ struct std::hash<kagome::parachain::BlockedCollationId> {
 
 namespace kagome::parachain {
 
-  class ParachainProcessor {
-   public:
-    virtual ~ParachainProcessor() = default;
-  };
-
   class ParachainProcessorImpl
       : public std::enable_shared_from_this<ParachainProcessorImpl>,
-        public BackedCandidatesSource {
+        public BackedCandidatesSource,
+        public ParachainProcessor {
    public:
-    enum class Error {
-      RESPONSE_ALREADY_RECEIVED = 1,
-      COLLATION_NOT_FOUND,
-      KEY_NOT_PRESENT,
-      VALIDATION_FAILED,
-      VALIDATION_SKIPPED,
-      OUT_OF_VIEW,
-      DUPLICATE,
-      NO_INSTANCE,
-      NOT_A_VALIDATOR,
-      NOT_SYNCHRONIZED,
-      UNDECLARED_COLLATOR,
-      PEER_LIMIT_REACHED,
-      PROTOCOL_MISMATCH,
-      NOT_CONFIRMED,
-      NO_STATE,
-      NO_SESSION_INFO,
-      OUT_OF_BOUND,
-      REJECTED_BY_PROSPECTIVE_PARACHAINS,
-      INCORRECT_BITFIELD_SIZE,
-      CORE_INDEX_UNAVAILABLE,
-      INCORRECT_SIGNATURE,
-      CLUSTER_TRACKER_ERROR,
-      PERSISTED_VALIDATION_DATA_NOT_FOUND,
-      PERSISTED_VALIDATION_DATA_MISMATCH,
-      CANDIDATE_HASH_MISMATCH,
-      PARENT_HEAD_DATA_MISMATCH,
-      NO_PEER,
-      ALREADY_REQUESTED,
-      NOT_ADVERTISED,
-      WRONG_PARA,
-      THRESHOLD_LIMIT_REACHED,
-    };
-    static constexpr uint64_t kBackgroundWorkers = 5;
-
     struct ImportStatementSummary {
       BackingStore::ImportResult imported;
       /// Attested more than threshold
@@ -195,6 +157,7 @@ namespace kagome::parachain {
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
         const application::AppConfiguration &app_config,
+        application::AppStateManager &app_state_manager,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::SyncStateSubscriptionEnginePtr
             sync_state_observable,
@@ -851,7 +814,7 @@ namespace kagome::parachain {
     }
   };
 
-  class ThreadedParachainProcessorImpl final : public ParachainProcessorImpl {
+  class ThreadedParachainProcessorImpl : public ParachainProcessorImpl {
     std::shared_ptr<PoolHandler> main_pool_handler_;
 
    public:
@@ -989,5 +952,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ParachainProcessorImpl::Error);

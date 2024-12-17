@@ -52,77 +52,6 @@
   }
 #endif  // CHECK_OR_RET
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
-                            ParachainProcessorImpl::Error,
-                            e) {
-  using E = kagome::parachain::ParachainProcessorImpl::Error;
-  switch (e) {
-    case E::RESPONSE_ALREADY_RECEIVED:
-      return "Response already present";
-    case E::REJECTED_BY_PROSPECTIVE_PARACHAINS:
-      return "Rejected by prospective parachains";
-    case E::COLLATION_NOT_FOUND:
-      return "Collation not found";
-    case E::UNDECLARED_COLLATOR:
-      return "Undeclared collator";
-    case E::KEY_NOT_PRESENT:
-      return "Private key is not present";
-    case E::VALIDATION_FAILED:
-      return "Validate and make available failed";
-    case E::VALIDATION_SKIPPED:
-      return "Validate and make available skipped";
-    case E::OUT_OF_VIEW:
-      return "Out of view";
-    case E::CORE_INDEX_UNAVAILABLE:
-      return "Core index unavailable";
-    case E::DUPLICATE:
-      return "Duplicate";
-    case E::NO_INSTANCE:
-      return "No self instance";
-    case E::NOT_A_VALIDATOR:
-      return "Node is not a validator";
-    case E::NOT_SYNCHRONIZED:
-      return "Node not synchronized";
-    case E::PEER_LIMIT_REACHED:
-      return "Peer limit reached";
-    case E::PROTOCOL_MISMATCH:
-      return "Protocol mismatch";
-    case E::NOT_CONFIRMED:
-      return "Candidate not confirmed";
-    case E::NO_STATE:
-      return "No parachain state";
-    case E::NO_SESSION_INFO:
-      return "No session info";
-    case E::OUT_OF_BOUND:
-      return "Index out of bound";
-    case E::INCORRECT_BITFIELD_SIZE:
-      return "Incorrect bitfield size";
-    case E::INCORRECT_SIGNATURE:
-      return "Incorrect signature";
-    case E::CLUSTER_TRACKER_ERROR:
-      return "Cluster tracker error";
-    case E::PERSISTED_VALIDATION_DATA_NOT_FOUND:
-      return "Persisted validation data not found";
-    case E::PERSISTED_VALIDATION_DATA_MISMATCH:
-      return "Persisted validation data mismatch";
-    case E::CANDIDATE_HASH_MISMATCH:
-      return "Candidate hash mismatch";
-    case E::PARENT_HEAD_DATA_MISMATCH:
-      return "Parent head data mismatch";
-    case E::NO_PEER:
-      return "No peer";
-    case E::ALREADY_REQUESTED:
-      return "Already requested";
-    case E::NOT_ADVERTISED:
-      return "Not advertised";
-    case E::WRONG_PARA:
-      return "Wrong para id";
-    case E::THRESHOLD_LIMIT_REACHED:
-      return "Threshold reached";
-  }
-  return "Unknown parachain processor error";
-}
-
 namespace {
   constexpr const char *kIsParachainValidator =
       "kagome_node_is_parachain_validator";
@@ -145,6 +74,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
+      application::AppStateManager &app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
@@ -194,6 +124,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(statement_distribution);
+    app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(
         prospective_parachains_, parachain_host_, block_tree_, std::nullopt);

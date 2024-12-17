@@ -196,10 +196,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         peer_manager_,
         sr25519_provider_,
         router_,
-        *main_thread_pool_,
         hasher_,
         peer_view_,
-        *worker_thread_pool_,
         bitfield_signer_,
         pvf_precheck_,
         bitfield_store_,
@@ -674,5 +672,4 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
                                      expected_head_data,
                                      false);
 
-  std::this_thread::sleep_for(std::chrono::seconds(10));
 }

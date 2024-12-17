@@ -14,23 +14,37 @@ namespace kagome::parachain {
 
   class PvfMock : public Pvf {
    public:
-    MOCK_METHOD(void,
-                pvf,
+       void pvf(const CandidateReceipt &receipt,
+                     const ParachainBlock &pov,
+                     const runtime::PersistedValidationData &pvd,
+                     Cb cb) const override {
+        cb(call_pvf(receipt, pov, pvd));
+    }
+
+    void pvfValidate(const PersistedValidationData &pvd,
+                 const ParachainBlock &pb,
+                 const CandidateReceipt &r,
+                 const ParachainRuntime &pr,
+                 runtime::PvfExecTimeoutKind kind,
+                 Cb cb) const override {
+                  cb(call_pvfValidate(pvd, pb, r, pr, kind));
+                 }
+
+    MOCK_METHOD(Result,
+                call_pvf,
                 (const CandidateReceipt &,
                  const ParachainBlock &,
-                 const runtime::PersistedValidationData &,
-                 Cb),
-                (const, override));
+                 const runtime::PersistedValidationData &),
+                (const));
 
-    MOCK_METHOD(void,
-                pvfValidate,
+    MOCK_METHOD(Result,
+                call_pvfValidate,
                 (const PersistedValidationData &,
                  const ParachainBlock &,
                  const CandidateReceipt &,
                  const ParachainRuntime &,
-                 runtime::PvfExecTimeoutKind,
-                 Cb),
-                (const, override));
+                 runtime::PvfExecTimeoutKind),
+                (const));
   };
 
 }  // namespace kagome::parachain
