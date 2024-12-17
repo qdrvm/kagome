@@ -12,7 +12,11 @@
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "consensus/beefy/types.hpp"
+#include "consensus/grandpa/types/equivocation_proof.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
+#include "network/types/dispute_messages.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -20,7 +24,10 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/big_fixed_integers.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/encoder/concepts.hpp"
 #include "scale/libp2p_types.hpp"
+
+#include <authority_discovery/query/authority_peer_info.hpp>
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
@@ -37,162 +44,282 @@ namespace kagome::scale {
 
   using ::scale::decode;
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::BlockHeader &bh);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockHeader &bh);
 
-  template <typename F>
-  constexpr void encode(const F &func, const network::BlocksResponse &b);
+  constexpr void encode(const Invocable auto &func,
+                        const consensus::grandpa::Equivocation &bh);
 
-  template <typename F,
-            typename ElementType,
-            size_t MaxSize,
-            typename Allocator>
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockHeaderReflection &bh);
+
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockReflection &bh);
+
+  constexpr void encode(const Invocable auto &func,
+                        const network::BlocksResponse &b);
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::vstaging::CompactStatement &c);
+
+  template <typename ElementType, size_t MaxSize, typename Allocator>
   constexpr void encode(
-      const F &func,
+      const Invocable auto &func,
       const common::SLVector<ElementType, MaxSize, Allocator> &c);
 
-  template <typename F, typename T, typename Tag, typename Base>
-  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c);
+  template <typename T, typename Tag, typename Base>
+  constexpr void encode(const Invocable auto &func,
+                        const Tagged<T, Tag, Base> &c);
 
-  template <typename F, size_t MaxSize>
-  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c);
+  template <size_t MaxSize>
+  constexpr void encode(const Invocable auto &func,
+                        const common::SLBuffer<MaxSize> &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const network::Roles &c);
+  constexpr void encode(const Invocable auto &func, const network::Roles &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Other &c);
+  constexpr void encode(const Invocable auto &func, const primitives::Other &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Consensus &c);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::Consensus &c);
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
                         const runtime::PersistedValidationData &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Seal &c);
+  constexpr void encode(const Invocable auto &func, const primitives::Seal &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::PreRuntime &c);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::PreRuntime &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::BlockInfo &c);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockInfo &c);
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
                         const primitives::RuntimeEnvironmentUpdated &c);
 
-  template <typename F>
-  constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c);
+  constexpr void encode(const Invocable auto &func,
+                        const ::scale::EncodeOpaqueValue &c);
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
                         const consensus::babe::BabeBlockHeader &bh);
 
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::CandidateCommitments &c);
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::CandidateReceipt &c);
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::InvalidDisputeVote &c);
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::ValidDisputeVote &c);
+
+  constexpr void encode(const Invocable auto &func,
+                        const consensus::grandpa::SignedPrecommit &c);
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c);
+
+  constexpr void encode(const Invocable auto &func,
+                        const scale::PeerInfoSerializable &c);
+
+  template <typename T>
+  constexpr void encode(const Invocable auto &func, const Fixed<T> &c);
 }  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
 
 namespace kagome::scale {
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::BlockHeader &bh) {
-    encode(func, bh.parent_hash);
-    encodeCompact(func, bh.number);
-    encode(func, bh.state_root);
-    encode(func, bh.extrinsics_root);
-    encode(func, bh.digest);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockHeader &bh) {
+    kagome::scale::encode(func, bh.parent_hash);
+    kagome::scale::encodeCompact(func, bh.number);
+    kagome::scale::encode(func, bh.state_root);
+    kagome::scale::encode(func, bh.extrinsics_root);
+    kagome::scale::encode(func, bh.digest);
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const network::BlocksResponse &b) {
-    encode(func, b.blocks);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockReflection &bh) {
+    kagome::scale::encode(func, bh.header);
+    kagome::scale::encode(func, bh.body);
   }
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockHeaderReflection &bh) {
+    kagome::scale::encode(func, bh.parent_hash);
+    kagome::scale::encodeCompact(func, bh.number);
+    kagome::scale::encode(func, bh.state_root);
+    kagome::scale::encode(func, bh.extrinsics_root);
+    kagome::scale::encode(func, bh.digest);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const network::BlocksResponse &b) {
+    kagome::scale::encode(func, b.blocks);
+  }
+
+  constexpr void encode(const Invocable auto &func,
                         const consensus::babe::BabeBlockHeader &bh) {
-    encode(func, bh.slot_assignment_type);
-    encode(func, bh.authority_index);
-    encode(func, bh.slot_number);
+    kagome::scale::encode(func, bh.slot_assignment_type);
+    kagome::scale::encode(func, bh.authority_index);
+    kagome::scale::encode(func, bh.slot_number);
 
     if (bh.needVRFCheck()) {
-      encode(func, bh.vrf_output);
+      kagome::scale::encode(func, bh.vrf_output);
     }
   }
 
-  template <typename F,
-            typename ElementType,
-            size_t MaxSize,
-            typename Allocator>
+  template <typename ElementType, size_t MaxSize, typename Allocator>
   constexpr void encode(
-      const F &func,
+      const Invocable auto &func,
       const common::SLVector<ElementType, MaxSize, Allocator> &c) {
-    encode(func, static_cast<const std::vector<ElementType, Allocator> &>(c));
+    kagome::scale::encode(
+        func, static_cast<const std::vector<ElementType, Allocator> &>(c));
   }
 
-  template <typename F, typename T, typename Tag, typename Base>
-  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c) {
+  template <typename T, typename Tag, typename Base>
+  constexpr void encode(const Invocable auto &func,
+                        const Tagged<T, Tag, Base> &c) {
     if constexpr (std::is_scalar_v<T>) {
-      encode(func, c.Wrapper<T>::value);
+      kagome::scale::encode(func, c.Wrapper<T>::value);
     } else {
-      encode(func, static_cast<const T &>(c));
+      kagome::scale::encode(func, static_cast<const T &>(c));
     }
   }
 
-  template <typename F, size_t MaxSize>
-  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c) {
-    encode(func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
+  template <size_t MaxSize>
+  constexpr void encode(const Invocable auto &func,
+                        const common::SLBuffer<MaxSize> &c) {
+    kagome::scale::encode(
+        func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Other &c) {
-    encode(func, static_cast<const common::Buffer &>(c));
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::Other &c) {
+    kagome::scale::encode(func, static_cast<const common::Buffer &>(c));
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Consensus &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::Consensus &c) {
+    kagome::scale::encode(
+        func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
                         const kagome::runtime::PersistedValidationData &c) {
-    encode(func, c.parent_head);
-    encode(func, c.relay_parent_number);
-    encode(func, c.relay_parent_storage_root);
-    encode(func, c.max_pov_size);
+    kagome::scale::encode(func, c.parent_head);
+    kagome::scale::encode(func, c.relay_parent_number);
+    kagome::scale::encode(func, c.relay_parent_storage_root);
+    kagome::scale::encode(func, c.max_pov_size);
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::Seal &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  constexpr void encode(const Invocable auto &func, const primitives::Seal &c) {
+    kagome::scale::encode(
+        func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::PreRuntime &c) {
-    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::PreRuntime &c) {
+    kagome::scale::encode(
+        func, static_cast<const primitives::detail::DigestItemCommon &>(c));
   }
 
-  template <typename F>
-  constexpr void encode(const F &func, const primitives::BlockInfo &c) {
-    encode(func, c.number);
-    encode(func, c.hash);
+  constexpr void encode(const Invocable auto &func,
+                        const primitives::BlockInfo &c) {
+    kagome::scale::encode(func, c.number);
+    kagome::scale::encode(func, c.hash);
   }
 
-  template <typename F>
-  constexpr void encode(const F &func,
+  constexpr void encode(const Invocable auto &func,
                         const primitives::RuntimeEnvironmentUpdated &c) {}
 
-  template <typename F>
-  constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) {
+  constexpr void encode(const Invocable auto &func,
+                        const ::scale::EncodeOpaqueValue &c) {
     putByte(func, c.v.data(), c.v.size());
   }
 
+  constexpr void encode(const Invocable auto &func, const network::Roles &c) {
+    kagome::scale::encode(
+        func, c.value);  // NOLINT(cppcoreguidelines-pro-type-union-access)
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const consensus::grandpa::Equivocation &bh) {
+    kagome::scale::encode(func, bh.stage);
+    kagome::scale::encode(func, bh.round_number);
+    kagome::scale::encode(func, bh.first);
+    kagome::scale::encode(func, bh.second);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::CandidateCommitments &c) {
+    kagome::scale::encode(func, c.upward_msgs);
+    kagome::scale::encode(func, c.outbound_hor_msgs);
+    kagome::scale::encode(func, c.opt_para_runtime);
+    kagome::scale::encode(func, c.para_head);
+    kagome::scale::encode(func, c.downward_msgs_count);
+    kagome::scale::encode(func, c.watermark);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::CandidateReceipt &c) {
+    kagome::scale::encode(func, c.descriptor);
+    kagome::scale::encode(func, c.commitments_hash);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::vstaging::CompactStatement &c) {
+    kagome::scale::encode(func, c.header);
+    kagome::scale::encode(func, c.inner_value);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::InvalidDisputeVote &c) {
+    kagome::scale::encode(func, c.index);
+    kagome::scale::encode(func, c.signature);
+    kagome::scale::encode(func, c.kind);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const kagome::network::ValidDisputeVote &c) {
+    kagome::scale::encode(func, c.index);
+    kagome::scale::encode(func, c.signature);
+    kagome::scale::encode(func, c.kind);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const consensus::grandpa::SignedPrecommit &c) {
+    kagome::scale::encode(
+        func, static_cast<const consensus::grandpa::SignedMessage &>(c));
+  }
+
   template <typename F>
-  constexpr void encode(const F &func, const network::Roles &c) {
-    encode(func, c.value);
+  constexpr void encode(const F &func,
+                        const authority_discovery::AuthorityPeerInfo &c) {
+    encode(func, c.raw);
+    encode(func, c.time);
+    encode(func, c.peer);
+  }
+
+  constexpr void encode(const Invocable auto &func,
+                        const scale::PeerInfoSerializable &c) {
+    std::vector<std::string> addresses;
+    addresses.reserve(c.addresses.size());
+    for (const auto &addr : c.addresses) {
+      addresses.emplace_back(addr.getStringAddress());
+    }
+    encode(func, c.id.toBase58());
+    encode(func, addresses);
+  }
+
+  template <typename T>
+  constexpr void encode(const Invocable auto &func, const Fixed<T> &c) {
+    constexpr size_t bits = Fixed<T>::kByteSize * 8;
+    for (size_t i = 0; i < bits; i += 8) {
+      encode(func, ::scale::convert_to<uint8_t>((*c >> i) & 0xFFu));
+    }
   }
 
 }  // namespace kagome::scale

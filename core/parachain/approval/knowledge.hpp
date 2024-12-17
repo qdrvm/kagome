@@ -11,13 +11,14 @@
 #include "common/visitor.hpp"
 #include "consensus/timeline/types.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/approval/approval.hpp"
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"
 
 template <>
 struct std::hash<scale::BitVec> {
   auto operator()(const scale::BitVec &v) const {
-    auto s = ::scale::encode(v).value();
+    auto s = scale::encode(v).value();
     return boost::hash_range(s.begin(), s.end());
   }
 };
@@ -86,7 +87,7 @@ namespace kagome::parachain::approval {
 
     // Generate the knowledge keys for querying if an approval is known by peer.
     static std::pair<MessageSubject, MessageKind> generate_approval_key(
-        const approval::IndirectSignedApprovalVoteV2 &approval) {
+        const IndirectSignedApprovalVoteV2 &approval) {
       return {
           std::make_tuple(approval.payload.payload.block_hash,
                           approval.payload.payload.candidate_indices,
