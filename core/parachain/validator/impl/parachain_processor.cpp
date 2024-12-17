@@ -134,10 +134,8 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
-      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::IPeerView> peer_view,
-      common::WorkerThreadPool &worker_thread_pool,
       std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -147,7 +145,6 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
-      application::AppStateManager &app_state_manager,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
       std::shared_ptr<authority_discovery::Query> query_audi,
@@ -159,7 +156,6 @@ namespace kagome::parachain {
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
-        main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         pvf_(std::move(pvf)),
@@ -176,7 +172,6 @@ namespace kagome::parachain {
         slots_util_(slots_util),
         babe_config_repo_(std::move(babe_config_repo)),
         chain_sub_{std::move(chain_sub_engine)},
-        worker_pool_handler_{worker_thread_pool.handler(app_state_manager)},
         prospective_parachains_{std::move(prospective_parachains)},
         block_tree_{std::move(block_tree)},
         statement_distribution(std::move(sd)),
@@ -186,7 +181,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(babe_config_repo_);
     BOOST_ASSERT(router_);
-    BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(bitfield_signer_);
     BOOST_ASSERT(bitfield_store_);
@@ -198,10 +192,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(sync_state_observable_);
     BOOST_ASSERT(query_audi_);
     BOOST_ASSERT(prospective_parachains_);
-    BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(statement_distribution);
-    app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(
         prospective_parachains_, parachain_host_, block_tree_, std::nullopt);
@@ -221,7 +213,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::OnBroadcastBitfields(
       const primitives::BlockHash &relay_parent,
       const network::SignedBitfield &bitfield) {
-    REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
+    //REINVOKE(*main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
     router_->getValidationProtocol()->write(network::BitfieldDistribution{
         .relay_parent = relay_parent,
@@ -284,7 +276,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
-    REINVOKE(*main_pool_handler_, onViewUpdated, event);
+    //REINVOKE(*main_pool_handler_, onViewUpdated, event);
 
     const auto &relay_parent = event.new_head.hash();
     existed_leaves_[relay_parent] = event.new_head.number;
@@ -418,7 +410,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onDeactivateBlocks(
       const primitives::events::RemoveAfterFinalizationParams &event) {
-    REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
+    //REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
 
     for (const auto &lost : event.removed) {
       SL_TRACE(logger_,
@@ -631,7 +623,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       const network::HashedBlockHeader &block_header,
       const std::vector<primitives::BlockHash> &lost) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    //BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     using LeafHasProspectiveParachains =
         std::optional<outcome::result<ProspectiveParachainsMode>>;
@@ -808,10 +800,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handle_collation_fetch_response(
       network::CollationEvent &&collation_event,
       network::CollationFetchingResponse &&response) {
-    REINVOKE(*main_pool_handler_,
-             handle_collation_fetch_response,
-             std::move(collation_event),
-             std::move(response));
+    // REINVOKE(*main_pool_handler_,
+    //          handle_collation_fetch_response,
+    //          std::move(collation_event),
+    //          std::move(response));
 
     const auto &pending_collation = collation_event.pending_collation;
     SL_TRACE(logger_,
@@ -1004,7 +996,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::process_bitfield_distribution(
       const network::BitfieldDistributionMessage &val) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     auto bd{boost::get<const network::BitfieldDistribution>(&val)};
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
@@ -1060,7 +1052,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessage &msg) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     SL_TRACE(
         logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
 
@@ -1086,7 +1078,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::process_legacy_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::StatementDistributionMessage &msg) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
       CHECK_OR_RET(canProcessParachains().has_value());
       if (auto r = isParachainValidator(statement_msg->relay_parent);
@@ -1144,7 +1136,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::VersionedValidatorProtocolMessage &message) {
-    REINVOKE(*main_pool_handler_, onValidationProtocolMsg, peer_id, message);
+    // REINVOKE(*main_pool_handler_, onValidationProtocolMsg, peer_id, message);
 
     SL_TRACE(
         logger_, "Incoming validator protocol message. (peer={})", peer_id);
@@ -1198,7 +1190,7 @@ namespace kagome::parachain {
       AttestingData &attesting_data,
       const runtime::PersistedValidationData &persisted_validation_data,
       RelayParentState &parachain_state) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
     CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
@@ -1256,7 +1248,7 @@ namespace kagome::parachain {
                 relay_parent,
                 candidate_hash,
                 peer_id);
-            self->validateAsync<ValidationTaskType::kAttest>(
+            self->validateAsync(ValidationTaskType::kAttest,
                 candidate, std::move(*p), std::move(pvd), relay_parent);
           });
     }
@@ -1297,7 +1289,7 @@ namespace kagome::parachain {
       std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
   ParachainProcessorImpl::tryGetStateByRelayParent(
       const primitives::BlockHash &relay_parent) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     const auto it = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (it != our_current_state_.state_by_relay_parent.end()) {
       return it->second;
@@ -1318,7 +1310,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::RelayParentState &
   ParachainProcessorImpl::storeStateByRelayParent(
       const primitives::BlockHash &relay_parent, RelayParentState &&val) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     const auto &[it, inserted] =
         our_current_state_.state_by_relay_parent.insert(
             {relay_parent, std::move(val)});
@@ -1329,7 +1321,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleStatement(
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
-    REINVOKE(*main_pool_handler_, handleStatement, relay_parent, statement);
+    // REINVOKE(*main_pool_handler_, handleStatement, relay_parent, statement);
     TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
 
     auto &parachain_state = opt_parachain_state->get();
@@ -1447,7 +1439,7 @@ namespace kagome::parachain {
   outcome::result<BlockNumber>
   ParachainProcessorImpl::get_block_number_under_construction(
       const RelayHash &relay_parent) const {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     auto res_header = block_tree_->getBlockHeader(relay_parent);
     if (res_header.has_error()) {
@@ -1489,7 +1481,7 @@ namespace kagome::parachain {
 
   std::vector<network::BackedCandidate>
   ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     SL_TRACE(logger_, "Get backed candidates. (relay_parent={})", relay_parent);
 
     auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
@@ -2190,12 +2182,10 @@ namespace kagome::parachain {
                                            });
   }
 
-  template <bool kReinvoke>
   void ParachainProcessorImpl::notifyInvalid(
       const primitives::BlockHash &parent,
       const network::CandidateReceipt &candidate_receipt) {
-    REINVOKE_ONCE(
-        *main_pool_handler_, notifyInvalid, parent, candidate_receipt);
+    // REINVOKE_ONCE(*main_pool_handler_, notifyInvalid, parent, candidate_receipt);
 
     our_current_state_.validator_side.blocked_from_seconding.erase(
         BlockedCollationId(candidate_receipt.descriptor.para_id,
@@ -2229,11 +2219,10 @@ namespace kagome::parachain {
     dequeue_next_collation_and_fetch(parent, {id, candidate_hash});
   }
 
-  template <bool kReinvoke>
   void ParachainProcessorImpl::notifySeconded(
       const primitives::BlockHash &parent,
       const SignedFullStatementWithPVD &statement) {
-    REINVOKE_ONCE(*main_pool_handler_, notifySeconded, parent, statement);
+    // REINVOKE_ONCE(*main_pool_handler_, notifySeconded, parent, statement);
 
     auto seconded =
         if_type<const StatementWithPVDSeconded>(getPayload(statement));
@@ -2408,14 +2397,15 @@ namespace kagome::parachain {
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);
   }
 
-  template <ParachainProcessorImpl::ValidationTaskType kMode>
   void ParachainProcessorImpl::makeAvailable(
+    ValidationTaskType kMode,
       const primitives::BlockHash &candidate_hash,
       ValidateAndSecondResult &&validate_and_second_result) {
-    REINVOKE(*main_pool_handler_,
-             makeAvailable<kMode>,
-             candidate_hash,
-             std::move(validate_and_second_result));
+    // REINVOKE(*main_pool_handler_,
+    //          makeAvailable,
+    //          kMode,
+    //          candidate_hash,
+    //          std::move(validate_and_second_result));
 
     TRY_GET_OR_RET(
         parachain_state,
@@ -2427,30 +2417,31 @@ namespace kagome::parachain {
 
     parachain_state->get().awaiting_validation.erase(candidate_hash);
     auto q{std::move(validate_and_second_result)};
-    if constexpr (kMode == ValidationTaskType::kSecond) {
+    if (kMode == ValidationTaskType::kSecond) {
       onValidationComplete(q);
     } else {
       onAttestComplete(q);
     }
   }
 
-  template <ParachainProcessorImpl::ValidationTaskType kMode>
   void ParachainProcessorImpl::validateAsync(
-      network::CandidateReceipt candidate,
-      network::ParachainBlock &&pov,
-      runtime::PersistedValidationData &&pvd,
+    ValidationTaskType kMode,
+      const network::CandidateReceipt &candidate,
+      const network::ParachainBlock &pov,
+      const runtime::PersistedValidationData &pvd,
       const primitives::BlockHash &relay_parent) {
-    REINVOKE(*main_pool_handler_,
-             validateAsync<kMode>,
-             candidate,
-             std::move(pov),
-             std::move(pvd),
-             relay_parent);
+    // REINVOKE(*main_pool_handler_,
+    //          validateAsync<kMode>,
+    //           kMode,
+    //          candidate,
+    //          std::move(pov),
+    //          std::move(pvd),
+    //          relay_parent);
 
     TRY_GET_OR_RET(parachain_state,
                    tryGetStateByRelayParent(candidate.descriptor.relay_parent));
     const auto candidate_hash{candidate.hash(*hasher_)};
-    if constexpr (kMode == ValidationTaskType::kAttest) {
+    if (kMode == ValidationTaskType::kAttest) {
       CHECK_OR_RET(
           !parachain_state->get().issued_statements.contains(candidate_hash));
     }
@@ -2468,19 +2459,48 @@ namespace kagome::parachain {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
-    auto cb = [weak_self{weak_from_this()},
-               candidate,
+    pvf_->pvf(candidate,
+              pov,
+              pvd,
+              [weak_self{weak_from_this()},
+              kMode,
+              candidate,
                pov,
                pvd,
                relay_parent,
                n_validators{
                    parachain_state->get().table_context.validators.size()},
                _measure,
-               candidate_hash](
-                  outcome::result<Pvf::Result> validation_result) mutable {
-      TRY_GET_OR_RET(self, weak_self.lock());
+               candidate_hash
+               ](outcome::result<Pvf::Result> r) mutable {
+                TRY_GET_OR_RET(self, weak_self.lock());
+                self->on_pvf_result_received(
+                  kMode,
+                  n_validators,
+              candidate,
+               pov,
+               pvd,
+               relay_parent,
+candidate_hash,
+                  r);
+//                post(*self->main_pool_handler_,
+//                     [cb{std::move(cb)}, r{std::move(r)}]() mutable {
+//                       cb(std::move(r));
+//                     });
+              });
+  }
+
+  void ParachainProcessorImpl::on_pvf_result_received(
+    ValidationTaskType kMode,
+    size_t n_validators,
+      const network::CandidateReceipt &candidate,
+      const network::ParachainBlock &pov,
+      const runtime::PersistedValidationData &pvd,
+      const primitives::BlockHash &relay_parent,
+      const Hash &candidate_hash,
+    const outcome::result<Pvf::Result> &validation_result) {
       if (!validation_result) {
-        SL_WARN(self->logger_,
+        SL_WARN(logger_,
                 "Candidate {} on relay_parent {}, para_id {} validation failed "
                 "with "
                 "error: {}",
@@ -2491,29 +2511,29 @@ namespace kagome::parachain {
         return;
       }
 
-      auto &[comms, data] = validation_result.value();
+      const auto &[comms, data] = validation_result.value();
       runtime::AvailableData available_data{
-          .pov = std::move(pov),
-          .validation_data = std::move(data),
+          .pov = pov,
+          .validation_data = data,
       };
 
       auto chunks_res =
-          self->validateErasureCoding(available_data, n_validators);
+          validateErasureCoding(available_data, n_validators);
       if (chunks_res.has_error()) {
-        SL_WARN(self->logger_,
+        SL_WARN(logger_,
                 "Erasure coding validation failed. (error={})",
                 chunks_res.error());
         return;
       }
       auto &chunks = chunks_res.value();
 
-      self->notifyAvailableData(std::move(chunks),
+      notifyAvailableData(std::move(chunks),
                                 relay_parent,
                                 candidate_hash,
                                 available_data.pov,
                                 available_data.validation_data);
 
-      self->makeAvailable<kMode>(
+      makeAvailable(kMode,
           candidate_hash,
           ValidateAndSecondResult{
               .result = outcome::success(),
@@ -2524,18 +2544,6 @@ namespace kagome::parachain {
               .pov = std::move(available_data.pov),
               .pvd = std::move(pvd),
           });
-    };
-    pvf_->pvf(candidate,
-              pov,
-              pvd,
-              [weak_self{weak_from_this()},
-               cb{std::move(cb)}](outcome::result<Pvf::Result> r) mutable {
-                TRY_GET_OR_RET(self, weak_self.lock());
-                post(*self->main_pool_handler_,
-                     [cb{std::move(cb)}, r{std::move(r)}]() mutable {
-                       cb(std::move(r));
-                     });
-              });
   }
 
   void ParachainProcessorImpl::onAttestComplete(
@@ -2707,7 +2715,7 @@ namespace kagome::parachain {
 
   outcome::result<bool> ParachainProcessorImpl::kick_off_seconding(
       network::PendingCollationFetch &&pending_collation_fetch) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     auto &collation_event = pending_collation_fetch.collation_event;
     auto pending_collation = collation_event.pending_collation;
@@ -2805,7 +2813,7 @@ namespace kagome::parachain {
                                       std::reference_wrapper<const Hash>>>{}));
 
     collations.status = CollationStatus::WaitingOnValidation;
-    validateAsync<ValidationTaskType::kSecond>(
+    validateAsync(ValidationTaskType::kSecond,
         pending_collation_fetch.candidate_receipt,
         std::move(pending_collation_fetch.pov),
         std::move(pvd->get()),
@@ -2943,11 +2951,11 @@ namespace kagome::parachain {
       const RelayHash &relay_parent,
       const libp2p::peer::PeerId &peer_id,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
-    REINVOKE(*main_pool_handler_,
-             handle_advertisement,
-             relay_parent,
-             peer_id,
-             std::move(prospective_candidate));
+    // REINVOKE(*main_pool_handler_,
+    //          handle_advertisement,
+    //          relay_parent,
+    //          peer_id,
+    //          std::move(prospective_candidate));
 
     TRY_GET_OR_RET(opt_per_relay_parent,
                    tryGetStateByRelayParent(relay_parent));
@@ -3039,7 +3047,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const CollatorId &collator_id,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
+    // BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     SL_TRACE(logger_,
              "Received advertise collation. (peer id={}, para id={}, relay "
              "parent={})",

@@ -100,12 +100,11 @@ namespace kagome {
       "expected to execute on other thread"                  \
     }
 
-/// Reinvokes function once depending on `template <bool kReinvoke>` argument.
+/// Reinvokes function once.
 /// If `true` reinvoke takes place, otherwise direct call. After reinvoke called
 /// function has `false` in kReinvoke.
 #define REINVOKE_ONCE(ctx, func, ...)                                         \
   ({                                                                          \
-    if constexpr (kReinvoke) {                                                \
       return post(                                                            \
           ctx,                                                                \
           [weak{weak_from_this()},                                            \
@@ -113,10 +112,9 @@ namespace kagome {
             if (auto self = weak.lock()) {                                    \
               std::apply(                                                     \
                   [&](auto &&...args) mutable {                               \
-                    self->func<false>(std::forward<decltype(args)>(args)...); \
+                    self->func(std::forward<decltype(args)>(args)...); \
                   },                                                          \
                   std::move(args));                                           \
             }                                                                 \
           });                                                                 \
-    }                                                                         \
   })
