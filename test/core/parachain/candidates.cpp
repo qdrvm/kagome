@@ -24,14 +24,11 @@ class CandidatesTest : public ProspectiveParachainsTestHarness {
     return hasher_->blake2b_256(scale::encode(std::forward<T>(t)).value());
   }
 
-  template <>
-  inline Hash hash_of<HeadData>(const HeadData &t) {
+  inline Hash hash_of(const HeadData &t) {
     return hasher_->blake2b_256(t);
   }
 
-  template <>
-  inline Hash hash_of<network::CommittedCandidateReceipt>(
-      const network::CommittedCandidateReceipt &t) {
+  inline Hash hash_of(const network::CommittedCandidateReceipt &t) {
     return hash(t);
   }
 
