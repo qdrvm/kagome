@@ -40,7 +40,10 @@ class CandidatesTest : public ProspectiveParachainsTestHarness {
 
   Hash from_low_u64_be(uint64_t v) {
     Hash h{};
-    *(uint64_t *)&h[32 - 8] = LE_BE_SWAP64(v);
+    const uint64_t value = LE_BE_SWAP64(v);
+    for (size_t i = 0; i < 8; ++i) {
+      h[32 - 8 + i] = ((value >> (i * 8)) & 0xff);
+    }
     return h;
   }
 };
