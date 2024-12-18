@@ -139,134 +139,41 @@ namespace kagome::parachain {
 
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessage &msg) {
-      SL_TRACE(logger_,
-               "Incoming `StatementDistributionMessage`. (peer={})",
-               peer_id);
-
-      if (auto inner =
-              if_type<const network::vstaging::BackedCandidateAcknowledgement>(
-                  msg)) {
-        status_.exclusiveAccess([](Status &status) { ++status.ack_counter_; });
-        statement_distribution_->handle_incoming_acknowledgement(peer_id,
-                                                                 inner->get());
-      } else if (auto manifest =
-                     if_type<const network::vstaging::BackedCandidateManifest>(
-                         msg)) {
-        status_.exclusiveAccess(
-            [](Status &status) { ++status.manifest_counter_; });
-        statement_distribution_->handle_incoming_manifest(peer_id,
-                                                          manifest->get());
-      } else if (auto stm =
-                     if_type<const network::vstaging::
-                                 StatementDistributionMessageStatement>(msg)) {
-        status_.exclusiveAccess(
-            [](Status &status) { ++status.statement_counter_; });
-        statement_distribution_->handle_incoming_statement(peer_id, stm->get());
-      } else {
-        SL_ERROR(logger_, "Skipped message.");
-      }
-    }
+        const network::vstaging::StatementDistributionMessage &msg);
 
     void process_legacy_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::StatementDistributionMessage &msg) {
-      status_.exclusiveAccess(
-          [](Status &status) { ++status.legacy_statement_counter_; });
-    }
+        const network::StatementDistributionMessage &msg);
 
    public:
     ParachainProcessorEmpty(
         application::AppStateManager &app_state_manager,
         std::shared_ptr<parachain::AvailabilityStore> av_store,
         std::shared_ptr<statement_distribution::IStatementDistribution>
-            statement_distribution)
-        : ParachainStorageImpl(std::move(av_store)),
-          statement_distribution_(statement_distribution) {
-      app_state_manager.takeControl(*this);
-    }
+            statement_distribution);
 
-    bool prepare() {
-      statement_distribution_->store_parachain_processor(weak_from_this());
-      std::thread t4([wself{weak_from_this()}]() {
-        auto prev = std::chrono::steady_clock::now();
-        while (true) {
-          std::this_thread::sleep_for(std::chrono::seconds(2));
-          if (auto self = wself.lock()) {
-            const auto now = std::chrono::steady_clock::now();
-            const auto diff =
-                std::chrono::duration_cast<std::chrono::minutes>(now - prev)
-                    .count();
-            if (diff > 0) {
-              self->status_.exclusiveAccess([&](Status &status) {
-                SL_TRACE(
-                    self->logger_,
-                    "[STATISTICS]:\nlegacy_statement_counter:{}\nack_counter:{}"
-                    "\nmanifest_counter:{}\nstatement_counter:{}",
-                    status.legacy_statement_counter_,
-                    status.ack_counter_,
-                    status.manifest_counter_,
-                    status.statement_counter_);
-
-                status.legacy_statement_counter_ = 0;
-                status.ack_counter_ = 0;
-                status.manifest_counter_ = 0;
-                status.statement_counter_ = 0;
-              });
-              prev = now;
-            }
-          } else {
-            break;
-          }
-        }
-      });
-      t4.detach();
-      return true;
-    }
+    bool prepare();
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
-        const network::VersionedValidatorProtocolMessage &message) override {
-      SL_TRACE(
-          logger_, "Incoming validator protocol message. (peer={})", peer_id);
-      visit_in_place(
-          message,
-          [&](const network::ValidatorProtocolMessage &m) {
-            SL_TRACE(logger_, "V1");
-            visit_in_place(
-                m,
-                [&](const network::StatementDistributionMessage &val) {
-                  process_legacy_statement(peer_id, val);
-                },
-                [&](const auto &) {});
-          },
-          [&](const network::vstaging::ValidatorProtocolMessage &m) {
-            SL_TRACE(logger_, "V2");
-            visit_in_place(
-                m,
-                [&](const network::vstaging::StatementDistributionMessage
-                        &val) { process_vstaging_statement(peer_id, val); },
-                [&](const auto &) {});
-          },
-          [&](const auto &m) { SL_WARN(logger_, "UNSUPPORTED Version"); });
-    }
+        const network::VersionedValidatorProtocolMessage &message) override;
 
     void handle_advertisement(const RelayHash &relay_parent,
                               const libp2p::peer::PeerId &peer_id,
                               std::optional<std::pair<CandidateHash, Hash>>
-                                  &&prospective_candidate) override {}
+                                  &&prospective_candidate) override;
 
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
-                            network::ParachainId para_id) override {}
+                            network::ParachainId para_id) override;
 
-    outcome::result<void> canProcessParachains() const override {
-      return outcome::success();
-    }
+    outcome::result<void> canProcessParachains() const override;
 
     void handleStatement(const primitives::BlockHash &relay_parent,
-                         const SignedFullStatementWithPVD &statement) override {
-    }
+                         const SignedFullStatementWithPVD &statement) override;
+
+    std::vector<network::BackedCandidate> getBackedCandidates(
+        const RelayHash &relay_parent) override;
   };
 
   class ParachainProcessorImpl
@@ -537,6 +444,8 @@ namespace kagome::parachain {
       std::unordered_set<CandidateHash> backed_hashes;
 
       bool inject_core_index;
+      bool v2_receipts;
+      CoreIndex current_core;
       std::shared_ptr<RefCache<SessionIndex, PerSessionState>::RefObj>
           per_session_state;
     };
@@ -763,11 +672,6 @@ namespace kagome::parachain {
             BOOST_ASSERT(false);
             return std::nullopt;
           });
-    }
-
-    const network::CollatorPublicKey &collatorIdFromDescriptor(
-        const network::CandidateDescriptor &descriptor) {
-      return descriptor.collator_id;
     }
 
     /*

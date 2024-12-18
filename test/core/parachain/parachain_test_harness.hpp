@@ -122,11 +122,11 @@ class ProspectiveParachainsTestHarness : public testing::Test {
             network::CandidateDescriptor{
                 .para_id = para_id,
                 .relay_parent = relay_parent,
-                .collator_id = {},
+                .reserved_1 = {},
                 .persisted_data_hash = persisted_validation_data.getHash(),
                 .pov_hash = fromNumber(1),
                 .erasure_encoding_root = fromNumber(1),
-                .signature = {},
+                .reserved_2 = {},
                 .para_head_hash = hasher_->blake2b_256(para_head),
                 .validation_code_hash = fromNumber(42),
             },

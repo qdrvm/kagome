@@ -45,17 +45,20 @@ namespace kagome::network {
     SendDisputeProtocolImpl(libp2p::Host &host,
                             const blockchain::GenesisBlockHash &genesis_hash,
                             std::shared_ptr<network::DisputeRequestObserver>
-                                dispute_request_observer)
+                                dispute_request_observer,
+                            common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-            DisputeRequest,
-            DisputeResponse,
-            ScaleMessageReadWriter>{kSendDisputeProtocolName,
-                                    host,
-                                    make_protocols(kSendDisputeProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kSendDisputeProtocolName,
-                                                      "dispute_protocol")},
+              DisputeRequest,
+              DisputeResponse,
+              ScaleMessageReadWriter>{kSendDisputeProtocolName,
+                                      host,
+                                      make_protocols(kSendDisputeProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(
+                                          kSendDisputeProtocolName,
+                                          "dispute_protocol"),
+                                      main_thread_pool},
           dispute_request_observer_{std::move(dispute_request_observer)} {
       BOOST_ASSERT(dispute_request_observer_);
     }

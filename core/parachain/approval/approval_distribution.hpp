@@ -241,8 +241,9 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(
-              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
+          : CandidateEntry(HashedCandidateReceipt{receipt},
+                           session_index,
+                           approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {

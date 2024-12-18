@@ -93,7 +93,7 @@ namespace kagome::parachain {
 
     auto signable() {
       constexpr std::array<uint8_t, 4> kMagic{'V', 'C', 'P', 'C'};
-      return ::scale::encode(std::make_tuple(kMagic, *this)).value();
+      return scale::encode(std::make_tuple(kMagic, *this)).value();
     }
   };
 }  // namespace kagome::parachain
@@ -156,15 +156,14 @@ namespace kagome::network {
     primitives::BlockHash
         relay_parent;  /// Hash of the relay chain block the candidate is
     /// executed in the context of
-    parachain::CollatorPublicKey collator_id;  /// Collators public key.
+    common::Blob<32> reserved_1;
     primitives::BlockHash
         persisted_data_hash;         /// Hash of the persisted validation data
     primitives::BlockHash pov_hash;  /// Hash of the PoV block.
     storage::trie::RootHash
         erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
     /// tree.
-    parachain::Signature
-        signature;  /// Collator signature of the concatenated components
+    common::Blob<64> reserved_2;
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash
@@ -172,11 +171,11 @@ namespace kagome::network {
 
     common::Buffer signable() const {
       return common::Buffer{
-          ::scale::encode(relay_parent,
-                          para_id,
-                          persisted_data_hash,
-                          pov_hash,
-                          validation_code_hash)
+          scale::encode(relay_parent,
+                        para_id,
+                        persisted_data_hash,
+                        pov_hash,
+                        validation_code_hash)
               .value(),
       };
     }
@@ -194,7 +193,7 @@ namespace kagome::network {
     const parachain::Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
-            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
+            scale::encode(std::tie(descriptor, commitments_hash)).value()));
       }
       return hash_.value();
     }

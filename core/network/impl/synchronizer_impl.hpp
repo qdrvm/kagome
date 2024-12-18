@@ -191,7 +191,7 @@ namespace kagome::network {
                     SyncResultHandler &&handler);
 
    private:
-    void postApplyBlock(const primitives::BlockHash &hash);
+    void postApplyBlock();
     void processBlockAdditionResult(outcome::result<void> block_addition_result,
                                     const primitives::BlockHash &hash,
                                     SyncResultHandler &&handler);
@@ -292,7 +292,7 @@ namespace kagome::network {
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
 
     // Blocks grouped by number
-    std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
+    std::set<primitives::BlockInfo> generations_;
 
     // Links parent->child
     std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
@@ -307,7 +307,6 @@ namespace kagome::network {
 
     std::multimap<primitives::BlockInfo, SyncResultHandler> subscriptions_;
 
-    std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
     std::unordered_set<primitives::BlockInfo> load_blocks_;

@@ -10,7 +10,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/interval.hpp"
-#include "authority_discovery/timestamp.hpp"
+#include "authority_discovery/query/audi_store.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -49,6 +49,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
         LazySPtr<network::ValidationProtocol> validation_protocol,
         std::shared_ptr<crypto::KeyStore> key_store,
+        std::shared_ptr<AudiStore> audi_store,
         std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
         std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
         std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>
@@ -76,12 +77,6 @@ namespace kagome::authority_discovery {
     outcome::result<void> update();
 
    private:
-    struct Authority {
-      Buffer raw;
-      std::optional<Timestamp> time;
-      libp2p::peer::PeerInfo peer;
-    };
-
     std::optional<primitives::AuthorityDiscoveryId> hashToAuth(
         BufferView key) const;
     void pop();
@@ -92,6 +87,7 @@ namespace kagome::authority_discovery {
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
     LazySPtr<network::ValidationProtocol> validation_protocol_;
     std::shared_ptr<crypto::KeyStore> key_store_;
+    std::shared_ptr<AudiStore> audi_store_;
     std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;
     std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider_;
     std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller_;
@@ -104,8 +100,6 @@ namespace kagome::authority_discovery {
     std::default_random_engine random_;
     libp2p::protocol::kademlia::ValidatorDefault kademlia_validator_;
     std::unordered_map<Hash256, primitives::AuthorityDiscoveryId> hash_to_auth_;
-    std::unordered_map<primitives::AuthorityDiscoveryId, Authority>
-        auth_to_peer_cache_;
     std::unordered_map<libp2p::peer::PeerId, primitives::AuthorityDiscoveryId>
         peer_to_auth_cache_;
     std::vector<primitives::AuthorityDiscoveryId> queue_;

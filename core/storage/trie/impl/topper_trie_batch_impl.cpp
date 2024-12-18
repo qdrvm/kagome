@@ -9,8 +9,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "common/buffer.hpp"
+#include "crypto/blake2/blake2b.h"
+#include "storage/face/generic_maps.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             TopperTrieBatchImpl::Error,
@@ -116,7 +119,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::apply(
-      storage::BufferStorage &map) {
+      face::Writeable<Buffer, Buffer> &map) {
     for (auto &[k, v] : cache_) {
       if (v) {
         OUTCOME_TRY(map.put(k, BufferView{*v}));
@@ -161,7 +164,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return choice_;
+    return static_cast<bool>(choice_);
   }
 
   outcome::result<void> TopperTrieCursor::next() {
@@ -181,6 +184,20 @@ namespace kagome::storage::trie {
   std::optional<BufferOrView> TopperTrieCursor::value() const {
     return choice_.overlay ? Buffer{*overlay_it_->second}
                            : parent_cursor_->value();
+  }
+
+  std::optional<TopperTrieCursor::ValueHash> TopperTrieCursor::valueHash()
+      const {
+    auto value_opt = value();
+    if (!value_opt) {
+      return std::nullopt;
+    }
+    if (value_opt->size() >= Hash256::size() + 1) {
+      return ValueHash{.hash = crypto::blake2b<32>(*value_opt), .small = false};
+    }
+    Hash256 value_as_hash{};
+    std::copy(value_opt->begin(), value_opt->end(), value_as_hash.begin());
+    return ValueHash{.hash = value_as_hash, .small = true};
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(

@@ -13,9 +13,9 @@
 
 #include "common/buffer.hpp"
 #include "common/buffer_or_view.hpp"
-#include "storage/face/batch_writeable.hpp"
 #include "storage/face/generic_maps.hpp"
 #include "storage/face/write_batch.hpp"
+#include "storage/spaces.hpp"
 
 namespace kagome::storage::face {
   template <>
@@ -36,7 +36,10 @@ namespace kagome::storage {
 
   using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
+  using BufferSpacedBatch = face::SpacedBatch<Space, Buffer, Buffer>;
+
   using BufferStorage = face::GenericStorage<Buffer, Buffer>;
+  using BufferBatchableStorage = face::BatchableStorage<Buffer, Buffer>;
 
   using BufferStorageCursor = face::MapCursor<Buffer, Buffer>;
 }  // namespace kagome::storage

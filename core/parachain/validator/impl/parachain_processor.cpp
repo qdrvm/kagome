@@ -28,6 +28,7 @@
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
@@ -58,6 +59,141 @@ namespace {
 }
 
 namespace kagome::parachain {
+  std::vector<network::BackedCandidate>
+  ParachainProcessorEmpty::getBackedCandidates(const RelayHash &relay_parent) {
+    return {};
+  }
+
+  void ParachainProcessorEmpty::process_vstaging_statement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::vstaging::StatementDistributionMessage &msg) {
+    SL_TRACE(
+        logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
+
+    if (auto inner =
+            if_type<const network::vstaging::BackedCandidateAcknowledgement>(
+                msg)) {
+      status_.exclusiveAccess([](Status &status) { ++status.ack_counter_; });
+      statement_distribution_->handle_incoming_acknowledgement(peer_id,
+                                                               inner->get());
+    } else if (auto manifest =
+                   if_type<const network::vstaging::BackedCandidateManifest>(
+                       msg)) {
+      status_.exclusiveAccess(
+          [](Status &status) { ++status.manifest_counter_; });
+      statement_distribution_->handle_incoming_manifest(peer_id,
+                                                        manifest->get());
+    } else if (auto stm =
+                   if_type<const network::vstaging::
+                               StatementDistributionMessageStatement>(msg)) {
+      status_.exclusiveAccess(
+          [](Status &status) { ++status.statement_counter_; });
+      statement_distribution_->handle_incoming_statement(peer_id, stm->get());
+    } else {
+      SL_ERROR(logger_, "Skipped message.");
+    }
+  }
+
+  void ParachainProcessorEmpty::process_legacy_statement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::StatementDistributionMessage &msg) {
+    status_.exclusiveAccess(
+        [](Status &status) { ++status.legacy_statement_counter_; });
+  }
+
+  ParachainProcessorEmpty::ParachainProcessorEmpty(
+      application::AppStateManager &app_state_manager,
+      std::shared_ptr<parachain::AvailabilityStore> av_store,
+      std::shared_ptr<statement_distribution::IStatementDistribution>
+          statement_distribution)
+      : ParachainStorageImpl(std::move(av_store)),
+        statement_distribution_(statement_distribution) {
+    app_state_manager.takeControl(*this);
+  }
+
+  bool ParachainProcessorEmpty::prepare() {
+    statement_distribution_->store_parachain_processor(weak_from_this());
+    std::thread t4([wself{weak_from_this()}]() {
+      auto prev = std::chrono::steady_clock::now();
+      while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        if (auto self = wself.lock()) {
+          const auto now = std::chrono::steady_clock::now();
+          const auto diff =
+              std::chrono::duration_cast<std::chrono::minutes>(now - prev)
+                  .count();
+          if (diff > 0) {
+            self->status_.exclusiveAccess([&](Status &status) {
+              SL_TRACE(
+                  self->logger_,
+                  "[STATISTICS]:\nlegacy_statement_counter:{}\nack_counter:{}"
+                  "\nmanifest_counter:{}\nstatement_counter:{}",
+                  status.legacy_statement_counter_,
+                  status.ack_counter_,
+                  status.manifest_counter_,
+                  status.statement_counter_);
+
+              status.legacy_statement_counter_ = 0;
+              status.ack_counter_ = 0;
+              status.manifest_counter_ = 0;
+              status.statement_counter_ = 0;
+            });
+            prev = now;
+          }
+        } else {
+          break;
+        }
+      }
+    });
+    t4.detach();
+    return true;
+  }
+
+  void ParachainProcessorEmpty::onValidationProtocolMsg(
+      const libp2p::peer::PeerId &peer_id,
+      const network::VersionedValidatorProtocolMessage &message) {
+    SL_TRACE(
+        logger_, "Incoming validator protocol message. (peer={})", peer_id);
+    visit_in_place(
+        message,
+        [&](const network::ValidatorProtocolMessage &m) {
+          SL_TRACE(logger_, "V1");
+          visit_in_place(
+              m,
+              [&](const network::StatementDistributionMessage &val) {
+                process_legacy_statement(peer_id, val);
+              },
+              [&](const auto &) {});
+        },
+        [&](const network::vstaging::ValidatorProtocolMessage &m) {
+          SL_TRACE(logger_, "V2");
+          visit_in_place(
+              m,
+              [&](const network::vstaging::StatementDistributionMessage &val) {
+                process_vstaging_statement(peer_id, val);
+              },
+              [&](const auto &) {});
+        },
+        [&](const auto &m) { SL_WARN(logger_, "UNSUPPORTED Version"); });
+  }
+
+  void ParachainProcessorEmpty::handle_advertisement(
+      const RelayHash &relay_parent,
+      const libp2p::peer::PeerId &peer_id,
+      std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {}
+
+  void ParachainProcessorEmpty::onIncomingCollator(
+      const libp2p::peer::PeerId &peer_id,
+      network::CollatorPublicKey pubkey,
+      network::ParachainId para_id) {}
+
+  outcome::result<void> ParachainProcessorEmpty::canProcessParachains() const {
+    return outcome::success();
+  }
+
+  void ParachainProcessorEmpty::handleStatement(
+      const primitives::BlockHash &relay_parent,
+      const SignedFullStatementWithPVD &statement) {}
 
   ParachainProcessorImpl::ParachainProcessorImpl(
       std::shared_ptr<network::PeerManager> pm,
@@ -83,7 +219,8 @@ namespace kagome::parachain {
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<statement_distribution::IStatementDistribution> sd)
-      : ParachainStorageImpl(std::move(av_store)), pm_(std::move(pm)),
+      : ParachainStorageImpl(std::move(av_store)),
+        pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         hasher_(std::move(hasher)),
@@ -421,17 +558,9 @@ namespace kagome::parachain {
       return Error::NO_SESSION_INFO;
     }
 
-    bool inject_core_index = false;
-    if (auto r = parachain_host_->node_features(relay_parent, session_index);
-        r.has_value()) {
-      if (r.value()
-          && r.value()->bits.size() > runtime::ParachainHost::NodeFeatureIndex::
-                     ElasticScalingMVP) {
-        inject_core_index =
-            r.value()->bits
-                [runtime::ParachainHost::NodeFeatureIndex::ElasticScalingMVP];
-      }
-    }
+    OUTCOME_TRY(node_features, parachain_host_->node_features(relay_parent));
+    auto inject_core_index =
+        node_features.has(runtime::NodeFeatures::ElasticScalingMVP);
 
     uint32_t minimum_backing_votes = 2;  /// legacy value
     if (auto r =
@@ -446,8 +575,20 @@ namespace kagome::parachain {
     }
 
     std::optional<ValidatorIndex> validator_index;
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L487-L495
+    CoreIndex current_core = 0;
     if (validator) {
       validator_index = (*validator)->validatorIndex();
+
+      size_t i_group = 0;
+      for (auto &group : validator_groups) {
+        if (group.contains((*validator)->validatorIndex())) {
+          current_core =
+              group_rotation_info.coreForGroup(i_group, cores.size());
+          break;
+        }
+        ++i_group;
+      }
     }
 
     OUTCOME_TRY(global_v_index,
@@ -545,6 +686,9 @@ namespace kagome::parachain {
         .fallbacks = {},
         .backed_hashes = {},
         .inject_core_index = inject_core_index,
+        .v2_receipts =
+            node_features.has(runtime::NodeFeatures::CandidateReceiptV2),
+        .current_core = current_core,
         .per_session_state = per_session_state,
     };
   }
@@ -1948,7 +2092,7 @@ namespace kagome::parachain {
                                          rp_state.table_context,
                                          rp_state.inject_core_index)) {
           const auto para_id = backed->candidate.descriptor.para_id;
-          SL_INFO(
+          SL_DEBUG(
               logger_,
               "Candidate backed.(candidate={}, para id={}, relay_parent={})",
               summary->candidate,
@@ -2616,6 +2760,13 @@ namespace kagome::parachain {
     auto relay_parent = pending_collation.relay_parent;
 
     OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
+
+    OUTCOME_TRY(descriptorVersionSanityCheck(
+        pending_collation_fetch.candidate_receipt.descriptor,
+        per_relay_parent.get().v2_receipts,
+        per_relay_parent.get().current_core,
+        per_relay_parent.get().per_session_state->value().session));
+
     auto &collations = per_relay_parent.get().collations;
     auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);

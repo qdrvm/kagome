@@ -6,9 +6,11 @@
 
 #pragma once
 
+#include "common/blob.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
 #include "log/logger.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
@@ -65,6 +67,8 @@ namespace kagome::storage::trie {
     [[nodiscard]] std::optional<common::Buffer> key() const override;
 
     [[nodiscard]] std::optional<BufferOrView> value() const override;
+
+    [[nodiscard]] std::optional<ValueHash> valueHash() const override;
 
    private:
     outcome::result<void> seekLowerBoundInternal(const TrieNode &current,

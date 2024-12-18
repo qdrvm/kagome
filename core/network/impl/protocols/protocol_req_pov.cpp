@@ -23,17 +23,19 @@ namespace kagome::network {
     ReqPovProtocolImpl(libp2p::Host &host,
                        const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<ReqPovObserver> observer)
+                       std::shared_ptr<ReqPovObserver> observer,
+                       common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-            RequestPov,
-            ResponsePov,
-            ScaleMessageReadWriter>{kReqPovProtocolName,
-                                    host,
-                                    make_protocols(kReqPovProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kReqPovProtocolName,
-                                                      "req_pov_protocol")},
+              RequestPov,
+              ResponsePov,
+              ScaleMessageReadWriter>{kReqPovProtocolName,
+                                      host,
+                                      make_protocols(kReqPovProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kReqPovProtocolName,
+                                                        "req_pov_protocol"),
+                                      main_thread_pool},
           observer_{std::move(observer)} {}
 
    protected:
@@ -71,9 +73,13 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<ReqPovObserver> observer)
-      : impl_{std::make_shared<ReqPovProtocolImpl>(
-          host, chain_spec, genesis_hash, std::move(observer))} {}
+      std::shared_ptr<ReqPovObserver> observer,
+      common::MainThreadPool &main_thread_pool)
+      : impl_{std::make_shared<ReqPovProtocolImpl>(host,
+                                                   chain_spec,
+                                                   genesis_hash,
+                                                   std::move(observer),
+                                                   main_thread_pool)} {}
 
   const Protocol &ReqPovProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");

@@ -33,7 +33,7 @@ namespace kagome::network {
 
     using Level = storage::trie::RawCursor<Item>;
 
-    StateSyncRequestFlow(
+    static outcome::result<std::unique_ptr<StateSyncRequestFlow>> create(
         std::shared_ptr<storage::trie::TrieStorageBackend> node_db,
         const primitives::BlockInfo &block_info,
         const primitives::BlockHeader &block);
@@ -55,7 +55,12 @@ namespace kagome::network {
     outcome::result<void> onResponse(const StateResponse &res);
 
    private:
-    bool isKnown(const common::Hash256 &hash);
+    StateSyncRequestFlow(
+        std::shared_ptr<storage::trie::TrieStorageBackend> node_db,
+        const primitives::BlockInfo &block_info,
+        const primitives::BlockHeader &block);
+
+    outcome::result<bool> isKnown(const common::Hash256 &hash);
 
     std::shared_ptr<storage::trie::TrieStorageBackend> node_db_;
 

@@ -150,6 +150,18 @@ namespace kagome::runtime {
     return *ref;
   }
 
+  outcome::result<std::vector<std::optional<CommittedCandidateReceipt>>>
+  ParachainHostImpl::candidates_pending_availability(
+      const primitives::BlockHash &block, ParachainId id) {
+    OUTCOME_TRY(ref,
+                candidates_pending_availability_.call(
+                    *executor_,
+                    block,
+                    "ParachainHost_candidates_pending_availability",
+                    id));
+    return std::move(*ref);
+  }
+
   outcome::result<std::vector<CandidateEvent>>
   ParachainHostImpl::candidate_events(const primitives::BlockHash &block) {
     OUTCOME_TRY(ref,
@@ -214,6 +226,7 @@ namespace kagome::runtime {
     availability_cores_.erase(blocks);
     session_index_for_child_.erase(blocks);
     candidate_pending_availability_.erase(blocks);
+    candidates_pending_availability_.erase(blocks);
     candidate_events_.erase(blocks);
     session_info_.erase(blocks);
     dmq_contents_.erase(blocks);
@@ -300,12 +313,12 @@ namespace kagome::runtime {
         ctx, "ParachainHost_disabled_validators"));
   }
 
-  outcome::result<std::optional<ParachainHost::NodeFeatures>>
-  ParachainHostImpl::node_features(const primitives::BlockHash &block,
-                                   SessionIndex index) {
+  outcome::result<NodeFeatures> ParachainHostImpl::node_features(
+      const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return ifExport(executor_->call<ParachainHost::NodeFeatures>(
-        ctx, "ParachainHost_node_features"));
+    OUTCOME_TRY(r,
+                ifExport(executor_->call<scale::BitVec>(
+                    ctx, "ParachainHost_node_features")));
+    return NodeFeatures{std::move(r)};
   }
-
 }  // namespace kagome::runtime

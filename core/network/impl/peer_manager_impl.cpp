@@ -191,6 +191,9 @@ namespace kagome::network {
 
     // Enqueue bootstrap nodes with permanent lifetime
     for (const auto &bootstrap_node : bootstrap_nodes_) {
+      if (own_peer_info_.id == bootstrap_node.id) {
+        continue;
+      }
       kademlia_->addPeer(bootstrap_node, true);
     }
 
@@ -340,7 +343,8 @@ namespace kagome::network {
     // Not enough active peers
     if (countPeers(PeerType::PEER_TYPE_OUT) < app_config_.outPeers()) {
       if (not queue_to_connect_.empty()) {
-        for (;;) {
+        BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
+        while (not queue_to_connect_.empty() && not peers_in_queue_.empty()) {
           auto node = peers_in_queue_.extract(queue_to_connect_.front());
           auto &peer_id = node.value();
 
