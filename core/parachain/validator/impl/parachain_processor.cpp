@@ -114,6 +114,11 @@ namespace kagome::parachain {
   bool ParachainProcessorEmpty::prepare() {
     statement_distribution_->store_parachain_processor(weak_from_this());
     std::thread t4([wself{weak_from_this()}]() {
+      log::Logger logger =
+          log::createLogger("ParachainProcessorEmpty1", "parachain");
+
+      SL_TRACE(logger, "enter");
+
       auto prev = std::chrono::steady_clock::now();
       while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -125,7 +130,7 @@ namespace kagome::parachain {
           if (diff > 0) {
             self->status_.exclusiveAccess([&](Status &status) {
               SL_TRACE(
-                  self->logger_,
+                  logger,
                   "[STATISTICS]:\nlegacy_statement_counter:{}\nack_counter:{}"
                   "\nmanifest_counter:{}\nstatement_counter:{}",
                   status.legacy_statement_counter_,
@@ -144,6 +149,8 @@ namespace kagome::parachain {
           break;
         }
       }
+
+      SL_TRACE(logger, "exit");
     });
     t4.detach();
     return true;
