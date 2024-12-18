@@ -801,15 +801,15 @@ namespace {
             di::bind<parachain::IProspectiveParachains>.template to<parachain::ProspectiveParachains>(),
             bind_by_lambda<parachain::BackedCandidatesSource>(
                 [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
+                  return injector.template create<sptr<parachain::ParachainProcessorEmpty>>();
                 }),
             bind_by_lambda<parachain::ParachainStorage>(
                 [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
+                  return injector.template create<sptr<parachain::ParachainProcessorEmpty>>();
                 }),
             bind_by_lambda<parachain::ParachainProcessor>(
                 [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
+                  return injector.template create<sptr<parachain::ParachainProcessorEmpty>>();
                 }),
             di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
             bind_by_lambda<network::CanDisconnect>(
@@ -1039,7 +1039,7 @@ namespace kagome::injector {
   std::shared_ptr<parachain::ParachainProcessor>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_
-        .template create<sptr<parachain::ParachainProcessorImpl>>();
+        .template create<sptr<parachain::ParachainProcessorEmpty>>();
   }
 
   std::shared_ptr<parachain::statement_distribution::StatementDistribution>
