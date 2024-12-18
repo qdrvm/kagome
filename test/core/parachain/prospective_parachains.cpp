@@ -521,7 +521,7 @@ TEST_F(ProspectiveParachainsTest,
 
   EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
-          Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
+          Return(outcome::failure(ParachainProcessor::Error::NO_STATE)));
 
   std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},

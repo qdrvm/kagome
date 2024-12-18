@@ -22,7 +22,7 @@ namespace kagome::parachain::statement_distribution {
 
     MOCK_METHOD(void,
                 store_parachain_processor,
-                (std::weak_ptr<ParachainProcessorImpl>),
+                (std::weak_ptr<ParachainProcessor>),
                 (override));
 
     MOCK_METHOD(void,

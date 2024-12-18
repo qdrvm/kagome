@@ -66,6 +66,7 @@ add_library(validator_parachain
     backing/store_impl.cpp
     backing/cluster.cpp
     validator/statement_distribution/statement_distribution.cpp
+    validator/parachain_storage.cpp
     )
 
 target_link_libraries(validator_parachain

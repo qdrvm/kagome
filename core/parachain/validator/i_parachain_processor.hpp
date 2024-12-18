@@ -7,8 +7,31 @@
 #pragma once
 
 #include "outcome/outcome.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/validator/statement_distribution/types.hpp"
 
 namespace kagome::parachain {
+
+  class ParachainStorage {
+  public:
+  virtual ~ParachainStorage() = default;
+
+    virtual outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
+        const network::FetchChunkRequest &request) = 0;
+
+    virtual outcome::result<network::FetchChunkResponseObsolete>
+    OnFetchChunkRequestObsolete(const network::FetchChunkRequest &request) = 0;
+
+    /**
+     * @brief Fetches the Proof of Validity (PoV) for a given candidate.
+     *
+     * @param candidate_hash The hash of the candidate for which the PoV is to
+     * be fetched.
+     * @return network::ResponsePov The PoV associated with the given candidate
+     * hash.
+     */
+    virtual network::ResponsePov getPov(CandidateHash &&candidate_hash) = 0;
+  };
 
   class ParachainProcessor {
    public:
@@ -48,6 +71,23 @@ namespace kagome::parachain {
 
     virtual ~ParachainProcessor() = default;
 
+    virtual void onValidationProtocolMsg(
+        const libp2p::peer::PeerId &peer_id,
+        const network::VersionedValidatorProtocolMessage &message) = 0;
+
+    virtual void handle_advertisement(
+        const RelayHash &relay_parent,
+        const libp2p::peer::PeerId &peer_id,
+        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) = 0;
+
+    virtual void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
+                            network::CollatorPublicKey pubkey,
+                            network::ParachainId para_id) = 0;
+
+    virtual outcome::result<void> canProcessParachains() const = 0;
+
+    virtual void handleStatement(const primitives::BlockHash &relay_parent,
+                                 const SignedFullStatementWithPVD &statement) = 0;
   };
 
 }

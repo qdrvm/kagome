@@ -42,7 +42,7 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        std::shared_ptr<parachain::ParachainStorage> pp,
         std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
             FetchChunkRequest,
@@ -130,7 +130,7 @@ namespace kagome::network {
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::ParachainStorage> pp_;
     std::shared_ptr<PeerManager> pm_;
   };
 

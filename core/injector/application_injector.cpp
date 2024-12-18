@@ -803,6 +803,10 @@ namespace {
                 [](const auto &injector) {
                   return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
                 }),
+            bind_by_lambda<parachain::ParachainStorage>(
+                [](const auto &injector) {
+                  return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
+                }),
             bind_by_lambda<parachain::ParachainProcessor>(
                 [](const auto &injector) {
                   return injector.template create<sptr<parachain::ParachainProcessorImpl>>();
@@ -1032,7 +1036,7 @@ namespace kagome::injector {
         .template create<sptr<parachain::ParachainObserver>>();
   }
 
-  std::shared_ptr<parachain::ParachainProcessorImpl>
+  std::shared_ptr<parachain::ParachainProcessor>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_
         .template create<sptr<parachain::ParachainProcessorImpl>>();

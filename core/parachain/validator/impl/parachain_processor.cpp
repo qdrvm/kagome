@@ -83,7 +83,7 @@ namespace kagome::parachain {
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<statement_distribution::IStatementDistribution> sd)
-      : pm_(std::move(pm)),
+      : ParachainStorageImpl(std::move(av_store)), pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         hasher_(std::move(hasher)),
@@ -94,7 +94,6 @@ namespace kagome::parachain {
         pvf_precheck_(std::move(pvf_precheck)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
-        av_store_(std::move(av_store)),
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
         sync_state_observable_(std::move(sync_state_observable)),
@@ -116,7 +115,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(pvf_);
-    BOOST_ASSERT(av_store_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
     BOOST_ASSERT(sync_state_observable_);
@@ -1189,37 +1187,6 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<network::FetchChunkResponse>
-  ParachainProcessorImpl::OnFetchChunkRequest(
-      const network::FetchChunkRequest &request) {
-    if (auto chunk =
-            av_store_->getChunk(request.candidate, request.chunk_index)) {
-      return network::Chunk{
-          .data = chunk->chunk,
-          .chunk_index = request.chunk_index,
-          .proof = chunk->proof,
-      };
-    }
-    return network::Empty{};
-  }
-
-  outcome::result<network::FetchChunkResponseObsolete>
-  ParachainProcessorImpl::OnFetchChunkRequestObsolete(
-      const network::FetchChunkRequest &request) {
-    if (auto chunk =
-            av_store_->getChunk(request.candidate, request.chunk_index)) {
-      // This check needed because v1 protocol mustn't have chunk mapping
-      // https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/node/core/av-store/src/lib.rs#L1345
-      if (chunk->index == request.chunk_index) {
-        return network::ChunkObsolete{
-            .data = chunk->chunk,
-            .proof = chunk->proof,
-        };
-      }
-    }
-    return network::Empty{};
-  }
-
   std::optional<
       std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
   ParachainProcessorImpl::tryGetStateByRelayParent(
@@ -2061,14 +2028,6 @@ namespace kagome::parachain {
     }
 
     return sign_result.value();
-  }
-
-  network::ResponsePov ParachainProcessorImpl::getPov(
-      CandidateHash &&candidate_hash) {
-    if (auto res = av_store_->getPov(candidate_hash)) {
-      return network::ResponsePov{*res};
-    }
-    return network::Empty{};
   }
 
   void ParachainProcessorImpl::onIncomingCollator(

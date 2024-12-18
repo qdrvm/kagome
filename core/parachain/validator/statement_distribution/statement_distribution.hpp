@@ -28,7 +28,7 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
 }
 
 namespace kagome::parachain::statement_distribution {
@@ -104,7 +104,7 @@ namespace kagome::parachain::statement_distribution {
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
     void store_parachain_processor(
-        std::weak_ptr<ParachainProcessorImpl> pp) override {
+        std::weak_ptr<ParachainProcessor> pp) override {
       BOOST_ASSERT(!pp.expired());
       parachain_processor = std::move(pp);
     }
@@ -366,7 +366,7 @@ namespace kagome::parachain::statement_distribution {
     /// worker thread
     std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
     std::shared_ptr<authority_discovery::Query> query_audi;
-    std::weak_ptr<ParachainProcessorImpl> parachain_processor;
+    std::weak_ptr<ParachainProcessor> parachain_processor;
     std::shared_ptr<NetworkBridge> network_bridge;
     std::shared_ptr<network::Router> router;
     std::shared_ptr<PoolHandler> main_pool_handler;

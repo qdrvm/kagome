@@ -29,7 +29,6 @@
 #include "network/types/collator_messages_vstaging.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/signer.hpp"
-#include "parachain/availability/store/store.hpp"
 #include "parachain/backing/cluster.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/pvf/precheck.hpp"
@@ -46,6 +45,7 @@
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 #include "parachain/validator/i_parachain_processor.hpp"
+#include "parachain/validator/parachain_storage.hpp"
 
 /**
  * @file parachain_processor_impl.hpp
@@ -120,7 +120,8 @@ struct std::hash<kagome::parachain::BlockedCollationId> {
 namespace kagome::parachain {
 
   class ParachainProcessorImpl
-      : public std::enable_shared_from_this<ParachainProcessorImpl>,
+      : public ParachainStorageImpl,
+        public std::enable_shared_from_this<ParachainProcessorImpl>,
         public BackedCandidatesSource,
         public ParachainProcessor {
    public:
@@ -186,7 +187,7 @@ namespace kagome::parachain {
      * @return outcome::result<void> Returns an error if we cannot process the
      * parachains.
      */
-    outcome::result<void> canProcessParachains() const;
+    outcome::result<void> canProcessParachains() const override;
 
     /**
      * @brief Handles an incoming collator.
@@ -200,11 +201,11 @@ namespace kagome::parachain {
      */
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
-                            network::ParachainId para_id);
+                            network::ParachainId para_id) override;
 
-    virtual void onValidationProtocolMsg(
+    void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
-        const network::VersionedValidatorProtocolMessage &message);
+        const network::VersionedValidatorProtocolMessage &message) override;
 
     virtual void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield);
@@ -253,10 +254,10 @@ namespace kagome::parachain {
      * @param prospective_candidate An optional pair containing the hash of the
      * prospective candidate and the hash of the parent block.
      */
-    virtual void handle_advertisement(
+    void handle_advertisement(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
-        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
+        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) override;
 
     /**
      * @brief This function is used to make a candidate available for
@@ -284,12 +285,6 @@ namespace kagome::parachain {
         const Hash &candidate_hash,
         const outcome::result<Pvf::Result> &validation_result);
 
-    outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
-        const network::FetchChunkRequest &request);
-
-    outcome::result<network::FetchChunkResponseObsolete>
-    OnFetchChunkRequestObsolete(const network::FetchChunkRequest &request);
-
     outcome::result<BlockNumber> get_block_number_under_construction(
         const RelayHash &relay_parent) const;
     bool bitfields_indicate_availability(
@@ -308,15 +303,6 @@ namespace kagome::parachain {
     std::vector<network::BackedCandidate> getBackedCandidates(
         const RelayHash &relay_parent) override;
 
-    /**
-     * @brief Fetches the Proof of Validity (PoV) for a given candidate.
-     *
-     * @param candidate_hash The hash of the candidate for which the PoV is to
-     * be fetched.
-     * @return network::ResponsePov The PoV associated with the given candidate
-     * hash.
-     */
-    network::ResponsePov getPov(CandidateHash &&candidate_hash);
 
     auto getAvStore() {
       return av_store_;
@@ -338,8 +324,8 @@ namespace kagome::parachain {
      * @param statement The signed statement to be processed, encapsulated in a
      * SignedFullStatementWithPVD object.
      */
-    virtual void handleStatement(const primitives::BlockHash &relay_parent,
-                                 const SignedFullStatementWithPVD &statement);
+    void handleStatement(const primitives::BlockHash &relay_parent,
+                                 const SignedFullStatementWithPVD &statement) override;
 
    private:
     enum struct StatementType { kSeconded = 0, kValid };
@@ -779,7 +765,6 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
-    std::shared_ptr<parachain::AvailabilityStore> av_store_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     const application::AppConfiguration &app_config_;
     primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable_;

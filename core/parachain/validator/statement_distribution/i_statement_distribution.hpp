@@ -27,7 +27,7 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
 }
 
 namespace kagome::parachain::statement_distribution {
@@ -41,7 +41,7 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     virtual void store_parachain_processor(
-        std::weak_ptr<ParachainProcessorImpl> pp) = 0;
+        std::weak_ptr<ParachainProcessor> pp) = 0;
 
     virtual void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
