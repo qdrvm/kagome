@@ -385,7 +385,6 @@ namespace kagome::network::notifications {
     }
     for (auto &conn :
          host_->getNetwork().getConnectionManager().getConnections()) {
-      // TODO(turuslan): https://github.com/libp2p/cpp-libp2p/pull/285
       if (conn->isClosed()) {
         continue;
       }
