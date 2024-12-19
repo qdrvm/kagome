@@ -262,11 +262,13 @@ namespace kagome::parachain {
       boost::variant<UnconfirmedCandidate, ConfirmedCandidate>;
 
   struct Candidates {
-    std::unordered_map<CandidateHash, CandidateState> candidates;
-    std::unordered_map<
-        Hash,
-        std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>
-        by_parent;
+    using ByParaId =
+        std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>;
+    using ByRelayParent = std::unordered_map<Hash, ByParaId>;
+    using StateByCandidate = std::unordered_map<CandidateHash, CandidateState>;
+
+    StateByCandidate candidates;
+    ByRelayParent by_parent;
     log::Logger logger = log::createLogger("Candidates", "parachain");
 
     std::vector<HypotheticalCandidate> frontier_hypotheticals(
