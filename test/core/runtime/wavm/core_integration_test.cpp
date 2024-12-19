@@ -44,7 +44,7 @@ class CoreTest : public ::testing::Test, public WavmRuntimeTest {
     SetUpImpl();
 
     core_ =
-        std::make_shared<CoreImpl>(executor_, nullptr, header_repo_, nullptr);
+        std::make_shared<CoreImpl>(executor_, nullptr, block_tree_, nullptr);
   }
 
  protected:

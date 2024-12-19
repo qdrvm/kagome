@@ -29,8 +29,8 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<kagome::blockchain::BlockStatus>,
-                getBlockStatus,
+    MOCK_METHOD(outcome::result<std::optional<primitives::BlockHeader>>,
+                tryGetBlockHeader,
                 (const primitives::BlockHash &),
                 (const, override));
 
