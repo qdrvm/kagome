@@ -385,6 +385,10 @@ namespace kagome::network::notifications {
     }
     for (auto &conn :
          host_->getNetwork().getConnectionManager().getConnections()) {
+      // TODO(turuslan): https://github.com/libp2p/cpp-libp2p/pull/285
+      if (conn->isClosed()) {
+        continue;
+      }
       auto peer_id = conn->remotePeer().value();
       if (reserved_.contains(peer_id)) {
         continue;
@@ -402,7 +406,7 @@ namespace kagome::network::notifications {
 
   size_t Protocol::peerCount(bool out) {
     size_t count = 0;
-    if (out) {
+    if (not out) {
       for (auto &p : peers_in_) {
         if (reserved_.contains(p.first)) {
           continue;
