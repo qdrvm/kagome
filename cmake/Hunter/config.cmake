@@ -116,7 +116,7 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-    VERSION 0.0.8
+    VERSION 0.0.9
     KEEP_PACKAGE_SOURCES
 )
 
