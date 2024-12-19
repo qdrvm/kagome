@@ -203,14 +203,11 @@ class InspectBlockCommand : public Command {
     }
     const auto &hash = hash_opt_res.value().value();
 
-    auto header_opt_res = block_storage->getBlockHeader(hash);
-    if (header_opt_res.has_error()) {
-      throwError("Internal error: {}}", header_opt_res.error());
+    auto header_res = block_storage->getBlockHeader(hash);
+    if (header_res.has_error()) {
+      throwError("Internal error: {}}", header_res.error());
     }
-    if (header_opt_res.value().has_value()) {
-      throwError("Block header not found for '{}'", args[1]);
-    }
-    const auto &header = header_opt_res.value().value();
+    const auto &header = header_res.value();
 
     std::cout << "#: " << header.number << "\n";
     std::cout << "Parent hash: " << header.parent_hash.toHex() << "\n";
@@ -376,12 +373,8 @@ class SearchChainCommand : public Command {
     }
     const auto &hash = hash_opt_res.value().value();
 
-    auto start_header_opt = unwrapResult("Getting 'start' block header",
-                                         block_storage->getBlockHeader(hash));
-    if (!start_header_opt) {
-      throwError("Start block header {} not found", start);
-    }
-    auto &start_header = start_header_opt.value();
+    auto start_header = unwrapResult("Getting 'start' block header",
+                                     block_storage->getBlockHeader(hash));
 
     auto end_hash_opt = unwrapResult("Getting 'end' block header",
                                      block_storage->getBlockHash(end));
@@ -390,12 +383,8 @@ class SearchChainCommand : public Command {
     }
     const auto &end_hash = end_hash_opt.value();
 
-    auto end_header_opt = unwrapResult("Getting 'end' block header",
-                                       block_storage->getBlockHeader(end_hash));
-    if (!end_header_opt) {
-      throwError("'End block header {} not found", end);
-    }
-    auto &end_header = end_header_opt.value();
+    auto end_header = unwrapResult("Getting 'end' block header",
+                                   block_storage->getBlockHeader(end_hash));
 
     for (int64_t current = start_header.number, stop = end_header.number;
          current <= stop;
@@ -408,13 +397,10 @@ class SearchChainCommand : public Command {
       }
       const auto &current_hash = current_hash_opt.value();
 
-      auto current_header_opt =
+      auto current_header =
           unwrapResult(fmt::format("Getting header of block #{}", current),
                        block_storage->getBlockHeader(current_hash));
-      if (!current_header_opt) {
-        throwError("Block header #{} not found", current);
-      }
-      searchBlock(out, current_header_opt.value(), target);
+      searchBlock(out, current_header, target);
     }
   }
 

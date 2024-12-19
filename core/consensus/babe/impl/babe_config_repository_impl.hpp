@@ -25,7 +25,6 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-  class BlockHeaderRepository;
 }  // namespace kagome::blockchain
 
 namespace kagome::consensus {
@@ -80,7 +79,6 @@ namespace kagome::consensus::babe {
         const application::AppConfiguration &app_config,
         EpochTimings &timings,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         LazySPtr<ConsensusSelector> consensus_selector,
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -127,7 +125,6 @@ namespace kagome::consensus::babe {
     EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable SafeObject<Indexer> indexer_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     LazySPtr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
