@@ -17,5 +17,6 @@ namespace kagome::scale {
   concept IsEnum = std::is_enum_v<std::decay_t<T>>;
 
   template <typename T>
-  concept IsNotEnum = !std::is_enum_v<std::decay_t<T>>;
+  concept IsNotEnum = !
+  std::is_enum_v<std::decay_t<T>>;
 }  // namespace kagome::scale
