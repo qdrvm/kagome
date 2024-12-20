@@ -160,8 +160,7 @@ namespace kagome::network {
                      self->protocolName(),
                      peer_id);
             cb(std::move(stream));
-          },
-          timeout_);
+          });
     }
 
     template <typename M>
