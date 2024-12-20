@@ -142,7 +142,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
           .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
     }
 
-    EXPECT_CALL(*block_tree_, getBlockHeader(hash))
+    EXPECT_CALL(*block_tree_, tryGetBlockHeader(hash))
         .WillRepeatedly(Return(header));
 
     const BlockNumber min_min = [&, number = number]() -> BlockNumber {
@@ -191,7 +191,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
             .digest = {},
             .hash_opt = {},
         };
-        EXPECT_CALL(*block_tree_, getBlockHeader(h_)).WillRepeatedly(Return(h));
+        EXPECT_CALL(*block_tree_, tryGetBlockHeader(h_)).WillRepeatedly(Return(h));
         EXPECT_CALL(*parachain_api_, session_index_for_child(h_))
             .WillRepeatedly(Return(outcome::success(1)));
         used_relay_parents.emplace(h_);
@@ -233,7 +233,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
               .hash_opt = {},
           };
           EXPECT_CALL(*block_tree_,
-                      getBlockHeader(pending.descriptor.relay_parent))
+                      tryGetBlockHeader(pending.descriptor.relay_parent))
               .WillRepeatedly(Return(h));
           used_relay_parents.emplace(pending.descriptor.relay_parent);
         }
@@ -1868,7 +1868,7 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
   EXPECT_CALL(*parachain_api_, claim_queue(hash))
       .WillRepeatedly(Return(ClaimQueueSnapshot{}));
 
-  EXPECT_CALL(*block_tree_, getBlockHeader(hash))
+  EXPECT_CALL(*block_tree_, tryGetBlockHeader(hash))
       .WillRepeatedly(Return(BlockHeader{
           .number = number,
           .parent_hash = get_parent_hash(hash),
@@ -1887,7 +1887,7 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
   for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
     const auto &h = ancestry_hashes[i];
     const BlockNumber n = number - (i + 1);
-    EXPECT_CALL(*block_tree_, getBlockHeader(h))
+    EXPECT_CALL(*block_tree_, tryGetBlockHeader(h))
         .WillRepeatedly(Return(BlockHeader{
             .number = n,
             .parent_hash = get_parent_hash(h),

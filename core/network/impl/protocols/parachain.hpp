@@ -95,7 +95,15 @@ namespace kagome::network {
     std::shared_ptr<CollationObserver> observer_;
   };
 
-  class ValidationProtocol final : public ParachainProtocol {
+  class ValidationProtocolReserve {
+   public:
+    virtual ~ValidationProtocolReserve() = default;
+
+    virtual void reserve(const PeerId &peer_id, bool add) = 0;
+  };
+
+  class ValidationProtocol final : public ParachainProtocol,
+                                   public ValidationProtocolReserve {
    public:
     ValidationProtocol(ParachainProtocolInject inject,
                        std::shared_ptr<ValidationObserver> observer);
@@ -122,7 +130,7 @@ namespace kagome::network {
       }
     }
     void write(const BitfieldDistribution &message);
-    void reserve(const PeerId &peer_id, bool add);
+    void reserve(const PeerId &peer_id, bool add) override;
 
    private:
     std::shared_ptr<ValidationObserver> observer_;

@@ -27,7 +27,7 @@
 #include <random>
 
 namespace kagome::network {
-  class ValidationProtocol;
+  class ValidationProtocolReserve;
 }  // namespace kagome::network
 
 namespace kagome::authority_discovery {
@@ -47,7 +47,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-        LazySPtr<network::ValidationProtocol> validation_protocol,
+        LazySPtr<network::ValidationProtocolReserve> validation_protocol,
         std::shared_ptr<crypto::KeyStore> key_store,
         std::shared_ptr<AudiStore> audi_store,
         std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
@@ -85,7 +85,7 @@ namespace kagome::authority_discovery {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
-    LazySPtr<network::ValidationProtocol> validation_protocol_;
+    LazySPtr<network::ValidationProtocolReserve> validation_protocol_;
     std::shared_ptr<crypto::KeyStore> key_store_;
     std::shared_ptr<AudiStore> audi_store_;
     std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;

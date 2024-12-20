@@ -58,7 +58,12 @@ namespace kagome::crypto {
                    std::make_unique<KeySuiteStoreMock<EcdsaProvider>>(),
                    std::make_unique<KeySuiteStoreMock<BandersnatchProvider>>(),
                    std::make_shared<Ed25519ProviderMock>(),
-                   std::make_shared<application::AppStateManagerMock>(),
+                   [] {
+                     auto app_state_manager =
+                         std::make_shared<application::AppStateManagerMock>();
+                     EXPECT_CALL(*app_state_manager, atPrepare(testing::_));
+                     return app_state_manager;
+                   }(),
                    KeyStore::Config{{}}},
           sr25519_{dynamic_cast<KeySuiteStoreMock<Sr25519Provider> &>(
               KeyStore ::sr25519())},

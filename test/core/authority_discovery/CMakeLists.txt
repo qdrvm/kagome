@@ -13,3 +13,13 @@ target_link_libraries(address_publisher_test
     logger_for_tests
     network
     )
+
+addtest(audi_query_test
+    query.cpp
+    )
+target_link_libraries(audi_query_test
+    address_publisher
+    in_memory_storage
+    key_store
+    logger_for_tests
+    )

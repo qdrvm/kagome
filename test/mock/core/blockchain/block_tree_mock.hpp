@@ -34,6 +34,11 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<std::optional<primitives::BlockHeader>>,
+                tryGetBlockHeader,
+                (const primitives::BlockHash &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<primitives::Justification>,
                 getBlockJustification,
                 (const primitives::BlockHash &),
@@ -125,6 +130,16 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(BlockHashVecRes,
                 getChildren,
+                (const primitives::BlockHash &),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
+                getHashByNumber,
+                (primitives::BlockNumber),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockNumber>,
+                getNumberByHash,
                 (const primitives::BlockHash &),
                 (const, override));
 

@@ -172,19 +172,17 @@ namespace kagome::parachain {
   ProspectiveParachains::fetchBlockInfo(const RelayHash &relay_hash) {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// cache for block header request and calculations
-    auto res_header = block_tree_->getBlockHeader(relay_hash);
-    if (res_header.has_error()) {
-      if (res_header.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-        return outcome::success(std::nullopt);
-      }
-      return res_header.error();
-    }
 
+    OUTCOME_TRY(header_opt, block_tree_->tryGetBlockHeader(relay_hash));
+    if (not header_opt) {
+      return outcome::success(std::nullopt);
+    }
+    const auto &header = header_opt.value();
     return fragment::BlockInfoProspectiveParachains{
         .hash = relay_hash,
-        .parent_hash = res_header.value().parent_hash,
-        .number = res_header.value().number,
-        .storage_root = res_header.value().state_root,
+        .parent_hash = header.parent_hash,
+        .number = header.number,
+        .storage_root = header.state_root,
     };
   }
 

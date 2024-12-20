@@ -18,7 +18,6 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockStorage;
-  class BlockHeaderRepository;
   class BlockTree;
 }  // namespace kagome::blockchain
 
@@ -43,7 +42,6 @@ namespace kagome::application::mode {
         const application::AppConfiguration &app_config,
         std::shared_ptr<storage::SpacedStorage> spaced_storage,
         std::shared_ptr<blockchain::BlockStorage> storage,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree);
@@ -54,7 +52,6 @@ namespace kagome::application::mode {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<storage::SpacedStorage> spaced_storage_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

@@ -173,6 +173,36 @@ TEST_F(BlockStorageTest, PutBlock) {
   ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
 }
 
+/*
+ * @given a block storage and a block that is not in storage yet
+ * @when trying to get a block from the storage
+ * @then an error is returned
+ */
+TEST_F(BlockStorageTest, GetBlockNotFound) {
+  ASSERT_OUTCOME_SUCCESS(
+      block_storage,
+      BlockStorageImpl::create(root_hash, spaced_storage, hasher));
+
+  EXPECT_OUTCOME_ERROR(get_res,
+                       block_storage->getBlockHeader(genesis_block_hash),
+                       BlockStorageError::HEADER_NOT_FOUND);
+}
+
+/*
+ * @given a block storage and a block that is not in storage yet
+ * @when trying to get a block from the storage
+ * @then success value containing nullopt is returned
+ */
+TEST_F(BlockStorageTest, TryGetBlockNotFound) {
+  ASSERT_OUTCOME_SUCCESS(
+      block_storage,
+      BlockStorageImpl::create(root_hash, spaced_storage, hasher));
+
+  ASSERT_OUTCOME_SUCCESS(try_get_res,
+                         block_storage->tryGetBlockHeader(genesis_block_hash));
+  ASSERT_FALSE(try_get_res.has_value());
+}
+
 /**
  * @given a block storage and a block that is not in storage yet
  * @when putting a block in the storage and underlying storage throws an
