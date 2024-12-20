@@ -38,6 +38,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
 }
 
 namespace kagome::network {
+  constexpr auto kLibp2pCollectGarbage = std::chrono::seconds{30};
+
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
@@ -426,42 +428,38 @@ namespace kagome::network {
       SL_DEBUG(log_, "  address: {}", addr.getStringAddress());
     }
 
-    host_.connect(
-        peer_info,
-        [wp{weak_from_this()}, peer_id](auto res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            return;
-          }
+    host_.connect(peer_info, [wp{weak_from_this()}, peer_id](auto res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        return;
+      }
 
-          if (not res.has_value()) {
-            SL_DEBUG(self->log_,
-                     "Connecting to peer {} is failed: {}",
-                     peer_id,
-                     res.error());
-            self->connecting_peers_.erase(peer_id);
-            return;
-          }
+      if (not res.has_value()) {
+        SL_DEBUG(self->log_,
+                 "Connecting to peer {} is failed: {}",
+                 peer_id,
+                 res.error());
+        self->connecting_peers_.erase(peer_id);
+        return;
+      }
 
-          auto &connection = res.value();
-          auto remote_peer_id_res = connection->remotePeer();
-          if (not remote_peer_id_res.has_value()) {
-            SL_DEBUG(
-                self->log_,
-                "Connected, but not identified yet (expecting peer_id={:l})",
-                peer_id);
-            self->connecting_peers_.erase(peer_id);
-            return;
-          }
+      auto &connection = res.value();
+      auto remote_peer_id_res = connection->remotePeer();
+      if (not remote_peer_id_res.has_value()) {
+        SL_DEBUG(self->log_,
+                 "Connected, but not identified yet (expecting peer_id={:l})",
+                 peer_id);
+        self->connecting_peers_.erase(peer_id);
+        return;
+      }
 
-          auto &remote_peer_id = remote_peer_id_res.value();
-          if (remote_peer_id == peer_id) {
-            SL_DEBUG(self->log_, "Connected to peer {}", peer_id);
+      auto &remote_peer_id = remote_peer_id_res.value();
+      if (remote_peer_id == peer_id) {
+        SL_DEBUG(self->log_, "Connected to peer {}", peer_id);
 
-            self->processFullyConnectedPeer(peer_id);
-          }
-        },
-        kTimeoutForConnecting);
+        self->processFullyConnectedPeer(peer_id);
+      }
+    });
   }
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
@@ -758,5 +756,18 @@ namespace kagome::network {
       }
     }
     return std::nullopt;
+  }
+
+  void PeerManagerImpl::collectGarbage() {
+    host_.getNetwork().getConnectionManager().collectGarbage();
+    host_.getPeerRepository().getAddressRepository().collectGarbage();
+    host_.getPeerRepository().getProtocolRepository().collectGarbage();
+
+    scheduler_->schedule(
+        [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->collectGarbage();
+        },
+        kLibp2pCollectGarbage);
   }
 }  // namespace kagome::network
