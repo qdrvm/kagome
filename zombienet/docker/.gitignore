@@ -8,3 +8,6 @@ polkadot
 cargo/
 pkg/
 polkadot_binary/
+polkadot_binary_custom/
+polkadot-sdk/
+build**/

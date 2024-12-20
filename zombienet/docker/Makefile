@@ -21,9 +21,11 @@ RUST_VERSION ?= 1.81.0
 SCCACHE_VERSION ?= 0.7.4
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
+CUSTOM_POLKADOT_REPO ?= https://github.com/zerg-su/polkadot-sdk.git
+CUSTOM_POLKADOT_BRANCH ?= detached
 
 # polkadot_binary Variables
-SCCACHE_GCS_BUCKET ?=
+SCCACHE_GCS_BUCKET ?= sccache-polkadot-kagome-408211
 CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
 RESULT_BINARIES=./target/release/malus ./target/release/undying-collator ./target/release/adder-collator
 RESULT_BIN_NAMES=malus undying-collator adder-collator
@@ -123,6 +125,15 @@ polkadot_builder:
 		echo "One or more files are missing."; \
 	fi
 
+polkadot_builder_custom:
+	docker build --platform $(PLATFORM) \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_builder_custom:$(BUILDER_LATEST_TAG) \
+	-f polkadot_builder_custom.Dockerfile \
+	--build-arg RUST_VERSION=$(RUST_VERSION) \
+	--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+	--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
+	--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) .
+
 polkadot_builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
   		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
@@ -131,6 +142,10 @@ polkadot_builder_push:
 	else \
 		echo "One or more files are missing."; \
 	fi
+	
+polkadot_binary_custom_push:
+	docker push $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:$(BUILDER_LATEST_TAG) ; \
+	docker push $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom
 
 polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -181,6 +196,61 @@ polkadot_binary:
 	else \
 		echo "One or more files are missing."; \
 	fi
+
+polkadot_binary_custom:
+	CONTAINER_NAME=polkadot_custom_build_$$(openssl rand -hex 6); \
+	DOCKER_EXEC_RESULT=0 ; \
+	docker run -d --name $$CONTAINER_NAME \
+		--platform $(PLATFORM) \
+		--entrypoint "/bin/bash" \
+		-e CARGO_HOME=/home/nonroot/cargo \
+		-e RUSTC_WRAPPER=sccache \
+		-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
+		-e SCCACHE_GCS_KEY_PATH=/root/.gcp/google_creds.json \
+		-e SCCACHE_GCS_KEY_PREFIX=polkadot_builder \
+		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
+		-e SCCACHE_LOG=info \
+		-e ARCHITECTURE=$(ARCHITECTURE) \
+		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+		-v ./build/polkadot-sdk:/home/nonroot/polkadot-sdk/ \
+		-v ./build/polkadot_binary_custom:/tmp/polkadot_binary_custom/ \
+		-v ./build/cargo:/home/nonroot/cargo/ \
+		-v ./build/tmp:/tmp/ \
+		-v ./build_apt_package.sh:/home/nonroot/polkadot-sdk/build_apt_package.sh \
+		$(DOCKER_REGISTRY_PATH)polkadot_builder_custom:latest \
+		-c "tail -f /dev/null"; \
+	docker exec -t $$CONTAINER_NAME /bin/bash -c \
+		"if [ ! -d /home/nonroot/polkadot-sdk/.git ]; then \
+			cd /home/nonroot/polkadot-sdk && \
+			git init && \
+			git remote add origin $(CUSTOM_POLKADOT_REPO); \
+		fi && \
+		cd /home/nonroot/polkadot-sdk && \
+		git fetch origin $(CUSTOM_POLKADOT_BRANCH) && \
+		git checkout -f $(CUSTOM_POLKADOT_BRANCH) || git checkout -b $(CUSTOM_POLKADOT_BRANCH) FETCH_HEAD && \
+		cargo update && \
+		cargo build --release -p polkadot && \
+		cp polkadot /tmp/polkadot_binary_custom/ && \
+		./build_apt_package.sh \
+			$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
+			$(ARCHITECTURE) \
+			polkadot-binary-custom \
+			/tmp/polkadot_binary_custom \
+			'Polkadot binaries: polkadot' \
+			'$(POLKADOT_BINARY_DEPENDENCIES)' ; \
+			" || DOCKER_EXEC_RESULT=$$? ; \
+	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
+		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
+		docker stop $$CONTAINER_NAME; \
+		exit $$DOCKER_EXEC_RESULT; \
+	fi; \
+	docker stop $$CONTAINER_NAME
+
+polkadot_binary_custom:
+	docker build --platform $(PLATFORM) \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:$(BUILDER_LATEST_TAG) \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom \
+	-f polkadot_custom.Dockerfile .
 
 upload_apt_package:
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
