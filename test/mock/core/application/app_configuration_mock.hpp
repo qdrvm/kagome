@@ -198,10 +198,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::optional<uint32_t>,
-                maxParallelDownloads,
-                (),
-                (const, override));
+    MOCK_METHOD(uint32_t, maxParallelDownloads, (), (const, override));
   };
 
 }  // namespace kagome::application
