@@ -238,6 +238,9 @@ namespace kagome::application {
     std::optional<PrecompileWasmConfig> precompileWasm() const override {
       return precompile_wasm_;
     }
+    uint32_t maxParallelDownloads() const override {
+      return max_parallel_downloads_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -368,6 +371,7 @@ namespace kagome::application {
     bool prune_discarded_states_ = false;
     bool enable_thorough_pruning_ = false;
     std::optional<uint32_t> blocks_pruning_;
+    uint32_t max_parallel_downloads_;
     bool enable_db_migration_ = false;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;

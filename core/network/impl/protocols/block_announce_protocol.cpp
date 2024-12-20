@@ -26,8 +26,6 @@ namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/substrate/client/network/sync/src/engine.rs#L86
   constexpr size_t kSeenCapacity = 1024;
 
-  constexpr auto MAX_CONCURRENT_BLOCK_ANNOUNCE_VALIDATIONS_PER_PEER = 4;
-
   static const struct {
     void inc(bool inc) const {
       for (auto &metric : metrics) {
@@ -77,7 +75,8 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         telemetry_peer_count_(std::move(telemetry_peer_count)),
         peer_manager_{std::move(peer_manager)},
-        seen_{kSeenCapacity} {
+        seen_{kSeenCapacity},
+        max_parallel_downloads_{app_config.maxParallelDownloads()} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(observer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
@@ -128,8 +127,7 @@ namespace kagome::network {
     {
       std::shared_lock lock(active_peers_mutex_);
       selected_peers.push_back(peer_id);
-      if (active_peers_.size()
-          > MAX_CONCURRENT_BLOCK_ANNOUNCE_VALIDATIONS_PER_PEER) {
+      if (active_peers_.size() > max_parallel_downloads_) {
         std::vector<PeerId> temp_peers;
         std::copy_if(active_peers_.begin(),
                      active_peers_.end(),
@@ -138,7 +136,7 @@ namespace kagome::network {
         std::sample(temp_peers.begin(),
                     temp_peers.end(),
                     std::back_inserter(selected_peers),
-                    MAX_CONCURRENT_BLOCK_ANNOUNCE_VALIDATIONS_PER_PEER - 1,
+                    max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0,
                     std::mt19937{std::random_device{}()});
       } else {
         std::copy_if(active_peers_.begin(),

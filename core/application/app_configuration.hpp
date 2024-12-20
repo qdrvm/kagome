@@ -325,6 +325,10 @@ namespace kagome::application {
         const = 0;
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
+    /**
+     * @return maximum number of parallel downloads of announced block per peer
+     */
+    virtual uint32_t maxParallelDownloads() const = 0;
   };
 
 }  // namespace kagome::application
