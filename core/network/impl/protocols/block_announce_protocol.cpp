@@ -129,20 +129,17 @@ namespace kagome::network {
       selected_peers.push_back(peer_id);
       if (active_peers_.size() > max_parallel_downloads_) {
         std::vector<PeerId> temp_peers;
-        std::copy_if(active_peers_.begin(),
-                     active_peers_.end(),
-                     std::back_inserter(temp_peers),
-                     [&](const PeerId &p) { return p != peer_id; });
-        std::sample(temp_peers.begin(),
-                    temp_peers.end(),
-                    std::back_inserter(selected_peers),
-                    max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0,
-                    std::mt19937{std::random_device{}()});
+        std::ranges::copy_if(active_peers_,
+                 std::back_inserter(temp_peers),
+                 [&](const PeerId &p) { return p != peer_id; });
+        std::ranges::sample(temp_peers,
+                std::back_inserter(selected_peers),
+                max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0,
+                std::mt19937{std::random_device{}()});
       } else {
-        std::copy_if(active_peers_.begin(),
-                     active_peers_.end(),
-                     std::back_inserter(selected_peers),
-                     [&](const PeerId &p) { return p != peer_id; });
+        std::ranges::copy_if(active_peers_,
+                 std::back_inserter(selected_peers),
+                 [&](const PeerId &p) { return p != peer_id; });
       }
     }
 
