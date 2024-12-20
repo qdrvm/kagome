@@ -88,7 +88,7 @@ namespace kagome::network {
     MapLruSet<PeerId, Hash256> seen_;
     std::shared_mutex active_peers_mutex_;
     std::unordered_set<PeerId> active_peers_;
-    uint32_t max_parallel_downloads_;
+    const uint32_t max_parallel_downloads_;
   };
 
 }  // namespace kagome::network
