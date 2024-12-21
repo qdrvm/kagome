@@ -31,7 +31,7 @@ namespace kagome::storage {
     static const std::vector<std::string> names = []() {
       std::vector<std::string> names;
       names.push_back(rocksdb::kDefaultColumnFamilyName);
-      names.insert(names.end(), names.begin(), names.end());
+      names.insert(names.end(), kSpaceNames.begin(), kSpaceNames.end());
       return names;
     }();
     BOOST_ASSERT(space < Space::kTotal);
