@@ -87,7 +87,7 @@ struct TrieTracker : storage::BufferStorage {
 
 struct TrieTrackerBackend : TrieStorageBackend {
   TrieTrackerBackend(std::shared_ptr<TrieStorageBackend> backend)
-      : backend{std::move(backend)}, node_tracker{backend->nodes()} {}
+      : backend{backend}, node_tracker{backend->nodes()} {}
 
   storage::BufferStorage &nodes() override {
     return node_tracker;

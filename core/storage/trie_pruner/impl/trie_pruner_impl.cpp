@@ -6,15 +6,19 @@
 
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 
+#include <cstdint>
 #include <queue>
 
 #include <fmt/std.h>
 #include <boost/assert.hpp>
+#include <soralog/macro.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "log/profiling_logger.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
@@ -23,6 +27,7 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
+#include "utils/pool_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
                             TriePrunerImpl::Error,
@@ -64,13 +69,15 @@ namespace kagome::storage::trie_pruner {
       std::shared_ptr<const storage::trie::Codec> codec,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<const application::AppConfiguration> config)
+      std::shared_ptr<const application::AppConfiguration> config,
+      std::shared_ptr<common::WorkerThreadPool> thread_pool)
       : serializer_{std::move(serializer)},
         codec_{std::move(codec)},
         storage_{std::move(storage)},
         node_storage_{storage_->getSpace(Space::kTrieNode)},
         value_storage_{storage_->getSpace(Space::kTrieValue)},
         hasher_{std::move(hasher)},
+        prune_thread_handler_{thread_pool->handler(*app_state_manager)},
         pruning_depth_{config->statePruningDepth()},
         thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(node_storage_ != nullptr);
@@ -79,6 +86,8 @@ namespace kagome::storage::trie_pruner {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(thread_pool != nullptr);
+    BOOST_ASSERT(prune_thread_handler_ != nullptr);
 
     app_state_manager->takeControl(*this);
   }
@@ -112,6 +121,41 @@ namespace kagome::storage::trie_pruner {
     return true;
   }
 
+  bool TriePrunerImpl::start() {
+    prune_thread_handler_->execute(
+        [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    return true;
+  }
+
+  void TriePrunerImpl::pruneQueuedStates() {
+    PendingPrune prune;
+    while (prune_queue_.pop(prune)) {
+      switch (prune.reason) {
+        case PruneReason::Finalized:
+          if (auto res = pruneFinalized(prune.root, prune.block_info);
+              res.has_error()) {
+            SL_WARN(logger_,
+                    "Failed to prune finalized block {}: {}",
+                    prune.block_info,
+                    res.error());
+          }
+          break;
+        case PruneReason::Discarded:
+
+          if (auto res = pruneDiscarded(prune.root, prune.block_info);
+              res.has_error()) {
+            SL_WARN(logger_,
+                    "Failed to prune discarded block {}: {}",
+                    prune.block_info,
+                    res.error());
+          }
+          break;
+      }
+    }
+    prune_thread_handler_->execute(
+        [self = shared_from_this()]() { self->pruneQueuedStates(); });
+  }
+
   class Encoder {  // NOLINT(cppcoreguidelines-special-member-functions)
    public:
     explicit Encoder(const trie::Codec &codec, log::Logger logger)
@@ -140,6 +184,10 @@ namespace kagome::storage::trie_pruner {
 
     outcome::result<trie::MerkleValue> getMerkleValue(
         const trie::TrieNode &node, trie::StateVersion version) {
+      if (auto it = cache.find(reinterpret_cast<uintptr_t>(&node));
+          it != cache.end()) {
+        return it->second;
+      }
       encode_called++;
       OUTCOME_TRY(
           merkle_value,
@@ -155,6 +203,10 @@ namespace kagome::storage::trie_pruner {
                 }
                 return outcome::success();
               }));
+      if (merkle_value.isHash()) {
+        cache[reinterpret_cast<uintptr_t>(&node)] =
+            merkle_value.asHash().value();
+      }
       return merkle_value;
     }
 
@@ -164,33 +216,49 @@ namespace kagome::storage::trie_pruner {
     size_t encode_called = 0;
     log::Logger logger;
 
+    std::map<uintptr_t, common::Hash256> cache;
+
     outcome::result<void> visitChild(const trie::TrieNode &node,
                                      const trie::MerkleValue &merkle_value) {
       if (merkle_value.isHash()) {
         encode_called++;
+        cache[reinterpret_cast<uintptr_t>(&node)] =
+            merkle_value.asHash().value();
       }
+
       return outcome::success();
     }
   };
 
+  void TriePrunerImpl::schedulePrune(const trie::RootHash &root,
+                                     const primitives::BlockInfo &block_info,
+                                     PruneReason reason) {
+    prune_queue_.push(PendingPrune{block_info, root, reason});
+  }
+
   outcome::result<void> TriePrunerImpl::pruneFinalized(
-      const primitives::BlockHeader &block) {
+      const trie::RootHash &root, const primitives::BlockInfo &block_info) {
     std::unique_lock lock{mutex_};
+    SL_DEBUG(
+        logger_, "Prune state root {} of finalized block {}", root, block_info);
+
     auto batch = storage_->createBatch();
-    OUTCOME_TRY(prune(*batch, block.state_root));
+    OUTCOME_TRY(prune(*batch, root));
     OUTCOME_TRY(batch->commit());
 
-    last_pruned_block_ = block.blockInfo();
+    last_pruned_block_ = block_info;
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
 
   outcome::result<void> TriePrunerImpl::pruneDiscarded(
-      const primitives::BlockHeader &block) {
+      const trie::RootHash &root, const primitives::BlockInfo &block_info) {
     std::unique_lock lock{mutex_};
+    SL_DEBUG(
+        logger_, "Prune state root {} of discarded block {}", root, block_info);
     // should prune even when pruning depth is none
     auto batch = storage_->createBatch();
-    OUTCOME_TRY(prune(*batch, block.state_root));
+    OUTCOME_TRY(prune(*batch, root));
     OUTCOME_TRY(batch->commit());
     return outcome::success();
   }
@@ -235,8 +303,6 @@ namespace kagome::storage::trie_pruner {
     queued_nodes.push_back({root_hash, trie->getRoot(), 0});
 
     Encoder encoder{*codec_, logger_};
-
-    logger_->debug("Prune state root {}", root_hash);
 
     // iterate nodes, decrement their ref count and delete if ref count becomes
     // zero

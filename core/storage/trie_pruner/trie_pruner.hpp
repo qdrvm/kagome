@@ -11,6 +11,7 @@
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::blockchain {
@@ -22,6 +23,11 @@ namespace kagome::storage::trie {
 }
 
 namespace kagome::storage::trie_pruner {
+
+  enum class PruneReason {
+    Discarded,
+    Finalized,
+  };
 
   /**
    * Pruner is responsible for removal of trie storage parts belonging to
@@ -53,22 +59,17 @@ namespace kagome::storage::trie_pruner {
         const trie::PolkadotTrie &new_trie, trie::StateVersion version) = 0;
 
     /**
-     * Prune the trie of a finalized block \param state.
+     * Schedule pruning the trie state of a block \param block_info.
      * Nodes belonging to this trie are deleted if no other trie references
      * them.
-     * @param state header of the block which state is to be pruned.
+     * @param root the root of the trie to prune.
+     * @param block_info hash and number of the block with its state to be
+     * pruned.
+     * @param reason whether block is pruned because its finalized or discarded.
      */
-    virtual outcome::result<void> pruneFinalized(
-        const primitives::BlockHeader &state) = 0;
-
-    /**
-     * Prune the trie of a discarded block \param state.
-     * Nodes belonging to this trie are deleted if no other trie references
-     * them.
-     * @param state header of the block which state is to be pruned.
-     */
-    virtual outcome::result<void> pruneDiscarded(
-        const primitives::BlockHeader &state) = 0;
+    virtual void schedulePrune(const trie::RootHash &root,
+                               const primitives::BlockInfo &block_info,
+                               PruneReason reason) = 0;
 
     /**
      * Resets the pruner state, collects info about node reference count

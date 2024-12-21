@@ -61,6 +61,10 @@ namespace kagome {
       return self.isInCurrentThread();
     }
 
+    bool isActive() const {
+      return is_active_;
+    }
+
    private:
     std::atomic_bool is_active_;
     std::atomic_bool started_ = false;

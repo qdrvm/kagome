@@ -38,3 +38,4 @@ target_link_libraries(in_memory_storage PUBLIC
     blob
     storage
     )
+target_include_directories(in_memory_storage PUBLIC "${CMAKE_SOURCE_DIR}/test")

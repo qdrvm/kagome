@@ -6,21 +6,26 @@
 
 #pragma once
 
+#include "primitives/common.hpp"
+#include "storage/trie/types.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
-#include <stack>
+#include <chrono>
+#include <memory>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 #include <boost/assert.hpp>
+#include <boost/lockfree/queue.hpp>
 
 #include "scale/tie.hpp"
 
 #include "common/buffer.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "log/logger.hpp"
-#include "log/profiling_logger.hpp"
 #include "storage/buffer_map_types.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -45,7 +50,9 @@ namespace kagome::storage::trie_pruner {
 
   using common::literals::operator""_buf;
 
-  class TriePrunerImpl final : public TriePruner {
+  class TriePrunerImpl final
+      : public TriePruner,
+        public std::enable_shared_from_this<TriePrunerImpl> {
    public:
     enum class Error : uint8_t {
       LAST_PRUNED_BLOCK_IS_LAST_FINALIZED = 1,
@@ -66,9 +73,11 @@ namespace kagome::storage::trie_pruner {
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<const application::AppConfiguration> config);
+        std::shared_ptr<const application::AppConfiguration> config,
+        std::shared_ptr<common::WorkerThreadPool> thread_pool);
 
     bool prepare();
+    bool start();
 
     outcome::result<void> addNewState(const storage::trie::RootHash &state_root,
                                       trie::StateVersion version) override;
@@ -76,11 +85,15 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> addNewState(const trie::PolkadotTrie &new_trie,
                                       trie::StateVersion version) override;
 
+    void schedulePrune(const trie::RootHash &root,
+                       const primitives::BlockInfo &block_info,
+                       PruneReason reason) override;
+
     outcome::result<void> pruneFinalized(
-        const primitives::BlockHeader &state) override;
+        const trie::RootHash &root, const primitives::BlockInfo &block_info);
 
     outcome::result<void> pruneDiscarded(
-        const primitives::BlockHeader &state) override;
+        const trie::RootHash &root, const primitives::BlockInfo &block_info);
 
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
       std::unique_lock lock{mutex_};
@@ -114,6 +127,8 @@ namespace kagome::storage::trie_pruner {
         const blockchain::BlockTree &block_tree) override;
 
    private:
+    void pruneQueuedStates();
+
     outcome::result<void> restoreStateAt(
         const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree);
@@ -139,6 +154,14 @@ namespace kagome::storage::trie_pruner {
     std::shared_ptr<storage::BufferStorage> node_storage_;
     std::shared_ptr<storage::BufferStorage> value_storage_;
     std::shared_ptr<const crypto::Hasher> hasher_;
+    std::shared_ptr<PoolHandler> prune_thread_handler_;
+
+    struct PendingPrune {
+      primitives::BlockInfo block_info;
+      trie::RootHash root;
+      PruneReason reason;
+    };
+    boost::lockfree::queue<PendingPrune> prune_queue_;
 
     const std::optional<uint32_t> pruning_depth_{};
     const bool thorough_pruning_{false};

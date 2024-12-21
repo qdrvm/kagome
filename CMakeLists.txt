@@ -69,7 +69,7 @@ endif ()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # cmake-format: off
-option(TESTING "Build and run test suite" ON)
+option(TESTING "Build test suite" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -78,6 +78,8 @@ option(PROFILING "Enable internal profiling instruments" OFF)
 option(BACKWARD "Enable stacktrace logging instruments" ON)
 option(CLEAR_OBJS "Clear object files" OFF)
 option(WERROR "Turn all warnings into errors" OFF)
+
+option(KAGOME_BENCHMARK "Build benchmark suite" ON)
 
 if (NOT ($ENV{CI}) OR NOT ($ENV{GITHUB_ACTIONS}))
   set(_EXTERNAL_PROJECT_DEFAULT ON)
@@ -139,6 +141,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
 
   if(WERROR)
     add_flag(-Werror)                # turn all warnings into errors
+  endif()
+
+  if (KAGOME_BENCHMARK)
+    add_flag(-fno-omit-frame-pointer)
   endif()
 
   # cmake-format: on
@@ -252,5 +258,10 @@ if(TESTING)
   enable_testing()
   add_subdirectory(test)
 endif ()
+
+if(KAGOME_BENCHMARK)
+  add_subdirectory(test/testutil)
+  add_subdirectory(benchmark)
+endif()
 
 add_subdirectory(node)
