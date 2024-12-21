@@ -411,10 +411,9 @@ namespace kagome::host_api {
      * store.
      */
     [[nodiscard]] virtual runtime::WasmSpan
-    ext_crypto_ecdsa_sign_prehashed_version_1(
-        runtime::WasmSize key_type,
-        runtime::WasmPointer key,
-        runtime::WasmPointer msg_data) = 0;
+    ext_crypto_ecdsa_sign_prehashed_version_1(runtime::WasmSize key_type,
+                                              runtime::WasmPointer key,
+                                              runtime::WasmPointer msg_data) = 0;
 
     /**
      * @brief Generates an ecdsa key for the given key type using an optional

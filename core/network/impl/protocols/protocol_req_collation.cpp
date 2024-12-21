@@ -65,9 +65,9 @@ namespace kagome::network {
       std::shared_ptr<ReqCollationObserver> observer,
       common::MainThreadPool &main_thread_pool)
       : v1_impl_{std::make_shared<
-            ReqCollationProtocolImpl<CollationFetchingRequest,
-                                     CollationFetchingResponse>>(
-            host,
+          ReqCollationProtocolImpl<CollationFetchingRequest,
+                                   CollationFetchingResponse>>(
+          host,
             kReqCollationProtocol,
             chain_spec,
             genesis_hash,

@@ -11,7 +11,6 @@
 
 #include <rocksdb/db.h>
 #include <boost/assert.hpp>
-#include <string_view>
 
 namespace kagome::storage {
   static constexpr std::array kSpaceNames{"lookup_key",
@@ -32,24 +31,11 @@ namespace kagome::storage {
     static const std::vector<std::string> names = []() {
       std::vector<std::string> names;
       names.push_back(rocksdb::kDefaultColumnFamilyName);
-      names.insert(names.end(), kSpaceNames.begin(), kSpaceNames.end());
+      names.insert(names.end(), kNames.begin(), kNames.end());
       return names;
     }();
     BOOST_ASSERT(space < Space::kTotal);
     return names.at(space);
-  }
-
-  std::optional<Space> spaceByName(std::string_view space) {
-    if (space == rocksdb::kDefaultColumnFamilyName) {
-      return Space::kDefault;
-    }
-    auto it = std::ranges::find(kSpaceNames, space);
-    if (it == kSpaceNames.end()) {
-      return std::nullopt;
-    }
-    auto idx = it - kSpaceNames.begin() + 1;
-    BOOST_ASSERT(idx < Space::kTotal);
-    return static_cast<Space>(idx);
   }
 
 }  // namespace kagome::storage

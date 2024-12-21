@@ -42,5 +42,4 @@ target_link_libraries(core_integration_test
     storage
     filesystem
     logger_for_tests
-    in_memory_storage
     )

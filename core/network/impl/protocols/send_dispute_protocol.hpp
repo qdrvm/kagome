@@ -48,16 +48,15 @@ namespace kagome::network {
                                 dispute_request_observer,
                             common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-              DisputeRequest,
-              DisputeResponse,
-              ScaleMessageReadWriter>{kSendDisputeProtocolName,
-                                      host,
-                                      make_protocols(kSendDisputeProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kSendDisputeProtocolName,
-                                          "dispute_protocol"),
+            DisputeRequest,
+            DisputeResponse,
+            ScaleMessageReadWriter>{kSendDisputeProtocolName,
+                                    host,
+                                    make_protocols(kSendDisputeProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kSendDisputeProtocolName,
+                                                      "dispute_protocol"),
                                       main_thread_pool},
           dispute_request_observer_{std::move(dispute_request_observer)} {
       BOOST_ASSERT(dispute_request_observer_);

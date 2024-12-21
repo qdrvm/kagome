@@ -11,8 +11,6 @@
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/buffer_map_types.hpp"
-#include "storage/face/batch_writeable.hpp"
-#include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
 
@@ -21,7 +19,7 @@ namespace kagome::storage {
    * Mostly needed to have an in-memory trie in tests to avoid integration with
    * an actual persistent database
    */
-  class InMemoryStorage : public BufferBatchableStorage {
+  class InMemoryStorage : public storage::BufferStorage {
    public:
     ~InMemoryStorage() override = default;
 

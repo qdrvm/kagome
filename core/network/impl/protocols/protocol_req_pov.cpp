@@ -26,15 +26,15 @@ namespace kagome::network {
                        std::shared_ptr<ReqPovObserver> observer,
                        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-              RequestPov,
-              ResponsePov,
-              ScaleMessageReadWriter>{kReqPovProtocolName,
-                                      host,
-                                      make_protocols(kReqPovProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(kReqPovProtocolName,
-                                                        "req_pov_protocol"),
+            RequestPov,
+            ResponsePov,
+            ScaleMessageReadWriter>{kReqPovProtocolName,
+                                    host,
+                                    make_protocols(kReqPovProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kReqPovProtocolName,
+                                                      "req_pov_protocol"),
                                       main_thread_pool},
           observer_{std::move(observer)} {}
 
