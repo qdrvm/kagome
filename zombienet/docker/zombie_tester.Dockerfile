@@ -93,16 +93,6 @@ RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages polkadot-binary=${POLKADOT_BINARY_PACKAGE_VERSION} && \
       sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
-# WARNING: Setup always returns 2, even when successful 
-RUN zombienet setup -y polkadot polkadot-parachain; \
-    EXIT_CODE=$?; \
-    if [ $EXIT_CODE -eq 2 ]; then \
-        echo "Command exited with code 2, continuing..."; \
-    else \
-        echo "Command exited with code $EXIT_CODE"; \
-        exit $EXIT_CODE; \
-    fi;
-
 RUN echo "Polkadot Version:" && ./polkadot --version && \
     echo "Polkadot Parachain Version:" && ./polkadot-parachain --version && \
     echo "Zombienet Version:" && ./zombienet version && \

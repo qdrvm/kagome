@@ -6,9 +6,10 @@ OS_IMAGE_TAG ?= 24.04
 OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
 ## DOCKER_REGISTRY_PATH empty for local usage
 DOCKER_REGISTRY_PATH ?=
+DOCKER_BUILD_DIR_NAME ?= build_docker
 GOOGLE_APPLICATION_CREDENTIALS ?=
 PLATFORM ?= linux/amd64
-ARCHITECTURE ?= amd64
+ARCHITECTURE ?= $(subst linux/,,$(PLATFORM))
 
 # Generated versions
 OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
@@ -17,18 +18,20 @@ OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
+POLKADOT_SDK_RELEASE ?=
 RUST_VERSION ?= 1.81.0
-SCCACHE_VERSION ?= 0.7.4
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
 
 # polkadot_binary Variables
 SCCACHE_GCS_BUCKET ?=
-CARGO_PACKETS=-p test-parachain-adder-collator -p polkadot-test-malus -p test-parachain-undying-collator
-RESULT_BINARIES=./target/release/malus ./target/release/undying-collator ./target/release/adder-collator
-RESULT_BIN_NAMES=malus undying-collator adder-collator
-POLKADOT_BINARY_DEPENDENCIES=libstdc++6, zlib1g, libgcc-s1, libc6
-
+CARGO_PACKETS=-p polkadot-parachain-bin
+#-p polkadot  -p polkadot-test-malus -p test-parachain-undying-collator -p test-parachain-adder-collator
+POLKADOT_REPO_URL ?= https://github.com/paritytech/polkadot-sdk.git
+POLKADOT_REPO_DIR ?= ./polkadot-sdk
+RESULT_BIN_NAMES=polkadot polkadot-parachain malus undying-collator adder-collator polkadot-execute-worker polkadot-prepare-worker
+RESULT_BINARIES_WITH_PATH := $(patsubst %,./target/release/%,$(RESULT_BIN_NAMES))
+POLKADOT_BINARY_DEPENDENCIES=libstdc++6, zlib1g, libgcc-s1, libc6, ca-certificates
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
@@ -50,6 +53,7 @@ KAGOME_PACKAGE_VERSION ?=
 WORKING_DIR := $(shell pwd)/../../../kagome
 DELETE_IMAGE_AFTER_TEST ?= true
 
+CURRENT_DATE := $(shell date +"%Y%m%d")
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
@@ -107,21 +111,13 @@ get_versions:
 	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
 
 polkadot_builder:
-	$(MAKE) get_versions
-	if [ -f polkadot-sdk-versions.txt ]; then \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		docker build --platform $(PLATFORM) \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
-		-f polkadot_builder.Dockerfile \
-		--build-arg RUST_VERSION=$(RUST_VERSION) \
-		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
-		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
-		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
-		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE . ; \
-	else \
-		echo "One or more files are missing."; \
-	fi
+	docker build --platform $(PLATFORM) \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE) \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
+	-f polkadot_builder.Dockerfile \
+	--build-arg RUST_VERSION=$(RUST_VERSION) \
+	--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
+	--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) .
 
 polkadot_builder_push:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -129,17 +125,22 @@ polkadot_builder_push:
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE ; \
 		docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) ; \
 	else \
-		echo "One or more files are missing."; \
+		echo "-- One or more files are missing."; \
 	fi
 
 polkadot_binary:
+	$(MAKE) get_versions
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		CONTAINER_NAME=polkadot_build_$$(openssl rand -hex 6); \
-		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
-		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		if [ -n \"$(POLKADOT_SDK_RELEASE)\" ]; then \
+		  	POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE); \
+		else \
+		    POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+	  	fi; \
+		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(echo $$POLKADOT_SDK_RELEASE | grep -o '[0-9]\+'); \
 		SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 		DOCKER_EXEC_RESULT=0 ; \
-		mkdir -p ./polkadot_binary ./cargo/registry ./cargo/git ./pkg; \
+		$(MAKE) print_vars; \
 		docker run -d --name $$CONTAINER_NAME \
 			--platform $(PLATFORM) \
 			--entrypoint "/bin/bash" \
@@ -151,20 +152,32 @@ polkadot_binary:
 			-e SCCACHE_LOG=info \
 			-e ARCHITECTURE=$(ARCHITECTURE) \
 			-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
+			-e POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
 			-e POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC \
 			-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
-			-v ./polkadot_binary:/tmp/polkadot_binary \
-			-v ./cargo/registry:/usr/local/cargo/registry/ \
-			-v ./cargo/git:/usr/local/cargo/git/ \
-			-v ./pkg:/home/nonroot/polkadot-sdk/pkg \
-			-v ./build_apt_package.sh:/home/nonroot/polkadot-sdk/build_apt_package.sh \
-			$(DOCKER_REGISTRY_PATH)polkadot_builder:$$POLKADOT_SDK_RELEASE \
+			-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:/tmp/polkadot_binary \
+			-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:/root/.cargo/registry/ \
+			-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:/root/.cargo/git/ \
+			-v ./$(DOCKER_BUILD_DIR_NAME)/home:/home/nonroot/ \
+			-v ./$(DOCKER_BUILD_DIR_NAME)/tmp:/tmp/ \
+			-v ./build_apt_package.sh:/home/nonroot/build_apt_package.sh \
+			$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 			-c "tail -f /dev/null"; \
 		docker exec -t $$CONTAINER_NAME /bin/bash -c \
-			"cargo update && \
-			cargo build --release $(CARGO_PACKETS) && \
-			cp $(RESULT_BINARIES) /tmp/polkadot_binary/ && \
-		 	./build_apt_package.sh \
+			"if [ ! -d \"$(POLKADOT_REPO_DIR)\" ]; then \
+				echo \"-- Cloning repository into  $(POLKADOT_REPO_DIR)...\"; \
+				git clone --depth 1 --branch $$POLKADOT_SDK_RELEASE $(POLKADOT_REPO_URL) $(POLKADOT_REPO_DIR); \
+				cd $(POLKADOT_REPO_DIR) ; \
+			else \
+				echo \"-- Updating repository...\"; \
+				cd $(POLKADOT_REPO_DIR) && git fetch --tags --depth 1 origin && \
+				git checkout $(POLKADOT_SDK_RELEASE) || git checkout -b $(POLKADOT_SDK_RELEASE) $(POLKADOT_SDK_RELEASE) && \
+				git reset --hard $(POLKADOT_SDK_RELEASE); \
+			fi && \
+			cargo update && \
+			cargo build --release --locked -p polkadot-parachain-bin --bin polkadot-parachain && \
+			cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
+		 	cd ~ && ./build_apt_package.sh \
 		 		$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
 		 		$(ARCHITECTURE) \
 		 		polkadot-binary \
@@ -173,13 +186,13 @@ polkadot_binary:
 		 		'$(POLKADOT_BINARY_DEPENDENCIES)' ; \
 		 		" || DOCKER_EXEC_RESULT=$$? ; \
 		if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
-			echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
+			echo "-- Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
 			docker stop $$CONTAINER_NAME; \
 			exit $$DOCKER_EXEC_RESULT; \
 		fi; \
 		docker stop $$CONTAINER_NAME; \
 	else \
-		echo "One or more files are missing."; \
+		echo "-- One or more files are missing."; \
 	fi
 
 upload_apt_package:
@@ -220,16 +233,16 @@ zombie_tester_push:
 		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$${POLKADOT_SDK_RELEASE}_$${ZOMBIENET_RELEASE} ; \
 		docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) ; \
 	else \
-		echo "One or more files are missing."; \
+		echo "-- One or more files are missing."; \
 	fi
 
 copy_logs_to_host:
 	@CONTAINER_NAME=$(CONTAINER_NAME); \
 	FINISHED_CONTAINER_NAME=$$CONTAINER_NAME-finished; \
 	FINISHED_IMAGE_NAME=$$CONTAINER_NAME-finished-image; \
-	echo "Copying logs from container $$CONTAINER_NAME to host path $(HOST_LOGS_PATH)"; \
+	echo "-- Copying logs from container $$CONTAINER_NAME to host path $(HOST_LOGS_PATH)"; \
 	docker commit $$CONTAINER_NAME $$FINISHED_IMAGE_NAME; \
-	echo "Starting temporary container $$FINISHED_CONTAINER_NAME to copy logs"; \
+	echo "-- Starting temporary container $$FINISHED_CONTAINER_NAME to copy logs"; \
 	docker run -d --name $$FINISHED_CONTAINER_NAME --platform $(PLATFORM) --entrypoint "/bin/bash" $$FINISHED_IMAGE_NAME -c "tail -f /dev/null"; \
 	mkdir -p $(HOST_LOGS_PATH); \
 	DIRS_TO_COPY=$$(docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "find /tmp/ -type d -name 'zombie-*'"); \
@@ -237,13 +250,20 @@ copy_logs_to_host:
 		docker cp "$$FINISHED_CONTAINER_NAME:$$DIR/logs" "$(HOST_LOGS_PATH)/$$(basename $$DIR)"; \
 	done; \
 	docker cp "$$FINISHED_CONTAINER_NAME:/tmp/versions.env" "/tmp/versions.env" ; \
-	echo "Logs copied to $(HOST_LOGS_PATH)"; \
-	echo "Runtime cache directory content:"; \
+	echo "-- Logs copied to $(HOST_LOGS_PATH)"; \
+	echo "-- Runtime cache directory content:"; \
 	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/" ; \
-	echo "Stop and removing container $$FINISHED_CONTAINER_NAME and image $$FINISHED_IMAGE_NAME"; \
+	echo "-- Stop and removing container $$FINISHED_CONTAINER_NAME and image $$FINISHED_IMAGE_NAME"; \
 	docker stop $$FINISHED_CONTAINER_NAME; \
 	docker rm -f $$FINISHED_CONTAINER_NAME; \
 	docker rmi $$FINISHED_IMAGE_NAME
+
+print_vars:
+	@echo "-- Printing all variables in the current Makefile context:"
+	@$(foreach var,$(sort $(.VARIABLES)), \
+		$(if $(filter-out environment% default automatic,$(origin $(var))), \
+			echo "$(var)=$$(printf "%q" "$($(var))") ($(origin $(var)))";) \
+	)
 
 test-polkadot-functional-0001-parachains-pvf:
 	$(call run_test, $(ZOMBIE_TESTER_IMAGE), "kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl")
