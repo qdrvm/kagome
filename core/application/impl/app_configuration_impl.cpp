@@ -830,7 +830,7 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
-        ("lucky-peers", po::value<uint32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for broadcast." )
+        ("lucky-peers", po::value<uint32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for full broadcast." )
         ("max-peers", po::value<uint32_t>()->default_value(def_max_peers), "maximum number of peer connections" )
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
