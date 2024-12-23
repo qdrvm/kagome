@@ -1,1 +1,2 @@
 race:soralog::Logger::push
+deadlock:boost/di/extension/scopes/shared.hpp
