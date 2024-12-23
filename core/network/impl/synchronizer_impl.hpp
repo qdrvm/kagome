@@ -243,6 +243,8 @@ namespace kagome::network {
 
     void afterStateSync();
 
+    void switchPeer(const libp2p::peer::PeerId &peer_id, bool is_active_now);
+
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -261,6 +263,7 @@ namespace kagome::network {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    const uint32_t max_peers_for_block_request_;
 
     application::SyncMethod sync_method_;
 
@@ -309,6 +312,7 @@ namespace kagome::network {
 
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+    std::unordered_set<libp2p::peer::PeerId> active_peers_;
     std::unordered_set<primitives::BlockInfo> load_blocks_;
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};

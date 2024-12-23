@@ -86,6 +86,8 @@ namespace {
 
 namespace kagome::network {
 
+  static constexpr auto default_max_peers_for_block_request = 5;
+
   SynchronizerImpl::SynchronizerImpl(
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
@@ -122,7 +124,8 @@ namespace kagome::network {
         chain_sub_engine_(std::move(chain_sub_engine)),
         main_pool_handler_{
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
-        block_storage_{std::move(block_storage)} {
+        block_storage_{std::move(block_storage)},
+        max_peers_for_block_request_{default_max_peers_for_block_request} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -244,6 +247,7 @@ namespace kagome::network {
           peer_id);
       return false;
     }
+    active_peers_.erase(peer_id);
     SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
@@ -275,6 +279,7 @@ namespace kagome::network {
             // Remove peer from list of busy peers
             if (self->busy_peers_.erase(peer_id) > 0) {
               SL_TRACE(self->log_, "Peer {} unmarked as busy", peer_id);
+              self->active_peers_.emplace(peer_id);
             }
 
             // Finding the best common block was failed
@@ -1166,13 +1171,15 @@ namespace kagome::network {
           continue;
         }
 
-        busy_peers_.insert(peers.extract(cp_it));
+        switchPeer(peer_id, true);
+        peers.erase(cp_it);
         SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
         auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
           if (auto self = wp.lock()) {
             if (self->busy_peers_.erase(peer_id) > 0) {
               SL_TRACE(self->log_, "Peer {} unmarked as busy", peer_id);
+              self->active_peers_.emplace(peer_id);
             }
             SL_TRACE(self->log_, "End asking portion of blocks");
             self->asking_blocks_portion_in_progress_ = false;
@@ -1192,7 +1199,15 @@ namespace kagome::network {
             }
           }
         };
+        std::vector<libp2p::peer::PeerId> selected_peers;
 
+        std::ranges::sample(
+            active_peers_,
+            std::back_inserter(selected_peers),
+            max_peers_for_block_request_ ? max_peers_for_block_request_ - 1 : 0,
+            std::mt19937{std::random_device{}()});
+
+        selected_peers.push_back(peer_id);
         if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->number;
           auto upper = generations_.rbegin()->number + 1;
@@ -1209,7 +1224,10 @@ namespace kagome::network {
               lower,
               upper,
               hint,
-              [wp{weak_from_this()}, peer_id, handler = std::move(handler)](
+              [wp{weak_from_this()},
+               peer_id,
+               handler = std::move(handler),
+               selected_peers = std::move(selected_peers)](
                   outcome::result<primitives::BlockInfo> res) {
                 if (auto self = wp.lock()) {
                   if (not res.has_value()) {
@@ -1221,22 +1239,25 @@ namespace kagome::network {
                     return;
                   }
                   auto &common_block_info = res.value();
-                  SL_DEBUG(self->log_,
-                           "Start to load next portion of blocks from {} "
-                           "since block {}",
-                           peer_id,
-                           common_block_info);
-                  self->loadBlocks(
-                      peer_id, common_block_info, std::move(handler));
+                  for (const auto &peer_id : selected_peers) {
+                    SL_DEBUG(self->log_,
+                             "Start to load next portion of blocks from {} "
+                             "since block {}",
+                             peer_id,
+                             common_block_info);
+                    self->loadBlocks(peer_id, common_block_info, handler);
+                  }
                 }
               });
         } else {
-          SL_DEBUG(log_,
-                   "Start to load next portion of blocks from {} "
-                   "since block {}",
-                   peer_id,
-                   block_info);
-          loadBlocks(peer_id, block_info, std::move(handler));
+          for (const auto &peer_id : selected_peers) {
+            SL_DEBUG(log_,
+                     "Start to load next portion of blocks from {} "
+                     "since block {}",
+                     peer_id,
+                     block_info);
+            loadBlocks(peer_id, block_info, handler);
+          }
         }
         return;
       }
@@ -1296,7 +1317,7 @@ namespace kagome::network {
     if (not chosen) {
       return false;
     }
-    busy_peers_.emplace(*chosen);
+    switchPeer(*chosen, true);
     auto cb2 = [weak{weak_from_this()},
                 block,
                 cb{std::move(cb)},
@@ -1305,7 +1326,7 @@ namespace kagome::network {
       if (not self) {
         return;
       }
-      self->busy_peers_.erase(peer);
+      self->switchPeer(peer, false);
       if (not r) {
         return cb(r.error());
       }
@@ -1337,14 +1358,14 @@ namespace kagome::network {
     if (not chosen) {
       return false;
     }
-    busy_peers_.emplace(*chosen);
+    switchPeer(*chosen, true);
     auto cb2 = [weak{weak_from_this()}, min, cb{std::move(cb)}, peer{*chosen}](
                    outcome::result<BlocksResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->busy_peers_.erase(peer);
+      self->switchPeer(peer, false);
       if (not r) {
         return cb(r.error());
       }
@@ -1416,7 +1437,7 @@ namespace kagome::network {
         return cb(Error::SHUTTING_DOWN);
       }
 
-      self->busy_peers_.erase(peer);
+      self->switchPeer(peer, false);
       if (not r) {
         return cb(r.error());
       }
@@ -1475,5 +1496,16 @@ namespace kagome::network {
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));
     return true;
+  }
+
+  void SynchronizerImpl::switchPeer(const libp2p::peer::PeerId &peer_id,
+                                    bool is_active_now) {
+    if (is_active_now) {
+      active_peers_.erase(peer_id);
+      busy_peers_.emplace(peer_id);
+    } else {
+      busy_peers_.erase(peer_id);
+      active_peers_.emplace(peer_id);
+    }
   }
 }  // namespace kagome::network
