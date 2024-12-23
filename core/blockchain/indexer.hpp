@@ -94,7 +94,7 @@ namespace kagome::blockchain {
    */
   template <typename T>
   struct Indexer {
-    Indexer(std::shared_ptr<storage::BufferBatchableStorage> db,
+    Indexer(std::shared_ptr<storage::BufferStorage> db,
             std::shared_ptr<blockchain::BlockTree> block_tree)
         : db_{std::move(db)}, block_tree_{std::move(block_tree)} {
       primitives::BlockInfo genesis{0, block_tree_->getGenesisBlockHash()};
@@ -252,7 +252,7 @@ namespace kagome::blockchain {
       return raw->kv;
     }
 
-    std::shared_ptr<storage::BufferBatchableStorage> db_;
+    std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     primitives::BlockInfo last_finalized_indexed_;
     std::map<primitives::BlockInfo, Indexed<T>> map_;

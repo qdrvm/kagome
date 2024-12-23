@@ -14,7 +14,6 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/buffer_map_types.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
@@ -96,7 +95,7 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    std::shared_ptr<storage::BufferBatchableStorage> persistent_storage_;
+    std::shared_ptr<storage::BufferStorage> persistent_storage_;
     primitives::events::ChainSub chain_sub_;
 
     mutable blockchain::Indexer<GrandpaIndexedValue> indexer_;
