@@ -106,7 +106,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.28
+    URL  https://github.com/libp2p/cpp-libp2p/archive/b183f881917e69c84f43099efcbbde894625376e.zip
+    SHA1 15ad9926f7b9dad339826ad30616e9ec415e5cb8
 )
 
 hunter_config(
@@ -116,7 +117,7 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-    VERSION 0.0.8
+    VERSION 0.0.9
     KEEP_PACKAGE_SOURCES
 )
 

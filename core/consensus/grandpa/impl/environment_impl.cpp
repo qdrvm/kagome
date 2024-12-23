@@ -13,7 +13,6 @@
 #include <libp2p/common/final_action.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
@@ -46,7 +45,6 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
@@ -61,7 +59,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
       common::MainThreadPool &main_thread_pool)
       : block_tree_{std::move(block_tree)},
-        header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
         approved_ancestor_(std::move(approved_ancestor)),
@@ -77,7 +74,6 @@ namespace kagome::consensus::grandpa {
         main_pool_handler_{main_thread_pool.handler(app_state_manager)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
@@ -214,7 +210,7 @@ namespace kagome::consensus::grandpa {
     best_block = best_undisputed_block;
     auto block = best_block;
     while (block.number > finalized.number) {
-      OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
       if (HasAuthoritySetChange{header}) {
         best_block = block;
       }
@@ -224,8 +220,7 @@ namespace kagome::consensus::grandpa {
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
       while (best_block.number > finalized.number) {
-        OUTCOME_TRY(header,
-                    header_repository_->getBlockHeader(best_block.hash));
+        OUTCOME_TRY(header, block_tree_->getBlockHeader(best_block.hash));
         auto parent_block = *header.parentInfo();
 
         auto voter_set = authority_manager_->authorities(
