@@ -105,7 +105,7 @@ namespace {
   const uint32_t def_in_peers = 75;
   const uint32_t def_in_peers_light = 100;
   const auto def_lucky_peers = 4;
-  const auto def_max_peers = 4;
+  const auto def_max_peers = 1000;
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
