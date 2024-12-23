@@ -40,9 +40,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
 namespace kagome::network {
   constexpr auto kLibp2pCollectGarbage = std::chrono::seconds{30};
 
-  // `align()` will disconnect peers above that limit
-  constexpr size_t kMaxPeers = 1000;
-
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
@@ -335,7 +332,7 @@ namespace kagome::network {
     });
 
     for (; !peers_list.empty()
-           && (peers_list.size() > kMaxPeers
+           && (peers_list.size() > app_config_.maxPeers()
                || peers_list.back().first
                       == std::numeric_limits<PriorityType>::min());
          peers_list.pop_back()) {
