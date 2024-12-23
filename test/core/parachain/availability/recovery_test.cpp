@@ -8,14 +8,12 @@
 
 #include <gtest/gtest.h>
 
-#include <libp2p/crypto/ed25519_provider.hpp>
-#include <mock/core/crypto/session_keys_mock.hpp>
-
 #include "crypto/random_generator/boost_generator.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/authority_discovery/query_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/parachain/availability_store_mock.hpp"
@@ -442,7 +440,8 @@ TEST_F(RecoveryTest, CorruptedChunk) {
     fetch_available_data_requests.pop();
   }
 
-  // Trying to do chunks recovery, but one chunk has returned corrupted
+  // Trying to do chunks recovery, but chunks
+  // tolerated number are received corrupted
   while (not fetch_chunk_requests.empty()) {
     auto &[peer_id, req, cb] = fetch_chunk_requests.front();
     const auto &ec_chunk = original_chunks[req.chunk_index];
@@ -488,7 +487,8 @@ TEST_F(RecoveryTest, InsufficientChunks) {
     fetch_available_data_requests.pop();
   }
 
-  // Trying to do chunks recovery, but not enough number chunks
+  // Trying to do chunks recovery, but chunks less than required number are
+  // received
   while (not fetch_chunk_requests.empty()) {
     auto &[peer_id, req, cb] = fetch_chunk_requests.front();
     const auto &ec_chunk = original_chunks[req.chunk_index];
@@ -533,7 +533,8 @@ TEST_F(RecoveryTest, DelayedChunks) {
 
   EXPECT_CALL(*callback, Call(_)).Times(0);
 
-  // Trying to do chunks recovery, but not enough number chunks
+  // Trying to do chunks recovery, but handled chunks
+  // less than required number to emulate of delay
   while (not fetch_chunk_requests.empty()) {
     auto &[peer_id, req, cb] = fetch_chunk_requests.front();
     const auto &ec_chunk = original_chunks[req.chunk_index];
@@ -545,7 +546,7 @@ TEST_F(RecoveryTest, DelayedChunks) {
     cb(chunk);
     fetch_chunk_requests.pop();
 
-    // Stop responding for required-1 for emulation of delay)
+    // Stop responding for required-1 to emulate of delay)
     if (++handled_counter == required_chunk_number - 1) {
       break;
     }
@@ -568,6 +569,7 @@ TEST_F(RecoveryTest, DelayedChunks) {
             available_data_res_opt = std::move(x);
           }));
 
+  // After continue data should be completely reconstructed
   while (not fetch_chunk_requests.empty()) {
     auto &[peer_id, req, cb] = fetch_chunk_requests.front();
     const auto &ec_chunk = original_chunks[req.chunk_index];
@@ -610,8 +612,8 @@ TEST_F(RecoveryTest, DuplicateChunk) {
     fetch_available_data_requests.pop();
   }
 
-  // Trying to do chunks recovery, but for
-  // three first chunks returned the same one
+  // Trying to do chunks recovery, but for tolerated number
+  // of first requests returned one the same chunk
   while (not fetch_chunk_requests.empty()) {
     auto &[peer_id, req, cb] = fetch_chunk_requests.front();
     const auto &ec_chunk =
