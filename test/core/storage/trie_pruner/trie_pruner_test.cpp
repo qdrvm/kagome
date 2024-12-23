@@ -20,10 +20,7 @@
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
-#include "storage/buffer_map_types.hpp"
 #include "storage/database_error.hpp"
-#include "storage/spaces.hpp"
-#include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
@@ -167,7 +164,8 @@ class TriePrunerTest : public testing::Test {
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
     ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
 
-    trie_node_storage_mock.reset(new testing::NiceMock<BufferStorageMock>());
+    trie_node_storage_mock.reset(
+        new testing::NiceMock<trie::TrieStorageBackendMock>());
     persistent_storage_mock.reset(
         new testing::NiceMock<kagome::storage::SpacedStorageMock>);
     serializer_mock.reset(new testing::NiceMock<trie::TrieSerializerMock>);
@@ -186,13 +184,10 @@ class TriePrunerTest : public testing::Test {
 
     ON_CALL(*persistent_storage_mock, getSpace(kDefault))
         .WillByDefault(Invoke([this](auto) { return pruner_space; }));
-    ON_CALL(*persistent_storage_mock, getSpace(kTrieNode))
-        .WillByDefault(Invoke([this](auto) { return trie_node_storage_mock; }));
-    ON_CALL(*persistent_storage_mock, getSpace(kTrieValue))
-        .WillByDefault(Invoke([this](auto) { return trie_node_storage_mock; }));
 
     pruner.reset(new TriePrunerImpl(
         std::make_shared<kagome::application::AppStateManagerMock>(),
+        trie_node_storage_mock,
         serializer_mock,
         codec_mock,
         persistent_storage_mock,
@@ -218,6 +213,7 @@ class TriePrunerTest : public testing::Test {
 
     pruner.reset(new TriePrunerImpl(
         std::make_shared<kagome::application::AppStateManagerMock>(),
+        trie_node_storage_mock,
         serializer_mock,
         codec_mock,
         persistent_storage_mock,
@@ -262,7 +258,7 @@ class TriePrunerTest : public testing::Test {
 
   std::unique_ptr<TriePrunerImpl> pruner;
   std::shared_ptr<trie::TrieSerializerMock> serializer_mock;
-  std::shared_ptr<BufferStorageMock> trie_node_storage_mock;
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_node_storage_mock;
   std::shared_ptr<testing::NiceMock<SpacedStorageMock>> persistent_storage_mock;
   std::shared_ptr<trie::CodecMock> codec_mock;
   std::shared_ptr<crypto::Hasher> hasher;
@@ -352,15 +348,12 @@ TEST_F(TriePrunerTest, BasicScenario) {
           {{"_0"_hash256, makeTransparentNode({NODE, "_0"_hash256, {}})},
            {"_5"_hash256, makeTransparentNode({NODE, "_5"_hash256, {}})}}}));
 
-  EXPECT_CALL(*persistent_storage_mock, createBatch())
-      .WillRepeatedly(Invoke([]() {
-        auto batch =
-            std::make_unique<face::SpacedBatchMock<Space, Buffer, Buffer>>();
-        EXPECT_CALL(*batch, remove(_, _))
-            .WillRepeatedly(Return(outcome::success()));
-        EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
-        return batch;
-      }));
+  EXPECT_CALL(*trie_node_storage_mock, batch()).WillRepeatedly(Invoke([]() {
+    auto batch = std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+    EXPECT_CALL(*batch, remove(_)).WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
+    return batch;
+  }));
   EXPECT_CALL(*serializer_mock, retrieveTrie("root1"_hash256, _))
       .WillOnce(testing::Return(trie));
   BlockHeader header1{.number = 1, .state_root = "root1"_hash256};
@@ -476,7 +469,7 @@ TEST_F(TriePrunerTest, RandomTree) {
   std::map<Buffer, Buffer> node_storage;
   std::set<Buffer> inserted_keys;
 
-  EXPECT_CALL(*trie_node_storage_mock, getMock(_))
+  EXPECT_CALL(*trie_node_storage_mock, get(_))
       .WillRepeatedly(
           Invoke([&node_storage](auto &k) -> outcome::result<BufferOrView> {
             auto it = node_storage.find(k);
@@ -487,9 +480,7 @@ TEST_F(TriePrunerTest, RandomTree) {
           }));
 
   trie::TrieSerializerImpl serializer{
-      trie_factory,
-      codec,
-      std::make_shared<trie::TrieStorageBackendImpl>(persistent_storage_mock)};
+      trie_factory, codec, trie_node_storage_mock};
   std::vector<std::pair<Buffer, Buffer>> kv;
   std::mt19937 rand;
   rand.seed(42);
@@ -509,27 +500,21 @@ TEST_F(TriePrunerTest, RandomTree) {
         return serializer.retrieveNode(node, nullptr);
       }));
 
-  EXPECT_CALL(*persistent_storage_mock, createBatch())
-      .WillRepeatedly(Invoke([&node_storage]() {
-        auto batch_mock =
-            std::make_unique<face::SpacedBatchMock<Space, Buffer, Buffer>>();
-        EXPECT_CALL(*batch_mock, put(Space::kTrieNode, _, _))
-            .WillRepeatedly(Invoke([&node_storage](Space, auto &k, auto &v) {
-              node_storage[k] = v;
-              return outcome::success();
-            }));
-        EXPECT_CALL(*batch_mock, remove(Space::kTrieNode, _))
-            .WillRepeatedly(Invoke([&node_storage](Space, auto &k) {
-              node_storage.erase(k);
-              return outcome::success();
-            }));
-
-        EXPECT_CALL(*batch_mock, commit())
-            .WillRepeatedly(Return(outcome::success()));
-        return batch_mock;
-      }));
-
   for (unsigned i = 0; i < STATES_NUM; i++) {
+    EXPECT_CALL(*trie_node_storage_mock, batch())
+        .WillOnce(Invoke([&node_storage]() {
+          auto batch_mock =
+              std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+          EXPECT_CALL(*batch_mock, put(_, _))
+              .WillRepeatedly(Invoke([&node_storage](auto &k, auto &v) {
+                node_storage[k] = v;
+                return outcome::success();
+              }));
+          EXPECT_CALL(*batch_mock, commit())
+              .WillRepeatedly(Return(outcome::success()));
+          return batch_mock;
+        }));
+
     for (unsigned j = 0; j < INSERT_PER_STATE; j++) {
       auto k = randomBuffer(rand);
       inserted_keys.insert(k);
@@ -566,6 +551,19 @@ TEST_F(TriePrunerTest, RandomTree) {
     roots.push_back(root);
 
     if (i >= 16) {
+      EXPECT_CALL(*trie_node_storage_mock, batch())
+          .WillOnce(Invoke([&node_storage]() {
+            auto batch =
+                std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+            EXPECT_CALL(*batch, remove(_))
+                .WillRepeatedly(Invoke([&node_storage](auto &k) {
+                  node_storage.erase(k);
+                  return outcome::success();
+                }));
+            EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
+            return batch;
+          }));
+
       const auto &root = roots[i - 16];
 
       BlockHeader header{.number = i - 16, .state_root = root};
@@ -574,12 +572,11 @@ TEST_F(TriePrunerTest, RandomTree) {
     }
   }
   for (unsigned i = STATES_NUM - 16; i < STATES_NUM; i++) {
-    EXPECT_CALL(*persistent_storage_mock, createBatch())
+    EXPECT_CALL(*trie_node_storage_mock, batch())
         .WillOnce(Invoke([&node_storage]() {
-          auto batch =
-              std::make_unique<face::SpacedBatchMock<Space, Buffer, Buffer>>();
-          EXPECT_CALL(*batch, remove(Space::kTrieNode, _))
-              .WillRepeatedly(Invoke([&node_storage](Space, auto &k) {
+          auto batch = std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+          EXPECT_CALL(*batch, remove(_))
+              .WillRepeatedly(Invoke([&node_storage](auto &k) {
                 node_storage.erase(k);
                 return outcome::success();
               }));
@@ -709,7 +706,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   auto block_tree =
       std::make_shared<testing::NiceMock<kagome::blockchain::BlockTreeMock>>();
 
-  ON_CALL(*trie_node_storage_mock, getMock(_))
+  ON_CALL(*trie_node_storage_mock, get(_))
       .WillByDefault(Invoke(
           [&](auto &key) -> outcome::result<kagome::common::BufferOrView> {
             if (node_storage.count(key) == 0) {
@@ -718,19 +715,18 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
             return kagome::common::BufferOrView{node_storage.at(key).view()};
           }));
 
-  ON_CALL(*persistent_storage_mock, createBatch()).WillByDefault(Invoke([&]() {
+  ON_CALL(*trie_node_storage_mock, batch()).WillByDefault(Invoke([&]() {
     auto batch = std::make_unique<
-        testing::NiceMock<face::SpacedBatchMock<Space, Buffer, Buffer>>>();
-    ON_CALL(*batch, put(Space::kTrieNode, _, _))
-        .WillByDefault(Invoke([&](Space, auto &key, auto &value) {
+        testing::NiceMock<face::WriteBatchMock<Buffer, Buffer>>>();
+    ON_CALL(*batch, put(_, _))
+        .WillByDefault(Invoke([&](auto &key, auto &value) {
           node_storage[key] = value;
           return outcome::success();
         }));
-    ON_CALL(*batch, remove(Space::kTrieNode, _))
-        .WillByDefault(Invoke([&](Space, auto &key) {
-          node_storage.erase(key);
-          return outcome::success();
-        }));
+    ON_CALL(*batch, remove(_)).WillByDefault(Invoke([&](auto &key) {
+      node_storage.erase(key);
+      return outcome::success();
+    }));
     ON_CALL(*batch, commit()).WillByDefault(Return(outcome::success()));
     return batch;
   }));
@@ -748,9 +744,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
           .value());
 
   trie::TrieSerializerImpl serializer{
-      trie_factory,
-      codec,
-      std::make_shared<trie::TrieStorageBackendImpl>(persistent_storage_mock)};
+      trie_factory, codec, trie_node_storage_mock};
 
   ON_CALL(*serializer_mock, retrieveTrie(genesis_state_root, _))
       .WillByDefault(Return(genesis_trie));
