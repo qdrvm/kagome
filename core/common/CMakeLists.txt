@@ -9,7 +9,7 @@ target_link_libraries(hexutil Boost::boost outcome)
 kagome_install(hexutil)
 
 add_library(blob blob.hpp blob.cpp)
-target_link_libraries(blob hexutil scale::scale)
+target_link_libraries(blob hexutil)
 kagome_install(blob)
 
 add_library(fd_limit fd_limit.hpp fd_limit.cpp)

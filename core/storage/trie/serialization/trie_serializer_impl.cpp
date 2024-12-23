@@ -17,13 +17,13 @@ namespace kagome::storage::trie {
   TrieSerializerImpl::TrieSerializerImpl(
       std::shared_ptr<PolkadotTrieFactory> factory,
       std::shared_ptr<Codec> codec,
-      std::shared_ptr<TrieStorageBackend> storage_backend)
+      std::shared_ptr<TrieStorageBackend> node_backend)
       : trie_factory_{std::move(factory)},
         codec_{std::move(codec)},
-        storage_backend_{std::move(storage_backend)} {
+        node_backend_{std::move(node_backend)} {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
-    BOOST_ASSERT(storage_backend_ != nullptr);
+    BOOST_ASSERT(node_backend_ != nullptr);
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
@@ -65,31 +65,32 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
       TrieNode &node, StateVersion version) {
-    auto batch = storage_backend_->batch();
+    auto batch = node_backend_->batch();
     BOOST_ASSERT(batch != nullptr);
 
-    auto visitor = [&](Codec::Visitee visitee) -> outcome::result<void> {
-      if (auto child_data = std::get_if<Codec::ChildData>(&visitee);
-          child_data != nullptr) {
-        if (child_data->merkle_value.isHash()) {
-          return batch->put(Space::kTrieNode,
-                            child_data->merkle_value.asBuffer(),
-                            std::move(child_data->encoding));
-        }
-        return outcome::success();  // nodes which encoding is shorter
-                                    // than its hash are not stored in
-                                    // the DB separately
-      }
-      auto value_data = std::get<Codec::ValueData>(visitee);
-      // value_data.value is a reference to a buffer stored outside of
-      // this lambda, so taking its view should be okay
-      return batch->put(
-          Space::kTrieValue, value_data.hash, value_data.value.view());
-    };
-
-    OUTCOME_TRY(enc, codec_->encodeNode(node, version, visitor));
+    OUTCOME_TRY(
+        enc,
+        codec_->encodeNode(
+            node,
+            version,
+            [&](Codec::Visitee visitee) -> outcome::result<void> {
+              if (auto child_data = std::get_if<Codec::ChildData>(&visitee);
+                  child_data != nullptr) {
+                if (child_data->merkle_value.isHash()) {
+                  return batch->put(child_data->merkle_value.asBuffer(),
+                                    std::move(child_data->encoding));
+                }
+                return outcome::success();  // nodes which encoding is shorter
+                                            // than its hash are not stored in
+                                            // the DB separately
+              }
+              auto value_data = std::get<Codec::ValueData>(visitee);
+              // value_data.value is a reference to a buffer stored outside of
+              // this lambda, so taking its view should be okay
+              return batch->put(value_data.hash, value_data.value.view());
+            }));
     auto hash = codec_->hash256(enc);
-    OUTCOME_TRY(batch->put(Space::kTrieNode, hash, std::move(enc)));
+    OUTCOME_TRY(batch->put(hash, std::move(enc)));
     OUTCOME_TRY(batch->commit());
 
     return hash;
@@ -112,7 +113,7 @@ namespace kagome::storage::trie {
     }
     BufferOrView enc;
     if (auto hash = db_key.asHash()) {
-      BOOST_OUTCOME_TRY(enc, storage_backend_->nodes().get(*hash));
+      BOOST_OUTCOME_TRY(enc, node_backend_->get(*hash));
       if (on_node_loaded) {
         on_node_loaded(*hash, enc);
       }
@@ -128,7 +129,7 @@ namespace kagome::storage::trie {
   outcome::result<std::optional<common::Buffer>>
   TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
                                     const OnNodeLoaded &on_node_loaded) const {
-    OUTCOME_TRY(value, storage_backend_->values().tryGet(hash));
+    OUTCOME_TRY(value, node_backend_->tryGet(hash));
     return common::map_optional(std::move(value),
                                 [&](common::BufferOrView &&value) {
                                   if (on_node_loaded) {

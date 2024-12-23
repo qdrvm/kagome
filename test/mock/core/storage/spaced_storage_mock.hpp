@@ -14,15 +14,7 @@ namespace kagome::storage {
 
   class SpacedStorageMock : public SpacedStorage {
    public:
-    MOCK_METHOD(std::shared_ptr<BufferBatchableStorage>,
-                getSpace,
-                (Space),
-                (override));
-
-    MOCK_METHOD(std::unique_ptr<BufferSpacedBatch>,
-                createBatch,
-                (),
-                (override));
+    MOCK_METHOD(std::shared_ptr<BufferStorage>, getSpace, (Space), (override));
   };
 
 }  // namespace kagome::storage

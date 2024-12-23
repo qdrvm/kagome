@@ -12,7 +12,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 
 #include "testutil/prepare_loggers.hpp"
 

@@ -13,15 +13,12 @@
 
 namespace kagome::storage::face {
   template <typename K, typename V>
-  struct GenericStorageMock : public BatchableStorage<K, V> {
+  struct GenericStorageMock : public GenericStorage<K, V> {
     MOCK_METHOD0_T(batch, std::unique_ptr<WriteBatch<K, V>>());
 
     MOCK_METHOD0_T(cursor, std::unique_ptr<MapCursor<K, V>>());
 
-    MOCK_METHOD(outcome::result<OwnedOrView<V>>,
-                getMock,
-                (const View<K> &),
-                (const));
+    MOCK_METHOD(outcome::result<V>, getMock, (const View<K> &), (const));
 
     MOCK_METHOD(outcome::result<std::optional<V>>,
                 tryGetMock,

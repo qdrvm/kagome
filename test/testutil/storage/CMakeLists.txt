@@ -31,10 +31,3 @@ add_library(std_list_adapter INTERFACE)
 target_link_libraries(std_list_adapter INTERFACE
     outcome
     )
-
-add_library(in_memory_storage in_memory/in_memory_storage.cpp)
-target_link_libraries(in_memory_storage PUBLIC
-    outcome
-    blob
-    storage
-    )

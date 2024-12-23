@@ -158,7 +158,7 @@ namespace kagome::runtime {
     // TODO(turuslan): #2067, clone batch or implement delta_trie_root
     auto child_apply =
         [&](BufferView child,
-            storage::trie::TrieBatch &map) -> outcome::result<void> {
+            storage::BufferStorage &map) -> outcome::result<void> {
       for (auto &transaction : transaction_stack_) {
         auto it = transaction.child_batches.find(child);
         if (it == transaction.child_batches.end()) {

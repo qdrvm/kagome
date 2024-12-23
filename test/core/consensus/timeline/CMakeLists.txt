@@ -22,7 +22,6 @@ target_link_libraries(slots_util_test
     clock
     storage
     logger_for_tests
-    in_memory_storage
 )
 
 addtest(timeline_test
