@@ -18,20 +18,32 @@ OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
-POLKADOT_SDK_RELEASE ?= ""
+POLKADOT_SDK_RELEASE ?=
 RUST_VERSION ?= 1.81.0
+SCCACHE_VERSION ?= 0.9.0
+# SCCACHE WORKING VERSION 0.7.4
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
 
 # polkadot_binary Variables
 SCCACHE_GCS_BUCKET ?=
+SCCACHE_GCS_KEY_PREFIX ?= polkadot_builder_$(ARCHITECTURE)
 CARGO_PACKETS=-p polkadot-parachain-bin
 #-p polkadot  -p polkadot-test-malus -p test-parachain-undying-collator -p test-parachain-adder-collator
 POLKADOT_REPO_URL ?= https://github.com/paritytech/polkadot-sdk.git
 POLKADOT_REPO_DIR ?= ./polkadot-sdk
+POLKADOT_BUILD_CONTAINER_NAME := polkadot_build 
+#polkadot_build_$$(openssl rand -hex 6)
 RESULT_BIN_NAMES=polkadot polkadot-parachain malus undying-collator adder-collator polkadot-execute-worker polkadot-prepare-worker
 RESULT_BINARIES_WITH_PATH := $(patsubst %,./target/release/%,$(RESULT_BIN_NAMES))
 POLKADOT_BINARY_DEPENDENCIES=libstdc++6, zlib1g, libgcc-s1, libc6, ca-certificates
+BUILD_COMMANDS = \
+	time cargo build --locked --profile testnet --features pyroscope,fast-runtime --bin polkadot --bin polkadot-prepare-worker --bin polkadot-execute-worker && \
+    time cargo build --release --locked -p polkadot-parachain-bin --bin polkadot-parachain && \
+    time cargo build --locked --profile testnet -p polkadot-test-malus --bin malus && \
+    time cargo build --locked --profile testnet -p test-parachain-adder-collator && \
+    time cargo build --locked --profile testnet -p test-parachain-undying-collator
+
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt
 REGION ?= europe-north1
