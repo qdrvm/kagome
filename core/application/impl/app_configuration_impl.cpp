@@ -105,6 +105,7 @@ namespace {
   const uint32_t def_in_peers = 75;
   const uint32_t def_in_peers_light = 100;
   const auto def_lucky_peers = 4;
+  const auto def_max_peers = 4;
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
@@ -180,7 +181,7 @@ namespace {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     "WasmEdge",
 #endif
-    "Binaryen"
+        "Binaryen"
   };
 
   static const std::string interpreters_str =
@@ -282,6 +283,7 @@ namespace kagome::application {
         in_peers_(def_in_peers),
         in_peers_light_(def_in_peers_light),
         lucky_peers_(def_lucky_peers),
+        max_peers_(def_max_peers),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         node_version_(buildVersion()),
@@ -495,6 +497,7 @@ namespace kagome::application {
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
     load_u32(val, "lucky-peers", lucky_peers_);
+    load_u32(val, "max-peers", max_peers_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
     load_u32(val, "random-walk-interval", random_walk_interval_);
   }
@@ -827,7 +830,8 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
-        ("lucky-peers", po::value<int32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for broadcast." )
+        ("lucky-peers", po::value<uint32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for broadcast." )
+        ("max-peers", po::value<uint32_t>()->default_value(def_max_peers), "maximum number of peer connections" )
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ("no-telemetry", po::bool_switch(), "Disables telemetry broadcasting")
@@ -912,8 +916,8 @@ namespace kagome::application {
     }
 
     if (vm.count("help") > 0) {
-      std::cout
-          << "Available subcommands: storage-explorer db-editor benchmark key\n";
+      std::cout << "Available subcommands: storage-explorer db-editor "
+                   "benchmark key\n";
       std::cout << desc << '\n';
       return false;
     }
@@ -1328,6 +1332,8 @@ namespace kagome::application {
 
     find_argument<int32_t>(
         vm, "lucky-peers", [&](int32_t val) { lucky_peers_ = val; });
+
+    max_peers_ = vm.at("max-peers").as<uint32_t>();
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
