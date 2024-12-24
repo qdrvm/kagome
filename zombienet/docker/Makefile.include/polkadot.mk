@@ -1,5 +1,3 @@
-export POLKADOT_SDK_RELEASE
-
 polkadot_builder:
 	docker build --progress=plain --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE) \
@@ -20,6 +18,8 @@ polkadot_binary:
 	$(MAKE) docker_stop_clean
 
 docker_run: set_versions docker_start_clean
+	echo "POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE)" ; \
+	echo "POLKADOT_RELEASE_GLOBAL_NUMERIC=$(POLKADOT_RELEASE_GLOBAL_NUMERIC)" ; \
 	docker run -d --name $(POLKADOT_BUILD_CONTAINER_NAME) \
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
@@ -59,7 +59,7 @@ docker_exec: set_versions
 		echo \"-- Recent commits:\" && git log --oneline -n 5 && \
 		$(BUILD_COMMANDS) && \
 		cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
-		cd ~ && ./build_apt_package.sh \
+		cd /home/nonroot/ && ./build_apt_package.sh \
 			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
 			$(ARCHITECTURE) \
 			polkadot-binary \
@@ -70,8 +70,7 @@ docker_exec: set_versions
 docker_stop_clean:
 	docker stop $(POLKADOT_BUILD_CONTAINER_NAME) || true
 
-docker_start_clean:
-	docker stop $(POLKADOT_BUILD_CONTAINER_NAME) || true
+docker_start_clean: docker_stop_clean
 	docker rm $(POLKADOT_BUILD_CONTAINER_NAME) || true
 
 reset_build_state: docker_start_clean

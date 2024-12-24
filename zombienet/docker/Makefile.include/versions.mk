@@ -9,5 +9,6 @@ set_versions: get_versions
 ifeq ($(POLKADOT_SDK_RELEASE),)
 	$(eval POLKADOT_SDK_RELEASE=$(shell grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2))
 endif
-$(eval POLKADOT_RELEASE_GLOBAL_NUMERIC=$(shell echo $(POLKADOT_SDK_RELEASE) | sed 's/[^0-9]//g' ))
-	
+export POLKADOT_SDK_RELEASE
+POLKADOT_RELEASE_GLOBAL_NUMERIC=$(shell echo $(POLKADOT_SDK_RELEASE) | sed 's/[^0-9]//g' )
+export POLKADOT_RELEASE_GLOBAL_NUMERIC
