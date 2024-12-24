@@ -1315,11 +1315,9 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        BOOST_ASSERT(block_header_opt.has_value());
-        auto &header = block_header_opt.value();
         p.state_pruner_->schedulePrune(
-            header.state_root,
-            header.blockInfo(),
+            block_header.state_root,
+            block_header.blockInfo(),
             storage::trie_pruner::PruneReason::Discarded);
       }
       retired_hashes.emplace_back(
