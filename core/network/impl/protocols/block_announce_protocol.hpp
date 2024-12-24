@@ -14,6 +14,8 @@
 #include "utils/lru.hpp"
 #include "utils/non_copyable.hpp"
 
+#include <shared_mutex>
+
 namespace kagome::application {
   class AppConfiguration;
   class ChainSpec;
@@ -84,6 +86,9 @@ namespace kagome::network {
     std::shared_ptr<telemetry::PeerCount> telemetry_peer_count_;
     std::shared_ptr<PeerManager> peer_manager_;
     MapLruSet<PeerId, Hash256> seen_;
+    std::shared_mutex active_peers_mutex_;
+    std::unordered_set<PeerId> active_peers_;
+    const uint32_t max_parallel_downloads_;
   };
 
 }  // namespace kagome::network

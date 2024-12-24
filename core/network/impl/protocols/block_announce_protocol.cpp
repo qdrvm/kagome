@@ -75,7 +75,8 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         telemetry_peer_count_(std::move(telemetry_peer_count)),
         peer_manager_{std::move(peer_manager)},
-        seen_{kSeenCapacity} {
+        seen_{kSeenCapacity},
+        max_parallel_downloads_{app_config.maxParallelDownloads()} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(observer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
@@ -109,6 +110,8 @@ namespace kagome::network {
           self->observer_->onBlockAnnounceHandshake(peer_id, handshake);
           self->peer_manager_->startPingingPeer(peer_id);
         });
+    std::unique_lock lock(active_peers_mutex_);
+    active_peers_.insert(peer_id);
     return true;
   }
 
@@ -120,12 +123,33 @@ namespace kagome::network {
     if (not seen_.add(peer_id, block_announce.header.hash())) {
       return true;
     }
-    main_pool_handler_->execute(
-        [WEAK_SELF, peer_id, block_announce{std::move(block_announce)}] {
-          WEAK_LOCK(self);
-          self->peer_manager_->updatePeerState(peer_id, block_announce);
-          self->observer_->onBlockAnnounce(peer_id, block_announce);
-        });
+    std::vector<PeerId> selected_peers;
+    {
+      std::shared_lock lock(active_peers_mutex_);
+      selected_peers.push_back(peer_id);
+      if (active_peers_.size() > max_parallel_downloads_) {
+        std::vector<PeerId> temp_peers;
+        std::ranges::copy_if(active_peers_,
+                 std::back_inserter(temp_peers),
+                 [&](const PeerId &p) { return p != peer_id; });
+        std::ranges::sample(temp_peers,
+                std::back_inserter(selected_peers),
+                max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0,
+                std::mt19937{std::random_device{}()});
+      } else {
+        std::ranges::copy_if(active_peers_,
+                 std::back_inserter(selected_peers),
+                 [&](const PeerId &p) { return p != peer_id; });
+      }
+    }
+
+    for (const auto &peer : selected_peers) {
+      main_pool_handler_->execute([WEAK_SELF, peer, block_announce] {
+        WEAK_LOCK(self);
+        self->peer_manager_->updatePeerState(peer, block_announce);
+        self->observer_->onBlockAnnounce(peer, block_announce);
+      });
+    }
     return true;
   }
 
@@ -135,6 +159,8 @@ namespace kagome::network {
     seen_.remove(peer_id);
     grandpa_protocol_.get()->notifications_->reserve(peer_id, false);
     transaction_protocol_.get()->notifications_->reserve(peer_id, false);
+    std::unique_lock lock(active_peers_mutex_);
+    active_peers_.erase(peer_id);
   }
 
   void BlockAnnounceProtocol::start() {
