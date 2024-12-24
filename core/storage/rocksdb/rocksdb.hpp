@@ -97,17 +97,9 @@ namespace kagome::storage {
     };
 
     RocksDb();
-    static rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget);
+
     static outcome::result<void> createDirectory(
         const std::filesystem::path &absolute_path, log::Logger &log);
-
-    static void configureColumnFamilies(
-        std::vector<rocksdb::ColumnFamilyDescriptor> &column_family_descriptors,
-        std::vector<int32_t> &ttls,
-        const std::unordered_map<std::string, int32_t> &column_ttl,
-        uint32_t trie_space_cache_size,
-        uint32_t other_spaces_cache_size,
-        log::Logger &log);
 
     static outcome::result<void> openDatabaseWithTTL(
         const rocksdb::Options &options,
