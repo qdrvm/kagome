@@ -1200,14 +1200,17 @@ namespace kagome::network {
           }
         };
         std::vector<libp2p::peer::PeerId> selected_peers;
-
-        std::ranges::sample(
-            active_peers_,
-            std::back_inserter(selected_peers),
-            max_peers_for_block_request_ ? max_peers_for_block_request_ - 1 : 0,
-            std::mt19937{std::random_device{}()});
-
-        selected_peers.push_back(peer_id);
+        if (max_peers_for_block_request_ > active_peers_.size()) {
+          selected_peers.assign(active_peers_.begin(), active_peers_.end());
+        } else {
+          selected_peers.push_back(peer_id);
+          std::ranges::sample(active_peers_,
+                              std::back_inserter(selected_peers),
+                              max_peers_for_block_request_
+                                  ? max_peers_for_block_request_ - 1
+                                  : 0,
+                              std::mt19937{std::random_device{}()});
+        }
         if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->number;
           auto upper = generations_.rbegin()->number + 1;
@@ -1239,24 +1242,24 @@ namespace kagome::network {
                     return;
                   }
                   auto &common_block_info = res.value();
-                  for (const auto &peer_id : selected_peers) {
+                  for (const auto &p_id : selected_peers) {
                     SL_DEBUG(self->log_,
                              "Start to load next portion of blocks from {} "
                              "since block {}",
-                             peer_id,
+                             p_id,
                              common_block_info);
-                    self->loadBlocks(peer_id, common_block_info, handler);
+                    self->loadBlocks(p_id, common_block_info, handler);
                   }
                 }
               });
         } else {
-          for (const auto &peer_id : selected_peers) {
+          for (const auto &p_id : selected_peers) {
             SL_DEBUG(log_,
                      "Start to load next portion of blocks from {} "
                      "since block {}",
-                     peer_id,
+                     p_id,
                      block_info);
-            loadBlocks(peer_id, block_info, handler);
+            loadBlocks(p_id, block_info, handler);
           }
         }
         return;
