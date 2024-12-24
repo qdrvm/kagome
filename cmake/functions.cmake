@@ -23,6 +23,9 @@ function(addtest test_name)
       LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/test_lib
       )
   disable_clang_tidy(${test_name})
+  if(KAGOME_CTEST_ENV)
+    set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "${KAGOME_CTEST_ENV}")
+  endif()
 endfunction()
 
 function(addtest_part test_name)
