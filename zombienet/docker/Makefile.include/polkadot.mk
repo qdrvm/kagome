@@ -57,14 +57,7 @@ docker_exec: set_versions
 			git reset --hard $(POLKADOT_SDK_RELEASE); \
 		fi && \
 		echo \"-- Recent commits:\" && git log --oneline -n 5 && \
-		for cmd in \"$(BUILD_COMMANDS)\"; do \
-			echo \"Executing: $$cmd\"; \
-			eval \"$$cmd\"; \
-			if [ $$? -ne 0 ]; then \
-				echo \"Error in command: $$cmd\"; \
-				exit 1; \
-			fi; \
-		done && \
+		$(BUILD_COMMANDS) && \
 		cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
 		cd ~ && ./build_apt_package.sh \
 			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
