@@ -1348,7 +1348,7 @@ namespace kagome::network {
         return cb(r.error());
       }
       auto &blocks = r.value().proofs;
-      for (auto &block : blocks) {
+      for (const auto &block : blocks) {
         self->grandpa_environment_->applyJustification(
             block.justification.block_info,
             {scale::encode(block.justification).value()},
