@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/local/bin
 
-COPY ./build/tmp/test/polkadot /usr/local/bin/polkadot
-COPY ./build/tmp/test/polkadot-execute-worker /usr/local/bin/polkadot-execute-worker
-COPY ./build/tmp/test/polkadot-prepare-worker /usr/local/bin/polkadot-prepare-worker
+COPY ./build/polkadot-sdk/target/release/polkadot /usr/local/bin/polkadot
+COPY ./build/polkadot-sdk/target/release/polkadot-execute-worker /usr/local/bin/polkadot-execute-worker
+COPY ./build/polkadot-sdk/target/release/polkadot-prepare-worker /usr/local/bin/polkadot-prepare-worker
 
 RUN chmod +x /usr/local/bin/polkadot /usr/local/bin/polkadot-execute-worker /usr/local/bin/polkadot-prepare-worker
 

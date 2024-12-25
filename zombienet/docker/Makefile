@@ -21,7 +21,7 @@ RUST_VERSION ?= 1.81.0
 SCCACHE_VERSION ?= 0.7.4
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
-CUSTOM_POLKADOT_REPO ?= https://github.com/zerg-su/polkadot-sdk.git
+CUSTOM_POLKADOT_REPO ?= https://github.com/kamilsa/polkadot-sdk.git
 CUSTOM_POLKADOT_BRANCH ?= detached
 
 # polkadot_binary Variables
@@ -145,7 +145,7 @@ polkadot_builder_push:
 	
 polkadot_binary_custom_push:
 	docker push $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:$(BUILDER_LATEST_TAG) ; \
-	docker push $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom
+	docker push $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom_241225
 
 polkadot_binary:
 	if [ -f polkadot-sdk-versions.txt ]; then \
@@ -228,8 +228,7 @@ polkadot_binary_custom:
 		cd /home/nonroot/polkadot-sdk && \
 		git fetch origin $(CUSTOM_POLKADOT_BRANCH) && \
 		git checkout -f $(CUSTOM_POLKADOT_BRANCH) || git checkout -b $(CUSTOM_POLKADOT_BRANCH) FETCH_HEAD && \
-		cargo update && \
-		cargo build --release -p polkadot && \
+		time cargo build --release -p polkadot && \
 		cp polkadot /tmp/polkadot_binary_custom/ && \
 		./build_apt_package.sh \
 			$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH \
@@ -246,10 +245,10 @@ polkadot_binary_custom:
 	fi; \
 	docker stop $$CONTAINER_NAME
 
-polkadot_binary_custom:
+polkadot_binary_custom_image:
 	docker build --platform $(PLATFORM) \
 	-t $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:$(BUILDER_LATEST_TAG) \
-	-t $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom \
+	-t $(DOCKER_REGISTRY_PATH)polkadot_binary_custom:stable2412_custom_241225 \
 	-f polkadot_custom.Dockerfile .
 
 upload_apt_package:
