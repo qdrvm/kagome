@@ -5,7 +5,6 @@
  */
 
 #include <filesystem>
-#include <iostream>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -23,6 +22,7 @@
 
 #include <fmt/format.h>
 #include <boost/asio.hpp>
+#include <boost/asio/local/stream_protocol.hpp>
 #include <boost/process.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
@@ -62,6 +62,8 @@
   }
 
 namespace kagome::parachain {
+  using unix = boost::asio::local::stream_protocol;
+
   namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static kagome::log::Logger logger;
@@ -229,26 +231,21 @@ namespace kagome::parachain {
   }
 #endif
 
-  outcome::result<void> readStdin(std::span<uint8_t> out) {
-    std::cin.read(
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        reinterpret_cast<char *>(out.data()),
-        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
-        out.size());
-    if (not std::cin.good()) {
-      return std::errc::io_error;
-    }
-    return outcome::success();
-  }
-
   template <typename T>
-  outcome::result<T> decodeInput() {
+  outcome::result<T> decodeInput(unix::socket &socket) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
-    OUTCOME_TRY(readStdin(length_bytes));
+    boost::system::error_code ec;
+    boost::asio::read(socket, boost::asio::buffer(length_bytes), ec);
+    if (ec) {
+      return ec;
+    }
     OUTCOME_TRY(message_length, scale::decode<uint32_t>(length_bytes));
     std::vector<uint8_t> packed_message(message_length, 0);
-    OUTCOME_TRY(readStdin(packed_message));
+    boost::asio::read(socket, boost::asio::buffer(packed_message), ec);
+    if (ec) {
+      return ec;
+    }
     return scale::decode<T>(packed_message);
   }
 
@@ -282,8 +279,15 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<void> pvf_worker_main_outcome() {
-    OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>());
+  outcome::result<void> pvf_worker_main_outcome(std::string unix_socket_path) {
+    boost::asio::io_context io_context;
+    unix::socket socket{io_context};
+    boost::system::error_code ec;
+    socket.connect(unix_socket_path, ec);
+    if (ec) {
+      return ec;
+    }
+    OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>(socket));
     kagome::log::tuneLoggingSystem(input_config.log_params);
 
     SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
@@ -347,7 +351,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(factory, createModuleFactory(injector, input_config.engine));
     std::shared_ptr<runtime::Module> module;
     while (true) {
-      OUTCOME_TRY(input, decodeInput<PvfWorkerInput>());
+      OUTCOME_TRY(input, decodeInput<PvfWorkerInput>(socket));
 
       if (auto *code_params = std::get_if<PvfWorkerInputCodeParams>(&input)) {
         auto &path = code_params->path;
@@ -370,17 +374,14 @@ namespace kagome::parachain {
       OUTCOME_TRY(instance->resetEnvironment());
       OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
 
-      std::cout.write(
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          reinterpret_cast<const char *>(len.data()),
-          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
-          len.size());
-      std::cout.write(
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          reinterpret_cast<const char *>(result.data()),
-          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
-          result.size());
-      std::cout.flush();
+      boost::asio::write(socket, boost::asio::buffer(len), ec);
+      if (ec) {
+        return ec;
+      }
+      boost::asio::write(socket, boost::asio::buffer(result), ec);
+      if (ec) {
+        return ec;
+      }
     }
   }
 
@@ -399,14 +400,11 @@ namespace kagome::parachain {
     }
     kagome::log::setLoggingSystem(logging_system);
     logger = kagome::log::createLogger("PVF Worker", "parachain");
-
-    if (!checkEnvVarsEmpty(env)) {
-      logger->error(
-          "PVF worker processes must not have any environment variables.");
+    if (argc < 2) {
+      SL_ERROR(logger, "missing unix socket path arg");
       return EXIT_FAILURE;
     }
-
-    if (auto r = pvf_worker_main_outcome(); not r) {
+    if (auto r = pvf_worker_main_outcome(argv[1]); not r) {
       SL_ERROR(logger, "PVF worker process failed: {}", r.error());
       return EXIT_FAILURE;
     }
