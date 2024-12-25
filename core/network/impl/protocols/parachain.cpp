@@ -50,6 +50,31 @@ namespace kagome::network {
     return encodeMessage<CollationMessage0>(ViewUpdate{view});
   }
 
+  inline auto write_view(const View &view) {
+    struct F {
+      F(const View &view) {
+        std::vector<std::string> heads;
+        for (auto &head : view.heads_) {
+          heads.emplace_back(head.toHex());
+        }
+        this->view = fmt::format("finalized={} heads=[{}]",
+                                 view.finalized_number_,
+                                 fmt::join(heads, ", "));
+      }
+      std::string view;
+      std::vector<std::string> peers;
+      auto &operator()(const PeerId &peer) {
+        peers.emplace_back(peer.toBase58());
+        return *this;
+      }
+      void operator()() {
+        fmt::println(
+            "write ViewUpdate {}, peers=[{}])", view, fmt::join(peers, ", "));
+      }
+    };
+    return F{view};
+  }
+
   std::pair<size_t, std::shared_ptr<Buffer>> encodeMessage(
       const VersionedValidatorProtocolMessage &message) {
     size_t protocol_group =
@@ -66,7 +91,7 @@ namespace kagome::network {
       size_t limit_in,
       size_t limit_out)
       : notifications_{inject.notifications_factory->make(
-            std::move(protocols_groups), limit_in, limit_out)},
+          std::move(protocols_groups), limit_in, limit_out)},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
@@ -86,8 +111,11 @@ namespace kagome::network {
     state.value().get().collation_version =
         collation_versions_.at(protocol_group);
     if (out) {
-      notifications_->write(
-          peer_id, protocol_group, encodeView(peer_view_->getMyView()));
+      auto view = peer_view_->getMyView();
+
+      write_view(view)(peer_id)();
+
+      notifications_->write(peer_id, protocol_group, encodeView(view));
     }
     return true;
   }
@@ -116,11 +144,17 @@ namespace kagome::network {
   }
 
   void ParachainProtocol::write(const View &view) {
+    auto log = write_view(view);
+
     auto message = encodeView(view);
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
+      log(peer_id);
+
       notifications_->write(peer_id, protocol_group, message);
       return true;
     });
+
+    log();
   }
 
   template <typename Types, typename Observer>

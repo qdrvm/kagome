@@ -105,6 +105,15 @@ namespace kagome::network {
   }
 
   void PeerView::updateRemoteView(const PeerId &peer_id, network::View &&view) {
+    std::vector<std::string> heads;
+    for (auto &head : view.heads_) {
+      heads.emplace_back(head.toHex());
+    }
+    fmt::println("read ViewUpdate peer={} finalized={} heads=[{}]",
+                 peer_id.toBase58(),
+                 view.finalized_number_,
+                 fmt::join(heads, ", "));
+
     auto ref = remote_view_.exclusiveAccess(
         [&](auto &rv) -> std::optional<network::View> {
           auto it = rv.find(peer_id);
