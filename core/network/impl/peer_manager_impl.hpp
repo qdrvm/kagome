@@ -55,8 +55,6 @@ namespace kagome::network {
   class PeerManagerImpl : public PeerManager,
                           public std::enable_shared_from_this<PeerManagerImpl> {
    public:
-    static constexpr std::chrono::seconds kTimeoutForConnecting{15};
-
     enum class Error { UNDECLARED_COLLATOR = 1 };
 
     PeerManagerImpl(
@@ -167,6 +165,8 @@ namespace kagome::network {
 
     using IsLight = Tagged<bool, struct IsLightTag>;
     size_t countPeers(PeerType in_out, IsLight in_light = false) const;
+
+    void collectGarbage();
 
     log::Logger log_;
 
