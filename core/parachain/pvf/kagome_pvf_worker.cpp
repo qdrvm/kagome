@@ -279,7 +279,8 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<void> pvf_worker_main_outcome(std::string unix_socket_path) {
+  outcome::result<void> pvf_worker_main_outcome(
+      const std::string &unix_socket_path) {
     boost::asio::io_context io_context;
     unix::socket socket{io_context};
     boost::system::error_code ec;
@@ -404,6 +405,7 @@ namespace kagome::parachain {
       SL_ERROR(logger, "missing unix socket path arg");
       return EXIT_FAILURE;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (auto r = pvf_worker_main_outcome(argv[1]); not r) {
       SL_ERROR(logger, "PVF worker process failed: {}", r.error());
       return EXIT_FAILURE;
