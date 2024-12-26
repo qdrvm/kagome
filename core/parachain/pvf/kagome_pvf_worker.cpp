@@ -34,6 +34,7 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
@@ -366,23 +367,27 @@ namespace kagome::parachain {
         SL_ERROR(logger, "PvfWorkerInputCodeParams expected");
         return std::errc::invalid_argument;
       }
-      OUTCOME_TRY(instance, module->instantiate());
+      auto forked = [&]() -> outcome::result<void> {
+        OUTCOME_TRY(instance, module->instantiate());
 
-      OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
-      OUTCOME_TRY(
-          result,
-          instance->callExportFunction(ctx, "validate_block", input_args));
-      OUTCOME_TRY(instance->resetEnvironment());
-      OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
+        OUTCOME_TRY(ctx, runtime::RuntimeContextFactory::stateless(instance));
+        OUTCOME_TRY(
+            result,
+            instance->callExportFunction(ctx, "validate_block", input_args));
+        OUTCOME_TRY(instance->resetEnvironment());
+        OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
 
-      boost::asio::write(socket, boost::asio::buffer(len), ec);
-      if (ec) {
-        return ec;
-      }
-      boost::asio::write(socket, boost::asio::buffer(result), ec);
-      if (ec) {
-        return ec;
-      }
+        boost::asio::write(socket, boost::asio::buffer(len), ec);
+        if (ec) {
+          return ec;
+        }
+        boost::asio::write(socket, boost::asio::buffer(result), ec);
+        if (ec) {
+          return ec;
+        }
+        return outcome::success();
+      };
+      OUTCOME_TRY(clone::cloneOrFork(logger, input_config, forked));
     }
   }
 
