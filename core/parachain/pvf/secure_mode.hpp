@@ -24,7 +24,7 @@ namespace kagome::parachain {
   };
 
   inline auto make_exception_ptr(SecureModeError e) {
-    return std::make_exception_ptr(e);
+    return std::make_exception_ptr(std::move(e));
   }
 
   template <typename R>
