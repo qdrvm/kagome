@@ -62,10 +62,10 @@ namespace kagome::network {
 
    protected:
     template <typename Types, typename Observer>
-    bool onMessage(const PeerId &peer_id,
-                   size_t protocol_group,
-                   Buffer &&message,
-                   Observer &observer);
+    bool onMessageImpl(const PeerId &peer_id,
+                       size_t protocol_group,
+                       Buffer &&message,
+                       Observer &observer);
     void write(const View &view);
 
     // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
