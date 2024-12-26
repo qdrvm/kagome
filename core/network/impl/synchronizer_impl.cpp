@@ -1224,9 +1224,9 @@ namespace kagome::network {
             selected_peers.push_back(p_id);
           }
         } else {
-          std::vector<int> indices;
+          std::vector<uint32_t> indices;
           indices.reserve(active_peers_size);
-          for (int i = 0; i < active_peers_size; ++i) {
+          for (uint32_t i = 0; i < active_peers_size; ++i) {
             indices.push_back(i);
           }
           std::random_device rd;
