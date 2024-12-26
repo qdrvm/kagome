@@ -1159,8 +1159,7 @@ namespace kagome::network {
       }
 
       std::vector<libp2p::peer::PeerId> active_peers;
-      for (auto it = peers.begin(); it != peers.end(); ++it) {
-        const auto &peer_id = *it;
+      for (const auto &peer_id : peers) {
         if (busy_peers_.find(peer_id) == busy_peers_.end()) {
           active_peers.push_back(peer_id);
         }
@@ -1172,8 +1171,7 @@ namespace kagome::network {
              > static_cast<size_t>(max_parallel_downloads_)) {
         active_peers.pop_back();
       }
-      for (auto it = active_peers.begin(); it != active_peers.end(); ++it) {
-        auto &peer_id = *it;
+      for (const auto& peer_id : active_peers) {
         busy_peers_.emplace(peer_id);
         peers.erase(peer_id);
         auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
