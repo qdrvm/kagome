@@ -34,8 +34,7 @@ namespace kagome::consensus {
     template <typename Rep, typename Period>
     SlotDuration(const std::chrono::duration<Rep, Period> &duration)
         : std::chrono::milliseconds(
-              std::chrono::duration_cast<std::chrono::milliseconds>(duration)) {
-    }
+            std::chrono::duration_cast<std::chrono::milliseconds>(duration)) {}
 
     template <class Rep>
       requires std::is_integral_v<Rep>
@@ -48,7 +47,7 @@ namespace kagome::consensus {
     }
 
     // Convert to boolean
-    explicit operator bool() const {
+    operator bool() const {
       return count() != 0;
     }
 
@@ -96,9 +95,8 @@ namespace kagome::consensus {
     /// Epoch length in slots
     EpochLength epoch_length{0};
 
-    explicit operator bool() const {
-      return static_cast<bool>(slot_duration)
-         and static_cast<bool>(epoch_length);
+    operator bool() const {
+      return (bool)slot_duration and (bool) epoch_length;
     }
 
     void init(SlotDuration _slot_duration, EpochLength _epoch_length) {

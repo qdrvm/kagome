@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "storage/face/write_batch.hpp"
+#include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
 
@@ -26,7 +27,9 @@ namespace kagome::storage::face {
      * @brief Creates new Write Batch - an object, which can be used to
      * efficiently write bulk data.
      */
-    virtual std::unique_ptr<WriteBatch<K, V>> batch() = 0;
+    virtual std::unique_ptr<WriteBatch<K, V>> batch() {
+      throw std::logic_error{"BatchWriteable::batch not implemented"};
+    }
   };
 
 }  // namespace kagome::storage::face

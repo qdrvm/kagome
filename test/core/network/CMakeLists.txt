@@ -36,7 +36,6 @@ target_link_libraries(state_protocol_observer_test
     logger_for_tests
     storage
     network
-    in_memory_storage
     )
 
 addtest(sync_protocol_observer_test

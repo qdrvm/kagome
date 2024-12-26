@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
 #include "storage/buffer_map_types.hpp"
-#include "storage/face/generic_maps.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/types.hpp"
 

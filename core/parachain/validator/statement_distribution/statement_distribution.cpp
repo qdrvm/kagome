@@ -120,10 +120,8 @@ namespace kagome::parachain::statement_distribution {
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(_prospective_parachains,
-                      _parachain_host,
-                      _block_tree,
-                      std::nullopt),
+      : implicit_view(
+          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -1073,12 +1071,12 @@ namespace kagome::parachain::statement_distribution {
         parachain_state->get().disabled_bitmask(*group);
     const network::vstaging::AttestedCandidateResponse &response = r.value();
     SL_DEBUG(logger,
-            "Fetch attested candidate success. (relay parent={}, "
-            "candidate={}, group index={}, statements={})",
-            relay_parent,
-            candidate_hash,
-            group_index,
-            response.statements.size());
+             "Fetch attested candidate success. (relay parent={}, "
+             "candidate={}, group index={}, statements={})",
+             relay_parent,
+             candidate_hash,
+             group_index,
+             response.statements.size());
 
     if (not validate(parachain_state->get(), candidate_hash, response)) {
       SL_WARN(logger,

@@ -19,7 +19,7 @@ addtest(audi_query_test
     )
 target_link_libraries(audi_query_test
     address_publisher
-    in_memory_storage
     key_store
     logger_for_tests
+    storage
     )

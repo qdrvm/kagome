@@ -36,7 +36,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    explicit operator bool() const {
+    operator bool() const {
       return scheduled || forced;
     }
 
