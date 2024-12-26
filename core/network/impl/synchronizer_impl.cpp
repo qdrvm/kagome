@@ -1224,11 +1224,13 @@ namespace kagome::network {
             selected_peers.push_back(p_id);
           }
         } else {
-          std::vector<uint32_t> indices(active_peers_size);
-          std::iota(indices.begin(), indices.end(), 0);
+          std::vector<int> indices;
+          for (int i = 0; i < active_peers_size; ++i) {
+            indices.push_back(i);
+          }
           std::random_device rd;
           std::mt19937 gen(rd());
-          std::ranges::shuffle(indices.begin(), indices.end(), gen);
+          std::ranges::shuffle(indices, gen);
           for (uint32_t i = 0; i < number_of_peers_to_add; ++i) {
             selected_peers.push_back(active_peers[indices[i]]);
           }
