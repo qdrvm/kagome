@@ -1199,8 +1199,9 @@ namespace kagome::network {
             }
           }
         };
-        // TODO: remove active_peers filling mechanism, when peer manager
-        // methods are implemented correctly
+        // TODO(ErakhtinB): #2326, review peer manager
+        // remove active_peers filling mechanism over peer states, when peer
+        // manager methods are implemented correctly
         std::vector<libp2p::peer::PeerId> active_peers;
         peer_manager_->enumeratePeerState(
             [wp{weak_from_this()}, &active_peers, &peer_id](
