@@ -1167,11 +1167,11 @@ namespace kagome::network {
       std::random_device rd;
       std::mt19937 gen(rd());
       std::ranges::shuffle(active_peers, gen);
-      while (active_peers.size()
-             > static_cast<size_t>(max_parallel_downloads_)) {
-        active_peers.pop_back();
+      if (active_peers.size() > static_cast<size_t>(max_parallel_downloads_)) {
+        active_peers.erase(active_peers.begin() + max_parallel_downloads_,
+                           active_peers.end());
       }
-      for (const auto& peer_id : active_peers) {
+      for (const auto &peer_id : active_peers) {
         busy_peers_.emplace(peer_id);
         peers.erase(peer_id);
         auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
