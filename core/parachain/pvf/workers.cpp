@@ -111,6 +111,7 @@ namespace kagome::parachain {
 
   PvfWorkers::PvfWorkers(const application::AppConfiguration &app_config,
                          common::MainThreadPool &main_thread_pool,
+                         SecureModeSupport secure_mode_support,
                          std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{main_thread_pool.io_context()},
         main_pool_handler_{main_thread_pool.handlerStarted()},
@@ -122,6 +123,7 @@ namespace kagome::parachain {
             .cache_dir = app_config.runtimeCacheDirPath(),
             .log_params = app_config.log(),
             .force_disable_secure_mode = app_config.disableSecureMode(),
+            .secure_mode_support = secure_mode_support,
         } {
     metrics_registry_->registerGaugeFamily(kMetricQueueSize, "pvf queue size");
     std::unordered_map<PvfExecTimeoutKind, std::string> kind_name{
