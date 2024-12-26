@@ -86,6 +86,8 @@ namespace {
 
 namespace kagome::network {
 
+  static constexpr auto default_max_peers_for_block_request = 5;
+
   SynchronizerImpl::SynchronizerImpl(
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
@@ -122,7 +124,8 @@ namespace kagome::network {
         chain_sub_engine_(std::move(chain_sub_engine)),
         main_pool_handler_{
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
-        block_storage_{std::move(block_storage)} {
+        block_storage_{std::move(block_storage)},
+        best_block_number_{} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -137,6 +140,7 @@ namespace kagome::network {
     BOOST_ASSERT(block_storage_);
 
     sync_method_ = app_config.syncMethod();
+    max_parallel_downloads_ = app_config.maxParallelDownloads();
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -351,6 +355,8 @@ namespace kagome::network {
     bool parent_is_known =
         known_blocks_.find(header.parent_hash) != known_blocks_.end()
         or block_tree_->has(header.parent_hash);
+
+    best_block_number_ = std::max(best_block_number_, header.number);
 
     if (parent_is_known) {
       loadBlocks(peer_id, block_info, [wp{weak_from_this()}](auto res) {
@@ -1192,7 +1198,39 @@ namespace kagome::network {
             }
           }
         };
-
+        // TODO: remove active_peers filling mechanism, when peer manager
+        // methods are implemented correctly
+        std::vector<libp2p::peer::PeerId> active_peers;
+        peer_manager_->enumeratePeerState(
+            [wp{weak_from_this()}, &active_peers, &peer_id](
+                const libp2p::peer::PeerId &peer, network::PeerState &state) {
+              if (auto self = wp.lock()) {
+                if (self->best_block_number_ <= state.best_block.number
+                    and peer != peer_id) {
+                  active_peers.push_back(peer);
+                }
+              }
+              return true;
+            });
+        std::vector<libp2p::peer::PeerId> selected_peers;
+        selected_peers.push_back(peer_id);
+        static const auto number_of_peers_to_add =
+            max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0;
+        if (const auto active_peers_size = active_peers.size();
+            active_peers_size <= number_of_peers_to_add) {
+          for (const auto &p_id : active_peers) {
+            selected_peers.push_back(p_id);
+          }
+        } else {
+          std::vector<uint32_t> indices(active_peers_size);
+          std::iota(indices.begin(), indices.end(), 0);
+          std::random_device rd;
+          std::mt19937 gen(rd());
+          std::ranges::shuffle(indices.begin(), indices.end(), gen);
+          for (uint32_t i = 0; i < number_of_peers_to_add; ++i) {
+            selected_peers.push_back(active_peers[indices[i]]);
+          }
+        }
         if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->number;
           auto upper = generations_.rbegin()->number + 1;
@@ -1209,7 +1247,10 @@ namespace kagome::network {
               lower,
               upper,
               hint,
-              [wp{weak_from_this()}, peer_id, handler = std::move(handler)](
+              [wp{weak_from_this()},
+               peer_id,
+               handler = std::move(handler),
+               selected_peers = std::move(selected_peers)](
                   outcome::result<primitives::BlockInfo> res) {
                 if (auto self = wp.lock()) {
                   if (not res.has_value()) {
@@ -1221,22 +1262,16 @@ namespace kagome::network {
                     return;
                   }
                   auto &common_block_info = res.value();
-                  SL_DEBUG(self->log_,
-                           "Start to load next portion of blocks from {} "
-                           "since block {}",
-                           peer_id,
-                           common_block_info);
-                  self->loadBlocks(
-                      peer_id, common_block_info, std::move(handler));
+                  for (const auto &p_id : selected_peers) {
+                    self->loadBlocks(
+                        p_id, common_block_info, std::move(handler));
+                  }
                 }
               });
         } else {
-          SL_DEBUG(log_,
-                   "Start to load next portion of blocks from {} "
-                   "since block {}",
-                   peer_id,
-                   block_info);
-          loadBlocks(peer_id, block_info, std::move(handler));
+          for (const auto &p_id : selected_peers) {
+            loadBlocks(p_id, block_info, std::move(handler));
+          }
         }
         return;
       }

@@ -261,6 +261,9 @@ namespace kagome::network {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    primitives::BlockNumber best_block_number_;
+    uint32_t max_parallel_downloads_;
+
 
     application::SyncMethod sync_method_;
 
