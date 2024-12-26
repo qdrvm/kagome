@@ -120,8 +120,10 @@ namespace kagome::parachain::statement_distribution {
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(
-          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
+      : implicit_view(_prospective_parachains,
+                      _parachain_host,
+                      _block_tree,
+                      std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
