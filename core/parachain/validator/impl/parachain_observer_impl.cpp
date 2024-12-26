@@ -39,18 +39,28 @@ namespace kagome::parachain {
   void ParachainObserverImpl::onIncomingMessage(
       const libp2p::peer::PeerId &peer_id,
       network::VersionedCollatorProtocolMessage &&msg) {
+    static auto log = log::createLogger("CollationProtocol");
     visit_in_place(
         std::move(msg),
         [&](kagome::network::CollationMessage0 &&msg0) {
           visit_in_place(
               std::move(boost::get<network::CollationMessage>(msg0)),
               [&](network::CollatorDeclaration &&collation_decl) {
+                SL_INFO(log,
+                        "onMessage peer_id={} Declare(para_id={})",
+                        peer_id.toBase58(),
+                        collation_decl.para_id);
                 onDeclare(peer_id,
                           collation_decl.collator_id,
                           collation_decl.para_id,
                           collation_decl.signature);
               },
               [&](network::CollatorAdvertisement &&collation_adv) {
+                SL_INFO(
+                    log,
+                    "onMessage peer_id={} AdvertiseCollation(relay_parent={})",
+                    peer_id.toBase58(),
+                    collation_adv.relay_parent.toHex());
                 onAdvertise(peer_id,
                             collation_adv.relay_parent,
                             std::nullopt,
@@ -67,6 +77,10 @@ namespace kagome::parachain {
                 std::move(m->get()),
                 [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
                         &&collation_decl) {
+                  SL_INFO(log,
+                          "onMessage peer_id={} Declare(para_id={})",
+                          peer_id.toBase58(),
+                          collation_decl.para_id);
                   onDeclare(peer_id,
                             collation_decl.collator_id,
                             collation_decl.para_id,
@@ -75,6 +89,13 @@ namespace kagome::parachain {
                 [&](kagome::network::vstaging::
                         CollatorProtocolMessageAdvertiseCollation
                             &&collation_adv) {
+                  SL_INFO(
+                      log,
+                      "onMessage peer_id={} v2 "
+                      "AdvertiseCollation(relay_parent={} candidate_hash={})",
+                      peer_id.toBase58(),
+                      collation_adv.relay_parent.toHex(),
+                      collation_adv.candidate_hash.toHex());
                   onAdvertise(
                       peer_id,
                       collation_adv.relay_parent,

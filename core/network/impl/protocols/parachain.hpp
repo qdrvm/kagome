@@ -47,7 +47,8 @@ namespace kagome::network {
     ParachainProtocol(ParachainProtocolInject &&inject,
                       notifications::ProtocolsGroups protocols_groups,
                       size_t limit_in,
-                      size_t limit_out);
+                      size_t limit_out,
+                      bool collation);
 
     // Controller
     Buffer handshake() override;
@@ -69,6 +70,7 @@ namespace kagome::network {
 
     // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
     std::shared_ptr<notifications::Protocol> notifications_;
+    bool collation_;
     std::vector<CollationVersion> collation_versions_;
     Roles roles_;
     std::shared_ptr<PeerManager> peer_manager_;

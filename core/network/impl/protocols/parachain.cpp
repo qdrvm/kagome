@@ -89,9 +89,11 @@ namespace kagome::network {
       ParachainProtocolInject &&inject,
       notifications::ProtocolsGroups protocols_groups,
       size_t limit_in,
-      size_t limit_out)
+      size_t limit_out,
+      bool collation)
       : notifications_{inject.notifications_factory->make(
           std::move(protocols_groups), limit_in, limit_out)},
+        collation_{collation},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
@@ -107,6 +109,12 @@ namespace kagome::network {
                                       bool out,
                                       Buffer &&handshake) {
     TRY_FALSE(scale::decode<Roles>(handshake));
+    static auto log = log::createLogger("ParachainProtocol");
+    SL_INFO(log,
+            "onHandshake peer_id={} out={} collation={}",
+            peer_id.toBase58(),
+            out,
+            collation_);
     auto state = peer_manager_->createDefaultPeerState(peer_id);
     state.value().get().collation_version =
         collation_versions_.at(protocol_group);
@@ -184,6 +192,7 @@ namespace kagome::network {
           },
           kCollationPeersLimit,
           0,
+          true,
       },
       observer_{std::move(observer)} {}
 
@@ -217,6 +226,7 @@ namespace kagome::network {
           },
           kValidationPeersLimit,
           kValidationPeersLimit,
+          false,
       },
       observer_{std::move(observer)} {}
 
