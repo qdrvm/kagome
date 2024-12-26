@@ -6,8 +6,7 @@
 
 #include "parachain/pvf/workers.hpp"
 
-#include <boost/asio/buffered_read_stream.hpp>
-#include <boost/asio/buffered_write_stream.hpp>
+#include <boost/asio/local/stream_protocol.hpp>
 #include <boost/process.hpp>
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/asio_buffer.hpp>
@@ -15,26 +14,19 @@
 
 #include "application/app_configuration.hpp"
 #include "common/main_thread_pool.hpp"
+#include "filesystem/common.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "utils/get_exe_path.hpp"
 #include "utils/weak_macro.hpp"
 
 namespace kagome::parachain {
+  using unix = boost::asio::local::stream_protocol;
+
   constexpr auto kMetricQueueSize = "kagome_pvf_queue_size";
 
-  struct AsyncPipe : boost::process::async_pipe {
-    using async_pipe::async_pipe;
-    using lowest_layer_type = AsyncPipe;
-  };
-
   struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
-    AsyncPipe pipe_stdin;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    AsyncPipe &writer;
-    AsyncPipe pipe_stdout;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    AsyncPipe &reader;
     boost::process::child process;
+    std::optional<unix::socket> socket;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
     std::shared_ptr<Buffer> reading = std::make_shared<Buffer>();
 
@@ -44,23 +36,18 @@ namespace kagome::parachain {
 
     ProcessAndPipes(boost::asio::io_context &io_context,
                     const std::string &exe,
+                    const std::string &unix_socket_path,
                     const Config &config)
-        : pipe_stdin{io_context},
-          writer{pipe_stdin},
-          pipe_stdout{io_context},
-          reader{pipe_stdout},
-          process{
-              exe,
-              boost::process::args({"pvf-worker"}),
-              boost::process::env(boost::process::environment()),
+        : process{
+            exe,
+            boost::process::args({"pvf-worker", unix_socket_path}),
+            boost::process::env(boost::process::environment()),
 // LSAN doesn't work in secure mode
 #ifdef KAGOME_WITH_ASAN
-              boost::process::env["ASAN_OPTIONS"] =
-                  config.disable_lsan ? "detect_leaks=0" : "",
+            boost::process::env["ASAN_OPTIONS"] =
+                config.disable_lsan ? "detect_leaks=0" : "",
 #endif
-              boost::process::std_out > pipe_stdout,
-              boost::process::std_in < pipe_stdin,
-          } {
+        } {
     }
 
     void write(Buffer data, auto cb) {
@@ -68,7 +55,7 @@ namespace kagome::parachain {
           scale::encode<uint32_t>(data.size()).value());
       *writing = std::move(data);
       boost::asio::async_write(
-          writer,
+          *socket,
           libp2p::asioBuffer(*len),
           [WEAK_SELF, cb, len](boost::system::error_code ec, size_t) mutable {
             WEAK_LOCK(self);
@@ -76,7 +63,7 @@ namespace kagome::parachain {
               return cb(ec);
             }
             boost::asio::async_write(
-                self->writer,
+                *self->socket,
                 libp2p::asioBuffer(*self->writing),
                 [weak_self, cb](boost::system::error_code ec, size_t) mutable {
                   WEAK_LOCK(self);
@@ -95,7 +82,7 @@ namespace kagome::parachain {
     void read(auto cb) {
       auto len = std::make_shared<common::Blob<sizeof(uint32_t)>>();
       boost::asio::async_read(
-          reader,
+          *socket,
           libp2p::asioBuffer(*len),
           [WEAK_SELF, cb{std::move(cb)}, len](boost::system::error_code ec,
                                               size_t) mutable {
@@ -109,7 +96,7 @@ namespace kagome::parachain {
             }
             self->reading->resize(len_res.value());
             boost::asio::async_read(
-                self->reader,
+                *self->socket,
                 libp2p::asioBuffer(*self->reading),
                 [cb{std::move(cb)}, reading{self->reading}](
                     boost::system::error_code ec, size_t) mutable {
@@ -162,20 +149,46 @@ namespace kagome::parachain {
 #if defined(__linux__) && defined(KAGOME_WITH_ASAN)
       config.disable_lsan = !worker_config_.force_disable_secure_mode;
 #endif
-      auto process =
-          std::make_shared<ProcessAndPipes>(*io_context_, exe_, config);
-      process->writeScale(
-          worker_config_,
-          [WEAK_SELF, job{std::move(job)}, used{std::move(used)}, process](
-              outcome::result<void> r) mutable {
-            WEAK_LOCK(self);
-            if (not r) {
-              return job.cb(r.error());
-            }
-            self->writeCode(std::move(job),
-                            {.process = std::move(process)},
-                            std::move(used));
-          });
+      auto unix_socket_path = filesystem::unique_path(
+          std::filesystem::path{worker_config_.cache_dir}
+          / "unix_socket.%%%%%%");
+      std::error_code ec;
+      std::filesystem::remove(unix_socket_path, ec);
+      if (ec) {
+        return job.cb(ec);
+      }
+      auto acceptor = std::make_shared<unix::acceptor>(
+          *io_context_, unix_socket_path.native());
+      auto process = std::make_shared<ProcessAndPipes>(
+          *io_context_, exe_, unix_socket_path, config);
+      acceptor->async_accept([WEAK_SELF,
+                              job{std::move(job)},
+                              used,
+                              unix_socket_path,
+                              acceptor,
+                              process{std::move(process)}](
+                                 boost::system::error_code ec,
+                                 unix::socket &&socket) mutable {
+        std::error_code ec2;
+        std::filesystem::remove(unix_socket_path, ec2);
+        WEAK_LOCK(self);
+        if (ec) {
+          return job.cb(ec);
+        }
+        process->socket = std::move(socket);
+        process->writeScale(
+            self->worker_config_,
+            [weak_self, job{std::move(job)}, used{std::move(used)}, process](
+                outcome::result<void> r) mutable {
+              WEAK_LOCK(self);
+              if (not r) {
+                return job.cb(r.error());
+              }
+              self->writeCode(std::move(job),
+                              {.process = std::move(process)},
+                              std::move(used));
+            });
+      });
       return;
     }
     findFree(std::move(job));

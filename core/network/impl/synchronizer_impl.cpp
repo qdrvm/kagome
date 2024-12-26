@@ -1225,6 +1225,7 @@ namespace kagome::network {
           }
         } else {
           std::vector<int> indices;
+          indices.reserve(active_peers_size);
           for (int i = 0; i < active_peers_size; ++i) {
             indices.push_back(i);
           }
