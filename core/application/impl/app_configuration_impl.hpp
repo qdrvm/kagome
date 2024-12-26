@@ -117,6 +117,9 @@ namespace kagome::application {
     uint32_t luckyPeers() const override {
       return lucky_peers_;
     }
+    uint32_t maxPeers() const override {
+      return max_peers_;
+    }
     const boost::asio::ip::tcp::endpoint &rpcEndpoint() const override {
       return rpc_endpoint_;
     }
@@ -352,6 +355,7 @@ namespace kagome::application {
     uint32_t in_peers_;
     uint32_t in_peers_light_;
     uint32_t lucky_peers_;
+    uint32_t max_peers_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
