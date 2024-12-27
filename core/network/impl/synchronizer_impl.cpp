@@ -139,6 +139,7 @@ namespace kagome::network {
 
     sync_method_ = app_config.syncMethod();
     max_parallel_downloads_ = app_config.maxParallelDownloads();
+    random_gen_ = std::mt19937(std::random_device{}());
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -1164,9 +1165,7 @@ namespace kagome::network {
           active_peers.push_back(peer_id);
         }
       }
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::ranges::shuffle(active_peers, gen);
+      std::ranges::shuffle(active_peers, random_gen_);
       if (active_peers.size() > static_cast<size_t>(max_parallel_downloads_)) {
         active_peers.erase(active_peers.begin() + max_parallel_downloads_,
                            active_peers.end());

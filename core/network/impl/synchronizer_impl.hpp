@@ -11,6 +11,7 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
+#include <random>
 #include <unordered_set>
 
 #include <libp2p/basic/scheduler.hpp>
@@ -262,7 +263,7 @@ namespace kagome::network {
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     uint32_t max_parallel_downloads_;
-
+    std::mt19937 random_gen_;
 
     application::SyncMethod sync_method_;
 
