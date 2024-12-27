@@ -1170,7 +1170,9 @@ namespace kagome::network {
         active_peers.erase(active_peers.begin() + max_parallel_downloads_,
                            active_peers.end());
       }
+      SL_INFO(log_, "active_peers size {}", active_peers.size());
       for (const auto &peer_id : active_peers) {
+        SL_INFO(log_, "Iterating peer_id {}", peer_id);
         busy_peers_.emplace(peer_id);
         peers.erase(peer_id);
         auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
@@ -1181,13 +1183,13 @@ namespace kagome::network {
             SL_TRACE(self->log_, "End asking portion of blocks");
             self->asking_blocks_portion_in_progress_ = false;
             if (not res.has_value()) {
-              SL_DEBUG(self->log_,
+              SL_INFO(self->log_,
                        "Loading next portion of blocks from {} is failed: {}",
                        peer_id,
                        res.error());
               return;
             }
-            SL_DEBUG(self->log_,
+            SL_INFO(self->log_,
                      "Portion of blocks from {} is loaded till {}",
                      peer_id,
                      res.value());
@@ -1216,7 +1218,7 @@ namespace kagome::network {
                   outcome::result<primitives::BlockInfo> res) {
                 if (auto self = wp.lock()) {
                   if (not res.has_value()) {
-                    SL_DEBUG(self->log_,
+                    SL_INFO(self->log_,
                              "Can't load next portion of blocks from {}: {}",
                              peer_id,
                              res.error());
@@ -1224,7 +1226,7 @@ namespace kagome::network {
                     return;
                   }
                   auto &common_block_info = res.value();
-                  SL_DEBUG(self->log_,
+                  SL_INFO(self->log_,
                            "Start to load next portion of blocks from {} "
                            "since block {}",
                            peer_id,
@@ -1234,7 +1236,7 @@ namespace kagome::network {
                 }
               });
         } else {
-          SL_DEBUG(log_,
+          SL_INFO(log_,
                    "Start to load next portion of blocks from {} "
                    "since block {}",
                    peer_id,
