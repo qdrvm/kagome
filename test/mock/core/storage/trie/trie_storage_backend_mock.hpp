@@ -14,9 +14,37 @@ namespace kagome::storage::trie {
 
   class TrieStorageBackendMock : public TrieStorageBackend {
    public:
-    MOCK_METHOD(BufferStorage &, nodes, (), (override));
-    MOCK_METHOD(BufferStorage &, values, (), (override));
-    MOCK_METHOD(std::unique_ptr<BufferSpacedBatch>, batch, (), (override));
+    MOCK_METHOD(std::unique_ptr<BufferBatch>, batch, (), (override));
+
+    MOCK_METHOD((std::unique_ptr<face::MapCursor<Buffer, Buffer>>),
+                cursor,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<BufferOrView>,
+                get,
+                (const BufferView &key),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::optional<BufferOrView>>,
+                tryGet,
+                (const BufferView &key),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                contains,
+                (const BufferView &key),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<void>,
+                put,
+                (const BufferView &key, BufferOrView &&value),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                remove,
+                (const BufferView &key),
+                (override));
   };
 
 }  // namespace kagome::storage::trie

@@ -26,9 +26,9 @@
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
 
 using kagome::beefyMmrDigest;
 using kagome::TestThreadPool;

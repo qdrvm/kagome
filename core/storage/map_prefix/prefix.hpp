@@ -7,14 +7,13 @@
 #pragma once
 
 #include "storage/buffer_map_types.hpp"
-#include "storage/face/batch_writeable.hpp"
 
 namespace kagome::storage {
   /**
    * Map wrapper to use keys under prefix.
    * Cursor removes key prefix and can seeks first/last.
    */
-  struct MapPrefix : BufferBatchableStorage {
+  struct MapPrefix : BufferStorage {
     struct Cursor : BufferStorageCursor {
       Cursor(MapPrefix &map, std::unique_ptr<BufferStorageCursor> cursor);
 
@@ -46,7 +45,7 @@ namespace kagome::storage {
       std::unique_ptr<BufferBatch> batch;
     };
 
-    MapPrefix(BufferView prefix, std::shared_ptr<BufferBatchableStorage> map);
+    MapPrefix(BufferView prefix, std::shared_ptr<BufferStorage> map);
     Buffer _key(BufferView key) const;
 
     outcome::result<bool> contains(const BufferView &key) const override;
@@ -61,6 +60,6 @@ namespace kagome::storage {
 
     Buffer prefix;
     std::optional<Buffer> after_prefix;
-    std::shared_ptr<BufferBatchableStorage> map;
+    std::shared_ptr<BufferStorage> map;
   };
 }  // namespace kagome::storage
