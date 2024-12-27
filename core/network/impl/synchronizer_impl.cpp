@@ -330,11 +330,30 @@ namespace kagome::network {
       return false;
     }
 
+    std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
+    std::vector<libp2p::peer::PeerId> active_peers;
+    peer_manager_->enumeratePeerState(
+        [&active_peers, &block_info](const PeerId &peer_id,
+                                     PeerState &peer_state) {
+          if (peer_state.best_block >= block_info) {
+            active_peers.push_back(peer_id);
+          }
+          return true;
+        });
+    std::ranges::shuffle(active_peers, random_gen_);
+    for (auto it = active_peers.begin(); it != active_peers.end(); ++it) {
+      if (selected_peers.size() >= max_parallel_downloads_) {
+        break;
+      }
+      selected_peers.push_back(*it);
+    }
     // Block is already enqueued
     if (auto it = known_blocks_.find(block_info.hash);
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
-      block_in_queue.peers.emplace(peer_id);
+      for (const auto &p_id : selected_peers) {
+        block_in_queue.peers.emplace(p_id);
+      }
       return false;
     }
 
@@ -356,24 +375,6 @@ namespace kagome::network {
         or block_tree_->has(header.parent_hash);
 
     if (parent_is_known) {
-      std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
-      if (auto b_it = known_blocks_.find(from.hash);
-          b_it != known_blocks_.end()) {
-        std::vector<libp2p::peer::PeerId> active_peers;
-        for (const auto &peer : b_it->second.peers) {
-          if (peer != peer_id) {
-            active_peers.push_back(peer);
-          }
-        }
-        std::ranges::shuffle(active_peers, random_gen_);
-        for (auto it = active_peers.begin(); it != active_peers.end(); ++it) {
-          if (selected_peers.size() >= max_parallel_downloads_) {
-            break;
-          }
-          selected_peers.push_back(*it);
-        }
-      }
-
       for (const auto &p_id : selected_peers) {
         loadBlocks(p_id, block_info, [wp{weak_from_this()}](auto res) {
           if (auto self = wp.lock()) {
@@ -385,15 +386,19 @@ namespace kagome::network {
     }
 
     // Otherwise, is using base way to enqueue
-    return syncByBlockInfo(
-        block_info,
-        peer_id,
-        [wp{weak_from_this()}](auto res) {
-          if (auto self = wp.lock()) {
-            SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
-          }
-        },
-        false);
+    auto res = true;
+    for (const auto &p_id : selected_peers) {
+      res &= syncByBlockInfo(
+          block_info,
+          p_id,
+          [wp{weak_from_this()}](auto res) {
+            if (auto self = wp.lock()) {
+              SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
+            }
+          },
+          false);
+    }
+    return res;
   }
 
   void SynchronizerImpl::findCommonBlock(
