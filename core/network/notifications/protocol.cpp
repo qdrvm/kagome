@@ -221,6 +221,11 @@ namespace kagome::network::notifications {
   void Protocol::onStream(const PeerId &peer_id,
                           const StreamAndProtocol &info,
                           bool out) {
+    // print if info contains collation protocol substring
+    if (info.protocol.find("collation") != std::string::npos) {
+      static auto log = log::createLogger("NotificationsProtocol");
+      SL_INFO(log, "Collation protocol {} found in stream, out {}", info.protocol, out);
+    }
     auto reject = [&] { info.stream->reset(); };
     auto controller = controller_.lock();
     if (not controller) {

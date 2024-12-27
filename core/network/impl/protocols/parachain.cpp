@@ -33,7 +33,7 @@ namespace kagome::network {
 
   inline auto makeProtocols(const ParachainProtocolInject &inject,
                             const std::string_view &fmt) {
-    return make_protocols(fmt, *inject.genesis_hash, kProtocolPrefixPolkadot);
+    return make_protocols(fmt, *inject.genesis_hash);
   }
 
   using CollationTypes =
