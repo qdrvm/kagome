@@ -446,7 +446,7 @@ namespace kagome::consensus::grandpa {
                       return;
                     }
                     std::lock_guard _{self->peer_id_catcup_mutex_};
-                    self->catchup_request_timer_handle_.erase(peer_id);
+                    self->catchup_request_timer_handles_.erase(peer_id);
                     if (auto it = self->pending_catchup_requests_.find(peer_id);
                         it != self->pending_catchup_requests_.end()) {
                       self->reputation_repository_->change(
