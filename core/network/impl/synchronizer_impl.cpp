@@ -333,10 +333,10 @@ namespace kagome::network {
     std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
     std::vector<libp2p::peer::PeerId> active_peers;
     peer_manager_->enumeratePeerState(
-        [&active_peers, &block_info](const PeerId &peer_id,
-                                     PeerState &peer_state) {
-          if (peer_state.best_block >= block_info) {
-            active_peers.push_back(peer_id);
+        [&active_peers, &block_info, &peer_id](const PeerId &p_id,
+                                               PeerState &peer_state) {
+          if (peer_state.best_block >= block_info and p_id != peer_id) {
+            active_peers.push_back(p_id);
           }
           return true;
         });
