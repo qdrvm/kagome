@@ -356,11 +356,31 @@ namespace kagome::network {
         or block_tree_->has(header.parent_hash);
 
     if (parent_is_known) {
-      loadBlocks(peer_id, block_info, [wp{weak_from_this()}](auto res) {
-        if (auto self = wp.lock()) {
-          SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
+      std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
+      if (auto b_it = known_blocks_.find(from.hash);
+          b_it != known_blocks_.end()) {
+        std::vector<libp2p::peer::PeerId> active_peers;
+        for (const auto &peer : b_it->second.peers) {
+          if (peer != peer_id) {
+            active_peers.push_back(peer);
+          }
         }
-      });
+        std::ranges::shuffle(active_peers, random_gen_);
+        for (auto it = active_peers.begin(); it != active_peers.end(); ++it) {
+          if (selected_peers.size() >= max_parallel_downloads_) {
+            break;
+          }
+          selected_peers.push_back(*it);
+        }
+      }
+
+      for (const auto &p_id : selected_peers) {
+        loadBlocks(p_id, block_info, [wp{weak_from_this()}](auto res) {
+          if (auto self = wp.lock()) {
+            SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
+          }
+        });
+      }
       return true;
     }
 
@@ -1159,22 +1179,19 @@ namespace kagome::network {
         continue;
       }
 
-      std::vector<libp2p::peer::PeerId> active_peers;
-      for (const auto &peer_id : peers) {
-        if (busy_peers_.find(peer_id) == busy_peers_.end()) {
-          active_peers.push_back(peer_id);
+      for (auto p_it = peers.begin(); p_it != peers.end();) {
+        auto cp_it = p_it++;
+
+        auto &peer_id = *cp_it;
+
+        if (busy_peers_.find(peer_id) != busy_peers_.end()) {
+          SL_TRACE(log_, "Peer {} for block {} is busy", peer_id, block_info);
+          continue;
         }
-      }
-      std::ranges::shuffle(active_peers, random_gen_);
-      if (active_peers.size() > static_cast<size_t>(max_parallel_downloads_)) {
-        active_peers.erase(active_peers.begin() + max_parallel_downloads_,
-                           active_peers.end());
-      }
-      SL_INFO(log_, "active_peers size {}", active_peers.size());
-      for (const auto &peer_id : active_peers) {
-        SL_INFO(log_, "Iterating peer_id {}", peer_id);
-        busy_peers_.emplace(peer_id);
-        peers.erase(peer_id);
+
+        busy_peers_.insert(peers.extract(cp_it));
+        SL_TRACE(log_, "Peer {} marked as busy", peer_id);
+
         auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
           if (auto self = wp.lock()) {
             if (self->busy_peers_.erase(peer_id) > 0) {
@@ -1183,13 +1200,13 @@ namespace kagome::network {
             SL_TRACE(self->log_, "End asking portion of blocks");
             self->asking_blocks_portion_in_progress_ = false;
             if (not res.has_value()) {
-              SL_INFO(self->log_,
+              SL_DEBUG(self->log_,
                        "Loading next portion of blocks from {} is failed: {}",
                        peer_id,
                        res.error());
               return;
             }
-            SL_INFO(self->log_,
+            SL_DEBUG(self->log_,
                      "Portion of blocks from {} is loaded till {}",
                      peer_id,
                      res.value());
@@ -1198,6 +1215,7 @@ namespace kagome::network {
             }
           }
         };
+
         if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->number;
           auto upper = generations_.rbegin()->number + 1;
@@ -1218,7 +1236,7 @@ namespace kagome::network {
                   outcome::result<primitives::BlockInfo> res) {
                 if (auto self = wp.lock()) {
                   if (not res.has_value()) {
-                    SL_INFO(self->log_,
+                    SL_DEBUG(self->log_,
                              "Can't load next portion of blocks from {}: {}",
                              peer_id,
                              res.error());
@@ -1226,7 +1244,7 @@ namespace kagome::network {
                     return;
                   }
                   auto &common_block_info = res.value();
-                  SL_INFO(self->log_,
+                  SL_DEBUG(self->log_,
                            "Start to load next portion of blocks from {} "
                            "since block {}",
                            peer_id,
@@ -1236,13 +1254,14 @@ namespace kagome::network {
                 }
               });
         } else {
-          SL_INFO(log_,
+          SL_DEBUG(log_,
                    "Start to load next portion of blocks from {} "
                    "since block {}",
                    peer_id,
                    block_info);
           loadBlocks(peer_id, block_info, std::move(handler));
         }
+        return;
       }
 
       SL_TRACE(log_,
