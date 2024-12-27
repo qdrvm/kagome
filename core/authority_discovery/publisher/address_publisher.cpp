@@ -112,10 +112,10 @@ namespace kagome::authority_discovery {
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
 
     auto audi_key = keys_->getAudiKeyPair(authorities);
-    // if (not audi_key) {
-    //   SL_WARN(log_, "No authority discovery key");
-    //   return outcome::success();
-    // }
+    if (not audi_key) {
+      SL_WARN(log_, "No authority discovery key");
+      return outcome::success();
+    }
 
     OUTCOME_TRY(
         raw,
