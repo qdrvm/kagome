@@ -13,6 +13,7 @@
 #include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
 #include "utils/pool_handler.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
@@ -164,18 +165,18 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto block = *required_.begin();
-    auto cb = [weak{weak_from_this()}, block](outcome::result<void> r) {
+    auto cb = [weak{weak_from_this()}, block, fetching{fetching()}](
+                  outcome::result<void> r) {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->fetching_ = false;
       if (r) {
         self->required_.erase(block);
       }
       self->requiredLoop();
     };
-    fetching_ = synchronizer_.get()->fetchJustification(block, std::move(cb));
+    synchronizer_.get()->fetchJustification(block, std::move(cb));
   }
 
   void VerifiedJustificationQueue::possibleLoop() {
@@ -194,12 +195,12 @@ namespace kagome::consensus::grandpa {
     }
     auto block = possible_.back();
     possible_.pop_back();
-    auto cb = [weak{weak_from_this()}, block](outcome::result<void> r) {
+    auto cb = [weak{weak_from_this()}, block, fetching{fetching()}](
+                  outcome::result<void> r) {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->fetching_ = false;
       self->requiredLoop();
       if (not r) {
         self->possibleLoop();
@@ -208,7 +209,7 @@ namespace kagome::consensus::grandpa {
             self->log_, "possible justification for block {}", block.number);
       }
     };
-    fetching_ = synchronizer_.get()->fetchJustification(block, std::move(cb));
+    synchronizer_.get()->fetchJustification(block, std::move(cb));
   }
 
   void VerifiedJustificationQueue::rangeLoop() {
@@ -225,13 +226,12 @@ namespace kagome::consensus::grandpa {
       range_ = 0;
       return;
     }
-    auto cb = [weak{weak_from_this()}](
+    auto cb = [weak{weak_from_this()}, fetching{fetching()}](
                   outcome::result<std::optional<primitives::BlockNumber>> r) {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->fetching_ = false;
       if (r) {
         if (auto &next = r.value()) {
           self->range_ = *next;
@@ -242,8 +242,7 @@ namespace kagome::consensus::grandpa {
       self->requiredLoop();
       self->possibleLoop();
     };
-    fetching_ =
-        synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
+    synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
     if (fetching_) {
       SL_INFO(log_, "fething justification range {}..", range_);
     }
@@ -255,5 +254,20 @@ namespace kagome::consensus::grandpa {
       expected_ = (**r).id;
     }
     required_.clear();
+  }
+
+  std::shared_ptr<void> VerifiedJustificationQueue::fetching() {
+    fetching_ = true;
+    struct Fetching {
+      Fetching(std::weak_ptr<VerifiedJustificationQueue> weak_self)
+          : weak_self{std::move(weak_self)} {}
+      ~Fetching() {
+        IF_WEAK_LOCK(self) {
+          self->fetching_ = false;
+        }
+      }
+      std::weak_ptr<VerifiedJustificationQueue> weak_self;
+    };
+    return std::make_shared<Fetching>(weak_from_this());
   }
 }  // namespace kagome::consensus::grandpa

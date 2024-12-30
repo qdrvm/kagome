@@ -70,6 +70,7 @@ namespace kagome::consensus::grandpa {
     void requiredLoop();
     void possibleLoop();
     void rangeLoop();
+    std::shared_ptr<void> fetching();
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
