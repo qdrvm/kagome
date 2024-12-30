@@ -40,7 +40,7 @@ namespace kagome::storage {
       uint32_t trie_space_cache_size,
       uint32_t other_spaces_cache_size,
       log::Logger &log) {
-    for (auto &space_name : cf_names) {
+    for (auto &space_name : std::forward<ColumnFamilyNames>(cf_names)) {
       auto ttl = 0;
       if (const auto it = column_ttl.find(space_name); it != column_ttl.end()) {
         ttl = it->second;
