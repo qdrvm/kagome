@@ -244,7 +244,7 @@ namespace kagome::consensus::grandpa {
     };
     synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
     if (fetching_) {
-      SL_INFO(log_, "fething justification range {}..", range_);
+      SL_INFO(log_, "fetching justification range {}..", range_);
     }
   }
 
