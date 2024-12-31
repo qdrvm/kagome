@@ -330,31 +330,43 @@ namespace kagome::network {
       return false;
     }
 
-    std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
-    std::vector<libp2p::peer::PeerId> active_peers;
-    peer_manager_->enumeratePeerState(
-        [&active_peers, &block_info, &peer_id](const PeerId &p_id,
-                                               PeerState &peer_state) {
-          if (peer_state.best_block >= block_info and p_id != peer_id) {
-            active_peers.push_back(p_id);
-          }
-          return true;
-        });
-    std::ranges::shuffle(active_peers, random_gen_);
-    for (auto it = active_peers.begin(); it != active_peers.end(); ++it) {
-      if (selected_peers.size() >= max_parallel_downloads_) {
-        break;
-      }
-      selected_peers.push_back(*it);
-    }
     // Block is already enqueued
     if (auto it = known_blocks_.find(block_info.hash);
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
-      for (const auto &p_id : selected_peers) {
-        block_in_queue.peers.emplace(p_id);
-      }
+      block_in_queue.peers.emplace(peer_id);
       return false;
+    }
+
+    // Already enough parallel downloads
+    {
+      std::shared_lock lock{load_blocks_mutex_};
+      if (auto it = load_blocks_.find(block_info); it != load_blocks_.end()) {
+        if (it->second >= max_parallel_downloads_) {
+          return false;
+        }
+      }
+    }
+
+    std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
+    std::vector<libp2p::peer::PeerId> active_peers;
+    peer_manager_->enumeratePeerState(
+        [&active_peers, &peer_id](const PeerId &p_id, PeerState &) {
+          if (p_id != peer_id) {
+            active_peers.push_back(p_id);
+          }
+          return true;
+        });
+    static const auto peers_to_add_number =
+        max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0;
+    if (active_peers.size() <= peers_to_add_number) {
+      selected_peers.insert(
+          selected_peers.end(), active_peers.begin(), active_peers.end());
+    } else {
+      std::ranges::shuffle(active_peers, random_gen_);
+      selected_peers.insert(selected_peers.end(),
+                            active_peers.begin(),
+                            active_peers.begin() + peers_to_add_number);
     }
 
     // Number of provided block header greater currently watched.
@@ -580,12 +592,20 @@ namespace kagome::network {
       return;
     }
 
-    if (not load_blocks_.emplace(from).second) {
-      if (handler) {
-        handler(Error::ALREADY_IN_QUEUE);
+    {
+      std::unique_lock lock{load_blocks_mutex_};
+      if (auto [it, ok] = load_blocks_.emplace(from, 1); not ok) {
+        auto &requests_number = it->second;
+        if (requests_number >= max_parallel_downloads_) {
+          if (handler) {
+            handler(Error::ALREADY_IN_QUEUE);
+          }
+          return;
+        }
+        ++requests_number;
       }
-      return;
     }
+
     load_blocks_max_ = {from.number, now};
 
     auto response_handler =
@@ -600,7 +620,16 @@ namespace kagome::network {
           if (not self) {
             return;
           }
-          self->load_blocks_.erase(from);
+          {
+            std::unique_lock lock{self->load_blocks_mutex_};
+            if (auto it = self->load_blocks_.find(from);
+                it != self->load_blocks_.end()) {
+              auto &requests_number = it->second;
+              if (requests_number) {
+                --requests_number;
+              }
+            }
+          }
 
           // Any error interrupts loading of blocks
           if (response_res.has_error()) {
@@ -782,6 +811,8 @@ namespace kagome::network {
                                           });
               self->metric_import_queue_length_->set(
                   self->known_blocks_.size());
+              std::unique_lock lock{self->load_blocks_mutex_};
+              self->load_blocks_.erase(from);
             } else {
               it->second.peers.emplace(peer_id);
               SL_TRACE(self->log_,

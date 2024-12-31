@@ -312,7 +312,8 @@ namespace kagome::network {
 
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
-    std::unordered_set<primitives::BlockInfo> load_blocks_;
+    std::unordered_map<primitives::BlockInfo, uint32_t> load_blocks_;
+    std::shared_mutex load_blocks_mutex_;
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};
 
