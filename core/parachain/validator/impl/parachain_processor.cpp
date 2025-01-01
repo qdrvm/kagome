@@ -462,8 +462,9 @@ namespace kagome::parachain {
 
     if (!validator) {
       SL_TRACE(logger_, "Not a parachain validator, or no para keys.");
+    } else {
+      is_parachain_validator = true;
     }
-    is_parachain_validator = true;
 
     if (!session_info) {
       return Error::NO_SESSION_INFO;
