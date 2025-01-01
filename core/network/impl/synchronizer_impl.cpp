@@ -138,6 +138,8 @@ namespace kagome::network {
     BOOST_ASSERT(block_storage_);
 
     sync_method_ = app_config.syncMethod();
+    max_parallel_downloads_ = app_config.maxParallelDownloads();
+    random_gen_ = std::mt19937(std::random_device{}());
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -336,6 +338,37 @@ namespace kagome::network {
       return false;
     }
 
+    // Already enough parallel downloads
+    {
+      std::shared_lock lock{load_blocks_mutex_};
+      if (auto it = load_blocks_.find(block_info); it != load_blocks_.end()) {
+        if (it->second >= max_parallel_downloads_) {
+          return false;
+        }
+      }
+    }
+
+    std::vector<libp2p::peer::PeerId> selected_peers = {peer_id};
+    std::vector<libp2p::peer::PeerId> active_peers;
+    peer_manager_->enumeratePeerState(
+        [&active_peers, &peer_id](const PeerId &p_id, PeerState &) {
+          if (p_id != peer_id) {
+            active_peers.push_back(p_id);
+          }
+          return true;
+        });
+    static const auto peers_to_add_number =
+        max_parallel_downloads_ ? max_parallel_downloads_ - 1 : 0;
+    if (active_peers.size() <= peers_to_add_number) {
+      selected_peers.insert(
+          selected_peers.end(), active_peers.begin(), active_peers.end());
+    } else {
+      std::ranges::shuffle(active_peers, random_gen_);
+      selected_peers.insert(selected_peers.end(),
+                            active_peers.begin(),
+                            active_peers.begin() + peers_to_add_number);
+    }
+
     // Number of provided block header greater currently watched.
     // Reset watched blocks list and start to watch the block with new number
     if (watched_blocks_number_ < header.number) {
@@ -354,24 +387,30 @@ namespace kagome::network {
         or block_tree_->has(header.parent_hash);
 
     if (parent_is_known) {
-      loadBlocks(peer_id, block_info, [wp{weak_from_this()}](auto res) {
-        if (auto self = wp.lock()) {
-          SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
-        }
-      });
+      for (const auto &p_id : selected_peers) {
+        loadBlocks(p_id, block_info, [wp{weak_from_this()}](auto res) {
+          if (auto self = wp.lock()) {
+            SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
+          }
+        });
+      }
       return true;
     }
 
     // Otherwise, is using base way to enqueue
-    return syncByBlockInfo(
-        block_info,
-        peer_id,
-        [wp{weak_from_this()}](auto res) {
-          if (auto self = wp.lock()) {
-            SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
-          }
-        },
-        false);
+    auto res = true;
+    for (const auto &p_id : selected_peers) {
+      res &= syncByBlockInfo(
+          block_info,
+          p_id,
+          [wp{weak_from_this()}](auto res) {
+            if (auto self = wp.lock()) {
+              SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
+            }
+          },
+          false);
+    }
+    return res;
   }
 
   void SynchronizerImpl::findCommonBlock(
@@ -553,242 +592,263 @@ namespace kagome::network {
       return;
     }
 
-    if (not load_blocks_.emplace(from).second) {
-      if (handler) {
-        handler(Error::ALREADY_IN_QUEUE);
+    {
+      std::unique_lock lock{load_blocks_mutex_};
+      if (auto [it, ok] = load_blocks_.emplace(from, 1); not ok) {
+        auto &requests_number = it->second;
+        if (requests_number >= max_parallel_downloads_) {
+          if (handler) {
+            handler(Error::ALREADY_IN_QUEUE);
+          }
+          return;
+        }
+        ++requests_number;
       }
-      return;
     }
+
     load_blocks_max_ = {from.number, now};
 
-    auto response_handler =
-        [wp{weak_from_this()},
-         from,
-         peer_id,
-         handler = std::move(handler),
-         need_body = has(request.fields, BlockAttribute::BODY),
-         parent_hash = primitives::BlockHash{}](
-            outcome::result<BlocksResponse> response_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            return;
-          }
-          self->load_blocks_.erase(from);
+    auto response_handler = [wp{weak_from_this()},
+                             from,
+                             peer_id,
+                             handler = std::move(handler),
+                             need_body =
+                                 has(request.fields, BlockAttribute::BODY),
+                             parent_hash = primitives::BlockHash{}](
+                                outcome::result<BlocksResponse>
+                                    response_res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        return;
+      }
 
-          // Any error interrupts loading of blocks
-          if (response_res.has_error()) {
-            SL_VERBOSE(self->log_,
-                       "Can't load blocks from {} beginning block {}: {}",
-                       peer_id,
-                       from,
-                       response_res.error());
-            if (handler) {
-              handler(response_res.as_failure());
-            }
-            return;
-          }
-          auto &blocks = response_res.value().blocks;
+      // Any error interrupts loading of blocks
+      if (response_res.has_error()) {
+        SL_VERBOSE(self->log_,
+                   "Can't load blocks from {} beginning block {}: {}",
+                   peer_id,
+                   from,
+                   response_res.error());
+        if (handler) {
+          handler(response_res.as_failure());
+        }
+        return;
+      }
+      auto &blocks = response_res.value().blocks;
 
-          // No block in response is abnormal situation.
-          // At least one starting block should be returned as existing
-          if (blocks.empty()) {
-            SL_VERBOSE(self->log_,
-                       "Can't load blocks from {} beginning block {}: "
-                       "Response does not have any blocks",
-                       peer_id,
-                       from);
-            if (handler) {
-              handler(Error::EMPTY_RESPONSE);
+      // No block in response is abnormal situation.
+      // At least one starting block should be returned as existing
+      if (blocks.empty()) {
+        SL_VERBOSE(self->log_,
+                   "Can't load blocks from {} beginning block {}: "
+                   "Response does not have any blocks",
+                   peer_id,
+                   from);
+        if (handler) {
+          handler(Error::EMPTY_RESPONSE);
+        }
+        return;
+      }
+
+      SL_TRACE(self->log_,
+               "{} blocks are loaded from {} beginning block {}",
+               blocks.size(),
+               peer_id,
+               from);
+
+      if (blocks[0].header
+          and blocks[0].header->number
+                  > self->block_tree_->getLastFinalized().number
+          and not self->known_blocks_.contains(blocks[0].header->parent_hash)
+          and not self->block_tree_->has(blocks[0].header->parent_hash)) {
+        if (handler) {
+          handler(Error::DISCARDED_BLOCK);
+        }
+        return;
+      }
+
+      bool some_blocks_added = false;
+      primitives::BlockInfo last_loaded_block;
+
+      for (auto &block : blocks) {
+        // Check if header is provided
+        if (not block.header.has_value()) {
+          SL_VERBOSE(self->log_,
+                     "Can't load blocks from {} starting from block {}: "
+                     "Received block without header",
+                     peer_id,
+                     from);
+          if (handler) {
+            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          }
+          return;
+        }
+        auto &header = block.header.value();
+        {
+          std::unique_lock lock{self->load_blocks_mutex_};
+          if (auto it =
+                  self->load_blocks_.find(BlockInfo(header.number, block.hash));
+              it != self->load_blocks_.end()) {
+            auto &requests_number = it->second;
+            if (requests_number > 1) {
+              --requests_number;
+            } else {
+              self->load_blocks_.erase(it);
             }
-            return;
+          }
+        }
+
+        // Check if body is provided
+        if (need_body and block.header->number != 0
+            and not block.body.has_value()) {
+          SL_VERBOSE(self->log_,
+                     "Can't load blocks from {} starting from block {}: "
+                     "Received block without body",
+                     peer_id,
+                     from);
+          if (handler) {
+            handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+          }
+          return;
+        }
+
+        const auto &last_finalized_block =
+            self->block_tree_->getLastFinalized();
+
+        // Check by number if block is not finalized yet
+        if (last_finalized_block.number >= header.number) {
+          if (last_finalized_block.number == header.number) {
+            if (last_finalized_block.hash != block.hash) {
+              SL_VERBOSE(self->log_,
+                         "Can't load blocks from {} starting from block {}: "
+                         "Received discarded block {}",
+                         peer_id,
+                         from,
+                         BlockInfo(header.number, block.hash));
+              if (handler) {
+                handler(Error::DISCARDED_BLOCK);
+              }
+              return;
+            }
+
+            SL_TRACE(self->log_,
+                     "Skip block {} received from {}: "
+                     "it is finalized with block #{}",
+                     BlockInfo(header.number, block.hash),
+                     peer_id,
+                     last_finalized_block.number);
+            continue;
           }
 
           SL_TRACE(self->log_,
-                   "{} blocks are loaded from {} beginning block {}",
-                   blocks.size(),
+                   "Skip block {} received from {}: "
+                   "it is below the last finalized block #{}",
+                   BlockInfo(header.number, block.hash),
                    peer_id,
-                   from);
+                   last_finalized_block.number);
+          continue;
+        }
 
-          if (blocks[0].header
-              and blocks[0].header->number
-                      > self->block_tree_->getLastFinalized().number
-              and not self->known_blocks_.contains(
-                  blocks[0].header->parent_hash)
-              and not self->block_tree_->has(blocks[0].header->parent_hash)) {
+        // Check if block is not discarded
+        if (last_finalized_block.number + 1 == header.number) {
+          if (last_finalized_block.hash != header.parent_hash) {
+            SL_ERROR(self->log_,
+                     "Can't complete blocks loading from {} starting from "
+                     "block {}: Received discarded block {}",
+                     peer_id,
+                     from,
+                     BlockInfo(header.number, header.parent_hash));
             if (handler) {
               handler(Error::DISCARDED_BLOCK);
             }
             return;
           }
 
-          bool some_blocks_added = false;
-          primitives::BlockInfo last_loaded_block;
+          // Start to check parents
+          parent_hash = header.parent_hash;
+        }
 
-          for (auto &block : blocks) {
-            // Check if header is provided
-            if (not block.header.has_value()) {
-              SL_VERBOSE(self->log_,
-                         "Can't load blocks from {} starting from block {}: "
-                         "Received block without header",
-                         peer_id,
-                         from);
-              if (handler) {
-                handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
-              }
-              return;
-            }
-            // Check if body is provided
-            if (need_body and block.header->number != 0
-                and not block.body.has_value()) {
-              SL_VERBOSE(self->log_,
-                         "Can't load blocks from {} starting from block {}: "
-                         "Received block without body",
-                         peer_id,
-                         from);
-              if (handler) {
-                handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
-              }
-              return;
-            }
-            auto &header = block.header.value();
-
-            const auto &last_finalized_block =
-                self->block_tree_->getLastFinalized();
-
-            // Check by number if block is not finalized yet
-            if (last_finalized_block.number >= header.number) {
-              if (last_finalized_block.number == header.number) {
-                if (last_finalized_block.hash != block.hash) {
-                  SL_VERBOSE(
-                      self->log_,
-                      "Can't load blocks from {} starting from block {}: "
-                      "Received discarded block {}",
-                      peer_id,
-                      from,
-                      BlockInfo(header.number, block.hash));
-                  if (handler) {
-                    handler(Error::DISCARDED_BLOCK);
-                  }
-                  return;
-                }
-
-                SL_TRACE(self->log_,
-                         "Skip block {} received from {}: "
-                         "it is finalized with block #{}",
-                         BlockInfo(header.number, block.hash),
-                         peer_id,
-                         last_finalized_block.number);
-                continue;
-              }
-
-              SL_TRACE(self->log_,
-                       "Skip block {} received from {}: "
-                       "it is below the last finalized block #{}",
-                       BlockInfo(header.number, block.hash),
-                       peer_id,
-                       last_finalized_block.number);
-              continue;
-            }
-
-            // Check if block is not discarded
-            if (last_finalized_block.number + 1 == header.number) {
-              if (last_finalized_block.hash != header.parent_hash) {
-                SL_ERROR(self->log_,
-                         "Can't complete blocks loading from {} starting from "
-                         "block {}: Received discarded block {}",
-                         peer_id,
-                         from,
-                         BlockInfo(header.number, header.parent_hash));
-                if (handler) {
-                  handler(Error::DISCARDED_BLOCK);
-                }
-                return;
-              }
-
-              // Start to check parents
-              parent_hash = header.parent_hash;
-            }
-
-            // Check if block is in chain
-            static const primitives::BlockHash zero_hash;
-            if (parent_hash != header.parent_hash && parent_hash != zero_hash) {
-              SL_ERROR(self->log_,
-                       "Can't complete blocks loading from {} starting from "
-                       "block {}: Received block is not descendant of previous",
-                       peer_id,
-                       from);
-              if (handler) {
-                handler(Error::WRONG_ORDER);
-              }
-              return;
-            }
-
-            // Calculate and save hash, 'cause it's new received block
-            primitives::calculateBlockHash(header, *self->hasher_);
-
-            // Check if hash is valid
-            if (block.hash != header.hash()) {
-              SL_ERROR(self->log_,
-                       "Can't complete blocks loading from {} starting from "
-                       "block {}: "
-                       "Received block whose hash does not match the header",
-                       peer_id,
-                       from);
-              if (handler) {
-                handler(Error::INVALID_HASH);
-              }
-              return;
-            }
-
-            last_loaded_block = header.blockInfo();
-
-            parent_hash = block.hash;
-
-            // Add block in queue and save peer or just add peer for existing
-            // record
-            auto it = self->known_blocks_.find(block.hash);
-            if (it == self->known_blocks_.end()) {
-              self->known_blocks_.emplace(block.hash,
-                                          KnownBlock{
-                                              .data = block,
-                                              .peers = {peer_id},
-                                          });
-              self->metric_import_queue_length_->set(
-                  self->known_blocks_.size());
-            } else {
-              it->second.peers.emplace(peer_id);
-              SL_TRACE(self->log_,
-                       "Skip block {} received from {}: already enqueued",
-                       BlockInfo(header.number, block.hash),
-                       peer_id);
-              continue;
-            }
-
-            SL_TRACE(self->log_,
-                     "Enqueue block {} received from {}",
-                     BlockInfo(header.number, block.hash),
-                     peer_id);
-
-            self->generations_.emplace(header.blockInfo());
-            self->ancestry_.emplace(header.parent_hash, block.hash);
-
-            some_blocks_added = true;
-          }
-
-          SL_TRACE(self->log_, "Block loading is finished");
+        // Check if block is in chain
+        static const primitives::BlockHash zero_hash;
+        if (parent_hash != header.parent_hash && parent_hash != zero_hash) {
+          SL_ERROR(self->log_,
+                   "Can't complete blocks loading from {} starting from "
+                   "block {}: Received block is not descendant of previous",
+                   peer_id,
+                   from);
           if (handler) {
-            handler(last_loaded_block);
+            handler(Error::WRONG_ORDER);
           }
+          return;
+        }
 
-          if (some_blocks_added) {
-            SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
-            self->scheduler_->schedule([wp] {
-              if (auto self = wp.lock()) {
-                self->applyNextBlock();
-              }
-            });
+        // Calculate and save hash, 'cause it's new received block
+        primitives::calculateBlockHash(header, *self->hasher_);
+
+        // Check if hash is valid
+        if (block.hash != header.hash()) {
+          SL_ERROR(self->log_,
+                   "Can't complete blocks loading from {} starting from "
+                   "block {}: "
+                   "Received block whose hash does not match the header",
+                   peer_id,
+                   from);
+          if (handler) {
+            handler(Error::INVALID_HASH);
           }
-        };
+          return;
+        }
+
+        last_loaded_block = header.blockInfo();
+
+        parent_hash = block.hash;
+
+        // Add block in queue and save peer or just add peer for existing
+        // record
+        auto it = self->known_blocks_.find(block.hash);
+        if (it == self->known_blocks_.end()) {
+          self->known_blocks_.emplace(block.hash,
+                                      KnownBlock{
+                                          .data = block,
+                                          .peers = {peer_id},
+                                      });
+          self->metric_import_queue_length_->set(self->known_blocks_.size());
+          std::unique_lock lock{self->load_blocks_mutex_};
+          self->load_blocks_.erase(BlockInfo(header.number, block.hash));
+        } else {
+          it->second.peers.emplace(peer_id);
+          SL_TRACE(self->log_,
+                   "Skip block {} received from {}: already enqueued",
+                   BlockInfo(header.number, block.hash),
+                   peer_id);
+          continue;
+        }
+
+        SL_TRACE(self->log_,
+                 "Enqueue block {} received from {}",
+                 BlockInfo(header.number, block.hash),
+                 peer_id);
+
+        self->generations_.emplace(header.blockInfo());
+        self->ancestry_.emplace(header.parent_hash, block.hash);
+
+        some_blocks_added = true;
+      }
+
+      SL_TRACE(self->log_, "Block loading is finished");
+      if (handler) {
+        handler(last_loaded_block);
+      }
+
+      if (some_blocks_added) {
+        SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
+        self->scheduler_->schedule([wp] {
+          if (auto self = wp.lock()) {
+            self->applyNextBlock();
+          }
+        });
+      }
+    };
 
     fetch(peer_id,
           std::move(request),

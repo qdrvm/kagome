@@ -116,6 +116,7 @@ namespace {
 #endif
   const uint32_t def_db_cache_size = 1024;
   const uint32_t def_parachain_runtime_instance_cache_size = 100;
+  const uint32_t def_max_parallel_downloads = 5;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -177,12 +178,11 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen"};
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -845,6 +845,9 @@ namespace kagome::application {
         ("rpc-methods", po::value<std::string>(), R"("auto" (default), "unsafe", "safe")")
         ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
         ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
+        ("max-parallel-downloads", po::value<uint32_t>()->default_value(def_max_parallel_downloads),
+          "Maximum number of peers from which to ask for the same blocks in parallel."
+          "This allows downloading announced blocks from multiple peers. Decrease to save traffic and risk increased latency.")
         ;
 
     po::options_description development_desc("Additional options");
@@ -1606,6 +1609,9 @@ namespace kagome::application {
       runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
 
+    max_parallel_downloads_ =
+        find_argument<uint32_t>(vm, "max-parallel-downloads")
+            .value_or(def_max_parallel_downloads);
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

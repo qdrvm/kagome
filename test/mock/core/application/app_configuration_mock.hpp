@@ -199,6 +199,8 @@ namespace kagome::application {
                 precompileWasm,
                 (),
                 (const, override));
+
+    MOCK_METHOD(uint32_t, maxParallelDownloads, (), (const, override));
   };
 
 }  // namespace kagome::application
