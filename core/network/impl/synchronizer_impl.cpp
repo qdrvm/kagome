@@ -398,9 +398,9 @@ namespace kagome::network {
     }
 
     // Otherwise, is using base way to enqueue
-    auto res = true;
+    auto res = false;
     for (const auto &p_id : selected_peers) {
-      res &= syncByBlockInfo(
+      res |= syncByBlockInfo(
           block_info,
           p_id,
           [wp{weak_from_this()}](auto res) {
