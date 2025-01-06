@@ -669,8 +669,9 @@ namespace kagome::network {
 
       bool some_blocks_added = false;
       primitives::BlockInfo last_loaded_block;
-
-      for (auto &block : blocks) {
+      for (size_t i = 0; i < blocks.size(); ++i) {
+        const auto &block = blocks
+            [i];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         // Check if header is provided
         if (not block.header.has_value()) {
           SL_VERBOSE(self->log_,
@@ -684,7 +685,7 @@ namespace kagome::network {
           return;
         }
         auto &header = block.header.value();
-        {
+        if (i == 0) {
           std::unique_lock lock{self->load_blocks_mutex_};
           if (auto it =
                   self->load_blocks_.find(BlockInfo(header.number, block.hash));
@@ -813,8 +814,10 @@ namespace kagome::network {
                                           .peers = {peer_id},
                                       });
           self->metric_import_queue_length_->set(self->known_blocks_.size());
-          std::unique_lock lock{self->load_blocks_mutex_};
-          self->load_blocks_.erase(BlockInfo(header.number, block.hash));
+          if (i == 0) {
+            std::unique_lock lock{self->load_blocks_mutex_};
+            self->load_blocks_.erase(BlockInfo(header.number, block.hash));
+          }
         } else {
           it->second.peers.emplace(peer_id);
           SL_TRACE(self->log_,
