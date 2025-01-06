@@ -616,7 +616,7 @@ int storage_explorer_main(int argc, const char **argv) {
   auto configuration =
       std::make_shared<kagome::application::AppConfigurationImpl>();
 
-  size_t kagome_args_start;  // NOLINT(cppcoreguidelines-init-variables)
+  size_t kagome_args_start{};
   bool is_found = false;
   for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
