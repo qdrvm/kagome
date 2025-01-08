@@ -275,10 +275,11 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
-    std::optional<
-        const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
-        pending_catchup_request_;
-    libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
+    std::mutex peer_id_catcup_mutex_;
+    std::unordered_map<libp2p::peer::PeerId, network::CatchUpRequest>
+        pending_catchup_requests_;
+    std::unordered_map<libp2p::peer::PeerId, libp2p::basic::Scheduler::Handle>
+        catchup_request_timer_handles_;
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<WaitingBlock> waiting_blocks_;
