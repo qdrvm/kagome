@@ -79,6 +79,10 @@ namespace kagome::consensus::grandpa {
               const AuthoritySet &authorities) override;
 
    private:
+    /**
+     * Returns authorities for the given block.
+     * If `next` is true, then the next authorities are returned.
+     */
     outcome::result<std::shared_ptr<const AuthoritySet>> authoritiesOutcome(
         const primitives::BlockInfo &block, bool next) const;
     std::shared_ptr<AuthoritySet> applyDigests(

@@ -38,14 +38,18 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
 
+    // Register this instance with the app state manager
     app_state_manager.takeControl(*this);
   }
 
   void VerifiedJustificationQueue::start() {
+    // Get the current authority set
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
     }
+
+    // Set up a subscription to react to new head events
     chain_sub_.onHead([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
         self->possibleLoop();
@@ -55,35 +59,51 @@ namespace kagome::consensus::grandpa {
 
   void VerifiedJustificationQueue::addVerified(
       AuthoritySetId set, GrandpaJustification justification) {
+    // Schedule this method for execution in the main pool
     REINVOKE(*main_pool_handler_, addVerified, set, std::move(justification));
+
+    // If the set is less than expected, do nothing
     if (set < expected_) {
       return;
     }
+
+    // If the block is already finalized, do nothing
     if (justification.block_info.number
         <= block_tree_->getLastFinalized().number) {
       return;
     }
+
+    // Retrieve the block header
     auto block_res = block_tree_->getBlockHeader(justification.block_info.hash);
     if (not block_res) {
       return;
     }
     auto &block = block_res.value();
+
+    // Check for authority set changes in the block's digest
     consensus::grandpa::HasAuthoritySetChange digest{block};
     required_.erase(justification.block_info);
+
     auto ready = [&] {
+      // If no scheduled authority set change, finalize the justification
       if (not digest.scheduled) {
         finalize(std::nullopt, justification);
         return;
       }
+      // Finalize with the authority set and update loops
       finalize(set, justification);
       verifiedLoop();
       requiredLoop();
       possibleLoop();
     };
+
+    // If the set is the expected one, finalize immediately
     if (set == expected_) {
       ready();
       return;
     }
+
+    // Retrieve the parent block's authority set
     auto parent_res =
         authority_manager_->scheduledParent(justification.block_info);
     if (not parent_res) {
@@ -91,10 +111,14 @@ namespace kagome::consensus::grandpa {
     }
     auto &parent = parent_res.value();
     auto expected = parent.second + 1;
+
+    // If the expected set matches, finalize immediately
     if (expected == expected_) {
       ready();
       return;
     }
+
+    // Check for missing justifications in the parent chain
     while (parent.second >= expected_) {
       if (not verified_.contains(parent.second)) {
         if (required_.emplace(parent.first).second) {
@@ -110,6 +134,8 @@ namespace kagome::consensus::grandpa {
       }
       parent = parent_res.value();
     }
+
+    // Update required and possible loops
     requiredLoop();
     if (not digest.scheduled) {
       if (not last_
@@ -125,19 +151,23 @@ namespace kagome::consensus::grandpa {
   void VerifiedJustificationQueue::finalize(
       std::optional<AuthoritySetId> set,
       const consensus::grandpa::GrandpaJustification &justification) {
+    // Finalize the block in the block tree
     if (auto r = block_tree_->finalize(
             justification.block_info.hash,
             {common::Buffer{scale::encode(justification).value()}});
         not r) {
       return;
     }
+    // Update the expected authority set
     if (set) {
       expected_ = *set + 1;
     }
+    // Clear possible justifications
     possible_.clear();
   }
 
   void VerifiedJustificationQueue::verifiedLoop() {
+    // Process verified justifications
     while (not verified_.empty()) {
       auto &[set, p] = *verified_.begin();
       auto &[expected, justification] = p;
@@ -149,6 +179,7 @@ namespace kagome::consensus::grandpa {
       }
       verified_.erase(verified_.begin());
     }
+    // Process the last justification if it exists
     if (last_) {
       auto &[set, justification] = *last_;
       if (set < expected_) {
@@ -161,6 +192,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::requiredLoop() {
+    // Process required justifications
     if (fetching_ or required_.empty()) {
       return;
     }
@@ -180,6 +212,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::possibleLoop() {
+    // Process possible justifications
     if (fetching_ or not required_.empty()) {
       return;
     }
@@ -213,6 +246,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::rangeLoop() {
+    // Fetch justifications within a range
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
@@ -249,6 +283,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::warp() {
+    // Warp the queue to the current finalized state
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
@@ -257,6 +292,7 @@ namespace kagome::consensus::grandpa {
   }
 
   std::shared_ptr<void> VerifiedJustificationQueue::fetching() {
+    // Set the fetching state and return a shared pointer to reset it
     fetching_ = true;
     struct Fetching {
       Fetching(std::weak_ptr<VerifiedJustificationQueue> weak_self)
