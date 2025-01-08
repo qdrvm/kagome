@@ -64,6 +64,10 @@ namespace kagome::consensus::grandpa {
 
     // If the set is less than expected, do nothing
     if (set < expected_) {
+      SL_INFO(log_,
+              "received outdated justification for block {} set {}",
+              justification.block_info.hash,
+              set);
       return;
     }
 
@@ -214,9 +218,14 @@ namespace kagome::consensus::grandpa {
   void VerifiedJustificationQueue::possibleLoop() {
     // Process possible justifications
     if (fetching_ or not required_.empty()) {
+      SL_INFO(log_,
+              "Cannot process possible justifications: fetching or required is "
+              "not empty");
       return;
     }
     if (not verified_.empty() or last_) {
+      SL_INFO(log_,
+              "Cannot process possible justifications: verified is not empty");
       return;
     }
     if (possible_.empty()) {
