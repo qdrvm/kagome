@@ -216,6 +216,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::possibleLoop() {
+    // if difference between best and finalized block is larger than 30, reset fetching_
+    if (block_tree_->bestBlock().number - block_tree_->getLastFinalized().number
+        > 30) {
+      fetching_ = false;
+    }
     // Process possible justifications
     if (fetching_ or not required_.empty()) {
       SL_INFO(log_,
