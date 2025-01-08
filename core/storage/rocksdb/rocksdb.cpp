@@ -7,6 +7,9 @@
 #include "storage/rocksdb/rocksdb.hpp"
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
+#include <algorithm>
+#include <iterator>
+#include <ranges>
 
 #include "filesystem/common.hpp"
 
@@ -20,6 +23,38 @@
 namespace kagome::storage {
   namespace fs = std::filesystem;
 
+  rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget) {
+    rocksdb::ColumnFamilyOptions options;
+    options.OptimizeLevelStyleCompaction(memory_budget);
+    auto table_options = RocksDb::tableOptionsConfiguration();
+    options.table_factory.reset(NewBlockBasedTableFactory(table_options));
+    return options;
+  }
+
+  template <std::ranges::range ColumnFamilyNames>
+  void configureColumnFamilies(
+      std::vector<rocksdb::ColumnFamilyDescriptor> &column_family_descriptors,
+      std::vector<int32_t> &ttls,
+      ColumnFamilyNames &&cf_names,
+      const std::unordered_map<std::string, int32_t> &column_ttl,
+      uint32_t trie_space_cache_size,
+      uint32_t other_spaces_cache_size,
+      log::Logger &log) {
+    for (auto &space_name : std::forward<ColumnFamilyNames>(cf_names)) {
+      auto ttl = 0;
+      if (const auto it = column_ttl.find(space_name); it != column_ttl.end()) {
+        ttl = it->second;
+      }
+      column_family_descriptors.emplace_back(
+          space_name,
+          configureColumn(space_name != spaceName(Space::kTrieNode)
+                              ? other_spaces_cache_size
+                              : trie_space_cache_size));
+      ttls.push_back(ttl);
+      SL_DEBUG(log, "Column family {} configured with TTL {}", space_name, ttl);
+    }
+  }
+
   RocksDb::RocksDb() : logger_(log::createLogger("RocksDB", "storage")) {
     ro_.fill_cache = false;
   }
@@ -30,6 +65,7 @@ namespace kagome::storage {
     }
     delete db_;
   }
+
   outcome::result<std::shared_ptr<RocksDb>> RocksDb::create(
       const filesystem::path &path,
       rocksdb::Options options,
@@ -51,15 +87,6 @@ namespace kagome::storage {
     const uint32_t other_spaces_cache_size =
         (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
 
-    std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
-    std::vector<int32_t> ttls;
-    configureColumnFamilies(column_family_descriptors,
-                            ttls,
-                            column_ttl,
-                            trie_space_cache_size,
-                            other_spaces_cache_size,
-                            log);
-
     std::vector<std::string> existing_families;
     auto res = rocksdb::DB::ListColumnFamilies(
         options, path.native(), &existing_families);
@@ -70,6 +97,35 @@ namespace kagome::storage {
                res.ToString());
       return status_as_error(res);
     }
+
+    std::unordered_set<std::string> all_families;
+
+    auto required_families =
+        std::views::iota(0, Space::kTotal) | std::views::transform([](int i) {
+          return spaceName(static_cast<Space>(i));
+        });
+    std::ranges::copy(required_families,
+                      std::inserter(all_families, all_families.end()));
+
+    for (auto &existing_family : existing_families) {
+      auto [_, was_inserted] = all_families.insert(existing_family);
+      if (was_inserted) {
+        SL_WARN(log,
+                "Column family '{}' present in database but not used by "
+                "KAGOME, probably obsolete.",
+                existing_family);
+      }
+    }
+
+    std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
+    std::vector<int32_t> ttls;
+    configureColumnFamilies(column_family_descriptors,
+                            ttls,
+                            all_families,
+                            column_ttl,
+                            trie_space_cache_size,
+                            other_spaces_cache_size,
+                            log);
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
@@ -121,28 +177,6 @@ namespace kagome::storage {
       return DatabaseError::IO_ERROR;
     }
     return outcome::success();
-  }
-
-  void RocksDb::configureColumnFamilies(
-      std::vector<rocksdb::ColumnFamilyDescriptor> &column_family_descriptors,
-      std::vector<int32_t> &ttls,
-      const std::unordered_map<std::string, int32_t> &column_ttl,
-      uint32_t trie_space_cache_size,
-      uint32_t other_spaces_cache_size,
-      log::Logger &log) {
-    for (auto i = 0; i < Space::kTotal; ++i) {
-      const auto space_name = spaceName(static_cast<Space>(i));
-      auto ttl = 0;
-      if (const auto it = column_ttl.find(space_name); it != column_ttl.end()) {
-        ttl = it->second;
-      }
-      column_family_descriptors.emplace_back(
-          space_name,
-          configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
-                                                : trie_space_cache_size));
-      ttls.push_back(ttl);
-      SL_DEBUG(log, "Column family {} configured with TTL {}", space_name, ttl);
-    }
   }
 
   outcome::result<void> RocksDb::openDatabaseWithTTL(
@@ -354,15 +388,6 @@ namespace kagome::storage {
     table_options.cache_index_and_filter_blocks = true;
     table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
     return table_options;
-  }
-
-  rocksdb::ColumnFamilyOptions RocksDb::configureColumn(
-      uint32_t memory_budget) {
-    rocksdb::ColumnFamilyOptions options;
-    options.OptimizeLevelStyleCompaction(memory_budget);
-    auto table_options = tableOptionsConfiguration();
-    options.table_factory.reset(NewBlockBasedTableFactory(table_options));
-    return options;
   }
 
   RocksDb::DatabaseGuard::DatabaseGuard(
