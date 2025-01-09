@@ -340,9 +340,6 @@ namespace kagome::parachain {
         network::IPeerView::EventType::kViewUpdated,
         [WEAK_SELF](const network::ExView &event) {
           WEAK_LOCK(self);
-          for (const auto &l : self->block_tree_->getLeaves()) {
-            SL_TRACE(self->logger_, "EXISTED LEAF IN TRIE {}", l);
-          }
           self->onViewUpdated(event);
         });
 
@@ -2505,6 +2502,7 @@ namespace kagome::parachain {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
+    std::cout << "11111111111111111111111\n";
     pvf_->pvf(
         candidate,
         pov,

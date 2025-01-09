@@ -478,8 +478,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
           .WillRepeatedly(Return(si));
 
       EXPECT_CALL(*parachain_host_,
-                  node_features(hash, test_state.signing_context.session_index))
-          .WillRepeatedly(Return(runtime::ParachainHost::NodeFeatures()));
+                  node_features(hash))
+          .WillRepeatedly(Return(runtime::NodeFeatures()));
 
       EXPECT_CALL(
           *parachain_host_,
@@ -582,11 +582,11 @@ class BackingTest : public ProspectiveParachainsTestHarness {
               network::CandidateDescriptor{
                   .para_id = para_id,
                   .relay_parent = relay_parent,
-                  .collator_id = {},
+                  .reserved_1 = {},
                   .persisted_data_hash = persisted_validation_data_hash,
                   .pov_hash = pov_hash,
                   .erasure_encoding_root = erasure_root,
-                  .signature = {},
+                  .reserved_2 = {},
                   .para_head_hash = hash_of(hasher, head_data),
                   .validation_code_hash = hash_of(
                       hasher, kagome::runtime::ValidationCode(validation_code)),
