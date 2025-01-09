@@ -739,13 +739,13 @@ namespace {
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
             bind_by_lambda<blockchain::BlockTree>(
-                [](const auto &injector) {
-                  return get_block_tree(injector);
-                }),
+              [](const auto &injector) {
+                return get_block_tree(injector);
+              }),
             bind_by_lambda<blockchain::BlockHeaderRepository>(
-                [](const auto &injector) {
-                  return get_block_tree(injector);
-                }),
+              [](const auto &injector) {
+                return injector.template create<sptr<blockchain::BlockTree>>();
+              }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -963,7 +963,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
