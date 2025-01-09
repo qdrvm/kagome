@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "testutil/storage/in_memory/in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 
 #include "storage/database_error.hpp"
-#include "testutil/storage/in_memory/cursor.hpp"
-#include "testutil/storage/in_memory/in_memory_batch.hpp"
+#include "storage/in_memory/cursor.hpp"
+#include "storage/in_memory/in_memory_batch.hpp"
 
 using kagome::common::Buffer;
 
@@ -68,9 +68,5 @@ namespace kagome::storage {
 
   std::optional<size_t> InMemoryStorage::byteSizeHint() const {
     return size_;
-  }
-
-  std::unique_ptr<BufferSpacedBatch> InMemorySpacedStorage::createBatch() {
-    return std::make_unique<InMemorySpacedBatch>(*this);
   }
 }  // namespace kagome::storage

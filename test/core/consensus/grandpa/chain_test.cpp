@@ -12,7 +12,6 @@
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
@@ -32,8 +31,6 @@
 
 using kagome::Watchdog;
 using kagome::application::StartApp;
-using kagome::blockchain::BlockHeaderRepository;
-using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
@@ -80,7 +77,6 @@ class ChainTest : public testing::Test {
     chain = std::make_shared<EnvironmentImpl>(
         app_state_manager,
         tree,
-        header_repo,
         authority_manager,
         grandpa_transmitter,
         approved_ancestor,
@@ -119,7 +115,7 @@ class ChainTest : public testing::Test {
       BlockHeader hh;
       hh.number = number;
       hh.parent_hash = parent;
-      EXPECT_CALL(*header_repo, getBlockHeader(hash))
+      EXPECT_CALL(*tree, getBlockHeader(hash))
           .WillRepeatedly(Return(hh));
     };
 
@@ -138,8 +134,6 @@ class ChainTest : public testing::Test {
   }
 
   std::shared_ptr<BlockTreeMock> tree = std::make_shared<BlockTreeMock>();
-  std::shared_ptr<BlockHeaderRepositoryMock> header_repo =
-      std::make_shared<BlockHeaderRepositoryMock>();
   std::shared_ptr<AuthorityManagerMock> authority_manager =
       std::make_shared<AuthorityManagerMock>();
   std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =

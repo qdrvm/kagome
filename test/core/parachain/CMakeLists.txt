@@ -45,6 +45,19 @@ target_link_libraries(backing_test
     logger
     )
 
+addtest(candidates_test
+    candidates.cpp
+    )
+
+target_link_libraries(candidates_test
+    prospective_parachains
+    validator_parachain
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(fragment_chain_test
     fragment_chain.cpp
     )

@@ -12,7 +12,6 @@
 
 #include "clock/clock.hpp"
 #include "network/dispute_request_observer.hpp"
-#include "runtime/runtime_upgrade_tracker.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace soralog {
@@ -159,8 +158,6 @@ namespace kagome::injector {
     std::shared_ptr<storage::SpacedStorage> injectStorage();
     std::shared_ptr<authority_discovery::AddressPublisher>
     injectAddressPublisher();
-    std::shared_ptr<runtime::RuntimeUpgradeTracker>
-    injectRuntimeUpgradeTracker();
     void kademliaRandomWalk();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>

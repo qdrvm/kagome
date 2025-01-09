@@ -39,7 +39,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-      LazySPtr<network::ValidationProtocol> validation_protocol,
+      LazySPtr<network::ValidationProtocolReserve> validation_protocol,
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<AudiStore> audi_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
@@ -344,7 +344,7 @@ namespace kagome::authority_discovery {
         authority,
         AuthorityPeerInfo{
             .raw = std::move(signed_record_pb),
-            .time = time.has_value() ? std::make_optional<TimestampScale>(*time)
+            .time = time.has_value() ? std::make_optional(TimestampScale{*time})
                                      : std::nullopt,
             .peer = peer,
         });

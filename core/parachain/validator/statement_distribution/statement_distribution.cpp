@@ -1073,12 +1073,12 @@ namespace kagome::parachain::statement_distribution {
         parachain_state->get().disabled_bitmask(*group);
     const network::vstaging::AttestedCandidateResponse &response = r.value();
     SL_DEBUG(logger,
-            "Fetch attested candidate success. (relay parent={}, "
-            "candidate={}, group index={}, statements={})",
-            relay_parent,
-            candidate_hash,
-            group_index,
-            response.statements.size());
+             "Fetch attested candidate success. (relay parent={}, "
+             "candidate={}, group index={}, statements={})",
+             relay_parent,
+             candidate_hash,
+             group_index,
+             response.statements.size());
 
     if (not validate(parachain_state->get(), candidate_hash, response)) {
       SL_WARN(logger,

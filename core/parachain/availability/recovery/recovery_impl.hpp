@@ -30,7 +30,8 @@ namespace kagome::blockchain {
 
 namespace kagome::crypto {
   class Hasher;
-}
+  class SessionKeys;
+}  // namespace kagome::crypto
 
 namespace kagome::network {
   class PeerManager;
@@ -56,7 +57,8 @@ namespace kagome::parachain {
                  std::shared_ptr<AvailabilityStore> av_store,
                  std::shared_ptr<authority_discovery::Query> query_audi,
                  std::shared_ptr<network::Router> router,
-                 std::shared_ptr<network::PeerManager> pm);
+                 std::shared_ptr<network::PeerManager> pm,
+                 std::shared_ptr<crypto::SessionKeys> session_keys);
 
     void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
@@ -134,6 +136,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> pm_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
 
     std::mutex mutex_;
     std::default_random_engine random_;

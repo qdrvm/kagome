@@ -62,6 +62,7 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
+        CMAKE_CXX_FLAGS=-Wno-error=maybe-uninitialized
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -105,7 +106,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.28
+    URL  https://github.com/libp2p/cpp-libp2p/archive/c3e6cce18335c989c9bbf3485885630a6ba463e4.zip
+    SHA1 32698ef4c3d373a39f87e7acb60eb7dc39399653
 )
 
 hunter_config(
@@ -115,7 +117,7 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-    VERSION 0.0.8
+    VERSION 0.0.9
     KEEP_PACKAGE_SOURCES
 )
 

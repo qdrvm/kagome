@@ -15,25 +15,24 @@ namespace kagome::storage::trie {
 
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    TrieStorageBackendImpl(std::shared_ptr<SpacedStorage> db)
-        : db_{std::move(db)} {
-      BOOST_ASSERT(db_ != nullptr);
-    }
+    TrieStorageBackendImpl(std::shared_ptr<SpacedStorage> storage);
 
-    BufferStorage &nodes() override {
-      return *db_->getSpace(Space::kTrieNode);
-    }
+    ~TrieStorageBackendImpl() override = default;
 
-    BufferStorage &values() override {
-      return *db_->getSpace(Space::kTrieValue);
-    }
+    std::unique_ptr<Cursor> cursor() override;
+    std::unique_ptr<BufferBatch> batch() override;
 
-    std::unique_ptr<BufferSpacedBatch> batch() override {
-      return db_->createBatch();
-    }
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
+        const BufferView &key) const override;
+    outcome::result<bool> contains(const BufferView &key) const override;
+
+    outcome::result<void> put(const BufferView &key,
+                              BufferOrView &&value) override;
+    outcome::result<void> remove(const common::BufferView &key) override;
 
    private:
-    std::shared_ptr<SpacedStorage> db_;
+    std::shared_ptr<BufferStorage> storage_;
   };
 
 }  // namespace kagome::storage::trie
