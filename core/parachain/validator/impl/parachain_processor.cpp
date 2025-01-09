@@ -2472,7 +2472,8 @@ namespace kagome::parachain {
       const network::CandidateReceipt &candidate,
       const network::ParachainBlock &pov,
       const runtime::PersistedValidationData &pvd,
-      const primitives::BlockHash &relay_parent) {
+      const primitives::BlockHash &) {
+    const auto relay_parent = candidate.descriptor.relay_parent;
     // REINVOKE(*main_pool_handler_,
     //          validateAsync<kMode>,
     //           kMode,

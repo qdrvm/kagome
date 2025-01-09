@@ -48,12 +48,26 @@ namespace kagome::parachain {
                 (const network::ExViewRef &),
                 (override));
 
+    std::vector<std::pair<HypotheticalCandidate,
+                                       fragment::HypotheticalMembership>> answer_hypothetical_membership_request
+                (const std::span<const HypotheticalCandidate> &candidates,
+                 const std::optional<std::reference_wrapper<const Hash>> &fragment_tree_relay_parent) override {
+                  IProspectiveParachains::HypotheticalMembershipRequest request;
+                  for (const auto &c : candidates) {
+                    request.candidates.emplace_back(c);
+                  }
+                  if (fragment_tree_relay_parent) {
+                    request.fragment_chain_relay_parent = fragment_tree_relay_parent->get();
+                  }
+                  std::cout << "11111111111111111111111111111111111111111111112222\n";
+                  return answer_hypothetical_membership_request(request);
+                 }
+
     MOCK_METHOD((std::vector<std::pair<HypotheticalCandidate,
                                        fragment::HypotheticalMembership>>),
                 answer_hypothetical_membership_request,
-                (const std::span<const HypotheticalCandidate> &,
-                 const std::optional<std::reference_wrapper<const Hash>> &),
-                (override));
+                (const IProspectiveParachains::HypotheticalMembershipRequest &),
+                ());
 
     MOCK_METHOD(void,
                 candidate_backed,

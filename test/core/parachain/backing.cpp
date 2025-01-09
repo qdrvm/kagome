@@ -8,6 +8,7 @@
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
+#include "utils/map.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -540,6 +541,31 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   void assert_validation_requests(
       const runtime::ValidationCode &validation_code) {}
 
+
+void assert_hypothetical_membership_requests(std::vector<std::pair<IProspectiveParachains::HypotheticalMembershipRequest, std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>>> expected_requests) {
+    for (const auto &[request, candidates_membership] : expected_requests) {
+        //std::cout << fmt::format("-> {}", *request.fragment_chain_relay_parent);
+        EXPECT_CALL(*prospective_parachains_, answer_hypothetical_membership_request(request)) //request.candidates, ref
+            .WillOnce(Return(candidates_membership));
+
+    }
+    // std::vector<
+    //     std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
+    // answer_hypothetical_membership_request(
+    //     const std::span<const HypotheticalCandidate> &candidates,
+    //     const std::optional<std::reference_wrapper<const Hash>>
+    //         &fragment_tree_relay_parent) override;
+
+}
+
+std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>> make_hypothetical_membership_response(
+	const HypotheticalCandidate &hypothetical_candidate,
+	const Hash &relay_parent_hash
+) {
+	return {{hypothetical_candidate, {relay_parent_hash}}};
+}
+
+
   void assert_validate_seconded_candidate(
       const Hash &relay_parent,
       const network::CommittedCandidateReceipt &candidate,
@@ -564,6 +590,84 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       //   }
       //);
     }  //
+
+    const std::pair<network::CandidateCommitments, runtime::PersistedValidationData> pvf_result{
+				network::CandidateCommitments {
+					.upward_msgs = {},
+					.outbound_hor_msgs = {},
+					.opt_para_runtime = std::nullopt,
+					.para_head = expected_head_data,
+					.downward_msgs_count = 0,
+					.watermark = 0,
+				},
+				assert_pvd
+    };
+    EXPECT_CALL(*pvf_, call_pvf(candidate.to_plain(*hasher_), assert_pov, assert_pvd))
+        .WillRepeatedly(Return(pvf_result));
+
+    EXPECT_CALL(*av_store_, storeData(testing::_, network::candidateHash(*hasher_, candidate), testing::_, assert_pov, assert_pvd))
+        .WillRepeatedly(Return());
+    
+    //     MOCK_METHOD(void,
+    //             storeData,
+    //             (const network::RelayHash &,
+    //              const CandidateHash &,
+    //              std::vector<ErasureChunk> &&,
+    //              const ParachainBlock &,
+    //              const PersistedValidationData &),
+    //             (override));
+
+
+	// assert_matches!(
+	// 	virtual_overseer.recv().await,
+	// 	AllMessages::AvailabilityStore(
+	// 		AvailabilityStoreMessage::StoreAvailableData { candidate_hash, tx, .. }
+	// 	) if candidate_hash == candidate.hash() => {
+	// 		tx.send(Ok(())).unwrap();
+	// 	}
+	// );
+
+
+    // MOCK_METHOD(Result,
+    //             call_pvf,
+    //             (const CandidateReceipt &,
+    //              const ParachainBlock &,
+    //              const runtime::PersistedValidationData &),
+    //             (const));
+
+
+	// assert_matches!(
+	// 	virtual_overseer.recv().await,
+	// 	AllMessages::CandidateValidation(CandidateValidationMessage::ValidateFromExhaustive {
+	// 		validation_data,
+	// 		validation_code,
+	// 		candidate_receipt,
+	// 		pov,
+	// 		exec_kind,
+	// 		response_sender,
+	// 		..
+	// 	}) if &validation_data == assert_pvd &&
+	// 		&validation_code == assert_validation_code &&
+	// 		&*pov == assert_pov &&
+	// 		&candidate_receipt.descriptor == candidate.descriptor() &&
+	// 		exec_kind == PvfExecKind::Backing &&
+	// 		candidate.commitments.hash() == candidate_receipt.commitments_hash =>
+	// 	{
+	// 		response_sender.send(Ok(ValidationResult::Valid(
+	// 			CandidateCommitments {
+	// 				head_data: expected_head_data.clone(),
+	// 				horizontal_messages: Default::default(),
+	// 				upward_messages: Default::default(),
+	// 				new_validation_code: None,
+	// 				processed_downward_messages: 0,
+	// 				hrmp_watermark: 0,
+	// 			},
+	// 			assert_pvd.clone(),
+	// 		)))
+	// 		.unwrap();
+	// 	}
+	// );
+
   }
 
   struct TestCandidateBuilder {
@@ -661,9 +765,6 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
       }
           .build(*hasher_);
 
-  parachain_processor_->handle_second_message(
-      candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
-
   assert_validate_seconded_candidate(leaf_a_parent,
                                      candidate,
                                      pov,
@@ -672,4 +773,91 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
                                      expected_head_data,
                                      false);
 
+		// `seconding_sanity_check`
+		const HypotheticalCandidateComplete hypothetical_candidate{
+			.candidate_hash =  network::candidateHash(*hasher_, candidate),
+			.receipt =  candidate,
+			.persisted_validation_data = pvd,
+		};
+		const IProspectiveParachains::HypotheticalMembershipRequest expected_request_a {
+			.candidates = {hypothetical_candidate},
+			.fragment_chain_relay_parent = leaf_a_hash,
+		};
+		const auto expected_response_a =
+			make_hypothetical_membership_response(hypothetical_candidate, leaf_a_hash);
+
+		const IProspectiveParachains::HypotheticalMembershipRequest expected_request_b {
+			.candidates = {hypothetical_candidate},
+			.fragment_chain_relay_parent = leaf_b_hash,
+		};
+		const auto expected_response_b =
+			make_hypothetical_membership_response(hypothetical_candidate, leaf_b_hash);
+
+		assert_hypothetical_membership_requests(
+			{
+				{expected_request_a, expected_response_a},
+				{expected_request_b, expected_response_b}
+            }
+		);
+
+        network::Statement statement {
+              network::CandidateState{network::CommittedCandidateReceipt{
+                  .descriptor = candidate.descriptor,
+                  .commitments = network::CandidateCommitments {
+					.upward_msgs = {},
+					.outbound_hor_msgs = {},
+					.opt_para_runtime = std::nullopt,
+					.para_head = expected_head_data,
+					.downward_msgs_count = 0,
+					.watermark = 0,
+				},
+                }}};
+
+        IndexedAndSigned<network::Statement> signed_statement {
+            .payload = {
+                .payload = statement,
+                .ix = 0,
+            },
+            .signature = {},
+        };
+
+        EXPECT_CALL(*signer_, sign(statement))
+            .WillOnce(Return(signed_statement));
+        
+        EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, network::candidateHash(*hasher_, candidate))) //request.candidates, ref
+            .WillOnce(Return(true));
+
+        EXPECT_CALL(*statement_distribution_, share_local_statement(leaf_a_parent, testing::_))
+            .WillOnce(Return());
+            
+
+    // virtual bool introduce_seconded_candidate(
+        // ParachainId para,
+        // const network::CommittedCandidateReceipt &candidate,
+        // const crypto::Hashed<runtime::PersistedValidationData,
+                            //  32,
+                            //  crypto::Blake2b_StreamHasher<32>> &pvd,
+        // const CandidateHash &candidate_hash) = 0;
+
+
+		// assert_matches!(
+		// 	virtual_overseer.recv().await,
+		// 	AllMessages::ProspectiveParachains(
+		// 		ProspectiveParachainsMessage::IntroduceSecondedCandidate(
+		// 			req,
+		// 			tx,
+		// 		),
+		// 	) if
+		// 		req.candidate_receipt == candidate
+		// 		&& req.candidate_para == para_id
+		// 		&& pvd == req.persisted_validation_data => {
+		// 		tx.send(true).unwrap();
+		// 	}
+		// );
+
+
+
+
+  parachain_processor_->handle_second_message(
+      candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
