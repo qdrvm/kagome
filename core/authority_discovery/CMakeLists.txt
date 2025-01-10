@@ -15,6 +15,7 @@ add_library(address_publisher
 target_link_libraries(address_publisher
     authority_discovery_proto
     logger
+    metrics
     p2p::p2p_kademlia
     scale_libp2p_types
     sha
