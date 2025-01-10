@@ -2409,13 +2409,14 @@ namespace kagome::parachain {
       network::CandidateReceipt candidate,
       network::ParachainBlock &&pov,
       runtime::PersistedValidationData &&pvd,
-      const primitives::BlockHash &relay_parent) {
+      const primitives::BlockHash &_relay_parent) {
     REINVOKE(*main_pool_handler_,
              validateAsync<kMode>,
              candidate,
              std::move(pov),
              std::move(pvd),
-             relay_parent);
+             _relay_parent);
+    const auto relay_parent = candidate.descriptor.relay_parent;             
 
     TRY_GET_OR_RET(parachain_state,
                    tryGetStateByRelayParent(candidate.descriptor.relay_parent));
