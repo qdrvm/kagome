@@ -621,7 +621,18 @@ namespace kagome::network {
       if (not self) {
         return;
       }
-
+      {
+        std::unique_lock lock{self->load_blocks_mutex_};
+        if (auto it = self->load_blocks_.find(from);
+            it != self->load_blocks_.end()) {
+          auto &requests_number = it->second;
+          if (requests_number > 1) {
+            --requests_number;
+          } else {
+            self->load_blocks_.erase(it);
+          }
+        }
+      }
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {
         SL_VERBOSE(self->log_,
@@ -685,23 +696,9 @@ namespace kagome::network {
           return;
         }
         auto &header = block.header.value();
-        if (first_block_of_pack) {
-          std::unique_lock lock{self->load_blocks_mutex_};
-          if (auto it =
-                  self->load_blocks_.find(BlockInfo(header.number, block.hash));
-              it != self->load_blocks_.end()) {
-            auto &requests_number = it->second;
-            if (requests_number > 1) {
-              --requests_number;
-            } else {
-              self->load_blocks_.erase(it);
-            }
-          }
-        }
 
         // Check if body is provided
-        if (need_body and block.header->number != 0
-            and not block.body.has_value()) {
+        if (need_body and header.number != 0 and not block.body.has_value()) {
           SL_VERBOSE(self->log_,
                      "Can't load blocks from {} starting from block {}: "
                      "Received block without body",
