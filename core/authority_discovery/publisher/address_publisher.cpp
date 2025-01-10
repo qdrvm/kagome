@@ -149,21 +149,21 @@ namespace kagome::authority_discovery {
       OUTCOME_TRY(address2, libp2p::multi::Multiaddress::create(s));
       addresses.emplace(std::move(address2));
     }
-    ::authority_discovery_v3::AuthorityRecord record;
+    ::authority_discovery_v2::AuthorityRecord record;
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
-    if (now) {
-      TimestampScale time{now->count()};
-      OUTCOME_TRY(encoded_time, scale::encode(time));
-      PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
-    }
+    // if (now) {
+    //   TimestampScale time{now->count()};
+    //   OUTCOME_TRY(encoded_time, scale::encode(time));
+    //   PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
+    // }
 
     auto record_pb = pbEncodeVec(record);
     OUTCOME_TRY(signature, ed_crypto_provider->sign(libp2p_key, record_pb));
     OUTCOME_TRY(auth_signature, sr_crypto_provider->sign(audi_key, record_pb));
 
-    ::authority_discovery_v3::SignedAuthorityRecord signed_record;
+    ::authority_discovery_v2::SignedAuthorityRecord signed_record;
     PB_SPAN_SET(signed_record, auth_signature, auth_signature);
     PB_SPAN_SET(signed_record, record, record_pb);
     auto &ps = *signed_record.mutable_peer_signature();
