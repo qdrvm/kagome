@@ -7,14 +7,10 @@
 #pragma once
 
 #include <rocksdb/status.h>
-#include <qtils/outcome.hpp>
-
 #include "common/buffer.hpp"
-#include "log/logger.hpp"
 #include "storage/database_error.hpp"
 
 namespace kagome::storage {
-
   inline DatabaseError status_as_error(const rocksdb::Status &s) {
     if (s.IsNotFound()) {
       return DatabaseError::NOT_FOUND;
@@ -39,13 +35,6 @@ namespace kagome::storage {
     }
 
     return DatabaseError::UNKNOWN;
-  }
-
-  inline outcome::result<void> status_as_result(const rocksdb::Status &s) {
-    if (s.ok()) {
-      return outcome::success();
-    }
-    return status_as_error(s);
   }
 
   inline rocksdb::Slice make_slice(const common::BufferView &buf) {

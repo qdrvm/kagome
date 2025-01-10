@@ -9,6 +9,7 @@
 #include <filesystem>
 
 #include "common/buffer.hpp"
+#include "parachain/pvf/secure_mode_precheck.hpp"
 #include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
 #include "scale/std_variant.hpp"
@@ -31,12 +32,13 @@ namespace kagome::parachain {
       const application::AppConfiguration &app_config);
 
   struct PvfWorkerInputConfig {
-    SCALE_TIE(4);
+    SCALE_TIE(5);
 
     RuntimeEngine engine;
     std::string cache_dir;
     std::vector<std::string> log_params;
     bool force_disable_secure_mode;
+    SecureModeSupport secure_mode_support;
   };
 
   struct PvfWorkerInputCodeParams {
