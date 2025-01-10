@@ -388,11 +388,27 @@ namespace kagome::network {
 
     if (parent_is_known) {
       for (const auto &p_id : selected_peers) {
-        loadBlocks(p_id, block_info, [wp{weak_from_this()}](auto res) {
-          if (auto self = wp.lock()) {
-            SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
-          }
-        });
+        loadBlocks(
+            p_id,
+            block_info,
+            [wp{weak_from_this()}, p_id, block_info](auto res) {
+              if (auto self = wp.lock()) {
+                if (res.has_error()) {
+                  SL_DEBUG(
+                      self->log_,
+                      "Can't load blocks starting from {} from peer {}: {}",
+                      block_info,
+                      p_id,
+                      res.error());
+                } else {
+                  SL_TRACE(self->log_,
+                           "Block(s) from {} enqueued to load by announce from "
+                           "peer {}",
+                           block_info,
+                           p_id);
+                }
+              }
+            });
       }
       return true;
     }
