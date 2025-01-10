@@ -35,6 +35,20 @@ namespace kagome::metrics {
     metrics::Gauge *metric_;
   };
 
+  struct CounterHelper {
+    CounterHelper(const std::string &name, const std::string &help) {
+      registry_->registerCounterFamily(name, help);
+      metric_ = registry_->registerCounterMetric(name);
+    }
+
+    auto *operator->() const {
+      return metric_;
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Counter *metric_;
+  };
+
   struct HistogramHelper {
     HistogramHelper(const std::string &name,
                     const std::string &help,
