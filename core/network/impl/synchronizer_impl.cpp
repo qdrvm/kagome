@@ -123,7 +123,9 @@ namespace kagome::network {
         chain_sub_engine_(std::move(chain_sub_engine)),
         main_pool_handler_{
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
-        block_storage_{std::move(block_storage)} {
+        block_storage_{std::move(block_storage)},
+        max_parallel_downloads_{app_config.maxParallelDownloads()},
+        random_gen_{std::random_device{}()} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -138,8 +140,6 @@ namespace kagome::network {
     BOOST_ASSERT(block_storage_);
 
     sync_method_ = app_config.syncMethod();
-    max_parallel_downloads_ = app_config.maxParallelDownloads();
-    random_gen_ = std::mt19937(std::random_device{}());
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
