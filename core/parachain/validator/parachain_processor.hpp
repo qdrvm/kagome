@@ -856,12 +856,57 @@ namespace kagome::parachain {
     std::shared_ptr<PoolHandler> main_pool_handler_;
 
    public:
-    template <typename... Args>
     ThreadedParachainProcessorImpl(
         application::AppStateManager &app_state_manager,
         common::MainThreadPool &main_thread_pool,
-        Args &&...args)
-        : ParachainProcessorImpl(std::forward<Args>(args)...),
+        std::shared_ptr<network::PeerManager> pm,
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+        std::shared_ptr<network::Router> router,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<network::IPeerView> peer_view,
+        std::shared_ptr<parachain::IBitfieldSigner> bitfield_signer,
+        std::shared_ptr<parachain::IPvfPrecheck> pvf_precheck,
+        std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+        std::shared_ptr<parachain::BackingStore> backing_store,
+        std::shared_ptr<parachain::Pvf> pvf,
+        std::shared_ptr<parachain::AvailabilityStore> av_store,
+        std::shared_ptr<runtime::ParachainHost> parachain_host,
+        std::shared_ptr<parachain::IValidatorSignerFactory> signer_factory,
+        const application::AppConfiguration &app_config,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        primitives::events::SyncStateSubscriptionEnginePtr sync_state_observable,
+        std::shared_ptr<authority_discovery::Query> query_audi,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<consensus::SlotsUtil> slots_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<statement_distribution::IStatementDistribution> statement_distribution        
+        )
+        : ParachainProcessorImpl(
+        std::move(pm),
+        std::move(crypto_provider),
+        std::move(router),
+        std::move(hasher),
+        std::move(peer_view),
+        std::move(bitfield_signer),
+        std::move(pvf_precheck),
+        std::move(bitfield_store),
+        std::move(backing_store),
+        std::move(pvf),
+        std::move(av_store),
+        std::move(parachain_host),
+        std::move(signer_factory),
+        app_config,
+        app_state_manager,
+        std::move(chain_sub_engine),
+        std::move(sync_state_observable),
+        std::move(query_audi),
+        std::move(prospective_parachains),
+        std::move(block_tree),
+        slots_util,
+        std::move(babe_config_repo),
+        std::move(statement_distribution)        
+        ),
           main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
       app_state_manager.takeControl(*this);
     }
