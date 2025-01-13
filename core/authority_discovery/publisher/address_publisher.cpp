@@ -24,8 +24,8 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 }
 
 namespace kagome::authority_discovery {
-  constexpr std::chrono::seconds kIntervalInitial{2};
-  constexpr std::chrono::hours kIntervalMax{1};
+  constexpr std::chrono::seconds kIntervalInitial{30};
+  constexpr std::chrono::seconds kIntervalMax{60};
 
   AddressPublisher::AddressPublisher(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
@@ -117,15 +117,41 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    OUTCOME_TRY(
-        raw,
-        audiEncode(ed_crypto_provider_,
-                   sr_crypto_provider_,
-                   *libp2p_key_,
-                   *libp2p_key_pb_,
-                   peer_info,
-                   *audi_key,
-                   std::chrono::system_clock::now().time_since_epoch()));
+    auto now = std::chrono::system_clock::now().time_since_epoch();
+    static std::optional<decltype(now)> last_time;
+    static std::optional<std::pair<Buffer, Buffer>> last_raw;
+
+    static std::pair<Buffer, Buffer> raw;
+
+    if (last_time) {
+      auto interval = now - *last_time;
+      if (interval < std::chrono::hours(1)) {
+        assert(last_raw);
+        raw = *last_raw;
+      }
+    } else {
+      last_time = now;
+      raw = audiEncode(ed_crypto_provider_,
+                       sr_crypto_provider_,
+                       *libp2p_key_,
+                       *libp2p_key_pb_,
+                       peer_info,
+                       *audi_key,
+                       now)
+                .value();
+      last_raw = raw;
+    }
+
+    std::string peer_addresses;
+    for (const auto &address : peer_info.addresses) {
+      peer_addresses.append(address.getStringAddress());
+      peer_addresses.append(" ");
+    }
+    SL_DEBUG(log_,
+             "Publishing addresses {} with created time {}",
+             peer_addresses,
+             now.count());
+
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
 
