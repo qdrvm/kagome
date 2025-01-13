@@ -800,8 +800,7 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
             }
 		);
 
-        network::Statement statement {
-              network::CandidateState{network::CommittedCandidateReceipt{
+        const network::CommittedCandidateReceipt receipt{
                   .descriptor = candidate.descriptor,
                   .commitments = network::CandidateCommitments {
 					.upward_msgs = {},
@@ -811,7 +810,9 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
 					.downward_msgs_count = 0,
 					.watermark = 0,
 				},
-                }}};
+                };
+        network::Statement statement {
+              network::CandidateState{receipt}};
 
         IndexedAndSigned<network::Statement> signed_statement {
             .payload = {
@@ -823,40 +824,30 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
 
         EXPECT_CALL(*signer_, sign(statement))
             .WillOnce(Return(signed_statement));
-        
-        EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, network::candidateHash(*hasher_, candidate))) //request.candidates, ref
+
+        const auto candidate_hash = network::candidateHash(*hasher_, candidate);        
+        EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, candidate_hash)) //request.candidates, ref
             .WillOnce(Return(true));
 
         EXPECT_CALL(*statement_distribution_, share_local_statement(leaf_a_parent, testing::_))
             .WillOnce(Return());
-            
 
-    // virtual bool introduce_seconded_candidate(
-        // ParachainId para,
-        // const network::CommittedCandidateReceipt &candidate,
-        // const crypto::Hashed<runtime::PersistedValidationData,
-                            //  32,
-                            //  crypto::Blake2b_StreamHasher<32>> &pvd,
-        // const CandidateHash &candidate_hash) = 0;
+        BackingStore::ImportResult import_result {
+            .candidate = candidate_hash,
+            .group_id = 0,
+            .validity_votes = 1,
+        };
 
+        EXPECT_CALL(*backing_store_, put(leaf_a_parent, testing::_, testing::_, signed_statement, testing::_))
+            .WillOnce(Return(import_result));
 
-		// assert_matches!(
-		// 	virtual_overseer.recv().await,
-		// 	AllMessages::ProspectiveParachains(
-		// 		ProspectiveParachainsMessage::IntroduceSecondedCandidate(
-		// 			req,
-		// 			tx,
-		// 		),
-		// 	) if
-		// 		req.candidate_receipt == candidate
-		// 		&& req.candidate_para == para_id
-		// 		&& pvd == req.persisted_validation_data => {
-		// 		tx.send(true).unwrap();
-		// 	}
-		// );
-
-
-
+        BackingStore::StatementInfo stmt_info {
+            .group_id = 0,
+            .candidate = receipt,
+            .validity_votes = {{0, BackingStore::ValidityVoteIssued{}}},
+        };
+        EXPECT_CALL(*backing_store_, getCadidateInfo(leaf_a_parent, candidate_hash))
+            .WillOnce(Return(std::cref(stmt_info)));
 
   parachain_processor_->handle_second_message(
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);

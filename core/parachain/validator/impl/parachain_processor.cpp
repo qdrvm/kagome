@@ -527,7 +527,6 @@ namespace kagome::parachain {
   ParachainProcessorImpl::construct_per_relay_parent_state(
       const primitives::BlockHash &relay_parent,
       const ProspectiveParachainsModeOpt &mode) {
-    std::cout << fmt::format("===> CONSTRUCT RELAY PARENT {}\n", relay_parent);
     /**
      * It first checks if our node is a parachain validator for the relay
      * parent. If it is not, it returns an error. If the node is a validator, it
@@ -2500,7 +2499,6 @@ namespace kagome::parachain {
     /// TODO(iceseer): do https://github.com/qdrvm/kagome/issues/1888
     /// checks if we still need to execute parachain task
     auto _measure = std::make_shared<TicToc>("Parachain validation", logger_);
-    std::cout << "11111111111111111111111\n";
     pvf_->pvf(
         candidate,
         pov,

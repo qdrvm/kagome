@@ -59,7 +59,6 @@ namespace kagome::parachain {
                   if (fragment_tree_relay_parent) {
                     request.fragment_chain_relay_parent = fragment_tree_relay_parent->get();
                   }
-                  std::cout << "11111111111111111111111111111111111111111111112222\n";
                   return answer_hypothetical_membership_request(request);
                  }
 
