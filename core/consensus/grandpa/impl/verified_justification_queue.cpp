@@ -195,23 +195,38 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto block = possible_.back();
+    if (block.number + kRangeStart > block_tree_->bestBlock().number) {
+      return;
+    }
     possible_.pop_back();
-    auto cb = [weak{weak_from_this()}, block, fetching{fetching()}](
-                  outcome::result<void> r) mutable {
-      fetching.reset();
-      auto self = weak.lock();
-      if (not self) {
-        return;
-      }
-      self->requiredLoop();
-      if (not r) {
-        self->possibleLoop();
-      } else {
-        SL_INFO(
-            self->log_, "possible justification for block {}", block.number);
-      }
-    };
-    synchronizer_.get()->fetchJustification(block, std::move(cb));
+    auto header_res = block_tree_->getBlockHeader(block.hash);
+    if (not header_res) {
+      return;
+    }
+    auto &header = header_res.value();
+    auto parent = header.parentInfo();
+    if (not parent) {
+      return;
+    }
+    auto cb =
+        [weak{weak_from_this()}, block, fetching{fetching()}](
+            outcome::result<std::optional<primitives::BlockNumber>> r) mutable {
+          fetching.reset();
+          auto self = weak.lock();
+          if (not self) {
+            return;
+          }
+          self->requiredLoop();
+          if (not r) {
+            self->possibleLoop();
+          } else {
+            SL_INFO(self->log_,
+                    "possible justification for block {}",
+                    block.number);
+          }
+        };
+    // warp sync returns next digest or last, so request parent of digest
+    synchronizer_.get()->fetchJustificationRange(*parent, std::move(cb));
   }
 
   void VerifiedJustificationQueue::rangeLoop() {
@@ -246,7 +261,16 @@ namespace kagome::consensus::grandpa {
           self->requiredLoop();
           self->possibleLoop();
         };
-    synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
+    auto hash_res = block_tree_->getBlockHash(range_);
+    if (not hash_res) {
+      return;
+    }
+    auto &hash = hash_res.value();
+    if (not hash) {
+      return;
+    }
+    synchronizer_.get()->fetchJustificationRange({range_, *hash},
+                                                 std::move(cb));
     if (fetching_) {
       SL_INFO(log_, "fetching justification range {}..", range_);
     }

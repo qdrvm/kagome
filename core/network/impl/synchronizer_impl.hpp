@@ -153,7 +153,7 @@ namespace kagome::network {
     bool fetchJustification(const primitives::BlockInfo &block,
                             CbResultVoid cb) override;
 
-    bool fetchJustificationRange(primitives::BlockNumber min,
+    bool fetchJustificationRange(primitives::BlockInfo min,
                                  FetchJustificationRangeCb cb) override;
 
     bool fetchHeadersBack(const primitives::BlockInfo &max,

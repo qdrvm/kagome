@@ -50,7 +50,7 @@ namespace kagome::network {
     /// Fetch justification range
     using FetchJustificationRangeCb = std::function<void(
         outcome::result<std::optional<primitives::BlockNumber>>)>;
-    virtual bool fetchJustificationRange(primitives::BlockNumber min,
+    virtual bool fetchJustificationRange(primitives::BlockInfo min,
                                          FetchJustificationRangeCb cb) = 0;
 
     /// Try to launch fetching and storing block headers process.

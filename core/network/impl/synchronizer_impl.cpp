@@ -1325,14 +1325,9 @@ namespace kagome::network {
     return true;
   }
 
-  bool SynchronizerImpl::fetchJustificationRange(primitives::BlockNumber min,
+  bool SynchronizerImpl::fetchJustificationRange(primitives::BlockInfo min,
                                                  FetchJustificationRangeCb cb) {
-    auto hash_res = block_tree_->getHashByNumber(min);
-    if (not hash_res) {
-      return false;
-    }
-    auto &hash = hash_res.value();
-    auto chosen = chooseJustificationPeer(min, min);
+    auto chosen = chooseJustificationPeer(min.number, min.number);
     if (not chosen) {
       return false;
     }
@@ -1361,9 +1356,9 @@ namespace kagome::network {
             });
         return;
       }
-      cb(min);
+      cb(min.number);
     };
-    router_->getWarpProtocol()->doRequest(*chosen, hash, std::move(cb2));
+    router_->getWarpProtocol()->doRequest(*chosen, min.hash, std::move(cb2));
     return true;
   }
 
