@@ -7,6 +7,7 @@
 #pragma once
 
 #include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <qtils/bytestr.hpp>
