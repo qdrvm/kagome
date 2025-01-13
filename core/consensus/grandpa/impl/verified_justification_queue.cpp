@@ -166,7 +166,8 @@ namespace kagome::consensus::grandpa {
     }
     auto block = *required_.begin();
     auto cb = [weak{weak_from_this()}, block, fetching{fetching()}](
-                  outcome::result<void> r) {
+                  outcome::result<void> r) mutable {
+      fetching.reset();
       auto self = weak.lock();
       if (not self) {
         return;
@@ -196,7 +197,8 @@ namespace kagome::consensus::grandpa {
     auto block = possible_.back();
     possible_.pop_back();
     auto cb = [weak{weak_from_this()}, block, fetching{fetching()}](
-                  outcome::result<void> r) {
+                  outcome::result<void> r) mutable {
+      fetching.reset();
       auto self = weak.lock();
       if (not self) {
         return;
@@ -226,22 +228,24 @@ namespace kagome::consensus::grandpa {
       range_ = 0;
       return;
     }
-    auto cb = [weak{weak_from_this()}, fetching{fetching()}](
-                  outcome::result<std::optional<primitives::BlockNumber>> r) {
-      auto self = weak.lock();
-      if (not self) {
-        return;
-      }
-      if (r) {
-        if (auto &next = r.value()) {
-          self->range_ = *next;
-        } else {
-          SL_INFO(self->log_, "justification for range {}..", self->range_);
-        }
-      }
-      self->requiredLoop();
-      self->possibleLoop();
-    };
+    auto cb =
+        [weak{weak_from_this()}, fetching{fetching()}](
+            outcome::result<std::optional<primitives::BlockNumber>> r) mutable {
+          fetching.reset();
+          auto self = weak.lock();
+          if (not self) {
+            return;
+          }
+          if (r) {
+            if (auto &next = r.value()) {
+              self->range_ = *next;
+            } else {
+              SL_INFO(self->log_, "justification for range {}..", self->range_);
+            }
+          }
+          self->requiredLoop();
+          self->possibleLoop();
+        };
     synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
     if (fetching_) {
       SL_INFO(log_, "fetching justification range {}..", range_);
