@@ -121,13 +121,24 @@ namespace kagome::authority_discovery {
     static std::optional<decltype(now)> last_time;
     static std::optional<std::pair<Buffer, Buffer>> last_raw;
 
-    static std::pair<Buffer, Buffer> raw;
+    std::pair<Buffer, Buffer> raw;
 
     if (last_time) {
       auto interval = now - *last_time;
       if (interval < std::chrono::hours(1)) {
         assert(last_raw);
         raw = *last_raw;
+      } else {
+        last_time = now;
+        raw = audiEncode(ed_crypto_provider_,
+                         sr_crypto_provider_,
+                         *libp2p_key_,
+                         *libp2p_key_pb_,
+                         peer_info,
+                         *audi_key,
+                         now)
+                  .value();
+        last_raw = raw;
       }
     } else {
       last_time = now;
