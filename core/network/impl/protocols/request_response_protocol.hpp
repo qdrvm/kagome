@@ -9,7 +9,8 @@
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
 #include "common/main_thread_pool.hpp"
-#include "protocol_error.hpp"
+#include "network/helpers/new_stream.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 #include "utils/box.hpp"
 
 namespace kagome::network {
@@ -123,23 +124,12 @@ namespace kagome::network {
                "New outgoing {} stream with {}",
                protocolName(),
                peer_id);
-
-      auto addresses_res =
-          base_.host().getPeerRepository().getAddressRepository().getAddresses(
-              peer_id);
-      if (not addresses_res.has_value()) {
-        main_pool_handler_->execute(
-            [cb(std::move(cb)), addresses_res(std::move(addresses_res))] {
-              cb(addresses_res.as_failure());
-            });
-        return;
-      }
-
-      base_.host().newStream(
-          PeerInfo{peer_id, std::move(addresses_res.value())},
+      newStream(
+          base_.host(),
+          peer_id,
           base_.protocolIds(),
           [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
-              auto &&stream_and_proto) mutable {
+              libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
             if (!stream_and_proto.has_value()) {
               cb(stream_and_proto.as_failure());
               return;
