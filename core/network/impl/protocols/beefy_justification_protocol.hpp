@@ -39,9 +39,8 @@ namespace kagome::network {
     static constexpr auto kName = "BeefyJustificationProtocol";
 
    public:
-    BeefyJustificationProtocol(libp2p::Host &host,
+    BeefyJustificationProtocol(RequestResponseInject inject,
                                const blockchain::GenesisBlockHash &genesis,
-                               common::MainThreadPool &main_thread_pool,
                                std::shared_ptr<PeerManager> peer_manager,
                                std::shared_ptr<Beefy> beefy);
 

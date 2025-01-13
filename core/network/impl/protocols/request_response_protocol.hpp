@@ -6,12 +6,15 @@
 
 #pragma once
 
-#include "network/impl/protocols/protocol_base_impl.hpp"
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "network/helpers/new_stream.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "utils/box.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::network {
 
@@ -26,6 +29,12 @@ namespace kagome::network {
                                &&response_handler) = 0;
   };
 
+  struct RequestResponseInject {
+    std::shared_ptr<libp2p::Host> host;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler;
+    std::shared_ptr<common::MainThreadPool> main_thread_pool;
+  };
+
   template <typename Request, typename Response, typename ReadWriter>
   struct RequestResponseProtocolImpl
       : virtual protected ProtocolBase,
@@ -36,16 +45,18 @@ namespace kagome::network {
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocolImpl(
-        Protocol name,
-        libp2p::Host &host,
-        Protocols protocols,
-        log::Logger logger,
-        common::MainThreadPool &main_thread_pool,
-        std::chrono::milliseconds timeout = std::chrono::seconds(1))
-        : base_(std::move(name), host, std::move(protocols), std::move(logger)),
+    RequestResponseProtocolImpl(Protocol name,
+                                RequestResponseInject inject,
+                                Protocols protocols,
+                                log::Logger logger,
+                                std::chrono::milliseconds timeout)
+        : base_(std::move(name),
+                *inject.host,
+                std::move(protocols),
+                std::move(logger)),
+          scheduler_{std::move(inject.scheduler)},
           timeout_(std::move(timeout)),
-          main_pool_handler_{main_thread_pool.handlerStarted()} {}
+          main_pool_handler_{inject.main_thread_pool->handlerStarted()} {}
 
     bool start() override {
       return base_.start(this->weak_from_this());
@@ -78,6 +89,20 @@ namespace kagome::network {
               response_handler(outcome::failure(ProtocolError::GONE));
               return;
             }
+
+            auto timer = self->scheduler_->scheduleWithHandle(
+                [weak_stream{std::weak_ptr{stream}}] {
+                  IF_WEAK_LOCK(stream) {
+                    stream->reset();
+                  }
+                },
+                self->timeout_);
+            response_handler = libp2p::SharedFn{
+                [cb{std::move(response_handler)},
+                 timer{std::move(timer)}](outcome::result<Response> r) mutable {
+                  timer.reset();
+                  cb(std::move(r));
+                }};
 
             SL_DEBUG(self->base_.logger(),
                      "Established outgoing {} stream with {}",
@@ -368,6 +393,7 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::chrono::milliseconds timeout_;
 
    private:

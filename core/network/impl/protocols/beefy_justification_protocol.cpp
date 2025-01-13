@@ -15,20 +15,20 @@
 #include "network/peer_manager.hpp"
 
 namespace kagome::network {
+  constexpr std::chrono::seconds kRequestTimeout{3};
 
   BeefyJustificationProtocol::BeefyJustificationProtocol(
-      libp2p::Host &host,
+      RequestResponseInject inject,
       const blockchain::GenesisBlockHash &genesis,
-      common::MainThreadPool &main_thread_pool,
       std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<Beefy> beefy)
       : RequestResponseProtocolImpl{kName,
-                                    host,
+                                    inject,
                                     make_protocols(kBeefyJustificationProtocol,
                                                    genesis),
                                     log::createLogger(kName),
-                                    main_thread_pool},
-        main_pool_handler_{main_thread_pool.handlerStarted()},
+                                    kRequestTimeout},
+        main_pool_handler_{inject.main_thread_pool->handlerStarted()},
         peer_manager_{std::move(peer_manager)},
         beefy_{std::move(beefy)} {}
 
