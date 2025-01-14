@@ -119,7 +119,9 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    auto now = std::chrono::system_clock::now().time_since_epoch();
+    std::optional<std::chrono::nanoseconds> now =
+        std::nullopt;  // TODO: replace with
+                       // std::chrono::system_clock::now().time_since_epoch();
     OUTCOME_TRY(raw,
                 audiEncode(ed_crypto_provider_,
                            sr_crypto_provider_,
@@ -135,9 +137,9 @@ namespace kagome::authority_discovery {
       peer_addresses.append(" ");
     }
     SL_INFO(log_,
-             "Publishing addresses {} with created time {}",
-             peer_addresses,
-             now.count());
+            "Publishing addresses {} with created time {}",
+            peer_addresses,
+            now ? now->count() : "0");
 
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
