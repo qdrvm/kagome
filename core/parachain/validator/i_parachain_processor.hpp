@@ -6,15 +6,15 @@
 
 #pragma once
 
-#include "outcome/outcome.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
+#include "outcome/outcome.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 
 namespace kagome::parachain {
 
   class ParachainStorage {
-  public:
-  virtual ~ParachainStorage() = default;
+   public:
+    virtual ~ParachainStorage() = default;
 
     virtual outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request) = 0;
@@ -78,18 +78,20 @@ namespace kagome::parachain {
     virtual void handle_advertisement(
         const RelayHash &relay_parent,
         const libp2p::peer::PeerId &peer_id,
-        std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) = 0;
+        std::optional<std::pair<CandidateHash, Hash>>
+            &&prospective_candidate) = 0;
 
     virtual void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
-                            network::CollatorPublicKey pubkey,
-                            network::ParachainId para_id) = 0;
+                                    network::CollatorPublicKey pubkey,
+                                    network::ParachainId para_id) = 0;
 
     virtual outcome::result<void> canProcessParachains() const = 0;
 
-    virtual void handleStatement(const primitives::BlockHash &relay_parent,
-                                 const SignedFullStatementWithPVD &statement) = 0;
+    virtual void handleStatement(
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement) = 0;
   };
 
-}
+}  // namespace kagome::parachain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ParachainProcessor::Error);

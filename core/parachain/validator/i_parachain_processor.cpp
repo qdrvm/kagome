@@ -6,9 +6,7 @@
 
 #include "parachain/validator/i_parachain_processor.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
-                            ParachainProcessor::Error,
-                            e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ParachainProcessor::Error, e) {
   using E = kagome::parachain::ParachainProcessor::Error;
   switch (e) {
     case E::RESPONSE_ALREADY_RECEIVED:

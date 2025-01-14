@@ -38,13 +38,12 @@ namespace kagome::network {
         NonCopyable,
         NonMovable {
    public:
-    FetchChunkProtocolImpl(
-        libp2p::Host &host,
-        const application::ChainSpec & /*chain_spec*/,
-        const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainStorage> pp,
-        std::shared_ptr<PeerManager> pm,
-        common::MainThreadPool &main_thread_pool)
+    FetchChunkProtocolImpl(libp2p::Host &host,
+                           const application::ChainSpec & /*chain_spec*/,
+                           const blockchain::GenesisBlockHash &genesis_hash,
+                           std::shared_ptr<parachain::ParachainStorage> pp,
+                           std::shared_ptr<PeerManager> pm,
+                           common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
               FetchChunkRequest,
               FetchChunkResponse,

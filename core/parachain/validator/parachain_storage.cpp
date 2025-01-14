@@ -7,9 +7,11 @@
 #include "parachain/validator/parachain_storage.hpp"
 
 namespace kagome::parachain {
-    ParachainStorageImpl::ParachainStorageImpl(std::shared_ptr<parachain::AvailabilityStore> av_store) : av_store_(std::move(av_store)) {}
+  ParachainStorageImpl::ParachainStorageImpl(
+      std::shared_ptr<parachain::AvailabilityStore> av_store)
+      : av_store_(std::move(av_store)) {}
 
-   network::ResponsePov ParachainStorageImpl::getPov(
+  network::ResponsePov ParachainStorageImpl::getPov(
       CandidateHash &&candidate_hash) {
     if (auto res = av_store_->getPov(candidate_hash)) {
       return network::ResponsePov{*res};
@@ -48,4 +50,4 @@ namespace kagome::parachain {
     return network::Empty{};
   }
 
-}
+}  // namespace kagome::parachain
