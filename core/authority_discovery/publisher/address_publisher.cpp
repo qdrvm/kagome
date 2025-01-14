@@ -79,6 +79,7 @@ namespace kagome::authority_discovery {
   }
 
   bool AddressPublisher::start() {
+    SL_TRACE(log_, "Starting AddressPublisher");
     if (not libp2p_key_) {
       return true;
     }
@@ -90,6 +91,7 @@ namespace kagome::authority_discovery {
       if (not self) {
         return;
       }
+      SL_TRACE(weak_self.lock()->log_, "Interval tick");
       auto maybe_error = self->publishOwnAddress();
       if (not maybe_error) {
         SL_WARN(
@@ -117,6 +119,7 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
+    auto now = std::chrono::system_clock::now().time_since_epoch();
     OUTCOME_TRY(
         raw,
         audiEncode(ed_crypto_provider_,
@@ -125,7 +128,8 @@ namespace kagome::authority_discovery {
                    *libp2p_key_pb_,
                    peer_info,
                    *audi_key,
-                   std::chrono::system_clock::now().time_since_epoch()));
+                   now));
+    SL_INFO(log_, "Publishing address for authority {} with created time {}", raw.first.toHex(), now.count());
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
 
