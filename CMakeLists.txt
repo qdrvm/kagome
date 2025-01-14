@@ -38,7 +38,7 @@ set(CMAKE_TOOLCHAIN_FILE
 # SHA1 hash of the WasmEdge repository archive.
 # Required to separate cached runtimes
 # compiled with different WasmEdge versions.
-set(WASMEDGE_ID 42c52927e07dd85560d253b3e449270dc300b2d4)
+set(WASMEDGE_ID 3fbf6c6a39a5fd065e8964a979d5edcddf877cca)
 
 include("cmake/Hunter/init.cmake")
 
