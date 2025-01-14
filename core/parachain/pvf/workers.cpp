@@ -121,17 +121,17 @@ namespace kagome::parachain {
 
   void PvfWorkers::execute(Job &&job) {
     coroSpawn(io_context_->get_executor(),
-              [self{shared_from_this()}, job{std::move(job)}]() -> Coro<void> {
-                co_await self->tryExecute(job);
-              });
+              [self{shared_from_this()}, job{std::move(job)}]() mutable
+              -> Coro<void> { co_await self->tryExecute(std::move(job)); });
   }
 
-  Coro<void> PvfWorkers::tryExecute(const Job &job) {
+  Coro<void> PvfWorkers::tryExecute(Job &&job) {
     auto worker = findFree(job);
     if (not worker and used_ >= max_) {
-      auto &queue = queues_[job.kind];
+      auto kind = job.kind;
+      auto &queue = queues_[kind];
       queue.emplace_back(std::move(job));
-      metric_queue_size_.at(job.kind)->set(queue.size());
+      metric_queue_size_.at(kind)->set(queue.size());
       co_return;
     }
     auto r = co_await execute(worker, job);

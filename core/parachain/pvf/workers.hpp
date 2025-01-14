@@ -71,7 +71,7 @@ namespace kagome::parachain {
       std::weak_ptr<PvfWorkers> weak_self;
     };
 
-    Coro<void> tryExecute(const Job &job);
+    Coro<void> tryExecute(Job &&job);
     CoroOutcome<Buffer> execute(std::optional<Worker> &worker, const Job &job);
     std::optional<Worker> findFree(const Job &job);
     CoroOutcome<Worker> newWorker();
