@@ -25,7 +25,7 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 
 namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
-  constexpr std::chrono::hours kIntervalMax{1};
+  constexpr std::chrono::minutes kIntervalMax{1};
 
   AddressPublisher::AddressPublisher(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
@@ -79,7 +79,7 @@ namespace kagome::authority_discovery {
   }
 
   bool AddressPublisher::start() {
-    SL_TRACE(log_, "Starting AddressPublisher");
+    SL_INFO(log_, "Starting AddressPublisher");
     if (not libp2p_key_) {
       return true;
     }
@@ -120,22 +120,21 @@ namespace kagome::authority_discovery {
     }
 
     auto now = std::chrono::system_clock::now().time_since_epoch();
-    OUTCOME_TRY(
-        raw,
-        audiEncode(ed_crypto_provider_,
-                   sr_crypto_provider_,
-                   *libp2p_key_,
-                   *libp2p_key_pb_,
-                   peer_info,
-                   *audi_key,
-                   now));
+    OUTCOME_TRY(raw,
+                audiEncode(ed_crypto_provider_,
+                           sr_crypto_provider_,
+                           *libp2p_key_,
+                           *libp2p_key_pb_,
+                           peer_info,
+                           *audi_key,
+                           now));
 
     std::string peer_addresses;
     for (const auto &address : peer_info.addresses) {
       peer_addresses.append(address.getStringAddress());
       peer_addresses.append(" ");
     }
-    SL_DEBUG(log_,
+    SL_INFO(log_,
              "Publishing addresses {} with created time {}",
              peer_addresses,
              now.count());
@@ -164,7 +163,9 @@ namespace kagome::authority_discovery {
       addresses.emplace(std::move(address2));
     }
     ::authority_discovery_v3::AuthorityRecord record;
+    auto log = log::createLogger("AddressPublisher", "authority_discovery");
     for (const auto &address : addresses) {
+      SL_INFO(log, "Adding address: {}", address.getStringAddress());
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
     if (now) {
