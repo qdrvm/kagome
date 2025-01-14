@@ -60,6 +60,8 @@ namespace kagome::authority_discovery {
 
     bool start();
 
+    void publishLoop();
+
     outcome::result<void> publishOwnAddress();
 
    private:
@@ -75,7 +77,7 @@ namespace kagome::authority_discovery {
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
 
-    ExpIncInterval interval_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     log::Logger log_;
 

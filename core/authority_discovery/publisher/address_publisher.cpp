@@ -48,7 +48,7 @@ namespace kagome::authority_discovery {
         sr_crypto_provider_(std::move(sr_crypto_provider)),
         host_(host),
         kademlia_(std::move(kademlia)),
-        interval_{kIntervalInitial, kIntervalMax, std::move(scheduler)},
+        scheduler_{std::move(scheduler)},
         log_{log::createLogger("AddressPublisher", "authority_discovery")} {
     BOOST_ASSERT(authority_discovery_api_ != nullptr);
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -85,18 +85,25 @@ namespace kagome::authority_discovery {
     if (not roles_.isAuthority()) {
       return true;
     }
-    interval_.start([weak_self{weak_from_this()}] {
-      auto self = weak_self.lock();
-      if (not self) {
-        return;
-      }
-      auto maybe_error = self->publishOwnAddress();
-      if (not maybe_error) {
-        SL_WARN(
-            self->log_, "publishOwnAddress failed: {}", maybe_error.error());
-      }
-    });
+    publishLoop();
     return true;
+  }
+
+  void AddressPublisher::publishLoop() {
+    scheduler_->schedule(
+        [weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (not self) {
+            return;
+          }
+          auto res = self->publishOwnAddress();
+          if (not res) {
+            SL_WARN(
+                self->log_, "publishOwnAddress failed: {}", res.error());
+          }
+          self->publishLoop();
+        },
+        kIntervalMax);
   }
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
@@ -161,7 +168,7 @@ namespace kagome::authority_discovery {
     SL_DEBUG(log_,
              "Publishing addresses {} with created time {}",
              peer_addresses,
-             now.count());
+             last_time->count());
 
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
