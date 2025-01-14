@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// #include <boost/di.hpp>
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
@@ -70,97 +69,9 @@ using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
 
-static std::vector<unsigned char> read_binary_file(const std::string filename) {
-  // binary mode is only for switching off newline translation
-  std::ifstream file(filename, std::ios::binary);
-  file.unsetf(std::ios::skipws);
-
-  std::streampos file_size;
-  file.seekg(0, std::ios::end);
-  file_size = file.tellg();
-  file.seekg(0, std::ios::beg);
-
-  std::vector<unsigned char> vec;
-  vec.reserve(file_size);
-  vec.insert(vec.begin(),
-             std::istream_iterator<unsigned char>(file),
-             std::istream_iterator<unsigned char>());
-  return (vec);
-}
-
-struct CCC {
-  SCALE_TIE(14);
-  enum class Error {
-    DISALLOWED_HRMP_WATERMARK,
-    NO_SUCH_HRMP_CHANNEL,
-    HRMP_BYTES_OVERFLOW,
-    HRMP_MESSAGE_OVERFLOW,
-    UMP_MESSAGE_OVERFLOW,
-    UMP_BYTES_OVERFLOW,
-    DMP_MESSAGE_UNDERFLOW,
-    APPLIED_NONEXISTENT_CODE_UPGRADE,
-  };
-
-  /// The minimum relay-parent number accepted under these constraints.
-  BlockNumber min_relay_parent_number;
-  /// The maximum Proof-of-Validity size allowed, in bytes.
-  uint32_t max_pov_size;
-  /// The maximum new validation code size allowed, in bytes.
-  uint32_t max_code_size;
-  /// The amount of UMP messages remaining.
-  uint32_t ump_remaining;
-  /// The amount of UMP bytes remaining.
-  uint32_t ump_remaining_bytes;
-  /// The maximum number of UMP messages allowed per candidate.
-  uint32_t max_ump_num_per_candidate;
-  /// Remaining DMP queue. Only includes sent-at block numbers.
-  std::vector<BlockNumber> dmp_remaining_messages;
-  /// The limitations of all registered inbound HRMP channels.
-  kagome::parachain::fragment::InboundHrmpLimitations hrmp_inbound;
-  /// The limitations of all registered outbound HRMP channels.
-  std::unordered_map<
-      ParachainId,
-      kagome::parachain::fragment::OutboundHrmpChannelLimitations>
-      hrmp_channels_out;
-  /// The maximum number of HRMP messages allowed per candidate.
-  uint32_t max_hrmp_num_per_candidate;
-  /// The required parent head-data of the parachain.
-  HeadData required_parent;
-  /// The expected validation-code-hash of this parachain.
-  ValidationCodeHash validation_code_hash;
-  /// The code upgrade restriction signal as-of this parachain.
-  std::optional<kagome::parachain::fragment::UpgradeRestriction>
-      upgrade_restriction;
-  /// The future validation code hash, if any, and at what relay-parent
-  /// number the upgrade would be minimally applied.
-  std::optional<std::pair<BlockNumber, ValidationCodeHash>>
-      future_validation_code;
-
-  outcome::result<kagome::parachain::fragment::Constraints> apply_modifications(
-      const kagome::parachain::fragment::ConstraintModifications &modifications)
-      const;
-
-  outcome::result<void> check_modifications(
-      const kagome::parachain::fragment::ConstraintModifications &modifications)
-      const;
-};
-
-struct BS {
-  SCALE_TIE(2);
-  CCC constraints;
-  std::vector<kagome::parachain::fragment::CandidatePendingAvailability>
-      pending_availability;
-};
-
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
-
-    const auto data = read_binary_file("/home/iceseer/Tmp/scale");
-    auto res = scale::decode<std::optional<BS>>(data);
-    assert(res.has_value());
-
-    auto k = res.value();
 
     watchdog_ = std::make_shared<Watchdog>(std::chrono::milliseconds(1));
     main_thread_pool_ = std::make_shared<MainThreadPool>(
@@ -384,10 +295,6 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     EXPECT_CALL(*prospective_parachains_, printStoragesLoad())
         .WillRepeatedly(Return());
 
-    //    network::ExViewRef ev_ref{
-    //                .new_head = {update.new_head},
-    //                .lost = update.lost,
-    //            };
     EXPECT_CALL(*backing_store_, onActivateLeaf(testing::_))
         .WillRepeatedly(Return());
     EXPECT_CALL(*prospective_parachains_, onActiveLeavesUpdate(testing::_))
@@ -417,15 +324,6 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       d = get_parent_hash(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
-
-    // std::cout << "---------------------------" << std::endl;
-    // for(size_t i = 0; i < ancestry_hashes.size(); ++i) {
-    //     const auto &h = ancestry_hashes[i];
-    //     const auto &n = ancestry_numbers[i];
-    //
-    //    std::cout <<
-    //        fmt::format("{}  {}", n, h) << std::endl;
-    //}
 
     size_t requested_len = 0;
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
@@ -491,13 +389,6 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         EXPECT_CALL(*prospective_parachains_,
                     answerMinimumRelayParentsRequest(leaf_hash))
             .WillRepeatedly(Return(min_relay_parents));
-        // assert_matches !(
-        //     virtual_overseer.recv().await,
-        //     AllMessages::ProspectiveParachains(
-        //         ProspectiveParachainsMessage::GetMinimumRelayParents(
-        //             parent, tx)) if parent
-        //         == leaf_hash =
-        //         > { tx.send(min_relay_parents.clone()).unwrap(); });
       }
 
       requested_len += 1;
@@ -544,18 +435,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
 void assert_hypothetical_membership_requests(std::vector<std::pair<IProspectiveParachains::HypotheticalMembershipRequest, std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>>> expected_requests) {
     for (const auto &[request, candidates_membership] : expected_requests) {
-        //std::cout << fmt::format("-> {}", *request.fragment_chain_relay_parent);
         EXPECT_CALL(*prospective_parachains_, answer_hypothetical_membership_request(request)) //request.candidates, ref
             .WillOnce(Return(candidates_membership));
 
     }
-    // std::vector<
-    //     std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
-    // answer_hypothetical_membership_request(
-    //     const std::span<const HypotheticalCandidate> &candidates,
-    //     const std::optional<std::reference_wrapper<const Hash>>
-    //         &fragment_tree_relay_parent) override;
-
 }
 
 std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>> make_hypothetical_membership_response(
@@ -576,21 +459,6 @@ std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>> 
       bool fetch_pov) {
     assert_validation_requests(assert_validation_code);
 
-    if (fetch_pov) {
-      // assert_matches!(
-      //   virtual_overseer.recv().await,
-      //   AllMessages::AvailabilityDistribution(
-      //     AvailabilityDistributionMessage::FetchPoV {
-      //       relay_parent: hash,
-      //       tx,
-      //       ..
-      //     }
-      //   ) if hash == relay_parent => {
-      //     tx.send(assert_pov.clone()).unwrap();
-      //   }
-      //);
-    }  //
-
     const std::pair<network::CandidateCommitments, runtime::PersistedValidationData> pvf_result{
 				network::CandidateCommitments {
 					.upward_msgs = {},
@@ -608,66 +476,6 @@ std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>> 
     EXPECT_CALL(*av_store_, storeData(testing::_, network::candidateHash(*hasher_, candidate), testing::_, assert_pov, assert_pvd))
         .WillRepeatedly(Return());
     
-    //     MOCK_METHOD(void,
-    //             storeData,
-    //             (const network::RelayHash &,
-    //              const CandidateHash &,
-    //              std::vector<ErasureChunk> &&,
-    //              const ParachainBlock &,
-    //              const PersistedValidationData &),
-    //             (override));
-
-
-	// assert_matches!(
-	// 	virtual_overseer.recv().await,
-	// 	AllMessages::AvailabilityStore(
-	// 		AvailabilityStoreMessage::StoreAvailableData { candidate_hash, tx, .. }
-	// 	) if candidate_hash == candidate.hash() => {
-	// 		tx.send(Ok(())).unwrap();
-	// 	}
-	// );
-
-
-    // MOCK_METHOD(Result,
-    //             call_pvf,
-    //             (const CandidateReceipt &,
-    //              const ParachainBlock &,
-    //              const runtime::PersistedValidationData &),
-    //             (const));
-
-
-	// assert_matches!(
-	// 	virtual_overseer.recv().await,
-	// 	AllMessages::CandidateValidation(CandidateValidationMessage::ValidateFromExhaustive {
-	// 		validation_data,
-	// 		validation_code,
-	// 		candidate_receipt,
-	// 		pov,
-	// 		exec_kind,
-	// 		response_sender,
-	// 		..
-	// 	}) if &validation_data == assert_pvd &&
-	// 		&validation_code == assert_validation_code &&
-	// 		&*pov == assert_pov &&
-	// 		&candidate_receipt.descriptor == candidate.descriptor() &&
-	// 		exec_kind == PvfExecKind::Backing &&
-	// 		candidate.commitments.hash() == candidate_receipt.commitments_hash =>
-	// 	{
-	// 		response_sender.send(Ok(ValidationResult::Valid(
-	// 			CandidateCommitments {
-	// 				head_data: expected_head_data.clone(),
-	// 				horizontal_messages: Default::default(),
-	// 				upward_messages: Default::default(),
-	// 				new_validation_code: None,
-	// 				processed_downward_messages: 0,
-	// 				hrmp_watermark: 0,
-	// 			},
-	// 			assert_pvd.clone(),
-	// 		)))
-	// 		.unwrap();
-	// 	}
-	// );
-
   }
 
   struct TestCandidateBuilder {
@@ -719,7 +527,6 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
   // `a` is grandparent of `b`.
   const auto leaf_a_hash = fromNumber(130);
   const auto leaf_a_parent = get_parent_hash(leaf_a_hash);
-  // const auto activated = new_leaf(leaf_a_hash, LEAF_A_BLOCK_NUMBER);
   const TestLeaf test_leaf_a{
       .number = LEAF_A_BLOCK_NUMBER,
       .hash = leaf_a_hash,
@@ -731,7 +538,6 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
   const BlockNumber LEAF_B_ANCESTRY_LEN = 4;
 
   const auto leaf_b_hash = fromNumber(128);
-  // let activated = new_leaf(, );
   const TestLeaf test_leaf_b{
       .number = LEAF_B_BLOCK_NUMBER,
       .hash = leaf_b_hash,
