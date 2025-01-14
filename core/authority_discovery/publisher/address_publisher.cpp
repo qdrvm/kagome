@@ -129,7 +129,17 @@ namespace kagome::authority_discovery {
                    peer_info,
                    *audi_key,
                    now));
-    SL_INFO(log_, "Publishing address for authority {} with created time {}", raw.first.toHex(), now.count());
+
+    std::string peer_addresses;
+    for (const auto &address : peer_info.addresses) {
+      peer_addresses.append(address.getStringAddress());
+      peer_addresses.append(" ");
+    }
+    SL_DEBUG(log_,
+             "Publishing addresses {} with created time {}",
+             peer_addresses,
+             now.count());
+
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
 
