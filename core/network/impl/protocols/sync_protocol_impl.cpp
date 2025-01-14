@@ -11,6 +11,7 @@
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
+#include "network/helpers/new_stream.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/rpc.hpp"
@@ -160,16 +161,9 @@ namespace kagome::network {
              protocolName(),
              peer_id);
 
-    auto addresses_res =
-        base_.host().getPeerRepository().getAddressRepository().getAddresses(
-            peer_id);
-    if (not addresses_res.has_value()) {
-      cb(addresses_res.as_failure());
-      return;
-    }
-
-    base_.host().newStream(
-        PeerInfo{peer_id, std::move(addresses_res.value())},
+    newStream(
+        base_.host(),
+        peer_id,
         base_.protocolIds(),
         [wp{weak_from_this()}, peer_id, cb = std::move(cb)](
             auto &&stream_res) mutable {

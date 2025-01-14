@@ -9,6 +9,7 @@
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
 #include "common/main_thread_pool.hpp"
+#include "network/helpers/new_stream.hpp"
 #include "protocol_error.hpp"
 #include "utils/box.hpp"
 
@@ -124,43 +125,32 @@ namespace kagome::network {
                protocolName(),
                peer_id);
 
-      auto addresses_res =
-          base_.host().getPeerRepository().getAddressRepository().getAddresses(
-              peer_id);
-      if (not addresses_res.has_value()) {
-        main_pool_handler_->execute(
-            [cb(std::move(cb)), addresses_res(std::move(addresses_res))] {
-              cb(addresses_res.as_failure());
-            });
-        return;
-      }
+      newStream(base_.host(),
+                peer_id,
+                base_.protocolIds(),
+                [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
+                    auto &&stream_and_proto) mutable {
+                  if (!stream_and_proto.has_value()) {
+                    cb(stream_and_proto.as_failure());
+                    return;
+                  }
 
-      base_.host().newStream(
-          PeerInfo{peer_id, std::move(addresses_res.value())},
-          base_.protocolIds(),
-          [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
-              auto &&stream_and_proto) mutable {
-            if (!stream_and_proto.has_value()) {
-              cb(stream_and_proto.as_failure());
-              return;
-            }
+                  auto &stream = stream_and_proto.value().stream;
+                  BOOST_ASSERT(stream);
 
-            auto &stream = stream_and_proto.value().stream;
-            BOOST_ASSERT(stream);
+                  auto self = wptr.lock();
+                  if (not self) {
+                    cb(ProtocolError::GONE);
+                    self->base_.closeStream(std::move(wptr), std::move(stream));
+                    return;
+                  }
 
-            auto self = wptr.lock();
-            if (not self) {
-              cb(ProtocolError::GONE);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
-              return;
-            }
-
-            SL_DEBUG(self->base_.logger(),
-                     "Established connection over {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
-            cb(std::move(stream));
-          });
+                  SL_DEBUG(self->base_.logger(),
+                           "Established connection over {} stream with {}",
+                           self->protocolName(),
+                           peer_id);
+                  cb(std::move(stream));
+                });
     }
 
     template <typename M>
