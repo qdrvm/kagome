@@ -80,9 +80,11 @@ namespace kagome::authority_discovery {
 
   bool AddressPublisher::start() {
     if (not libp2p_key_) {
+      SL_DEBUG(log_, "No libp2p key");
       return true;
     }
     if (not roles_.isAuthority()) {
+      SL_DEBUG(log_, "Not an authority");
       return true;
     }
     publishLoop();
@@ -90,6 +92,7 @@ namespace kagome::authority_discovery {
   }
 
   void AddressPublisher::publishLoop() {
+    SL_DEBUG(log_, "publishLoop started");
     scheduler_->schedule(
         [weak_self{weak_from_this()}] {
           auto self = weak_self.lock();
@@ -106,7 +109,8 @@ namespace kagome::authority_discovery {
         kIntervalMax);
   }
 
-  outcome::result<void> AddressPublisher::publishOwnAddress() {
+  outcome::result<void> AddressPublisher::publishOwnAddress() const {
+    SL_DEBUG(log_, "publishOwnAddress started");
     const auto peer_info = host_.getPeerInfo();
     // TODO(turuslan): #1357, filter local addresses
     if (peer_info.addresses.empty()) {
@@ -117,6 +121,8 @@ namespace kagome::authority_discovery {
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
+
+    SL_DEBUG(log_, "Authorities found");
 
     auto audi_key = keys_->getAudiKeyPair(authorities);
     if (not audi_key) {

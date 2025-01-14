@@ -62,7 +62,7 @@ namespace kagome::authority_discovery {
 
     void publishLoop();
 
-    outcome::result<void> publishOwnAddress();
+    outcome::result<void> publishOwnAddress() const;
 
    private:
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
