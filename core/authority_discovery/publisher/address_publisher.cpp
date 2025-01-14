@@ -139,7 +139,7 @@ namespace kagome::authority_discovery {
     SL_INFO(log_,
             "Publishing addresses {} with created time {}",
             peer_addresses,
-            now ? now->count() : "0");
+            now ? now->count() : 0ll);
 
     return kademlia_->putValue(std::move(raw.first), std::move(raw.second));
   }
