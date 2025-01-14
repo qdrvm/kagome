@@ -22,6 +22,8 @@
 #include "utils/get_exe_path.hpp"
 #include "utils/weak_macro.hpp"
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-reference-coroutine-parameters)
+
 namespace kagome::parachain {
   using unix = boost::asio::local::stream_protocol;
 
@@ -120,9 +122,11 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::execute(Job &&job) {
-    coroSpawn(io_context_->get_executor(),
-              [self{shared_from_this()}, job{std::move(job)}]() mutable
-              -> Coro<void> { co_await self->tryExecute(std::move(job)); });
+    coroSpawn(
+        io_context_->get_executor(),
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-capturing-lambda-coroutines)
+        [self{shared_from_this()}, job{std::move(job)}]() mutable
+        -> Coro<void> { co_await self->tryExecute(std::move(job)); });
   }
 
   Coro<void> PvfWorkers::tryExecute(Job &&job) {
@@ -224,3 +228,5 @@ namespace kagome::parachain {
     }
   }
 }  // namespace kagome::parachain
+
+// NOLINTEND(cppcoreguidelines-avoid-reference-coroutine-parameters)

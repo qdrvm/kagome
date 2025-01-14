@@ -50,6 +50,7 @@ namespace kagome {
     return outcome::success(std::move(r));
   }
 
+  // NOLINTBEGIN(cppcoreguidelines-avoid-reference-coroutine-parameters)
   /**
    * Write bytes to asio writer
    */
@@ -66,4 +67,5 @@ namespace kagome {
         r, libp2p::asioBuffer(buf), useCoroOutcome)));
     co_return outcome::success();
   }
+  // NOLINTEND(cppcoreguidelines-avoid-reference-coroutine-parameters)
 }  // namespace kagome
