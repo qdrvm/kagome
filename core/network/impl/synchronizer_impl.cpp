@@ -31,6 +31,7 @@
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "utils/sptr.hpp"
 #include "utils/weak_macro.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
@@ -1274,11 +1275,21 @@ namespace kagome::network {
   std::optional<libp2p::peer::PeerId> SynchronizerImpl::chooseJustificationPeer(
       primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint) {
     return peer_manager_->peerFinalized(block, [&](const PeerId &peer) {
-      if (busy_peers_.contains(peer)) {
-        return false;
-      }
       if (recent_requests_.contains({peer, fingerprint})) {
         return false;
+      }
+      if (busy_peers_justification_.contains(peer)) {
+        return false;
+      }
+      // debug metric
+      if (busy_peers_.contains(peer)) {
+        static auto registry = metrics::createRegistry();
+        static auto metric = [] {
+          auto name = "justification_fetches_blocked_by_busy_peers";
+          registry->registerCounterFamily(name);
+          return registry->registerCounterMetric(name);
+        }();
+        metric->inc();
       }
       return true;
     });
@@ -1297,16 +1308,16 @@ namespace kagome::network {
     if (not chosen) {
       return false;
     }
-    busy_peers_.emplace(*chosen);
     auto cb2 = [weak{weak_from_this()},
                 block,
                 cb{std::move(cb)},
+                busy{busyPeerJustification(*chosen)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->busy_peers_.erase(peer);
+      busy.reset();
       if (not r) {
         return cb(r.error());
       }
@@ -1332,13 +1343,16 @@ namespace kagome::network {
       return false;
     }
     busy_peers_.emplace(*chosen);
-    auto cb2 = [weak{weak_from_this()}, min, cb{std::move(cb)}, peer{*chosen}](
-                   outcome::result<WarpResponse> r) mutable {
+    auto cb2 = [weak{weak_from_this()},
+                min,
+                cb{std::move(cb)},
+                busy{busyPeerJustification(*chosen)},
+                peer{*chosen}](outcome::result<WarpResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
-      self->busy_peers_.erase(peer);
+      busy.reset();
       if (not r) {
         return cb(r.error());
       }
@@ -1397,13 +1411,13 @@ namespace kagome::network {
                 expected,
                 isFinalized,
                 cb{std::move(cb)},
+                busy{busyPeerJustification(*chosen)},
                 peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return cb(Error::SHUTTING_DOWN);
       }
-
-      self->busy_peers_.erase(peer);
+      busy.reset();
       if (not r) {
         return cb(r.error());
       }
@@ -1462,5 +1476,15 @@ namespace kagome::network {
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));
     return true;
+  }
+
+  std::shared_ptr<void> SynchronizerImpl::busyPeerJustification(PeerId peer) {
+    if (not busy_peers_justification_.emplace(peer).second) {
+      return nullptr;
+    }
+    return toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF, peer] {
+      WEAK_LOCK(self);
+      self->busy_peers_justification_.erase(peer);
+    }});
   }
 }  // namespace kagome::network

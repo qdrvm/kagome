@@ -72,6 +72,8 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::network {
+  using libp2p::PeerId;
+
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -243,6 +245,8 @@ namespace kagome::network {
 
     void afterStateSync();
 
+    std::shared_ptr<void> busyPeerJustification(PeerId peer);
+
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -309,6 +313,7 @@ namespace kagome::network {
 
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+    std::set<libp2p::peer::PeerId> busy_peers_justification_;
     std::unordered_set<primitives::BlockInfo> load_blocks_;
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};
