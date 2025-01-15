@@ -2800,6 +2800,7 @@ namespace kagome::parachain::statement_distribution {
       return std::nullopt;
     }
 
+    SL_INFO(logger, "Active validator state initialized. (our_group={}, group={})", *our_group, *group_validators);
     return LocalValidatorState{
         .grid_tracker = {},
         .active =
