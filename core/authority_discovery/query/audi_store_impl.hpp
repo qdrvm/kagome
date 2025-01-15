@@ -39,7 +39,7 @@ namespace kagome::authority_discovery {
                                      const AuthorityPeerInfo &)> f) override;
 
    private:
-    std::shared_ptr<storage::BufferBatchableStorage> space_;
+    std::shared_ptr<storage::BufferStorage> space_;
     log::Logger log_;
   };
 

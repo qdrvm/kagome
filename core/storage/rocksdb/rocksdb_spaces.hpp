@@ -8,19 +8,15 @@
 
 #include "storage/spaces.hpp"
 
-#include <optional>
 #include <string>
 
 namespace kagome::storage {
 
   /**
-   * Get a space name as a string
+   * Map space item to its string name for Rocks DB needs
+   * @param space - space identifier
+   * @return string representation of space name
    */
   std::string spaceName(Space space);
-
-  /**
-   * Get the space by its name
-   */
-  std::optional<Space> spaceByName(std::string_view space);
 
 }  // namespace kagome::storage

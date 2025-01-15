@@ -275,7 +275,7 @@ namespace kagome::consensus {
                   .count(),
               lag_msg);
 
-          auto const last_finalized_block =
+          const auto last_finalized_block =
               self->block_tree_->getLastFinalized();
           self->telemetry_->notifyBlockFinalized(last_finalized_block);
           auto current_best_block = self->block_tree_->bestBlock();
