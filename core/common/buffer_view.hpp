@@ -149,3 +149,23 @@ struct fmt::formatter<kagome::common::BufferView> {
     return fmt::format_to(ctx.out(), "0x{}", view.toHex());
   }
 };
+
+template <>
+struct fmt::formatter<std::span<const unsigned int>> {
+  constexpr auto parse(format_parse_context& ctx) {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(const std::span<const unsigned int>& span, FormatContext& ctx) {
+    auto out = ctx.out();
+    fmt::format_to(out, "[");
+    for (size_t i = 0; i < span.size(); ++i) {
+      if (i > 0) {
+        fmt::format_to(out, ", ");
+      }
+      fmt::format_to(out, "{}", span[i]);
+    }
+    return fmt::format_to(out, "]");
+  }
+};
