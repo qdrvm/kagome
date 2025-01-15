@@ -2800,7 +2800,25 @@ namespace kagome::parachain::statement_distribution {
       return std::nullopt;
     }
 
-    SL_INFO(logger, "Active validator state initialized. (our_group={}, group={})", *our_group, *group_validators);
+    // get all validators' keys
+    std::vector<ValidatorId> validator_keys =
+        parachain_host->validators(block_tree->bestBlock().hash).value();
+
+    // map group_validators to their keys
+    std::vector<ValidatorId> group_validator_keys;
+    group_validator_keys.reserve(group_validators->size());
+    std::ranges::transform(*group_validators,
+                   std::back_inserter(group_validator_keys),
+                   [&](auto v) { return validator_keys[v]; });
+
+    SL_INFO(logger,
+            "Active validator state initialized. (our_group={}, group={})",
+            *our_group,
+            *group_validators);
+    for (auto v : group_validator_keys) {
+      SL_INFO(logger, "Group {} Validator key: {}", *our_group, v);
+    }
+
     return LocalValidatorState{
         .grid_tracker = {},
         .active =
