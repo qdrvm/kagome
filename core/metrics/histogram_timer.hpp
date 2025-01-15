@@ -11,9 +11,7 @@
 #include <libp2p/common/final_action.hpp>
 
 namespace kagome::metrics {
-  inline std::vector<double> exponentialBuckets(double start,
-                                                double factor,
-                                                size_t count) {
+  inline auto exponentialBuckets(double start, double factor, size_t count) {
     std::vector<double> buckets;
     for (auto bucket = start; buckets.size() < count; bucket *= factor) {
       buckets.emplace_back(bucket);

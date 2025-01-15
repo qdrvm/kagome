@@ -9,12 +9,23 @@
 #include "metrics/metrics.hpp"
 
 namespace kagome::authority_discovery {
-  struct MetricDhtEventReceived {
+  class MetricDhtEventReceived {
+   public:
     static auto &get() {
       static MetricDhtEventReceived self;
       return self;
     }
+    void getResult(bool found) {
+      (found ? value_found : value_not_found)->inc();
+    }
+    void putResult(bool ok) {
+      (ok ? value_put : value_put_failed)->inc();
+    }
 
+   private:
+    MetricDhtEventReceived() = default;
+    MetricDhtEventReceived(const MetricDhtEventReceived &) = delete;
+    void operator=(const MetricDhtEventReceived &) = delete;
     static metrics::Counter *make(const std::string &label) {
       auto name = "kagome_authority_discovery_dht_event_received";
       auto help = "Number of dht events received by authority discovery.";
@@ -24,13 +35,6 @@ namespace kagome::authority_discovery {
         return registry;
       }();
       return registry->registerCounterMetric(name, {{"name", label}});
-    }
-
-    void getResult(bool found) {
-      (found ? value_found : value_not_found)->inc();
-    }
-    void putResult(bool ok) {
-      (ok ? value_put : value_put_failed)->inc();
     }
 
     metrics::Counter *value_found = make("value_found");
