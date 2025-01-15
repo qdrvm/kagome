@@ -2816,7 +2816,7 @@ namespace kagome::parachain::statement_distribution {
             *our_group,
             *group_validators);
     for (auto v : group_validator_keys) {
-      SL_INFO(logger, "Group {} Validator key: {}", *our_group, v);
+      SL_INFO(logger, "Group {} Validator key: {}", *our_group, v.toHex());
     }
 
     return LocalValidatorState{
