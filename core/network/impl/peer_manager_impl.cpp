@@ -174,6 +174,14 @@ namespace kagome::network {
                                       const PeerId &peer_id) {
       if (auto self = wp.lock()) {
         SL_DEBUG(self->log_, "Identify received from peer {}", peer_id);
+        std::string observed_addresses;
+        for (const auto &addr : self->identify_->getAllObservedAddresses()) {
+          observed_addresses += addr.getStringAddress();
+          observed_addresses += ", ";
+        }
+        SL_INFO(self->log_,
+                 "Observed addresses: {}",
+                 observed_addresses);
         if (auto rating = self->reputation_repository_->reputation(peer_id);
             rating < 0) {
           SL_DEBUG(
