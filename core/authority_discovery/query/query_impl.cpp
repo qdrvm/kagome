@@ -94,9 +94,10 @@ namespace kagome::authority_discovery {
       return std::nullopt;
     }
     SL_TRACE(log_,
-             "Authority id {} {} addresses found in storage",
+             "Authority id {} {} addresses found in storage with peer id {}",
              common::hex_lower(authority),
-             authority_opt.value().peer.addresses.size());
+             authority_opt.value().peer.addresses.size(),
+             authority_opt.value().peer.id.toBase58());
     return authority_opt.value().peer;
   }
 
