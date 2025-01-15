@@ -41,7 +41,7 @@ namespace kagome::authority_discovery {
       "kagome_authority_discovery_authority_address_requests_pending",
       "Number of pending authority address requests.",
   };
-  static metrics::CounterHelper metric_handle_value_found_event_failure{
+  static const metrics::CounterHelper metric_handle_value_found_event_failure{
       "kagome_authority_discovery_handle_value_found_event_failure",
       "Number of times handling a dht value found event failed.",
   };
