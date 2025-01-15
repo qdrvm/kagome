@@ -116,7 +116,7 @@ void keccakf(uint64_t s[25]) {
 #endif
 }
 
-/* *************************** Public Inteface ************************ */
+/* *************************** Public Interface ************************ */
 
 /* For Init or Reset call these: */
 sha3_return_t sha3_Init(void *priv, unsigned bitSize) {

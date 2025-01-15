@@ -1054,7 +1054,7 @@ namespace kagome::parachain {
       storeNewHeadContext(block_hash, std::move(res.value()));
     } else {
       SL_ERROR(logger_,
-               "Error while retrieve neccessary data.(error={})",
+               "Error while retrieve necessary data.(error={})",
                res.error());
     }
   }
