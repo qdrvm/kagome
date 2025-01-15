@@ -414,8 +414,12 @@ namespace kagome::runtime::wasm_edge {
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
+    // Multiple processes can write to same cache file concurrently,
+    // write to tmp file first to avoid conflict.
+    OUTCOME_TRY(tmp, TmpFile::make(path_compiled));
     WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
-        compiler.raw(), code.data(), code.size(), path_compiled.c_str()));
+        compiler.raw(), code.data(), code.size(), tmp.path().c_str()));
+    OUTCOME_TRY(tmp.rename());
     SL_INFO(log_, "Compilation finished, saved at {}", path_compiled);
     return outcome::success();
   }
