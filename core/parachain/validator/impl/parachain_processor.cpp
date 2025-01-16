@@ -1234,6 +1234,11 @@ namespace kagome::parachain {
             self->validateAsync<ValidationTaskType::kAttest>(
                 candidate, std::move(*p), std::move(pvd), relay_parent);
           });
+    } else {
+      SL_TRACE(
+          self->logger_,
+          "No audi for PoV request. (relay_parent={}, candidate_hash={})",
+          relay_parent, candidate_hash);
     }
   }
 
@@ -1397,6 +1402,10 @@ namespace kagome::parachain {
                                 it->second.persisted_validation_data,
                                 parachain_state);
         }
+      } else {
+        SL_TRACE(logger_,
+                "No attesting ref.(relay_parent={}, candidate_hash={}).",
+                relay_parent, candidate_hash);
       }
     }
   }
