@@ -1274,7 +1274,7 @@ namespace kagome::network {
 
   std::optional<libp2p::peer::PeerId> SynchronizerImpl::chooseJustificationPeer(
       primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint) {
-    return peer_manager_->peerFinalized(block, [&](const PeerId &peer) {
+    auto found = peer_manager_->peerFinalized(block, [&](const PeerId &peer) {
       if (recent_requests_.contains({peer, fingerprint})) {
         return false;
       }
@@ -1293,6 +1293,22 @@ namespace kagome::network {
       }
       return true;
     });
+    if (not found) {
+      // fallback to peers with any finalized block
+      peer_manager_->forEachPeer([&](const PeerId &peer) {
+        if (found) {
+          return;
+        }
+        if (recent_requests_.contains({peer, fingerprint})) {
+          return;
+        }
+        if (busy_peers_justification_.contains(peer)) {
+          return;
+        }
+        found = peer;
+      });
+    }
+    return found;
   }
 
   bool SynchronizerImpl::fetchJustification(const primitives::BlockInfo &block,
