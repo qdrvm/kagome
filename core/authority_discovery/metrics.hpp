@@ -11,6 +11,13 @@
 namespace kagome::authority_discovery {
   class MetricDhtEventReceived {
    public:
+    // clang-tidy cppcoreguidelines-special-member-functions
+    ~MetricDhtEventReceived() = default;
+    MetricDhtEventReceived(MetricDhtEventReceived &&) = delete;
+    MetricDhtEventReceived(const MetricDhtEventReceived &) = delete;
+    MetricDhtEventReceived &operator=(MetricDhtEventReceived &&) = delete;
+    MetricDhtEventReceived &operator=(const MetricDhtEventReceived &) = delete;
+
     static auto &get() {
       static MetricDhtEventReceived self;
       return self;
@@ -24,8 +31,7 @@ namespace kagome::authority_discovery {
 
    private:
     MetricDhtEventReceived() = default;
-    MetricDhtEventReceived(const MetricDhtEventReceived &) = delete;
-    void operator=(const MetricDhtEventReceived &) = delete;
+
     static metrics::Counter *make(const std::string &label) {
       auto name = "kagome_authority_discovery_dht_event_received";
       auto help = "Number of dht events received by authority discovery.";
