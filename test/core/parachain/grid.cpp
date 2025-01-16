@@ -13,6 +13,7 @@
 
 using kagome::parachain::grid::Grid;
 using kagome::parachain::grid::makeViews;
+using kagome::parachain::grid::RequiredRouting;
 using kagome::parachain::grid::shuffle;
 using kagome::parachain::grid::ValidatorIndex;
 using kagome::parachain::grid::Views;
@@ -1782,4 +1783,65 @@ TEST(GridTest, Views_CompareWithRef) {
       ASSERT_EQ(it->second, views[i]);
     }
   }
+}
+
+RequiredRouting combine(const RequiredRouting &a, const RequiredRouting &b) {
+  if (a.value == RequiredRouting::All || b.value == RequiredRouting::All) {
+    return {RequiredRouting::All};
+  }
+  if (a.value == RequiredRouting::GridXY
+      || b.value == RequiredRouting::GridXY) {
+    return {RequiredRouting::GridXY};
+  }
+  if ((a.value == RequiredRouting::GridX && b.value == RequiredRouting::GridY)
+      || (a.value == RequiredRouting::GridY
+          && b.value == RequiredRouting::GridX)) {
+    return {RequiredRouting::GridXY};
+  }
+  if (a.value == RequiredRouting::GridX && b.value == RequiredRouting::GridX) {
+    return {RequiredRouting::GridX};
+  }
+  if (a.value == RequiredRouting::GridY && b.value == RequiredRouting::GridY) {
+    return {RequiredRouting::GridY};
+  }
+  if (a.value == RequiredRouting::None
+      && b.value == RequiredRouting::PendingTopology) {
+    return {RequiredRouting::PendingTopology};
+  }
+  if (b.value == RequiredRouting::None
+      && a.value == RequiredRouting::PendingTopology) {
+    return {RequiredRouting::PendingTopology};
+  }
+  if (a.value == RequiredRouting::None
+      || a.value == RequiredRouting::PendingTopology) {
+    return {b};
+  }
+  if (b.value == RequiredRouting::None
+      || b.value == RequiredRouting::PendingTopology) {
+    return {a};
+  }
+  return {a};
+}
+
+TEST(GridTest, TestRequiredRoutingCombine) {
+  EXPECT_EQ(combine({RequiredRouting::All}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::All}));
+  EXPECT_EQ(combine({RequiredRouting::GridXY}, {RequiredRouting::GridX}),
+            (RequiredRouting{RequiredRouting::GridXY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::GridY}),
+            (RequiredRouting{RequiredRouting::GridXY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::GridX}),
+            (RequiredRouting{RequiredRouting::GridX}));
+  EXPECT_EQ(
+      combine({RequiredRouting::None}, {RequiredRouting::PendingTopology}),
+      (RequiredRouting{RequiredRouting::PendingTopology}));
+  EXPECT_EQ(combine({RequiredRouting::GridY}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::GridY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::GridX}));
+  EXPECT_EQ(
+      combine({RequiredRouting::PendingTopology}, {RequiredRouting::None}),
+      (RequiredRouting{RequiredRouting::PendingTopology}));
+  EXPECT_EQ(combine({RequiredRouting::None}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::None}));
 }
