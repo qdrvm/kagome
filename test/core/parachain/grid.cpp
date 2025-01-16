@@ -9,10 +9,12 @@
 #include <iostream>
 #include <ranges>
 
+#include <random>
 #include "parachain/backing/grid.hpp"
 
 using kagome::parachain::grid::Grid;
 using kagome::parachain::grid::makeViews;
+using kagome::parachain::grid::RandomRouting;
 using kagome::parachain::grid::RequiredRouting;
 using kagome::parachain::grid::shuffle;
 using kagome::parachain::grid::ValidatorIndex;
@@ -1844,4 +1846,32 @@ TEST(GridTest, TestRequiredRoutingCombine) {
       (RequiredRouting{RequiredRouting::PendingTopology}));
   EXPECT_EQ(combine({RequiredRouting::None}, {RequiredRouting::None}),
             (RequiredRouting{RequiredRouting::None}));
+}
+
+TEST(GridTest, TestRandomRoutingDistribution) {
+    auto rng = std::make_shared<std::mt19937>(std::random_device{}());
+    auto run_random_routing = [](RandomRouting &random_routing, std::shared_ptr<std::mt19937> rng, int iterations, int max_samples) {
+        int count = 0;
+        for (int i = 0; i < iterations; ++i) {
+            for (int j = 0; j < max_samples; ++j) {
+                if (random_routing.sample(max_samples, rng)) {
+                    random_routing.inc_sent();
+                    ++count;
+                }
+            }
+        }
+        return count;
+    };
+
+    RandomRouting random_routing1(4, 0, 8);
+    EXPECT_EQ(run_random_routing(random_routing1, rng, 100, 10000), 4);
+
+    RandomRouting random_routing2(8, 0, 100);
+    EXPECT_EQ(run_random_routing(random_routing2, rng, 100, 10000), 8);
+
+    RandomRouting random_routing3(0, 0, 100);
+    EXPECT_EQ(run_random_routing(random_routing3, rng, 100, 10000), 0);
+
+    RandomRouting random_routing4(10, 0, 10);
+    EXPECT_EQ(run_random_routing(random_routing4, rng, 10, 100), 10);
 }
