@@ -1236,7 +1236,7 @@ namespace kagome::parachain {
           });
     } else {
       SL_TRACE(
-          self->logger_,
+          logger_,
           "No audi for PoV request. (relay_parent={}, candidate_hash={})",
           relay_parent, candidate_hash);
     }
