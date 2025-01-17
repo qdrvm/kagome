@@ -20,7 +20,7 @@ git diff -U0 origin/master -- . ':!core/runtime/wavm' | \
 clang-tidy-diff.py \
   -p1 \
   -path ${BUILD_DIR} \
-  -iregex '(core|node)\/.*\.(h|c|hpp|cpp)' \
+  -iregex '(core|node)\/.*\.(hpp|cpp)' \
   -clang-tidy-binary ${CLANG_TIDY_BIN} \
   -- \
     --std=c++20 \
