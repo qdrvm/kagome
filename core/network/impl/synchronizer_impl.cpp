@@ -1358,7 +1358,6 @@ namespace kagome::network {
     if (not chosen) {
       return false;
     }
-    busy_peers_.emplace(*chosen);
     auto cb2 = [weak{weak_from_this()},
                 min,
                 cb{std::move(cb)},
