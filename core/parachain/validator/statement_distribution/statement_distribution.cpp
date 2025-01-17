@@ -2808,13 +2808,16 @@ namespace kagome::parachain::statement_distribution {
     std::vector<ValidatorId> group_validator_keys;
     group_validator_keys.reserve(group_validators->size());
     std::ranges::transform(*group_validators,
-                   std::back_inserter(group_validator_keys),
-                   [&](auto v) { return validator_keys[v]; });
+                           std::back_inserter(group_validator_keys),
+                           [&](auto v) { return validator_keys[v]; });
 
-    auto session_index = parachain_host->session_index_for_child(block_tree->bestBlock().hash).value();
+    auto session_index =
+        parachain_host->session_index_for_child(block_tree->bestBlock().hash)
+            .value();
 
     SL_INFO(logger,
-            "Active validator state initialized. (session_index={}, our_group={}, group={})",
+            "Active validator state initialized. (session_index={}, "
+            "our_group={}, group={})",
             session_index,
             *our_group,
             *group_validators);
