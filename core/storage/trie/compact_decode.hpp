@@ -16,7 +16,6 @@ namespace kagome::storage::trie {
 
   enum class CompactDecodeError : uint8_t {
     INCOMPLETE_PROOF = 1,
-    NULL_BRANCH,
   };
 
   using CompactDecoded =

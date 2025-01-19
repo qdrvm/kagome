@@ -194,6 +194,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
@@ -738,13 +739,13 @@ namespace {
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
             bind_by_lambda<blockchain::BlockTree>(
-                [](const auto &injector) {
-                  return get_block_tree(injector);
-                }),
+              [](const auto &injector) {
+                return get_block_tree(injector);
+              }),
             bind_by_lambda<blockchain::BlockHeaderRepository>(
-                [](const auto &injector) {
-                  return get_block_tree(injector);
-                }),
+              [](const auto &injector) {
+                return injector.template create<sptr<blockchain::BlockTree>>();
+              }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -790,6 +791,32 @@ namespace {
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
+            bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
+              auto support = parachain::SecureModeSupport::none();
+              auto log = log::createLogger("Application", "application");
+#ifdef __linux__
+              if (not config->disableSecureMode() and config->usePvfSubprocess()
+                  and config->roles().isAuthority()) {
+                auto res = parachain::runSecureModeCheckProcess(config->runtimeCacheDirPath());
+                if (!res) {
+                  SL_ERROR(log, "Secure mode check failed: {}", res.error());
+                  exit(EXIT_FAILURE);
+                }
+                support = res.value();
+                if (not support.isTotallySupported()) {
+                  SL_ERROR(log,
+                          "Secure mode is not supported completely. You can disable it "
+                          "using --insecure-validator-i-know-what-i-do.");
+                  exit(EXIT_FAILURE);
+                }
+              }
+#else
+              SL_WARN(log,
+                      "Secure validator mode is not implemented for the current "
+                      "platform. Proceed at your own risk.");
+#endif
+              return toSptr(support);
+            }),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -936,7 +963,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
@@ -1125,12 +1152,6 @@ namespace kagome::injector {
   std::shared_ptr<common::MainThreadPool>
   KagomeNodeInjector::injectMainThreadPool() {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
-  }
-
-  std::shared_ptr<runtime::RuntimeUpgradeTracker>
-  KagomeNodeInjector::injectRuntimeUpgradeTracker() {
-    return pimpl_->injector_
-        .template create<sptr<runtime::RuntimeUpgradeTracker>>();
   }
 
   void KagomeNodeInjector::kademliaRandomWalk() {

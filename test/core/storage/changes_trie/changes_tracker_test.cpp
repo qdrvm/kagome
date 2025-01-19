@@ -12,6 +12,8 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -20,8 +22,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
-#include "testutil/storage/in_memory/in_memory_storage.hpp"
 
 using kagome::api::Session;
 using kagome::blockchain::BlockHeaderRepositoryMock;

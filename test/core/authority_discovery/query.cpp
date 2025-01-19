@@ -24,10 +24,10 @@
 #include "mock/core/runtime/authority_discovery_api_mock.hpp"
 #include "mock/libp2p/crypto/crypto_provider.hpp"
 #include "mock/libp2p/protocol/kademlia/kademlia_mock.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
 
 using kagome::application::AppStateManagerMock;
 using kagome::authority_discovery::audiEncode;

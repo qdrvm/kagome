@@ -19,11 +19,11 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "network/impl/state_sync_request_flow.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/types/block_attributes.hpp"
+#include "network/warp/protocol.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -822,13 +822,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      auto flow_res =
-          StateSyncRequestFlow::create(trie_node_db_, block, header);
-      if (not flow_res) {
-        handler(flow_res.error());
-        return;
-      }
-      state_sync_flow_.emplace(std::move(*flow_res.value()));
+      state_sync_flow_.emplace(trie_node_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         .peer = peer_id,
@@ -1333,20 +1327,18 @@ namespace kagome::network {
 
   bool SynchronizerImpl::fetchJustificationRange(primitives::BlockNumber min,
                                                  FetchJustificationRangeCb cb) {
-    BlocksRequest request{
-        .fields = BlockAttribute::JUSTIFICATION,
-        .from = min,
-        .direction = Direction::ASCENDING,
-        .max = std::nullopt,
-        .multiple_justifications = false,
-    };
-    auto chosen = chooseJustificationPeer(min, request.fingerprint());
+    auto hash_res = block_tree_->getHashByNumber(min);
+    if (not hash_res) {
+      return false;
+    }
+    auto &hash = hash_res.value();
+    auto chosen = chooseJustificationPeer(min, min);
     if (not chosen) {
       return false;
     }
     busy_peers_.emplace(*chosen);
     auto cb2 = [weak{weak_from_this()}, min, cb{std::move(cb)}, peer{*chosen}](
-                   outcome::result<BlocksResponse> r) mutable {
+                   outcome::result<WarpResponse> r) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
@@ -1355,30 +1347,23 @@ namespace kagome::network {
       if (not r) {
         return cb(r.error());
       }
-      auto &blocks = r.value().blocks;
-      if (blocks.empty()) {
-        return cb(Error::EMPTY_RESPONSE);
+      auto &blocks = r.value().proofs;
+      for (const auto &block : blocks) {
+        self->grandpa_environment_->applyJustification(
+            block.justification.block_info,
+            {scale::encode(block.justification).value()},
+            [cb{std::move(cb)}](outcome::result<void> r) {
+              if (not r) {
+                cb(r.error());
+              } else {
+                cb(std::nullopt);
+              }
+            });
+        return;
       }
-      auto number = min;
-      for (auto &block : blocks) {
-        if (block.justification) {
-          self->grandpa_environment_->applyJustification(
-              {number, block.hash},
-              *block.justification,
-              [cb{std::move(cb)}](outcome::result<void> r) {
-                if (not r) {
-                  cb(r.error());
-                } else {
-                  cb(std::nullopt);
-                }
-              });
-          return;
-        }
-        ++number;
-      }
-      cb(min + blocks.size());
+      cb(min);
     };
-    fetch(*chosen, std::move(request), "justification range", std::move(cb2));
+    router_->getWarpProtocol()->doRequest(*chosen, hash, std::move(cb2));
     return true;
   }
 

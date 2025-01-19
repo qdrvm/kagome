@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
     void match(uint8_t nibble);
     void match(common::BufferView nibbles);
 
-    explicit operator bool() const;
+    operator bool() const;
 
     bool done() const;
 
