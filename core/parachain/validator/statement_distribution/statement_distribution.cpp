@@ -1988,6 +1988,12 @@ namespace kagome::parachain::statement_distribution {
       const runtime::SessionInfo &session_info,
       const network::vstaging::SignedCompactStatement &statement,
       ValidatorIndex cluster_sender_index) {
+    SL_TRACE(logger,
+             "Handle cluster statement. (relay_parent={}, cluster_sender_index={}, "
+             "validator_index={})",
+             relay_parent,
+             cluster_sender_index,
+             statement.payload.ix);
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     const auto accept = cluster_tracker.can_receive(
         cluster_sender_index,
@@ -2005,6 +2011,12 @@ namespace kagome::parachain::statement_distribution {
         cluster_sender_index,
         statement.payload.ix,
         network::vstaging::from(getPayload(statement)));
+    SL_TRACE(logger,
+             "Cluster statement note received. (relay_parent={}, cluster_sender_index={}, "
+             "validator_index={})",
+             relay_parent,
+             cluster_sender_index,
+             statement.payload.ix);
 
     const auto should_import = (outcome::success(Accept::Ok) == accept);
     if (should_import) {
