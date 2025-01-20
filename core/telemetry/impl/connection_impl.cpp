@@ -158,9 +158,9 @@ namespace kagome::telemetry {
   boost::beast::lowest_layer_type<TelemetryConnectionImpl::SslStream> &
   TelemetryConnectionImpl::stream_lowest_layer() {
     return secure_ ? boost::beast::get_lowest_layer(
-                         *boost::relaxed_get<WsSslStreamPtr>(ws_))
+               *boost::relaxed_get<WsSslStreamPtr>(ws_))
                    : boost::beast::get_lowest_layer(
-                         *boost::relaxed_get<WsTcpStreamPtr>(ws_));
+                       *boost::relaxed_get<WsTcpStreamPtr>(ws_));
   }
 
   template <typename WsStreamT>

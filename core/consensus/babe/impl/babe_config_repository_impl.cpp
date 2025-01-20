@@ -57,7 +57,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       LazySPtr<SlotsUtil> slots_util)
       : persistent_storage_(
-            persistent_storage->getSpace(storage::Space::kDefault)),
+          persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
                           == application::SyncMethod::Warp},
         timings_(timings),

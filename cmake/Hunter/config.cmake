@@ -111,3 +111,8 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    qtils
+    URL  https://github.com/qdrvm/qtils/archive/0dd35029f54e9a6218ee261b0227ef23762f2d4b.tar.gz
+    SHA1 66ec5b05cc3a864f896f19021c1f3b44d096588a
+)

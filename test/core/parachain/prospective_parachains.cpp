@@ -191,7 +191,8 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
             .digest = {},
             .hash_opt = {},
         };
-        EXPECT_CALL(*block_tree_, tryGetBlockHeader(h_)).WillRepeatedly(Return(h));
+        EXPECT_CALL(*block_tree_, tryGetBlockHeader(h_))
+            .WillRepeatedly(Return(h));
         EXPECT_CALL(*parachain_api_, session_index_for_child(h_))
             .WillRepeatedly(Return(outcome::success(1)));
         used_relay_parents.emplace(h_);

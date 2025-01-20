@@ -29,8 +29,7 @@ namespace kagome::network {
 
   struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
-    explicit GrandpaVote(VoteMessage &&vm)
-        : VoteMessage(std::move(vm)){};
+    explicit GrandpaVote(VoteMessage &&vm) : VoteMessage(std::move(vm)){};
   };
 
   // Network level commit message with topic information.

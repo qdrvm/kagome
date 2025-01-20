@@ -103,8 +103,7 @@ TEST_F(ChainApiTest, GetBlockHashNoParam) {
  */
 TEST_F(ChainApiTest, GetBlockHashByNumber) {
   //  kagome::primitives::BlockId did = "D"_hash256;
-  EXPECT_CALL(*block_tree, getHashByNumber(42))
-      .WillOnce(Return("CDE"_hash256));
+  EXPECT_CALL(*block_tree, getHashByNumber(42)).WillOnce(Return("CDE"_hash256));
 
   EXPECT_OUTCOME_TRUE(r, api->getBlockHash(42));
   ASSERT_EQ(r, "CDE"_hash256);
@@ -116,8 +115,7 @@ TEST_F(ChainApiTest, GetBlockHashByNumber) {
  * @then the correct hash value is returned
  */
 TEST_F(ChainApiTest, GetBlockHashByHexNumber) {
-  EXPECT_CALL(*block_tree, getHashByNumber(42))
-      .WillOnce(Return("CDE"_hash256));
+  EXPECT_CALL(*block_tree, getHashByNumber(42)).WillOnce(Return("CDE"_hash256));
 
   EXPECT_OUTCOME_TRUE(r, api->getBlockHash("0x2a"));
   ASSERT_EQ(r, "CDE"_hash256);

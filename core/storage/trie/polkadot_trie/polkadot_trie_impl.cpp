@@ -319,17 +319,17 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-            std::move(retrieve_functions.retrieve_node),
-            std::move(retrieve_functions.retrieve_value),
-            nullptr)},
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          nullptr)},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root,
                                      RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-            std::move(retrieve_functions.retrieve_node),
-            std::move(retrieve_functions.retrieve_value),
-            std::move(root))},
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   //  PolkadotTrieImpl::~PolkadotTrieImpl() {}
