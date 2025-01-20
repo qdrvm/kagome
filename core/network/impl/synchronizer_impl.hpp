@@ -132,6 +132,7 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     /** @see AppStateManager::takeControl */
+    bool start();
     void stop();
 
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
@@ -246,6 +247,8 @@ namespace kagome::network {
     void afterStateSync();
 
     std::shared_ptr<void> busyPeerJustification(PeerId peer);
+
+    void randomWarp();
 
     log::Logger log_;
 
