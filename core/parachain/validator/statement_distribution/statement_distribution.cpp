@@ -2025,6 +2025,28 @@ namespace kagome::parachain::statement_distribution {
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
+
+    visit_in_place(
+      getPayload(stm.compact).inner_value,
+      [&](const network::vstaging::SecondedCandidateHash &seconded) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` seconded. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                seconded.hash);
+      },
+      [&](const network::vstaging::ValidCandidateHash &valid) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` valid. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                valid.hash);
+      },
+      [&](const auto &) {
+        SL_TRACE(logger, "`StatementDistributionMessageStatement` OTHER.");
+      }
+    );
+    
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger,
