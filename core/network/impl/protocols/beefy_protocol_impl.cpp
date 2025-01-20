@@ -23,9 +23,7 @@ namespace kagome::network {
       Roles roles,
       std::shared_ptr<Beefy> beefy)
       : notifications_{notifications_factory.make(
-            {make_protocols(kBeefyProtocol, genesis)},
-            kPeersLimit,
-            kPeersLimit)},
+          {make_protocols(kBeefyProtocol, genesis)}, kPeersLimit, kPeersLimit)},
         roles_{roles},
         beefy_{std::move(beefy)} {}
 

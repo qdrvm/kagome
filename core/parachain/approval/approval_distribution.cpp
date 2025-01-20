@@ -588,7 +588,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-            this, app_state_manager, approval_thread_pool, logger_)},
+          this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(slots_util),
@@ -2894,10 +2894,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay,
-                              tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};

@@ -43,7 +43,8 @@ namespace kagome::runtime::binaryen {
   }
 
   CompilationOutcome<std::shared_ptr<Module>> ModuleFactoryImpl::loadCompiled(
-      std::filesystem::path path_compiled, const RuntimeContext::ContextParams &config) const {
+      std::filesystem::path path_compiled,
+      const RuntimeContext::ContextParams &config) const {
     Buffer code;
     if (config.wasm_ext_bulk_memory) {
       return CompilationError{"bulk memory is not supported"};

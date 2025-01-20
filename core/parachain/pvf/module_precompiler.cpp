@@ -103,8 +103,11 @@ namespace kagome::parachain {
             core = cores.back();
             cores.pop_back();
           }
-          auto res = self->precompileModulesForCore(
-              stats, last_finalized, executor_params.context_params, ParachainCore{core});
+          auto res =
+              self->precompileModulesForCore(stats,
+                                             last_finalized,
+                                             executor_params.context_params,
+                                             ParachainCore{core});
           if (!res) {
             using namespace std::string_literals;
             auto id = get_para_id(core);

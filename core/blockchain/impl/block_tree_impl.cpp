@@ -395,16 +395,16 @@ namespace kagome::blockchain {
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
-            .storage_ = std::move(storage),
-            .state_pruner_ = std::move(state_pruner),
-            .tree_ = std::make_unique<CachedTree>(finalized),
-            .hasher_ = std::move(hasher),
-            .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
-            .justification_storage_policy_ =
-                std::move(justification_storage_policy),
-            .genesis_block_hash_ = {},
-            .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
-        }},
+          .storage_ = std::move(storage),
+          .state_pruner_ = std::move(state_pruner),
+          .tree_ = std::make_unique<CachedTree>(finalized),
+          .hasher_ = std::move(hasher),
+          .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
+          .justification_storage_policy_ =
+              std::move(justification_storage_policy),
+          .genesis_block_hash_ = {},
+          .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
+      }},
         chain_events_engine_{std::move(chain_events_engine)},
         main_pool_handler_{main_thread_pool.handlerStarted()},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)} {
