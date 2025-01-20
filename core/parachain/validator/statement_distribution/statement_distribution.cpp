@@ -342,6 +342,9 @@ namespace kagome::parachain::statement_distribution {
 
       OUTCOME_TRY(session_index,
                   parachain_host->session_index_for_child(new_relay_parent));
+      OUTCOME_TRY(
+          session_info,
+          parachain_host->session_info(new_relay_parent, session_index));
       OUTCOME_TRY(disabled_validators_,
                   parachain_host->disabled_validators(new_relay_parent));
       std::unordered_set<ValidatorIndex> disabled_validators{
@@ -356,9 +359,6 @@ namespace kagome::parachain::statement_distribution {
           session_index,
           [&]() -> outcome::result<
                     RefCache<SessionIndex, PerSessionState>::RefObj> {
-            OUTCOME_TRY(
-                session_info,
-                parachain_host->session_info(new_relay_parent, session_index));
             if (!new_context.v_index) {
               SL_TRACE(logger,
                        "Not a validator. (new_relay_parent={})",
@@ -453,6 +453,37 @@ namespace kagome::parachain::statement_distribution {
         }
         return LocalValidatorState{};
       }();
+
+      if (local_validator && local_validator->active) {
+        auto our_g = per_session_state.value()->value().groups.get(local_validator->active->group);
+        if (our_g) {
+          auto message = network::encodeView(event.view);
+          SL_TRACE(logger,
+                  "Found our group. (relay_parent={}, group={}, size={})",
+                  new_relay_parent, local_validator->active->group, our_g->size());
+
+          for (const auto vi : *our_g) {
+            if (auto peer = query_audi->get(session_info->discovery_keys[vi])) {
+              SL_TRACE(logger,
+                      "Write view update. (relay_parent={}, vi={}, peer={}, auth={})",
+                      new_relay_parent, vi, peer->id, session_info->discovery_keys[vi]);
+              router->getValidationProtocol()->write(peer->id, message);
+            } else {
+              SL_TRACE(logger,
+                      "No audi. (relay_parent={}, vi={}, auth={})",
+                      new_relay_parent, vi, session_info->discovery_keys[vi]);
+            }
+          }
+        } else {
+          SL_TRACE(logger,
+                  "No our group. (relay_parent={})",
+                  new_relay_parent);
+        }
+      } else {
+        SL_TRACE(logger,
+                "Not a validator or not a parachain validator. (relay_parent={})",
+                new_relay_parent);
+      }
 
       auto groups_per_para = determine_groups_per_para(availability_cores,
                                                        group_rotation_info,
