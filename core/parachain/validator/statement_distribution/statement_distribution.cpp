@@ -2095,10 +2095,26 @@ namespace kagome::parachain::statement_distribution {
         for (const auto i : allowed_senders) {
           if (i < session_info.discovery_keys.size()
               && *peer == session_info.discovery_keys[i]) {
+            SL_TRACE(logger,
+                    "Found peer which have index. (relay parent={}, "
+                    "peer_id={}, index={}, originator={})",
+                    stm.relay_parent,
+                    peer_id, i, stm.compact.payload.ix);
             return i;
           }
         }
+      } else {
+        SL_TRACE(logger,
+                "No audi result fo peer. (relay parent={}, "
+                "peer_id={}, originator={})",
+                stm.relay_parent,
+                peer_id, stm.compact.payload.ix);
       }
+      SL_TRACE(logger,
+              "No peer found. (relay parent={}, "
+              "peer_id={}, originator={})",
+              stm.relay_parent,
+              peer_id, stm.compact.payload.ix);
       return std::nullopt;
     }();
 
