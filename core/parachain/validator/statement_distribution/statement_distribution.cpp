@@ -2025,6 +2025,28 @@ namespace kagome::parachain::statement_distribution {
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
+
+    visit_in_place(
+      getPayload(stm.compact).inner_value,
+      [&](const network::vstaging::SecondedCandidateHash &seconded) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` seconded. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                seconded.hash);
+      },
+      [&](const network::vstaging::ValidCandidateHash &valid) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` valid. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                valid.hash);
+      },
+      [&](const auto &) {
+        SL_TRACE(logger, "`StatementDistributionMessageStatement` OTHER.");
+      }
+    );
+    
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger,
@@ -2073,10 +2095,26 @@ namespace kagome::parachain::statement_distribution {
         for (const auto i : allowed_senders) {
           if (i < session_info.discovery_keys.size()
               && *peer == session_info.discovery_keys[i]) {
+            SL_TRACE(logger,
+                    "Found peer which have index. (relay parent={}, "
+                    "peer_id={}, index={}, originator={})",
+                    stm.relay_parent,
+                    peer_id, i, stm.compact.payload.ix);
             return i;
           }
         }
+      } else {
+        SL_TRACE(logger,
+                "No audi result fo peer. (relay parent={}, "
+                "peer_id={}, originator={})",
+                stm.relay_parent,
+                peer_id, stm.compact.payload.ix);
       }
+      SL_TRACE(logger,
+              "No peer found. (relay parent={}, "
+              "peer_id={}, originator={})",
+              stm.relay_parent,
+              peer_id, stm.compact.payload.ix);
       return std::nullopt;
     }();
 
