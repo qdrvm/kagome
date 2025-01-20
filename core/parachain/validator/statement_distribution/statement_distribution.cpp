@@ -2068,7 +2068,13 @@ namespace kagome::parachain::statement_distribution {
       return;
     }
 
-    CHECK_OR_RET(parachain_state->get().local_validator);
+    if (!parachain_state->get().local_validator) {
+      SL_TRACE(logger,
+               "No local validator. (relay parent={}, validator={})",
+               stm.relay_parent,
+               stm.compact.payload.ix);
+      return;
+    }
     auto &local_validator = *parachain_state->get().local_validator;
     auto originator_group =
         parachain_state->get()
@@ -2091,6 +2097,7 @@ namespace kagome::parachain::statement_distribution {
             stm.compact.payload.ix);
       }
 
+      SL_TRACE(logger, "Allowed senders size. ({})", allowed_senders.size());
       if (auto peer = query_audi->get(peer_id)) {
         for (const auto i : allowed_senders) {
           if (i < session_info.discovery_keys.size()
