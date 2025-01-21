@@ -111,7 +111,11 @@ namespace kagome::network {
                                       PeerView::EventType::kViewUpdated,
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
-                                        self->write(event.view);
+                                        auto view{event.view};
+                                        if (view.heads_.size() > 5) {
+                                          view.heads_.resize(5);
+                                        }
+                                        self->write(view);
                                       });
   }
 
