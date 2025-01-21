@@ -11,13 +11,19 @@
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/warp/cache.hpp"
 
+#include <random>
+
 namespace kagome::network {
 
   using WarpRequest = primitives::BlockHash;
   using WarpResponse = WarpSyncProof;
 
   class WarpProtocol
-      : virtual public RequestResponseProtocol<WarpRequest, WarpResponse> {};
+      : virtual public RequestResponseProtocol<WarpRequest, WarpResponse> {
+   public:
+    using Cb = std::function<void(outcome::result<ResponseType>)>;
+    virtual void random(WarpRequest req, Cb cb) = 0;
+  };
 
   class WarpProtocolImpl
       : public WarpProtocol,
@@ -47,7 +53,42 @@ namespace kagome::network {
 
     void onTxRequest(const RequestType &) override {}
 
+    void random(WarpRequest req, Cb cb) override {
+      std::vector<PeerId> peers;
+      auto &protocols1 = base().protocolIds();
+      std::set protocols2(protocols1.begin(), protocols1.end());
+      auto &protocol_repo =
+          base().host().getPeerRepository().getProtocolRepository();
+      auto &conns = base().host().getNetwork().getConnectionManager();
+      for (auto &peer : protocol_repo.getPeers()) {
+        if (not conns.getBestConnectionForPeer(peer)) {
+          continue;
+        }
+        auto common = protocol_repo.supportsProtocols(peer, protocols2);
+        if (not common) {
+          continue;
+        }
+        if (common.value().empty()) {
+          continue;
+        }
+        peers.emplace_back(peer);
+      }
+      if (peers.empty()) {
+        for (auto &conn : conns.getConnections()) {
+          if (auto peer = conn->remotePeer()) {
+            peers.emplace_back(peer.value());
+          }
+        }
+      }
+      if (peers.empty()) {
+        return;
+      }
+      auto peer = peers[random_() % peers.size()];
+      doRequest(peer, req, std::move(cb));
+    }
+
    private:
     std::shared_ptr<WarpSyncCache> cache_;
+    std::default_random_engine random_;
   };
 }  // namespace kagome::network
