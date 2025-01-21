@@ -1848,30 +1848,61 @@ TEST(GridTest, TestRequiredRoutingCombine) {
             (RequiredRouting{RequiredRouting::None}));
 }
 
+TEST(GridTest, TestRandomRoutingSample) {
+  auto dummy_rng = []() {
+    std::seed_seq seed{12345};
+    return std::make_shared<std::mt19937>(seed);
+  };
+
+  auto rng = dummy_rng();
+  RandomRouting random_routing(4, 0, 8);
+
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  random_routing.inc_sent();
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_TRUE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  random_routing.inc_sent();
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  random_routing.inc_sent();
+  EXPECT_TRUE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng));
+  random_routing.inc_sent();
+
+  for (int i = 0; i < 16; ++i) {
+    EXPECT_FALSE(random_routing.sample(16, rng));
+  }
+}
+
 TEST(GridTest, TestRandomRoutingDistribution) {
-    auto rng = std::make_shared<std::mt19937>(std::random_device{}());
-    auto run_random_routing = [](RandomRouting &random_routing, std::shared_ptr<std::mt19937> rng, int iterations, int max_samples) {
-        int count = 0;
-        for (int i = 0; i < iterations; ++i) {
-            for (int j = 0; j < max_samples; ++j) {
-                if (random_routing.sample(max_samples, rng)) {
-                    random_routing.inc_sent();
-                    ++count;
-                }
-            }
+  auto rng = std::make_shared<std::mt19937>(std::random_device{}());
+  auto run_random_routing = [](RandomRouting &random_routing,
+                               std::shared_ptr<std::mt19937> rng,
+                               int iterations,
+                               int max_samples) {
+    int count = 0;
+    for (int i = 0; i < iterations; ++i) {
+      for (int j = 0; j < max_samples; ++j) {
+        if (random_routing.sample(max_samples, rng)) {
+          random_routing.inc_sent();
+          ++count;
         }
-        return count;
-    };
+      }
+    }
+    return count;
+  };
 
-    RandomRouting random_routing1(4, 0, 8);
-    EXPECT_EQ(run_random_routing(random_routing1, rng, 100, 10000), 4);
+  RandomRouting random_routing1(4, 0, 8);
+  EXPECT_EQ(run_random_routing(random_routing1, rng, 100, 10000), 4);
 
-    RandomRouting random_routing2(8, 0, 100);
-    EXPECT_EQ(run_random_routing(random_routing2, rng, 100, 10000), 8);
+  RandomRouting random_routing2(8, 0, 100);
+  EXPECT_EQ(run_random_routing(random_routing2, rng, 100, 10000), 8);
 
-    RandomRouting random_routing3(0, 0, 100);
-    EXPECT_EQ(run_random_routing(random_routing3, rng, 100, 10000), 0);
+  RandomRouting random_routing3(0, 0, 100);
+  EXPECT_EQ(run_random_routing(random_routing3, rng, 100, 10000), 0);
 
-    RandomRouting random_routing4(10, 0, 10);
-    EXPECT_EQ(run_random_routing(random_routing4, rng, 10, 100), 10);
+  RandomRouting random_routing4(10, 0, 10);
+  EXPECT_EQ(run_random_routing(random_routing4, rng, 10, 100), 10);
 }
