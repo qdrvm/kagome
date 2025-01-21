@@ -820,6 +820,7 @@ namespace kagome::parachain {
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
+    metrics::Counter *metric_kagome_parachain_candidate_backing_signed_statements_total_;
   };
 
 }  // namespace kagome::parachain
