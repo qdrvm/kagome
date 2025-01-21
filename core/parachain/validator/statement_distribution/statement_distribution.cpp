@@ -467,7 +467,7 @@ namespace kagome::parachain::statement_distribution {
               SL_TRACE(logger,
                       "Write view update. (relay_parent={}, vi={}, peer={}, auth={})",
                       new_relay_parent, vi, peer->id, session_info->discovery_keys[vi]);
-              router->getValidationProtocol()->write(peer->id, std::pair<size_t, std::shared_ptr<Buffer>>{0, message});
+              router->getValidationProtocol()->write(peer->id, message);
             } else {
               SL_TRACE(logger,
                       "No audi. (relay_parent={}, vi={}, auth={})",
