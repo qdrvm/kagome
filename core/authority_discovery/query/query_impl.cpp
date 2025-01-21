@@ -274,7 +274,7 @@ namespace kagome::authority_discovery {
     if (it != std::nullopt and signed_record_pb == it->raw) {
       return outcome::success();
     }
-    ::authority_discovery_v3::SignedAuthorityRecord signed_record;
+    ::authority_discovery_v2::SignedAuthorityRecord signed_record;
     if (not signed_record.ParseFromArray(
             signed_record_pb.data(),
             // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
@@ -297,7 +297,7 @@ namespace kagome::authority_discovery {
                 crypto::Sr25519Signature::fromSpan(
                     str2byte(signed_record.auth_signature())));
 
-    ::authority_discovery_v3::AuthorityRecord record;
+    ::authority_discovery_v2::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
       SL_TRACE(log_, "lookup: can't parse record from authority {}", authority);
       return Error::DECODE_ERROR;
@@ -307,16 +307,16 @@ namespace kagome::authority_discovery {
       return Error::NO_ADDRESSES;
     }
     std::optional<Timestamp> time{};
-    if (record.has_creation_time()) {
-      OUTCOME_TRY(tmp,
-                  scale::decode<TimestampScale>(
-                      qtils::str2byte(record.creation_time().timestamp())));
-      time = *tmp;
-      if (it and it->time and time <= it->time->number) {
-        SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
-        return outcome::success();
-      }
-    }
+    // if (record.has_creation_time()) {
+    //   OUTCOME_TRY(tmp,
+    //               scale::decode<TimestampScale>(
+    //                   qtils::str2byte(record.creation_time().timestamp())));
+    //   time = *tmp;
+    //   if (it and it->time and time <= it->time->number) {
+    //     SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
+    //     return outcome::success();
+    //   }
+    // }
     scale::PeerInfoSerializable peer;
     peer.id = std::move(peer_id);
     auto peer_id_str = peer.id.toBase58();
