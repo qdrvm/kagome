@@ -1176,7 +1176,13 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
+    if (parachain_state.issued_statements.contains(candidate_hash)) {           
+      SL_TRACE(logger_,
+               "Issued statements contains candidate.(relay_parent={}, candidate_hash={})",
+               relay_parent,
+               candidate_hash);
+      return;              
+    }
 
     const auto &session_info =
         parachain_state.per_session_state->value().session_info;
@@ -1192,6 +1198,10 @@ namespace kagome::parachain {
         session_info.discovery_keys[attesting_data.from_validator];
     if (auto peer = query_audi_->get(authority_id)) {
       auto pvd{persisted_validation_data};
+      SL_TRACE(
+          logger_,
+          "Requesting PoV. (relay_parent={}, candidate_hash={})",
+          relay_parent, candidate_hash);
       requestPoV(
           peer->id,
           candidate_hash,
@@ -1234,6 +1244,11 @@ namespace kagome::parachain {
             self->validateAsync<ValidationTaskType::kAttest>(
                 candidate, std::move(*p), std::move(pvd), relay_parent);
           });
+    } else {
+      SL_TRACE(
+          logger_,
+          "No audi for PoV request. (relay_parent={}, candidate_hash={})",
+          relay_parent, candidate_hash);
     }
   }
 
@@ -1324,21 +1339,15 @@ namespace kagome::parachain {
     }
 
     post_import_statement_actions(relay_parent, parachain_state, res.value());
-    if (auto result = res.value()) {
-      if (!assigned_core || result->group_id != *assigned_core) {
-        SL_TRACE(logger_,
-                 "Registered statement from not our group(assigned_para "
-                 "our={}, assigned_core our={}, registered={}).",
-                 assigned_para,
-                 assigned_core,
-                 result->group_id);
+    if (auto summary = res.value()) {
+      const auto &candidate_hash = summary->candidate;
+      if (!assigned_core || summary->group_id != *assigned_core) {
         return;
       }
 
-      const auto &candidate_hash = result->candidate;
       SL_TRACE(logger_,
-               "Registered incoming statement.(relay_parent={}).",
-               relay_parent);
+               "Registered incoming statement. (relay_parent={}, candidate_hash={}).",
+               relay_parent, candidate_hash);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement),
@@ -1392,11 +1401,22 @@ namespace kagome::parachain {
       if (attesting_ref) {
         auto it = our_current_state_.per_candidate.find(candidate_hash);
         if (it != our_current_state_.per_candidate.end()) {
+          SL_TRACE(logger_,
+                  "Candidate found.(relay_parent={}, candidate_hash={}).",
+                  relay_parent, candidate_hash);
           kickOffValidationWork(relay_parent,
                                 attesting_ref->get(),
                                 it->second.persisted_validation_data,
                                 parachain_state);
+        } else {
+          SL_TRACE(logger_,
+                  "Candidate not found.(relay_parent={}, candidate_hash={}).",
+                  relay_parent, candidate_hash);
         }
+      } else {
+        SL_TRACE(logger_,
+                "No attesting ref.(relay_parent={}, candidate_hash={}).",
+                relay_parent, candidate_hash);
       }
     }
   }
@@ -2354,6 +2374,10 @@ namespace kagome::parachain {
                              validation_result.candidate.descriptor.para_id);
     }
 
+    SL_TRACE(logger_,
+            "Issued statements insert candidate from validation callback. (candidate "
+            "hash={})",
+            candidate_hash);
     parachain_state.issued_statements.insert(candidate_hash);
     notifySeconded(validation_result.relay_parent, stmt);
   }
@@ -2513,14 +2537,14 @@ namespace kagome::parachain {
       const ValidateAndSecondResult &result) {
     TRY_GET_OR_RET(parachain_state,
                    tryGetStateByRelayParent(result.relay_parent));
-    logger_->info("Attest complete.(relay parent={}, para id={})",
+    SL_INFO(logger_, "Attest complete.(relay parent={}, para id={})",
                   result.relay_parent,
                   result.candidate.descriptor.para_id);
 
     const auto candidate_hash = result.candidate.hash(*hasher_);
     parachain_state->get().fallbacks.erase(candidate_hash);
 
-    if (not parachain_state->get().issued_statements.contains(candidate_hash)) {
+    if (!parachain_state->get().issued_statements.contains(candidate_hash)) {
       if (result.result) {
         if (const auto r =
                 sign_import_and_distribute_statement<StatementType::kValid>(
@@ -2536,6 +2560,10 @@ namespace kagome::parachain {
           return;
         }
       }
+      SL_TRACE(logger_,
+              "Issued statements insert candidate from attest callback. (candidate "
+              "hash={})",
+              candidate_hash);
       parachain_state->get().issued_statements.insert(candidate_hash);
     }
   }

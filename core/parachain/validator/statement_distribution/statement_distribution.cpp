@@ -342,6 +342,9 @@ namespace kagome::parachain::statement_distribution {
 
       OUTCOME_TRY(session_index,
                   parachain_host->session_index_for_child(new_relay_parent));
+      OUTCOME_TRY(
+          session_info,
+          parachain_host->session_info(new_relay_parent, session_index));
       OUTCOME_TRY(disabled_validators_,
                   parachain_host->disabled_validators(new_relay_parent));
       std::unordered_set<ValidatorIndex> disabled_validators{
@@ -356,9 +359,6 @@ namespace kagome::parachain::statement_distribution {
           session_index,
           [&]() -> outcome::result<
                     RefCache<SessionIndex, PerSessionState>::RefObj> {
-            OUTCOME_TRY(
-                session_info,
-                parachain_host->session_info(new_relay_parent, session_index));
             if (!new_context.v_index) {
               SL_TRACE(logger,
                        "Not a validator. (new_relay_parent={})",
@@ -453,6 +453,37 @@ namespace kagome::parachain::statement_distribution {
         }
         return LocalValidatorState{};
       }();
+
+      if (local_validator && local_validator->active) {
+        auto our_g = per_session_state.value()->value().groups.get(local_validator->active->group);
+        if (our_g) {
+          auto message = network::encodeView(event.view);
+          SL_TRACE(logger,
+                  "Found our group. (relay_parent={}, group={}, size={})",
+                  new_relay_parent, local_validator->active->group, our_g->size());
+
+          for (const auto vi : *our_g) {
+            if (auto peer = query_audi->get(session_info->discovery_keys[vi])) {
+              SL_TRACE(logger,
+                      "Write view update. (relay_parent={}, vi={}, peer={}, auth={})",
+                      new_relay_parent, vi, peer->id, session_info->discovery_keys[vi]);
+              router->getValidationProtocol()->write(peer->id, std::pair<size_t, std::shared_ptr<Buffer>>{0, message});
+            } else {
+              SL_TRACE(logger,
+                      "No audi. (relay_parent={}, vi={}, auth={})",
+                      new_relay_parent, vi, session_info->discovery_keys[vi]);
+            }
+          }
+        } else {
+          SL_TRACE(logger,
+                  "No our group. (relay_parent={})",
+                  new_relay_parent);
+        }
+      } else {
+        SL_TRACE(logger,
+                "Not a validator or not a parachain validator. (relay_parent={})",
+                new_relay_parent);
+      }
 
       auto groups_per_para = determine_groups_per_para(availability_cores,
                                                        group_rotation_info,
@@ -1988,6 +2019,12 @@ namespace kagome::parachain::statement_distribution {
       const runtime::SessionInfo &session_info,
       const network::vstaging::SignedCompactStatement &statement,
       ValidatorIndex cluster_sender_index) {
+    SL_TRACE(logger,
+             "Handle cluster statement. (relay_parent={}, cluster_sender_index={}, "
+             "validator_index={})",
+             relay_parent,
+             cluster_sender_index,
+             statement.payload.ix);
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     const auto accept = cluster_tracker.can_receive(
         cluster_sender_index,
@@ -2005,6 +2042,12 @@ namespace kagome::parachain::statement_distribution {
         cluster_sender_index,
         statement.payload.ix,
         network::vstaging::from(getPayload(statement)));
+    SL_TRACE(logger,
+             "Cluster statement note received. (relay_parent={}, cluster_sender_index={}, "
+             "validator_index={})",
+             relay_parent,
+             cluster_sender_index,
+             statement.payload.ix);
 
     const auto should_import = (outcome::success(Accept::Ok) == accept);
     if (should_import) {
@@ -2025,6 +2068,28 @@ namespace kagome::parachain::statement_distribution {
              "candidate_hash={})",
              stm.relay_parent,
              candidateHash(getPayload(stm.compact)));
+
+    visit_in_place(
+      getPayload(stm.compact).inner_value,
+      [&](const network::vstaging::SecondedCandidateHash &seconded) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` seconded. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                seconded.hash);
+      },
+      [&](const network::vstaging::ValidCandidateHash &valid) {
+        SL_TRACE(logger,
+                "`StatementDistributionMessageStatement` valid. (relay_parent={}, "
+                "candidate_hash={})",
+                stm.relay_parent,
+                valid.hash);
+      },
+      [&](const auto &) {
+        SL_TRACE(logger, "`StatementDistributionMessageStatement` OTHER.");
+      }
+    );
+    
     auto parachain_state = tryGetStateByRelayParent(stm.relay_parent);
     if (!parachain_state) {
       SL_TRACE(logger,
@@ -2046,7 +2111,13 @@ namespace kagome::parachain::statement_distribution {
       return;
     }
 
-    CHECK_OR_RET(parachain_state->get().local_validator);
+    if (!parachain_state->get().local_validator) {
+      SL_TRACE(logger,
+               "No local validator. (relay parent={}, validator={})",
+               stm.relay_parent,
+               stm.compact.payload.ix);
+      return;
+    }
     auto &local_validator = *parachain_state->get().local_validator;
     auto originator_group =
         parachain_state->get()
@@ -2069,14 +2140,31 @@ namespace kagome::parachain::statement_distribution {
             stm.compact.payload.ix);
       }
 
+      SL_TRACE(logger, "Allowed senders size. ({})", allowed_senders.size());
       if (auto peer = query_audi->get(peer_id)) {
         for (const auto i : allowed_senders) {
           if (i < session_info.discovery_keys.size()
               && *peer == session_info.discovery_keys[i]) {
+            SL_TRACE(logger,
+                    "Found peer which have index. (relay parent={}, "
+                    "peer_id={}, index={}, originator={})",
+                    stm.relay_parent,
+                    peer_id, i, stm.compact.payload.ix);
             return i;
           }
         }
+      } else {
+        SL_TRACE(logger,
+                "No audi result fo peer. (relay parent={}, "
+                "peer_id={}, originator={})",
+                stm.relay_parent,
+                peer_id, stm.compact.payload.ix);
       }
+      SL_TRACE(logger,
+              "No peer found. (relay parent={}, "
+              "peer_id={}, originator={})",
+              stm.relay_parent,
+              peer_id, stm.compact.payload.ix);
       return std::nullopt;
     }();
 
@@ -2798,6 +2886,31 @@ namespace kagome::parachain::statement_distribution {
     const auto group_validators = groups.get(*our_group);
     if (!group_validators) {
       return std::nullopt;
+    }
+
+    // get all validators' keys
+    std::vector<ValidatorId> validator_keys =
+        parachain_host->validators(block_tree->bestBlock().hash).value();
+
+    // map group_validators to their keys
+    std::vector<ValidatorId> group_validator_keys;
+    group_validator_keys.reserve(group_validators->size());
+    std::ranges::transform(*group_validators,
+                           std::back_inserter(group_validator_keys),
+                           [&](auto v) { return validator_keys[v]; });
+
+    auto session_index =
+        parachain_host->session_index_for_child(block_tree->bestBlock().hash)
+            .value();
+
+    SL_INFO(logger,
+            "Active validator state initialized. (session_index={}, "
+            "our_group={}, group={})",
+            session_index,
+            *our_group,
+            *group_validators);
+    for (auto v : group_validator_keys) {
+      SL_INFO(logger, "Group {} Validator key: {}", *our_group, v.toHex());
     }
 
     return LocalValidatorState{
