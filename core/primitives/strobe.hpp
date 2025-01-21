@@ -15,7 +15,7 @@
 #include <boost/assert.hpp>
 
 #include "common/buffer_view.hpp"
-#include "crypto/keccak/keccak.h"
+#include "keccak/keccak.h"
 #include "primitives/math.hpp"
 
 namespace kagome::primitives {
@@ -141,8 +141,8 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(
-            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
+        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
+              reinterpret_cast<uintptr_t>(raw_data)))},
           current_position_{*(buffer_ + kBufferSize)},
           begin_position_{*(buffer_ + kBufferSize + 1ull)},
           current_state_{*(buffer_ + kBufferSize + 2ull)} {}
