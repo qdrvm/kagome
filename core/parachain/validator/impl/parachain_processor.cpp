@@ -220,11 +220,19 @@ namespace kagome::parachain {
         metrics_registry_->registerGaugeMetric(kIsParachainValidator);
     metric_is_parachain_validator_->set(false);
 
-    metrics_registry_->registerCounterFamily("kagome_parachain_candidate_backing_signed_statements_total",
-                                             "Block height info of the chain");
+    metrics_registry_->registerCounterFamily(
+        "kagome_parachain_candidate_backing_signed_statements_total",
+        "Block height info of the chain");
     metric_kagome_parachain_candidate_backing_signed_statements_total_ =
         metrics_registry_->registerCounterMetric(
             "kagome_parachain_candidate_backing_signed_statements_total");
+
+    metrics_registry_->registerCounterFamily(
+        "kagome_parachain_candidate_backing_candidates_seconded_total",
+        "Number of candidates seconded");
+    metric_kagome_parachain_candidate_backing_candidates_seconded_total_ =
+        metrics_registry_->registerCounterMetric(
+            "kagome_parachain_candidate_backing_candidates_seconded_total");
   }
 
   void ParachainProcessorImpl::OnBroadcastBitfields(
@@ -2302,6 +2310,8 @@ namespace kagome::parachain {
                    candidate_hash,
                    validation_result.relay_parent);
 
+    metric_kagome_parachain_candidate_backing_candidates_seconded_total_->inc();
+
     const auto parent_head_data_hash =
         hasher_->blake2b_256(validation_result.pvd.parent_head);
     const auto ph =
@@ -2423,7 +2433,7 @@ namespace kagome::parachain {
              std::move(pov),
              std::move(pvd),
              _relay_parent);
-    const auto relay_parent = candidate.descriptor.relay_parent;             
+    const auto relay_parent = candidate.descriptor.relay_parent;
 
     TRY_GET_OR_RET(parachain_state,
                    tryGetStateByRelayParent(candidate.descriptor.relay_parent));
