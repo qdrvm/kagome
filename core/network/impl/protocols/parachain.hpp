@@ -10,7 +10,6 @@
 #include "network/types/collator_messages_vstaging.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
-#include "network/notifications/encode.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
@@ -32,15 +31,6 @@ namespace kagome::network {
 
   std::pair<size_t, std::shared_ptr<Buffer>> encodeMessage(
       const VersionedValidatorProtocolMessage &message);
-
-  template <typename M>
-  inline auto encodeMessage(const auto &message) {
-    return notifications::encode(WireMessage<M>{message});
-  }
-
-  inline auto encodeView(const View &view) {
-    return encodeMessage<CollationMessage0>(ViewUpdate{view});
-  }
 
   struct ParachainProtocolInject {
     std::shared_ptr<notifications::Factory> notifications_factory;

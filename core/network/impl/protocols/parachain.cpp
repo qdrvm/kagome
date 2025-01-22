@@ -9,6 +9,7 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/collation_observer.hpp"
 #include "network/common.hpp"
+#include "network/notifications/encode.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/validation_observer.hpp"
@@ -39,6 +40,15 @@ namespace kagome::network {
       WithType<vstaging::CollationMessage0, CollationMessage0>;
   using ValidationTypes =
       WithType<vstaging::ValidatorProtocolMessage, ValidatorProtocolMessage>;
+
+  template <typename M>
+  auto encodeMessage(const auto &message) {
+    return notifications::encode(WireMessage<M>{message});
+  }
+
+  inline auto encodeView(const View &view) {
+    return encodeMessage<CollationMessage0>(ViewUpdate{view});
+  }
 
   std::pair<size_t, std::shared_ptr<Buffer>> encodeMessage(
       const VersionedValidatorProtocolMessage &message) {
@@ -101,7 +111,11 @@ namespace kagome::network {
                                       PeerView::EventType::kViewUpdated,
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
-                                        self->write(event.view);
+                                        auto view{event.view};
+                                        if (view.heads_.size() > 5) {
+                                          view.heads_.resize(5);
+                                        }
+                                        self->write(view);
                                       });
   }
 

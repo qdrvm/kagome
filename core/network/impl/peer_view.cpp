@@ -10,35 +10,21 @@
 #include "utils/weak_macro.hpp"
 
 namespace kagome::network {
-  static constexpr size_t MAX_VIEW_HEADS = 5;
-
   inline View makeView(const LazySPtr<blockchain::BlockTree> &block_tree) {
     auto last_finalized = block_tree.get()->getLastFinalized().number;
 
-    std::vector<std::pair<BlockNumber, primitives::BlockHash>> heads;
+    std::vector<primitives::BlockHash> heads;
     for (const auto &bi : block_tree.get()->getLeavesInfo()) {
       if (bi.number >= last_finalized) {
-        heads.emplace_back(bi.number, bi.hash);
+        heads.emplace_back(bi.hash);
       }
     }
-    std::ranges::sort(heads, [](const auto &l, const auto &r) {
-      return l.first < r.first;
-    });
 
     View view{
-        .heads_ = {},
+        .heads_ = std::move(heads),
         .finalized_number_ = last_finalized,
     };
-    for (auto it = heads.rbegin(); it != heads.rend(); ++it) {
-      if (view.heads_.size() < MAX_VIEW_HEADS) {
-        view.heads_.emplace_back(it->second);
-      } else {
-        break;
-      }
-    }
-
     std::ranges::sort(view.heads_);
-    assert(view.heads_.size() <= MAX_VIEW_HEADS);
     return view;
   }
 
