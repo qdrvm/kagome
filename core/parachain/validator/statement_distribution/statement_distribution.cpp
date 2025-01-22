@@ -914,12 +914,6 @@ namespace kagome::parachain::statement_distribution {
           unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
     }
 
-    auto backing_threshold = [&]() -> std::optional<size_t> {
-      auto bt = relay_parent_state.per_session_state->value()
-                    .groups.get_size_and_backing_threshold(group_index);
-      return bt ? std::get<1>(*bt) : std::optional<size_t>{};
-    }();
-
     SL_TRACE(logger,
              "Enumerate peers. (relay_parent={}, candidate_hash={})",
              relay_parent,
@@ -972,16 +966,36 @@ namespace kagome::parachain::statement_distribution {
     filter->mask_seconded(unwanted_mask.seconded_in_group);
     filter->mask_valid(unwanted_mask.validated_in_group);
 
+    bool require_backing = !local_validator.active;
+    if (local_validator.active) {
+      require_backing = local_validator.active->group != group_index;
+    }
+
+		const auto backing_threshold = [&]() -> std::optional<size_t> {
+      if (require_backing) {
+        auto bt = relay_parent_state.per_session_state->value().groups.get_size_and_backing_threshold(group_index);
+        return bt ? std::get<1>(*bt) : std::optional<size_t>{};
+      }
+      return std::nullopt;
+    }();
+
     if (!backing_threshold
         || (filter->has_seconded()
             && filter->backing_validators() >= *backing_threshold)) {
+      SL_TRACE(
+          logger,
+          "Pass backing threshold. (relay_parent={}, candidate_hash={})",
+          relay_parent,
+          candidate_hash);
       target.emplace(peer);
     } else {
       SL_TRACE(
           logger,
-          "Not pass backing threshold. (relay_parent={}, candidate_hash={})",
+          "Not pass backing threshold. (relay_parent={}, candidate_hash={}, backing_threshold={}, filter.has_seconded={}, filter.backing_validators={})",
           relay_parent,
-          candidate_hash);
+          candidate_hash, backing_threshold ? "yes" : "no",
+          filter->has_seconded() ? "yes" : "no",
+          filter->backing_validators());
       return;
     }
 
@@ -2032,30 +2046,25 @@ namespace kagome::parachain::statement_distribution {
              handle_incoming_statement,
              peer_id,
              stm);
-    SL_TRACE(logger,
-             "`StatementDistributionMessageStatement`. (relay_parent={}, "
-             "candidate_hash={})",
-             stm.relay_parent,
-             candidateHash(getPayload(stm.compact)));
 
     visit_in_place(
       getPayload(stm.compact).inner_value,
       [&](const network::vstaging::SecondedCandidateHash &seconded) {
         SL_TRACE(logger,
-                "`StatementDistributionMessageStatement` seconded. (relay_parent={}, "
+                "StatementDistributionMessageStatement seconded. (relay_parent={}, "
                 "candidate_hash={})",
                 stm.relay_parent,
                 seconded.hash);
       },
       [&](const network::vstaging::ValidCandidateHash &valid) {
         SL_TRACE(logger,
-                "`StatementDistributionMessageStatement` valid. (relay_parent={}, "
+                "StatementDistributionMessageStatement valid. (relay_parent={}, "
                 "candidate_hash={})",
                 stm.relay_parent,
                 valid.hash);
       },
       [&](const auto &) {
-        SL_TRACE(logger, "`StatementDistributionMessageStatement` OTHER.");
+        SL_TRACE(logger, "StatementDistributionMessageStatement OTHER.");
       }
     );
     
