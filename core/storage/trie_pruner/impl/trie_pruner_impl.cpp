@@ -78,6 +78,7 @@ namespace kagome::storage::trie_pruner {
         value_storage_{storage_->getSpace(Space::kTrieValue)},
         hasher_{std::move(hasher)},
         prune_thread_handler_{thread_pool->handler(*app_state_manager)},
+        prune_queue_{2},
         pruning_depth_{config->statePruningDepth()},
         thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(node_storage_ != nullptr);
@@ -86,7 +87,6 @@ namespace kagome::storage::trie_pruner {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(thread_pool != nullptr);
     BOOST_ASSERT(prune_thread_handler_ != nullptr);
 
     app_state_manager->takeControl(*this);
@@ -122,8 +122,8 @@ namespace kagome::storage::trie_pruner {
   }
 
   bool TriePrunerImpl::start() {
-    prune_thread_handler_->execute(
-        [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    // prune_thread_handler_->execute(
+    //     [self = shared_from_this()]() { self->pruneQueuedStates(); });
     return true;
   }
 
@@ -152,8 +152,8 @@ namespace kagome::storage::trie_pruner {
           break;
       }
     }
-    prune_thread_handler_->execute(
-        [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    // prune_thread_handler_->execute(
+    //     [self = shared_from_this()]() { self->pruneQueuedStates(); });
   }
 
   class Encoder {  // NOLINT(cppcoreguidelines-special-member-functions)
@@ -233,7 +233,9 @@ namespace kagome::storage::trie_pruner {
   void TriePrunerImpl::schedulePrune(const trie::RootHash &root,
                                      const primitives::BlockInfo &block_info,
                                      PruneReason reason) {
-    prune_queue_.push(PendingPrune{block_info, root, reason});
+    prune_queue_.push(
+        PendingPrune{.block_info = block_info, .root = root, .reason = reason});
+    pruneQueuedStates();
   }
 
   outcome::result<void> TriePrunerImpl::pruneFinalized(

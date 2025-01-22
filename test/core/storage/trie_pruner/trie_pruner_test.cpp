@@ -201,7 +201,9 @@ class TriePrunerTest : public testing::Test {
         codec_mock,
         persistent_storage_mock,
         hasher,
-        config_mock);
+        config_mock,
+        std::make_shared<kagome::common::WorkerThreadPool>(
+            kagome::TestThreadPool{}));
     ASSERT_TRUE(pruner->prepare());
   }
 
@@ -226,7 +228,9 @@ class TriePrunerTest : public testing::Test {
         codec_mock,
         persistent_storage_mock,
         hasher,
-        config_mock);
+        config_mock,
+        std::make_shared<kagome::common::WorkerThreadPool>(
+            kagome::TestThreadPool{}));
     BOOST_ASSERT(pruner->prepare());
     ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(block_tree));
   }
@@ -370,14 +374,16 @@ TEST_F(TriePrunerTest, BasicScenario) {
       .WillOnce(testing::Return(trie));
   BlockHeader header1{.number = 1, .state_root = "root1"_hash256};
   primitives::calculateBlockHash(header1, *hasher);
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header1));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      pruner->pruneFinalized(header1.state_root, header1.blockInfo()));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
   EXPECT_CALL(*serializer_mock, retrieveTrie("root2"_hash256, _))
       .WillOnce(testing::Return(trie_1));
   BlockHeader header2{.number = 2, .state_root = "root2"_hash256};
   primitives::calculateBlockHash(header2, *hasher);
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header2));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      pruner->pruneFinalized(header2.state_root, header2.blockInfo()));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
 
@@ -575,7 +581,8 @@ TEST_F(TriePrunerTest, RandomTree) {
 
       BlockHeader header{.number = i - 16, .state_root = root};
       primitives::calculateBlockHash(header, *hasher);
-      ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header));
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          pruner->pruneFinalized(header.state_root, header.blockInfo()));
     }
   }
   for (unsigned i = STATES_NUM - 16; i < STATES_NUM; i++) {
@@ -595,7 +602,8 @@ TEST_F(TriePrunerTest, RandomTree) {
     auto &root = roots[i];
     BlockHeader header{.number = i, .state_root = root};
     primitives::calculateBlockHash(header, *hasher);
-    ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        pruner->pruneFinalized(header.state_root, header.blockInfo()));
   }
   for (auto &[hash, node] : node_storage) {
     std::cout << hash << "\n";
@@ -860,6 +868,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
       }
     }
 
-    ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(headers[n]));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        pruner->pruneFinalized(headers[n].state_root, headers[n].blockInfo()));
   }
 }

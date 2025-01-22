@@ -26,14 +26,11 @@ namespace kagome::storage::trie_pruner {
                  trie::StateVersion version),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
-                pruneFinalized,
-                (const primitives::BlockHeader &state),
-                (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                pruneDiscarded,
-                (const primitives::BlockHeader &state),
+    MOCK_METHOD(void,
+                schedulePrune,
+                (const trie::RootHash &root,
+                 const primitives::BlockInfo &block_info,
+                 PruneReason reason),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
