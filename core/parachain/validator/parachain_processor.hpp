@@ -356,7 +356,6 @@ namespace kagome::parachain {
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<CoreIndex> assigned_core;
-      std::optional<ParachainId> assigned_para;
       std::vector<std::optional<GroupIndex>> validator_to_group;
 
       Collations collations;
@@ -364,6 +363,10 @@ namespace kagome::parachain {
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
       uint32_t minimum_backing_votes;
+        /// Claim queue state. If the runtime API is not available, it'll be populated with info from
+        /// availability cores.
+        runtime::ClaimQueueSnapshot claim_queue;
+
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -613,8 +616,9 @@ namespace kagome::parachain {
     std::optional<CoreIndex> core_index_from_statement(
         const std::vector<std::optional<GroupIndex>> &validator_to_group,
         const runtime::GroupDescriptor &group_rotation_info,
-        const std::vector<runtime::CoreState> &cores,
-        const SignedFullStatementWithPVD &statement);
+        uint32_t n_cores,
+        const SignedFullStatementWithPVD &statement,
+        const runtime::ClaimQueueSnapshot &claim_queue);
     const network::CandidateDescriptor &candidateDescriptorFrom(
         const network::CollationFetchingResponse &collation) {
       return visit_in_place(collation.response_data,

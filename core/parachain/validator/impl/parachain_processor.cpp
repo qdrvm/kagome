@@ -503,6 +503,8 @@ namespace kagome::parachain {
       }
     }
 
+    OUTCOME_TRY(maybe_claim_queue, parachain_host_->claim_queue(relay_parent));
+
     OUTCOME_TRY(global_v_index,
                 signer_factory_->getAuthorityValidatorIndex(relay_parent));
     if (!global_v_index) {
@@ -523,36 +525,41 @@ namespace kagome::parachain {
     const auto n_cores = cores.size();
     std::unordered_map<CoreIndex, std::vector<ValidatorIndex>> out_groups;
     std::optional<CoreIndex> assigned_core;
-    std::optional<ParachainId> assigned_para;
+
+    const auto has_claim_queue = maybe_claim_queue.has_value();
+    runtime::ClaimQueueSnapshot &claim_queue = *maybe_claim_queue;
 
     for (CoreIndex idx = 0; idx < static_cast<CoreIndex>(cores.size()); ++idx) {
-      std::optional<ParachainId> core_para_id = visit_in_place(
-          cores[idx],
-          [&](const runtime::OccupiedCore &occupied)
-              -> std::optional<ParachainId> {
-            if (mode && occupied.next_up_on_available) {
-              return occupied.next_up_on_available->para_id;
-            }
-            return std::nullopt;
-          },
-          [](const runtime::ScheduledCore &scheduled)
-              -> std::optional<ParachainId> { return scheduled.para_id; },
-          [](const runtime::FreeCore &) -> std::optional<ParachainId> {
-            return std::nullopt;
-          });
+      const auto core_index = idx;
+      const auto &core = cores[core_index];
 
-      if (!core_para_id) {
+      if (!has_claim_queue) {
+        std::optional<ParachainId> core_para_id = visit_in_place(
+            core,
+            [&](const runtime::OccupiedCore &occupied)
+                -> std::optional<ParachainId> {
+              if (mode && occupied.next_up_on_available) {
+                return occupied.next_up_on_available->para_id;
+              }
+              return std::nullopt;
+            },
+            [&](const runtime::ScheduledCore &scheduled)
+                -> std::optional<ParachainId> { return scheduled.para_id; },
+            [](const runtime::FreeCore &) -> std::optional<ParachainId> {
+              return std::nullopt;
+            });
+        if (!core_para_id) {
+          continue;
+        }
+        claim_queue.claimes.emplace(core_index, std::vector<ParachainId>{*core_para_id});
+      } else if (!claim_queue.claimes.contains(core_index)) {
         continue;
       }
 
-      const CoreIndex core_index = idx;
-      const GroupIndex group_index =
-          group_rotation_info.groupForCore(core_index, n_cores);
-
+      const GroupIndex group_index = group_rotation_info.groupForCore(core_index, n_cores);
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
         if (validator_index && g.contains(*validator_index)) {
-          assigned_para = core_para_id;
           assigned_core = core_index;
         }
         out_groups.emplace(core_index, g.validators);
@@ -570,9 +577,8 @@ namespace kagome::parachain {
     }
 
     SL_VERBOSE(logger_,
-               "Inited new backing task v3.(assigned_para={}, "
+               "Inited new backing task v3.("
                "assigned_core={}, our index={}, relay parent={})",
-               assigned_para,
                assigned_core,
                global_v_index,
                relay_parent);
@@ -580,7 +586,6 @@ namespace kagome::parachain {
     return RelayParentState{
         .prospective_parachains_mode = mode,
         .assigned_core = assigned_core,
-        .assigned_para = assigned_para,
         .validator_to_group = std::move(validator_to_group),
         .collations = {},
         .table_context =
@@ -592,6 +597,7 @@ namespace kagome::parachain {
         .availability_cores = cores,
         .group_rotation_info = group_rotation_info,
         .minimum_backing_votes = minimum_backing_votes,
+        .claim_queue = std::move(claim_queue),
         .awaiting_validation = {},
         .issued_statements = {},
         .peers_advertised = {},
@@ -1323,7 +1329,6 @@ namespace kagome::parachain {
     TRY_GET_OR_RET(opt_parachain_state, tryGetStateByRelayParent(relay_parent));
 
     auto &parachain_state = opt_parachain_state->get();
-    const auto &assigned_para = parachain_state.assigned_para;
     const auto &assigned_core = parachain_state.assigned_core;
     auto &fallbacks = parachain_state.fallbacks;
     auto &awaiting_validation = parachain_state.awaiting_validation;
@@ -1857,8 +1862,9 @@ namespace kagome::parachain {
 
     auto core = core_index_from_statement(rp_state.validator_to_group,
                                           rp_state.group_rotation_info,
-                                          rp_state.availability_cores,
-                                          statement);
+                                          uint32_t(rp_state.availability_cores.size()),
+                                          statement,
+                                          rp_state.claim_queue);
     if (!core) {
       return Error::CORE_INDEX_UNAVAILABLE;
     };
@@ -1870,12 +1876,12 @@ namespace kagome::parachain {
   std::optional<CoreIndex> ParachainProcessorImpl::core_index_from_statement(
       const std::vector<std::optional<GroupIndex>> &validator_to_group,
       const runtime::GroupDescriptor &group_rotation_info,
-      const std::vector<runtime::CoreState> &cores,
-      const SignedFullStatementWithPVD &statement) {
+      uint32_t n_cores,
+      const SignedFullStatementWithPVD &statement,
+      const runtime::ClaimQueueSnapshot &claim_queue) {
     const auto &compact_statement = getPayload(statement);
     const auto candidate_hash = candidateHashFrom(compact_statement, hasher_);
 
-    const auto n_cores = cores.size();
     SL_TRACE(
         logger_,
         "Extracting core index from statement. (candidate_hash={}, n_cores={})",
@@ -1922,43 +1928,18 @@ namespace kagome::parachain {
 
     if (auto s =
             if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
-      const auto candidate_para_id =
-          s->get().committed_receipt.descriptor.para_id;
-      std::optional<ParachainId> assigned_para_id = visit_in_place(
-          cores[core_index],
-          [&](const runtime::OccupiedCore &occupied)
-              -> std::optional<ParachainId> {
-            if (occupied.next_up_on_available) {
-              return occupied.next_up_on_available->para_id;
-            }
-            return std::nullopt;
-          },
-          [&](const runtime::ScheduledCore &scheduled)
-              -> std::optional<ParachainId> { return scheduled.para_id; },
-          [&](const runtime::FreeCore &) -> std::optional<ParachainId> {
-            SL_TRACE(
-                logger_,
-                "Invalid CoreIndex, core is not assigned to any para_id. "
-                "(candidate_hash={}, core_index={}, validator={}, n_cores={})",
-                candidate_hash,
-                core_index,
-                statement_validator_index,
-                n_cores);
-            return std::nullopt;
-          });
+      const auto candidate_para_id = s->get().committed_receipt.descriptor.para_id;
+      const auto assigned_paras = claim_queue.iter_claims_for_core(core_index);
 
-      if (!assigned_para_id) {
-        return std::nullopt;
-      }
-
-      if (*assigned_para_id != candidate_para_id) {
-        SL_TRACE(logger_,
-                 "Invalid CoreIndex, core is assigned to a different para_id. "
-                 "(candidate_hash={}, core_index={}, validator={}, n_cores={})",
-                 candidate_hash,
-                 core_index,
-                 statement_validator_index,
-                 n_cores);
+      const bool any = (std::ranges::find(assigned_paras, candidate_para_id) != assigned_paras.end());
+      if (!any) {
+        SL_DEBUG(
+          logger_,
+          "Invalid CoreIndex, core is not assigned to this para_id. (candidate_hash={}, core_index={}, para_id={})",
+          candidate_hash,
+          core_index,
+          candidate_para_id
+        );
         return std::nullopt;
       }
       return core_index;
@@ -2809,6 +2790,25 @@ namespace kagome::parachain {
             : std::optional<std::pair<std::reference_wrapper<const HeadData>,
                                       std::reference_wrapper<const Hash>>>{}));
 
+    OUTCOME_TRY(rp_state, getStateByRelayParent(pending_collation_fetch.candidate_receipt.descriptor.relay_parent));
+    std::optional<std::reference_wrapper<const std::vector<ParachainId>>> assigned_paras;
+    if (rp_state.get().assigned_core) {
+      const auto &claimes = rp_state.get().claim_queue.claimes;
+      auto it = claimes.find(*rp_state.get().assigned_core);
+      if (it != claimes.end()) {
+        assigned_paras = std::cref(it->second);
+      }
+    }
+
+    if (!assigned_paras || std::ranges::find(assigned_paras->get(), pending_collation_fetch.candidate_receipt.descriptor.para_id) == assigned_paras->get().end()) {
+      SL_INFO(logger_,
+              "Subsystem asked to second for para outside of our assignment.(para id={}, "
+              "relay parent={})",
+              pending_collation_fetch.candidate_receipt.descriptor.para_id,
+              pending_collation_fetch.candidate_receipt.descriptor.relay_parent);
+      return outcome::success(false);
+    }
+
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
         pending_collation_fetch.candidate_receipt,
@@ -2959,14 +2959,23 @@ namespace kagome::parachain {
     auto &per_relay_parent = opt_per_relay_parent->get();
     const ProspectiveParachainsModeOpt &relay_parent_mode =
         per_relay_parent.prospective_parachains_mode;
-    const std::optional<network::ParachainId> &assignment =
-        per_relay_parent.assigned_para;
 
     TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
     TRY_GET_OR_RET(collator_state, peer_state->get().collator_state);
 
     const ParachainId collator_para_id = collator_state->para_id;
-    if (!assignment || collator_para_id != *assignment) {
+    if (!per_relay_parent.assigned_core) {
+      SL_TRACE(logger_,
+               "We are not assigned. (peerd_id={}, collator={})",
+               peer_id,
+               collator_para_id);
+      return;
+    }
+
+    const auto assigned_paras = per_relay_parent.claim_queue.iter_claims_for_core(*per_relay_parent.assigned_core);
+    const bool any = (std::ranges::find(assigned_paras, collator_para_id) != assigned_paras.end());
+
+    if (!any) {
       SL_TRACE(logger_,
                "Invalid assignment. (peerd_id={}, collator={})",
                peer_id,
