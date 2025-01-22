@@ -57,6 +57,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
+    Boost::process
     grid_tracker
     key_store
     dispute_coordinator
