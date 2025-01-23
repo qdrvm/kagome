@@ -15,7 +15,7 @@
 #include <boost/assert.hpp>
 
 #include "common/buffer_view.hpp"
-#include "crypto/keccak/keccak.h"
+#include "keccak/keccak.h"
 #include "primitives/math.hpp"
 
 namespace kagome::primitives {
