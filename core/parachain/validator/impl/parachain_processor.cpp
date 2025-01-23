@@ -543,13 +543,16 @@ namespace kagome::parachain {
     const auto has_claim_queue = maybe_claim_queue.has_value();
     runtime::ClaimQueueSnapshot &claim_queue = *maybe_claim_queue;
 
+    // Iterate over each core index and assign the parachain ID to the node
     for (CoreIndex idx = 0; idx < static_cast<CoreIndex>(cores.size()); ++idx) {
       const auto core_index = idx;
       const auto &core = cores[core_index];
 
+      // If there is no claim queue, determine the parachain ID for the core
       if (!has_claim_queue) {
         std::optional<ParachainId> core_para_id = visit_in_place(
             core,
+            // If the core is occupied, get the next parachain ID if available
             [&](const runtime::OccupiedCore &occupied)
                 -> std::optional<ParachainId> {
               if (mode && occupied.next_up_on_available) {
@@ -557,27 +560,37 @@ namespace kagome::parachain {
               }
               return std::nullopt;
             },
+            // If the core is scheduled, get the parachain ID
             [&](const runtime::ScheduledCore &scheduled)
                 -> std::optional<ParachainId> { return scheduled.para_id; },
+            // If the core is free, return no parachain ID
             [](const runtime::FreeCore &) -> std::optional<ParachainId> {
               return std::nullopt;
             });
+        // If no parachain ID is found, continue to the next core
         if (!core_para_id) {
           continue;
         }
+        // Add the parachain ID to the claim queue for the core
         claim_queue.claimes.emplace(core_index,
                                     std::vector<ParachainId>{*core_para_id});
       } else if (!claim_queue.claimes.contains(core_index)) {
+        // If the claim queue does not contain the core index, continue to the
+        // next core
         continue;
       }
 
+      // Get the group index for the core
       const GroupIndex group_index =
           group_rotation_info.groupForCore(core_index, n_cores);
+      // If the group index is valid, process the validator group
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
+        // If the validator index is part of the group, assign the core
         if (validator_index && g.contains(*validator_index)) {
           assigned_core = core_index;
         }
+        // Add the core index and its validators to the output groups
         out_groups.emplace(core_index, g.validators);
       }
     }
