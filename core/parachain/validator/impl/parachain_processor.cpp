@@ -2698,22 +2698,28 @@ namespace kagome::parachain {
                           peer_data.collator_state->para_id);
   }
 
+  // Attempt to kick off the seconding process for a pending collation
   outcome::result<bool> ParachainProcessorImpl::kick_off_seconding(
       network::PendingCollationFetch &&pending_collation_fetch) {
+    // Ensure this function is running in the main thread
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
+    // Extract necessary data from the pending collation fetch
     auto &collation_event = pending_collation_fetch.collation_event;
     auto pending_collation = collation_event.pending_collation;
     auto relay_parent = pending_collation.relay_parent;
 
+    // Retrieve the state associated with the relay parent
     OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
 
+    // Perform a sanity check on the descriptor version
     OUTCOME_TRY(descriptorVersionSanityCheck(
         pending_collation_fetch.candidate_receipt.descriptor,
         per_relay_parent.get().v2_receipts,
         per_relay_parent.get().current_core,
         per_relay_parent.get().per_session_state->value().session));
 
+    // Check if the collation has already been fetched
     auto &collations = per_relay_parent.get().collations;
     auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);
@@ -2723,9 +2729,11 @@ namespace kagome::parachain {
       return Error::DUPLICATE;
     }
 
+    // Set the commitments hash for the pending collation
     collation_event.pending_collation.commitments_hash =
         pending_collation_fetch.candidate_receipt.commitments_hash;
 
+    // Determine the collation version and prospective candidate status
     const bool is_collator_v2 = (collation_event.collator_protocol_version
                                  == network::CollationVersion::VStaging);
     const bool have_prospective_candidate =
@@ -2733,11 +2741,13 @@ namespace kagome::parachain {
     const bool async_backing_en =
         per_relay_parent.get().prospective_parachains_mode.has_value();
 
+    // Initialize optional variables for validation data and parent head hash
     std::optional<runtime::PersistedValidationData> maybe_pvd;
     std::optional<Hash> maybe_parent_head_hash;
     std::optional<HeadData> &maybe_parent_head =
         pending_collation_fetch.maybe_parent_head_data;
 
+    // Fetch prospective validation data if applicable
     if (is_collator_v2 && have_prospective_candidate && async_backing_en) {
       OUTCOME_TRY(pvd,
                   requestProspectiveValidationData(
@@ -2755,6 +2765,7 @@ namespace kagome::parachain {
       }
     } else if ((is_collator_v2 && have_prospective_candidate)
                || !is_collator_v2) {
+      // Fetch persisted validation data if applicable
       OUTCOME_TRY(
           pvd,
           requestPersistedValidationData(
@@ -2766,6 +2777,7 @@ namespace kagome::parachain {
       return outcome::success(false);
     }
 
+    // Handle cases where validation data is not found
     std::optional<std::reference_wrapper<runtime::PersistedValidationData>> pvd;
     if (maybe_pvd) {
       pvd = *maybe_pvd;
@@ -2794,6 +2806,7 @@ namespace kagome::parachain {
       return Error::PERSISTED_VALIDATION_DATA_NOT_FOUND;
     }
 
+    // Perform a sanity check on the fetched collation
     OUTCOME_TRY(fetched_collation_sanity_check(
         collation_event.pending_collation,
         pending_collation_fetch.candidate_receipt,
@@ -2804,6 +2817,7 @@ namespace kagome::parachain {
             : std::optional<std::pair<std::reference_wrapper<const HeadData>,
                                       std::reference_wrapper<const Hash>>>{}));
 
+    // Retrieve the state associated with the relay parent again
     OUTCOME_TRY(
         rp_state,
         getStateByRelayParent(
@@ -2818,6 +2832,7 @@ namespace kagome::parachain {
       }
     }
 
+    // Check if the para ID is within the assigned paras
     if (!assigned_paras
         || std::ranges::find(
                assigned_paras->get(),
@@ -2833,6 +2848,8 @@ namespace kagome::parachain {
       return outcome::success(false);
     }
 
+    // Set the collation status to waiting on validation and start async
+    // validation
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
         pending_collation_fetch.candidate_receipt,
@@ -2840,6 +2857,7 @@ namespace kagome::parachain {
         std::move(pvd->get()),
         relay_parent);
 
+    // Store the fetched collation in the current state
     our_current_state_.validator_side.fetched_candidates.emplace(
         fetched_collation, collation_event);
     return outcome::success(true);
