@@ -24,6 +24,7 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
@@ -122,8 +123,8 @@ namespace kagome::storage::trie_pruner {
   }
 
   bool TriePrunerImpl::start() {
-    // prune_thread_handler_->execute(
-    //     [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    prune_thread_handler_->execute(
+        [self = shared_from_this()]() { self->pruneQueuedStates(); });
     return true;
   }
 
@@ -152,10 +153,34 @@ namespace kagome::storage::trie_pruner {
           break;
       }
     }
-    // prune_thread_handler_->execute(
-    //     [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    prune_thread_handler_->execute(
+        [self = shared_from_this()]() { self->pruneQueuedStates(); });
   }
 
+  struct EncoderCache {
+    std::optional<trie::MerkleValue> find(const trie::TrieNode &node) const {
+      if (auto it = cache.find(reinterpret_cast<uintptr_t>(&node));
+          it != cache.end()) {
+        return it->second;
+      }
+      return std::nullopt;
+    }
+
+    void put(const trie::TrieNode &node, const common::Hash256 &merkle_hash) {
+      cache[reinterpret_cast<uintptr_t>(&node)] = merkle_hash;
+    }
+
+    std::map<uintptr_t, common::Hash256> cache;
+  };
+
+  struct EncoderVoidCache {
+    std::optional<trie::MerkleValue> find(const trie::TrieNode &node) const {
+      return std::nullopt;
+    }
+    void put(const trie::TrieNode &node, const common::Hash256 &merkle_hash) {}
+  };
+
+  template <typename Cache>
   class Encoder {  // NOLINT(cppcoreguidelines-special-member-functions)
    public:
     explicit Encoder(const trie::Codec &codec, log::Logger logger)
@@ -173,7 +198,7 @@ namespace kagome::storage::trie_pruner {
                                                 trie::StateVersion version) {
       if (node.getValue().is_some()) {
         if (node.getValue().hash.has_value()) {
-          return *node.getValue().hash;
+          return node.getValue().hash;
         }
         if (codec.shouldBeHashed(node.getValue(), version)) {
           return codec.hash256(*node.getValue().value);
@@ -184,9 +209,9 @@ namespace kagome::storage::trie_pruner {
 
     outcome::result<trie::MerkleValue> getMerkleValue(
         const trie::TrieNode &node, trie::StateVersion version) {
-      if (auto it = cache.find(reinterpret_cast<uintptr_t>(&node));
-          it != cache.end()) {
-        return it->second;
+      if (auto merkle_value_opt = cache.find(node);
+          merkle_value_opt.has_value()) {
+        return *merkle_value_opt;
       }
       encode_called++;
       OUTCOME_TRY(
@@ -204,8 +229,7 @@ namespace kagome::storage::trie_pruner {
                 return outcome::success();
               }));
       if (merkle_value.isHash()) {
-        cache[reinterpret_cast<uintptr_t>(&node)] =
-            merkle_value.asHash().value();
+        cache.put(node, merkle_value.asHash().value());
       }
       return merkle_value;
     }
@@ -216,14 +240,13 @@ namespace kagome::storage::trie_pruner {
     size_t encode_called = 0;
     log::Logger logger;
 
-    std::map<uintptr_t, common::Hash256> cache;
+    Cache cache;
 
     outcome::result<void> visitChild(const trie::TrieNode &node,
                                      const trie::MerkleValue &merkle_value) {
       if (merkle_value.isHash()) {
         encode_called++;
-        cache[reinterpret_cast<uintptr_t>(&node)] =
-            merkle_value.asHash().value();
+        cache.put(node, merkle_value.asHash().value());
       }
 
       return outcome::success();
@@ -235,7 +258,6 @@ namespace kagome::storage::trie_pruner {
                                      PruneReason reason) {
     prune_queue_.push(
         PendingPrune{.block_info = block_info, .root = root, .reason = reason});
-    pruneQueuedStates();
   }
 
   outcome::result<void> TriePrunerImpl::pruneFinalized(
@@ -304,7 +326,9 @@ namespace kagome::storage::trie_pruner {
     std::vector<Entry> queued_nodes;
     queued_nodes.push_back({root_hash, trie->getRoot(), 0});
 
-    Encoder encoder{*codec_, logger_};
+    // we don't need cache because all nodes are already serialized and
+    // EncoderCache doesn't work here anyway
+    Encoder<EncoderVoidCache> encoder{*codec_, logger_};
 
     // iterate nodes, decrement their ref count and delete if ref count becomes
     // zero
@@ -358,14 +382,14 @@ namespace kagome::storage::trie_pruner {
           const auto &branch = static_cast<const trie::BranchNode &>(*node);
           for (const auto &opaque_child : branch.children) {
             if (opaque_child != nullptr) {
-              auto dummy_child =
+              const auto *dummy_child =
                   dynamic_cast<const trie::DummyNode *>(opaque_child.get());
               std::optional<trie::MerkleValue> child_merkle_value;
               if (dummy_child != nullptr) {
                 child_merkle_value = encoder.getMerkleValue(*dummy_child);
               } else {
                 // used for tests
-                auto node =
+                const auto *node =
                     dynamic_cast<const trie::TrieNode *>(opaque_child.get());
                 BOOST_ASSERT(node != nullptr);
                 BOOST_OUTCOME_TRY(
@@ -437,7 +461,7 @@ namespace kagome::storage::trie_pruner {
     };
     std::vector<Entry> queued_nodes;
 
-    Encoder encoder{*codec_, logger_};
+    Encoder<EncoderVoidCache> encoder{*codec_, logger_};
 
     OUTCOME_TRY(root_hash,
                 encoder.getMerkleValue(*new_trie.getRoot(), version));
