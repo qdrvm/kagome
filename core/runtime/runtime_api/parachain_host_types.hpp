@@ -54,13 +54,13 @@ namespace kagome::runtime {
       return std::nullopt;
     }
 
-    std::span<const ParachainId> iter_claims_for_core(CoreIndex core_index) const {
-      if (auto it = claimes.find(core_index); it != claimes.end()) { 
+    std::span<const ParachainId> iter_claims_for_core(
+        CoreIndex core_index) const {
+      if (auto it = claimes.find(core_index); it != claimes.end()) {
         return it->second;
       }
       return {};
     }
-
   };
 
   /// Information about a core which is currently occupied.

@@ -108,17 +108,17 @@ namespace kagome::network {
       return;
     }
     notifications_->start(weak_from_this());
-    my_view_sub_ =
-        primitives::events::subscribe(peer_view_->getMyViewObservable(),
-                                      PeerView::EventType::kViewUpdated,
-                                      [WEAK_SELF](const ExView &event) {
-                                        WEAK_LOCK(self);
-                                        auto view{event.view};
-                                        if (view.heads_.size() > MAX_VIEW_HEADS) {
-                                          view.heads_.resize(MAX_VIEW_HEADS);
-                                        }
-                                        self->write(view);
-                                      });
+    my_view_sub_ = primitives::events::subscribe(
+        peer_view_->getMyViewObservable(),
+        PeerView::EventType::kViewUpdated,
+        [WEAK_SELF](const ExView &event) {
+          WEAK_LOCK(self);
+          auto view{event.view};
+          if (view.heads_.size() > MAX_VIEW_HEADS) {
+            view.heads_.resize(MAX_VIEW_HEADS);
+          }
+          self->write(view);
+        });
   }
 
   void ParachainProtocol::write(const View &view) {

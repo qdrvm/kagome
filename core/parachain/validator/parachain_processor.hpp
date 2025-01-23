@@ -363,10 +363,9 @@ namespace kagome::parachain {
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
       uint32_t minimum_backing_votes;
-        /// Claim queue state. If the runtime API is not available, it'll be populated with info from
-        /// availability cores.
-        runtime::ClaimQueueSnapshot claim_queue;
-
+      /// Claim queue state. If the runtime API is not available, it'll be
+      /// populated with info from availability cores.
+      runtime::ClaimQueueSnapshot claim_queue;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
