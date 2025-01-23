@@ -982,11 +982,6 @@ namespace kagome::parachain::statement_distribution {
     if (!backing_threshold
         || (filter->has_seconded()
             && filter->backing_validators() >= *backing_threshold)) {
-      SL_TRACE(
-          logger,
-          "Pass backing threshold. (relay_parent={}, candidate_hash={})",
-          relay_parent,
-          candidate_hash);
       target.emplace(peer);
     } else {
       SL_TRACE(
@@ -2002,12 +1997,6 @@ namespace kagome::parachain::statement_distribution {
       const runtime::SessionInfo &session_info,
       const network::vstaging::SignedCompactStatement &statement,
       ValidatorIndex cluster_sender_index) {
-    SL_TRACE(logger,
-             "Handle cluster statement. (relay_parent={}, cluster_sender_index={}, "
-             "validator_index={})",
-             relay_parent,
-             cluster_sender_index,
-             statement.payload.ix);
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
     const auto accept = cluster_tracker.can_receive(
         cluster_sender_index,
@@ -2025,13 +2014,6 @@ namespace kagome::parachain::statement_distribution {
         cluster_sender_index,
         statement.payload.ix,
         network::vstaging::from(getPayload(statement)));
-    SL_TRACE(logger,
-             "Cluster statement note received. (relay_parent={}, cluster_sender_index={}, "
-             "validator_index={})",
-             relay_parent,
-             cluster_sender_index,
-             statement.payload.ix);
-
     const auto should_import = (outcome::success(Accept::Ok) == accept);
     if (should_import) {
       return statement;
@@ -2089,13 +2071,7 @@ namespace kagome::parachain::statement_distribution {
       return;
     }
 
-    if (!parachain_state->get().local_validator) {
-      SL_TRACE(logger,
-               "No local validator. (relay parent={}, validator={})",
-               stm.relay_parent,
-               stm.compact.payload.ix);
-      return;
-    }
+    CHECK_OR_RET(parachain_state->get().local_validator);
     auto &local_validator = *parachain_state->get().local_validator;
     auto originator_group =
         parachain_state->get()
@@ -2138,11 +2114,6 @@ namespace kagome::parachain::statement_distribution {
                 stm.relay_parent,
                 peer_id, stm.compact.payload.ix);
       }
-      SL_TRACE(logger,
-              "No peer found. (relay parent={}, "
-              "peer_id={}, originator={})",
-              stm.relay_parent,
-              peer_id, stm.compact.payload.ix);
       return std::nullopt;
     }();
 
@@ -2881,15 +2852,12 @@ namespace kagome::parachain::statement_distribution {
         parachain_host->session_index_for_child(block_tree->bestBlock().hash)
             .value();
 
-    SL_INFO(logger,
+    SL_TRACE(logger,
             "Active validator state initialized. (session_index={}, "
             "our_group={}, group={})",
             session_index,
             *our_group,
             *group_validators);
-    for (auto v : group_validator_keys) {
-      SL_INFO(logger, "Group {} Validator key: {}", *our_group, v.toHex());
-    }
 
     return LocalValidatorState{
         .grid_tracker = {},

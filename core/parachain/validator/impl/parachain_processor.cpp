@@ -1182,13 +1182,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    if (parachain_state.issued_statements.contains(candidate_hash)) {           
-      SL_TRACE(logger_,
-               "Issued statements contains candidate.(relay_parent={}, candidate_hash={})",
-               relay_parent,
-               candidate_hash);
-      return;              
-    }
+    CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
 
     const auto &session_info =
         parachain_state.per_session_state->value().session_info;
@@ -1204,10 +1198,6 @@ namespace kagome::parachain {
         session_info.discovery_keys[attesting_data.from_validator];
     if (auto peer = query_audi_->get(authority_id)) {
       auto pvd{persisted_validation_data};
-      SL_TRACE(
-          logger_,
-          "Requesting PoV. (relay_parent={}, candidate_hash={})",
-          relay_parent, candidate_hash);
       requestPoV(
           peer->id,
           candidate_hash,
@@ -1251,7 +1241,7 @@ namespace kagome::parachain {
                 candidate, std::move(*p), std::move(pvd), relay_parent);
           });
     } else {
-      SL_TRACE(
+      SL_WARN(
           logger_,
           "No audi for PoV request. (relay_parent={}, candidate_hash={})",
           relay_parent, candidate_hash);
@@ -1406,9 +1396,6 @@ namespace kagome::parachain {
       if (attesting_ref) {
         auto it = our_current_state_.per_candidate.find(candidate_hash);
         if (it != our_current_state_.per_candidate.end()) {
-          SL_TRACE(logger_,
-                  "Candidate found.(relay_parent={}, candidate_hash={}).",
-                  relay_parent, candidate_hash);
           kickOffValidationWork(relay_parent,
                                 attesting_ref->get(),
                                 it->second.persisted_validation_data,
@@ -1418,10 +1405,6 @@ namespace kagome::parachain {
                   "Candidate not found.(relay_parent={}, candidate_hash={}).",
                   relay_parent, candidate_hash);
         }
-      } else {
-        SL_TRACE(logger_,
-                "No attesting ref.(relay_parent={}, candidate_hash={}).",
-                relay_parent, candidate_hash);
       }
     }
   }
@@ -2355,10 +2338,6 @@ namespace kagome::parachain {
                              validation_result.candidate.descriptor.para_id);
     }
 
-    SL_TRACE(logger_,
-            "Issued statements insert candidate from validation callback. (candidate "
-            "hash={})",
-            candidate_hash);
     parachain_state.issued_statements.insert(candidate_hash);
     notifySeconded(validation_result.relay_parent, stmt);
   }
@@ -2541,10 +2520,6 @@ namespace kagome::parachain {
           return;
         }
       }
-      SL_TRACE(logger_,
-              "Issued statements insert candidate from attest callback. (candidate "
-              "hash={})",
-              candidate_hash);
       parachain_state->get().issued_statements.insert(candidate_hash);
     }
   }

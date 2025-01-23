@@ -25,6 +25,8 @@ namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
   constexpr size_t kCollationPeersLimit = 100;
 
+  constexpr size_t MAX_VIEW_HEADS = 5;
+
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/lib.rs#L47
   constexpr size_t kMinGossipPeers = 25;
 
@@ -112,8 +114,8 @@ namespace kagome::network {
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
                                         auto view{event.view};
-                                        if (view.heads_.size() > 5) {
-                                          view.heads_.resize(5);
+                                        if (view.heads_.size() > MAX_VIEW_HEADS) {
+                                          view.heads_.resize(MAX_VIEW_HEADS);
                                         }
                                         self->write(view);
                                       });
