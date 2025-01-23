@@ -77,6 +77,7 @@ add_library(kagome_pvf_worker
     )
 target_link_libraries(kagome_pvf_worker
     PUBLIC
+    Boost::process
     fmt::fmt
     scale::scale
     soralog::fallback_configurator
