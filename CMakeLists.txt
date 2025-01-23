@@ -203,9 +203,12 @@ include(cmake/install.cmake)
 include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/core> # for generated file
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/third_party> # for generated file
 )
 
 add_subdirectory(core)
+add_subdirectory(third_party)
 
 kagome_install_setup(
     HEADER_DIRS
