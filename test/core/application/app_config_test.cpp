@@ -97,7 +97,7 @@ class AppConfigurationTest : public testing::Test {
   boost::asio::ip::tcp::endpoint get_endpoint(const char *host, uint16_t port) {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
-    endpoint.address(boost::asio::ip::address::from_string(host, err));
+    endpoint.address(boost::asio::ip::make_address(host, err));
     endpoint.port(port);
     return endpoint;
   }

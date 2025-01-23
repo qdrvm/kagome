@@ -31,6 +31,13 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
+hunter_config(
+    Boost
+    VERSION 1.87.0
+    URL  https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
+    SHA1 a24d29ce98037d350c7b5925e83d9e6abb9a6549
+)
+
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
@@ -101,8 +108,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/c3e6cce18335c989c9bbf3485885630a6ba463e4.zip
-    SHA1 32698ef4c3d373a39f87e7acb60eb7dc39399653
+    URL  https://github.com/libp2p/cpp-libp2p/archive/488e0f6ba39fbffff0a924a8b8f38b99b26afda6.zip
+    SHA1 d824456eefe675f64437de84ddd7f97e9c7df61d
 )
 
 hunter_config(
