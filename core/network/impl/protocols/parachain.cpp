@@ -19,13 +19,12 @@
 
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
-  {}
+  {                           \
+  }
 
 namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
   constexpr size_t kCollationPeersLimit = 100;
-
-  constexpr size_t MAX_VIEW_HEADS = 5;
 
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/lib.rs#L47
   constexpr size_t kMinGossipPeers = 25;
@@ -108,17 +107,13 @@ namespace kagome::network {
       return;
     }
     notifications_->start(weak_from_this());
-    my_view_sub_ = primitives::events::subscribe(
-        peer_view_->getMyViewObservable(),
-        PeerView::EventType::kViewUpdated,
-        [WEAK_SELF](const ExView &event) {
-          WEAK_LOCK(self);
-          auto view{event.view};
-          if (view.heads_.size() > MAX_VIEW_HEADS) {
-            view.heads_.resize(MAX_VIEW_HEADS);
-          }
-          self->write(view);
-        });
+    my_view_sub_ =
+        primitives::events::subscribe(peer_view_->getMyViewObservable(),
+                                      PeerView::EventType::kViewUpdated,
+                                      [WEAK_SELF](const ExView &event) {
+                                        WEAK_LOCK(self);
+                                        self->write(event.stripped_view);
+                                      });
   }
 
   void ParachainProtocol::write(const View &view) {

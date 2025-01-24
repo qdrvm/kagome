@@ -31,6 +31,7 @@ namespace kagome::network {
   using HashedBlockHeader = primitives::BlockHeader;
   struct ExView {
     View view;
+    View stripped_view;
     HashedBlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
   };
