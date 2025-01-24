@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "common/blob.hpp"
-#include "crypto/keccak/keccak.h"
+#include "keccak/keccak.h"
 
 TEST(Keccak, Correctness) {
   auto keccak_res =

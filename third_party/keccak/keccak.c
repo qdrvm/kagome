@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "crypto/keccak/keccak.h"
+#include "keccak.h"
 #include "macro/endianness_utils.hpp"
 
 #define SHA3_ASSERT(x)

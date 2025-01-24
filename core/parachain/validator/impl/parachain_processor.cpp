@@ -543,13 +543,16 @@ namespace kagome::parachain {
     const auto has_claim_queue = maybe_claim_queue.has_value();
     runtime::ClaimQueueSnapshot &claim_queue = *maybe_claim_queue;
 
+    // Iterate over each core index and assign the parachain ID to the node
     for (CoreIndex idx = 0; idx < static_cast<CoreIndex>(cores.size()); ++idx) {
       const auto core_index = idx;
       const auto &core = cores[core_index];
 
+      // If there is no claim queue, determine the parachain ID for the core
       if (!has_claim_queue) {
         std::optional<ParachainId> core_para_id = visit_in_place(
             core,
+            // If the core is occupied, get the next parachain ID if available
             [&](const runtime::OccupiedCore &occupied)
                 -> std::optional<ParachainId> {
               if (mode && occupied.next_up_on_available) {
@@ -557,25 +560,37 @@ namespace kagome::parachain {
               }
               return std::nullopt;
             },
+            // If the core is scheduled, get the parachain ID
             [&](const runtime::ScheduledCore &scheduled)
                 -> std::optional<ParachainId> { return scheduled.para_id; },
+            // If the core is free, return no parachain ID
             [](const runtime::FreeCore &) -> std::optional<ParachainId> {
               return std::nullopt;
             });
+        // If no parachain ID is found, continue to the next core
         if (!core_para_id) {
           continue;
         }
-        claim_queue.claimes.emplace(core_index, std::vector<ParachainId>{*core_para_id});
+        // Add the parachain ID to the claim queue for the core
+        claim_queue.claimes.emplace(core_index,
+                                    std::vector<ParachainId>{*core_para_id});
       } else if (!claim_queue.claimes.contains(core_index)) {
+        // If the claim queue does not contain the core index, continue to the
+        // next core
         continue;
       }
 
-      const GroupIndex group_index = group_rotation_info.groupForCore(core_index, n_cores);
+      // Get the group index for the core
+      const GroupIndex group_index =
+          group_rotation_info.groupForCore(core_index, n_cores);
+      // If the group index is valid, process the validator group
       if (group_index < validator_groups.size()) {
         const auto &g = validator_groups[group_index];
+        // If the validator index is part of the group, assign the core
         if (validator_index && g.contains(*validator_index)) {
           assigned_core = core_index;
         }
+        // Add the core index and its validators to the output groups
         out_groups.emplace(core_index, g.validators);
       }
     }
@@ -1196,13 +1211,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    if (parachain_state.issued_statements.contains(candidate_hash)) {           
-      SL_TRACE(logger_,
-               "Issued statements contains candidate.(relay_parent={}, candidate_hash={})",
-               relay_parent,
-               candidate_hash);
-      return;              
-    }
+    CHECK_OR_RET(!parachain_state.issued_statements.contains(candidate_hash));
 
     const auto &session_info =
         parachain_state.per_session_state->value().session_info;
@@ -1218,10 +1227,6 @@ namespace kagome::parachain {
         session_info.discovery_keys[attesting_data.from_validator];
     if (auto peer = query_audi_->get(authority_id)) {
       auto pvd{persisted_validation_data};
-      SL_TRACE(
-          logger_,
-          "Requesting PoV. (relay_parent={}, candidate_hash={})",
-          relay_parent, candidate_hash);
       requestPoV(
           peer->id,
           candidate_hash,
@@ -1265,10 +1270,10 @@ namespace kagome::parachain {
                 candidate, std::move(*p), std::move(pvd), relay_parent);
           });
     } else {
-      SL_TRACE(
-          logger_,
-          "No audi for PoV request. (relay_parent={}, candidate_hash={})",
-          relay_parent, candidate_hash);
+      SL_WARN(logger_,
+              "No audi for PoV request. (relay_parent={}, candidate_hash={})",
+              relay_parent,
+              candidate_hash);
     }
   }
 
@@ -1365,8 +1370,10 @@ namespace kagome::parachain {
       }
 
       SL_TRACE(logger_,
-               "Registered incoming statement. (relay_parent={}, candidate_hash={}).",
-               relay_parent, candidate_hash);
+               "Registered incoming statement. (relay_parent={}, "
+               "candidate_hash={}).",
+               relay_parent,
+               candidate_hash);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement),
@@ -1420,22 +1427,16 @@ namespace kagome::parachain {
       if (attesting_ref) {
         auto it = our_current_state_.per_candidate.find(candidate_hash);
         if (it != our_current_state_.per_candidate.end()) {
-          SL_TRACE(logger_,
-                  "Candidate found.(relay_parent={}, candidate_hash={}).",
-                  relay_parent, candidate_hash);
           kickOffValidationWork(relay_parent,
                                 attesting_ref->get(),
                                 it->second.persisted_validation_data,
                                 parachain_state);
         } else {
           SL_TRACE(logger_,
-                  "Candidate not found.(relay_parent={}, candidate_hash={}).",
-                  relay_parent, candidate_hash);
+                   "Candidate not found.(relay_parent={}, candidate_hash={}).",
+                   relay_parent,
+                   candidate_hash);
         }
-      } else {
-        SL_TRACE(logger_,
-                "No attesting ref.(relay_parent={}, candidate_hash={}).",
-                relay_parent, candidate_hash);
       }
     }
   }
@@ -1874,11 +1875,12 @@ namespace kagome::parachain {
         .signature = statement.signature,
     };
 
-    auto core = core_index_from_statement(rp_state.validator_to_group,
-                                          rp_state.group_rotation_info,
-                                          uint32_t(rp_state.availability_cores.size()),
-                                          statement,
-                                          rp_state.claim_queue);
+    auto core =
+        core_index_from_statement(rp_state.validator_to_group,
+                                  rp_state.group_rotation_info,
+                                  uint32_t(rp_state.availability_cores.size()),
+                                  statement,
+                                  rp_state.claim_queue);
     if (!core) {
       return Error::CORE_INDEX_UNAVAILABLE;
     };
@@ -1942,18 +1944,19 @@ namespace kagome::parachain {
 
     if (auto s =
             if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
-      const auto candidate_para_id = s->get().committed_receipt.descriptor.para_id;
+      const auto candidate_para_id =
+          s->get().committed_receipt.descriptor.para_id;
       const auto assigned_paras = claim_queue.iter_claims_for_core(core_index);
 
-      const bool any = (std::ranges::find(assigned_paras, candidate_para_id) != assigned_paras.end());
+      const bool any = (std::ranges::find(assigned_paras, candidate_para_id)
+                        != assigned_paras.end());
       if (!any) {
-        SL_DEBUG(
-          logger_,
-          "Invalid CoreIndex, core is not assigned to this para_id. (candidate_hash={}, core_index={}, para_id={})",
-          candidate_hash,
-          core_index,
-          candidate_para_id
-        );
+        SL_DEBUG(logger_,
+                 "Invalid CoreIndex, core is not assigned to this para_id. "
+                 "(candidate_hash={}, core_index={}, para_id={})",
+                 candidate_hash,
+                 core_index,
+                 candidate_para_id);
         return std::nullopt;
       }
       return core_index;
@@ -2372,10 +2375,6 @@ namespace kagome::parachain {
                              validation_result.candidate.descriptor.para_id);
     }
 
-    SL_TRACE(logger_,
-            "Issued statements insert candidate from validation callback. (candidate "
-            "hash={})",
-            candidate_hash);
     parachain_state.issued_statements.insert(candidate_hash);
     notifySeconded(validation_result.relay_parent, stmt);
   }
@@ -2535,9 +2534,10 @@ namespace kagome::parachain {
       const ValidateAndSecondResult &result) {
     TRY_GET_OR_RET(parachain_state,
                    tryGetStateByRelayParent(result.relay_parent));
-    SL_INFO(logger_, "Attest complete.(relay parent={}, para id={})",
-                  result.relay_parent,
-                  result.candidate.descriptor.para_id);
+    SL_INFO(logger_,
+            "Attest complete.(relay parent={}, para id={})",
+            result.relay_parent,
+            result.candidate.descriptor.para_id);
 
     const auto candidate_hash = result.candidate.hash(*hasher_);
     parachain_state->get().fallbacks.erase(candidate_hash);
@@ -2558,10 +2558,6 @@ namespace kagome::parachain {
           return;
         }
       }
-      SL_TRACE(logger_,
-              "Issued statements insert candidate from attest callback. (candidate "
-              "hash={})",
-              candidate_hash);
       parachain_state->get().issued_statements.insert(candidate_hash);
     }
   }
@@ -2702,22 +2698,28 @@ namespace kagome::parachain {
                           peer_data.collator_state->para_id);
   }
 
+  // Attempt to kick off the seconding process for a pending collation
   outcome::result<bool> ParachainProcessorImpl::kick_off_seconding(
       network::PendingCollationFetch &&pending_collation_fetch) {
+    // Ensure this function is running in the main thread
     BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
 
+    // Extract necessary data from the pending collation fetch
     auto &collation_event = pending_collation_fetch.collation_event;
     auto pending_collation = collation_event.pending_collation;
     auto relay_parent = pending_collation.relay_parent;
 
+    // Retrieve the state associated with the relay parent
     OUTCOME_TRY(per_relay_parent, getStateByRelayParent(relay_parent));
 
+    // Perform a sanity check on the descriptor version
     OUTCOME_TRY(descriptorVersionSanityCheck(
         pending_collation_fetch.candidate_receipt.descriptor,
         per_relay_parent.get().v2_receipts,
         per_relay_parent.get().current_core,
         per_relay_parent.get().per_session_state->value().session));
 
+    // Check if the collation has already been fetched
     auto &collations = per_relay_parent.get().collations;
     auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);
@@ -2727,9 +2729,11 @@ namespace kagome::parachain {
       return Error::DUPLICATE;
     }
 
+    // Set the commitments hash for the pending collation
     collation_event.pending_collation.commitments_hash =
         pending_collation_fetch.candidate_receipt.commitments_hash;
 
+    // Determine the collation version and prospective candidate status
     const bool is_collator_v2 = (collation_event.collator_protocol_version
                                  == network::CollationVersion::VStaging);
     const bool have_prospective_candidate =
@@ -2737,11 +2741,13 @@ namespace kagome::parachain {
     const bool async_backing_en =
         per_relay_parent.get().prospective_parachains_mode.has_value();
 
+    // Initialize optional variables for validation data and parent head hash
     std::optional<runtime::PersistedValidationData> maybe_pvd;
     std::optional<Hash> maybe_parent_head_hash;
     std::optional<HeadData> &maybe_parent_head =
         pending_collation_fetch.maybe_parent_head_data;
 
+    // Fetch prospective validation data if applicable
     if (is_collator_v2 && have_prospective_candidate && async_backing_en) {
       OUTCOME_TRY(pvd,
                   requestProspectiveValidationData(
@@ -2759,6 +2765,7 @@ namespace kagome::parachain {
       }
     } else if ((is_collator_v2 && have_prospective_candidate)
                || !is_collator_v2) {
+      // Fetch persisted validation data if applicable
       OUTCOME_TRY(
           pvd,
           requestPersistedValidationData(
@@ -2770,6 +2777,7 @@ namespace kagome::parachain {
       return outcome::success(false);
     }
 
+    // Handle cases where validation data is not found
     std::optional<std::reference_wrapper<runtime::PersistedValidationData>> pvd;
     if (maybe_pvd) {
       pvd = *maybe_pvd;
@@ -2798,6 +2806,7 @@ namespace kagome::parachain {
       return Error::PERSISTED_VALIDATION_DATA_NOT_FOUND;
     }
 
+    // Perform a sanity check on the fetched collation
     OUTCOME_TRY(fetched_collation_sanity_check(
         collation_event.pending_collation,
         pending_collation_fetch.candidate_receipt,
@@ -2808,8 +2817,13 @@ namespace kagome::parachain {
             : std::optional<std::pair<std::reference_wrapper<const HeadData>,
                                       std::reference_wrapper<const Hash>>>{}));
 
-    OUTCOME_TRY(rp_state, getStateByRelayParent(pending_collation_fetch.candidate_receipt.descriptor.relay_parent));
-    std::optional<std::reference_wrapper<const std::vector<ParachainId>>> assigned_paras;
+    // Retrieve the state associated with the relay parent again
+    OUTCOME_TRY(
+        rp_state,
+        getStateByRelayParent(
+            pending_collation_fetch.candidate_receipt.descriptor.relay_parent));
+    std::optional<std::reference_wrapper<const std::vector<ParachainId>>>
+        assigned_paras;
     if (rp_state.get().assigned_core) {
       const auto &claimes = rp_state.get().claim_queue.claimes;
       auto it = claimes.find(*rp_state.get().assigned_core);
@@ -2818,15 +2832,24 @@ namespace kagome::parachain {
       }
     }
 
-    if (!assigned_paras || std::ranges::find(assigned_paras->get(), pending_collation_fetch.candidate_receipt.descriptor.para_id) == assigned_paras->get().end()) {
-      SL_INFO(logger_,
-              "Subsystem asked to second for para outside of our assignment.(para id={}, "
-              "relay parent={})",
-              pending_collation_fetch.candidate_receipt.descriptor.para_id,
-              pending_collation_fetch.candidate_receipt.descriptor.relay_parent);
+    // Check if the para ID is within the assigned paras
+    if (!assigned_paras
+        || std::ranges::find(
+               assigned_paras->get(),
+               pending_collation_fetch.candidate_receipt.descriptor.para_id)
+               == assigned_paras->get().end()) {
+      SL_INFO(
+          logger_,
+          "Subsystem asked to second for para outside of our assignment.(para "
+          "id={}, "
+          "relay parent={})",
+          pending_collation_fetch.candidate_receipt.descriptor.para_id,
+          pending_collation_fetch.candidate_receipt.descriptor.relay_parent);
       return outcome::success(false);
     }
 
+    // Set the collation status to waiting on validation and start async
+    // validation
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
         pending_collation_fetch.candidate_receipt,
@@ -2834,6 +2857,7 @@ namespace kagome::parachain {
         std::move(pvd->get()),
         relay_parent);
 
+    // Store the fetched collation in the current state
     our_current_state_.validator_side.fetched_candidates.emplace(
         fetched_collation, collation_event);
     return outcome::success(true);
@@ -2990,8 +3014,11 @@ namespace kagome::parachain {
       return;
     }
 
-    const auto assigned_paras = per_relay_parent.claim_queue.iter_claims_for_core(*per_relay_parent.assigned_core);
-    const bool any = (std::ranges::find(assigned_paras, collator_para_id) != assigned_paras.end());
+    const auto assigned_paras =
+        per_relay_parent.claim_queue.iter_claims_for_core(
+            *per_relay_parent.assigned_core);
+    const bool any = (std::ranges::find(assigned_paras, collator_para_id)
+                      != assigned_paras.end());
 
     if (!any) {
       SL_TRACE(logger_,

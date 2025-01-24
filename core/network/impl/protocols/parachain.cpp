@@ -19,7 +19,8 @@
 
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
-  {}
+  {                           \
+  }
 
 namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
@@ -111,11 +112,7 @@ namespace kagome::network {
                                       PeerView::EventType::kViewUpdated,
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
-                                        auto view{event.view};
-                                        if (view.heads_.size() > 5) {
-                                          view.heads_.resize(5);
-                                        }
-                                        self->write(view);
+                                        self->write(event.stripped_view);
                                       });
   }
 
