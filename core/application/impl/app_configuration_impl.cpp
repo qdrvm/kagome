@@ -177,12 +177,11 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen"};
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -601,7 +600,7 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
 
-    endpoint.address(boost::asio::ip::address::from_string(host, err));
+    endpoint.address(boost::asio::ip::make_address(host, err));
     if (err.failed()) {
       SL_ERROR(logger_, "RPC address '{}' is invalid", host);
       exit(EXIT_FAILURE);

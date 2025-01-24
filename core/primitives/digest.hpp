@@ -18,7 +18,6 @@
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
-#include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::primitives {
