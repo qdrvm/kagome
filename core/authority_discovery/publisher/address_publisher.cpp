@@ -29,6 +29,9 @@ namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
   constexpr std::chrono::hours kIntervalMax{1};
 
+  // TODO(kamilsa): #2351, remove this variable when resolved
+  constexpr bool kAudiDisableTimestamp = true;
+
   static const metrics::GaugeHelper metric_amount_addresses_last_published{
       "kagome_authority_discovery_amount_external_addresses_last_published",
       "Number of external addresses published when authority discovery last "
@@ -164,7 +167,7 @@ namespace kagome::authority_discovery {
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
-    if (now) {
+    if (now && !kAudiDisableTimestamp) {
       TimestampScale time{now->count()};
       OUTCOME_TRY(encoded_time, scale::encode(time));
       PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
