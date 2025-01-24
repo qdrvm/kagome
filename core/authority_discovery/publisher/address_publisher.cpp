@@ -128,15 +128,19 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    OUTCOME_TRY(
-        raw,
-        audiEncode(ed_crypto_provider_,
-                   sr_crypto_provider_,
-                   *libp2p_key_,
-                   *libp2p_key_pb_,
-                   peer_info,
-                   *audi_key,
-                   std::chrono::system_clock::now().time_since_epoch()));
+    std::optional<std::chrono::nanoseconds> now =
+        std::chrono::system_clock::now().time_since_epoch();
+    if (kAudiDisableTimestamp) {
+      now.reset();
+    }
+    OUTCOME_TRY(raw,
+                audiEncode(ed_crypto_provider_,
+                           sr_crypto_provider_,
+                           *libp2p_key_,
+                           *libp2p_key_pb_,
+                           peer_info,
+                           *audi_key,
+                           now));
     auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
     MetricDhtEventReceived::get().putResult(r.has_value());
     return r;
@@ -167,7 +171,7 @@ namespace kagome::authority_discovery {
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
-    if (now && !kAudiDisableTimestamp) {
+    if (now) {
       TimestampScale time{now->count()};
       OUTCOME_TRY(encoded_time, scale::encode(time));
       PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
