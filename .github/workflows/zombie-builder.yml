@@ -14,17 +14,17 @@ on:
       polkadot_image_rebuild:
         description: 'Rebuild the polkadot builder image'
         required: false
-        default: 'false'
+        default: false
         type: 'boolean'
       polkadot_binaries_rebuild:
         description: 'Rebuild the polkadot binaries'
         required: false
-        default: 'true'
+        default: true
         type: 'boolean'
       zombie_tester_image_rebuild:
         description: 'Rebuild the zombie tester image'
         required: false
-        default: 'false'
+        default: false
         type: 'boolean'
       polkadot_sdk_tag:
         description: 'Custom Polkadot SDK tag'

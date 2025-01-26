@@ -1,7 +1,6 @@
 polkadot_builder:
 	docker build --progress=plain --platform $(PLATFORM) \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE) \
-		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
+		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE) \
 		-f polkadot_builder.Dockerfile \
 		--build-arg RUST_VERSION=$(RUST_VERSION) \
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
@@ -9,8 +8,17 @@ polkadot_builder:
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) .
 
 polkadot_builder_push: set_versions
-	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(POLKADOT_SDK_RELEASE) ; \
-	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) ; \
+	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE) ; \
+
+polkadot_builder_push_manifest:
+	docker manifest create $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) \
+		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64 \
+		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64 && \
+	docker manifest create $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
+		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64 \
+		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64 && \
+	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) && \
+	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
 
 polkadot_binary:
 	$(MAKE) docker_run; \
@@ -24,6 +32,7 @@ docker_run: set_versions docker_start_clean
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
 		-e RUSTC_WRAPPER=sccache \
+		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
 		-e SCCACHE_GCS_KEY_PATH=/root/.gcp/google_creds.json \
@@ -44,7 +53,10 @@ docker_run: set_versions docker_start_clean
 
 docker_exec: set_versions
 	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) /bin/bash -c \
-		"if [ ! -d \"$(POLKADOT_REPO_DIR)/.git\" ]; then \
+		"git config --global --add safe.directory \"*\" ; \
+		env ; \
+		echo \"-- Checking out Polkadot repository...\"; \
+		if [ ! -d \"$(POLKADOT_REPO_DIR)/.git\" ]; then \
 			mkdir -p $(POLKADOT_REPO_DIR) && \
 			echo \"-- Cloning repository into $(POLKADOT_REPO_DIR)...\"; \
 			git clone --depth 1 --branch $(POLKADOT_SDK_RELEASE) $(POLKADOT_REPO_URL) $(POLKADOT_REPO_DIR) ; \
@@ -57,8 +69,10 @@ docker_exec: set_versions
 			git reset --hard $(POLKADOT_SDK_RELEASE); \
 		fi && \
 		echo \"-- Recent commits:\" && git log --oneline -n 5 && \
+		echo \"-- Build polkadot...\" && \
 		$(BUILD_COMMANDS) && \
 		cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
+		echo \"-- Building apt package...\" && \
 		cd /home/nonroot/ && ./build_apt_package.sh \
 			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
 			$(ARCHITECTURE) \
@@ -74,13 +88,11 @@ docker_start_clean: docker_stop_clean
 	docker rm $(POLKADOT_BUILD_CONTAINER_NAME) || true
 
 reset_build_state: docker_start_clean
-	rm ./commit_hash.txt ./kagome_version.txt ./polkadot-sdk-versions.txt ./zombienet-versions.txt || true
-	rm -r ./build_docker || true
+	sudo rm ./commit_hash.txt ./kagome_version.txt ./polkadot-sdk-versions.txt ./zombienet-versions.txt || true
+	sudo rm -r ./build_docker || true
 
-upload_apt_package:
-	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+upload_apt_package: set_versions
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
-	gcloud artifacts versions delete $$POLKADOT_RELEASE_GLOBAL_NUMERIC-$$SHORT_COMMIT_HASH --package=polkadot-binary --quiet || true ; \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/polkadot-binary_$$POLKADOT_RELEASE_GLOBAL_NUMERIC-$${SHORT_COMMIT_HASH}_$(ARCHITECTURE).deb
+	gcloud artifacts versions delete $(POLKADOT_DEB_PACKAGE_VERSION) --package=polkadot-binary --quiet || true ; \
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(DOCKER_BUILD_DIR_NAME)/home/pkg/$(POLKADOT_DEB_PACKAGE_NAME)

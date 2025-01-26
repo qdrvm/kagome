@@ -8,6 +8,7 @@ OS_IMAGE_HASH ?= 99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e
 DOCKER_REGISTRY_PATH ?=
 DOCKER_BUILD_DIR_NAME ?= build_docker
 GOOGLE_APPLICATION_CREDENTIALS ?=
+## linux/amd64, linux/arm64
 PLATFORM ?= linux/amd64
 ARCHITECTURE ?= $(subst linux/,,$(PLATFORM))
 
