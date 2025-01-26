@@ -96,7 +96,7 @@ jobs:
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || github.event.inputs.polkadot_image_rebuild == 'true'
+        if: env.exists == 'false' || github.event.inputs.polkadot_builder == true
         run: make polkadot_builder_all_arch 
         
       - name: "Versions Info"
@@ -142,12 +142,12 @@ jobs:
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
           
       - name: "Build target"
-        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        if: github.event.inputs.polkadot_binaries == true
         working-directory: ./zombienet/docker
         run: make polkadot_binary
           
       - name: "Push Polkadot APT Package"
-        if: github.event.inputs.polkadot_binaries_rebuild == 'true'
+        if: github.event.inputs.polkadot_binaries == true
         working-directory: ./zombienet/docker
         run: make upload_apt_package
 
