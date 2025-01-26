@@ -21,10 +21,10 @@ polkadot_builder_push_manifest:
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
 
 polkadot_builder_all_arch: set_versions
-	$(MAKE) polkadot_builder PLATFORM=linux/amd64 ARCHITECTURE=amd64 ; \
-	$(MAKE) polkadot_builder_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 ; \
-	$(MAKE) polkadot_builder PLATFORM=linux/arm64 ARCHITECTURE=arm64 ; \
-	$(MAKE) polkadot_builder_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 ; \
+	$(MAKE) polkadot_builder PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
+	$(MAKE) polkadot_builder_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
+	$(MAKE) polkadot_builder PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
+	$(MAKE) polkadot_builder_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
 	$(MAKE) polkadot_builder_push_manifest
 
 polkadot_builder_image_info: set_versions

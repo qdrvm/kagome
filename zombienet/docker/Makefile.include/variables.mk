@@ -63,7 +63,7 @@ KAGOME_PACKAGE_VERSION ?=
 WORKING_DIR := $(shell pwd)/../../../kagome
 DELETE_IMAGE_AFTER_TEST ?= true
 
-CURRENT_DATE := $(shell date +"%Y%m%d")
+CURRENT_DATE := $(shell TZ=UTC-3 date +"%Y%m%d")
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson

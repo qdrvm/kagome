@@ -21,7 +21,7 @@ on:
       polkadot_builder:
         description: 'Build the polkadot builder image'
         required: false
-        default: false
+        default: 'false'
         type: 'boolean'
       polkadot_builder_tag:
         description: 'Custom Polkadot Builder tag'
@@ -31,7 +31,7 @@ on:
       polkadot_binaries:
         description: 'Build the polkadot binaries'
         required: false
-        default: true
+        default: 'true'
         type: 'boolean'
       polkadot_sdk_tag:
         description: 'Custom Polkadot SDK tag'
@@ -72,7 +72,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+
+      - name: Fetch master branch
+        run: git fetch origin master:master
+             
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
         with:
@@ -92,11 +97,12 @@ jobs:
         run: |
           make set_versions
           exists=$(make polkadot_builder_check_tag)
+          echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || github.event.inputs.polkadot_builder == true
+        if: env.exists == 'false' || github.event.inputs.polkadot_builder == 'true'
         run: make polkadot_builder_all_arch 
         
       - name: "Versions Info"
