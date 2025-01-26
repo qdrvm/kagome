@@ -10,22 +10,35 @@
 #include "utils/weak_macro.hpp"
 
 namespace kagome::network {
-  inline View makeView(const LazySPtr<blockchain::BlockTree> &block_tree) {
-    auto last_finalized = block_tree.get()->getLastFinalized().number;
+  static constexpr size_t MAX_VIEW_HEADS = 5;
 
-    std::vector<primitives::BlockHash> heads;
-    for (const auto &bi : block_tree.get()->getLeavesInfo()) {
-      if (bi.number >= last_finalized) {
-        heads.emplace_back(bi.hash);
-      }
+  inline std::pair<View, std::vector<primitives::BlockHash>> makeView(
+      const LazySPtr<blockchain::BlockTree> &block_tree) {
+    auto last_finalized = block_tree.get()->getLastFinalized().number;
+    auto heads = block_tree.get()->getLeavesInfo();
+
+    std::ranges::sort(heads,
+                      [](const auto &l, const auto &r) { return l < r; });
+
+    std::vector<primitives::BlockHash> heads_;
+    heads_.reserve(std::min(MAX_VIEW_HEADS, heads.size()));
+    for (const auto &head :
+         heads | std::views::reverse | std::views::take(MAX_VIEW_HEADS)) {
+      heads_.emplace_back(head.hash);
     }
+    std::ranges::sort(heads_);
+    assert(heads_.size() <= MAX_VIEW_HEADS);
 
     View view{
-        .heads_ = std::move(heads),
+        .heads_ = {},
         .finalized_number_ = last_finalized,
     };
+    std::ranges::transform(heads,
+                           std::back_inserter(view.heads_),
+                           [](const auto &data) { return data.hash; });
+
     std::ranges::sort(view.heads_);
-    return view;
+    return {view, heads_};
   }
 
   PeerView::PeerView(
@@ -38,7 +51,7 @@ namespace kagome::network {
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
             std::make_shared<PeerViewSubscriptionEngine>()},
-        my_view_{makeView(block_tree_)} {
+        my_view_{makeView(block_tree_).first} {
     app_state_manager->takeControl(*this);
   }
 
@@ -66,8 +79,15 @@ namespace kagome::network {
 
   void PeerView::updateMyView(const primitives::BlockHeader &header) {
     BOOST_ASSERT(my_view_update_observable_);
+    auto [view, stripped_view] = makeView(block_tree_);
+    const auto last_finalized = view.finalized_number_;
     ExView event{
-        .view = makeView(block_tree_),
+        .view = std::move(view),
+        .stripped_view =
+            View{
+                .heads_ = std::move(stripped_view),
+                .finalized_number_ = last_finalized,
+            },
         .new_head = header,
         .lost = {},
     };
