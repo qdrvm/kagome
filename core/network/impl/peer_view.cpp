@@ -15,25 +15,16 @@ namespace kagome::network {
   inline std::pair<View, std::vector<primitives::BlockHash>> makeView(
       const LazySPtr<blockchain::BlockTree> &block_tree) {
     auto last_finalized = block_tree.get()->getLastFinalized().number;
-    const auto leaves = block_tree.get()->getLeavesInfo();
+    auto heads = block_tree.get()->getLeavesInfo();
 
-    std::vector<std::pair<BlockNumber, primitives::BlockHash>> heads;
-    for (const auto &bi : block_tree.get()->getLeavesInfo()) {
-      if (bi.number >= last_finalized) {
-        heads.emplace_back(bi.number, bi.hash);
-      }
-    }
-    std::ranges::sort(
-        heads, [](const auto &l, const auto &r) { return l.first < r.first; });
+    std::ranges::sort(heads,
+                      [](const auto &l, const auto &r) { return l < r; });
 
     std::vector<primitives::BlockHash> heads_;
     heads_.reserve(std::min(MAX_VIEW_HEADS, heads.size()));
-    for (auto it = heads.rbegin(); it != heads.rend(); ++it) {
-      if (heads_.size() < MAX_VIEW_HEADS) {
-        heads_.emplace_back(it->second);
-      } else {
-        break;
-      }
+    for (const auto &head :
+         heads | std::views::reverse | std::views::take(MAX_VIEW_HEADS)) {
+      heads_.emplace_back(head.hash);
     }
     std::ranges::sort(heads_);
     assert(heads_.size() <= MAX_VIEW_HEADS);
@@ -44,7 +35,7 @@ namespace kagome::network {
     };
     std::ranges::transform(heads,
                            std::back_inserter(view.heads_),
-                           [](const auto &data) { return data.second; });
+                           [](const auto &data) { return data.hash; });
 
     std::ranges::sort(view.heads_);
     return {view, heads_};

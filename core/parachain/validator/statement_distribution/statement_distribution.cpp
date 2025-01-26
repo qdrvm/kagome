@@ -986,7 +986,7 @@ namespace kagome::parachain::statement_distribution {
       target.emplace(peer);
     } else {
       SL_TRACE(logger,
-               "Not pass backing threshold. (relay_parent={}, "
+               "Did not pass backing threshold. (relay_parent={}, "
                "candidate_hash={}, backing_threshold={}, "
                "filter.has_seconded={}, filter.backing_validators={})",
                relay_parent,
@@ -2115,7 +2115,7 @@ namespace kagome::parachain::statement_distribution {
         }
       } else {
         SL_TRACE(logger,
-                 "No audi result fo peer. (relay parent={}, "
+                 "No audi result for peer. (relay parent={}, "
                  "peer_id={}, originator={})",
                  stm.relay_parent,
                  peer_id,

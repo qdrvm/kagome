@@ -126,8 +126,8 @@ struct fmt::formatter<kagome::common::BufferView> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const kagome::common::BufferView &view,
-              FormatContext &ctx) const -> decltype(ctx.out()) {
+  auto format(const kagome::common::BufferView &view, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {
@@ -159,13 +159,6 @@ struct fmt::formatter<std::span<const unsigned int>> {
   template <typename FormatContext>
   auto format(const std::span<const unsigned int> &span, FormatContext &ctx) {
     auto out = ctx.out();
-    fmt::format_to(out, "[");
-    for (size_t i = 0; i < span.size(); ++i) {
-      if (i > 0) {
-        fmt::format_to(out, ", ");
-      }
-      fmt::format_to(out, "{}", span[i]);
-    }
-    return fmt::format_to(out, "]");
+    return fmt::format_to(out, "[{}]", fmt::join(span, ", "));
   }
 };
