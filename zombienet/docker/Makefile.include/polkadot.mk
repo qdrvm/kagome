@@ -20,6 +20,22 @@ polkadot_builder_push_manifest:
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) && \
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
 
+polkadot_builder_all_arch: set_versions
+	$(MAKE) polkadot_builder PLATFORM=linux/amd64 ARCHITECTURE=amd64 ; \
+	$(MAKE) polkadot_builder_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 ; \
+	$(MAKE) polkadot_builder PLATFORM=linux/arm64 ARCHITECTURE=arm64 ; \
+	$(MAKE) polkadot_builder_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 ; \
+	$(MAKE) polkadot_builder_push_manifest
+
+polkadot_builder_image_info: set_versions
+	@echo "---------------------------------"
+	@echo POLKADOT_BUILDER_IMAGE:       $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
+	@echo POLKADOT_BUILDER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64
+	@echo POLKADOT_BUILDER_ARM64_IMAGE: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64
+
+polkadot_builder_check_tag:
+	@docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) > /dev/null 2>&1 && echo "true" || echo "false"
+
 polkadot_binary:
 	$(MAKE) docker_run; \
 	$(MAKE) docker_exec || $(MAKE) docker_stop_clean; \
@@ -96,3 +112,9 @@ upload_apt_package: set_versions
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts versions delete $(POLKADOT_DEB_PACKAGE_VERSION) --package=polkadot-binary --quiet || true ; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(DOCKER_BUILD_DIR_NAME)/home/pkg/$(POLKADOT_DEB_PACKAGE_NAME)
+
+polkadot_deb_package_info: set_versions
+	@echo "---------------------------------"
+	@echo "POLKADOT_SDK_RELEASE:         $(POLKADOT_SDK_RELEASE)"
+	@echo "POLKADOT_DEB_PACKAGE_NAME:    $(POLKADOT_DEB_PACKAGE_NAME)"
+	@echo "POLKADOT_DEB_PACKAGE_VERSION: $(POLKADOT_DEB_PACKAGE_VERSION)"
