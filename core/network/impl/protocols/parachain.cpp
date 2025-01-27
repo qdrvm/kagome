@@ -19,8 +19,7 @@
 
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
-  {                           \
-  }
+  {}
 
 namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
@@ -88,7 +87,7 @@ namespace kagome::network {
         collation_versions_.at(protocol_group);
     if (out) {
       notifications_->write(
-          peer_id, protocol_group, encodeView(peer_view_->getMyView()));
+          peer_id, protocol_group, encodeView(peer_view_->getMyViewStripped()));
     }
     return true;
   }
