@@ -12,7 +12,11 @@
 namespace kagome::network {
   static constexpr size_t MAX_VIEW_HEADS = 5;
 
-  inline auto makeViews(const LazySPtr<blockchain::BlockTree> &block_tree) {
+  /**
+   * @returns `View` with all leaves, `View` with `MAX_VIEW_HEAD` leaves
+   */
+  inline std::pair<View, View> makeViews(
+      const LazySPtr<blockchain::BlockTree> &block_tree) {
     std::pair<View, View> result;
     auto &[view, stripped_view] = result;
     auto &heads_ = stripped_view.heads_;
