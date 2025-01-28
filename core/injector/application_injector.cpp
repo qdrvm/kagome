@@ -194,6 +194,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "state_metrics/impl/state_metrics_impl.hpp"
 #include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
@@ -375,6 +376,21 @@ namespace {
     auto &block_tree = block_tree_res.value();
 
     return block_tree;
+  }
+
+  template <typename Injector>
+  sptr<state_metrics::StateMetricsImpl> get_state_metrics(
+      const Injector &injector) {
+    auto state_metrics_res = state_metrics::StateMetricsImpl::create(
+        injector.template create<const application::AppConfiguration &>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
+        injector.template create<sptr<api::StateApi>>(),
+        injector.template create<sptr<metrics::Registry>>());
+    if (not state_metrics_res.has_value()) {
+      common::raise(state_metrics_res.error());
+    }
+    auto &state_metrics = state_metrics_res.value();
+    return state_metrics;
   }
 
   template <typename... Ts>
@@ -926,11 +942,18 @@ namespace {
             di::bind<network::FetchAvailableDataProtocol>.template to<network::FetchAvailableDataProtocolImpl>(),
             di::bind<network::WarpProtocol>.template to<network::WarpProtocolImpl>(),
             di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
+            bind_by_lambda<metrics::Registry>(
+                [](const auto &injector) {
+                  return metrics::createRegistry();
+                }),
             bind_by_lambda<libp2p::protocol::IdentifyConfig>(
                 [](const auto &injector) {
                   return get_identify_config();
                 }),
-
+            bind_by_lambda<state_metrics::StateMetrics>(
+                [](const auto &injector) {
+                  return get_state_metrics(injector);
+                }),
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
     // clang-format on
@@ -992,7 +1015,8 @@ namespace kagome::injector {
   sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
     // registry here is temporary, it initiates static global registry
     // and registers handler in there
-    auto registry = metrics::createRegistry();
+    auto registry =
+        pimpl_->injector_.template create<sptr<metrics::Registry>>();
     auto handler = pimpl_->injector_.template create<sptr<metrics::Handler>>();
     registry->setHandler(*handler.get());
     auto exposer = pimpl_->injector_.template create<sptr<metrics::Exposer>>();
@@ -1152,6 +1176,12 @@ namespace kagome::injector {
   std::shared_ptr<common::MainThreadPool>
   KagomeNodeInjector::injectMainThreadPool() {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
+  }
+
+  std::shared_ptr<state_metrics::StateMetrics>
+  KagomeNodeInjector::injectStateMetrics() {
+    return pimpl_->injector_
+        .template create<sptr<state_metrics::StateMetrics>>();
   }
 
   void KagomeNodeInjector::kademliaRandomWalk() {

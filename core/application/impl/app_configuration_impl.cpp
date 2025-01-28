@@ -786,6 +786,8 @@ namespace kagome::application {
           "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
+        ("validator-id", po::value<std::string>(), "If provided, erapoints for current era will be sent as metric\n"
+        "should start from 0x")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
@@ -1605,6 +1607,24 @@ namespace kagome::application {
       runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
 
+    if (auto validator_id_hex =
+            find_argument<std::string>(vm, "validator-id")) {
+      const auto &val = *validator_id_hex;
+      if (validator_id_hex->size() != 66
+          || validator_id_hex->substr(0, 2) != "0x") {
+        SL_ERROR(logger_, "Invalid validator-id specified: '{}'", val);
+        return false;
+      }
+      auto result = primitives::AccountId::fromHex(val.substr(2));
+      if (result) {
+        validator_id_ = result.value();
+      } else {
+        SL_ERROR(logger_,
+                 "Failed to parse validator-id: {}",
+                 result.error().message());
+        return false;
+      }
+    }
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

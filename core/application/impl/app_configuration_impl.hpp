@@ -242,6 +242,10 @@ namespace kagome::application {
       return precompile_wasm_;
     }
 
+    std::optional<primitives::AccountId> getValidatorId() const override {
+      return validator_id_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -386,6 +390,7 @@ namespace kagome::application {
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
+    std::optional<primitives::AccountId> validator_id_;
   };
 
 }  // namespace kagome::application
