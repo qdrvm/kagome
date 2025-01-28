@@ -1129,12 +1129,6 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(opt_confirmed);
 
     if (!opt_confirmed->get().is_importable(std::nullopt)) {
-      SL_INFO(logger,
-              "Not importable. (relay parent={}, "
-              "candidate={}, group index={})",
-              relay_parent,
-              candidate_hash,
-              group_index);
       return;
     }
 
@@ -1615,13 +1609,6 @@ namespace kagome::parachain::statement_distribution {
         *sender_index);
 
     if (acknowledge_res.has_error()) {
-      SL_WARN(logger,
-              "Import manifest failed. (peer_id={}, relay_parent={}, "
-              "candidate_hash={}, error={})",
-              peer_id,
-              relay_parent,
-              candidate_hash,
-              acknowledge_res.error());
       return {};
     }
 
