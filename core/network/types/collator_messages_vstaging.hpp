@@ -6,11 +6,12 @@
 
 #pragma once
 
-#include <boost/variant.hpp>
-#include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
+
+#include <boost/variant.hpp>
+#include <scale/bitvec.hpp>
 
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
@@ -19,13 +20,7 @@
 #include "network/types/collator_messages.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/types.hpp"
-#include "primitives/block_header.hpp"
-#include "primitives/common.hpp"
-#include "primitives/compact_integer.hpp"
-#include "primitives/digest.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "scale/tie.hpp"
-#include "storage/trie/types.hpp"
 
 namespace kagome::network::vstaging {
   using Dummy = network::Dummy;
@@ -41,23 +36,17 @@ namespace kagome::network::vstaging {
       parachain::approval::IndirectSignedApprovalVoteV2;
 
   struct Assignment {
-    SCALE_TIE(2);
-
     kagome::parachain::approval::IndirectAssignmentCertV2
         indirect_assignment_cert;
     scale::BitVec candidate_bitfield;
   };
 
   struct Assignments {
-    SCALE_TIE(1);
-
     std::vector<Assignment> assignments;  /// Assignments for candidates in
                                           /// recent, unfinalized blocks.
   };
 
   struct Approvals {
-    SCALE_TIE(1);
-
     std::vector<IndirectSignedApprovalVoteV2>
         approvals;  /// Approvals for candidates in some recent, unfinalized
                     /// block.
@@ -73,7 +62,6 @@ namespace kagome::network::vstaging {
       Approvals>;
 
   struct CollatorProtocolMessageAdvertiseCollation {
-    SCALE_TIE(3);
     /// Hash of the relay parent advertised collation is based on.
     RelayHash relay_parent;
     /// Candidate hash.
@@ -92,13 +80,13 @@ namespace kagome::network::vstaging {
   using CollationMessage0 = boost::variant<CollationMessage>;
 
   struct SecondedCandidateHash {
-    SCALE_TIE(1);
     CandidateHash hash;
+    bool operator==(const SecondedCandidateHash &other) const = default;
   };
 
   struct ValidCandidateHash {
-    SCALE_TIE(1);
     CandidateHash hash;
+    bool operator==(const ValidCandidateHash &other) const = default;
   };
 
   /// Statements that can be made about parachain candidates. These are the
@@ -187,8 +175,6 @@ namespace kagome::network::vstaging {
   /// A notification of a signed statement in compact form, for a given
   /// relay parent.
   struct StatementDistributionMessageStatement {
-    SCALE_TIE(2);
-
     RelayHash relay_parent;
     SignedCompactStatement compact;
   };
@@ -209,8 +195,6 @@ namespace kagome::network::vstaging {
   };
 
   struct StatementFilter {
-    SCALE_TIE(2);
-
     /// Seconded statements. '1' is known or undesired.
     scale::BitVec seconded_in_group;
     /// Valid statements. '1' is known or undesired.
@@ -222,6 +206,14 @@ namespace kagome::network::vstaging {
       validated_in_group.bits.assign(len, val);
     }
 
+    bool operator==(const StatementFilter &other) const = default;
+
+   private:
+    SCALE_CUSTOM_DECOMPOSING(StatementFilter,
+                             seconded_in_group,
+                             validated_in_group);
+
+   public:
     void mask_seconded(const scale::BitVec &mask) {
       for (size_t i = 0; i < seconded_in_group.bits.size(); ++i) {
         const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
@@ -294,7 +286,6 @@ namespace kagome::network::vstaging {
   /// A manifest of a known backed candidate, along with a description
   /// of the statements backing it.
   struct BackedCandidateManifest {
-    SCALE_TIE(6);
     /// The relay-parent of the candidate.
     RelayHash relay_parent;
     /// The hash of the candidate.
@@ -318,13 +309,11 @@ namespace kagome::network::vstaging {
   };
 
   struct AttestedCandidateRequest {
-    SCALE_TIE(2);
     CandidateHash candidate_hash;
     StatementFilter mask;
   };
 
   struct AttestedCandidateResponse {
-    SCALE_TIE(3);
     CommittedCandidateReceipt candidate_receipt;
     runtime::PersistedValidationData persisted_validation_data;
     std::vector<IndexedAndSigned<CompactStatement>> statements;
@@ -332,7 +321,6 @@ namespace kagome::network::vstaging {
 
   /// An acknowledgement of a backed candidate being known.
   struct BackedCandidateAcknowledgement {
-    SCALE_TIE(2);
     /// The hash of the candidate.
     CandidateHash candidate_hash;
     /// A statement filter which indicates which validators in the
@@ -364,7 +352,6 @@ namespace kagome::network::vstaging {
       >;
 
   struct CollationFetchingRequest {
-    SCALE_TIE(3);
     /// Relay parent collation is built on top of.
     RelayHash relay_parent;
     /// The `ParaId` of the collation.
@@ -404,11 +391,11 @@ namespace kagome::network {
   /// Candidate supplied with a para head it's built on top of.
   /// polkadot/node/network/collator-protocol/src/validator_side/collation.rs
   struct ProspectiveCandidate {
-    SCALE_TIE(2);
     /// Candidate hash.
     CandidateHash candidate_hash;
     /// Parent head-data hash as supplied in advertisement.
     Hash parent_head_data_hash;
+    bool operator==(const ProspectiveCandidate &other) const = default;
   };
 
   struct PendingCollation {

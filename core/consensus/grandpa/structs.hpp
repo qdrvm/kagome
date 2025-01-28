@@ -49,27 +49,8 @@ namespace kagome::consensus::grandpa {
       return message.type() == typeid(T);
     }
 
-    bool operator==(const SignedMessage &rhs) const {
-      return message == rhs.message && signature == rhs.signature
-          && id == rhs.id;
-    }
-
-    bool operator!=(const SignedMessage &rhs) const {
-      return !operator==(rhs);
-    }
+    bool operator==(const SignedMessage &other) const = default;
   };
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const SignedMessage &signed_msg) {
-    return s << signed_msg.message << signed_msg.signature << signed_msg.id;
-  }
-
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, SignedMessage &signed_msg) {
-    return s >> signed_msg.message >> signed_msg.signature >> signed_msg.id;
-  }
 
   using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
   using VoteVariant = boost::variant<SignedMessage, EquivocatorySignedMessage>;
@@ -117,8 +98,6 @@ namespace kagome::consensus::grandpa {
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
-    SCALE_TIE(4);
-
     RoundNumber round_number;
     primitives::BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
@@ -127,8 +106,6 @@ namespace kagome::consensus::grandpa {
 
   // either prevote, precommit or primary propose
   struct VoteMessage {
-    SCALE_TIE(3);
-
     RoundNumber round_number{0};
     VoterSetId counter{0};
     SignedMessage vote;
@@ -136,6 +113,9 @@ namespace kagome::consensus::grandpa {
     Id id() const {
       return vote.id;
     }
+
+   private:
+    SCALE_CUSTOM_DECOMPOSING(VoteMessage, round_number, counter, vote);
   };
 
   struct TotalWeight {
@@ -147,8 +127,6 @@ namespace kagome::consensus::grandpa {
   // @See
   // https://github.com/paritytech/finality-grandpa/blob/v0.14.2/src/lib.rs#L312
   struct CompactCommit {
-    SCALE_TIE(4);
-
     // The target block's hash.
     primitives::BlockHash target_hash;
     // The target block's number.

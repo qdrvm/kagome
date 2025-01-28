@@ -8,6 +8,9 @@
 
 #include <gtest/gtest.h>
 
+#include <network/notifications/encode.hpp>
+#include <testutil/outcome.hpp>
+
 using namespace kagome::common;
 using Span = BufferView;
 

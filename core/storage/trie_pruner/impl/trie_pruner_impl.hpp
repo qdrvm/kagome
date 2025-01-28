@@ -8,18 +8,14 @@
 
 #include "storage/trie_pruner/trie_pruner.hpp"
 
-#include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <boost/assert.hpp>
 
-#include "scale/tie.hpp"
-
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
-#include "log/profiling_logger.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
@@ -55,8 +51,6 @@ namespace kagome::storage::trie_pruner {
         ":trie_pruner:info"_buf;
 
     struct TriePrunerInfo {
-      SCALE_TIE(1);
-
       std::optional<primitives::BlockInfo> last_pruned_block;
     };
 

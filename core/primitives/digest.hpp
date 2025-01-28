@@ -6,19 +6,16 @@
 
 #pragma once
 
-#include <boost/variant.hpp>
-
 #include "common/buffer.hpp"
+#include "common/empty.hpp"
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
-#include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/babe/types/epoch_data.hpp"
 #include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.
@@ -36,15 +33,14 @@ namespace kagome::primitives {
   inline const auto kBeefyEngineId =
       ConsensusEngineId::fromString("BEEF").value();
 
-  struct Other : public common::Buffer {};
+  using Other = Tagged<common::Buffer, struct OtherTag>;
 
   namespace detail {
     struct DigestItemCommon {
-      SCALE_TIE(2);
-
       ConsensusEngineId consensus_engine_id;
 
       common::SLBuffer<consensus::kMaxValidatorsNumber * 1024> data;
+      bool operator==(const DigestItemCommon &other) const = default;
     };
   }  // namespace detail
 
@@ -54,7 +50,16 @@ namespace kagome::primitives {
   /// the consensus engine can (and should) read them itself to avoid
   /// code and state duplication. It is erroneous for a runtime to produce
   /// these, but this is not (yet) checked.
-  struct PreRuntime : public detail::DigestItemCommon {};
+  struct PreRuntime : public detail::DigestItemCommon {
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const PreRuntime &v) {
+      return s << static_cast<const DigestItemCommon &>(v);
+    }
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 PreRuntime &v) {
+      return s >> static_cast<DigestItemCommon &>(v);
+    }
+  };
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/lib.rs#L130
   using BabeDigest =
@@ -149,11 +154,29 @@ namespace kagome::primitives {
     outcome::result<DecodedConsensusMessage> decode() const {
       return DecodedConsensusMessage::create(consensus_engine_id, data);
     }
+
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const Consensus &v) {
+      return s << static_cast<const DigestItemCommon &>(v);
+    }
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 Consensus &v) {
+      return s >> static_cast<DigestItemCommon &>(v);
+    }
   };
 
   /// Put a Seal on it.
   /// This is only used by native code, and is never seen by runtimes.
-  struct Seal : public detail::DigestItemCommon {};
+  struct Seal : public detail::DigestItemCommon {
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const Seal &v) {
+      return s << static_cast<const DigestItemCommon &>(v);
+    }
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 Seal &v) {
+      return s >> static_cast<DigestItemCommon &>(v);
+    }
+  };
 
   /// Runtime code or heap pages updated.
   struct RuntimeEnvironmentUpdated : public Empty {};
@@ -172,11 +195,9 @@ namespace kagome::primitives {
                                   Unused<7>,                   // 7
                                   RuntimeEnvironmentUpdated>;  // 8
 
-  namespace {
-    // This value is enough to disable each of validators in each of two
-    // consensus engines
-    constexpr auto kMaxItemsInDigest = consensus::kMaxValidatorsNumber * 4;
-  }  // namespace
+  // This value is enough to disable each of validators in each of two
+  // consensus engines
+  constexpr auto kMaxItemsInDigest = consensus::kMaxValidatorsNumber * 4;
 
   /**
    * Digest is an implementation- and usage-defined entity, for example,

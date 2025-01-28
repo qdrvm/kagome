@@ -83,8 +83,8 @@ TEST_F(PaymentApiTest, DecodeRuntimeDispatchInfo) {
 
   auto info = scale::decode<RuntimeDispatchInfo<Weight>>(data).value();
 
-  ASSERT_EQ(*info.weight.ref_time, 144460000);
-  ASSERT_EQ(*info.weight.proof_size, 3593);
+  ASSERT_EQ(info.weight.ref_time, 144460000);
+  ASSERT_EQ(info.weight.proof_size, 3593);
   ASSERT_EQ(info.dispatch_class, kagome::primitives::DispatchClass::Normal);
-  ASSERT_EQ(*info.partial_fee, 154146098);
+  ASSERT_EQ(info.partial_fee, 154146098);
 }

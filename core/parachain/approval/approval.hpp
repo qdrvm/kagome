@@ -23,8 +23,8 @@ namespace kagome::parachain::approval {
   ///
   /// The context used to produce bytes is [`RELAY_VRF_MODULO_CONTEXT`]
   struct RelayVRFModulo {
-    SCALE_TIE(1);
     uint32_t sample;  /// The sample number used in this cert.
+    bool operator==(const RelayVRFModulo &other) const = default;
   };
 
   /// An assignment story based on the VRF that authorized the relay-chain block
@@ -33,24 +33,23 @@ namespace kagome::parachain::approval {
   ///
   /// The context is [`RELAY_VRF_DELAY_CONTEXT`]
   struct RelayVRFDelay {
-    SCALE_TIE(1);
     CoreIndex core_index;  /// The core index chosen in this cert.
+    bool operator==(const RelayVRFDelay &other) const = default;
   };
 
   /// random bytes derived from the VRF submitted within the block by the
   /// block author as a credential and used as input to approval assignment
   /// criteria.
   struct RelayVRFStory {
-    SCALE_TIE(1);
     ConstBuffer data;
   };
 
   /// Multiple assignment stories based on the VRF that authorized the
   /// relay-chain block where the candidates were included.
   struct RelayVRFModuloCompact {
-    SCALE_TIE(1);
     /// A bitfield representing the core indices claimed by this assignment.
     scale::BitVec core_bitfield;
+    bool operator==(const RelayVRFModuloCompact &other) const = default;
   };
 
   /// Different kinds of input data or criteria that can prove a validator's
@@ -59,8 +58,6 @@ namespace kagome::parachain::approval {
 
   /// A certification of assignment.
   struct AssignmentCert {
-    SCALE_TIE(2);
-
     AssignmentCertKind
         kind;  /// The criterion which is claimed to be met by this cert.
     crypto::VRFOutput vrf;  /// The VRF showing the criterion is met.
@@ -73,8 +70,6 @@ namespace kagome::parachain::approval {
 
   /// A certification of assignment.
   struct AssignmentCertV2 {
-    SCALE_TIE(2);
-
     /// The criterion which is claimed to be met by this cert.
     AssignmentCertKindV2 kind;
 
@@ -89,13 +84,16 @@ namespace kagome::parachain::approval {
           .vrf = src.vrf,
       };
     }
+
+    bool operator==(const AssignmentCertV2 &other) const = default;
+
+   private:
+    SCALE_CUSTOM_DECOMPOSING(AssignmentCertV2, kind, vrf)
   };
 
   /// An assignment criterion which refers to the candidate under which the
   /// assignment is relevant by block hash.
   struct IndirectAssignmentCert {
-    SCALE_TIE(3);
-
     Hash block_hash;           /// A block hash where the candidate appears.
     ValidatorIndex validator;  /// The validator index.
     AssignmentCert cert;       /// The cert itself.
@@ -104,8 +102,6 @@ namespace kagome::parachain::approval {
   /// An assignment criterion which refers to the candidate under which the
   /// assignment is relevant by block hash.
   struct IndirectAssignmentCertV2 {
-    SCALE_TIE(3);
-
     /// A block hash where the candidate appears.
     Hash block_hash;
 
@@ -130,8 +126,6 @@ namespace kagome::parachain::approval {
   /// In practice, we have a look-up from block hash and candidate index to
   /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
   struct IndirectApprovalVote {
-    SCALE_TIE(2);
-
     Hash block_hash;  /// A block hash where the candidate appears.
     CandidateIndex
         candidate_index;  /// The index of the candidate in the list of
@@ -145,8 +139,6 @@ namespace kagome::parachain::approval {
   /// In practice, we have a look-up from block hash and candidate index to
   /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
   struct IndirectApprovalVoteV2 {
-    SCALE_TIE(2);
-
     /// A block hash where the candidate appears.
     Hash block_hash;
 

@@ -13,7 +13,6 @@
 
 #include "common/blob.hpp"
 #include "macro/endianness_utils.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   using BlockNumber = uint32_t;
@@ -24,10 +23,7 @@ namespace kagome::primitives {
     // base data structure for the types describing block information
     // (BlockInfo, Prevote, Precommit, PrimaryPropose)
     template <typename Tag>
-    struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>>,
-                        public boost::less_than_comparable<BlockInfoT<Tag>> {
-      SCALE_TIE_ONLY(hash, number);
-
+    struct BlockInfoT {
       BlockInfoT() = default;
 
       BlockInfoT(const BlockNumber &n, const BlockHash &h)
@@ -42,6 +38,10 @@ namespace kagome::primitives {
       bool operator<(const BlockInfoT<Tag> &o) const {
         return number < o.number or (number == o.number and hash < o.hash);
       }
+      auto operator<=>(const BlockInfoT<Tag> &o) const = default;
+
+     private:
+      SCALE_CUSTOM_DECOMPOSING(BlockInfoT, hash, number);
     };
   }  // namespace detail
 

@@ -67,9 +67,8 @@ namespace kagome::scale {
       const Invocable auto &func,
       const common::SLVector<ElementType, MaxSize, Allocator> &c);
 
-  template <typename T, typename Tag, typename Base>
-  constexpr void encode(const Invocable auto &func,
-                        const Tagged<T, Tag, Base> &c);
+  template <typename T, typename Tag>
+  constexpr void encode(const Invocable auto &func, const Tagged<T, Tag> &c);
 
   template <size_t MaxSize>
   constexpr void encode(const Invocable auto &func,
@@ -179,11 +178,10 @@ namespace kagome::scale {
         func, static_cast<const std::vector<ElementType, Allocator> &>(c));
   }
 
-  template <typename T, typename Tag, typename Base>
-  constexpr void encode(const Invocable auto &func,
-                        const Tagged<T, Tag, Base> &c) {
+  template <typename T, typename Tag>
+  constexpr void encode(const Invocable auto &func, const Tagged<T, Tag> &c) {
     if constexpr (std::is_scalar_v<T>) {
-      kagome::scale::encode(func, c.Wrapper<T>::value);
+      kagome::scale::encode(func, c.template Wrapper<T>::value);
     } else {
       kagome::scale::encode(func, static_cast<const T &>(c));
     }
@@ -315,10 +313,10 @@ namespace kagome::scale {
   }
 
   template <typename T>
-  constexpr void encode(const Invocable auto &func, const Fixed<T> &c) {
-    constexpr size_t bits = Fixed<T>::kByteSize * 8;
-    for (size_t i = 0; i < bits; i += 8) {
-      encode(func, ::scale::convert_to<uint8_t>((*c >> i) & 0xFFu));
+  constexpr void encode(const Invocable auto &func, const Fixed<T> &fixed) {
+    T original = untagged(fixed);
+    for (size_t i = 0; i < ::scale::IntegerTraits<T>::kBitSize; i += 8) {
+      encode(func, ::scale::convert_to<uint8_t>((original >> i) & 0xFFu));
     }
   }
 

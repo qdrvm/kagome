@@ -6,16 +6,13 @@
 
 #pragma once
 
-#include <cstdint>
-
 #include <qtils/enum_error_code.hpp>
-
-#include "common/empty.hpp"
-#include "common/tagged.hpp"
+#include <qtils/unused.hpp>
+#include <scale/scale.hpp>
 
 namespace kagome {
 
-  enum UnusedError : uint8_t {
+  enum class UnusedError : uint8_t {
     AttemptToEncodeUnused = 1,
     AttemptToDecodeUnused,
   };
@@ -23,44 +20,30 @@ namespace kagome {
     using E = decltype(e);
     switch (e) {
       case E::AttemptToEncodeUnused:
-        return "AttemptToEncodeUnused";
+        return "Attempt to encode a value that must be unused";
       case E::AttemptToDecodeUnused:
-        return "AttemptToDecodeUnused";
+        return "Attempt to decode a value that must be unused";
     }
     abort();
   }
 
-  /// Number-based marker-type for using as tag
-  template <size_t Num>
-  struct NumTag {
-   private:
-    static constexpr size_t tag = Num;
-  };
-
   /// Special zero-size-type for some things
   ///  (e.g., dummy types of variant, unsupported or experimental).
   template <size_t N>
-  using Unused = Tagged<Empty, NumTag<N>>;
-
-  template <size_t N>
-  constexpr bool operator==(const Unused<N> &, const Unused<N> &) {
-    return true;
-  }
+  using Unused = qtils::Unused<N>;
 
   /// To raise failure while attempt to encode unused entity
   template <size_t N>
-  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                                 const Unused<N> &) {
+  [[noreturn]] ::scale::ScaleEncoderStream &operator<<(
+      ::scale::ScaleEncoderStream &, const Unused<N> &) {
     ::scale::raise(UnusedError::AttemptToEncodeUnused);
-    return s;
   }
 
   /// To raise failure while attempt to decode unused entity
   template <size_t N>
-  inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                                 const Unused<N> &) {
+  [[noreturn]] ::scale::ScaleDecoderStream &operator>>(
+      ::scale::ScaleDecoderStream &, Unused<N> &) {
     ::scale::raise(UnusedError::AttemptToDecodeUnused);
-    return s;
   }
 
 }  // namespace kagome

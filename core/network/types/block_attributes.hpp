@@ -7,7 +7,7 @@
 #pragma once
 
 #include <cstdint>
-#include <scale/scale_error.hpp>
+#include <scale/scale.hpp>
 
 #include "common/outcome_throw.hpp"
 
@@ -47,14 +47,8 @@ namespace kagome::network {
     return (l & r) == r;
   }
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const BlockAttribute &v) {
-    return s << static_cast<uint8_t>(v);
-  }
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, BlockAttribute &attributes) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               BlockAttribute &attributes) {
     uint8_t value = 0u;
     s >> value;
     attributes = toBlockAttribute(value);

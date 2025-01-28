@@ -12,7 +12,6 @@
 #include "consensus/grandpa/types/authority.hpp"
 #include "consensus/grandpa/vote_types.hpp"
 #include "primitives/block_header.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -73,8 +72,6 @@ namespace kagome::consensus::grandpa {
   /// prevote or precommit stage) for different blocks. Proving is achieved
   /// by collecting the signed messages of conflicting votes.
   struct EquivocationProof {
-    SCALE_TIE(2);
-
     AuthoritySetId set_id;
     Equivocation equivocation;
   };

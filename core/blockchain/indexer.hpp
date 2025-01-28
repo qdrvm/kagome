@@ -70,8 +70,6 @@ namespace kagome::blockchain {
 
   template <typename T>
   struct Indexed {
-    SCALE_TIE_ONLY(value, prev);
-
     /**
      * Empty `value` means that blocks from `prev` to current have been indexed,
      * and current block doesn't have own `value`.
@@ -85,6 +83,9 @@ namespace kagome::blockchain {
      * Does this block inherit value from `prev` or has own `value`.
      */
     bool inherit = false;
+
+   private:
+    SCALE_CUSTOM_DECOMPOSING(Indexed, value, prev);
   };
 
   /**

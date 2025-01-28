@@ -98,9 +98,10 @@ namespace kagome::consensus::babe {
     }
 
     // Index of secondary leader
-    auto auth_index_of_leader = be_bytes_to_uint256(hasher_->blake2b_256(
-                                    scale::encode(randomness_, slot).value()))
-                              % auth_number_;
+    auto auth_index_of_leader =
+        be_bytes_to_uint256(hasher_->blake2b_256(
+            scale::encode(std::tie(randomness_, slot)).value()))
+        % auth_number_;
 
     if (keypair_->second != auth_index_of_leader) {
       // Author is not a secondary leader

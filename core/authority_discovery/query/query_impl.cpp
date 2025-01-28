@@ -311,8 +311,8 @@ namespace kagome::authority_discovery {
       OUTCOME_TRY(tmp,
                   scale::decode<TimestampScale>(
                       qtils::str2byte(record.creation_time().timestamp())));
-      time = *tmp;
-      if (it and it->time and time <= it->time->number) {
+      time = (Timestamp)tmp;
+      if (it and it->time and time <= it->time) {
         SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }

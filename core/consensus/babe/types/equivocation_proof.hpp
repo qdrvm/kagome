@@ -8,7 +8,6 @@
 
 #include "consensus/timeline/types.hpp"
 #include "primitives/block_header.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::consensus::babe {
 
@@ -26,8 +25,6 @@ namespace kagome::consensus::babe {
   /// are the given distinct headers that were signed by the validator and which
   /// include the slot number.
   struct EquivocationProof {
-    SCALE_TIE(4);
-
     /// Returns the authority id of the equivocator.
     AuthorityId offender;
     /// The slot at which the equivocation happened.
@@ -36,6 +33,7 @@ namespace kagome::consensus::babe {
     primitives::BlockHeader first_header;
     /// The second header involved in the equivocation.
     primitives::BlockHeader second_header;
+    bool operator==(const EquivocationProof &other) const = default;
   };
 
 }  // namespace kagome::consensus::babe

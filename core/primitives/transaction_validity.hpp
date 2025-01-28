@@ -13,7 +13,6 @@
 #include <outcome/outcome.hpp>
 
 #include "primitives/transaction.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -47,8 +46,6 @@ namespace kagome::primitives {
    * https://github.com/paritytech/substrate/blob/a31c01b398d958ccf0a24d8c1c11fb073df66212/core/sr-primitives/src/transaction_validity.rs#L178
    */
   struct ValidTransaction {
-    SCALE_TIE(5);
-
     /**
      * @brief Priority of the transaction.
      * Priority determines the ordering of two transactions that have all
@@ -88,6 +85,8 @@ namespace kagome::primitives {
      * never be sent to other peers.
      */
     bool propagate{};
+
+    bool operator==(const ValidTransaction &other) const = default;
   };
 
   /// Transaction is invalid. Details are described by the error code.
@@ -140,9 +139,8 @@ namespace kagome::primitives {
     }
   };
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const InvalidTransaction &v) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const InvalidTransaction &v) {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
@@ -153,9 +151,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, InvalidTransaction &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               InvalidTransaction &v) {
     uint8_t value = 0u;
     s >> value;
 
@@ -193,9 +190,8 @@ namespace kagome::primitives {
     uint8_t custom_value{};
   };
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const UnknownTransaction &v) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const UnknownTransaction &v) {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
@@ -206,9 +202,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, UnknownTransaction &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               UnknownTransaction &v) {
     uint8_t value = 0u;
     s >> value;
 

@@ -11,7 +11,6 @@
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "primitives/common.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::network {
 
@@ -27,17 +26,12 @@ namespace kagome::network {
   using primitives::BlockInfo;
   using primitives::BlockNumber;
 
-  struct GrandpaVote : public VoteMessage {
-    using VoteMessage::VoteMessage;
-    explicit GrandpaVote(VoteMessage &&vm) : VoteMessage(std::move(vm)){};
-  };
+  using GrandpaVote = VoteMessage;
 
   // Network level commit message with topic information.
   // @See
   // https://github.com/paritytech/substrate/blob/polkadot-v0.9.7/client/finality-grandpa/src/communication/gossip.rs#L350
   struct FullCommitMessage {
-    SCALE_TIE(3);
-
     // The round this message is from.
     RoundNumber round{0};
     // The voter set ID this message is from.
@@ -47,17 +41,14 @@ namespace kagome::network {
   };
 
   struct GrandpaNeighborMessage {
-    SCALE_TIE(4);
-
     uint8_t version = 1;
     RoundNumber round_number;
     VoterSetId voter_set_id;
     BlockNumber last_finalized;
+    bool operator==(const GrandpaNeighborMessage &other) const = default;
   };
 
   struct CatchUpRequest {
-    SCALE_TIE(2);
-
     RoundNumber round_number;
     VoterSetId voter_set_id;
 
@@ -72,8 +63,6 @@ namespace kagome::network {
   };
 
   struct CatchUpResponse {
-    SCALE_TIE(5);
-
     VoterSetId voter_set_id{};
     RoundNumber round_number{};
     std::vector<SignedPrevote> prevote_justification;

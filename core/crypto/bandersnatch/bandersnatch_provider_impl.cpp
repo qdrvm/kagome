@@ -44,9 +44,9 @@ namespace kagome::crypto {
           return BandersnatchProviderError::SOFT_JUNCTION_NOT_SUPPORTED;
         }
         auto hash = hasher_->blake2b_256(
-            scale::encode("bandersnatch-vrf-HDKD"_bytes,
-                          seed_with_junctions.unsafeBytes(),
-                          junction.cc)
+            scale::encode(std::tuple("bandersnatch-vrf-HDKD"_bytes,
+                                     seed_with_junctions.unsafeBytes(),
+                                     junction.cc))
                 .value());
         seed_with_junctions = BandersnatchSeed::from(SecureCleanGuard(hash));
       }

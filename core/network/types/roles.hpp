@@ -6,14 +6,10 @@
 
 #pragma once
 
-#include "scale/tie.hpp"
-
 // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 namespace kagome::network {
 
   struct Roles {
-    SCALE_TIE_ONLY(value);
-
     union {
       struct {
         /**
@@ -38,6 +34,10 @@ namespace kagome::network {
     Roles() : value(0) {}
     Roles(uint8_t v) : value(v) {}
 
+   private:
+    SCALE_CUSTOM_DECOMPOSING(Roles, value);
+
+   public:
     // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L101
     bool isFull() const {
       return flags.full != 0 or isAuthority();

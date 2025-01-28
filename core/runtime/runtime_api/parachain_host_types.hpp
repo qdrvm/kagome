@@ -41,7 +41,6 @@ namespace kagome::runtime {
   using CandidateDescriptor = network::CandidateDescriptor;
 
   struct ClaimQueueSnapshot {
-    SCALE_TIE(1);
     std::map<CoreIndex, std::vector<ParachainId>> claimes;
 
     std::optional<ParachainId> get_claim_for(CoreIndex core_index,
@@ -103,8 +102,6 @@ namespace kagome::runtime {
   };
 
   struct GroupDescriptor {
-    SCALE_TIE(3);
-
     /// The block number where the session started.
     BlockNumber session_start_block;
 
@@ -113,6 +110,8 @@ namespace kagome::runtime {
 
     /// The current block number.
     BlockNumber now_block_num;
+
+    bool operator==(const GroupDescriptor &rhs) const = default;
 
     /// Returns the index of the group needed to validate the core at the given
     /// index, assuming the given number of cores.
@@ -167,13 +166,13 @@ namespace kagome::runtime {
   };
 
   struct ValidatorGroup {
-    SCALE_TIE(1);
     std::vector<kagome::parachain::ValidatorIndex> validators;
 
     bool contains(kagome::parachain::ValidatorIndex validator_ix) const {
-      return std::find(validators.begin(), validators.end(), validator_ix)
-          != validators.end();
+      return std::ranges::find(validators, validator_ix) != validators.end();
     }
+
+    bool operator==(const ValidatorGroup &rhs) const = default;
   };
 
   using FreeCore = Empty;
@@ -189,8 +188,6 @@ namespace kagome::runtime {
     Free       // 2
   };
   struct PersistedValidationData {
-    SCALE_TIE(4);
-
     /// The parent head-data.
     HeadData parent_head;
     /// The relay-chain block number this is in the context of.
@@ -199,15 +196,15 @@ namespace kagome::runtime {
     Hash relay_parent_storage_root;
     /// The maximum legal size of a POV block, in bytes.
     uint32_t max_pov_size;
+    bool operator==(const PersistedValidationData &) const = default;
   };
 
   struct AvailableData {
-    SCALE_TIE(2);
-
     /// The Proof-of-Validation of the candidate.
     network::ParachainBlock pov;
     /// The persisted validation data needed for secondary checks.
     runtime::PersistedValidationData validation_data;
+    bool operator==(const AvailableData &) const = default;
   };
 
   using OutboundHrmpMessage = network::OutboundHorizontal;
@@ -220,25 +217,21 @@ namespace kagome::runtime {
     HeadData head_data;
     CoreIndex core_index;
 
-    bool operator==(const Candidate &rhs) const {
-      return candidate_receipt == rhs.candidate_receipt
-         and head_data == rhs.head_data  //
-         and core_index == rhs.core_index;
-    }
+    bool operator==(const Candidate &rhs) const = default;
   };
 
   struct CandidateBacked : public Candidate {
     GroupIndex group_index{};
 
-    bool operator==(const CandidateBacked &rhs) const {
-      return (const Candidate &)(*this) == (const Candidate &)rhs
-         and group_index == rhs.group_index;
-    }
+    bool operator==(const CandidateBacked &rhs) const = default;
   };
 
   struct CandidateIncluded
       : public Candidate,
         public boost::equality_comparable<CandidateIncluded> {
+    using Candidate::candidate_receipt;
+    using Candidate::core_index;
+    using Candidate::head_data;
     GroupIndex group_index{};
 
     bool operator==(const CandidateIncluded &rhs) const {
@@ -247,7 +240,7 @@ namespace kagome::runtime {
     }
   };
 
-  struct CandidateTimedOut : public Candidate {};
+  using CandidateTimedOut = Tagged<Candidate, struct CandidateTimedOut_Tag>;
 
   using CandidateEvent = boost::variant<
       /// This candidate receipt was backed in the most recent block.
@@ -267,8 +260,6 @@ namespace kagome::runtime {
   using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
-    SCALE_TIE(13);
-
     /****** New in v2 *******/
     /// All the validators actively participating in parachain consensus.
     /// Indices are into the broader validator set.
@@ -382,42 +373,34 @@ namespace kagome::runtime {
   /// Maximum number of memory pages (64KiB bytes per page) the executor can
   /// allocate.
   struct MaxMemoryPages {
-    SCALE_TIE(1)
     uint32_t limit;
   };
 
   /// Wasm logical stack size limit (max. number of Wasm values on stack)
   struct StackLogicalMax {
-    SCALE_TIE(1)
     uint32_t max_values_num;
   };
   /// Executor machine stack size limit, in bytes
   struct StackNativeMax {
-    SCALE_TIE(1)
     uint32_t max_bytes_num;
   };
   /// Max. amount of memory the preparation worker is allowed to use during
   /// pre-checking, in bytes
   struct PrecheckingMaxMemory {
-    SCALE_TIE(1)
     uint64_t max_bytes_num;
   };
   /// PVF preparation timeouts, millisec
   struct PvfPrepTimeout {
-    SCALE_TIE(2)
     PvfPrepTimeoutKind kind;
     uint64_t msec;
   };
   /// PVF execution timeouts, millisec
   struct PvfExecTimeout {
-    SCALE_TIE(2)
     PvfExecTimeoutKind kind;
     uint64_t msec;
   };
 
-  struct WasmExtBulkMemory {
-    SCALE_TIE(0);
-  };
+  struct WasmExtBulkMemory {};
 
   using ExecutorParam = std::variant<Unused<0>,
                                      MaxMemoryPages,

@@ -146,8 +146,6 @@ namespace kagome::crypto::bandersnatch::vrf {
   ///
   /// Includes both the transcript `signature` and the `outputs` generated from
   struct VrfSignature {
-    SCALE_TIE(2);
-
     /// VRF (pre)outputs.
     VrfIosVec<VrfOutput> outputs;
 
@@ -157,8 +155,6 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   /// Ring VRF signature.
   struct RingVrfSignature {
-    SCALE_TIE(2);
-
     /// VRF (pre)outputs.
     VrfIosVec<VrfOutput> outputs;
 

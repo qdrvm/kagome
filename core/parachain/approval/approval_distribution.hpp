@@ -83,11 +83,11 @@ namespace kagome::parachain {
         public IApprovedAncestor {
    public:
     struct OurAssignment {
-      SCALE_TIE(4);
       approval::AssignmentCertV2 cert;
       uint32_t tranche;
       ValidatorIndex validator_index;
       bool triggered;  /// Whether the assignment has been triggered already.
+      bool operator==(const OurAssignment &) const = default;
     };
 
     using HashedCandidateReceipt = crypto::
@@ -96,12 +96,11 @@ namespace kagome::parachain {
     /// Metadata regarding a specific tranche of assignments for a specific
     /// candidate.
     struct TrancheEntry {
-      SCALE_TIE(2);
-
       network::DelayTranche tranche;
       // Assigned validators, and the instant we received their assignment,
       // rounded to the nearest tick.
       std::vector<std::pair<ValidatorIndex, Tick>> assignments;
+      bool operator==(const TrancheEntry &other) const = default;
     };
 
     using DistribApprovalEntryKey = std::pair<ValidatorIndex, scale::BitVec>;
@@ -117,7 +116,6 @@ namespace kagome::parachain {
     };
 
     struct ApprovalEntry {
-      SCALE_TIE(6);
       using MaybeCert = std::optional<
           std::tuple<std::reference_wrapper<const approval::AssignmentCertV2>,
                      ValidatorIndex,
@@ -141,6 +139,8 @@ namespace kagome::parachain {
         assignments.bits.insert(
             assignments.bits.end(), assignments_size, false);
       }
+
+      bool operator==(const ApprovalEntry &) const = default;
 
       /// Whether a validator is already assigned.
       bool is_assigned(ValidatorIndex validator_index) const {
