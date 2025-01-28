@@ -58,7 +58,6 @@ namespace kagome::offchain {
       return true;
     }
   };
-  SCALE_EMPTY_CODER(NoPayload);
 
   struct Success : public NoPayload {};
   struct Failure : public NoPayload {};

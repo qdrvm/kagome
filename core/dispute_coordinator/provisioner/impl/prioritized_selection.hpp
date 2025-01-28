@@ -22,8 +22,6 @@ namespace kagome::dispute {
 
   /// The entire state of a dispute.
   struct DisputeState {
-    SCALE_TIE(4);
-
     /// A bitfield indicating all validators for the candidate.
     scale::BitVec validators_for;
     /// A bitfield indicating all validators against the candidate.

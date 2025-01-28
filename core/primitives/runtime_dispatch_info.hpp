@@ -7,7 +7,6 @@
 #pragma once
 
 #include <scale/scale.hpp>
-#include <scale/tie.hpp>
 
 #include "common/unused.hpp"
 #include "scale/big_fixed_integers.hpp"
@@ -18,20 +17,12 @@ namespace kagome::primitives {
   using OldWeight = scale::Compact<uint64_t>;
 
   struct Weight {
-    // NOLINTBEGIN
-    SCALE_TIE(2);
-    // NOLINTEND
-    Weight() = default;
-
-    explicit Weight(OldWeight w) : ref_time{w}, proof_size{0} {}
-
-    Weight(uint64_t ref_time, uint64_t proof_size)
-        : ref_time{ref_time}, proof_size{proof_size} {}
-
     // The weight of computational time used based on some reference hardware.
     scale::Compact<uint64_t> ref_time;
     // The weight of storage space used by proof of validity.
-    scale::Compact<uint64_t> proof_size;
+    scale::Compact<uint64_t> proof_size{0};
+
+    bool operator==(const Weight &) const = default;
   };
 
   // for some reason encoded as variant in substrate, thus custom encode/decode
@@ -59,30 +50,13 @@ namespace kagome::primitives {
     Mandatory
   };
 
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &stream, DispatchClass &dispatch_class) {
-    uint8_t dispatch_class_byte;
-    stream >> dispatch_class_byte;
-    dispatch_class = static_cast<DispatchClass>(dispatch_class_byte);
-    return stream;
-  }
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &stream, DispatchClass dispatch_class) {
-    return stream << dispatch_class;
-  }
-
-  struct Balance : public scale::Fixed<scale::uint128_t> {};
+  using Balance = scale::Fixed<scale::uint128_t>;
 
   /** Information related to a dispatchable class, weight, and fee that can be
    * queried from the runtime.
    */
   template <typename Weight>
   struct RuntimeDispatchInfo {
-    SCALE_TIE(3);  // NOLINT
-
     Weight weight;
     DispatchClass dispatch_class;
 
@@ -91,6 +65,7 @@ namespace kagome::primitives {
      * `SignedExtension`).
      */
     Balance partial_fee;
+    bool operator==(const RuntimeDispatchInfo &) const = default;
   };
 
 }  // namespace kagome::primitives

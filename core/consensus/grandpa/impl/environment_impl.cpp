@@ -294,11 +294,11 @@ namespace kagome::consensus::grandpa {
                 vote.id,
                 vote.getBlockInfo());
 
-            self->transmitter_->sendVoteMessage(network::GrandpaVote{{
+            self->transmitter_->sendVoteMessage(network::GrandpaVote{
                 .round_number = round,
                 .counter = set_id,
                 .vote = vote,
-            }});
+            });
           }
         });
   }
@@ -327,9 +327,9 @@ namespace kagome::consensus::grandpa {
               ;
               self->transmitter_->sendVoteMessage(
                   peer_id,
-                  network::GrandpaVote{{.round_number = state.round_number,
-                                        .counter = voter_set_id,
-                                        .vote = vote}});
+                  network::GrandpaVote{.round_number = state.round_number,
+                                       .counter = voter_set_id,
+                                       .vote = vote});
             };
 
             for (const auto &vv : state.votes) {

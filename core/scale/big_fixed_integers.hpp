@@ -9,61 +9,46 @@
 #include <type_traits>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <scale/scale.hpp>
 #include <scale/types.hpp>
 
-#include "common/int_serialization.hpp"
+#include "common/tagged.hpp"
 
 namespace scale {
 
+  using uint128_t = boost::multiprecision::checked_uint128_t;
+  using uint256_t = boost::multiprecision::checked_uint256_t;
+
   template <typename T>
-  struct IntegerTraits;
+  concept SupportedInteger = std::is_unsigned_v<T>         //
+                          or std::is_same_v<T, uint128_t>  //
+                          or std::is_same_v<T, uint256_t>;
 
-  /**
-   * Wrapper for an integer to make distinct integer aliases
-   * @tparam Tag
-   * @tparam T
-   */
-  template <typename Tag, typename T>
-  struct IntWrapper {
-    static_assert(!std::is_reference_v<T>);
-    static_assert(!std::is_pointer_v<T>);
-    static_assert(!std::is_const_v<T>);
-
-    using Self = IntWrapper<Tag, T>;
-    using ValueType = T;
-
-    static constexpr size_t kByteSize = IntegerTraits<T>::kBitSize / 8;
-
-    T &operator*() {
-      return number;
-    }
-
-    const T &operator*() const {
-      return number;
-    }
-
-    bool operator==(const Self &other) const {
-      return **this == *other;
-    }
-
-    T number;
+  template <SupportedInteger T>
+  struct IntegerTraits {
+    static constexpr size_t kBitSize = sizeof(T) * 8;
+  };
+  template <>
+  struct IntegerTraits<uint128_t> {
+    static constexpr size_t kBitSize = 128;
+  };
+  template <>
+  struct IntegerTraits<uint256_t> {
+    static constexpr size_t kBitSize = 256;
   };
 
   // TODO(Harrm) #1480 add check for narrowing conversion
-  template <typename U,
-            typename T,
-            typename = std::enable_if_t<std::is_trivial_v<T>>>
-  U convert_to(T t) {
-    return static_cast<U>(t);
+  template <typename To, typename From>
+    requires std::is_trivial_v<From>
+  To convert_to(From t) {
+    return static_cast<To>(t);
   }
 
-  template <
-      typename U,
-      typename T,
-      typename = std::enable_if_t<boost::multiprecision::is_number<T>::value>>
-  U convert_to(const T &t) {
+  template <typename To, typename From>
+    requires boost::multiprecision::is_number<From>::value
+  To convert_to(const From &t) {
     try {
-      return t.template convert_to<U>();
+      return t.template convert_to<To>();
     } catch (const std::runtime_error &e) {
       // scale::decode catches std::system_errors
       throw std::system_error{
@@ -72,71 +57,51 @@ namespace scale {
     }
   }
 
-  struct FixedTag {};
-
   // an integer intended to be encoded with fixed length
   template <typename T>
-  using Fixed = IntWrapper<FixedTag, T>;
-
-  struct CompactTag {};
+    requires SupportedInteger<T>
+  using Fixed = kagome::Tagged<T, struct FixedTag>;
 
   // an integer intended to be encoded with compact encoding
   template <typename T>
-  using Compact = IntWrapper<CompactTag, T>;
+    requires SupportedInteger<T>
+  using Compact = qtils::Tagged<T, struct CompactTag>;
 
-  template <typename Stream, typename N>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &stream, Fixed<N> &fixed) {
-    for (size_t i = 0; i < Fixed<N>::kByteSize * 8; i += 8) {
-      *fixed |= N(stream.nextByte()) << i;
+  template <typename T>
+  ScaleDecoderStream &operator>>(ScaleDecoderStream &stream, Fixed<T> &fixed) {
+    T decoded = 0;
+    for (size_t i = 0; i < IntegerTraits<T>::kBitSize; i += 8) {
+      decoded |= T(stream.nextByte()) << i;
+    }
+    fixed = decoded;
+    return stream;
+  }
+
+  template <typename T>
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &stream,
+                                 const Fixed<T> &fixed) {
+    T original = untagged(fixed);
+    for (size_t i = 0; i < IntegerTraits<T>::kBitSize; i += 8) {
+      stream << convert_to<uint8_t>((original >> i) & 0xFFu);
     }
     return stream;
   }
 
-  template <typename Stream, typename N>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &stream, const Fixed<N> &fixed) {
-    constexpr size_t bits = Fixed<N>::kByteSize * 8;
-    for (size_t i = 0; i < bits; i += 8) {
-      stream << convert_to<uint8_t>((*fixed >> i) & 0xFFu);
-    }
-    return stream;
-  }
-
-  template <typename Stream, typename N>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &stream, Compact<N> &compact) {
+  template <typename N>
+  ScaleDecoderStream &operator>>(ScaleDecoderStream &stream,
+                                 Compact<N> &compact) {
     scale::CompactInteger n;
     stream >> n;
-    compact.number = n.convert_to<N>();
+    compact = n.convert_to<N>();
     return stream;
   }
 
-  template <typename Stream, typename N>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &stream, const Compact<N> &compact) {
-    scale::CompactInteger n = *compact;
+  template <typename N>
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &stream,
+                                 const Compact<N> &compact) {
+    scale::CompactInteger n = untagged(compact);
     stream << n;
     return stream;
   }
-
-#define SPECIALIZE_INTEGER_TRAITS(type, bit_size) \
-  template <>                                     \
-  struct IntegerTraits<type> {                    \
-    static constexpr size_t kBitSize = bit_size;  \
-  };
-
-  using uint128_t = boost::multiprecision::checked_uint128_t;
-  using uint256_t = boost::multiprecision::checked_uint256_t;
-
-  SPECIALIZE_INTEGER_TRAITS(uint8_t, 8);
-  SPECIALIZE_INTEGER_TRAITS(uint16_t, 16);
-  SPECIALIZE_INTEGER_TRAITS(uint32_t, 32);
-  SPECIALIZE_INTEGER_TRAITS(uint64_t, 64);
-
-  SPECIALIZE_INTEGER_TRAITS(uint128_t, 128);
-  SPECIALIZE_INTEGER_TRAITS(uint256_t, 256);
-
-#undef SPECIALIZE_INTEGER_TRAITS
 
 }  // namespace scale

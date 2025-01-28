@@ -8,6 +8,8 @@
 
 #include <cstdint>
 
+#include <scale/scale.hpp>
+
 #include "outcome/outcome.hpp"
 
 namespace kagome::primitives {
@@ -29,17 +31,15 @@ namespace kagome::primitives {
     Unsupported,
   };
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const TokenError &v) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const TokenError &v) {
     // index shift is required for compatibility with rust implementation.
     // std::error_code policy preserves 0 index for success cases.
     return s << static_cast<uint8_t>(v) - 1;
   }
 
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, TokenError &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               TokenError &v) {
     uint8_t value = 0u;
     s >> value;
     // index shift is required for compatibility with rust implementation.

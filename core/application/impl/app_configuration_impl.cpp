@@ -177,11 +177,12 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters{
+      interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-          "WasmEdge",
+    "WasmEdge",
 #endif
-          "Binaryen"};
+        "Binaryen"
+  };
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));

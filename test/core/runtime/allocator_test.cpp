@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include "runtime/common/memory_allocator.hpp"
-#include "scale/tie.hpp"
 #include "testutil/runtime/memory.hpp"
 
 using kagome::common::unhex;
@@ -16,16 +15,10 @@ using kagome::runtime::MemoryConfig;
 using kagome::runtime::TestMemory;
 
 struct Replay {
-  SCALE_TIE(3);
-
   struct OpAllocate {
-    SCALE_TIE(2);
-
     uint32_t size, ptr;
   };
   struct OpDeallocate {
-    SCALE_TIE(1);
-
     uint32_t ptr;
   };
   using Op = boost::variant<OpAllocate, OpDeallocate>;

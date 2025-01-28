@@ -7,16 +7,14 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <vector>
 
-#include <boost/iterator_adaptors.hpp>
-#include <optional>
-#include <outcome/outcome.hpp>
+#include <scale/scale.hpp>
+
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/outcome_throw.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
 
 namespace kagome::primitives {
   /**
@@ -78,52 +76,26 @@ namespace kagome::primitives {
       return InherentDataError::IDENTIFIER_DOES_NOT_EXIST;
     }
 
-    bool operator==(const InherentData &rhs) const;
-
-    bool operator!=(const InherentData &rhs) const;
-
     std::map<InherentIdentifier, common::Buffer> data;
+
+    bool operator==(const InherentData &) const = default;
   };
 
   /**
-   * @brief output InherentData object instance to stream
-   * @tparam Stream stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const InherentData &v) {
-    const auto &data = v.data;
-    std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
-    vec.reserve(data.size());
-    for (auto &pair : data) {
-      vec.emplace_back(pair);
-    }
-    s << vec;
-    return s;
-  }
-
-  /**
    * @brief decodes InherentData object instance from stream
-   * @tparam Stream input stream type
    * @param s stream reference
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, InherentData &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               InherentData &v) {
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
     s >> vec;
 
-    for (const auto &item : vec) {
-      // throw if identifier already exists
-      if (v.data.find(item.first) != v.data.end()) {
+    for (const auto &pair : vec) {
+      if (not v.data.emplace(pair).second) {
         common::raise(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
       }
-      v.data.insert(item);
     }
 
     return s;

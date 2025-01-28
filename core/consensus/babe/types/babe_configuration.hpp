@@ -32,8 +32,6 @@ namespace kagome::consensus::babe {
 
   /// Configuration data used by the BABE consensus engine.
   struct BabeConfiguration {
-    SCALE_TIE(6);
-
     /// The slot duration in milliseconds for BABE. Currently, only
     /// the value provided by this type at genesis will be used.
     ///
@@ -62,8 +60,6 @@ namespace kagome::consensus::babe {
   };
 
   struct Epoch {
-    SCALE_TIE(7);
-
     EpochNumber epoch_index;
     SlotNumber start_slot;
     EpochLength duration;

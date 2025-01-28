@@ -23,9 +23,8 @@
 
 namespace kagome::runtime::wavm {
   struct Compiled {
-    SCALE_TIE(2);
-
-    Buffer wasm, compiled;
+    Buffer wasm;
+    Buffer compiled;
   };
 
   static thread_local std::shared_ptr<Compiled> loading;

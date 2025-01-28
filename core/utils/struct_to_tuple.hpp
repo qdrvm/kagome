@@ -93,7 +93,7 @@ namespace kagome::utils {
   template <typename T>
   inline auto to_tuple_refs(const T &object) {
     using type = std::decay_t<T>;
-    TO_TUPLE9;
+    TO_TUPLE9
   }
 }  // namespace kagome::utils
 

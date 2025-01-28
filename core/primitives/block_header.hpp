@@ -18,6 +18,8 @@
 #include "primitives/digest.hpp"
 #include "storage/trie/types.hpp"
 
+#include <common/custom_equality.hpp>
+
 namespace kagome::primitives {
   /**
    * @struct BlockHeader represents header of a block
@@ -30,18 +32,12 @@ namespace kagome::primitives {
     Digest digest{};                       ///< Chain-specific auxiliary data
     mutable std::optional<BlockHash> hash_opt{};  ///< Block hash if calculated
 
-    bool operator==(const BlockHeader &rhs) const {
-      return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
-          == std::tie(rhs.parent_hash,
-                      rhs.number,
-                      rhs.state_root,
-                      rhs.extrinsics_root,
-                      rhs.digest);
-    }
-
-    bool operator!=(const BlockHeader &rhs) const {
-      return !operator==(rhs);
-    }
+    CUSTOM_EQUALITY(BlockHeader,  //
+                    parent_hash,
+                    number,
+                    state_root,
+                    extrinsics_root,
+                    digest)
 
     std::optional<primitives::BlockInfo> parentInfo() const {
       if (number != 0) {
@@ -118,9 +114,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const BlockHeader &bh) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const BlockHeader &bh) {
     return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
              << bh.extrinsics_root << bh.digest;
   }
@@ -132,9 +127,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, BlockHeader &bh) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               BlockHeader &bh) {
     CompactInteger number_compact;
     s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root
         >> bh.digest;

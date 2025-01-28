@@ -98,19 +98,19 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::Balance &val) {
-    jsonrpc::Value ret((*val).str());
+    jsonrpc::Value ret(val.str());
     return ret;
   }
 
   inline jsonrpc::Value makeValue(const primitives::Weight &val) {
     jStruct data;
-    data["ref_time"] = static_cast<int64_t>(*val.ref_time);
-    data["proof_size"] = static_cast<int64_t>(*val.proof_size);
+    data["ref_time"] = static_cast<int64_t>(val.ref_time);
+    data["proof_size"] = static_cast<int64_t>(val.proof_size);
     return data;
   }
 
   inline jsonrpc::Value makeValue(const primitives::OldWeight &val) {
-    jsonrpc::Value ret(static_cast<int64_t>(*val));
+    jsonrpc::Value ret(static_cast<int64_t>(val));
     return ret;
   }
 

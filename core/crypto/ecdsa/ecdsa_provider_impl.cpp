@@ -41,9 +41,10 @@ namespace kagome::crypto {
       if (not junction.hard) {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
-      auto bytes =
-          scale::encode("Secp256k1HDKD"_bytes, seed.unsafeBytes(), junction.cc)
-              .value();
+      auto bytes = scale::encode(std::tuple("Secp256k1HDKD"_bytes,
+                                            seed.unsafeBytes(),
+                                            junction.cc))
+                       .value();
       SecureCleanGuard g{bytes};
       auto _ = hasher_->blake2b_256(bytes);
       seed = EcdsaSeed::from(

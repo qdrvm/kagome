@@ -40,7 +40,7 @@ namespace kagome::consensus::grandpa {
     /**
      * \return unique voter set membership id
      */
-    inline VoterSetId id() const {
+    inline const VoterSetId &id() const {
       return id_;
     }
 

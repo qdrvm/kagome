@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "common/blob.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   /**
@@ -44,8 +43,6 @@ namespace kagome::primitives {
    * `impl_version` since they change the semantics of the runtime.
    */
   struct Version {
-    SCALE_TIE(8);
-
     /**
      * Identifies the different Substrate runtimes. There'll be at least
      * polkadot and node.

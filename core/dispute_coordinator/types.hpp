@@ -32,8 +32,6 @@ namespace kagome::dispute {
   using CbOutcome = std::function<void(outcome::result<Result>)>;
 
   struct StoredWindow {
-    SCALE_TIE(2);
-
     SessionIndex earliest_session;
     std::vector<SessionInfo> session_info;
   };
@@ -77,8 +75,6 @@ namespace kagome::dispute {
 
   /// Tracked votes on candidates, for the purposes of dispute resolution.
   struct CandidateVotes {
-    SCALE_TIE(3);
-
     /// The receipt of the candidate itself.
     CandidateReceipt candidate_receipt;
     /// Votes of validity, sorted by validator index.
@@ -233,8 +229,6 @@ namespace kagome::dispute {
 
   /// A set of statements about a specific candidate.
   struct DisputeStatementSet {
-    SCALE_TIE(3);
-
     /// The candidate referenced by this set.
     CandidateHash candidate_hash;
 
@@ -252,8 +246,6 @@ namespace kagome::dispute {
 
   /// Scraped runtime backing votes and resolved disputes.
   struct ScrapedOnChainVotes {
-    SCALE_TIE(3);
-
     /// The session in which the block was included.
     SessionIndex session;
 

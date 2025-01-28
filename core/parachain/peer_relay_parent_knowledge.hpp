@@ -18,7 +18,6 @@ namespace kagome::parachain {
   struct PeerRelayParentKnowledge {
     using CandidateHash = network::CandidateHash;
     struct PeerStatement {
-      SCALE_TIE(2);
       network::CompactStatement compact_statement;
       network::ValidatorIndex validator_index;
     };

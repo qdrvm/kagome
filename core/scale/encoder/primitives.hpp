@@ -13,6 +13,7 @@
 #include <list>
 #include <map>
 #include <optional>
+#include <scale/detail/aggregate.hpp>
 #include <scale/outcome/outcome_throw.hpp>
 #include <scale/types.hpp>
 #include <span>
@@ -119,7 +120,18 @@ namespace kagome::scale {
       const auto val = math::toLE(v);
       putByte(func, (uint8_t *)&val, size);
     } else {
-      kagome::scale::encode(func, utils::to_tuple_refs(v));
+      // kagome::scale::encode(func, utils::to_tuple_refs(v));
+      if constexpr (requires {
+                      decompose_and_apply(
+                          v, [&](const auto &...tuple_elements) {
+                            kagome::scale::encode(func,
+                                                  std::tie(tuple_elements...));
+                          });
+                    }) {
+        decompose_and_apply(v, [&](const auto &...tuple_elements) {
+          kagome::scale::encode(func, std::tie(tuple_elements...));
+        });
+      }
     }
   }
 

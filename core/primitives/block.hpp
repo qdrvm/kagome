@@ -8,7 +8,6 @@
 
 #include "primitives/block_header.hpp"
 #include "primitives/extrinsic.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   using BlockBody = std::vector<Extrinsic>;
@@ -17,15 +16,12 @@ namespace kagome::primitives {
    * @brief Block class represents polkadot block primitive
    */
   struct Block {
-    SCALE_TIE(2);
-
     BlockHeader header;  ///< block header
     BlockBody body{};    ///< extrinsics collection
+    bool operator==(const Block &other) const = default;
   };
 
   struct BlockReflection {
-    SCALE_TIE(2);
-
     BlockHeaderReflection header;  ///< block header
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockBody &body;  ///< extrinsics collection

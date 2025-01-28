@@ -25,8 +25,6 @@ namespace kagome::consensus::beefy {
   using MmrRootHash = common::Hash256;
 
   struct ValidatorSet {
-    SCALE_TIE(2);
-
     std::vector<crypto::EcdsaPublicKey> validators;
     AuthoritySetId id = 0;
 
@@ -49,16 +47,13 @@ namespace kagome::consensus::beefy {
   constexpr PayloadId kMmr{{'m', 'h'}};
 
   struct Commitment {
-    SCALE_TIE(3);
-
     std::vector<std::pair<PayloadId, common::Buffer>> payload;
     primitives::BlockNumber block_number;
     AuthoritySetId validator_set_id;
+    bool operator==(const Commitment &other) const = default;
   };
 
   struct VoteMessage {
-    SCALE_TIE(3);
-
     Commitment commitment;
     crypto::EcdsaPublicKey id;
     crypto::EcdsaSignature signature;
@@ -128,8 +123,6 @@ namespace kagome::consensus::beefy {
   using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
 
   struct DoubleVotingProof {
-    SCALE_TIE(2);
-
     VoteMessage first;
     VoteMessage second;
   };

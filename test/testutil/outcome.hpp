@@ -10,6 +10,8 @@
 #include "common/visitor.hpp"
 #include "outcome/outcome.hpp"
 
+#define OUTCOME_UNIQUE QTILS_UNIQUE_NAME(outcome)
+
 #define EXPECT_OUTCOME_TRUE_void(var, expr)       \
   auto &&var = expr;                              \
   EXPECT_TRUE(var) << "Line " << __LINE__ << ": " \

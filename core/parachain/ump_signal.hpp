@@ -35,8 +35,6 @@ namespace kagome::parachain {
   /// `CoreSelector` and `ClaimQueueOffset` to compute the index of the core the
   /// candidate has committed to.
   struct UMPSignalSelectCore {
-    SCALE_TIE(2);
-
     uint8_t core_selector;
     uint8_t claim_queue_offset;
   };

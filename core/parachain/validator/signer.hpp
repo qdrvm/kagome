@@ -37,8 +37,6 @@ namespace kagome::parachain {
     }
 
    public:
-    SCALE_TIE(2);
-
     /// Make signing context for given block.
     static outcome::result<SigningContext> make(
         const std::shared_ptr<runtime::ParachainHost> &parachain_api,

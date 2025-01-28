@@ -40,7 +40,8 @@ namespace kagome::crypto {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
       auto hash = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc)
+          scale::encode(
+              std::tuple("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc))
               .value());
       seed = Ed25519Seed::from(SecureCleanGuard(hash));
     }
