@@ -1476,6 +1476,15 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::randomWarp() {
+    scheduler_->schedule(
+        [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->randomWarp();
+        },
+        kRandomWarpInterval);
+    if (not timeline_.get()->wasSynchronized()) {
+      return;
+    }
     auto finalized = block_tree_->getLastFinalized();
     auto cb = [WEAK_SELF, finalized](outcome::result<WarpResponse> r) mutable {
       WEAK_LOCK(self);
@@ -1495,11 +1504,5 @@ namespace kagome::network {
       }
     };
     router_->getWarpProtocol()->random(finalized.hash, cb);
-    scheduler_->schedule(
-        [WEAK_SELF] {
-          WEAK_LOCK(self);
-          self->randomWarp();
-        },
-        kRandomWarpInterval);
   }
 }  // namespace kagome::network
