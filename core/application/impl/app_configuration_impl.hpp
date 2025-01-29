@@ -241,6 +241,9 @@ namespace kagome::application {
     std::optional<PrecompileWasmConfig> precompileWasm() const override {
       return precompile_wasm_;
     }
+    std::optional<BlockNumber> unsafeSyncTo() const override {
+      return unsafe_sync_to_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -386,6 +389,7 @@ namespace kagome::application {
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
+    std::optional<BlockNumber> unsafe_sync_to_;
   };
 
 }  // namespace kagome::application

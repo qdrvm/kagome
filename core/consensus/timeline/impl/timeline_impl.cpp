@@ -97,7 +97,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(core_api_);
 
     if (app_config.syncMethod() == SyncMethod::Unsafe) {
-      unsafe_sync_.emplace();
+      unsafe_sync_ = UnsafeSync{.number = app_config.unsafeSyncTo()};
     }
 
     // Register metrics
