@@ -385,7 +385,8 @@ namespace {
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<api::StateApi>>(),
-        injector.template create<sptr<metrics::Registry>>());
+        injector.template create<sptr<metrics::Registry>>(),
+        injector.template create<sptr<crypto::Hasher>>());
     if (not state_metrics_res.has_value()) {
       common::raise(state_metrics_res.error());
     }

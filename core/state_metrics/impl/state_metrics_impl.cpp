@@ -7,6 +7,7 @@
 #include "state_metrics_impl.hpp"
 
 #include "crypto/twox/twox.hpp"
+#include "primitives/ss58_codec.hpp"
 #include "utils/weak_macro.hpp"
 
 namespace kagome::state_metrics {
@@ -14,23 +15,32 @@ namespace kagome::state_metrics {
   static constexpr auto SET_ERA_POINTS_PERIOD = 60;
 
   StateMetricsImpl::StateMetricsImpl(
-      primitives::AccountId &&validator_id,
+      std::string &&validator_address,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<api::StateApi> state_api,
-      std::shared_ptr<metrics::Registry> registry)
-      : validator_id_{std::move(validator_id)},
-        scheduler_{std::move(scheduler)},
+      std::shared_ptr<metrics::Registry> registry,
+      std::shared_ptr<crypto::Hasher> hasher)
+      : scheduler_{std::move(scheduler)},
         state_api_{std::move(state_api)},
         stop_signal_received_{false},
         logger_{log::createLogger("StateMetrics", "state_metrics")} {
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(state_api_);
     BOOST_ASSERT(registry);
+    BOOST_ASSERT(hasher);
+    auto validator_id = primitives::decodeSs58(validator_address, *hasher);
+    if (not validator_id) {
+      const auto error_message =
+          std::string("Failed to decode validator address: ")
+          + validator_id.error().message();
+      throw std::runtime_error(error_message);
+    }
+    validator_id_ = std::move(validator_id.value());
     constexpr auto era_points_metric = "era_points";
     registry->registerGaugeFamily(
         era_points_metric,
         "The number of reward points for the current era for the validator",
-        {{"validator_id", validator_id_.toHex()}});
+        {{"validator_address", validator_address}});
     era_points_gauge_ = registry->registerGaugeMetric(era_points_metric);
     BOOST_ASSERT(era_points_gauge_);
 
@@ -76,12 +86,15 @@ namespace kagome::state_metrics {
       const application::AppConfiguration &app_config,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<api::StateApi> state_api,
-      std::shared_ptr<metrics::Registry> registry) {
-    if (auto validator_id = app_config.getValidatorId()) {
-      return std::make_shared<StateMetricsImpl>(std::move(validator_id.value()),
-                                                std::move(scheduler),
-                                                std::move(state_api),
-                                                std::move(registry));
+      std::shared_ptr<metrics::Registry> registry,
+      std::shared_ptr<crypto::Hasher> hasher) {
+    if (auto validator_address = app_config.getValidatorAddress()) {
+      return std::make_shared<StateMetricsImpl>(
+          std::move(validator_address.value()),
+          std::move(scheduler),
+          std::move(state_api),
+          std::move(registry),
+          std::move(hasher));
     }
     return nullptr;
   }

@@ -6,13 +6,15 @@
 
 #pragma once
 
+#include "state_metrics/state_metrics.hpp"
+
 #include "api/service/state/state_api.hpp"
 #include "application/app_configuration.hpp"
+#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "metrics/registry.hpp"
 #include "primitives/account.hpp"
-#include "state_metrics/state_metrics.hpp"
 
 #include "libp2p/basic/scheduler.hpp"
 
@@ -23,17 +25,19 @@ namespace kagome::state_metrics {
       : public StateMetrics,
         public std::enable_shared_from_this<StateMetricsImpl> {
    public:
-    StateMetricsImpl(primitives::AccountId &&validator_id,
+    StateMetricsImpl(std::string &&validator_address,
                      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                      std::shared_ptr<api::StateApi> state_api,
-                     std::shared_ptr<metrics::Registry> registry);
+                     std::shared_ptr<metrics::Registry> registry,
+                     std::shared_ptr<crypto::Hasher> hasher);
     ~StateMetricsImpl() override;
 
     static outcome::result<std::shared_ptr<StateMetricsImpl>> create(
         const application::AppConfiguration &app_config,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<api::StateApi> state_api,
-        std::shared_ptr<metrics::Registry> registry);
+        std::shared_ptr<metrics::Registry> registry,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     void updateEraPoints() override;
 

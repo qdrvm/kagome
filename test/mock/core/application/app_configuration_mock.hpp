@@ -200,8 +200,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::optional<primitives::AccountId>,
-                getValidatorId,
+    MOCK_METHOD(std::optional<std::string>,
+                getValidatorAddress,
                 (),
                 (const, override));
   };

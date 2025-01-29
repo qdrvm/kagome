@@ -332,7 +332,7 @@ namespace kagome::application {
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
 
-    virtual std::optional<primitives::AccountId> getValidatorId() const = 0;
+    virtual std::optional<std::string> getValidatorAddress() const = 0;
   };
 
 }  // namespace kagome::application
