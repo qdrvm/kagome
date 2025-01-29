@@ -8,6 +8,8 @@
 
 #include "network/synchronizer.hpp"
 
+#include "consensus/grandpa/structs.hpp"
+
 #include <gmock/gmock.h>
 
 namespace kagome::network {
@@ -70,6 +72,8 @@ namespace kagome::network {
                    SyncResultHandler &&handler) override {
       return syncState(peer_id, block_info, handler);
     }
+
+    MOCK_METHOD(void, unsafe, (PeerId, BlockNumber, UnsafeCb), (override));
   };
 
 }  // namespace kagome::network

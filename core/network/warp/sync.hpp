@@ -42,6 +42,9 @@ namespace kagome::storage {
 }  // namespace kagome::storage
 
 namespace kagome::network {
+  using consensus::grandpa::GrandpaJustification;
+  using primitives::BlockHeader;
+
   /**
    * Applies warp sync changes to other components.
    * Recovers when process was restarted.
@@ -85,6 +88,12 @@ namespace kagome::network {
      * Process response
      */
     void onResponse(const WarpSyncProof &res);
+
+    /**
+     * Sync to specified justification.
+     * Doesn't check justification chain.
+     */
+    void unsafe(const BlockHeader &header, const GrandpaJustification &j);
 
    private:
     void applyInner(const Op &op);

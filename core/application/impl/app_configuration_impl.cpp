@@ -149,6 +149,9 @@ namespace {
     if (str == "Warp") {
       return SM::Warp;
     }
+    if (str == "Unsafe") {
+      return SM::Unsafe;
+    }
     if (str == "Auto") {
       return SM::Auto;
     }

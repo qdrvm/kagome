@@ -15,12 +15,15 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "network/warp/cache.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
 
 namespace kagome::network {
+  using consensus::grandpa::HasAuthoritySetChange;
+
   WarpSync::WarpSync(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -113,6 +116,36 @@ namespace kagome::network {
     if (not res.is_finished) {
       done_ = false;
     }
+  }
+
+  inline auto guessSet(const GrandpaJustification &j) {
+    consensus::grandpa::AuthoritySetId set = 0;
+    static crypto::Ed25519ProviderImpl ed25519{nullptr};
+    auto &vote = j.items.at(0);
+    while (true) {
+      auto m = scale::encode(vote.message, j.round_number, set).value();
+      auto ok = ed25519.verify(vote.signature, m, vote.id);
+      if (ok and ok.value()) {
+        break;
+      }
+      ++set;
+    }
+    return set;
+  }
+
+  void WarpSync::unsafe(const BlockHeader &header,
+                        const GrandpaJustification &j) {
+    HasAuthoritySetChange{header}.scheduled.value();
+    auto set = guessSet(j);
+    SL_INFO(log_, "unsafe, block {}, set {}", header.number, set);
+    Op op{
+        .block_info = header.blockInfo(),
+        .header = header,
+        .justification = j,
+        .authorities = {set, {}},
+    };
+    db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
+    applyInner(op);
   }
 
   void WarpSync::applyInner(const Op &op) {
