@@ -1825,6 +1825,7 @@ RequiredRouting combine(const RequiredRouting &a, const RequiredRouting &b) {
   return {a};
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L607
 TEST(GridTest, TestRequiredRoutingCombine) {
   EXPECT_EQ(combine({RequiredRouting::All}, {RequiredRouting::None}),
             (RequiredRouting{RequiredRouting::All}));
@@ -1848,6 +1849,7 @@ TEST(GridTest, TestRequiredRoutingCombine) {
             (RequiredRouting{RequiredRouting::None}));
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L651
 TEST(GridTest, TestRandomRoutingSample) {
   auto dummy_rng = []() {
     std::seed_seq seed{12345};
@@ -1876,6 +1878,7 @@ TEST(GridTest, TestRandomRoutingSample) {
   }
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L695
 TEST(GridTest, TestRandomRoutingDistribution) {
   auto rng = std::make_shared<std::mt19937>(std::random_device{}());
   auto run_random_routing = [](RandomRouting &random_routing,
