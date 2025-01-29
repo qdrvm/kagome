@@ -260,7 +260,9 @@ if(TESTING)
 endif ()
 
 if(KAGOME_BENCHMARK)
-  add_subdirectory(test/testutil)
+  if (NOT TESTING)
+    add_subdirectory(test/testutil)
+  endif()
   add_subdirectory(benchmark)
 endif()
 
