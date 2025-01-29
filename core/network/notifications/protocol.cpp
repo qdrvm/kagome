@@ -449,8 +449,11 @@ namespace kagome::network::notifications {
   bool Protocol::shouldAccept(const PeerId &peer_id) {
     auto peer_in = entry(peers_in_, peer_id);
     if (peer_in) {
+      // if stream was closed, but read didn't return error
       if (isClosed(*peer_in)) {
+        // remove closed stream
         onError(peer_id, false);
+        // no `return`, continue `shouldAccept` checks
       } else {
         return false;
       }
