@@ -91,7 +91,7 @@ struct ListenerTest : public ::testing::Test {
         std::chrono::system_clock::now().time_since_epoch().count());
     auto rand = rand_r(&seed);
 
-    endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
+    endpoint.address(boost::asio::ip::make_address("127.0.0.1"));
     endpoint.port(1024 + rand % (65536 - 1024));  // random non-sudo port
     ON_CALL(app_config, rpcEndpoint()).WillByDefault(ReturnRef(endpoint));
     ON_CALL(app_config, maxWsConnections()).WillByDefault(Return(100));

@@ -243,17 +243,17 @@ namespace kagome::scale {
   }
 
   void encodeCompact(const Invocable auto &func, uint64_t val) {
-    if (val < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
+    if (val < ::scale::detail::kMinUint16) {
       kagome::scale::encodeCompactSmall(func, static_cast<uint8_t>(val));
       return;
     }
 
-    if (val < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
+    if (val < ::scale::detail::kMinUint32) {
       kagome::scale::encodeCompactSmall(func, static_cast<uint16_t>(val));
       return;
     }
 
-    if (val < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
+    if (val < ::scale::detail::kMinBigInteger) {
       kagome::scale::encodeCompactSmall(func, static_cast<uint32_t>(val));
       return;
     }

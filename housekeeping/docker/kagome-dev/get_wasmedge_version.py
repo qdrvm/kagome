@@ -6,7 +6,7 @@ def extract_version(config_file_path, package_name):
     with open(config_file_path, 'r') as file:
         content = file.read()
 
-    version_pattern = re.compile(r'hunter_config\(\s*' + re.escape(package_name) + r'\s*.*?URL\s+.*?/heads/.*?/([^\s/]+)\.zip', re.DOTALL)
+    version_pattern = re.compile(r'hunter_config\(\s*' + re.escape(package_name) + r'\s*.*?URL\s+.*?/(?:heads/.*?|tags)/([^\s/]+)\.zip', re.DOTALL)
     version_match = version_pattern.search(content)
 
     version = version_match.group(1) if version_match else None
