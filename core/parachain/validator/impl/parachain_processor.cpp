@@ -405,16 +405,6 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onDeactivateBlocks(
       const primitives::events::RemoveAfterFinalizationParams &event) {
     REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
-
-    for (const auto &lost : event.removed) {
-      SL_TRACE(logger_,
-               "Remove from storages.(relay parent={}, number={})",
-               lost.hash,
-               lost.number);
-
-      backing_store_->onDeactivateLeaf(lost.hash);
-      bitfield_store_->remove(lost.hash);
-    }
   }
 
   outcome::result<std::optional<ValidatorSigner>>
@@ -667,6 +657,8 @@ namespace kagome::parachain {
     for (const auto &l : lost) {
       our_current_state_.per_leaf.erase(l);
       pruned = our_current_state_.implicit_view->deactivate_leaf(l);
+      backing_store_->onDeactivateLeaf(l);
+      bitfield_store_->remove(l);
     }
 
     std::vector<
