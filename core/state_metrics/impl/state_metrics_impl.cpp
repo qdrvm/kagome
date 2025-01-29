@@ -121,7 +121,7 @@ namespace kagome::state_metrics {
       return std::nullopt;
     }
     scale::ScaleDecoderStream decoder(opt_data.value());
-    uint32_t active_era;
+    uint32_t active_era = 0;
     try {
       decoder >> active_era;
     } catch (const std::exception &e) {
@@ -168,8 +168,8 @@ namespace kagome::state_metrics {
       const std::vector<uint8_t> &data) try {
     scale::ScaleDecoderStream decoder(data);
 
-    uint32_t _;
-    decoder >> _;  // total_points
+    uint32_t total_points = 0;
+    decoder >> total_points;
 
     std::map<primitives::AccountId, uint32_t> individual_points;
     decoder >> individual_points;

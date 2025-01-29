@@ -27,7 +27,7 @@ namespace kagome::state_metrics {
                      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                      std::shared_ptr<api::StateApi> state_api,
                      std::shared_ptr<metrics::Registry> registry);
-    virtual ~StateMetricsImpl();
+    ~StateMetricsImpl() override;
 
     static outcome::result<std::shared_ptr<StateMetricsImpl>> create(
         const application::AppConfiguration &app_config,
