@@ -172,6 +172,16 @@ namespace kagome::storage::trie {
 
   struct OpaqueTrieNode {
     virtual ~OpaqueTrieNode() = default;
+
+    inline bool isDummy() const;
+    inline bool isBranch() const;
+    inline bool isLeaf() const;
+    inline const struct DummyNode &asDummy() const;
+    inline const struct BranchNode &asBranch() const;
+    inline const struct LeafNode &asLeaf() const;
+    inline struct DummyNode &asDummy();
+    inline struct BranchNode &asBranch();
+    inline struct LeafNode &asLeaf();
   };
 
   struct TrieNode : public OpaqueTrieNode {
@@ -189,37 +199,61 @@ namespace kagome::storage::trie {
       Empty,                   // 0000 0000
     };
 
-    virtual bool isBranch() const = 0;
-
-    const KeyNibbles &getKeyNibbles() const {
+    const KeyNibbles &getKeyNibbles() const & {
       return key_nibbles_;
     }
 
-    KeyNibbles &getMutKeyNibbles() {
-      return key_nibbles_;
+    KeyNibbles &&getKeyNibbles() && {
+      return std::move(key_nibbles_);
     }
 
     void setKeyNibbles(KeyNibbles &&key_nibbles) {
       key_nibbles_ = std::move(key_nibbles);
+      merkle_cache.reset();
     }
 
-    const ValueAndHash &getValue() const {
+    const ValueAndHash &getValue() const & {
       return value_;
     }
 
-    ValueAndHash &getMutableValue() {
-      return value_;
+    ValueAndHash &&getValue() && {
+      return std::move(value_);
     }
 
     void setValue(const ValueAndHash &new_value) {
       value_ = new_value;
+      merkle_cache.reset();
     }
 
     void setValue(ValueAndHash &&new_value) {
       value_ = std::move(new_value);
+      merkle_cache.reset();
+    }
+
+    void setValue(std::optional<common::Buffer> new_value) {
+      value_.value = std::move(new_value);
+      merkle_cache.reset();
+    }
+
+    void setValueHash(std::optional<common::Hash256> hash) {
+      value_.hash = hash;
+      merkle_cache.reset();
+    }
+
+    std::optional<Hash256> getMerkleCache() const {
+      return merkle_cache;
+    }
+
+    void setMerkleCache(std::optional<Hash256> hash) const {
+      merkle_cache = hash;
     }
 
    private:
+    // cache merkle hash of this node once it is calculated.
+    // it is invalidated when any child of this node is modified, so
+    // careful with that.
+    mutable std::optional<Hash256> merkle_cache;
+
     KeyNibbles key_nibbles_;
     ValueAndHash value_;
   };
@@ -245,13 +279,35 @@ namespace kagome::storage::trie {
       return kMaxChildren;
     }
 
-    bool isBranch() const override {
-      return true;
-    }
-
     uint16_t childrenBitmap() const;
     uint8_t childrenNum() const;
 
+    // If the child is absent, returns nullptr
+    std::shared_ptr<const OpaqueTrieNode> getChild(size_t idx) const {
+      BOOST_ASSERT(idx < kMaxChildren);
+      return children.at(idx);
+    }
+
+    const auto &getChildren() const {
+      return children;
+    }
+
+    void setChildren(const std::array<std::shared_ptr<OpaqueTrieNode>,
+                                      kMaxChildren> &children) {
+      this->children = children;
+      setMerkleCache(std::nullopt);
+    }
+
+    void setChild(size_t idx, std::shared_ptr<OpaqueTrieNode> node) {
+      BOOST_ASSERT(idx < kMaxChildren);
+      children.at(idx) = std::move(node);
+      setMerkleCache(std::nullopt);
+    }
+
+    // should only be used to replace a dummy child with an actual node
+    inline void replaceDummyUnsafe(size_t idx, std::shared_ptr<TrieNode> node);
+
+   private:
     // Has 1..16 children.
     // Stores their hashes to search for them in a storage and encode them more
     // easily. @see DummyNode
@@ -264,10 +320,6 @@ namespace kagome::storage::trie {
         : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
-
-    bool isBranch() const override {
-      return false;
-    }
 
     ~LeafNode() override = default;
   };
@@ -286,6 +338,56 @@ namespace kagome::storage::trie {
 
     MerkleValue db_key;
   };
+
+  void BranchNode::replaceDummyUnsafe(size_t idx,
+                                      std::shared_ptr<TrieNode> node) {
+    BOOST_ASSERT(idx < kMaxChildren);
+    BOOST_ASSERT(children.at(idx)->isDummy());
+    children.at(idx) = std::move(node);
+    // merkle hash is not reset because trie is not modified
+  }
+
+  bool OpaqueTrieNode::isDummy() const {
+    return dynamic_cast<const DummyNode *>(this) != nullptr;
+  }
+
+  bool OpaqueTrieNode::isBranch() const {
+    return dynamic_cast<const BranchNode *>(this) != nullptr;
+  }
+
+  bool OpaqueTrieNode::isLeaf() const {
+    return dynamic_cast<const LeafNode *>(this) != nullptr;
+  }
+
+  const DummyNode &OpaqueTrieNode::asDummy() const {
+    BOOST_ASSERT(isDummy());
+    return dynamic_cast<const DummyNode &>(*this);
+  }
+
+  const BranchNode &OpaqueTrieNode::asBranch() const {
+    BOOST_ASSERT(isBranch());
+    return dynamic_cast<const BranchNode &>(*this);
+  }
+
+  const LeafNode &OpaqueTrieNode::asLeaf() const {
+    BOOST_ASSERT(isLeaf());
+    return dynamic_cast<const LeafNode &>(*this);
+  }
+
+  DummyNode &OpaqueTrieNode::asDummy() {
+    BOOST_ASSERT(isDummy());
+    return dynamic_cast<DummyNode &>(*this);
+  }
+
+  BranchNode &OpaqueTrieNode::asBranch() {
+    BOOST_ASSERT(isBranch());
+    return dynamic_cast<BranchNode &>(*this);
+  }
+
+  LeafNode &OpaqueTrieNode::asLeaf() {
+    BOOST_ASSERT(isLeaf());
+    return dynamic_cast<LeafNode &>(*this);
+  }
 
 }  // namespace kagome::storage::trie
 

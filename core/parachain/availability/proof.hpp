@@ -78,10 +78,9 @@ namespace kagome::parachain {
     }
 
     // TrieSerializerImpl::retrieveNode
-    auto load = [&](const std::shared_ptr<storage::trie::OpaqueTrieNode> &node)
+    auto load = [&](const storage::trie::DummyNode &node)
         -> outcome::result<std::shared_ptr<storage::trie::TrieNode>> {
-      auto merkle =
-          dynamic_cast<const storage::trie::DummyNode &>(*node).db_key;
+      auto merkle = node.db_key;
       // dummy node's key is always a hash
       if (merkle.asHash() == storage::trie::kEmptyRootHash) {
         return nullptr;
@@ -102,8 +101,7 @@ namespace kagome::parachain {
       BOOST_ASSERT_MSG(false, "Hashed values should not appear in proofs");
       return std::nullopt;
     };
-    OUTCOME_TRY(root,
-                load(std::make_shared<storage::trie::DummyNode>(root_hash)));
+    OUTCOME_TRY(root, load(storage::trie::DummyNode(root_hash)));
     auto trie =
         storage::trie::PolkadotTrieImpl::create(root, {load, load_value});
 

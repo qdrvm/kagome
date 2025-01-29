@@ -41,7 +41,7 @@ std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                const common::Buffer &value) {
   auto node = std::make_shared<T>();
   node->setKeyNibbles(key_nibbles);
-  node->getMutableValue().value = value;
+  node->setValue(value);
   return node;
 }
 
@@ -52,8 +52,8 @@ std::shared_ptr<TrieNode> branch_with_2_children = []() {
       std::make_shared<LeafNode>(KeyNibbles{"01"_hex2buf}, "0b"_hex2buf);
   auto child2 =
       std::make_shared<LeafNode>(KeyNibbles{"02"_hex2buf}, "0c"_hex2buf);
-  node->children[0] = child1;
-  node->children[1] = child2;
+  node->setChild(0, child1);
+  node->setChild(1, child2);
   return node;
 }();
 

@@ -253,7 +253,7 @@ class TriePrunerTest : public testing::Test {
       auto node = std::make_shared<trie::BranchNode>(trie::KeyNibbles{},
                                                      Buffer{desc.merkle_value});
       for (const auto &[idx, child] : desc.children) {
-        node->children[idx] = makeNode(child);
+        node->setChild(idx, makeNode(child));
       }
       return node;
     }
@@ -281,17 +281,9 @@ class TriePrunerTest : public testing::Test {
 struct NodeRetriever {
   template <typename F>
   outcome::result<trie::PolkadotTrie::NodePtr> operator()(
-      const std::shared_ptr<trie::OpaqueTrieNode> &node, const F &) {
-    if (auto dummy = std::dynamic_pointer_cast<const trie::DummyNode>(node);
-        dummy != nullptr) {
-      auto decoded = decoded_nodes.at(*dummy->db_key.asHash());
-      return decoded;
-    }
-    if (auto trie_node = std::dynamic_pointer_cast<trie::TrieNode>(node);
-        trie_node != nullptr) {
-      return trie_node;
-    }
-    return nullptr;
+      const trie::DummyNode &node, const F &) {
+    auto decoded = decoded_nodes.at(*node.db_key.asHash());
+    return decoded;
   }
 
   std::map<Hash256, std::shared_ptr<trie::TrieNode>> decoded_nodes;
@@ -335,12 +327,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
       {NODE,
        "root1"_hash256,
        {{0, {NODE, "_0"_hash256, {}}}, {5, {NODE, "_5"_hash256, {}}}}});
-  ON_CALL(*serializer_mock,
-          retrieveNode(A<const std::shared_ptr<trie::OpaqueTrieNode> &>(), _))
-      .WillByDefault(
-          Invoke([](const std::shared_ptr<trie::OpaqueTrieNode> &node, auto) {
-            return std::dynamic_pointer_cast<trie::TrieNode>(node);
-          }));
+
   ASSERT_OUTCOME_SUCCESS_TRY(
       pruner->addNewState(*trie, trie::StateVersion::V1));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
@@ -353,10 +340,8 @@ TEST_F(TriePrunerTest, BasicScenario) {
       pruner->addNewState(*trie_1, trie::StateVersion::V1));
   EXPECT_EQ(pruner->getTrackedNodesNum(), 4);
 
-  EXPECT_CALL(
-      *serializer_mock,
-      retrieveNode(testing::A<const std::shared_ptr<trie::OpaqueTrieNode> &>(),
-                   _))
+  EXPECT_CALL(*serializer_mock,
+              retrieveNode(testing::A<const trie::DummyNode &>(), _))
       .WillRepeatedly(testing::Invoke(NodeRetriever{
           {{"_0"_hash256, makeTransparentNode({NODE, "_0"_hash256, {}})},
            {"_5"_hash256, makeTransparentNode({NODE, "_5"_hash256, {}})}}}));
@@ -418,7 +403,7 @@ void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
   if (root.isBranch()) {
     const auto &branch = static_cast<const trie::BranchNode &>(root);
     uint8_t idx = 0;
-    for (const auto &child : branch.children) {
+    for (const auto &child : branch.getChildren()) {
       if (child != nullptr) {
         auto loaded_child = trie.retrieveChild(branch, idx).value();
         forAllNodes(trie, *loaded_child, f);
@@ -513,9 +498,7 @@ TEST_F(TriePrunerTest, RandomTree) {
       .WillRepeatedly(Invoke([&serializer](auto root, const auto &) {
         return serializer.retrieveTrie(root, nullptr);
       }));
-  EXPECT_CALL(
-      *serializer_mock,
-      retrieveNode(A<const std::shared_ptr<trie::OpaqueTrieNode> &>(), _))
+  EXPECT_CALL(*serializer_mock, retrieveNode(A<const trie::DummyNode &>(), _))
       .WillRepeatedly(Invoke([&serializer](auto &node, auto &) {
         return serializer.retrieveNode(node, nullptr);
       }));
@@ -768,8 +751,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   ON_CALL(*serializer_mock, retrieveTrie(genesis_state_root, _))
       .WillByDefault(Return(genesis_trie));
 
-  ON_CALL(*serializer_mock,
-          retrieveNode(A<const std::shared_ptr<trie::OpaqueTrieNode> &>(), _))
+  ON_CALL(*serializer_mock, retrieveNode(A<const trie::DummyNode &>(), _))
       .WillByDefault(Invoke([&serializer](auto &node, auto &cb) {
         return serializer.retrieveNode(node, cb);
       }));

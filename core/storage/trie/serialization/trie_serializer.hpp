@@ -55,11 +55,10 @@ namespace kagome::storage::trie {
                                                 EncodedNode) {}) const = 0;
 
     /**
-     * Retrieves a node, replacing a dummy node to an actual node if
-     * needed
+     * Retrieves a normal node from a dummy node
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node,
+        const DummyNode &node,
         const OnNodeLoaded &on_node_loaded = [](const common::Hash256 &,
                                                 EncodedNode) {}) const = 0;
 

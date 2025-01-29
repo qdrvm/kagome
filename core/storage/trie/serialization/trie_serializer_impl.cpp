@@ -42,8 +42,8 @@ namespace kagome::storage::trie {
   TrieSerializerImpl::retrieveTrie(RootHash db_key,
                                    OnNodeLoaded on_node_loaded) const {
     PolkadotTrie::NodeRetrieveFunction f =
-        [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
-        -> outcome::result<PolkadotTrie::NodePtr> {
+        [this, on_node_loaded](
+            const DummyNode &parent) -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
       return node;
     };
@@ -96,13 +96,9 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const std::shared_ptr<OpaqueTrieNode> &node,
-      const OnNodeLoaded &on_node_loaded) const {
-    if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
-      OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
-      return n;
-    }
-    return std::dynamic_pointer_cast<TrieNode>(node);
+      const DummyNode &node, const OnNodeLoaded &on_node_loaded) const {
+    OUTCOME_TRY(n, retrieveNode(node.db_key, on_node_loaded));
+    return n;
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
@@ -122,6 +118,9 @@ namespace kagome::storage::trie {
     }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
     auto node = std::dynamic_pointer_cast<TrieNode>(n);
+    if (node->isBranch()) {
+      node->asBranch().setMerkleCache(*db_key.asHash());
+    }
     return node;
   }
 

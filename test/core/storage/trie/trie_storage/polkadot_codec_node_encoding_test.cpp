@@ -39,7 +39,7 @@ std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                std::optional<common::Buffer> value) {
   auto node = std::make_shared<T>();
   node->setKeyNibbles(key_nibbles);
-  node->getMutableValue().value = value;
+  node->setValue(std::move(value));
   return node;
 }
 

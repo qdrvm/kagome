@@ -92,13 +92,24 @@ namespace kagome::storage::trie {
       const OpaqueTrieNode &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
-    if (auto dummy = dynamic_cast<const DummyNode *>(&node); dummy != nullptr) {
-      return dummy->db_key;
+    if (node.isDummy()) {
+      return node.asDummy().db_key;
+    }
+    if (node.isBranch()) {
+      auto &branch = node.asBranch();
+      if (auto cached_merkle_value = branch.getMerkleCache()) {
+        return *cached_merkle_value;
+      }
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
     OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
-    return merkleValue(enc);
+
+    auto merkle_value = merkleValue(enc);
+    if (trie_node.isBranch()) {
+      trie_node.asBranch().setMerkleCache(*merkle_value.asHash());
+    }
+    return merkle_value;
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
@@ -109,17 +120,10 @@ namespace kagome::storage::trie {
       const TrieNode &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
-    auto *trie_node = dynamic_cast<const TrieNode *>(&node);
-    if (trie_node == nullptr) {
-      auto &dummy_node = dynamic_cast<const DummyNode &>(node);
-      return dummy_node.db_key.asBuffer();
+    if (node.isBranch()) {
+      return encodeBranch(node.asBranch(), version, child_visitor);
     }
-    if (trie_node->isBranch()) {
-      return encodeBranch(
-          dynamic_cast<const BranchNode &>(node), version, child_visitor);
-    }
-    return encodeLeaf(
-        dynamic_cast<const LeafNode &>(node), version, child_visitor);
+    return encodeLeaf(node.asLeaf(), version, child_visitor);
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
@@ -235,11 +239,10 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encodeValue(encoding, node, version, child_visitor));
 
     // encode each child
-    for (auto &child : node.children) {
+    for (auto &child : node.getChildren()) {
       if (child) {
-        if (auto dummy = std::dynamic_pointer_cast<DummyNode>(child);
-            dummy != nullptr) {
-          auto merkle_value = dummy->db_key;
+        if (child->isDummy()) {
+          auto merkle_value = child->asDummy().db_key;
           OUTCOME_TRY(scale_enc, scale::encode(merkle_value.asBuffer()));
           encoding.put(scale_enc);
         } else {
@@ -438,8 +441,9 @@ namespace kagome::storage::trie {
           return outcome::failure(e.code());
         }
         // SAFETY: database cannot contain invalid merkle values
-        node->children.at(i) = std::make_shared<DummyNode>(
-            MerkleValue::create(child_hash).value());
+        node->setChild(i,
+                       std::make_shared<DummyNode>(
+                           MerkleValue::create(child_hash).value()));
       }
       i++;
     }

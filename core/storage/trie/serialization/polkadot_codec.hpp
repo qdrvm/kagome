@@ -60,6 +60,9 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeHeader(const TrieNode &node,
                                          StateVersion version) const;
 
+    bool shouldBeHashed(const ValueAndHash &value,
+                        StateVersion version) const override;
+
    private:
     outcome::result<void> encodeValue(
         common::Buffer &out,
@@ -85,9 +88,6 @@ namespace kagome::storage::trie {
         TrieNode::Type type,
         const KeyNibbles &partial_key,
         BufferStream &stream) const;
-
-    bool shouldBeHashed(const ValueAndHash &value,
-                        StateVersion version) const override;
 
     RootHashFunc hash_func_;
   };

@@ -45,13 +45,13 @@ namespace kagome::storage::trie {
       }
       auto &node = node_res.value();
       std::optional<common::BufferView> compact;
-      auto &value = node->getMutableValue();
+      const auto &value = node->getValue();
       if (value.hash) {
         auto it = db.db.find(*value.hash);
         if (it != db.db.end() and value_seen.emplace(*value.hash).second) {
           compact = it->second;
-          value.hash.reset();
-          value.value.emplace();
+          node->setValueHash(std::nullopt);
+          node->setValue(common::Buffer{});
         }
       }
       auto &level = levels.back();

@@ -36,11 +36,11 @@ namespace kagome::storage::trie {
   [[nodiscard]] outcome::result<void>
   PolkadotTrieCursorImpl::SearchState::visitChild(uint8_t index,
                                                   const TrieNode &child) {
-    auto *current_as_branch = dynamic_cast<const BranchNode *>(current_);
-    if (current_as_branch == nullptr) {
+    if (!current_->isBranch()) {
       return Error::INVALID_NODE_TYPE;
     }
-    path_.emplace_back(*current_as_branch, index);
+    auto &current_as_branch = current_->asBranch();
+    path_.emplace_back(current_as_branch, index);
     current_ = &child;
     return outcome::success();
   }
@@ -86,10 +86,10 @@ namespace kagome::storage::trie {
 
     // find the rightmost leaf
     while (current->isBranch()) {
-      auto &branch = dynamic_cast<const BranchNode &>(*current);
+      auto &branch = current->asBranch();
       // find the rightmost child
       for (int8_t i = BranchNode::kMaxChildren - 1; i >= 0; i--) {
-        if (branch.children.at(i) != nullptr) {
+        if (branch.getChild(i) != nullptr) {
           SAFE_CALL(child, trie_->retrieveChild(branch, i))
           SAFE_VOID_CALL(search_state.visitChild(i, *child))
           current = &search_state.getCurrent();
@@ -140,7 +140,7 @@ namespace kagome::storage::trie {
     if (sought_is_longer) {
       if (current.isBranch()) {
         auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
-        auto &branch = dynamic_cast<const BranchNode &>(current);
+        auto &branch = current.asBranch();
         SAFE_CALL(child,
                   visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
         if (child) {
@@ -242,8 +242,8 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
     auto &search_state = std::get<SearchState>(state_);
     for (uint8_t i = min_idx; i < BranchNode::kMaxChildren; i++) {
-      auto &branch = dynamic_cast<const BranchNode &>(parent);
-      if (branch.children.at(i)) {
+      auto &branch = parent.asBranch();
+      if (branch.getChild(i)) {
         OUTCOME_TRY(child, trie_->retrieveChild(branch, i));
         BOOST_ASSERT(child != nullptr);
         OUTCOME_TRY(search_state.visitChild(i, *child));

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
 #include "storage/buffer_map_types.hpp"
@@ -48,7 +49,7 @@ namespace kagome::storage::trie {
      * needed
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node,
+        const DummyNode &node,
         const OnNodeLoaded &on_node_loaded) const override;
 
     outcome::result<std::optional<common::Buffer>> retrieveValue(

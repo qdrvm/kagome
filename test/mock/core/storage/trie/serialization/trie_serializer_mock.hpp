@@ -33,8 +33,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
                 retrieveNode,
-                (const std::shared_ptr<OpaqueTrieNode> &node,
-                 const OnNodeLoaded &on_node_loaded),
+                (const DummyNode &node, const OnNodeLoaded &on_node_loaded),
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
