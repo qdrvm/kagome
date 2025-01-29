@@ -196,20 +196,21 @@ namespace kagome::parachain {
     if (auto indexed_key_pair_opt =
             session_keys_->getParaKeyPair(session->validators);
         indexed_key_pair_opt.has_value()) {
-      auto out_validator_index = indexed_key_pair_opt->second;
-      auto index_of_our_chunk = val2chunk(out_validator_index);
+      auto our_validator_index = indexed_key_pair_opt->second;
+      auto index_of_our_chunk = val2chunk(our_validator_index);
       auto min_chunks = _min.value();
 
       auto our_chunk = av_store_->getChunk(candidate_hash, index_of_our_chunk);
-
       if (not our_chunk.has_value()) {
         SL_WARN(logger_,
-                "Our node does not have a chunk which it must be have");
+                "Our chunk {}:{} not found",
+                candidate_hash,
+                index_of_our_chunk);
       } else {
         available_data_size = our_chunk->chunk.size() * min_chunks;
       }
     } else {
-      SL_WARN(logger_, "Cannot retrieve out validator index");
+      SL_WARN(logger_, "Cannot retrieve our validator index");
     }
 
     // Do recovery from backers strategy iff available
