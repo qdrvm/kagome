@@ -58,6 +58,7 @@ namespace kagome::parachain {
              "\n\t-> view.active_leaves={}",
              view().per_relay_parent.size(),
              view().active_leaves.size());
+    view().implicit_view.printStoragesLoad();
   }
 
   std::shared_ptr<blockchain::BlockTree> ProspectiveParachains::getBlockTree() {

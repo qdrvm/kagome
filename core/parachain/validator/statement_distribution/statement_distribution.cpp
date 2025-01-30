@@ -2422,6 +2422,22 @@ namespace kagome::parachain::statement_distribution {
     router->getValidationProtocol()->write(statement_to_peers, message_v2);
   }
 
+  void StatementDistribution::printStoragesLoad() {
+    SL_TRACE(logger,
+             "[Statement Distribution storages statistics]:"
+             "\n\t-> candidates.candidates={}"
+             "\n\t-> candidates.by_parent={}"
+             "\n\t-> per_relay_parent={}"
+             "\n\t-> peers={}",
+             candidates.candidates.size(),
+             candidates.by_parent.size(),
+             per_relay_parent.size(),
+             peers.size());
+
+    implicit_view.sharedAccess([](const auto &iv) { iv.printStoragesLoad(); });
+    peer_view->printStoragesLoad();
+  }
+
   void StatementDistribution::share_local_statement(
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {

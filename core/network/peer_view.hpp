@@ -14,6 +14,7 @@
 #include "blockchain/block_tree.hpp"
 #include "crypto/type_hasher.hpp"
 #include "injector/lazy.hpp"
+#include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
@@ -88,6 +89,8 @@ namespace kagome::network {
       return my_view_stripped_;
     }
 
+    void printStoragesLoad() const;
+
    private:
     void updateMyView(const primitives::BlockHeader &header);
 
@@ -100,6 +103,8 @@ namespace kagome::network {
     View my_view_;
     View my_view_stripped_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
+
+    log::Logger logger = log::createLogger("PeerView", "parachain");
   };
 
 }  // namespace kagome::network
