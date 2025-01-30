@@ -110,9 +110,8 @@ namespace kagome::network {
   }
 
   void PeerView::printStoragesLoad() const {
-    const size_t remote_veiw_size = remote_view_.sharedAccess([](const auto &rv) {
-      return rv.size();
-    });
+    const size_t remote_veiw_size =
+        remote_view_.sharedAccess([](const auto &rv) { return rv.size(); });
 
     SL_TRACE(logger,
              "[Peer View storages statistics]:"

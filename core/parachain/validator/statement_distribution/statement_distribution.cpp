@@ -2434,9 +2434,7 @@ namespace kagome::parachain::statement_distribution {
              per_relay_parent.size(),
              peers.size());
 
-    implicit_view.sharedAccess([](const auto &iv) {
-      iv.printStoragesLoad();
-    });
+    implicit_view.sharedAccess([](const auto &iv) { iv.printStoragesLoad(); });
     peer_view->printStoragesLoad();
   }
 

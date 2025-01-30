@@ -403,8 +403,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
-      const primitives::events::RemoveAfterFinalizationParams &event) {
-  }
+      const primitives::events::RemoveAfterFinalizationParams &event) {}
 
   outcome::result<std::optional<ValidatorSigner>>
   ParachainProcessorImpl::isParachainValidator(

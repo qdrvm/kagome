@@ -103,8 +103,7 @@ namespace kagome::network {
     View my_view_stripped_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
 
-    log::Logger logger =
-        log::createLogger("PeerView", "parachain");
+    log::Logger logger = log::createLogger("PeerView", "parachain");
   };
 
 }  // namespace kagome::network
