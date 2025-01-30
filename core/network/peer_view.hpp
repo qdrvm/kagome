@@ -14,6 +14,7 @@
 #include "blockchain/block_tree.hpp"
 #include "crypto/type_hasher.hpp"
 #include "injector/lazy.hpp"
+#include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
