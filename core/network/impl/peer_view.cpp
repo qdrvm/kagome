@@ -109,6 +109,17 @@ namespace kagome::network {
     return remote_view_.sharedAccess([](const auto &rv) { return rv.size(); });
   }
 
+  void PeerView::printStoragesLoad() const {
+    const size_t remote_veiw_size = remote_view_.sharedAccess([](const auto &rv) {
+      return rv.size();
+    });
+
+    SL_TRACE(logger,
+             "[Peer View storages statistics]:"
+             "\n\t-> remote_view={}",
+             remote_veiw_size);
+  }
+
   void PeerView::removePeer(const PeerId &peer_id) {
     auto ref = remote_view_.exclusiveAccess(
         [&](auto &rv) -> std::optional<network::View> {

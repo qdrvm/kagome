@@ -115,7 +115,7 @@ namespace kagome::parachain {
     /// Trace print of all internal buffers.
     ///
     /// Usable for tracing memory consumption.
-    void printStoragesLoad() {
+    void printStoragesLoad() const {
       SL_TRACE(logger,
                "[Backing implicit view statistics]:"
                "\n\t-> leaves={}"

@@ -404,17 +404,6 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onDeactivateBlocks(
       const primitives::events::RemoveAfterFinalizationParams &event) {
-    REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
-
-    for (const auto &lost : event.removed) {
-      SL_TRACE(logger_,
-               "Remove from storages.(relay parent={}, number={})",
-               lost.hash,
-               lost.number);
-
-      backing_store_->onDeactivateLeaf(lost.hash);
-      bitfield_store_->remove(lost.hash);
-    }
   }
 
   outcome::result<std::optional<ValidatorSigner>>
@@ -667,6 +656,8 @@ namespace kagome::parachain {
     for (const auto &l : lost) {
       our_current_state_.per_leaf.erase(l);
       pruned = our_current_state_.implicit_view->deactivate_leaf(l);
+      backing_store_->onDeactivateLeaf(l);
+      bitfield_store_->remove(l);
     }
 
     std::vector<
@@ -2970,13 +2961,16 @@ namespace kagome::parachain {
              "\n\t-> per_candidate={}"
              "\n\t-> active_leaves={}"
              "\n\t-> collation_requests_cancel_handles={}"
-             "\n\t-> validator_side.fetched_candidates={}",
+             "\n\t-> validator_side.fetched_candidates={}"
+             "\n\t-> validator_side.blocked_from_seconding={}",
              our_current_state_.state_by_relay_parent.size(),
              our_current_state_.per_leaf.size(),
              our_current_state_.per_candidate.size(),
              our_current_state_.validator_side.active_leaves.size(),
              our_current_state_.collation_requests_cancel_handles.size(),
-             our_current_state_.validator_side.fetched_candidates.size());
+             our_current_state_.validator_side.fetched_candidates.size(),
+             our_current_state_.validator_side.blocked_from_seconding.size());
+
     if (our_current_state_.implicit_view) {
       our_current_state_.implicit_view->printStoragesLoad();
     }
@@ -2984,6 +2978,7 @@ namespace kagome::parachain {
     bitfield_store_->printStoragesLoad();
     backing_store_->printStoragesLoad();
     av_store_->printStoragesLoad();
+    statement_distribution->printStoragesLoad();
   }
 
   void ParachainProcessorImpl::handle_advertisement(

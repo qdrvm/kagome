@@ -129,6 +129,8 @@ namespace kagome::parachain::statement_distribution {
     void share_local_statement(const primitives::BlockHash &relay_parent,
                                const SignedFullStatementWithPVD &statement);
 
+    void printStoragesLoad();
+
    private:
     struct ManifestImportSuccess {
       bool acknowledge;

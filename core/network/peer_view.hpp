@@ -88,6 +88,8 @@ namespace kagome::network {
       return my_view_stripped_;
     }
 
+    void printStoragesLoad() const;
+
    private:
     void updateMyView(const primitives::BlockHeader &header);
 
@@ -100,6 +102,9 @@ namespace kagome::network {
     View my_view_;
     View my_view_stripped_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
+
+    log::Logger logger =
+        log::createLogger("PeerView", "parachain");
   };
 
 }  // namespace kagome::network
