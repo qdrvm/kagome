@@ -91,6 +91,7 @@ namespace kagome::storage::trie {
   outcome::result<MerkleValue> PolkadotCodec::merkleValue(
       const OpaqueTrieNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
     if (node.isDummy()) {
       return node.asDummy().db_key;
@@ -103,7 +104,7 @@ namespace kagome::storage::trie {
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
-    OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
+    OUTCOME_TRY(enc, encodeNode(trie_node, version, policy, child_visitor));
 
     auto merkle_value = merkleValue(enc);
     if (trie_node.isBranch()) {
@@ -119,9 +120,10 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const TrieNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
     if (node.isBranch()) {
-      return encodeBranch(node.asBranch(), version, child_visitor);
+      return encodeBranch(node.asBranch(), version, policy, child_visitor);
     }
     return encodeLeaf(node.asLeaf(), version, child_visitor);
   }
@@ -226,6 +228,7 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotCodec::encodeBranch(
       const BranchNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
     // node header
     OUTCOME_TRY(encoding, encodeHeader(node, version));
@@ -248,13 +251,26 @@ namespace kagome::storage::trie {
         } else {
           // because a node is either a dummy or a trienode
           auto &child_node = dynamic_cast<TrieNode &>(*child);
-          OUTCOME_TRY(enc, encodeNode(child_node, version, child_visitor));
-          auto merkle = merkleValue(enc);
-          if (merkle.isHash() && child_visitor) {
-            OUTCOME_TRY(
-                child_visitor(ChildData{child_node, merkle, std::move(enc)}));
+
+          // use optional because MerkleValue doesn't have a default constructor
+          std::optional<MerkleValue> merkle;
+          if (policy == TraversePolicy::UncachedOnly
+              && child_node.getMerkleCache().has_value()) {
+            merkle = child_node.getMerkleCache().value();
+          } else {
+            OUTCOME_TRY(enc,
+                        encodeNode(child_node, version, policy, child_visitor));
+            merkle = merkleValue(enc);
+            if (merkle->isHash() && child_visitor) {
+              OUTCOME_TRY(child_visitor(
+                  ChildData{child_node, *merkle, std::move(enc)}));
+            }
+            if (!child_node.getMerkleCache().has_value()) {
+              child_node.setMerkleCache(merkle->asHash());
+            }
           }
-          OUTCOME_TRY(scale_enc, scale::encode(merkle.asBuffer()));
+
+          OUTCOME_TRY(scale_enc, scale::encode(merkle->asBuffer()));
           encoding.put(scale_enc);
         }
       }

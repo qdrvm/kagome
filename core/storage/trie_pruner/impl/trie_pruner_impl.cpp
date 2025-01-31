@@ -306,7 +306,10 @@ namespace kagome::storage::trie_pruner {
                 BOOST_ASSERT(node != nullptr);
                 BOOST_OUTCOME_TRY(
                     child_merkle_value,
-                    codec_->merkleValue(*node, trie::StateVersion::V0));
+                    codec_->merkleValue(
+                        *node,
+                        trie::StateVersion::V0,
+                        trie::Codec::TraversePolicy::UncachedOnly));
               }
               BOOST_ASSERT(child_merkle_value.has_value());
               if (child_merkle_value->isHash()) {
@@ -382,7 +385,10 @@ namespace kagome::storage::trie_pruner {
     };
     std::vector<Entry> queued_nodes;
 
-    OUTCOME_TRY(root_hash, codec_->merkleValue(*new_trie.getRoot(), version));
+    OUTCOME_TRY(root_hash,
+                codec_->merkleValue(*new_trie.getRoot(),
+                                    version,
+                                    trie::Codec::TraversePolicy::UncachedOnly));
     BOOST_ASSERT(root_hash.isHash());
     SL_DEBUG(logger_, "Add new state with hash: {}", root_hash.asBuffer());
     queued_nodes.push_back({new_trie.getRoot(), *root_hash.asHash()});
@@ -443,7 +449,11 @@ namespace kagome::storage::trie_pruner {
             } else {
               child = std::static_pointer_cast<trie::TrieNode>(opaque_child);
             }
-            OUTCOME_TRY(child_merkle_val, codec_->merkleValue(*child, version));
+            OUTCOME_TRY(
+                child_merkle_val,
+                codec_->merkleValue(*child,
+                                    version,
+                                    trie::Codec::TraversePolicy::UncachedOnly));
             // otherwise it is not stored as a separated node, but as a part of
             // the branch
             if (child_merkle_val.isHash()) {

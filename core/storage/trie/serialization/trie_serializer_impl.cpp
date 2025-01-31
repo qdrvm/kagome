@@ -87,7 +87,10 @@ namespace kagome::storage::trie {
           Space::kTrieValue, value_data.hash, value_data.value.view());
     };
 
-    OUTCOME_TRY(enc, codec_->encodeNode(node, version, visitor));
+    OUTCOME_TRY(
+        enc,
+        codec_->encodeNode(
+            node, version, Codec::TraversePolicy::IgnoreMerkleCache, visitor));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(Space::kTrieNode, hash, std::move(enc)));
     OUTCOME_TRY(batch->commit());

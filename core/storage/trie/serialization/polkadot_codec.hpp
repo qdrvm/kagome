@@ -40,6 +40,7 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeNode(
         const TrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     outcome::result<std::shared_ptr<TrieNode>> decodeNode(
@@ -49,6 +50,7 @@ namespace kagome::storage::trie {
     outcome::result<MerkleValue> merkleValue(
         const OpaqueTrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     common::Hash256 hash256(const BufferView &buf) const override;
@@ -73,7 +75,9 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor) const;
+
     outcome::result<Buffer> encodeLeaf(const LeafNode &node,
                                        StateVersion version,
                                        const ChildVisitor &child_visitor) const;

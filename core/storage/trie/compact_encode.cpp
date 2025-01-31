@@ -92,7 +92,11 @@ namespace kagome::storage::trie {
         if (level.branch_end) {
           auto &item = level.stack.back();
           auto &proof = proofs[levels.size() - 1][item.t];
-          proof.put(codec.encodeNode(*item.node, StateVersion::V0).value());
+          proof.put(codec
+                        .encodeNode(*item.node,
+                                    StateVersion::V0,
+                                    Codec::TraversePolicy::UncachedOnly)
+                        .value());
           OUTCOME_TRY(level.pop());
           if (not level.stack.empty()) {
             *level.branch_merkle = MerkleValue::create({}).value();

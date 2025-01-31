@@ -42,8 +42,10 @@ namespace kagome::parachain {
     };
     auto root_encoded =
         codec
-            .encodeNode(
-                *trie->getRoot(), storage::trie::StateVersion::V0, store)
+            .encodeNode(*trie->getRoot(),
+                        storage::trie::StateVersion::V0,
+                        storage::trie::Codec::TraversePolicy::IgnoreMerkleCache,
+                        store)
             .value();
 
     for (auto &chunk : chunks) {

@@ -290,19 +290,20 @@ struct NodeRetriever {
 };
 
 auto setCodecExpectations(trie::CodecMock &mock, trie::Codec &codec) {
-  EXPECT_CALL(mock, encodeNode(_, _, _))
-      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto &visitor) {
-        return codec.encodeNode(node, ver, visitor);
-      }));
+  EXPECT_CALL(mock, encodeNode(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([&codec](auto &node, auto ver, auto policy, auto &visitor) {
+            return codec.encodeNode(node, ver, policy, visitor);
+          }));
   EXPECT_CALL(mock, decodeNode(_)).WillRepeatedly(Invoke([&codec](auto n) {
     return codec.decodeNode(n);
   }));
   EXPECT_CALL(mock, merkleValue(_)).WillRepeatedly(Invoke([&codec](auto &val) {
     return codec.merkleValue(val);
   }));
-  EXPECT_CALL(mock, merkleValue(_, _, _))
-      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto) {
-        return codec.merkleValue(node, ver);
+  EXPECT_CALL(mock, merkleValue(_, _, _, _))
+      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto policy, auto) {
+        return codec.merkleValue(node, ver, policy);
       }));
   EXPECT_CALL(mock, hash256(_)).WillRepeatedly(Invoke([&codec](auto &val) {
     return codec.hash256(val);
@@ -316,8 +317,8 @@ auto setCodecExpectations(trie::CodecMock &mock, trie::Codec &codec) {
 TEST_F(TriePrunerTest, BasicScenario) {
   auto codec = std::make_shared<trie::PolkadotCodec>();
 
-  ON_CALL(*codec_mock, merkleValue(_, _, _))
-      .WillByDefault(Invoke([](auto &node, auto version, auto) {
+  ON_CALL(*codec_mock, merkleValue(_, _, _, _))
+      .WillByDefault(Invoke([](auto &node, auto version, auto, auto) {
         return trie::MerkleValue::create(
                    *static_cast<const trie::TrieNode &>(node).getValue().value)
             .value();
@@ -420,7 +421,12 @@ std::set<Hash256> collectReferencedNodes(trie::PolkadotTrie &trie,
     return {};
   }
   forAllNodes(trie, *trie.getRoot(), [&res, &codec](auto &node) {
-    auto enc = codec.encodeNode(node, trie::StateVersion::V1, nullptr).value();
+    auto enc = codec
+                   .encodeNode(node,
+                               trie::StateVersion::V1,
+                               trie::Codec::TraversePolicy::UncachedOnly,
+                               nullptr)
+                   .value();
     res.insert(*codec.merkleValue(enc).asHash());
   });
   return res;
@@ -656,11 +662,12 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
         .value();
     EXPECT_CALL(*serializer_mock, retrieveTrie(root_hash, _))
         .WillOnce(Return(trie));
-    EXPECT_CALL(*codec_mock, merkleValue(testing::Ref(*trie->getRoot()), _, _))
+    EXPECT_CALL(*codec_mock,
+                merkleValue(testing::Ref(*trie->getRoot()), _, _, _))
         .WillRepeatedly(Return(
             trie::MerkleValue(hash_from_str("merkle_val" + str_number))));
     auto enc = Buffer::fromString("encoded_node" + str_number);
-    ON_CALL(*codec_mock, encodeNode(testing::Ref(*trie->getRoot()), _, _))
+    ON_CALL(*codec_mock, encodeNode(testing::Ref(*trie->getRoot()), _, _, _))
         .WillByDefault(Return(enc));
     ON_CALL(*codec_mock, hash256(testing::ElementsAreArray(enc)))
         .WillByDefault(Return(root_hash));
@@ -739,9 +746,12 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   setCodecExpectations(*codec_mock, *codec);
 
   auto trie_factory = std::make_shared<trie::PolkadotTrieFactoryImpl>();
-  auto genesis_state_root = codec->hash256(
-      codec->encodeNode(*genesis_trie->getRoot(), trie::StateVersion::V0)
-          .value());
+  auto genesis_state_root =
+      codec->hash256(codec
+                         ->encodeNode(*genesis_trie->getRoot(),
+                                      trie::StateVersion::V0,
+                                      trie::Codec::TraversePolicy::UncachedOnly)
+                         .value());
 
   trie::TrieSerializerImpl serializer{
       trie_factory,
@@ -789,7 +799,10 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     makeRandomTrieChanges(30, 10, *block_trie, inserted_keys, rand);
 
     auto block_state_root = codec->hash256(
-        codec->encodeNode(*block_trie->getRoot(), trie::StateVersion::V0)
+        codec
+            ->encodeNode(*block_trie->getRoot(),
+                         trie::StateVersion::V0,
+                         trie::Codec::TraversePolicy::UncachedOnly)
             .value());
 
     BlockHeader block_header{n, hashes[n - 1], block_state_root, {}, {}};
