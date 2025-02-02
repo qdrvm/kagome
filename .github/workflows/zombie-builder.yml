@@ -168,7 +168,7 @@ jobs:
   
   
   building_binaries:
-    runs-on: [ actions-runner-controller ]
+    runs-on: [ self-hosted, qdrvm-arm64 ]
     # runs-on: ${{ matrix.os }}
     # strategy:
     #   matrix:
