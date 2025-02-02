@@ -2,6 +2,9 @@ polkadot_builder:
 	docker build --progress=plain --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE) \
 		-f polkadot_builder.Dockerfile \
+		--build-arg USER_ID=$(USER_ID) \
+		--build-arg GROUP_ID=$(GROUP_ID) \
+		--build-arg USER_NAME=$(IN_DOCKER_USERNAME) \
 		--build-arg RUST_VERSION=$(RUST_VERSION) \
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
@@ -51,19 +54,19 @@ docker_run: set_versions docker_start_clean
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
-		-e SCCACHE_GCS_KEY_PATH=/root/.gcp/google_creds.json \
+		-e SCCACHE_GCS_KEY_PATH=$(IN_DOCKER_WORKING_DIR)/.gcp/google_creds.json \
 		-e SCCACHE_GCS_KEY_PREFIX=$(SCCACHE_GCS_KEY_PREFIX) \
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_LOG=info \
 		-e ARCHITECTURE=$(ARCHITECTURE) \
 		-e POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) \
-		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
+		-v $(GOOGLE_APPLICATION_CREDENTIALS):$(IN_DOCKER_WORKING_DIR)/.gcp/google_creds.json \
 		-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:/tmp/polkadot_binary \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:/root/.cargo/registry/ \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:/root/.cargo/git/ \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/home:/home/nonroot/ \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:$(IN_DOCKER_WORKING_DIR)/.cargo/registry/ \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:$(IN_DOCKER_WORKING_DIR)/.cargo/git/ \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/home:$(IN_DOCKER_WORKING_DIR) \
 		-v ./$(DOCKER_BUILD_DIR_NAME)/tmp:/tmp/ \
-		-v ./build_apt_package.sh:/home/nonroot/build_apt_package.sh \
+		-v ./build_apt_package.sh:$(IN_DOCKER_WORKING_DIR)/build_apt_package.sh \
 		$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		-c "tail -f /dev/null"
 
@@ -89,7 +92,7 @@ docker_exec: set_versions
 		$(BUILD_COMMANDS) && \
 		cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
 		echo \"-- Building apt package...\" && \
-		cd /home/nonroot/ && ./build_apt_package.sh \
+		cd $(IN_DOCKER_WORKING_DIR) && ./build_apt_package.sh \
 			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
 			$(ARCHITECTURE) \
 			polkadot-binary \

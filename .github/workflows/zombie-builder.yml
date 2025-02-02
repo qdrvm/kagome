@@ -64,6 +64,7 @@ env:
   SCCACHE_GCS_BUCKET: ${{ secrets.SCCACHE_GCS_BUCKET }}
   CACHE_VERSION: v001
   CACHE_PATHS: ./zombienet/docker/build_docker/cargo
+  DOCKER_BUILD_DIR_NAME: build_docker_ci
 
 jobs:
   build_polkadot_builder:
