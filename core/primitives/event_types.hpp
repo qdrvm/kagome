@@ -325,6 +325,8 @@ namespace kagome::primitives::events {
     void onHead(auto f) {
       onBlock(ChainEventType::kNewHeads, std::move(f));
     }
+
+    // TODO 2369 (kamilsa): not all deactivated leaves end up in this event
     void onDeactivate(auto f) {
       subscribe(*sub,
                 ChainEventType::kDeactivateAfterFinalization,

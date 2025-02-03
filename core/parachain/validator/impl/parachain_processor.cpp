@@ -273,14 +273,6 @@ namespace kagome::parachain {
           self->pvf_precheck_->start();
         });
 
-    // Subscribe to the chain events engine
-    chain_sub_.onDeactivate(
-        [WEAK_SELF](
-            const primitives::events::RemoveAfterFinalizationParams &event) {
-          WEAK_LOCK(self);
-          self->onDeactivateBlocks(event);
-        });
-
     // Set the callback for the my view observable
     // This callback is triggered when the kViewUpdate event is fired.
     // It updates the active leaves, checks if parachains can be processed,
@@ -400,11 +392,6 @@ namespace kagome::parachain {
                              our_current_state_.validator_side.active_leaves,
                              our_current_state_.state_by_relay_parent);
     printStoragesLoad();
-  }
-
-  void ParachainProcessorImpl::onDeactivateBlocks(
-      const primitives::events::RemoveAfterFinalizationParams &event) {
-    REINVOKE(*main_pool_handler_, onDeactivateBlocks, event);
   }
 
   outcome::result<std::optional<ValidatorSigner>>
