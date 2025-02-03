@@ -50,6 +50,7 @@ docker_run: set_versions docker_start_clean
 	docker run -d --name $(POLKADOT_BUILD_CONTAINER_NAME) \
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
+		--user root \
 		-e RUSTC_WRAPPER=sccache \
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_VERSION=$(SCCACHE_VERSION) \
@@ -61,14 +62,15 @@ docker_run: set_versions docker_start_clean
 		-e ARCHITECTURE=$(ARCHITECTURE) \
 		-e POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):$(IN_DOCKER_WORKING_DIR)/.gcp/google_creds.json \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:/tmp/polkadot_binary \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:$(IN_DOCKER_WORKING_DIR)/.cargo/registry/ \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:$(IN_DOCKER_WORKING_DIR)/.cargo/git/ \
+		-v ./build_apt_package.sh:$(IN_DOCKER_WORKING_DIR)/build_apt_package.sh \
 		-v ./$(DOCKER_BUILD_DIR_NAME)/home:$(IN_DOCKER_WORKING_DIR) \
 		-v ./$(DOCKER_BUILD_DIR_NAME)/tmp:/tmp/ \
-		-v ./build_apt_package.sh:$(IN_DOCKER_WORKING_DIR)/build_apt_package.sh \
 		$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		-c "tail -f /dev/null"
+
+#		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:$(IN_DOCKER_WORKING_DIR)/.cargo/registry/ \
+#		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:$(IN_DOCKER_WORKING_DIR)/.cargo/git/ \
+#		-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:/tmp/polkadot_binary \
 
 docker_exec: set_versions
 	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) /bin/bash -c \

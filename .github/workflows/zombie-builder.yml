@@ -80,28 +80,41 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
     steps:
+      - name: "Сheck if polkadot_builder is required"
+        run: |
+          if [ "${{ github.event.inputs.polkadot_builder }}" != "true" ]; then
+            echo "Polkadot Builder is not required"
+            echo "skip=true" >> $GITHUB_ENV
+          fi
+
       - name: Checkout repository
+        if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Fetch master branch
+        if: env.skip != 'true'
         run: git fetch origin master:master
              
       - name : "Authenticate with Google Cloud"
+        if: env.skip != 'true'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
       - name: "Set up Cloud SDK"
+        if: env.skip != 'true'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: "Configure Docker for GCR"
+        if: env.skip != 'true'
         run: |
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
           
       - name: "Check if image tag exists using Makefile"
+        if: env.skip != 'true'
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
@@ -112,11 +125,11 @@ jobs:
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || github.event.inputs.polkadot_builder == 'true'
+        if: env.exists == 'false' || env.skip != 'true'
         run: make polkadot_builder && make polkadot_builder_push
         
       - name: "Versions Info"
-        if: always()
+        if: always() && env.skip != 'true'
         working-directory: ./zombienet/docker
         run: |
           make polkadot_builder_image_info
@@ -126,28 +139,41 @@ jobs:
     timeout-minutes: 60
     needs: [build_polkadot_builder]
     steps:
+      - name: "Сheck if polkadot_builder is required"
+        run: |
+          if [ "${{ github.event.inputs.polkadot_builder }}" != "true" ]; then
+            echo "Polkadot Builder is not required"
+            echo "skip=true" >> $GITHUB_ENV
+          fi
+      
       - name: Checkout repository
+        if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Fetch master branch
+        if: env.skip != 'true'
         run: git fetch origin master:master
              
       - name : "Authenticate with Google Cloud"
+        if: env.skip != 'true'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
       - name: "Set up Cloud SDK"
+        if: env.skip != 'true'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: "Configure Docker for GCR"
+        if: env.skip != 'true'
         run: |
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
           
       - name: "Check if image tag exists using Makefile"
+        if: env.skip != 'true'
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
@@ -158,17 +184,18 @@ jobs:
 
       - name: "Build Polkadot Builder"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || github.event.inputs.polkadot_builder == 'true'
+        if: env.exists == 'false' || env.skip != 'true'
         run: make polkadot_builder_push_manifest 
         
       - name: "Versions Info"
-        if: always()
+        if: always() && env.skip != 'true'
         working-directory: ./zombienet/docker
         run: |
           make polkadot_builder_image_info
   
   
   building_binaries:
+    if: github.event.inputs.polkadot_binaries == 'true'
     runs-on: [ self-hosted, qdrvm-arm64 ]
     # runs-on: ${{ matrix.os }}
     # strategy:
@@ -192,10 +219,10 @@ jobs:
       - name: Fetch master branch
         run: git fetch origin master:master
 
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
+#      - uses: actions/cache@v4
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ runner.os }}-rust-${{ env.CACHE_VERSION }}
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -211,12 +238,10 @@ jobs:
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
           
       - name: "Build target"
-        if: github.event.inputs.polkadot_binaries == 'true'
         working-directory: ./zombienet/docker
         run: make polkadot_binary
           
       - name: "Push Polkadot APT Package"
-        if: github.event.inputs.polkadot_binaries == 'true'
         working-directory: ./zombienet/docker
         run: make upload_apt_package
 
