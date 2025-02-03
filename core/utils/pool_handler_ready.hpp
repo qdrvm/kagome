@@ -8,6 +8,8 @@
 
 #include <deque>
 
+#include <boost/asio/post.hpp>
+
 #include "utils/pool_handler.hpp"
 #include "utils/safe_object.hpp"
 
@@ -59,7 +61,7 @@ namespace kagome {
           pending_.reset();
           if (not stopped_.test()) {
             for (auto &f : pending) {
-              io_->post(std::move(f));
+              post(*io_, std::move(f));
             }
           }
         }
@@ -73,7 +75,7 @@ namespace kagome {
     }
 
     void postAlways(auto &&f) {
-      io_->post(std::forward<decltype(f)>(f));
+      post(*io_, std::forward<decltype(f)>(f));
     }
 
     friend void post(PoolHandlerReady &self, auto &&f) {
