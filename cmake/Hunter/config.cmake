@@ -112,7 +112,15 @@ hunter_config(
 )
 
 hunter_config(
+    scale
+    URL  https://github.com/qdrvm/scale-codec-cpp/archive/617b1bf72a83615144d96d0d9d9a65dc661376fe.tar.gz
+    SHA1 7e744b6195b4cd0eb9405647d3bff043b27a5b64
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
     qtils
-    URL  https://github.com/qdrvm/qtils/archive/0dd35029f54e9a6218ee261b0227ef23762f2d4b.tar.gz
-    SHA1 66ec5b05cc3a864f896f19021c1f3b44d096588a
+    URL  https://github.com/qdrvm/qtils/archive/16e7c819dd50af2f64e2d319b918d0d815332266.tar.gz
+    SHA1 71989938b5c8b7650eaf1a8195c2b52c5a8c250b
+    KEEP_PACKAGE_SOURCES
 )
