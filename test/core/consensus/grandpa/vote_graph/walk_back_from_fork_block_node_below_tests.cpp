@@ -30,7 +30,7 @@ struct WalkBackFromBlockNodeBelow
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {2, "B"_H}, "w10_a"_ID));
+    ASSERT_OUTCOME_SUCCESS(graph->insert(vt, {2, "B"_H}, "w10_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -64,7 +64,7 @@ struct WalkBackFromBlockNodeBelow
         GENESIS_HASH,
         "F1"_H,
         vec("F1"_H, "E1"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F1"_H}, "w5_a"_ID));
+    ASSERT_OUTCOME_SUCCESS(graph->insert(vt, {6, "F1"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -111,7 +111,7 @@ struct WalkBackFromBlockNodeBelow
         GENESIS_HASH,
         "G2"_H,
         vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {7, "G2"_H}, "w5_b"_ID));
+    ASSERT_OUTCOME_SUCCESS(graph->insert(vt, {7, "G2"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -179,7 +179,7 @@ struct WalkBackFromBlockNodeBelow
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {8, "H2"_H}, "w1_a"_ID));
+    ASSERT_OUTCOME_SUCCESS(graph->insert(vt, {8, "H2"_H}, "w1_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({

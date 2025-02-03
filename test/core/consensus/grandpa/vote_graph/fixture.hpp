@@ -9,12 +9,12 @@
 #include <gtest/gtest.h>
 
 #include <rapidjson/document.h>
+#include <qtils/test/outcome.hpp>
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace consensus;
@@ -31,27 +31,27 @@ struct VoteGraphFixture : public testing::Test {
   std::shared_ptr<VoterSet> voter_set = [] {
     auto vs = std::make_shared<VoterSet>();
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w0_a"_ID, 0));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w0_a"_ID, 0));
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_a"_ID, 1));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_b"_ID, 1));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_c"_ID, 1));
+    EXPECT_OUTCOME_SUCCESS(x1, vs->insert("w1_a"_ID, 1));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w1_b"_ID, 1));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w1_c"_ID, 1));
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_a"_ID, 3));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_b"_ID, 3));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_c"_ID, 3));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w3_a"_ID, 3));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w3_b"_ID, 3));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w3_c"_ID, 3));
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_a"_ID, 5));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_b"_ID, 5));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_c"_ID, 5));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w5_a"_ID, 5));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w5_b"_ID, 5));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w5_c"_ID, 5));
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_a"_ID, 7));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_b"_ID, 7));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_c"_ID, 7));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w7_a"_ID, 7));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w7_b"_ID, 7));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w7_c"_ID, 7));
 
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_a"_ID, 10));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_b"_ID, 10));
-    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_c"_ID, 10));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w10_a"_ID, 10));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w10_b"_ID, 10));
+    EXPECT_OUTCOME_SUCCESS(vs->insert("w10_c"_ID, 10));
 
     return vs;
   }();

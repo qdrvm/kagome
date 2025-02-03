@@ -209,9 +209,9 @@ namespace kagome::network::vstaging {
     bool operator==(const StatementFilter &other) const = default;
 
    private:
-    SCALE_CUSTOM_DECOMPOSING(StatementFilter,
-                             seconded_in_group,
-                             validated_in_group);
+    SCALE_CUSTOM_DECOMPOSITION(StatementFilter,
+                               seconded_in_group,
+                               validated_in_group);
 
    public:
     void mask_seconded(const scale::BitVec &mask) {

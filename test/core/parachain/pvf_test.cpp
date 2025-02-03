@@ -6,10 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include "gmock/gmock.h"
-#include "mock/core/runtime/memory_provider_mock.hpp"
-#include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "parachain/pvf/pvf_impl.hpp"
+#include <gmock/gmock.h>
+
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -26,13 +25,12 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
 #include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
-#include "runtime/instance_environment.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::TestThreadPool;
@@ -155,7 +153,7 @@ class PvfTest : public testing::Test {
           scale::encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
-        EXPECT_OUTCOME_TRUE_1(r);
+        EXPECT_OUTCOME_SUCCESS(r);
       });
       pvf_->pvfValidate(pvd,
                         pov,

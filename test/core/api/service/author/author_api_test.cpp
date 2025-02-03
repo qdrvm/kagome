@@ -8,8 +8,11 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <jsonrpc-lean/fault.h>
+
 #include <type_traits>
+
+#include <jsonrpc-lean/fault.h>
+#include <qtils/test/outcome.hpp>
 
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
@@ -32,7 +35,6 @@
 #include "subscription/subscription_engine.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
@@ -146,7 +148,7 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<KeyStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair(0);
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         key_store->saveKeyPair(KeyTypes::BABE,
                                std::span(key_pair.public_key).first<32>(),
                                std::array<uint8_t, 1>{1}));

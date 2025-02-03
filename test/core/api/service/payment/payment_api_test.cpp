@@ -8,10 +8,11 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/transaction_payment_api_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::PaymentApi;
 using kagome::api::PaymentApiImpl;

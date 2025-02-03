@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "blockchain/block_storage_error.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/generic_storage_mock.hpp"
@@ -16,7 +18,6 @@
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockStorageError;
@@ -84,11 +85,11 @@ class BlockStorageTest : public testing::Test {
     ON_CALL(*hasher, blake2b_256(encoded_header.view()))
         .WillByDefault(Return(genesis_block_hash));
 
-    EXPECT_OUTCOME_TRUE(
+    EXPECT_OUTCOME_SUCCESS(
         new_block_storage,
         BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 
-    return new_block_storage;
+    return new_block_storage.value();
   }
 };
 
@@ -118,7 +119,7 @@ TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
   EXPECT_CALL(*empty_storage, put(_, _))
       .WillRepeatedly(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
@@ -137,7 +138,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get header of block number 0 (genesis block)
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
@@ -170,7 +171,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
+  ASSERT_OUTCOME_SUCCESS(block_storage->putBlock(block));
 }
 
 /*
@@ -251,10 +252,10 @@ TEST_F(BlockStorageTest, Remove) {
   EXPECT_CALL(*(spaces[Space::kJustification]), remove(hash))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  ASSERT_OUTCOME_SUCCESS(block_storage->removeBlock(genesis_block_hash));
 
   EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
       .WillOnce(Return(std::nullopt));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  ASSERT_OUTCOME_SUCCESS(block_storage->removeBlock(genesis_block_hash));
 }

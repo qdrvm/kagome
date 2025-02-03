@@ -26,6 +26,9 @@
 #include "utils/struct_to_tuple.hpp"
 
 namespace kagome::scale {
+
+  using ::scale::detail::decompose_and_apply;
+
   constexpr void putByte(const Invocable auto &func,
                          const uint8_t *const val,
                          size_t count);
@@ -91,6 +94,11 @@ namespace kagome::scale {
 
   void encode(const Invocable auto &func, const ::scale::CompactInteger &value);
 
+  template <typename T>
+    requires ::scale::CompactCompatible<std::remove_cvref_t<T>>
+  void encode(const Invocable auto &func,
+              const ::scale::CompactReflection<T> &value);
+
   void encode(const Invocable auto &func, const ::scale::BitVec &value);
 
   void encode(const Invocable auto &func, const std::optional<bool> &value);
@@ -120,7 +128,6 @@ namespace kagome::scale {
       const auto val = math::toLE(v);
       putByte(func, (uint8_t *)&val, size);
     } else {
-      // kagome::scale::encode(func, utils::to_tuple_refs(v));
       if constexpr (requires {
                       decompose_and_apply(
                           v, [&](const auto &...tuple_elements) {
@@ -131,6 +138,8 @@ namespace kagome::scale {
         decompose_and_apply(v, [&](const auto &...tuple_elements) {
           kagome::scale::encode(func, std::tie(tuple_elements...));
         });
+      } else {
+        kagome::scale::encode(func, utils::to_tuple_refs(v));
       }
     }
   }
@@ -363,6 +372,13 @@ namespace kagome::scale {
     }
 
     putByte(func, result, bigIntLength + 1ull);
+  }
+
+  template <typename T>
+    requires ::scale::CompactCompatible<std::remove_cvref_t<T>>
+  void encode(const Invocable auto &func,
+              const ::scale::CompactReflection<T> &value) {
+    encodeCompact(func, value.ref);
   }
 
   template <

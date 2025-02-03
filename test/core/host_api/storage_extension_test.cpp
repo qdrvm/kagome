@@ -6,10 +6,12 @@
 
 #include "host_api/impl/storage_extension.hpp"
 
-#include <optional>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <optional>
+
+#include <qtils/test/outcome.hpp>
 #include <scale/scale.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
@@ -22,7 +24,6 @@
 #include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"

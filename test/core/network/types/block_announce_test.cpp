@@ -8,9 +8,10 @@
 #include <iostream>
 
 #include <gmock/gmock.h>
+#include <qtils/test/outcome.hpp>
+
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Buffer;

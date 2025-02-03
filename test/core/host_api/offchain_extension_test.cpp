@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
@@ -19,7 +21,6 @@
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"

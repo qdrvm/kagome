@@ -3,14 +3,18 @@
  * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include "blockchain/impl/block_tree_impl.hpp"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "blockchain/impl/block_tree_impl.hpp"
+#include <qtils/test/outcome.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "common/main_thread_pool.hpp"
+#include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -23,7 +27,6 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -383,7 +386,7 @@ TEST_F(BlockTreeTest, GetBody) {
 
   // THEN
   ASSERT_OUTCOME_SUCCESS(body,
-                         block_tree_->getBlockBody(kFinalizedBlockInfo.hash))
+                         block_tree_->getBlockBody(kFinalizedBlockInfo.hash));
   ASSERT_EQ(body, finalized_block_body_);
 }
 
@@ -476,7 +479,7 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillOnce(Return(outcome::success(false)));
 
   // WHEN
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(hash, justification));
+  ASSERT_OUTCOME_SUCCESS(block_tree_->finalize(hash, justification));
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
@@ -822,7 +825,7 @@ TEST_F(BlockTreeTest, Reorganize) {
               shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
+  ASSERT_OUTCOME_SUCCESS(block_tree_->finalize(C2_hash, {}));
 
   //   42   43  44  45   46   47
   //
@@ -850,7 +853,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   // remove old justification
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+  ASSERT_OUTCOME_SUCCESS(block_tree_->finalize(b56, new_justification));
 }
 
 TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
@@ -868,7 +871,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+  ASSERT_OUTCOME_SUCCESS(block_tree_->finalize(b56, new_justification));
 }
 
 /**
@@ -943,7 +946,7 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   // ---------------------------------------------------------------------------
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsRevertedBlocks({E3_hash}));
+  ASSERT_OUTCOME_SUCCESS(block_tree_->markAsRevertedBlocks({E3_hash}));
 
   //  42   43  44  45  46   47   48   49   50
   //

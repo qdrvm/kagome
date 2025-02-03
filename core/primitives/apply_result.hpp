@@ -40,7 +40,7 @@ namespace kagome::primitives {
       /// Optional error message.
       std::optional<std::string>
           message;  // not currently used in rust impl, thus not scale encoded
-      SCALE_CUSTOM_DECOMPOSING(Module, index, error);
+      SCALE_CUSTOM_DECOMPOSITION(Module, index, error);
     };
 
     /// At least one consumer is remaining so the account cannot be destroyed.

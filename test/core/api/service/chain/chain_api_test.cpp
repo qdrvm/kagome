@@ -5,7 +5,10 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <memory>
+
+#include <qtils/test/outcome.hpp>
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
@@ -19,7 +22,6 @@
 #include "primitives/extrinsic.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::ApiService;
 using kagome::api::ApiServiceMock;
@@ -92,7 +94,7 @@ TEST_F(ChainApiTest, GetBlockHashNoParam) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, "D"_hash256)));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash());
+  ASSERT_OUTCOME_SUCCESS(r, api->getBlockHash());
   ASSERT_EQ(r, "D"_hash256);
 }
 
@@ -105,7 +107,7 @@ TEST_F(ChainApiTest, GetBlockHashByNumber) {
   //  kagome::primitives::BlockId did = "D"_hash256;
   EXPECT_CALL(*block_tree, getHashByNumber(42)).WillOnce(Return("CDE"_hash256));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash(42));
+  ASSERT_OUTCOME_SUCCESS(r, api->getBlockHash(42));
   ASSERT_EQ(r, "CDE"_hash256);
 }
 
@@ -117,7 +119,7 @@ TEST_F(ChainApiTest, GetBlockHashByNumber) {
 TEST_F(ChainApiTest, GetBlockHashByHexNumber) {
   EXPECT_CALL(*block_tree, getHashByNumber(42)).WillOnce(Return("CDE"_hash256));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlockHash("0x2a"));
+  ASSERT_OUTCOME_SUCCESS(r, api->getBlockHash("0x2a"));
   ASSERT_EQ(r, "CDE"_hash256);
 }
 
@@ -132,7 +134,7 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
   EXPECT_CALL(*block_tree, getHashByNumber(200)).WillOnce(Return(hash3));
   std::vector<boost::variant<uint32_t, std::string>> request_data = {
       50, "0x64", 200};
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       r,
       api->getBlockHash(std::vector<boost::variant<BlockNumber, std::string>>(
           {50, "0x64", 200})));
@@ -148,7 +150,7 @@ TEST_F(ChainApiTest, GetHeader) {
   BlockHash a = hash1;
   EXPECT_CALL(*block_tree, getBlockHeader(a)).WillOnce(Return(*data.header));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
+  ASSERT_OUTCOME_SUCCESS(r, api->getHeader(std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, *data.header);
 }
 
@@ -164,7 +166,7 @@ TEST_F(ChainApiTest, GetHeaderLats) {
 
   EXPECT_CALL(*block_tree, getBlockHeader(a)).WillOnce(Return(*data.header));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader());
+  ASSERT_OUTCOME_SUCCESS(r, api->getHeader());
   ASSERT_EQ(r, *data.header);
 }
 
@@ -177,7 +179,7 @@ TEST_F(ChainApiTest, GetBlock) {
   BlockHash a = hash1;
   EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlock(std::string("0x") + hash1.toHex()));
+  ASSERT_OUTCOME_SUCCESS(r, api->getBlock(std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, data);
 }
 
@@ -193,7 +195,7 @@ TEST_F(ChainApiTest, GetLastBlock) {
 
   EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->getBlock());
+  ASSERT_OUTCOME_SUCCESS(r, api->getBlock());
   ASSERT_EQ(r, data);
 }
 
@@ -212,7 +214,7 @@ TEST(StateApiTest, SubscribeStorage) {
   jsonrpc::Request::Parameters params;
 
   EXPECT_OUTCOME_SUCCESS(r, sub->init(params));
-  EXPECT_OUTCOME_TRUE(result, sub->execute());
+  ASSERT_OUTCOME_SUCCESS(result, sub->execute());
   ASSERT_EQ(result, 55);
 }
 

@@ -29,7 +29,7 @@ namespace kagome {
     std::optional<uint32_t> maximum_pages;
 
     bool operator==(const HeapAllocStrategyDynamic &other) const = default;
-    SCALE_CUSTOM_DECOMPOSING(HeapAllocStrategyDynamic, maximum_pages);
+    SCALE_CUSTOM_DECOMPOSITION(HeapAllocStrategyDynamic, maximum_pages);
   };
   /**
    * Allocate a static number of heap pages.
@@ -46,7 +46,7 @@ namespace kagome {
     uint32_t extra_pages;
 
     bool operator==(const HeapAllocStrategyStatic &other) const = default;
-    SCALE_CUSTOM_DECOMPOSING(HeapAllocStrategyStatic, extra_pages);
+    SCALE_CUSTOM_DECOMPOSITION(HeapAllocStrategyStatic, extra_pages);
   };
   /**
    * Defines the heap pages allocation strategy the wasm runtime should use.
