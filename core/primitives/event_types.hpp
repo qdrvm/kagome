@@ -42,7 +42,8 @@ namespace kagome::primitives::events {
     kAllHeads = 3,
     kFinalizedRuntimeVersion = 4,
     kNewRuntime = 5,
-    kDeactivateAfterFinalization = 6,
+    kDeactivateAfterFinalization = 6,  // TODO (kamilsa) 2369: might not be
+                                       // triggered on every leaf deactivated
   };
 
   enum struct PeerEventType : uint8_t {
