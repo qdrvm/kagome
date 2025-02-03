@@ -7,14 +7,16 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <mock/libp2p/crypto/random_generator_mock.hpp>
+
 #include <span>
 
+#include <qtils/test/outcome.hpp>
+
+#include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::crypto::Bip39ProviderImpl;
@@ -78,8 +80,8 @@ struct Sr25519ProviderTest : public ::testing::Test {
  */
 TEST_F(Sr25519ProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    EXPECT_OUTCOME_TRUE(kp1, generate());
-    EXPECT_OUTCOME_TRUE(kp2, generate());
+    ASSERT_OUTCOME_SUCCESS(kp1, generate());
+    ASSERT_OUTCOME_SUCCESS(kp2, generate());
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -93,9 +95,9 @@ TEST_F(Sr25519ProviderTest, GenerateKeysNotEqual) {
  * @then verification succeeds
  */
 TEST_F(Sr25519ProviderTest, SignVerifySuccess) {
-  EXPECT_OUTCOME_TRUE(kp, generate());
-  EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(kp, generate());
+  ASSERT_OUTCOME_SUCCESS(signature, sr25519_provider->sign(kp, message_span));
+  ASSERT_OUTCOME_SUCCESS(
       res, sr25519_provider->verify(signature, message_span, kp.public_key));
   ASSERT_EQ(res, true);
 }
@@ -110,9 +112,9 @@ TEST_F(Sr25519ProviderTest, SignVerifySuccess) {
  * @then sign fails
  */
 TEST_F(Sr25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
-  EXPECT_OUTCOME_TRUE(kp, generate());
+  ASSERT_OUTCOME_SUCCESS(kp, generate());
   kp.public_key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(sr25519_provider->sign(kp, message_span));
+  EXPECT_OUTCOME_ERROR(sr25519_provider->sign(kp, message_span));
 }
 
 /**
@@ -123,11 +125,11 @@ TEST_F(Sr25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
  * @then verification succeeds, but verification result is false
  */
 TEST_F(Sr25519ProviderTest, VerifyWrongKeyFail) {
-  EXPECT_OUTCOME_TRUE(kp, generate());
-  EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
+  ASSERT_OUTCOME_SUCCESS(kp, generate());
+  ASSERT_OUTCOME_SUCCESS(signature, sr25519_provider->sign(kp, message_span));
   // generate another valid key pair and take public one
-  EXPECT_OUTCOME_TRUE(kp1, generate());
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(kp1, generate());
+  ASSERT_OUTCOME_SUCCESS(
       ver_res,
       sr25519_provider->verify(signature, message_span, kp1.public_key));
 
@@ -146,11 +148,11 @@ TEST_F(Sr25519ProviderTest, VerifyWrongKeyFail) {
  * @then verification fails
  */
 TEST_F(Sr25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
-  EXPECT_OUTCOME_TRUE(kp, generate());
-  EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
+  ASSERT_OUTCOME_SUCCESS(kp, generate());
+  ASSERT_OUTCOME_SUCCESS(signature, sr25519_provider->sign(kp, message_span));
   // make public key invalid
   kp.public_key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(
+  EXPECT_OUTCOME_ERROR(
       sr25519_provider->verify(signature, message_span, kp.public_key));
 }
 
@@ -160,16 +162,16 @@ TEST_F(Sr25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
  * @then verifying and secret keys come up with predefined values
  */
 TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       seed, Sr25519Seed::fromHex(SecureCleanGuard{std::string(hex_seed)}));
-  EXPECT_OUTCOME_TRUE(public_key, Sr25519PublicKey::fromHex(hex_vk));
+  ASSERT_OUTCOME_SUCCESS(public_key, Sr25519PublicKey::fromHex(hex_vk));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       secret_key,
       Sr25519SecretKey::fromHex(SecureCleanGuard{std::string{hex_sk}}));
 
-  EXPECT_OUTCOME_TRUE(kp, sr25519_provider->generateKeypair(seed, {}));
+  ASSERT_OUTCOME_SUCCESS(kp, sr25519_provider->generateKeypair(seed, {}));
 
   ASSERT_EQ(kp.secret_key, secret_key);
   ASSERT_EQ(kp.public_key, public_key);

@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/random_generator/boost_generator.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/authority_discovery/query_mock.hpp"
@@ -21,7 +23,6 @@
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Buffer;

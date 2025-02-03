@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/service/impl/api_service_impl.hpp"
@@ -25,12 +27,9 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/event_types.hpp"
-#include "runtime/runtime_context.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "transaction_pool/transaction_pool_error.hpp"
 #include "utils/watchdog.hpp"
 
 using namespace std::chrono_literals;

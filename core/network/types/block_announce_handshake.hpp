@@ -28,11 +28,11 @@ namespace kagome::network {
     BlockHash genesis_hash;  //!< Genesis block hash.
 
    private:
-    SCALE_CUSTOM_DECOMPOSING(BlockAnnounceHandshake,
-                             roles,
-                             best_block.number,
-                             best_block.hash,
-                             genesis_hash);
+    SCALE_CUSTOM_DECOMPOSITION(BlockAnnounceHandshake,
+                               roles,
+                               best_block.number,
+                               best_block.hash,
+                               genesis_hash);
   };
 
 }  // namespace kagome::network

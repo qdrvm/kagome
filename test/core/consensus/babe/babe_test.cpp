@@ -9,6 +9,7 @@
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
+#include <qtils/test/outcome.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
@@ -44,7 +45,6 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 #include "utils/watchdog.hpp"
@@ -512,7 +512,7 @@ TEST_F(BabeTest, SlotLeader) {
   std::latch latch(1);
   babe->on_proposed = [&] { latch.count_down(); };
 
-  ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
+  ASSERT_OUTCOME_SUCCESS(babe->processSlot(slot, best_block_info));
 
   latch.wait();
 }
@@ -563,6 +563,5 @@ TEST_F(BabeTest, EquivocationReport) {
                   "parent"_hash256, equivocation_proof, ownership_proof))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      babe->reportEquivocation(first.hash(), second.hash()));
+  ASSERT_OUTCOME_SUCCESS(babe->reportEquivocation(first.hash(), second.hash()));
 }

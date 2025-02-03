@@ -7,10 +7,11 @@
 #include "scale/big_fixed_integers.hpp"
 
 #include <gtest/gtest.h>
+
+#include <qtils/test/outcome.hpp>
 #include <scale/scale.hpp>
 
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using scale::Compact;
@@ -21,9 +22,9 @@ template <template <typename T> typename Wrapper, typename Number>
 auto encode_compare_decode(const Number &given_number,
                            const Buffer &desired_encoding) {
   auto fixed_number = Wrapper<Number>{given_number};
-  EXPECT_OUTCOME_TRUE(encoded, scale::encode(fixed_number));
+  ASSERT_OUTCOME_SUCCESS(encoded, scale::encode(fixed_number));
   ASSERT_EQ(encoded, desired_encoding);
-  EXPECT_OUTCOME_TRUE(decoded, scale::decode<Wrapper<Number>>(encoded));
+  ASSERT_OUTCOME_SUCCESS(decoded, scale::decode<Wrapper<Number>>(encoded));
   ASSERT_EQ(fixed_number, decoded);
 }
 

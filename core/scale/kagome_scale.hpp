@@ -180,11 +180,7 @@ namespace kagome::scale {
 
   template <typename T, typename Tag>
   constexpr void encode(const Invocable auto &func, const Tagged<T, Tag> &c) {
-    if constexpr (std::is_scalar_v<T>) {
-      kagome::scale::encode(func, c.template Wrapper<T>::value);
-    } else {
-      kagome::scale::encode(func, static_cast<const T &>(c));
-    }
+    kagome::scale::encode(func, untagged(c));
   }
 
   template <size_t MaxSize>

@@ -115,7 +115,7 @@ namespace kagome::consensus::grandpa {
     }
 
    private:
-    SCALE_CUSTOM_DECOMPOSING(VoteMessage, round_number, counter, vote);
+    SCALE_CUSTOM_DECOMPOSITION(VoteMessage, round_number, counter, vote);
   };
 
   struct TotalWeight {
