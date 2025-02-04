@@ -42,7 +42,7 @@ namespace kagome::primitives::events {
     kAllHeads = 3,
     kFinalizedRuntimeVersion = 4,
     kNewRuntime = 5,
-    kDeactivateAfterFinalization = 6,  // TODO (kamilsa) 2369: might not be
+    kDeactivateAfterFinalization = 6,  // TODO(kamilsa): #2369 might not be
                                        // triggered on every leaf deactivated
   };
 
@@ -327,7 +327,7 @@ namespace kagome::primitives::events {
       onBlock(ChainEventType::kNewHeads, std::move(f));
     }
 
-    // TODO 2369 (kamilsa): not all deactivated leaves end up in this event
+    // TODO(kamilsa): #2369 not all deactivated leaves end up in this event
     void onDeactivate(auto f) {
       subscribe(*sub,
                 ChainEventType::kDeactivateAfterFinalization,
