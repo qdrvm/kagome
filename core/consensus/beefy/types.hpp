@@ -80,7 +80,7 @@ namespace kagome::consensus::beefy {
     }
     s << bits;
     s << static_cast<uint32_t>(v.signatures.size());
-    s << ::scale::CompactInteger{count};
+    s << scale::as_compact(count);
     for (auto &sig : v.signatures) {
       if (sig) {
         s << *sig;
@@ -104,8 +104,8 @@ namespace kagome::consensus::beefy {
     if (bits.size() * 8 < total) {
       ::scale::raise(::scale::DecodeError::NOT_ENOUGH_DATA);
     }
-    ::scale::CompactInteger actual_count;
-    s >> actual_count;
+    size_t actual_count;
+    s >> scale::as_compact(actual_count);
     if (actual_count != expected_count) {
       ::scale::raise(::scale::DecodeError::TOO_MANY_ITEMS);
     }

@@ -21,7 +21,6 @@
 #include "parachain/types.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
-#include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
 #include "storage/trie/types.hpp"
 

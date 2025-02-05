@@ -17,6 +17,13 @@
 #include "common/hexutil.hpp"
 #include "outcome/outcome.hpp"
 
+// pre-include all formatters
+#include "log/formatters/filepath.hpp"
+// #include "log/formatters/optional.hpp"
+#include "log/formatters/ref_and_ptr.hpp"
+#include "log/formatters/tagged.hpp"
+#include "log/formatters/variant.hpp"
+
 namespace kagome::log {
 
   using Level = soralog::Level;
