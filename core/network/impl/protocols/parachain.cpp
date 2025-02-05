@@ -105,7 +105,7 @@ namespace kagome::network {
       });
       return;
     }
-    auto log = log::createLogger("ParachainProtocol", "network");
+    auto log = log::createLogger("ParachainProtocol", "parachain");
     SL_INFO(log, "Starting ParachainProtocol");
     notifications_->start(weak_from_this());
     my_view_sub_ =
@@ -113,14 +113,14 @@ namespace kagome::network {
                                       PeerView::EventType::kViewUpdated,
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
-                                        auto log = log::createLogger("ParachainProtocol", "network");
+                                        auto log = log::createLogger("ParachainProtocol", "parachain");
                                         SL_INFO(log, "In callback");
                                         self->write(event.stripped_view);
                                       });
   }
 
   void ParachainProtocol::write(const View &view) {
-    auto log = log::createLogger("ParachainProtocol", "network");
+    auto log = log::createLogger("ParachainProtocol", "parachain");
     SL_TRACE(log, "Writing view");
     auto message = encodeView(view);
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
