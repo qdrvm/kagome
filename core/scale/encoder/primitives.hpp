@@ -92,7 +92,8 @@ namespace kagome::scale {
   template <typename... Ts>
   void encode(const Invocable auto &func, const std::variant<Ts...> &v);
 
-  void encode(const Invocable auto &func, const ::scale::CompactInteger &value);
+  void encode(const Invocable auto &func,
+              const ::scale::CompactInteger auto &value);
 
   template <typename T>
     requires ::scale::CompactCompatible<std::remove_cvref_t<T>>
@@ -127,6 +128,15 @@ namespace kagome::scale {
       constexpr size_t size = sizeof(I);
       const auto val = math::toLE(v);
       putByte(func, (uint8_t *)&val, size);
+
+    } else if constexpr (::scale::BigFixedWidthInteger<I>) {
+      using Integer = std::remove_cvref_t<decltype(v)>;
+      constexpr auto bits = ::scale::FixedWidthIntegerTraits<Integer>::bits;
+      for (size_t i = 0; i < bits; i += 8) {
+        auto byte = ::scale::detail::convert_to<uint8_t>((v >> i) & 0xFFu);
+        putByte(func, &byte, 1);
+      }
+
     } else {
       if constexpr (requires {
                       decompose_and_apply(
@@ -173,7 +183,7 @@ namespace kagome::scale {
     return res;
   }
 
-  inline size_t bitUpperBorder(const ::scale::CompactInteger &x) {
+  inline size_t bitUpperBorder(const ::scale::CompactInteger auto &x) {
     namespace mp = boost::multiprecision;
     const size_t size = x.backend().size();
     const mp::limb_type *const p = x.backend().limbs();
@@ -191,7 +201,7 @@ namespace kagome::scale {
     return counter;
   }
 
-  inline size_t countBytes(::scale::CompactInteger x) {
+  inline size_t countBytes(const ::scale::CompactInteger auto &x) {
     if (x == 0) {
       return 1ull;
     }
@@ -329,24 +339,24 @@ namespace kagome::scale {
   }
 
   void encode(const Invocable auto &func,
-              const ::scale::CompactInteger &value) {
+              const ::scale::CompactInteger auto &value) {
     if (value < 0) {
       raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
     }
 
     const size_t bit_border = bitUpperBorder(value);
     if (bit_border <= 6) {  // kMinUint16
-      kagome::scale::encodeCompactSmall(func, value.convert_to<uint8_t>());
+      kagome::scale::encodeCompactSmall(func, convert_to<uint8_t>(value));
       return;
     }
 
     if (bit_border <= 14) {  // kMinUint32
-      kagome::scale::encodeCompactSmall(func, value.convert_to<uint16_t>());
+      kagome::scale::encodeCompactSmall(func, convert_to<uint16_t>(value));
       return;
     }
 
     if (bit_border <= 30) {  // kMinBigInteger
-      kagome::scale::encodeCompactSmall(func, value.convert_to<uint32_t>());
+      kagome::scale::encodeCompactSmall(func, convert_to<uint32_t>(value));
       return;
     }
 

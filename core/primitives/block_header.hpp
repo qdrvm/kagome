@@ -14,7 +14,6 @@
 #include "common/blob.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/common.hpp"
-#include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
 #include "storage/trie/types.hpp"
 
@@ -103,8 +102,8 @@ namespace kagome::primitives {
   template <class Stream>
     requires Stream::is_encoder_stream
   Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
-    return s << bhr.parent_hash << CompactInteger(bhr.number) << bhr.state_root
-             << bhr.extrinsics_root << bhr.digest;
+    return s << bhr.parent_hash << scale::as_compact(bhr.number)
+             << bhr.state_root << bhr.extrinsics_root << bhr.digest;
   }
   /**
    *
@@ -116,7 +115,7 @@ namespace kagome::primitives {
    */
   inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                                const BlockHeader &bh) {
-    return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
+    return s << bh.parent_hash << scale::as_compact(bh.number) << bh.state_root
              << bh.extrinsics_root << bh.digest;
   }
 
@@ -129,10 +128,8 @@ namespace kagome::primitives {
    */
   inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
                                                BlockHeader &bh) {
-    CompactInteger number_compact;
-    s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root
-        >> bh.digest;
-    bh.number = number_compact.convert_to<BlockNumber>();
+    s >> bh.parent_hash >> scale::as_compact(bh.number) >> bh.state_root
+        >> bh.extrinsics_root >> bh.digest;
     return s;
   }
 

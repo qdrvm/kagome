@@ -103,7 +103,7 @@ namespace kagome::offchain {
   Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
     s << v.peer_id.toVector();
 
-    s << scale::CompactInteger(v.address.size());
+    s << scale::as_compact(v.address.size());
 
     for (auto &address : v.address) {
       s << address.getBytesAddress();
@@ -121,9 +121,9 @@ namespace kagome::offchain {
     auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
     v.peer_id = std::move(peer_id_res.value());
 
-    scale::CompactInteger size;
-    s >> size;
-    v.address.resize(size.convert_to<uint64_t>());
+    size_t size;
+    s >> scale::as_compact(size);
+    v.address.resize(size);
 
     for (auto &address : v.address) {
       s >> buff;

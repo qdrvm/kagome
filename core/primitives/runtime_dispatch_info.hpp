@@ -9,7 +9,6 @@
 #include <scale/scale.hpp>
 
 #include "common/unused.hpp"
-#include "scale/big_fixed_integers.hpp"
 
 namespace kagome::primitives {
 
@@ -50,7 +49,7 @@ namespace kagome::primitives {
     Mandatory
   };
 
-  using Balance = scale::Fixed<scale::uint128_t>;
+  using Balance = qtils::Tagged<scale::uint128_t, struct BalanceTag>;
 
   /** Information related to a dispatchable class, weight, and fee that can be
    * queried from the runtime.

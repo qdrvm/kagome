@@ -38,11 +38,11 @@ namespace kagome::storage::trie {
     static_assert(
         std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);
     It it = begin;
-    scale::CompactInteger key = 0;
+    size_t key = 0;
     while (it != end) {
-      OUTCOME_TRY(enc, scale::encode(key++));
+      OUTCOME_TRY(enc, scale::encode(::scale::as_compact(key++)));
       OUTCOME_TRY(trie->put(enc, BufferView{*it}));
-      it++;
+      ++it;
     }
     OUTCOME_TRY(enc, codec.encodeNode(*trie->getRoot(), version, {}));
     return hash(enc);

@@ -22,7 +22,6 @@
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "scale/big_fixed_integers.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/encoder/concepts.hpp"
 #include "scale/libp2p_types.hpp"
@@ -30,18 +29,16 @@
 #include <authority_discovery/query/authority_peer_info.hpp>
 
 namespace kagome::scale {
-  using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;
   using ScaleEncoderStream = ::scale::ScaleEncoderStream;
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
   template <typename T>
-  using Fixed = ::scale::Fixed<T>;
-  template <typename T>
   using Compact = ::scale::Compact<T>;
   using uint128_t = ::scale::uint128_t;
 
+  using ::scale::as_compact;
   using ::scale::decode;
 
   constexpr void encode(const Invocable auto &func,
@@ -121,9 +118,6 @@ namespace kagome::scale {
 
   constexpr void encode(const Invocable auto &func,
                         const scale::PeerInfoSerializable &c);
-
-  template <typename T>
-  constexpr void encode(const Invocable auto &func, const Fixed<T> &c);
 }  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
@@ -307,15 +301,6 @@ namespace kagome::scale {
     encode(func, c.id.toBase58());
     encode(func, addresses);
   }
-
-  template <typename T>
-  constexpr void encode(const Invocable auto &func, const Fixed<T> &fixed) {
-    T original = untagged(fixed);
-    for (size_t i = 0; i < ::scale::IntegerTraits<T>::kBitSize; i += 8) {
-      encode(func, ::scale::convert_to<uint8_t>((original >> i) & 0xFFu));
-    }
-  }
-
 }  // namespace kagome::scale
 
 #endif  // KAGOME_KAGOME_SCALE_HPP
