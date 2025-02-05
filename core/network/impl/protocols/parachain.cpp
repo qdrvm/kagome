@@ -120,6 +120,8 @@ namespace kagome::network {
   }
 
   void ParachainProtocol::write(const View &view) {
+    auto log = log::createLogger("ParachainProtocol", "network");
+    SL_TRACE(log, "Writing view");
     auto message = encodeView(view);
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
       notifications_->write(peer_id, protocol_group, message);
