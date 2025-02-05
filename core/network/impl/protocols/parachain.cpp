@@ -119,15 +119,18 @@ namespace kagome::network {
                                       });
   }
 
+  static size_t callback_counter = 0;
   void ParachainProtocol::write(const View &view) {
     auto log = log::createLogger("ParachainProtocol", "parachain");
     SL_TRACE(log, "Writing view");
     auto message = encodeView(view);
+
     notifications_->peersOut([&](const PeerId &peer_id, size_t protocol_group) {
-      SL_TRACE(log, "Writing view: inside callback");
+      callback_counter++;
       notifications_->write(peer_id, protocol_group, message);
       return true;
     });
+    SL_TRACE(log, "Writing view counter: {}", callback_counter);
   }
 
   template <typename Types, typename Observer>
