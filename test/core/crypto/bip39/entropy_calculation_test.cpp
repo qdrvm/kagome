@@ -29,7 +29,7 @@ struct Bip39EntropyTest : public ::testing::Test {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
     bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
+        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, nullptr, hasher);
     phrase =
         "legal winner thank year wave sausage worth useful legal winner "
         "thank yellow";

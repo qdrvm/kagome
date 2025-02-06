@@ -10,6 +10,8 @@
 
 #include "crypto/bip39/entropy_accumulator.hpp"
 #include "crypto/bip39/mnemonic.hpp"
+#include "crypto/bip39/wordlist/english.hpp"
+#include "crypto/sha/sha256.hpp"
 
 namespace kagome::crypto {
 
@@ -30,11 +32,43 @@ namespace kagome::crypto {
 
   Bip39ProviderImpl::Bip39ProviderImpl(
       std::shared_ptr<Pbkdf2Provider> pbkdf2_provider,
+      std::shared_ptr<CSPRNG> csprng,
       std::shared_ptr<Hasher> hasher)
       : pbkdf2_provider_{std::move(pbkdf2_provider)},
+        csprng_{std::move(csprng)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger("Bip39Provider", "bip39")} {
     dictionary_.initialize();
+  }
+
+  // https://github.com/rust-bitcoin/rust-bip39/blob/b100bf3e22891498cb6e0b1c53fd629dab7b34de/src/lib.rs#L267
+  // https://github.com/rust-bitcoin/rust-bip39/blob/b100bf3e22891498cb6e0b1c53fd629dab7b34de/src/lib.rs#L204
+  std::string Bip39ProviderImpl::generatePhrase() const {
+    auto n_words = kDevWords.size();
+    auto n_bytes = (n_words / 3) * 4;
+    SecureBuffer<> bytes(n_bytes);
+    csprng_->fillRandomly(bytes);
+    auto check = sha256(bytes);
+    std::vector<bool> bits(n_bytes * 8 + 4);
+    for (size_t i = 0; i < n_bytes; ++i) {
+      for (size_t j = 0; j < 8; ++j) {
+        bits[i * 8 + j] = (bytes[i] & (1 << (7 - j))) > 0;
+      }
+    }
+    for (size_t i = 0; i < n_bytes / 4; ++i) {
+      bits[8 * n_bytes + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
+    }
+    std::vector<std::string> words;
+    for (size_t i = 0; i < n_words; ++i) {
+      size_t idx = 0;
+      for (size_t j = 0; j < 11; ++j) {
+        if (bits[i * 11 + j]) {
+          idx += 1 << (10 - j);
+        }
+      }
+      words.emplace_back(bip39::english::dictionary[idx]);
+    }
+    return fmt::format("{}", fmt::join(words, " "));
   }
 
   outcome::result<std::vector<uint8_t>> Bip39ProviderImpl::calculateEntropy(

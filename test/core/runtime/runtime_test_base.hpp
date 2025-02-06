@@ -85,8 +85,8 @@ class RuntimeTestBaseImpl {
     auto secp256k1_provider = std::make_shared<crypto::Secp256k1ProviderImpl>();
     auto elliptic_curves = std::make_shared<crypto::EllipticCurvesImpl>();
     auto pbkdf2_provider = std::make_shared<crypto::Pbkdf2ProviderImpl>();
-    auto bip39_provider =
-        std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
+    auto bip39_provider = std::make_shared<crypto::Bip39ProviderImpl>(
+        pbkdf2_provider, nullptr, hasher_);
     auto keystore_path =
         filesystem::temp_directory_path() / filesystem::unique_path();
     std::shared_ptr key_file_storage =

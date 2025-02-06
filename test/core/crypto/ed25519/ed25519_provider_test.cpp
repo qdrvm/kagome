@@ -172,6 +172,7 @@ TEST_F(Ed25519ProviderTest, GenerateBySeedSuccess) {
 TEST_F(Ed25519ProviderTest, Junctions) {
   Bip39ProviderImpl bip_provider{
       std::make_shared<Pbkdf2ProviderImpl>(),
+      nullptr,
       hasher,
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {

@@ -108,6 +108,7 @@ TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
 TEST_F(EcdsaProviderTest, Junctions) {
   Bip39ProviderImpl bip_provider{
       std::make_shared<Pbkdf2ProviderImpl>(),
+      nullptr,
       hasher,
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {

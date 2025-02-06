@@ -33,7 +33,7 @@ struct Bip39IntegrationTest : public ::testing::TestWithParam<TestItem> {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
     bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
+        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, nullptr, hasher);
   }
 
   std::shared_ptr<Bip39Provider> bip39_provider;
