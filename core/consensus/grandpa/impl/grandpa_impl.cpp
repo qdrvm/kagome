@@ -277,7 +277,8 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::makeRoundAfterLastFinalized() {
     auto finalized = block_tree_->getLastFinalized();
-    auto authorities = authority_manager_->authorities(finalized, true);
+    auto authorities =
+        authority_manager_->authorities(finalized, IsBlockFinalized(true));
     if (not authorities) {
       return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }
