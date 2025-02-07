@@ -12,7 +12,7 @@ namespace test {
     rocksdb::Options options;
     options.create_if_missing = true;
 
-    auto r = RocksDB::create(base_path / "rocksdb", options);
+    auto r = RocksDB::create(getPathString(), options);
     rocks_ = std::move(r.value());
     db_ = rocks_->getSpace(kagome::storage::Space::kDefault);
     ASSERT_TRUE(rocks_) << "BaseRocksDB_Test: db is nullptr";

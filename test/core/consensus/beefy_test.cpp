@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/asio/bind_executor.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 #include "common/main_thread_pool.hpp"
@@ -26,9 +27,9 @@
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
 
 using kagome::beefyMmrDigest;
 using kagome::TestThreadPool;
@@ -183,7 +184,7 @@ struct BeefyTest : testing::Test {
               justifications_.emplace(j.commitment.block_number, *jr);
               peer.justifications_.emplace_back(j.commitment.block_number);
             }
-            io_->post([&, m] {
+            post(*io_, [&, m] {
               for (auto &peer2 : peers_) {
                 if (&peer2 != &peer and peer2.listen_) {
                   peer2.beefy_->onMessage(*m);
@@ -192,7 +193,7 @@ struct BeefyTest : testing::Test {
             });
           });
       EXPECT_CALL(*peer.fetch_, fetchJustification(_))
-          .WillRepeatedly(io_->wrap([&](BlockNumber block) {
+          .WillRepeatedly(bind_executor(*io_, [&](BlockNumber block) {
             auto it = justifications_.find(block);
             if (it == justifications_.end()) {
               return;

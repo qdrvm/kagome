@@ -6,23 +6,10 @@
 
 #pragma once
 
-#include <qtils/enum_error_code.hpp>
 #include "storage/trie/child_prefix.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
-
-  enum RawCursorError : uint8_t {
-    EmptyStack = 1,
-    ChildBranchNotFound,
-    StackBackIsNotBranch
-  };
-}
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, RawCursorError);
-
-namespace kagome::storage::trie {
-
   template <typename T>
   struct RawCursor {
     struct Item {
@@ -32,7 +19,7 @@ namespace kagome::storage::trie {
       T t;
     };
 
-    outcome::result<void> update() {
+    void update() {
       child = false;
       branch_merkle = nullptr;
       branch_hash.reset();
@@ -40,7 +27,7 @@ namespace kagome::storage::trie {
       value_hash = nullptr;
       value_child.reset();
       if (stack.empty()) {
-        return outcome::success();
+        return;
       }
       auto &item = stack.back();
       child = item.child;
@@ -52,7 +39,7 @@ namespace kagome::storage::trie {
           // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
           auto &branch = branches[i];
           if (not branch) {
-            return RawCursorError::ChildBranchNotFound;
+            throw std::logic_error{"RawCursor::update branches[branch]=null"};
           }
           branch_merkle = &branch->asDummy().db_key;
           branch_hash = branch_merkle->asHash();
@@ -67,35 +54,33 @@ namespace kagome::storage::trie {
           value_child = common::Hash256::fromSpan(*value.value).value();
         }
       }
-      return outcome::success();
     }
 
-    outcome::result<void> push(Item &&item) {
+    void push(Item &&item) {
       if (not stack.empty() and not stack.back().branch) {
-        return RawCursorError::StackBackIsNotBranch;
+        throw std::logic_error{"RawCursor::push branch=None"};
       }
       item.child.match(item.node->getKeyNibbles());
       stack.emplace_back(std::move(item));
       if (stack.back().branch) {
-        OUTCOME_TRY(branchInit());
+        branchInit();
       } else {
-        OUTCOME_TRY(update());
+        update();
       }
-      return outcome::success();
     }
 
-    outcome::result<void> pop() {
+    void pop() {
       stack.pop_back();
-      return update();
+      update();
     }
 
-    outcome::result<void> branchInit() {
-      return branchNext(false);
+    void branchInit() {
+      branchNext(false);
     }
 
-    outcome::result<void> branchNext(bool next = true) {
+    void branchNext(bool next = true) {
       if (stack.empty()) {
-        return RawCursorError::EmptyStack;
+        throw std::logic_error{"RawCursor::branchNext top=null"};
       }
       auto &item = stack.back();
       auto &i = item.branch;
@@ -116,7 +101,7 @@ namespace kagome::storage::trie {
           next = false;
         }
       }
-      return update();
+      update();
     }
 
     std::vector<Item> stack;

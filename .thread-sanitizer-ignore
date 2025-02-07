@@ -1,1 +1,2 @@
 race:soralog::Logger::push
+deadlock:boost::di::v1_1_0::wrappers::shared

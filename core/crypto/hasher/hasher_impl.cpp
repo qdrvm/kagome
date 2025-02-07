@@ -10,9 +10,9 @@
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2s.h"
-#include "crypto/keccak/keccak.h"
 #include "crypto/sha/sha256.hpp"
 #include "crypto/twox/twox.hpp"
+#include "keccak/keccak.h"
 
 namespace kagome::crypto {
   using common::Hash128;

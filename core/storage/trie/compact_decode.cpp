@@ -15,8 +15,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, CompactDecodeError, e) {
   switch (e) {
     case E::INCOMPLETE_PROOF:
       return "incomplete proof";
-    case E::NULL_BRANCH:
-      return "Unexpected null branch";
   }
   abort();
 }
@@ -50,23 +48,21 @@ namespace kagome::storage::trie {
           db.emplace(hash, std::make_pair(std::move(value), nullptr));
           node->setValue({std::nullopt, hash});
         }
-        OUTCOME_TRY(cursor.push({
+        cursor.push({
             .node = node,
             .branch = 0,
             .child = false,
             .t = {},
-        }));
+        });
         return outcome::success();
       };
       OUTCOME_TRY(push());
       while (not cursor.stack.empty()) {
-        OUTCOME_TRY(cursor.branchInit());
-        while (not cursor.branch_end) {
+        for (cursor.branchInit(); not cursor.branch_end; cursor.branchNext()) {
           if (not cursor.branch_merkle) {
-            return CompactDecodeError::NULL_BRANCH;
+            throw std::logic_error{"compactDecode branch_merkle=null"};
           }
           if (not cursor.branch_merkle->empty()) {
-            OUTCOME_TRY(cursor.branchNext());
             continue;
           }
           OUTCOME_TRY(push());
@@ -80,10 +76,10 @@ namespace kagome::storage::trie {
                                        Codec::TraversePolicy::UncachedOnly));
           auto hash = codec.hash256(raw);
           db[hash] = {std::move(raw), std::move(node)};
-          OUTCOME_TRY(cursor.pop());
+          cursor.pop();
           if (not cursor.stack.empty()) {
             *cursor.branch_merkle = hash;
-            OUTCOME_TRY(cursor.branchNext());
+            cursor.branchNext();
           }
         }
       }

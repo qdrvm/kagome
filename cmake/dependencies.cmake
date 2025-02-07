@@ -14,7 +14,7 @@ endif ()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
-find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
+find_package(Boost CONFIG REQUIRED random filesystem program_options date_time process)
 
 hunter_add_package(qtils)
 find_package(qtils CONFIG REQUIRED)

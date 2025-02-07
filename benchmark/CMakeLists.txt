@@ -9,7 +9,6 @@ target_link_libraries(trie_pruner_benchmark
     storage 
     benchmark::benchmark 
     GTest::gmock_main 
-    in_memory_storage 
     hasher 
     log_configurator
 )

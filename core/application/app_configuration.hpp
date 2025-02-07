@@ -134,6 +134,11 @@ namespace kagome::application {
     virtual uint32_t luckyPeers() const = 0;
 
     /**
+     * @return maximum number of peer connections
+     */
+    virtual uint32_t maxPeers() const = 0;
+
+    /**
      * @return multiaddresses of bootstrat nodes
      */
     virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()

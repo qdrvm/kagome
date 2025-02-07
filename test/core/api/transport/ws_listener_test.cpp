@@ -48,7 +48,7 @@ TEST_F(WsListenerTest, EchoSuccess) {
 
   std::unique_ptr<std::thread> client_thread;
 
-  main_context->post([&] {
+  post(*main_context, [&] {
     client_thread = std::make_unique<std::thread>(
         [&](Endpoint endpoint, std::string request, std::string response) {
           soralog::util::setThreadName("client");
@@ -59,7 +59,7 @@ TEST_F(WsListenerTest, EchoSuccess) {
 
           std::this_thread::sleep_for(1s);  // Gives chance app to be started
 
-          local_context->post([&] {
+          post(*local_context, [&] {
             auto client = std::make_shared<WsClient>(*local_context);
 
             ASSERT_OUTCOME_SUCCESS_TRY(client->connect(endpoint));

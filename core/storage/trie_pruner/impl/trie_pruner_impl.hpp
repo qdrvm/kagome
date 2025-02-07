@@ -10,6 +10,7 @@
 #include "storage/trie/types.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <queue>
@@ -69,6 +70,7 @@ namespace kagome::storage::trie_pruner {
 
     TriePrunerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<storage::trie::TrieStorageBackend> node_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
@@ -133,7 +135,7 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree);
 
-    outcome::result<void> prune(BufferSpacedBatch &batch,
+    outcome::result<void> prune(BufferBatch &node_batch,
                                 const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
@@ -148,11 +150,10 @@ namespace kagome::storage::trie_pruner {
     std::unordered_set<common::Hash256> immortal_nodes_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
+    std::shared_ptr<storage::trie::TrieStorageBackend> node_storage_;
     std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
-    std::shared_ptr<storage::BufferStorage> node_storage_;
-    std::shared_ptr<storage::BufferStorage> value_storage_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<PoolHandler> prune_thread_handler_;
 
@@ -162,6 +163,7 @@ namespace kagome::storage::trie_pruner {
       PruneReason reason;
     };
     boost::lockfree::queue<PendingPrune> prune_queue_;
+    std::atomic_size_t prune_queue_length_;
 
     const std::optional<uint32_t> pruning_depth_{};
     const bool thorough_pruning_{false};

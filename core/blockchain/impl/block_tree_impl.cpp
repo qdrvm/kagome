@@ -1284,9 +1284,6 @@ namespace kagome::blockchain {
         metric_best_block_height_->set(changes.reorg->common.number);
       }
     }
-    for (auto &block : changes.prune) {
-      OUTCOME_TRY(p.storage_->removeBlock(block.hash));
-    }
 
     std::vector<primitives::Extrinsic> extrinsics;
     std::vector<primitives::events::RemoveAfterFinalizationParams::HeaderInfo>

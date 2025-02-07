@@ -96,20 +96,20 @@ namespace kagome::storage::trie {
     if (node.isDummy()) {
       return node.asDummy().db_key;
     }
-    if (node.isBranch()) {
-      auto &branch = node.asBranch();
-      if (auto cached_merkle_value = branch.getMerkleCache()) {
-        return *cached_merkle_value;
-      }
-    }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
+
+    if (auto cached_merkle_value = trie_node.getMerkleCache();
+        cached_merkle_value.has_value()) {
+      return *cached_merkle_value;
+    }
     OUTCOME_TRY(enc, encodeNode(trie_node, version, policy, child_visitor));
 
     auto merkle_value = merkleValue(enc);
-    if (trie_node.isBranch()) {
-      trie_node.asBranch().setMerkleCache(*merkle_value.asHash());
+    if (merkle_value.isHash()) {
+      trie_node.setMerkleCache(*merkle_value.asHash());
     }
+
     return merkle_value;
   }
 
@@ -261,12 +261,14 @@ namespace kagome::storage::trie {
             OUTCOME_TRY(enc,
                         encodeNode(child_node, version, policy, child_visitor));
             merkle = merkleValue(enc);
-            if (merkle->isHash() && child_visitor) {
-              OUTCOME_TRY(child_visitor(
-                  ChildData{child_node, *merkle, std::move(enc)}));
-            }
-            if (!child_node.getMerkleCache().has_value()) {
-              child_node.setMerkleCache(merkle->asHash());
+            if (merkle->isHash()) {
+              if (child_visitor) {
+                OUTCOME_TRY(child_visitor(
+                    ChildData{child_node, *merkle, std::move(enc)}));
+              }
+              if (!child_node.getMerkleCache().has_value()) {
+                child_node.setMerkleCache(merkle->asHash());
+              }
             }
           }
 

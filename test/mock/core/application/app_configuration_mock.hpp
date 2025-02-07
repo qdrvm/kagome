@@ -162,6 +162,8 @@ namespace kagome::application {
 
     MOCK_METHOD(uint32_t, luckyPeers, (), (const, override));
 
+    MOCK_METHOD(uint32_t, maxPeers, (), (const, override));
+
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
 
     MOCK_METHOD(std::optional<size_t>,

@@ -7,7 +7,6 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
@@ -31,7 +30,7 @@ TEST_P(NodeDecodingTest, GetHeader) {
   EXPECT_OUTCOME_TRUE(
       encoded, codec->encodeNode(*node, storage::trie::StateVersion::V0, {}));
   EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
-  auto decoded_node = decoded;
+  auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
   EXPECT_EQ(decoded_node->getKeyNibbles(), node->getKeyNibbles());
   EXPECT_EQ(decoded_node->getValue(), node->getValue());
 }
