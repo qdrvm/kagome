@@ -126,7 +126,7 @@ namespace kagome::application {
     if (not app_config_->disableSecureMode() and app_config_->usePvfSubprocess()
         and app_config_->roles().isAuthority()) {
       auto res = parachain::runSecureModeCheckProcess(
-          app_config_->runtimeCacheDirPath());
+          *injector_.injectIoContext(), app_config_->runtimeCacheDirPath());
       if (!res) {
         SL_ERROR(logger_, "Secure mode check failed: {}", res.error());
         exit(EXIT_FAILURE);

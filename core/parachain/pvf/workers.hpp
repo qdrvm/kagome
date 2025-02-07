@@ -43,7 +43,6 @@ namespace kagome::parachain {
    public:
     PvfWorkers(const application::AppConfiguration &app_config,
                common::MainThreadPool &main_thread_pool,
-               SecureModeSupport secure_mode_support,
                std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     using Cb = std::function<void(outcome::result<Buffer>)>;
