@@ -256,4 +256,6 @@ if(TESTING)
   add_subdirectory(test)
 endif ()
 
+add_subdirectory(rust-kad)
+
 add_subdirectory(node)

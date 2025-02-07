@@ -11,6 +11,7 @@ add_library(address_publisher
     query/query_impl.cpp
     query/audi_store_impl.cpp
     query/audi_store_impl.hpp
+    query/rust_kad.cpp
 )
 target_link_libraries(address_publisher
     authority_discovery_proto

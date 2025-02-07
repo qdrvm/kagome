@@ -22,6 +22,7 @@ const std::filesystem::path &kagome::exePath() {
     _NSGetExecutablePath(nullptr, &size);
     path.resize(size);
     _NSGetExecutablePath(path.data(), &size);
+    path.pop_back();  // zero terminator, prevented concatenation
     return path;
   }()};
   return path;

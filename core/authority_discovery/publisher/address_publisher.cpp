@@ -43,6 +43,7 @@ namespace kagome::authority_discovery {
       network::Roles roles,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<rust_kad::Kad> rust_kad,
       std::shared_ptr<crypto::SessionKeys> keys,
       const libp2p::crypto::KeyPair &libp2p_key,
       const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
@@ -54,6 +55,7 @@ namespace kagome::authority_discovery {
       : authority_discovery_api_(std::move(authority_discovery_api)),
         roles_(roles),
         block_tree_(std::move(block_tree)),
+        rust_kad_(std::move(rust_kad)),
         keys_(std::move(keys)),
         ed_crypto_provider_(std::move(ed_crypto_provider)),
         sr_crypto_provider_(std::move(sr_crypto_provider)),
@@ -141,6 +143,15 @@ namespace kagome::authority_discovery {
                            peer_info,
                            *audi_key,
                            now));
+    SL_INFO(log_,
+            "publish audi={} hash={}",
+            common::hex_lower(audi_key->public_key),
+            common::hex_lower(raw.first));
+    if (rust_kad_->use()) {
+      rust_kad_->put(raw.first, raw.second);
+      MetricDhtEventReceived::get().putResult(true);
+      return outcome::success();
+    }
     auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
     MetricDhtEventReceived::get().putResult(r.has_value());
     return r;

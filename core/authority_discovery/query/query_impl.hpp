@@ -11,6 +11,7 @@
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/interval.hpp"
 #include "authority_discovery/query/audi_store.hpp"
+#include "authority_discovery/query/rust_kad.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -46,6 +47,7 @@ namespace kagome::authority_discovery {
     QueryImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<rust_kad::Kad> rust_kad,
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
         LazySPtr<network::ValidationProtocolReserve> validation_protocol,
         std::shared_ptr<crypto::KeyStore> key_store,
@@ -84,6 +86,7 @@ namespace kagome::authority_discovery {
                               outcome::result<std::vector<uint8_t>> _res);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<rust_kad::Kad> rust_kad_;
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
     LazySPtr<network::ValidationProtocolReserve> validation_protocol_;
     std::shared_ptr<crypto::KeyStore> key_store_;

@@ -37,3 +37,5 @@ target_link_libraries(kagome
 if (BACKWARD)
   add_backward(kagome)
 endif ()
+
+add_dependencies(kagome kagome_rust_kad)
