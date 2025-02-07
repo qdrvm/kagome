@@ -44,29 +44,30 @@ namespace kagome::crypto {
   // https://github.com/rust-bitcoin/rust-bip39/blob/b100bf3e22891498cb6e0b1c53fd629dab7b34de/src/lib.rs#L267
   // https://github.com/rust-bitcoin/rust-bip39/blob/b100bf3e22891498cb6e0b1c53fd629dab7b34de/src/lib.rs#L204
   std::string Bip39ProviderImpl::generatePhrase() const {
-    auto n_words = kDevWords.size();
+    size_t n_words = 12;
+    size_t n_check_bits = 4;
     auto n_bytes = (n_words / 3) * 4;
     SecureBuffer<> bytes(n_bytes);
     csprng_->fillRandomly(bytes);
     auto check = sha256(bytes);
-    std::vector<bool> bits(n_bytes * 8 + 4);
+    std::vector<bool> bits((n_bytes * 8) + n_check_bits);
     for (size_t i = 0; i < n_bytes; ++i) {
       for (size_t j = 0; j < 8; ++j) {
-        bits[i * 8 + j] = (bytes[i] & (1 << (7 - j))) > 0;
+        bits[(i * 8) + j] = (bytes[i] & (1 << (7 - j))) > 0;
       }
     }
     for (size_t i = 0; i < n_bytes / 4; ++i) {
-      bits[8 * n_bytes + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
+      bits[(8 * n_bytes) + i] = (check.at(i / 8) & (1 << (7 - (i % 8)))) > 0;
     }
     std::vector<std::string> words;
     for (size_t i = 0; i < n_words; ++i) {
       size_t idx = 0;
       for (size_t j = 0; j < 11; ++j) {
-        if (bits[i * 11 + j]) {
+        if (bits[(i * 11) + j]) {
           idx += 1 << (10 - j);
         }
       }
-      words.emplace_back(bip39::english::dictionary[idx]);
+      words.emplace_back(bip39::english::dictionary.at(idx));
     }
     return fmt::format("{}", fmt::join(words, " "));
   }
