@@ -6,12 +6,12 @@ polkadot_builder:
 		--build-arg GROUP_ID=$(GROUP_ID) \
 		--build-arg USER_NAME=$(IN_DOCKER_USERNAME) \
 		--build-arg RUST_VERSION=$(RUST_VERSION) \
-		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
+		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) .
 
 polkadot_builder_push: set_versions
-	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE) ; \
+	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE)
 
 polkadot_builder_push_manifest:
 	docker manifest create $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) \

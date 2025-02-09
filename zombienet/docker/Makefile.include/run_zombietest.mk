@@ -40,3 +40,25 @@ define run_test
 	fi; \
 	exit $$TEST_EXIT_CODE
 endef
+
+copy_logs_to_host:
+	@CONTAINER_NAME=$(CONTAINER_NAME); \
+	FINISHED_CONTAINER_NAME=$$CONTAINER_NAME-finished; \
+	FINISHED_IMAGE_NAME=$$CONTAINER_NAME-finished-image; \
+	echo "-- Copying logs from container $$CONTAINER_NAME to host path $(HOST_LOGS_PATH)"; \
+	docker commit $$CONTAINER_NAME $$FINISHED_IMAGE_NAME; \
+	echo "-- Starting temporary container $$FINISHED_CONTAINER_NAME to copy logs"; \
+	docker run -d --name $$FINISHED_CONTAINER_NAME --platform $(PLATFORM) --entrypoint "/bin/bash" $$FINISHED_IMAGE_NAME -c "tail -f /dev/null"; \
+	mkdir -p $(HOST_LOGS_PATH); \
+	DIRS_TO_COPY=$$(docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "find /tmp/ -type d -name 'zombie-*'"); \
+	for DIR in $$DIRS_TO_COPY; do \
+		docker cp "$$FINISHED_CONTAINER_NAME:$$DIR/logs" "$(HOST_LOGS_PATH)/$$(basename $$DIR)"; \
+	done; \
+	docker cp "$$FINISHED_CONTAINER_NAME:/tmp/versions.env" "/tmp/versions.env" ; \
+	echo "-- Logs copied to $(HOST_LOGS_PATH)"; \
+	echo "-- Runtime cache directory content:"; \
+	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/" ; \
+	echo "-- Stop and removing container $$FINISHED_CONTAINER_NAME and image $$FINISHED_IMAGE_NAME"; \
+	docker stop $$FINISHED_CONTAINER_NAME; \
+	docker rm -f $$FINISHED_CONTAINER_NAME; \
+	docker rmi $$FINISHED_IMAGE_NAME
