@@ -10,7 +10,7 @@ ifeq ($(POLKADOT_SDK_RELEASE),)
 	$(eval POLKADOT_SDK_RELEASE=$(shell grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2))
 endif
 ifeq ($(ZOMBIENET_RELEASE),)
-	$(eval ZOMBIENET_RELEASE=$(shell grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2))
+	$(eval ZOMBIENET_RELEASE=$(shell grep 'numeric_version:' zombienet-versions.txt | cut -d ' ' -f 2))
 endif
 export POLKADOT_SDK_RELEASE
 POLKADOT_RELEASE_GLOBAL_NUMERIC=$(shell echo $(POLKADOT_SDK_RELEASE) | sed 's/[^0-9]//g' )
@@ -19,3 +19,7 @@ POLKADOT_DEB_PACKAGE_NAME=polkadot-binary_$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(C
 export POLKADOT_DEB_PACKAGE_NAME
 POLKADOT_DEB_PACKAGE_VERSION=$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE)_$(ARCHITECTURE)
 export POLKADOT_DEB_PACKAGE_VERSION
+ifeq ($(POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH),)
+	POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH=$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE)
+endif
+export POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH

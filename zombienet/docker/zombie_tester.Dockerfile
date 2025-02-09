@@ -5,7 +5,7 @@ ARG BASE_IMAGE_TAG
 ARG RUST_VERSION
 
 ARG PROJECT_ID
-ARG POLKADOT_BINARY_PACKAGE_VERSION
+ARG POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
 ARG POLKADOT_SDK_RELEASE
 ARG ZOMBIENET_RELEASE
 
@@ -39,16 +39,35 @@ ARG REGION
 ENV REGION=$REGION
 ARG PROJECT_ID
 ENV PROJECT_ID=$PROJECT_ID
-ARG POLKADOT_BINARY_PACKAGE_VERSION
-ENV POLKADOT_BINARY_PACKAGE_VERSION=$POLKADOT_BINARY_PACKAGE_VERSION
+ARG POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
+ENV POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH=$POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
 
 RUN install_packages  \
         wget  \
         nano \
         ca-certificates \
         gnupg2 \
-        curl
+        curl \
+        nodejs \
+        npm
 
+# Install Zombienet
+RUN npm install -g @zombienet/cli@${ZOMBIENET_RELEASE}
+
+#RUN ARCHITECTURE=$(uname -m); \
+#    if [ "$ARCHITECTURE" = "x86_64" ]; then \
+#        ARCHITECTURE="x64"; \
+#    elif [ "$ARCHITECTURE" = "aarch64" ]; then \
+#        ARCHITECTURE="arm64"; \
+#    else \
+#        echo "-- Unsupported architecture: $ARCHITECTURE"; exit 1; \
+#    fi && \
+#    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCHITECTURE}" && \
+#    wget -q https://github.com/paritytech/zombienet/releases/download/v$ZOMBIENET_RELEASE/zombienet-linux-${ARCHITECTURE} && \
+#    mv zombienet-linux-${ARCHITECTURE} /usr/local/bin/zombienet && \
+#    chmod +x /usr/local/bin/zombienet
+
+# Install Polkadot SDK
 RUN curl -fsSL https://${REGION}-apt.pkg.dev/doc/repo-signing-key.gpg | \
       gpg --dearmor -o /usr/share/keyrings/${REGION}-apt-archive-keyring.gpg
 
@@ -68,34 +87,20 @@ RUN echo "deb [signed-by=/usr/share/keyrings/europe-north1-apt-archive-keyring.g
 RUN sed -i 's|^\(\s*\)# *Service-Account-JSON ".*";|\1Service-Account-JSON "/root/.gcp/google_creds.json";|' \
       /etc/apt/apt.conf.d/90artifact-registry
 
-# Install Polkadot
 RUN mkdir -p /root/.gcp
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
-      install_packages polkadot-binary=${POLKADOT_BINARY_PACKAGE_VERSION}
-
-# Install Zombienet
-RUN ARCHITECTURE=$(uname -m); \
-    if [ "$ARCHITECTURE" = "x86_64" ]; then \
-        ARCHITECTURE="x64"; \
-    elif [ "$ARCHITECTURE" = "aarch64" ]; then \
-        ARCHITECTURE="arm64"; \
-    else \
-        echo "-- Unsupported architecture: $ARCHITECTURE"; exit 1; \
-    fi && \
-    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCHITECTURE}" && \
-    wget -q https://github.com/paritytech/zombienet/releases/download/$ZOMBIENET_RELEASE/zombienet-linux-${ARCHITECTURE} && \
-    mv zombienet-linux-${ARCHITECTURE} /usr/local/bin/zombienet && \
-    chmod +x /usr/local/bin/zombienet
+      install_packages polkadot-binary=${POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH} && \
+      sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 # Check installed versions
 RUN echo "Polkadot Version:" && polkadot --version && \
     echo "Polkadot Parachain Version:" && polkadot-parachain --version && \
-    echo "Zombienet Version:" && zombienet version && \
     echo "Polkadot Execute Worker Version:" && polkadot-execute-worker --version && \
     echo "Polkadot Prepare Worker Version:" && polkadot-prepare-worker --version && \
     echo "Malus Version:" && malus --version && \
     echo "Adder Collator Version:" && adder-collator --version && \
-    echo "Undying Collator Version:" && undying-collator --version
+    echo "Undying Collator Version:" && undying-collator --version  && \
+    echo "Zombienet Version:" && zombienet version
 
 # Install required packages
 RUN install_packages  \
