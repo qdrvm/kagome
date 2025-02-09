@@ -37,7 +37,8 @@ RUN install_packages \
       build-essential \
       clang \
       protobuf-compiler \
-      libprotobuf-dev
+      libprotobuf-dev \
+      gosu
 
 # Create download directory and install sccache
 ARG SCCACHE_VERSION
@@ -74,7 +75,6 @@ ENV USER_NAME=${USER_NAME}
 RUN groupadd -g ${GROUP_ID} ${USER_NAME} && \
     useradd -m -d /home/${USER_NAME} -u ${USER_ID} -g ${USER_NAME} ${USER_NAME}
 
-USER ${USER_NAME}
 WORKDIR /home/${USER_NAME}
 
 # Install Rust toolchain
@@ -87,3 +87,10 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
     rustup default ${RUST_VERSION} && \
     rustup target add wasm32-unknown-unknown && \
     rustup component add rust-src
+
+WORKDIR /home/${USER_NAME}/workspace
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 0755 /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

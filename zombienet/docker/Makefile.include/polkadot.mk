@@ -47,33 +47,32 @@ polkadot_binary:
 docker_run: set_versions docker_start_clean
 	echo "POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE)" ; \
 	echo "POLKADOT_RELEASE_GLOBAL_NUMERIC=$(POLKADOT_RELEASE_GLOBAL_NUMERIC)" ; \
+	mkdir -p ./$(DOCKER_BUILD_DIR_NAME)/cargo ; \
 	docker run -d --name $(POLKADOT_BUILD_CONTAINER_NAME) \
 		--platform $(PLATFORM) \
-		--entrypoint "/bin/bash" \
 		--user root \
 		-e RUSTC_WRAPPER=sccache \
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_VERSION=$(SCCACHE_VERSION) \
 		-e SCCACHE_GCS_BUCKET=$(SCCACHE_GCS_BUCKET) \
-		-e SCCACHE_GCS_KEY_PATH=$(IN_DOCKER_WORKING_DIR)/.gcp/google_creds.json \
+		-e SCCACHE_GCS_KEY_PATH=$(IN_DOCKER_HOME)/.gcp/google_creds.json \
 		-e SCCACHE_GCS_KEY_PREFIX=$(SCCACHE_GCS_KEY_PREFIX) \
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_LOG=info \
 		-e ARCHITECTURE=$(ARCHITECTURE) \
 		-e POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) \
-		-v $(GOOGLE_APPLICATION_CREDENTIALS):$(IN_DOCKER_WORKING_DIR)/.gcp/google_creds.json \
-		-v ./build_apt_package.sh:$(IN_DOCKER_WORKING_DIR)/build_apt_package.sh \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/home:$(IN_DOCKER_WORKING_DIR) \
-		-v ./$(DOCKER_BUILD_DIR_NAME)/tmp:/tmp/ \
+		-v $(GOOGLE_APPLICATION_CREDENTIALS):$(IN_DOCKER_HOME)/.gcp/google_creds.json \
+		-v ./build_apt_package.sh:$(IN_DOCKER_HOME)/build_apt_package.sh \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/pkg:$(IN_DOCKER_HOME)/pkg \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:$(IN_DOCKER_HOME)/polkadot_binary \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:$(IN_DOCKER_HOME)/.cargo/registry/ \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:$(IN_DOCKER_HOME)/.cargo/git/ \
+		-v ./$(DOCKER_BUILD_DIR_NAME)/workspace:$(IN_DOCKER_HOME)/workspace \
 		$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
-		-c "tail -f /dev/null"
-
-#		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/registry:$(IN_DOCKER_WORKING_DIR)/.cargo/registry/ \
-#		-v ./$(DOCKER_BUILD_DIR_NAME)/cargo/git:$(IN_DOCKER_WORKING_DIR)/.cargo/git/ \
-#		-v ./$(DOCKER_BUILD_DIR_NAME)/polkadot_binary:/tmp/polkadot_binary \
+		tail -f /dev/null
 
 docker_exec: set_versions
-	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) /bin/bash -c \
+	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) gosu $(IN_DOCKER_USERNAME) /bin/bash -c \
 		"git config --global --add safe.directory \"*\" ; \
 		env ; \
 		echo \"-- Checking out Polkadot repository...\"; \
@@ -92,13 +91,13 @@ docker_exec: set_versions
 		echo \"-- Recent commits:\" && git log --oneline -n 5 && \
 		echo \"-- Build polkadot...\" && \
 		$(BUILD_COMMANDS) && \
-		cp $(RESULT_BINARIES_WITH_PATH) /tmp/polkadot_binary/ && \
+		cp $(RESULT_BINARIES_WITH_PATH) $(IN_DOCKER_HOME)/polkadot_binary && \
 		echo \"-- Building apt package...\" && \
-		cd $(IN_DOCKER_WORKING_DIR) && ./build_apt_package.sh \
+		cd $(IN_DOCKER_HOME) && ./build_apt_package.sh \
 			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
 			$(ARCHITECTURE) \
 			polkadot-binary \
-			/tmp/polkadot_binary \
+			$(IN_DOCKER_HOME)/polkadot_binary \
 			'Polkadot binaries: $(RESULT_BIN_NAMES)' \
 			'$(POLKADOT_BINARY_DEPENDENCIES)'"
 
@@ -109,14 +108,14 @@ docker_start_clean: docker_stop_clean
 	docker rm $(POLKADOT_BUILD_CONTAINER_NAME) || true
 
 reset_build_state: docker_start_clean
-	sudo rm ./commit_hash.txt ./kagome_version.txt ./polkadot-sdk-versions.txt ./zombienet-versions.txt || true
-	sudo rm -r ./build_docker || true
+	rm ./commit_hash.txt ./kagome_version.txt ./polkadot-sdk-versions.txt ./zombienet-versions.txt || true
+	sudo rm -r ./$(DOCKER_BUILD_DIR_NAME) || true
 
 upload_apt_package: set_versions
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts versions delete $(POLKADOT_DEB_PACKAGE_VERSION) --package=polkadot-binary --quiet || true ; \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(DOCKER_BUILD_DIR_NAME)/home/pkg/$(POLKADOT_DEB_PACKAGE_NAME)
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(DOCKER_BUILD_DIR_NAME)/pkg/$(POLKADOT_DEB_PACKAGE_NAME)
 
 polkadot_deb_package_info: set_versions
 	@echo "---------------------------------"
