@@ -1,29 +1,23 @@
 ifeq ($(filter configure,$(MAKECMDGOALS)),)
 ifeq ($(POLKADOT_SDK_RELEASE),)
 $(eval POLKADOT_SDK_RELEASE=$(shell grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2))
-export POLKADOT_SDK_RELEASE
 endif
 
 ifeq ($(ZOMBIENET_RELEASE),)
 $(eval ZOMBIENET_RELEASE=$(shell grep 'numeric_version:' zombienet-versions.txt | cut -d ' ' -f 2))
-export ZOMBIENET_RELEASE
 endif
+
+POLKADOT_RELEASE_GLOBAL_NUMERIC=$(shell echo $(POLKADOT_SDK_RELEASE) | sed 's/[^0-9]//g' )
 
 ifeq ($(POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH),)
 POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH=$(CURRENT_DATE)-$(POLKADOT_RELEASE_GLOBAL_NUMERIC)
-export POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
 endif
 
 ifeq ($(POLKADOT_DEB_PACKAGE_VERSION),)
 POLKADOT_DEB_PACKAGE_VERSION=$(POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH)-$(ARCHITECTURE)
-export POLKADOT_DEB_PACKAGE_VERSION
 endif
 
-POLKADOT_RELEASE_GLOBAL_NUMERIC=$(shell echo $(POLKADOT_SDK_RELEASE) | sed 's/[^0-9]//g' )
-export POLKADOT_RELEASE_GLOBAL_NUMERIC
-
 POLKADOT_DEB_PACKAGE_NAME=polkadot-binary_$(POLKADOT_DEB_PACKAGE_VERSION)_$(ARCHITECTURE).deb
-export POLKADOT_DEB_PACKAGE_NAME
 endif
 
 get_versions:
