@@ -10,7 +10,7 @@ polkadot_builder:
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) .
 
-polkadot_builder_push: set_versions
+polkadot_builder_push:
 	docker push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE)
 
 polkadot_builder_push_manifest:
@@ -23,14 +23,14 @@ polkadot_builder_push_manifest:
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) && \
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
 
-polkadot_builder_all_arch: set_versions
+polkadot_builder_all_arch:
 	$(MAKE) polkadot_builder PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
 	$(MAKE) polkadot_builder_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
 	$(MAKE) polkadot_builder PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
 	$(MAKE) polkadot_builder_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
 	$(MAKE) polkadot_builder_push_manifest
 
-polkadot_builder_image_info: set_versions
+polkadot_builder_image_info:
 	@echo "---------------------------------"
 	@echo POLKADOT_BUILDER_IMAGE:       $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG)
 	@echo POLKADOT_BUILDER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64
@@ -44,7 +44,7 @@ polkadot_binary:
 	$(MAKE) docker_exec || $(MAKE) docker_stop_clean; \
 	$(MAKE) docker_stop_clean
 
-docker_run: set_versions docker_start_clean
+docker_run: docker_start_clean
 	echo "POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE)" ; \
 	echo "POLKADOT_RELEASE_GLOBAL_NUMERIC=$(POLKADOT_RELEASE_GLOBAL_NUMERIC)" ; \
 	mkdir -p ./$(DOCKER_BUILD_DIR_NAME)/cargo ; \
@@ -71,7 +71,7 @@ docker_run: set_versions docker_start_clean
 		$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		tail -f /dev/null
 
-docker_exec: set_versions
+docker_exec:
 	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) gosu $(IN_DOCKER_USERNAME) /bin/bash -c \
 		"git config --global --add safe.directory \"*\" ; \
 		env ; \
@@ -111,13 +111,13 @@ reset_build_state: docker_start_clean
 	rm ./commit_hash.txt ./kagome_version.txt ./polkadot-sdk-versions.txt ./zombienet-versions.txt || true
 	sudo rm -r ./$(DOCKER_BUILD_DIR_NAME) || true
 
-upload_apt_package: set_versions
+upload_apt_package:
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts versions delete $(POLKADOT_DEB_PACKAGE_VERSION) --package=polkadot-binary --quiet || true ; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(DOCKER_BUILD_DIR_NAME)/pkg/$(POLKADOT_DEB_PACKAGE_NAME)
 
-polkadot_deb_package_info: set_versions
+polkadot_deb_package_info:
 	@echo "---------------------------------"
 	@echo "POLKADOT_SDK_RELEASE:         $(POLKADOT_SDK_RELEASE)"
 	@echo "POLKADOT_DEB_PACKAGE_NAME:    $(POLKADOT_DEB_PACKAGE_NAME)"

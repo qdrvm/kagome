@@ -4,3 +4,7 @@ include Makefile.include/polkadot.mk
 include Makefile.include/zombie_tester.mk
 include Makefile.include/zombietests.mk
 include Makefile.include/versions.mk
+
+configure: get_versions
+
+.PHONY: configure

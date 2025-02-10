@@ -1,4 +1,4 @@
-zombie_tester: set_versions
+zombie_tester:
 	docker build --progress=plain --platform $(PLATFORM) \
 		--no-cache \
 		-t $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-$(ARCHITECTURE) \
@@ -15,7 +15,7 @@ zombie_tester: set_versions
 		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) \
 		--build-arg POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) .
 
-zombie_tester_push: set_versions
+zombie_tester_push:
 	docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-$(ARCHITECTURE)
 
 zombie_tester_push_manifest:
@@ -28,14 +28,14 @@ zombie_tester_push_manifest:
 	docker manifest push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE) && \
 	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(TESTER_LATEST_TAG)
 
-zombie_tester_all_arch: set_versions
+zombie_tester_all_arch:
 	$(MAKE) zombie_tester PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
 	$(MAKE) zombie_tester_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
 	$(MAKE) zombie_tester PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
 	$(MAKE) zombie_tester_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
 	$(MAKE) zombie_tester_push_manifest
 
-zombie_tester_image_info: set_versions
+zombie_tester_image_info:
 	@echo "---------------------------------"
 	@echo ZOMBIE_TESTER_IMAGE:       $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG)
 	@echo ZOMBIE_TESTER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-amd64

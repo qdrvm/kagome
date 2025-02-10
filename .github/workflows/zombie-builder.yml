@@ -100,7 +100,7 @@ jobs:
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
-          make set_versions
+          make configure
           exists=$(make polkadot_builder_check_tag)
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
@@ -161,7 +161,7 @@ jobs:
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
-          make set_versions
+          make configure
           exists=$(make polkadot_builder_check_tag)
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
@@ -222,6 +222,7 @@ jobs:
       - name: "Build target"
         working-directory: ./zombienet/docker
         run: |
+          make configure
           make polkadot_binary
           
       - name: "Push Polkadot APT Package"
