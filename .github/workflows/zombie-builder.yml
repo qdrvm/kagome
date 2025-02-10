@@ -27,7 +27,7 @@ on:
         required: false
         type: 'string'
       polkadot_sdk_tag:
-        description: 'Custom Polkadot SDK tag'
+        description: 'Custom Polkadot SDK tag (e.g. polkadot-stable2412)'
         required: false
         type: 'string'
       polkadot_sdk_repo:
