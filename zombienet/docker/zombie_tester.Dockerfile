@@ -39,8 +39,8 @@ ARG REGION
 ENV REGION=$REGION
 ARG PROJECT_ID
 ENV PROJECT_ID=$PROJECT_ID
-ARG POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
-ENV POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH=$POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
+ARG POLKADOT_DEB_PACKAGE_VERSION
+ENV POLKADOT_DEB_PACKAGE_VERSION=$POLKADOT_DEB_PACKAGE_VERSION
 
 RUN install_packages  \
         wget  \
@@ -88,8 +88,9 @@ RUN sed -i 's|^\(\s*\)# *Service-Account-JSON ".*";|\1Service-Account-JSON "/roo
       /etc/apt/apt.conf.d/90artifact-registry
 
 RUN mkdir -p /root/.gcp
+
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
-      install_packages polkadot-binary=${POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH} && \
+      install_packages polkadot-binary=${POLKADOT_DEB_PACKAGE_VERSION}" && \
       sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 # Check installed versions

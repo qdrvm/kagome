@@ -94,7 +94,7 @@ docker_exec: set_versions
 		cp $(RESULT_BINARIES_WITH_PATH) $(IN_DOCKER_HOME)/polkadot_binary && \
 		echo \"-- Building apt package...\" && \
 		cd $(IN_DOCKER_HOME) && ./build_apt_package.sh \
-			$(POLKADOT_RELEASE_GLOBAL_NUMERIC)-$(CURRENT_DATE) \
+			$(POLKADOT_DEB_PACKAGE_VERSION) \
 			$(ARCHITECTURE) \
 			polkadot-binary \
 			$(IN_DOCKER_HOME)/polkadot_binary \
