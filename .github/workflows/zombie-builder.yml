@@ -11,13 +11,6 @@ on:
 #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
     inputs: 
-      platform:
-        description: 'Platform selection'
-        type: choice
-        options:
-          - linux/amd64
-          - linux/arm64
-        default: linux/amd64
       polkadot_builder:
         description: 'Build the polkadot builder image'
         required: false
@@ -63,7 +56,6 @@ env:
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  PLATFORM: ${{ github.event.inputs.platform || 'linux/amd64' }}
   POLKADOT_SDK_TAG: ${{ github.event.inputs.polkadot_sdk_tag }}
   BUILDER_LATEST_TAG: ${{ github.event.inputs.polkadot_builder_tag || 'latest' }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_tag || 'latest' }}
@@ -208,20 +200,21 @@ jobs:
   
   building_binaries:
     if: github.event.inputs.polkadot_binaries == 'true'
-    runs-on: [ self-hosted, qdrvm-arm64 ]
-    # runs-on: ${{ matrix.os }}
-    # strategy:
-    #   matrix:
-    #     include:
-    #       - platform: linux/amd64
-    #         os: ubuntu-24.04
-    #       - platform: linux/arm64
-    #         os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: [ actions-runner-controller ]
+          - platform: linux/arm64
+            runner: [ self-hosted, qdrvm-arm64 ]
     needs:
       - build_polkadot_builder
       - docker_manifest
     timeout-minutes: 120
-        
+    env:
+      PLATFORM: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
