@@ -139,14 +139,16 @@ static void pruneStateBenchmark(benchmark::State &state) {
   for (auto _ : state) {
     auto pruner = benchmark.createPruner();
     pruner->addNewState(*trie, trie::StateVersion::V1).value();
-    auto root = benchmark.serializer
-                    ->storeTrie(*trie, kagome::storage::trie::StateVersion::V1)
-                    .value();
+    auto [root, batch] =
+        benchmark.serializer
+            ->storeTrie(*trie, kagome::storage::trie::StateVersion::V1)
+            .value();
     pruner
         ->pruneFinalized(
             root,
             kagome::primitives::BlockInfo{kagome::primitives::BlockHash{}, 0})
         .value();
+    batch->commit().value();
   }
 }
 
