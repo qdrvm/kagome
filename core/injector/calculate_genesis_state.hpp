@@ -61,17 +61,19 @@ namespace kagome::injector {
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
-      OUTCOME_TRY(root,
+      OUTCOME_TRY(root_and_batch,
                   trie_serializer.storeTrie(*child_tries.back(), version));
+      OUTCOME_TRY(root_and_batch.second->commit());
 
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;
       child2 += child;
-      top_trie->put(child2, common::BufferView{root}).value();
+      OUTCOME_TRY(
+          top_trie->put(child2, common::BufferView{root_and_batch.first}));
     }
 
-    OUTCOME_TRY(trie_hash, trie_serializer.storeTrie(*top_trie, version));
-
-    return trie_hash;
+    OUTCOME_TRY(root_and_batch, trie_serializer.storeTrie(*top_trie, version));
+    OUTCOME_TRY(root_and_batch.second->commit());
+    return root_and_batch.first;
   }
 }  // namespace kagome::injector

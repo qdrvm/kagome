@@ -6,16 +6,16 @@
 
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <chrono>
 #include <cstdint>
 #include <queue>
+#include <thread>
 
 #include <fmt/std.h>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/assert.hpp>
 #include <soralog/macro.hpp>
-#include <thread>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -410,6 +410,8 @@ namespace kagome::storage::trie_pruner {
     };
     std::vector<Entry> queued_nodes;
 
+    codec_->resetPerformanceStats();
+
     OUTCOME_TRY(root_hash,
                 codec_->merkleValue(*new_trie.getRoot(),
                                     version,
@@ -506,6 +508,22 @@ namespace kagome::storage::trie_pruner {
              referenced_values_num,
              ref_count_.size(),
              immortal_nodes_.size());
+    SL_DEBUG(logger_,
+             "Codec perf stats:\n"
+             "encoded_nodes: {}\n"
+             "decoded_nodes: {}\n"
+             "encoded_values: {}\n"
+             "node_cache_hits: {}\n"
+             "total_encoded_values_size: {}\n"
+             "total_encoded_nodes_size: {}\n"
+             "total_decoded_nodes_size: {}",
+             codec_->getPerformanceStats().encoded_nodes,
+             codec_->getPerformanceStats().decoded_nodes,
+             codec_->getPerformanceStats().encoded_values,
+             codec_->getPerformanceStats().node_cache_hits,
+             codec_->getPerformanceStats().total_encoded_values_size,
+             codec_->getPerformanceStats().total_encoded_nodes_size,
+             codec_->getPerformanceStats().total_decoded_nodes_size);
     return *root_hash.asHash();
   }
 

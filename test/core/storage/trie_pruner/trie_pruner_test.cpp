@@ -545,8 +545,10 @@ TEST_F(TriePrunerTest, RandomTree) {
                                   tracked_set.begin(),
                                   tracked_set.end(),
                                   std::inserter(diff, diff.begin()));
-    ASSERT_OUTCOME_SUCCESS(root,
+    ASSERT_OUTCOME_SUCCESS(root_and_batch,
                            serializer.storeTrie(*trie, trie::StateVersion::V0));
+    auto &[root, batch] = root_and_batch;
+    ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
     roots.push_back(root);
 
     if (i >= 16) {

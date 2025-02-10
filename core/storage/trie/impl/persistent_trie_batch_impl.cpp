@@ -46,10 +46,14 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
     OUTCOME_TRY(commitChildren(version));
-    OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
+    OUTCOME_TRY(root_and_batch, serializer_->storeTrie(*trie_, version));
+    auto &[root, batch] = root_and_batch;
     KAGOME_PROFILE_START(pruner_add_state);
     OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
     KAGOME_PROFILE_END(pruner_add_state);
+    // batch must not be committed before pruner addNewState or pruner breaks
+    // probably should enforce this more strictly in the API
+    OUTCOME_TRY(batch->commit());
     SL_TRACE_FUNC_CALL(logger_, root);
     return root;
   }

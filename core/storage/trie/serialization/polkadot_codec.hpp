@@ -65,6 +65,14 @@ namespace kagome::storage::trie {
     bool shouldBeHashed(const ValueAndHash &value,
                         StateVersion version) const override;
 
+    const PerformanceStats &getPerformanceStats() const override {
+      return stats_;
+    }
+
+    void resetPerformanceStats() const override {
+      stats_ = PerformanceStats{};
+    }
+
    private:
     outcome::result<void> encodeValue(
         common::Buffer &out,
@@ -94,6 +102,7 @@ namespace kagome::storage::trie {
         BufferStream &stream) const;
 
     RootHashFunc hash_func_;
+    mutable PerformanceStats stats_;
   };
 
 }  // namespace kagome::storage::trie

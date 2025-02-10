@@ -87,6 +87,22 @@ namespace kagome::storage::trie {
 
     virtual bool shouldBeHashed(const ValueAndHash &value,
                                 StateVersion version) const = 0;
+
+    struct PerformanceStats {
+      uint64_t encoded_nodes{};
+      uint64_t decoded_nodes{};
+      uint64_t encoded_values{};
+      uint64_t node_cache_hits{};
+      uint64_t total_encoded_values_size{};
+      uint64_t total_encoded_nodes_size{};
+      uint64_t total_decoded_nodes_size{};
+    };
+    virtual const PerformanceStats &getPerformanceStats() const {
+      static PerformanceStats stats{};
+      return stats;
+    }
+
+    virtual void resetPerformanceStats() const {}
   };
 
 }  // namespace kagome::storage::trie

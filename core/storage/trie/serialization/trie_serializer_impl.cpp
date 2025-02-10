@@ -7,20 +7,23 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
-#include "storage/trie/serialization/codec.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
+
   TrieSerializerImpl::TrieSerializerImpl(
       std::shared_ptr<PolkadotTrieFactory> factory,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieStorageBackend> node_backend)
       : trie_factory_{std::move(factory)},
         codec_{std::move(codec)},
-        node_backend_{std::move(node_backend)} {
+        node_backend_{std::move(node_backend)},
+        logger_{log::createLogger("Trie Serializer", "trie")} {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(node_backend_ != nullptr);
@@ -30,12 +33,31 @@ namespace kagome::storage::trie {
     return kEmptyRootHash;
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeTrie(
-      PolkadotTrie &trie, StateVersion version) {
+  outcome::result<std::pair<RootHash, std::unique_ptr<BufferBatch>>>
+  TrieSerializerImpl::storeTrie(PolkadotTrie &trie, StateVersion version) {
     if (trie.getRoot() == nullptr) {
-      return getEmptyRootHash();
+      return std::make_pair(getEmptyRootHash(), node_backend_->batch());
     }
-    return storeRootNode(*trie.getRoot(), version);
+    codec_->resetPerformanceStats();
+    auto res = storeRootNode(*trie.getRoot(), version);
+    SL_DEBUG(logger_,
+             "Codec perf stats:\n"
+             "encoded_nodes: {}\n"
+             "decoded_nodes: {}\n"
+             "encoded_values: {}\n"
+             "node_cache_hits: {}\n"
+             "total_encoded_values_size: {}\n"
+             "total_encoded_nodes_size: {}\n"
+             "total_decoded_nodes_size: {}",
+             codec_->getPerformanceStats().encoded_nodes,
+             codec_->getPerformanceStats().decoded_nodes,
+             codec_->getPerformanceStats().encoded_values,
+             codec_->getPerformanceStats().node_cache_hits,
+             codec_->getPerformanceStats().total_encoded_values_size,
+             codec_->getPerformanceStats().total_encoded_nodes_size,
+             codec_->getPerformanceStats().total_decoded_nodes_size);
+
+    return res;
   }
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
@@ -63,11 +85,9 @@ namespace kagome::storage::trie {
         PolkadotTrie::RetrieveFunctions{std::move(f), std::move(v)});
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
-      TrieNode &node, StateVersion version) {
+  outcome::result<std::pair<RootHash, std::unique_ptr<BufferBatch>>>
+  TrieSerializerImpl::storeRootNode(TrieNode &node, StateVersion version) {
     auto batch = node_backend_->batch();
-    BOOST_ASSERT(batch != nullptr);
-
     OUTCOME_TRY(
         enc,
         codec_->encodeNode(
@@ -92,9 +112,8 @@ namespace kagome::storage::trie {
             }));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(hash, std::move(enc)));
-    OUTCOME_TRY(batch->commit());
 
-    return hash;
+    return std::make_pair(hash, std::move(batch));
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(

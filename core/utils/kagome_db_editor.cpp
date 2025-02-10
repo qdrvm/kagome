@@ -256,12 +256,15 @@ int db_editor_main(int argc, const char **argv) {
         di::bind<TrieSerializer>.to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
-              injector.template create<sptr<Codec>>(),
+              injector.template create<sptr<PolkadotCodec>>(),
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.to(trie_node_tracker),
         di::bind<storage::trie_pruner::TriePruner>.to(
             std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
+        di::bind<PolkadotCodec>.to([](const auto &injector) {
+          return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
+        }),
         di::bind<Codec>.to([](const auto &injector) {
           return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
         }),
@@ -367,7 +370,7 @@ int db_editor_main(int argc, const char **argv) {
 
     auto trie =
         TrieStorageImpl::createFromStorage(
-            injector.template create<sptr<Codec>>(),
+            injector.template create<sptr<PolkadotCodec>>(),
             injector.template create<sptr<TrieSerializer>>(),
             injector.template create<sptr<storage::trie_pruner::TriePruner>>())
             .value();

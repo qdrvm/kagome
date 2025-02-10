@@ -94,6 +94,7 @@ namespace kagome::storage::trie {
       TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
     if (node.isDummy()) {
+      ++stats_.node_cache_hits;
       return node.asDummy().db_key;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
@@ -101,6 +102,7 @@ namespace kagome::storage::trie {
 
     if (auto cached_merkle_value = trie_node.getMerkleCache();
         cached_merkle_value.has_value()) {
+      ++stats_.node_cache_hits;
       return *cached_merkle_value;
     }
     OUTCOME_TRY(enc, encodeNode(trie_node, version, policy, child_visitor));
@@ -122,10 +124,17 @@ namespace kagome::storage::trie {
       StateVersion version,
       TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
+    outcome::result<common::Buffer> res{{}};
     if (node.isBranch()) {
-      return encodeBranch(node.asBranch(), version, policy, child_visitor);
+      res = encodeBranch(node.asBranch(), version, policy, child_visitor);
+    } else {
+      res = encodeLeaf(node.asLeaf(), version, child_visitor);
     }
-    return encodeLeaf(node.asLeaf(), version, child_visitor);
+    if (res) {
+      ++stats_.encoded_nodes;
+      stats_.total_encoded_nodes_size += res.value().size();
+    }
+    return res;
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
@@ -222,6 +231,8 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(value, scale::encode(*node.getValue().value));
       out += value;
     }
+    ++stats_.encoded_values;
+    stats_.total_encoded_values_size += out.size();
     return outcome::success();
   }
 
@@ -302,6 +313,8 @@ namespace kagome::storage::trie {
   outcome::result<std::shared_ptr<TrieNode>> PolkadotCodec::decodeNode(
       common::BufferView encoded_data) const {
     BufferStream stream{encoded_data};
+    stats_.total_decoded_nodes_size += encoded_data.size();
+    ++stats_.decoded_nodes;
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
     auto [type, pk_length] = header;
