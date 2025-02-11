@@ -41,10 +41,10 @@ namespace kagome::network {
     MyViewSubscriptionEnginePtr getMyViewObservable() override;
     PeerViewSubscriptionEnginePtr getRemoteViewObservable() override;
 
-    void removePeer(const PeerId &peer_id) override;
-    void updateRemoteView(const PeerId &peer_id, network::View &&view) override;
-    const View &getMyView() const override {
-      return my_view_;
+    void removePeer(const PeerId &peer_id);
+    void updateRemoteView(const PeerId &peer_id, network::View &&view);
+    auto &getMyViewStripped() const override {
+      return my_view_stripped_;
     }
 
    private:
@@ -57,6 +57,7 @@ namespace kagome::network {
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
 
     View my_view_;
+    View my_view_stripped_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
   };
 

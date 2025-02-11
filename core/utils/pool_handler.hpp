@@ -7,6 +7,7 @@
 #pragma once
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 
 #include "injector/inject.hpp"
 
@@ -43,7 +44,7 @@ namespace kagome {
     template <typename F>
     void execute(F &&func) {
       if (is_active_.load(std::memory_order_acquire)) {
-        ioc_->post(std::forward<F>(func));
+        post(*ioc_, std::forward<F>(func));
       } else if (not started_) {
         throw std::logic_error{"PoolHandler lost callback before start()"};
       }

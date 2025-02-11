@@ -70,6 +70,7 @@ add_library(validator_parachain
     )
 
 target_link_libraries(validator_parachain
+    Boost::process
     grid_tracker
     key_store
     dispute_coordinator
@@ -90,6 +91,7 @@ add_library(kagome_pvf_worker
     )
 target_link_libraries(kagome_pvf_worker
     PUBLIC
+    Boost::process
     fmt::fmt
     scale::scale
     soralog::fallback_configurator

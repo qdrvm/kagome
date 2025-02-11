@@ -12,7 +12,6 @@
 #include "parachain/pvf/secure_mode_precheck.hpp"
 #include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
-#include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::application {
