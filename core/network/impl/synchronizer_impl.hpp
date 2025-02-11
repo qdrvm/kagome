@@ -72,6 +72,8 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::network {
+  using primitives::BlockHash;
+
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -316,8 +318,11 @@ namespace kagome::network {
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};
 
+    struct RecentFindCommon {
+      BlockHash hash;
+    };
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
-             const char *>
+             std::variant<const char *, RecentFindCommon>>
         recent_requests_;
   };
 

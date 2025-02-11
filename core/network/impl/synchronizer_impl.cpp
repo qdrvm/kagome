@@ -30,6 +30,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
+#include "utils/map_entry.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_macro.hpp"
 
@@ -391,14 +392,17 @@ namespace kagome::network {
                                    .from = hint,
                                    .direction = network::Direction::ASCENDING,
                                    .max = 1};
+    auto recent_key = std::tuple{peer_id, request.fingerprint()};
     auto response_handler = [wp{weak_from_this()},
+                             recent_key,
                              lower,
                              upper,
                              target = hint,
                              peer_id,
                              handler = std::move(handler),
                              observed = std::move(observed)](
-                                auto &&response_res) mutable {
+                                outcome::result<BlocksResponse>
+                                    response_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -434,6 +438,9 @@ namespace kagome::network {
       }
 
       auto hash = blocks.front().hash;
+      if (auto recent = entry(self->recent_requests_, recent_key)) {
+        *recent = RecentFindCommon{.hash = hash};
+      }
 
       observed.emplace(target, hash);
 
@@ -521,6 +528,15 @@ namespace kagome::network {
       }
     };
 
+    if (auto recent = entry(recent_requests_, recent_key)) {
+      if (auto *common = std::get_if<RecentFindCommon>(&*recent)) {
+        BlocksResponse res;
+        res.blocks.emplace_back().hash = common->hash;
+        main_pool_handler_->execute(
+            [response_handler, res]() mutable { response_handler(res); });
+        return;
+      }
+    }
     SL_TRACE(log_,
              "Check if block #{} in #{}..#{} is common with {}",
              hint,
