@@ -17,6 +17,7 @@
 #include "application/chain_spec.hpp"
 #include "common/main_thread_pool.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
@@ -39,11 +40,10 @@ namespace kagome::network {
     ReqCollationProtocol() = delete;
     ~ReqCollationProtocol() override = default;
 
-    ReqCollationProtocol(libp2p::Host &host,
+    ReqCollationProtocol(RequestResponseInject inject,
                          const application::ChainSpec &chain_spec,
                          const blockchain::GenesisBlockHash &genesis_hash,
-                         std::shared_ptr<ReqCollationObserver> observer,
-                         common::MainThreadPool &main_thread_pool);
+                         std::shared_ptr<ReqCollationObserver> observer);
 
     const Protocol &protocolName() const override;
 

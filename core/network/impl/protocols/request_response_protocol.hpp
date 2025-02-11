@@ -6,11 +6,16 @@
 
 #pragma once
 
-#include "network/impl/protocols/protocol_base_impl.hpp"
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/common/shared_fn.hpp>
 
 #include "common/main_thread_pool.hpp"
-#include "protocol_error.hpp"
+#include "metrics/metrics.hpp"
+#include "network/helpers/new_stream.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 #include "utils/box.hpp"
+#include "utils/weak_macro.hpp"
 
 namespace kagome::network {
 
@@ -25,6 +30,67 @@ namespace kagome::network {
                                &&response_handler) = 0;
   };
 
+  struct RequestResponseInject {
+    std::shared_ptr<libp2p::Host> host;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler;
+    std::shared_ptr<common::MainThreadPool> main_thread_pool;
+  };
+
+  struct RequestResponseMetrics {
+    RequestResponseMetrics(const std::string &name)
+        : timeout_{metric(name, "timeout")},
+          success_{metric(name, "success")},
+          failure_{metric(name, "failure")} {}
+
+    static metrics::Counter *metric(const std::string &protocol,
+                                    const std::string &type) {
+      auto name = "kagome_request_response_protocol_result";
+      auto help =
+          "Number of timeout, success, failure results for request response "
+          "protocols.";
+      static auto registry = [&] {
+        auto registry = metrics::createRegistry();
+        registry->registerCounterFamily(name, help);
+        return registry;
+      }();
+      return registry->registerCounterMetric(
+          name, {{"protocol", protocol}, {"type", type}});
+    }
+
+    metrics::Counter *timeout_;
+    metrics::Counter *success_;
+    metrics::Counter *failure_;
+  };
+
+  // TODO(turuslan): #2372, RequestResponseProtocol
+  struct RequestResponseTimeout {
+    template <typename T>
+    static void wrap(const std::shared_ptr<T> &self,
+                     auto &cb,
+                     std::weak_ptr<Stream> weak_stream) {
+      auto timer = self->scheduler_->scheduleWithHandle(
+          [weak_self{std::weak_ptr{self}},
+           weak_stream{std::move(weak_stream)}] {
+            IF_WEAK_LOCK(stream) {
+              stream->reset();
+              IF_WEAK_LOCK(self) {
+                self->metrics_.timeout_->inc();
+              }
+            }
+          },
+          self->timeout_);
+      cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
+                             cb{std::move(cb)},
+                             timer{std::move(timer)}](auto r) mutable {
+        timer.reset();
+        IF_WEAK_LOCK(self) {
+          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
+        }
+        cb(std::move(r));
+      }};
+    }
+  };
+
   template <typename Request, typename Response, typename ReadWriter>
   struct RequestResponseProtocolImpl
       : virtual protected ProtocolBase,
@@ -35,16 +101,18 @@ namespace kagome::network {
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocolImpl(
-        Protocol name,
-        libp2p::Host &host,
-        Protocols protocols,
-        log::Logger logger,
-        common::MainThreadPool &main_thread_pool,
-        std::chrono::milliseconds timeout = std::chrono::seconds(1))
-        : base_(std::move(name), host, std::move(protocols), std::move(logger)),
+    friend RequestResponseTimeout;
+
+    RequestResponseProtocolImpl(Protocol name,
+                                RequestResponseInject inject,
+                                Protocols protocols,
+                                log::Logger logger,
+                                std::chrono::milliseconds timeout)
+        : base_(name, *inject.host, std::move(protocols), std::move(logger)),
+          metrics_{name},
+          scheduler_{std::move(inject.scheduler)},
           timeout_(std::move(timeout)),
-          main_pool_handler_{main_thread_pool.handlerStarted()} {}
+          main_pool_handler_{inject.main_thread_pool->handlerStarted()} {}
 
     bool start() override {
       return base_.start(this->weak_from_this());
@@ -61,7 +129,7 @@ namespace kagome::network {
       onTxRequest(request);
       newOutgoingStream(
           peer_id,
-          [wptr{this->weak_from_this()},
+          [WEAK_SELF,
            request{std::move(request)},
            response_handler{std::move(response_handler)}](auto &&res) mutable {
             if (res.has_error()) {
@@ -71,12 +139,14 @@ namespace kagome::network {
             auto &stream = res.value();
             BOOST_ASSERT(stream);
 
-            auto self = wptr.lock();
+            auto self = weak_self.lock();
             if (!self) {
-              self->base_.closeStream(std::move(wptr), std::move(stream));
+              stream->reset();
               response_handler(outcome::failure(ProtocolError::GONE));
               return;
             }
+
+            RequestResponseTimeout::wrap(self, response_handler, stream);
 
             SL_DEBUG(self->base_.logger(),
                      "Established outgoing {} stream with {}",
@@ -123,23 +193,12 @@ namespace kagome::network {
                "New outgoing {} stream with {}",
                protocolName(),
                peer_id);
-
-      auto addresses_res =
-          base_.host().getPeerRepository().getAddressRepository().getAddresses(
-              peer_id);
-      if (not addresses_res.has_value()) {
-        main_pool_handler_->execute(
-            [cb(std::move(cb)), addresses_res(std::move(addresses_res))] {
-              cb(addresses_res.as_failure());
-            });
-        return;
-      }
-
-      base_.host().newStream(
-          PeerInfo{peer_id, std::move(addresses_res.value())},
+      newStream(
+          base_.host(),
+          peer_id,
           base_.protocolIds(),
           [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
-              auto &&stream_and_proto) mutable {
+              libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
             if (!stream_and_proto.has_value()) {
               cb(stream_and_proto.as_failure());
               return;
@@ -378,6 +437,8 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
+    RequestResponseMetrics metrics_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::chrono::milliseconds timeout_;
 
    private:
