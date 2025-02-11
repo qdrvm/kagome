@@ -3,8 +3,8 @@ polkadot_builder:
 	docker build --progress=plain --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-$(ARCHITECTURE) \
 		-f polkadot_builder.Dockerfile \
-		--build-arg USER_ID=$(USER_ID) \
-		--build-arg GROUP_ID=$(GROUP_ID) \
+		--build-arg USER_ID="5555" \
+		--build-arg GROUP_ID="5555" \
 		--build-arg USER_NAME=$(IN_DOCKER_USERNAME) \
 		--build-arg RUST_VERSION=$(RUST_VERSION) \
 		--build-arg SCCACHE_VERSION=$(SCCACHE_VERSION) \
@@ -41,7 +41,6 @@ polkadot_builder_image_info:
 	@echo POLKADOT_BUILDER_ARM64_IMAGE: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64
 
 polkadot_builder_check_tag:
-	@echo "-- Checking if polkadot_builder image tag exists..."
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) > /dev/null 2>&1 && echo "true" || echo "false"
 
 polkadot_binary:
@@ -72,6 +71,8 @@ docker_run: clean_container
 		-e SCCACHE_GCS_KEY_PREFIX=$(SCCACHE_GCS_KEY_PREFIX) \
 		-e SCCACHE_GCS_RW_MODE=READ_WRITE \
 		-e SCCACHE_LOG=info \
+		-e USER_ID=$(USER_ID) \
+		-e GROUP_ID=$(GROUP_ID) \
 		-e ARCHITECTURE=$(ARCHITECTURE) \
 		-e POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):$(IN_DOCKER_HOME)/.gcp/google_creds.json \
@@ -83,16 +84,20 @@ docker_run: clean_container
 		-v ./$(DOCKER_BUILD_DIR_NAME)/workspace:$(IN_DOCKER_HOME)/workspace \
 		$(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) \
 		tail -f /dev/null ; \
-	echo "-- Waiting for polkadot_builder container to start..." ; \
-	sleep 5
+	until [ "$$(docker inspect --format='{{.State.Health.Status}}' $(POLKADOT_BUILD_CONTAINER_NAME))" = "healthy" ]; do \
+	  echo "Health is: \"$$(docker inspect --format='{{.State.Health.Status}}' $(POLKADOT_BUILD_CONTAINER_NAME))\"" ; \
+	  sleep 5 ; \
+	done
+
 
 docker_exec:
 	echo "-- Executing polkadot_builder container..." ; \
-	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) gosu $(IN_DOCKER_USERNAME) /bin/bash -c \
+	docker exec -t $(POLKADOT_BUILD_CONTAINER_NAME) gosu $(USER_ID):$(GROUP_ID) /bin/bash -c \
 		"echo \"-- Setting up environment...\"; \
 		env ; \
 		echo \"-- Checking out Polkadot repository...\"; \
 		if [ ! -d \"$(POLKADOT_REPO_DIR)/.git\" ]; then \
+			ls -la && \
 			mkdir -p $(POLKADOT_REPO_DIR) && \
 			echo \"-- Cloning repository into $(POLKADOT_REPO_DIR)...\"; \
 			git clone --no-progress --depth 1 --branch $(POLKADOT_SDK_RELEASE) $(POLKADOT_REPO_URL) $(POLKADOT_REPO_DIR) ; \

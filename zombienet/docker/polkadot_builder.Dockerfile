@@ -94,3 +94,6 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+HEALTHCHECK --interval=5s --timeout=2s --start-period=0s --retries=100 \
+  CMD test -f /tmp/entrypoint_done || exit 1

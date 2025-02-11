@@ -16,8 +16,11 @@ GOOGLE_APPLICATION_CREDENTIALS ?=
 OS_IMAGE ?= $(OS_IMAGE_NAME):$(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
-USER_ID = 5555
-GROUP_ID = 5555
+USER_ID ?= $(shell id -u)
+GROUP_ID ?= $(shell id -g)
+# For Docker build
+# USER_ID = 5555
+# GROUP_ID = 5555
 
 # polkadot_builder Variables
 POLKADOT_SDK_TAG ?=
