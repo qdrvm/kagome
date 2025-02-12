@@ -40,7 +40,8 @@ namespace kagome::network {
     RequestResponseMetrics(const std::string &name)
         : timeout_{metric(name, "timeout")},
           success_{metric(name, "success")},
-          failure_{metric(name, "failure")} {}
+          failure_{metric(name, "failure")},
+          lost_{metric(name, "lost")} {}
 
     static metrics::Counter *metric(const std::string &protocol,
                                     const std::string &type) {
@@ -57,9 +58,28 @@ namespace kagome::network {
           name, {{"protocol", protocol}, {"type", type}});
     }
 
+    class Lost {
+     public:
+      Lost(const Lost &) = delete;
+      Lost(Lost &&other) : lost_{std::exchange(other.lost_, nullptr)} {}
+      Lost(RequestResponseMetrics &metrics) : lost_{metrics.lost_} {}
+      ~Lost() {
+        if (lost_ != nullptr) {
+          lost_->inc();
+        }
+      }
+      void notLost() {
+        lost_ = nullptr;
+      }
+
+     private:
+      metrics::Counter *lost_;
+    };
+
     metrics::Counter *timeout_;
     metrics::Counter *success_;
     metrics::Counter *failure_;
+    metrics::Counter *lost_;
   };
 
   // TODO(turuslan): #2372, RequestResponseProtocol
@@ -81,7 +101,9 @@ namespace kagome::network {
           self->timeout_);
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
                              cb{std::move(cb)},
+                             lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)}](auto r) mutable {
+        lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
           (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
