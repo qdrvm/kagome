@@ -44,7 +44,7 @@
             echo "Using CARGO_HOME: $CARGO_HOME"
             echo "Current PATH: $PATH"
 
-            export RUST_VERSION=1.77.0
+            export RUST_VERSION=1.81.0
 
             if ! rustup show | grep -q "$RUST_VERSION"; then
                 echo "Installing Rust version $RUST_VERSION"
