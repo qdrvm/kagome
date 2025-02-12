@@ -67,6 +67,8 @@ namespace {
       "kagome_import_queue_blocks_submitted";
   constexpr auto kLoadBlocksMaxExpire = std::chrono::seconds{5};
 
+  constexpr auto kRandomWarpInterval = std::chrono::minutes{1};
+
   kagome::network::BlockAttribute attributesForSync(
       kagome::application::SyncMethod method) {
     using SM = kagome::application::SyncMethod;
@@ -152,6 +154,10 @@ namespace kagome::network {
   }
 
   /** @see AppStateManager::takeControl */
+  bool SynchronizerImpl::start() {
+    randomWarp();
+    return true;
+  }
   void SynchronizerImpl::stop() {
     node_is_shutting_down_ = true;
   }
@@ -1543,5 +1549,36 @@ namespace kagome::network {
 
     fetch(*chosen, std::move(request), "header", std::move(cb2));
     return true;
+  }
+
+  void SynchronizerImpl::randomWarp() {
+    scheduler_->schedule(
+        [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->randomWarp();
+        },
+        kRandomWarpInterval);
+    if (not timeline_.get()->wasSynchronized()) {
+      return;
+    }
+    auto finalized = block_tree_->getLastFinalized();
+    auto cb = [WEAK_SELF, finalized](outcome::result<WarpResponse> r) mutable {
+      WEAK_LOCK(self);
+      if (not r) {
+        return;
+      }
+      auto &blocks = r.value().proofs;
+      for (const auto &block : blocks) {
+        if (block.header.number == finalized.number) {
+          continue;
+        }
+        SL_INFO(self->log_, "randomWarp justification {}", block.header.number);
+        self->grandpa_environment_->applyJustification(
+            block.justification.block_info,
+            {scale::encode(block.justification).value()},
+            [](outcome::result<void> r) {});
+      }
+    };
+    router_->getWarpProtocol()->random(finalized.hash, cb);
   }
 }  // namespace kagome::network

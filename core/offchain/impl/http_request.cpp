@@ -128,7 +128,7 @@ namespace kagome::offchain {
 
         if (!ec) {
           SL_TRACE(self->log_, "Resolved hostname {}", self->uri_.Host);
-          self->resolver_iterator_ = it;
+          self->resolver_iterator_ = it.begin();
           self->connect();
           return;
         }
@@ -155,9 +155,9 @@ namespace kagome::offchain {
              resolver_iterator_->endpoint().port());
 
     auto &stream = secure_ ? boost::beast::get_lowest_layer(
-                       *boost::relaxed_get<SslStreamPtr>(stream_))
+                                 *boost::relaxed_get<SslStreamPtr>(stream_))
                            : boost::beast::get_lowest_layer(
-                               *boost::relaxed_get<TcpStreamPtr>(stream_));
+                                 *boost::relaxed_get<TcpStreamPtr>(stream_));
 
     auto connect_handler = [wp{weak_from_this()}](const auto &ec,
                                                   const auto &it) {
@@ -182,8 +182,7 @@ namespace kagome::offchain {
         SL_ERROR(self->log_, "Connection failed: {}", ec);
 
         // Try to connect next endpoint if any
-        if (++self->resolver_iterator_
-            != boost::asio::ip::tcp::resolver::iterator{}) {
+        if (++self->resolver_iterator_ != resolver_iterator{}) {
           SL_TRACE(self->log_, "Trying next endpoint…");
           self->connect();
         } else {

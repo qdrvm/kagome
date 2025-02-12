@@ -42,7 +42,8 @@ namespace kagome::primitives::events {
     kAllHeads = 3,
     kFinalizedRuntimeVersion = 4,
     kNewRuntime = 5,
-    kDeactivateAfterFinalization = 6,
+    kDeactivateAfterFinalization = 6,  // TODO(kamilsa): #2369 might not be
+                                       // triggered on every leaf deactivated
   };
 
   enum struct PeerEventType : uint8_t {
@@ -325,6 +326,8 @@ namespace kagome::primitives::events {
     void onHead(auto f) {
       onBlock(ChainEventType::kNewHeads, std::move(f));
     }
+
+    // TODO(kamilsa): #2369 not all deactivated leaves end up in this event
     void onDeactivate(auto f) {
       subscribe(*sub,
                 ChainEventType::kDeactivateAfterFinalization,
