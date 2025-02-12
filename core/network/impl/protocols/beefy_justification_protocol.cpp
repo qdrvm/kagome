@@ -16,20 +16,21 @@
 
 namespace kagome::network {
 
-  BeefyJustificationProtocol::BeefyJustificationProtocol(libp2p::Host &host,
-                                                        const blockchain::GenesisBlockHash &genesis,
-                                                        common::MainThreadPool &main_thread_pool,
-                                                        std::shared_ptr<PeerManager> peer_manager,
-                                                        std::shared_ptr<Beefy> beefy)
-     : RequestResponseProtocolImpl{
-           kName,
-           host,
-           make_protocols(kBeefyJustificationProtocol, genesis),
-           log::createLogger(kName),
-       },
-       main_pool_handler_{main_thread_pool.handlerStarted()},
-       peer_manager_{std::move(peer_manager)},
-       beefy_{std::move(beefy)} {}
+  BeefyJustificationProtocol::BeefyJustificationProtocol(
+      libp2p::Host &host,
+      const blockchain::GenesisBlockHash &genesis,
+      common::MainThreadPool &main_thread_pool,
+      std::shared_ptr<PeerManager> peer_manager,
+      std::shared_ptr<Beefy> beefy)
+      : RequestResponseProtocolImpl{kName,
+                                    host,
+                                    make_protocols(kBeefyJustificationProtocol,
+                                                   genesis),
+                                    log::createLogger(kName),
+                                    main_thread_pool},
+        main_pool_handler_{main_thread_pool.handlerStarted()},
+        peer_manager_{std::move(peer_manager)},
+        beefy_{std::move(beefy)} {}
 
   std::optional<outcome::result<BeefyJustificationProtocol::ResponseType>>
   BeefyJustificationProtocol::onRxRequest(RequestType block,

@@ -259,6 +259,8 @@ namespace kagome::parachain {
                                         std::vector<ErasureChunk> &&chunks,
                                         const ParachainBlock &pov,
                                         const PersistedValidationData &data) {
+    SL_TRACE(logger, "Attempt to store all chunks of {}", candidate_hash);
+
     state_.exclusiveAccess([&](auto &state) {
       prune_candidates_no_lock(state);
       state.candidates_[relay_parent].insert(candidate_hash);
@@ -287,6 +289,11 @@ namespace kagome::parachain {
                    candidate_hash,
                    chunk_index,
                    res.error());
+        } else {
+          SL_TRACE(logger,
+                  "Chunk {}:{} is saved by storeData()",
+                  candidate_hash,
+                  chunk.index);
         }
       }
       candidate_data.pov = pov;
@@ -299,6 +306,8 @@ namespace kagome::parachain {
   void AvailabilityStoreImpl::putChunk(const network::RelayHash &relay_parent,
                                        const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
+    SL_TRACE(logger, "Attempt to put chunk {}:{}", candidate_hash, chunk.index);
+
     auto encoded_chunk = scale::encode(chunk);
     const auto chunk_index = chunk.index;
     state_.exclusiveAccess([&](auto &state) {
@@ -331,6 +340,11 @@ namespace kagome::parachain {
                chunk_index,
                res.error());
     }
+
+    SL_TRACE(logger,
+            "Chunk {}:{} is saved by putChunk()",
+            candidate_hash,
+            chunk.index);
   }
 
   void AvailabilityStoreImpl::remove_no_lock(
@@ -338,21 +352,6 @@ namespace kagome::parachain {
     if (auto it = state.candidates_.find(relay_parent);
         it != state.candidates_.end()) {
       for (const auto &l : it->second) {
-        auto space = storage_->getSpace(storage::Space::kAvaliabilityStorage);
-        if (space) {
-          for (const auto &chunk : state.per_candidate_[l].chunks) {
-            if (not space->remove(
-                    CandidateChunkKey::encode(l, chunk.second.index))) {
-              SL_ERROR(logger,
-                       "Failed to remove chunk candidate {} index {}",
-                       l,
-                       chunk.second.index);
-            }
-          }
-        } else {
-          SL_CRITICAL(logger,
-                      "Failed to get AvaliabilityStorage space in remove");
-        }
         state.per_candidate_.erase(l);
       }
       state.candidates_.erase(it);

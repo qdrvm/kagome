@@ -20,6 +20,11 @@ namespace kagome::network::notifications {
   constexpr auto kBackoffMin = std::chrono::seconds{5};
   constexpr auto kBackoffMax = std::chrono::seconds{10};
 
+  // TODO(turuslan): #2359, remove when `YamuxStream::readSome` returns error
+  inline bool isClosed(const StreamInfoClose &stream) {
+    return stream.stream->isClosed();
+  }
+
   StreamInfo::StreamInfo(const ProtocolsGroups &protocols_groups,
                          const StreamAndProtocol &info)
       : protocol_group{},
@@ -331,6 +336,10 @@ namespace kagome::network::notifications {
     if (not stream) {
       return;
     }
+    if (isClosed(*stream)) {
+      onError(peer_id, false);
+      return;
+    }
     auto cb = [WEAK_SELF, peer_id, protocol_group{stream->protocol_group}](
                   libp2p::basic::MessageReadWriter::ReadCallback r) mutable {
       WEAK_LOCK(self);
@@ -376,6 +385,14 @@ namespace kagome::network::notifications {
     if (controller_.expired()) {
       return;
     }
+    for (auto it = peers_in_.begin(); it != peers_in_.end();) {
+      auto &[peer_id, stream] = *it;
+      ++it;
+      if (isClosed(stream)) {
+        // copy `it->first` before `erase(it)`
+        onError(PeerId{peer_id}, false);
+      }
+    }
     for (auto &peer_id : reserved_) {
       open(peer_id);
     }
@@ -385,6 +402,9 @@ namespace kagome::network::notifications {
     }
     for (auto &conn :
          host_->getNetwork().getConnectionManager().getConnections()) {
+      if (conn->isClosed()) {
+        continue;
+      }
       auto peer_id = conn->remotePeer().value();
       if (reserved_.contains(peer_id)) {
         continue;
@@ -402,8 +422,11 @@ namespace kagome::network::notifications {
 
   size_t Protocol::peerCount(bool out) {
     size_t count = 0;
-    if (out) {
+    if (not out) {
       for (auto &p : peers_in_) {
+        if (isClosed(p.second)) {
+          continue;
+        }
         if (reserved_.contains(p.first)) {
           continue;
         }
@@ -424,8 +447,16 @@ namespace kagome::network::notifications {
   }
 
   bool Protocol::shouldAccept(const PeerId &peer_id) {
-    if (peers_in_.contains(peer_id)) {
-      return false;
+    auto peer_in = entry(peers_in_, peer_id);
+    if (peer_in) {
+      // if stream was closed, but read didn't return error
+      if (isClosed(*peer_in)) {
+        // remove closed stream
+        onError(peer_id, false);
+        // no `return`, continue `shouldAccept` checks
+      } else {
+        return false;
+      }
     }
     if (reserved_.contains(peer_id)) {
       return true;

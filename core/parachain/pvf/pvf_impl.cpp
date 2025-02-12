@@ -32,7 +32,6 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
-#include "scale/std_variant.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
@@ -306,7 +305,7 @@ namespace kagome::parachain {
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
 
-    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    auto data_hash = hasher_->blake2b_256(scale::encode(pvd).value());
     if (receipt.descriptor.persisted_data_hash != data_hash) {
       return cb(PvfError::PERSISTED_DATA_HASH);
     }
@@ -391,6 +390,7 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
+        .kind = timeout_kind,
         .timeout =
             std::chrono::milliseconds{
                 timeout_kind == runtime::PvfExecTimeoutKind::Backing

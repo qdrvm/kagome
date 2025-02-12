@@ -21,6 +21,22 @@
 #include <memory>
 
 namespace kagome::authority_discovery {
+  using crypto::Ed25519Keypair;
+  using crypto::Ed25519Provider;
+  using crypto::Sr25519Keypair;
+  using crypto::Sr25519Provider;
+  using libp2p::crypto::ProtobufKey;
+  using libp2p::peer::PeerInfo;
+
+  outcome::result<std::pair<Buffer, Buffer>> audiEncode(
+      std::shared_ptr<crypto::Ed25519Provider> ed_crypto_provider,
+      std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
+      const Ed25519Keypair &libp2p_key,
+      const ProtobufKey &libp2p_key_pb,
+      const PeerInfo &peer_info,
+      const Sr25519Keypair &audi_key,
+      std::optional<std::chrono::nanoseconds> now);
+
   /**
    * Publishes listening addresses for authority discovery.
    * Authority discovery public key is used for Kademlia DHT key.

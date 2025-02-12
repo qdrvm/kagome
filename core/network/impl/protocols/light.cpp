@@ -21,17 +21,18 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
-      std::shared_ptr<runtime::Executor> executor)
-      : RequestResponseProtocolImpl{
-          kName,
-          host,
-          make_protocols(kLightProtocol, genesis, chain_spec),
-          log::createLogger(kName),
-      },
-      repository_{std::move(repository)},
-      storage_{std::move(storage)},
-      module_repo_{std::move(module_repo)},
-      executor_{std::move(executor)} {}
+      std::shared_ptr<runtime::Executor> executor,
+      common::MainThreadPool &main_thread_pool)
+      : RequestResponseProtocolImpl{kName,
+                                    host,
+                                    make_protocols(
+                                        kLightProtocol, genesis, chain_spec),
+                                    log::createLogger(kName),
+                                    main_thread_pool},
+        repository_{std::move(repository)},
+        storage_{std::move(storage)},
+        module_repo_{std::move(module_repo)},
+        executor_{std::move(executor)} {}
 
   std::optional<outcome::result<LightProtocol::ResponseType>>
   LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {

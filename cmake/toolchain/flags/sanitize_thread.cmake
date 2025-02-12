@@ -11,7 +11,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 
 set(TSAN_IGNORELIST "${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore")
 
-set(ENV{TSAN_OPTIONS} "suppressions=${TSAN_IGNORELIST}")
+list(APPEND KAGOME_CTEST_ENV "TSAN_OPTIONS=suppressions=${TSAN_IGNORELIST}")
 
 set(FLAGS
     -fsanitize=thread

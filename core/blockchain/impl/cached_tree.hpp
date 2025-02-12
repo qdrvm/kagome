@@ -78,6 +78,7 @@ namespace kagome::blockchain {
     primitives::BlockInfo best() const;
     size_t leafCount() const;
     std::vector<primitives::BlockHash> leafHashes() const;
+    std::vector<primitives::BlockInfo> leafInfo() const;
     bool isLeaf(const primitives::BlockHash &hash) const;
     primitives::BlockInfo bestWith(
         const std::shared_ptr<TreeNode> &required) const;
@@ -106,6 +107,6 @@ namespace kagome::blockchain {
     std::shared_ptr<TreeNode> root_;
     std::shared_ptr<TreeNode> best_;
     std::unordered_map<primitives::BlockHash, std::shared_ptr<TreeNode>> nodes_;
-    std::unordered_set<primitives::BlockHash> leaves_;
+    std::unordered_map<primitives::BlockHash, primitives::BlockNumber> leaves_;
   };
 }  // namespace kagome::blockchain

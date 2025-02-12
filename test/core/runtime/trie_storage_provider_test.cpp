@@ -11,6 +11,7 @@
 #include "common/buffer.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -19,7 +20,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/in_memory/in_memory_spaced_storage.hpp"
 
 using kagome::common::Buffer;
 using kagome::runtime::RuntimeExecutionError;

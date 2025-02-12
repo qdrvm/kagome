@@ -10,13 +10,41 @@
 #include "utils/weak_macro.hpp"
 
 namespace kagome::network {
-  inline View makeView(const LazySPtr<blockchain::BlockTree> &block_tree) {
-    View view{
-        .heads_ = block_tree.get()->getLeaves(),
-        .finalized_number_ = block_tree.get()->getLastFinalized().number,
-    };
+  static constexpr size_t MAX_VIEW_HEADS = 5;
+
+  /**
+   * @returns `View` with all leaves, `View` with `MAX_VIEW_HEAD` leaves
+   */
+  inline std::pair<View, View> makeViews(
+      const LazySPtr<blockchain::BlockTree> &block_tree) {
+    std::pair<View, View> result;
+    auto &[view, stripped_view] = result;
+    auto &heads_ = stripped_view.heads_;
+
+    auto last_finalized = block_tree.get()->getLastFinalized().number;
+    view.finalized_number_ = last_finalized;
+    stripped_view.finalized_number_ = last_finalized;
+
+    auto heads = block_tree.get()->getLeavesInfo();
+
+    std::ranges::sort(heads,
+                      [](const auto &l, const auto &r) { return l < r; });
+
+    heads_.reserve(std::min(MAX_VIEW_HEADS, heads.size()));
+    for (const auto &head :
+         heads | std::views::reverse | std::views::take(MAX_VIEW_HEADS)) {
+      heads_.emplace_back(head.hash);
+    }
+    std::ranges::sort(heads_);
+    assert(heads_.size() <= MAX_VIEW_HEADS);
+
+    view.heads_.reserve(heads.size());
+    std::ranges::transform(heads,
+                           std::back_inserter(view.heads_),
+                           [](const auto &data) { return data.hash; });
+
     std::ranges::sort(view.heads_);
-    return view;
+    return result;
   }
 
   PeerView::PeerView(
@@ -28,8 +56,8 @@ namespace kagome::network {
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
-            std::make_shared<PeerViewSubscriptionEngine>()},
-        my_view_{makeView(block_tree_)} {
+            std::make_shared<PeerViewSubscriptionEngine>()} {
+    std::tie(my_view_, my_view_stripped_) = makeViews(block_tree_);
     app_state_manager->takeControl(*this);
   }
 
@@ -57,14 +85,17 @@ namespace kagome::network {
 
   void PeerView::updateMyView(const primitives::BlockHeader &header) {
     BOOST_ASSERT(my_view_update_observable_);
+    auto [view, stripped_view] = makeViews(block_tree_);
     ExView event{
-        .view = makeView(block_tree_),
+        .view = std::move(view),
+        .stripped_view = stripped_view,
         .new_head = header,
         .lost = {},
     };
     if (event.view == my_view_) {
       return;
     }
+    my_view_stripped_ = std::move(stripped_view);
     for (const auto &head : my_view_.heads_) {
       if (not event.view.contains(head)) {
         event.lost.emplace_back(head);

@@ -47,6 +47,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/key.hpp"
 #include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
@@ -57,7 +58,6 @@
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
@@ -194,6 +194,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
@@ -350,7 +351,7 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
+  sptr<blockchain::BlockTreeImpl> get_block_tree(const Injector &injector) {
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
@@ -358,9 +359,7 @@ namespace {
     // clang-format off
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<network::ExtrinsicObserver>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         chain_events_engine,
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
@@ -374,12 +373,6 @@ namespace {
       common::raise(block_tree_res.error());
     }
     auto &block_tree = block_tree_res.value();
-
-    auto runtime_upgrade_tracker =
-        injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
-
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
-                                                         block_tree);
 
     return block_tree;
   }
@@ -475,20 +468,17 @@ namespace {
   template <typename Injector>
   std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
   get_runtime_upgrade_tracker(const Injector &injector) {
-    auto header_repo =
-        injector
-            .template create<sptr<const blockchain::BlockHeaderRepository>>();
     auto storage = injector.template create<sptr<storage::SpacedStorage>>();
     auto substitutes =
         injector
             .template create<sptr<const primitives::CodeSubstituteBlockIds>>();
-    auto block_storage =
-        injector.template create<sptr<blockchain::BlockStorage>>();
-    auto res =
-        runtime::RuntimeUpgradeTrackerImpl::create(std::move(header_repo),
-                                                   std::move(storage),
-                                                   std::move(substitutes),
-                                                   std::move(block_storage));
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
+    auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+        std::move(storage), std::move(substitutes), std::move(block_tree));
+    auto chain_events_engine =
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>();
+    res.value()->subscribeToBlockchainEvents(chain_events_engine);
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
@@ -749,8 +739,13 @@ namespace {
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
             bind_by_lambda<blockchain::BlockTree>(
-                [](const auto &injector) { return get_block_tree(injector); }),
-            di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+              [](const auto &injector) {
+                return get_block_tree(injector);
+              }),
+            bind_by_lambda<blockchain::BlockHeaderRepository>(
+              [](const auto &injector) {
+                return injector.template create<sptr<blockchain::BlockTree>>();
+              }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -796,6 +791,32 @@ namespace {
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
+            bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
+              auto support = parachain::SecureModeSupport::none();
+              auto log = log::createLogger("Application", "application");
+#ifdef __linux__
+              if (not config->disableSecureMode() and config->usePvfSubprocess()
+                  and config->roles().isAuthority()) {
+                auto res = parachain::runSecureModeCheckProcess(config->runtimeCacheDirPath());
+                if (!res) {
+                  SL_ERROR(log, "Secure mode check failed: {}", res.error());
+                  exit(EXIT_FAILURE);
+                }
+                support = res.value();
+                if (not support.isTotallySupported()) {
+                  SL_ERROR(log,
+                          "Secure mode is not supported completely. You can disable it "
+                          "using --insecure-validator-i-know-what-i-do.");
+                  exit(EXIT_FAILURE);
+                }
+              }
+#else
+              SL_WARN(log,
+                      "Secure validator mode is not implemented for the current "
+                      "platform. Proceed at your own risk.");
+#endif
+              return toSptr(support);
+            }),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -876,6 +897,7 @@ namespace {
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+            di::bind<network::ValidationProtocolReserve>.template to<network::ValidationProtocol>(),
             di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
             di::bind<consensus::beefy::FetchJustification>.template to<network::BeefyJustificationProtocol>(),
             di::bind<network::Beefy>.template to<network::BeefyImpl>(),
@@ -1119,6 +1141,10 @@ namespace kagome::injector {
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
   }
 
+  std::shared_ptr<key::Key> KagomeNodeInjector::injectKey() {
+    return pimpl_->injector_.template create<sptr<key::Key>>();
+  }
+
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
     return pimpl_->injector_.template create<sptr<Watchdog>>();
   }
@@ -1126,12 +1152,6 @@ namespace kagome::injector {
   std::shared_ptr<common::MainThreadPool>
   KagomeNodeInjector::injectMainThreadPool() {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
-  }
-
-  std::shared_ptr<runtime::RuntimeUpgradeTracker>
-  KagomeNodeInjector::injectRuntimeUpgradeTracker() {
-    return pimpl_->injector_
-        .template create<sptr<runtime::RuntimeUpgradeTracker>>();
   }
 
   void KagomeNodeInjector::kademliaRandomWalk() {

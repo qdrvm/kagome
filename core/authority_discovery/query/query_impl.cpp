@@ -6,10 +6,12 @@
 
 #include "authority_discovery/query/query_impl.hpp"
 
+#include "authority_discovery/metrics.hpp"
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 #include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "network/impl/protocols/parachain.hpp"
 #include "utils/retain_if.hpp"
 
@@ -35,11 +37,24 @@ namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
   constexpr std::chrono::minutes kIntervalMax{10};
 
+  static const metrics::GaugeHelper metric_requests_pending{
+      "kagome_authority_discovery_authority_address_requests_pending",
+      "Number of pending authority address requests.",
+  };
+  static const metrics::CounterHelper metric_handle_value_found_event_failure{
+      "kagome_authority_discovery_handle_value_found_event_failure",
+      "Number of times handling a dht value found event failed.",
+  };
+  static const metrics::GaugeHelper metric_known_authorities_count{
+      "kagome_authority_discovery_known_authorities_count",
+      "Number of authorities known by authority discovery.",
+  };
+
   QueryImpl::QueryImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-      LazySPtr<network::ValidationProtocol> validation_protocol,
+      LazySPtr<network::ValidationProtocolReserve> validation_protocol,
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<AudiStore> audi_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
@@ -122,6 +137,7 @@ namespace kagome::authority_discovery {
     auto r = add(*id, value);
     if (not r) {
       SL_DEBUG(log_, "Can't add: {}", r.error());
+      metric_handle_value_found_event_failure->inc();
     }
     return r;
   }
@@ -165,15 +181,18 @@ namespace kagome::authority_discovery {
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return not has(local_keys, id);
     });
+    size_t known_authorities_count = 0;
     // remove outdated authorities
     audi_store_->retainIf([&](const primitives::AuthorityDiscoveryId &id,
                               const AuthorityPeerInfo &info) {
       if (has(authorities, id)) {
+        ++known_authorities_count;
         return true;
       }
       validation_protocol_.get()->reserve(info.peer.id, false);
       return false;
     });
+    metric_known_authorities_count->set(known_authorities_count);
     for (auto it = peer_to_auth_cache_.begin();
          it != peer_to_auth_cache_.end();) {
       if (has(authorities, it->second)) {
@@ -196,6 +215,7 @@ namespace kagome::authority_discovery {
         }
       }
     }
+    metric_requests_pending->set(queue_.size());
 
     pop();
     return outcome::success();
@@ -220,6 +240,7 @@ namespace kagome::authority_discovery {
       ++active_;
       auto authority = queue_.back();
       queue_.pop_back();
+      metric_requests_pending->set(queue_.size());
 
       scheduler_->schedule([wp{weak_from_this()},
                             hash = common::Buffer{crypto::sha256(authority)},
@@ -230,6 +251,7 @@ namespace kagome::authority_discovery {
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
+                  MetricDhtEventReceived::get().getResult(res.has_value());
                   std::unique_lock lock{self->mutex_};
                   --self->active_;
                   self->pop();
@@ -340,11 +362,14 @@ namespace kagome::authority_discovery {
         peer.id, peer.addresses, libp2p::peer::ttl::kDay);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
+    if (not audi_store_->contains(authority)) {
+      metric_known_authorities_count->inc();
+    }
     audi_store_->store(
         authority,
         AuthorityPeerInfo{
             .raw = std::move(signed_record_pb),
-            .time = time.has_value() ? std::make_optional<TimestampScale>(*time)
+            .time = time.has_value() ? std::make_optional(TimestampScale{*time})
                                      : std::nullopt,
             .peer = peer,
         });

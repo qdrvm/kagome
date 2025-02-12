@@ -31,11 +31,6 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
-hunter_config(
-    Boost
-    VERSION 1.85.0
-)
-
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
@@ -57,11 +52,12 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   hunter_config(
       WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
+      URL https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.14.1.zip
       SHA1 ${WASMEDGE_ID}
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
+        CMAKE_CXX_FLAGS=-Wno-error=maybe-uninitialized
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -104,18 +100,8 @@ hunter_config(
 )
 
 hunter_config(
-    libp2p
-    VERSION 0.1.28
-)
-
-hunter_config(
-    scale
-    VERSION 1.1.4
-)
-
-hunter_config(
     erasure_coding_crust
-    VERSION 0.0.8
+    VERSION 0.0.9
     KEEP_PACKAGE_SOURCES
 )
 
