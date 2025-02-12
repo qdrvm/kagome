@@ -27,6 +27,7 @@
             oldpkgs.cmake
             libseccomp
             ncurses.dev
+            python3
 
             # Rust tools
             rustup
