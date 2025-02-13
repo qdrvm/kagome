@@ -234,14 +234,14 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    scale::ScaleDecoderStream stream{enc_block_weight.view()};
+    scale::DecoderFromBytes decoder{enc_block_weight.view()};
     ConsumedWeight block_weight;
     try {
-      stream >> block_weight;
+      decode(block_weight, decoder);
     } catch (std::exception &e) {
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
-    if (stream.hasMore(1)) {
+    if (decoder.has(1)) {
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
 

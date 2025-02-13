@@ -34,16 +34,14 @@ namespace kagome {
 
   /// To raise failure while attempt to encode unused entity
   template <size_t N>
-  [[noreturn]] ::scale::ScaleEncoderStream &operator<<(
-      ::scale::ScaleEncoderStream &, const Unused<N> &) {
-    ::scale::raise(UnusedError::AttemptToEncodeUnused);
+  void encode(const Unused<N> &, scale::Encoder &) {
+    scale::raise(UnusedError::AttemptToEncodeUnused);
   }
 
   /// To raise failure while attempt to decode unused entity
   template <size_t N>
-  [[noreturn]] ::scale::ScaleDecoderStream &operator>>(
-      ::scale::ScaleDecoderStream &, Unused<N> &) {
-    ::scale::raise(UnusedError::AttemptToDecodeUnused);
+  void decode(Unused<N> &, scale::Decoder &) {
+    scale::raise(UnusedError::AttemptToDecodeUnused);
   }
 
 }  // namespace kagome

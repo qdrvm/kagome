@@ -303,7 +303,7 @@ TEST_P(HttpMethodsParametrizedTest, HttpRequestStart) {
   Buffer method = GetParam();
   Buffer uri = "name"_buf;
   Buffer meta = "value"_buf;
-  Result<RequestId, Failure> result{22};
+  Result<RequestId, Failure> result = RequestId{22};
 
   EXPECT_CALL(*offchain_worker_, httpRequestStart(_, uri.toString(), meta))
       .WillOnce(Return(result));
@@ -330,7 +330,7 @@ TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
   RequestId id{22};
   Buffer name = "name"_buf;
   Buffer value = "value"_buf;
-  Result<Success, Failure> result{Success{}};
+  Result<Success, Failure> result = Success{};
 
   EXPECT_CALL(*offchain_worker_,
               httpRequestAddHeader(id, name.toString(), value.toString()))
@@ -356,7 +356,7 @@ TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
   Timestamp deadline{300000};
   auto deadline_opt = std::make_optional(deadline);
 
-  Result<Success, HttpError> result{Success{}};
+  Result<Success, HttpError> result = Success{};
 
   EXPECT_CALL(*offchain_worker_, httpRequestWriteBody(id, chunk, deadline_opt))
       .WillOnce(Return(result));

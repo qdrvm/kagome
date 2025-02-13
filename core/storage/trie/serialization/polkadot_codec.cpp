@@ -8,8 +8,7 @@
 
 #include "crypto/blake2/blake2b.h"
 #include "log/logger.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_decoder_stream.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
@@ -400,13 +399,13 @@ namespace kagome::storage::trie {
     uint16_t children_bitmap = stream.next();
     children_bitmap += stream.next() << 8u;
 
-    scale::ScaleDecoderStream ss(stream.leftBytes());
+    scale::DecoderFromBytes decoder(stream.leftBytes());
 
     // decode the branch value if needed
     common::Buffer value;
     if (type == TrieNode::Type::BranchWithValue) {
       try {
-        ss >> value;
+        decoder >> value;
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
@@ -414,7 +413,7 @@ namespace kagome::storage::trie {
     } else if (type == TrieNode::Type::BranchContainingHashes) {
       common::Hash256 hash;
       try {
-        ss >> hash;
+        decoder >> hash;
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
@@ -433,7 +432,7 @@ namespace kagome::storage::trie {
         // child in the processed branch
         common::Buffer child_hash;
         try {
-          ss >> child_hash;
+          decoder >> child_hash;
         } catch (std::system_error &e) {
           return outcome::failure(e.code());
         }

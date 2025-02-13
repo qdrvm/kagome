@@ -54,6 +54,7 @@ using kagome::consensus::EpochTimings;
 using kagome::consensus::ProductionConsensusMock;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
+using kagome::scale::encode;
 using BabeAuthority = kagome::consensus::babe::Authority;
 using BabeAuthorityId = kagome::consensus::babe::AuthorityId;
 using BabeAuthorities = kagome::consensus::babe::Authorities;
@@ -261,14 +262,14 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       kagome::primitives::Digest{
           kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(BabeBlockHeader{.authority_index = 1,
-                                                   .slot_number = slot})
+              Buffer{encode(BabeBlockHeader{.authority_index = 1,
+                                            .slot_number = slot})
                          .value()},
           }},
           kagome::primitives::Consensus{ScheduledChange{authorities, 0}},
           kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(kagome::consensus::babe::Seal{}).value()},
+              Buffer{encode(kagome::consensus::babe::Seal{}).value()},
           }}},
       some_hash  // hash
   };

@@ -17,8 +17,6 @@
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/scale_test_comparator.hpp"
 

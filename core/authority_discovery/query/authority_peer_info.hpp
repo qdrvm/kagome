@@ -15,7 +15,7 @@ namespace kagome::authority_discovery {
   struct AuthorityPeerInfo {
     common::Buffer raw{};
     std::optional<Timestamp> time{};
-    ::scale::PeerInfoSerializable peer{};
+    scale::PeerInfoSerializable peer{};
   };
 
 }  // namespace kagome::authority_discovery

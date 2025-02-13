@@ -61,7 +61,6 @@ namespace kagome::consensus::babe {
      */
     std::optional<std::shared_ptr<const BabeConfiguration>> next_state;
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(BabeIndexedValue,
                                config,
                                state,

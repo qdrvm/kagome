@@ -47,7 +47,6 @@ namespace kagome::consensus::grandpa {
      */
     std::optional<std::shared_ptr<const AuthoritySet>> next;
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(GrandpaIndexedValue,
                                next_set_id,
                                forced_target,

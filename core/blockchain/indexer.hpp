@@ -84,7 +84,6 @@ namespace kagome::blockchain {
      */
     bool inherit = false;
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(Indexed, value, prev);
   };
 

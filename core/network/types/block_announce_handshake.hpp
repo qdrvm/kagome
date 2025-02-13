@@ -27,7 +27,6 @@ namespace kagome::network {
 
     BlockHash genesis_hash;  //!< Genesis block hash.
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(BlockAnnounceHandshake,
                                roles,
                                best_block.number,

@@ -11,7 +11,6 @@
 #include "common/buffer.hpp"
 #include "parachain/pvf/secure_mode_precheck.hpp"
 #include "runtime/runtime_context.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::application {
   class AppConfiguration;

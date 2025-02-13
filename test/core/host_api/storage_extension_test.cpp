@@ -43,6 +43,7 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
+using kagome::scale::encode;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
@@ -272,7 +273,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
     vals.push_back(scale::EncodeOpaqueValue{value1});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -288,7 +289,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
     vals.push_back(scale::EncodeOpaqueValue{value2});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -305,9 +306,10 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
   // integers)
-  std::vector<scale::EncodeOpaqueValue> vals(scale::detail::kMinUint16 - 1,
-                                             scale::EncodeOpaqueValue{value1});
-  Buffer vals_encoded = Buffer(scale::encode(vals).value());
+  std::vector<scale::EncodeOpaqueValue> vals(
+      scale::detail::compact_integer::kMinUint16 - 1,
+      scale::EncodeOpaqueValue{value1});
+  Buffer vals_encoded = Buffer(encode(vals).value());
 
   {
     // @when encoded vals is stored by given key
@@ -316,7 +318,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
     // @when storage is inserted by one more value by the same key
     vals.push_back(scale::EncodeOpaqueValue{value2});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
     EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))

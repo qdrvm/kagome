@@ -40,6 +40,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::scale::encode;
 using testing::_;
 using testing::A;
 using testing::An;
@@ -175,7 +176,7 @@ class TriePrunerTest : public testing::Test {
 
     pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block = {}};
-    auto info_enc = scale::encode(info).value();
+    auto info_enc = encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
         .WillByDefault(
@@ -206,7 +207,7 @@ class TriePrunerTest : public testing::Test {
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
                                                          last_pruned};
 
-    auto info_enc = scale::encode(info).value();
+    auto info_enc = encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
         .WillByDefault(
@@ -670,7 +671,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   trie_pruner::TriePrunerImpl::TriePrunerInfo info{
       .last_pruned_block = BlockInfo{3, hash_from_header(headers.at(3))}};
-  auto info_enc = scale::encode(info).value();
+  auto info_enc = encode(info).value();
   static auto key = ":trie_pruner:info"_buf;
   ON_CALL(*pruner_space, tryGetMock(key.view()))
       .WillByDefault(

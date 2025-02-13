@@ -9,6 +9,7 @@
 #include <secp256k1_recovery.h>
 
 #include "crypto/hasher.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EcdsaProviderImpl::Error, e) {
   using E = decltype(e);

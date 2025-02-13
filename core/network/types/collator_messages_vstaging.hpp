@@ -21,6 +21,7 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network::vstaging {
   using Dummy = network::Dummy;
@@ -109,21 +110,11 @@ namespace kagome::network::vstaging {
         : inner_value{std::move(val)} {}
     CompactStatement() = default;
 
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const CompactStatement &c) {
-      s << c.header << c.inner_value;
-      return s;
-    }
-
-    friend inline ::scale::ScaleDecoderStream &operator>>(
-        ::scale::ScaleDecoderStream &s, CompactStatement &c) {
-      s >> c.header >> c.inner_value;
-      return s;
-    }
-
     bool operator==(const CompactStatement &r) const {
       return inner_value == r.inner_value;
     }
+
+    SCALE_CUSTOM_DECOMPOSITION(CompactStatement, header, inner_value);
   };
 
   using SignedCompactStatement = IndexedAndSigned<CompactStatement>;
@@ -208,7 +199,6 @@ namespace kagome::network::vstaging {
 
     bool operator==(const StatementFilter &other) const = default;
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(StatementFilter,
                                seconded_in_group,
                                validated_in_group);

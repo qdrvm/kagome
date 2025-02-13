@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
+#include <common/empty.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/peer/peer_id.hpp>
+#include <qtils/tagged.hpp>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::offchain {
 
@@ -33,7 +33,7 @@ namespace kagome::offchain {
 
   using RequestId = int16_t;
 
-  enum class HttpError : int32_t {
+  enum class HttpError : uint32_t {
     Timeout = 0,   //!< The deadline was reached
     IoError = 1,   //!< There was an IO error while processing the request
     InvalidId = 2  //!< The ID of the request is invalid
@@ -53,35 +53,31 @@ namespace kagome::offchain {
   constexpr HttpStatus DeadlineHasReached(10);
   constexpr HttpStatus ErrorHasOccurred(20);
 
-  struct NoPayload {
-    bool operator==(const NoPayload &) const {
-      return true;
-    }
-  };
+  struct Success : Empty {};
+  struct Failure : Empty {};
 
-  struct Success : public NoPayload {};
-  struct Failure : public NoPayload {};
-
-  template <typename S, typename F>
-  struct Result final : boost::variant<S, F> {
-    using Base = boost::variant<S, F>;
+  template <typename Succ, typename Fail>
+  struct Result final : std::variant<Succ, Fail> {
+    using Base = std::variant<Succ, Fail>;
     using Base::Base;
     bool operator==(const Result &r_) const {
       const Base &l = *this, &r = r_;
       return l == r;
     }
     bool isSuccess() const {
-      return boost::variant<S, F>::which() == 0;
+      return std::variant<Succ, Fail>::index() == 0;
     }
     bool isFailure() const {
-      return boost::variant<S, F>::which() == 1;
+      return std::variant<Succ, Fail>::index() == 1;
     }
-    S &value() {
-      return boost::relaxed_get<S>(*this);
+    Succ &value() {
+      return std::get<Succ>(*this);
     }
-    F &error() {
-      return boost::relaxed_get<F>(*this);
+    Fail &error() {
+      return std::get<Fail>(*this);
     }
+
+    SCALE_CUSTOM_DECOMPOSITION(Result, SCALE_FROM_BASE(Base));
   };
 
   struct OpaqueNetworkState {
@@ -96,42 +92,30 @@ namespace kagome::offchain {
         : peer_id(
             libp2p::peer::PeerId::fromPublicKey(libp2p::crypto::ProtobufKey{{}})
                 .value()) {}
+
+    friend void encode(const OpaqueNetworkState &v, scale::Encoder &encoder) {
+      encode(v.peer_id.toVector(), encoder);
+      encode(scale::as_compact(v.address.size()), encoder);
+      for (auto &address : v.address) {
+        encode(address.getBytesAddress(), encoder);
+      }
+    }
+
+    friend void decode(OpaqueNetworkState &v, scale::Decoder &decoder) {
+      common::Buffer buff;
+      decode(buff, decoder);
+      auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
+      v.peer_id = std::move(peer_id_res.value());
+
+      size_t size;
+      decode(scale::as_compact(size), decoder);
+
+      for (size_t i = 0; i < size; i++) {
+        decode(buff, decoder);
+        auto ma_res = libp2p::multi::Multiaddress::create(buff);
+        v.address.emplace_back(std::move(ma_res.value()));
+      }
+    }
   };
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
-    s << v.peer_id.toVector();
-
-    s << scale::as_compact(v.address.size());
-
-    for (auto &address : v.address) {
-      s << address.getBytesAddress();
-    }
-
-    return s;
-  }
-
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, OpaqueNetworkState &v) {
-    common::Buffer buff;
-
-    s >> buff;
-    auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
-    v.peer_id = std::move(peer_id_res.value());
-
-    size_t size;
-    s >> scale::as_compact(size);
-    v.address.resize(size);
-
-    for (auto &address : v.address) {
-      s >> buff;
-      auto ma_res = libp2p::multi::Multiaddress::create(buff);
-      address = std::move(ma_res.value());
-    }
-
-    return s;
-  }
 
 }  // namespace kagome::offchain

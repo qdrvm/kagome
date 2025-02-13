@@ -83,21 +83,17 @@ namespace kagome::primitives {
 
   /**
    * @brief decodes InherentData object instance from stream
-   * @param s stream reference
+   * @param decoder stream reference
    * @param v value to decode
    * @return reference to stream
    */
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               InherentData &v) {
+  inline void decode(InherentData &v, scale::Decoder &decoder) {
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
-    s >> vec;
-
+    decode(vec, decoder);
     for (const auto &pair : vec) {
       if (not v.data.emplace(pair).second) {
         common::raise(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
       }
     }
-
-    return s;
   }
 }  // namespace kagome::primitives

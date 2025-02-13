@@ -24,7 +24,7 @@
 #include "primitives/rpc_methods.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
 #include "primitives/version.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::api {
 

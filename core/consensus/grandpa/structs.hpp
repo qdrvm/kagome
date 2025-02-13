@@ -50,6 +50,7 @@ namespace kagome::consensus::grandpa {
     }
 
     bool operator==(const SignedMessage &other) const = default;
+    SCALE_CUSTOM_DECOMPOSITION(SignedMessage, message, signature, id);
   };
 
   using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
@@ -114,7 +115,6 @@ namespace kagome::consensus::grandpa {
       return vote.id;
     }
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(VoteMessage, round_number, counter, vote);
   };
 

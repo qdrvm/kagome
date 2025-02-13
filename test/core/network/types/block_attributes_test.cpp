@@ -9,13 +9,13 @@
 #include <gtest/gtest.h>
 #include <qtils/test/outcome.hpp>
 
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/testparam.hpp"
 
 using kagome::network::BlockAttribute;
 
-using scale::decode;
-using scale::encode;
+using kagome::scale::decode;
+using kagome::scale::encode;
 
 using BlockAttributesTestParam = testutil::TestParam<BlockAttribute>;
 

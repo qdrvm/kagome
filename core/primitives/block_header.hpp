@@ -37,6 +37,12 @@ namespace kagome::primitives {
                     state_root,
                     extrinsics_root,
                     digest)
+    SCALE_CUSTOM_DECOMPOSITION(BlockHeader,
+                               parent_hash,
+                               scale::as_compact(number),
+                               state_root,
+                               extrinsics_root,
+                               digest)
 
     std::optional<primitives::BlockInfo> parentInfo() const {
       if (number != 0) {
@@ -78,6 +84,12 @@ namespace kagome::primitives {
           state_root(origin.state_root),
           extrinsics_root(origin.extrinsics_root),
           digest(origin.digest) {}
+    SCALE_CUSTOM_DECOMPOSITION(BlockHeaderReflection,
+                               parent_hash,
+                               scale::as_compact(number),
+                               state_root,
+                               extrinsics_root,
+                               digest);
   };
 
   // Reflection of block header without Seal, which is the last digest
@@ -98,40 +110,6 @@ namespace kagome::primitives {
     const BlockHash hash;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
-    return s << bhr.parent_hash << scale::as_compact(bhr.number)
-             << bhr.state_root << bhr.extrinsics_root << bhr.digest;
-  }
-  /**
-   *
-   * @brief outputs object of type BlockHeader to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                               const BlockHeader &bh) {
-    return s << bh.parent_hash << scale::as_compact(bh.number) << bh.state_root
-             << bh.extrinsics_root << bh.digest;
-  }
-
-  /**
-   * @brief decodes object of type BlockHeader from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               BlockHeader &bh) {
-    s >> bh.parent_hash >> scale::as_compact(bh.number) >> bh.state_root
-        >> bh.extrinsics_root >> bh.digest;
-    return s;
-  }
 
   void calculateBlockHash(const BlockHeader &header,
                           const crypto::Hasher &hasher);

@@ -10,7 +10,7 @@
 
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/types.hpp"

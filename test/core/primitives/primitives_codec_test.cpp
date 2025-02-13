@@ -16,7 +16,7 @@
 #include "primitives/inherent_data.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Blob;
@@ -37,12 +37,8 @@ using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
 using kagome::primitives::Version;
-using scale::ByteArray;
-using scale::ScaleDecoderStream;
-using scale::ScaleEncoderStream;
-
-using scale::decode;
-using scale::encode;
+using kagome::scale::decode;
+using kagome::scale::encode;
 
 using testutil::createHash256;
 

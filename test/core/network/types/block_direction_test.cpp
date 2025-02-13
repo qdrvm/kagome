@@ -15,8 +15,8 @@
 
 using kagome::network::Direction;
 
-using scale::decode;
-using scale::encode;
+using kagome::scale::decode;
+using kagome::scale::encode;
 
 using DirectionTestParam = testutil::TestParam<Direction>;
 

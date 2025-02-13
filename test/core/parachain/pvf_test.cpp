@@ -30,6 +30,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
 #include "runtime/executor.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -52,6 +53,7 @@ using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
 using kagome::runtime::NoopWasmInstrumenter;
+using kagome::scale::encode;
 namespace application = kagome::application;
 namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
@@ -130,8 +132,7 @@ class PvfTest : public testing::Test {
       ON_CALL(*module, instantiate()).WillByDefault([=] {
         auto instance = std::make_shared<ModuleInstanceMock>();
         ON_CALL(*instance, callExportFunction(_, "validate_block", _))
-            .WillByDefault(
-                Return(Buffer{scale::encode(ValidationResult{}).value()}));
+            .WillByDefault(Return(Buffer{encode(ValidationResult{}).value()}));
         ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
         EXPECT_CALL(*instance, stateless())
             .WillRepeatedly(Return(outcome::success()));
@@ -146,11 +147,10 @@ class PvfTest : public testing::Test {
       Pvf::CandidateReceipt receipt;
       receipt.descriptor.validation_code_hash = code_hash;
       receipt.descriptor.para_id = para;
-      receipt.descriptor.pov_hash =
-          hasher_->blake2b_256(scale::encode(pov).value());
+      receipt.descriptor.pov_hash = hasher_->blake2b_256(encode(pov).value());
       receipt.descriptor.para_head_hash = hasher_->blake2b_256(pvd.parent_head);
-      receipt.commitments_hash = hasher_->blake2b_256(
-          scale::encode(Pvf::CandidateCommitments{}).value());
+      receipt.commitments_hash =
+          hasher_->blake2b_256(encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
         EXPECT_OUTCOME_SUCCESS(r);

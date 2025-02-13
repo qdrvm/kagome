@@ -64,17 +64,6 @@
         OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
-                                                                               \
-      friend inline ::scale::ScaleEncoderStream &operator<<(                   \
-          ::scale::ScaleEncoderStream &s,                                      \
-          const space_name::class_name &data) {                                \
-        return s << static_cast<const Base &>(data);                           \
-      }                                                                        \
-                                                                               \
-      friend inline ::scale::ScaleDecoderStream &operator>>(                   \
-          ::scale::ScaleDecoderStream &s, space_name::class_name &data) {      \
-        return s >> static_cast<Base &>(data);                                 \
-      }                                                                        \
     };                                                                         \
   };                                                                           \
                                                                                \
