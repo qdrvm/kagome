@@ -38,6 +38,10 @@ namespace kagome::crypto {
         csprng_{std::move(csprng)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger("Bip39Provider", "bip39")} {
+    BOOST_ASSERT(pbkdf2_provider_ != nullptr);
+    BOOST_ASSERT(csprng_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(logger_ != nullptr);
     dictionary_.initialize();
   }
 
