@@ -269,9 +269,6 @@ namespace kagome::parachain {
 
     virtual void onViewUpdated(const network::ExView &event);
 
-    virtual void onDeactivateBlocks(
-        const primitives::events::RemoveAfterFinalizationParams &event);
-
     virtual void handle_collation_fetch_response(
         network::CollationEvent &&collation_event,
         network::CollationFetchingResponse &&response);
@@ -937,14 +934,6 @@ namespace kagome::parachain {
     void onViewUpdated(const network::ExView &event) override {
       REINVOKE(
           *main_pool_handler_, ParachainProcessorImpl::onViewUpdated, event);
-    }
-
-    void onDeactivateBlocks(
-        const primitives::events::RemoveAfterFinalizationParams &event)
-        override {
-      REINVOKE(*main_pool_handler_,
-               ParachainProcessorImpl::onDeactivateBlocks,
-               event);
     }
 
     void handle_collation_fetch_response(

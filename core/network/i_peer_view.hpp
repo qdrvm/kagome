@@ -22,6 +22,7 @@ namespace kagome::network {
   using HashedBlockHeader = primitives::BlockHeader;
   struct ExView {
     View view;
+    View stripped_view;
     HashedBlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
   };
@@ -64,6 +65,7 @@ namespace kagome::network {
     virtual void updateRemoteView(const PeerId &peer_id,
                                   network::View &&view) = 0;
     virtual const View &getMyView() const = 0;
+    virtual const View &getMyViewStripped() const = 0;
   };
 
 }  // namespace kagome::network

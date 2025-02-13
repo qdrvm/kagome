@@ -33,5 +33,6 @@ namespace kagome::network {
                 (override));
 
     MOCK_METHOD(const View &, getMyView, (), (const, override));
+    MOCK_METHOD(const View &, getMyViewStripped, (), (const, override));
   };
 }  // namespace kagome::network

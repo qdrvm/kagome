@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <map>
+
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
@@ -186,6 +188,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     std::vector<runtime::CoreState> availability_cores;
     SigningContext signing_context;
     uint32_t minimum_backing_votes;
+    std::map<CoreIndex, std::vector<ParachainId>> claim_queue;
 
     struct {
       std::vector<runtime::ValidatorGroup> groups;
@@ -242,6 +245,9 @@ class BackingTest : public ProspectiveParachainsTestHarness {
                                 .para_id = chain_b,
                                 .collator = std::nullopt,
                             }};
+
+		claim_queue[0].emplace_back(chain_a);
+		claim_queue[1].emplace_back(chain_b);
 
       const auto relay_parent = fromNumber(5);
 
@@ -390,8 +396,15 @@ class BackingTest : public ProspectiveParachainsTestHarness {
             .WillRepeatedly(Return(min_relay_parents));
       }
 
+      EXPECT_CALL(*parachain_host_, claim_queue(hash))
+          .WillRepeatedly(Return(std::make_optional(runtime::ClaimQueueSnapshot {
+            .claimes = test_state.claim_queue,
+        })));
+
       requested_len += 1;
     }
+
+
 
     my_view_observable_->notify(PeerViewMock::EventType::kViewUpdated, update);
   }
@@ -673,4 +686,7 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
 
   parachain_processor_->handle_second_message(
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
+}
+
+TEST_F(BackingTest, seconding_sanity_check_disallowed) {
 }
