@@ -108,11 +108,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     };
   }
 
-  static Hash get_parent_hash(const Hash &parent) {
-    const auto val = *(uint8_t *)&parent[0];
-    return fromNumber(val + 1);
-  }
-
   void handle_leaf_activation_2(
       const network::ExView &update,
       const TestLeaf &leaf,
@@ -191,7 +186,8 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
             .digest = {},
             .hash_opt = {},
         };
-        EXPECT_CALL(*block_tree_, tryGetBlockHeader(h_)).WillRepeatedly(Return(h));
+        EXPECT_CALL(*block_tree_, tryGetBlockHeader(h_))
+            .WillRepeatedly(Return(h));
         EXPECT_CALL(*parachain_api_, session_index_for_child(h_))
             .WillRepeatedly(Return(outcome::success(1)));
         used_relay_parents.emplace(h_);
@@ -416,7 +412,7 @@ TEST_F(ProspectiveParachainsTest,
 
   EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
-          Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
+          Return(outcome::failure(ParachainProcessor::Error::NO_STATE)));
 
   std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},

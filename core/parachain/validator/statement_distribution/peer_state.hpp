@@ -20,7 +20,7 @@
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
 }
 
 namespace kagome::parachain::statement_distribution {
