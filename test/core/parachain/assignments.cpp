@@ -7,6 +7,7 @@
 #include "crypto/key_store/key_store_impl.hpp"
 
 #include <filesystem>
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
 #include <string_view>
 
 #include <gmock/gmock.h>
@@ -83,7 +84,9 @@ struct AssignmentsTest : public test::BaseFS_Test {
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto bip39_provider = std::make_shared<Bip39ProviderImpl>(
-        std::move(pbkdf2_provider), nullptr, hasher);
+        std::move(pbkdf2_provider),
+        std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
+        hasher);
 
     auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";

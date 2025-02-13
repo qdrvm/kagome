@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <memory>
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -86,7 +87,9 @@ class RuntimeTestBaseImpl {
     auto elliptic_curves = std::make_shared<crypto::EllipticCurvesImpl>();
     auto pbkdf2_provider = std::make_shared<crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider = std::make_shared<crypto::Bip39ProviderImpl>(
-        pbkdf2_provider, nullptr, hasher_);
+        pbkdf2_provider,
+        std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
+        hasher_);
     auto keystore_path =
         filesystem::temp_directory_path() / filesystem::unique_path();
     std::shared_ptr key_file_storage =
