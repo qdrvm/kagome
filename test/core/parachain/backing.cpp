@@ -1072,13 +1072,6 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
   EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
       .WillOnce(Return(false));  // Reject candidate.
 
-  parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
-
-  assert_validate_seconded_candidate(leaf_a_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
-
-  // `seconding_sanity_check`
-  assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
-
   const network::CommittedCandidateReceipt receipt{
       .descriptor = candidate.descriptor,
       .commitments =
@@ -1101,6 +1094,15 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
           },
       .signature = {},
   };
+
+  EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
+
+  parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
+
+  assert_validate_seconded_candidate(leaf_a_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+
+  // `seconding_sanity_check`
+  assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
 
   EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
 
