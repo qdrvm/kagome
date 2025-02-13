@@ -61,7 +61,8 @@ namespace kagome::network {
     class Lost {
      public:
       Lost(const Lost &) = delete;
-      Lost(Lost &&other) : lost_{std::exchange(other.lost_, nullptr)} {}
+      Lost(Lost &&other) noexcept
+          : lost_{std::exchange(other.lost_, nullptr)} {}
       Lost(RequestResponseMetrics &metrics) : lost_{metrics.lost_} {}
       ~Lost() {
         if (lost_ != nullptr) {
@@ -71,6 +72,10 @@ namespace kagome::network {
       void notLost() {
         lost_ = nullptr;
       }
+
+      // cppcoreguidelines-special-member-functions
+      Lost &operator=(const Lost &) = delete;
+      Lost &operator=(Lost &&) = delete;
 
      private:
       metrics::Counter *lost_;
@@ -125,7 +130,7 @@ namespace kagome::network {
 
     friend RequestResponseTimeout;
 
-    RequestResponseProtocolImpl(Protocol name,
+    RequestResponseProtocolImpl(const Protocol &name,
                                 RequestResponseInject inject,
                                 Protocols protocols,
                                 log::Logger logger,
@@ -461,10 +466,12 @@ namespace kagome::network {
           });
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
     ProtocolBaseImpl base_;
     RequestResponseMetrics metrics_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::chrono::milliseconds timeout_;
+    // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 
    private:
     std::shared_ptr<PoolHandler> main_pool_handler_;

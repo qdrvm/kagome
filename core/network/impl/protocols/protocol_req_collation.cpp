@@ -60,7 +60,7 @@ namespace kagome::network {
   };
 
   ReqCollationProtocol::ReqCollationProtocol(
-      RequestResponseInject inject,
+      const RequestResponseInject &inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)

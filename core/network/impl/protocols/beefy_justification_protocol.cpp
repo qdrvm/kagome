@@ -18,7 +18,7 @@ namespace kagome::network {
   constexpr std::chrono::seconds kRequestTimeout{3};
 
   BeefyJustificationProtocol::BeefyJustificationProtocol(
-      RequestResponseInject inject,
+      const RequestResponseInject &inject,
       const blockchain::GenesisBlockHash &genesis,
       std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<Beefy> beefy)

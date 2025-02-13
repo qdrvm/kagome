@@ -40,7 +40,7 @@ namespace kagome::network {
     ReqCollationProtocol() = delete;
     ~ReqCollationProtocol() override = default;
 
-    ReqCollationProtocol(RequestResponseInject inject,
+    ReqCollationProtocol(const RequestResponseInject &inject,
                          const application::ChainSpec &chain_spec,
                          const blockchain::GenesisBlockHash &genesis_hash,
                          std::shared_ptr<ReqCollationObserver> observer);
