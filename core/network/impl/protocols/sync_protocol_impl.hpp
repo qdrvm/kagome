@@ -157,7 +157,7 @@ namespace kagome::network {
     friend RequestResponseTimeout;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     RequestResponseMetrics metrics_;
-    std::chrono::seconds timeout_{20};
+    std::chrono::milliseconds timeout_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
     detail::BlocksResponseCache response_cache_;

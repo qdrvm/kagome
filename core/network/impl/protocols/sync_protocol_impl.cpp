@@ -19,6 +19,7 @@
 #include "network/types/blocks_response.hpp"
 
 namespace kagome::network {
+  constexpr std::chrono::seconds kRequestTimeout{20};
 
   namespace detail {
     BlocksResponseCache::BlocksResponseCache(
@@ -138,6 +139,7 @@ namespace kagome::network {
               log::createLogger(kSyncProtocolName, "sync_protocol")),
         scheduler_{std::move(scheduler)},
         metrics_{kSyncProtocolName},
+        timeout_{kRequestTimeout},
         sync_observer_(std::move(sync_observer)),
         reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,
