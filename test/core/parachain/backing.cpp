@@ -887,7 +887,8 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
   const TestLeaf test_leaf_a{
       .number = LEAF_A_BLOCK_NUMBER,
       .hash = leaf_a_hash,
-      .min_relay_parents = {{para_id, LEAF_A_BLOCK_NUMBER - LEAF_A_ANCESTRY_LEN}},
+      .min_relay_parents = {{para_id,
+                             LEAF_A_BLOCK_NUMBER - LEAF_A_ANCESTRY_LEN}},
   };
 
   const BlockNumber LEAF_B_BLOCK_NUMBER = LEAF_A_BLOCK_NUMBER + 2;
@@ -897,7 +898,8 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
   const TestLeaf test_leaf_b{
       .number = LEAF_B_BLOCK_NUMBER,
       .hash = leaf_b_hash,
-      .min_relay_parents = {{para_id, LEAF_B_BLOCK_NUMBER - LEAF_B_ANCESTRY_LEN}},
+      .min_relay_parents = {{para_id,
+                             LEAF_B_BLOCK_NUMBER - LEAF_B_ANCESTRY_LEN}},
   };
 
   sync_state_observable_->notify(
@@ -914,18 +916,25 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
   const auto &expected_head_data = test_state.head_data[para_id];
   const auto pov_hash = hash_of(pov);
 
-  const auto candidate = TestCandidateBuilder{
-      .para_id = para_id,
-      .head_data = expected_head_data,
-      .pov_hash = pov_hash,
-      .relay_parent = leaf_a_parent,
-      .erasure_root = make_erasure_root(test_state, pov, pvd),
-      .persisted_validation_data_hash = hash_of(pvd),
-      .validation_code = validation_code,
-  }
-      .build(*hasher_);
+  const auto candidate =
+      TestCandidateBuilder{
+          .para_id = para_id,
+          .head_data = expected_head_data,
+          .pov_hash = pov_hash,
+          .relay_parent = leaf_a_parent,
+          .erasure_root = make_erasure_root(test_state, pov, pvd),
+          .persisted_validation_data_hash = hash_of(pvd),
+          .validation_code = validation_code,
+      }
+          .build(*hasher_);
 
-  assert_validate_seconded_candidate(leaf_a_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+  assert_validate_seconded_candidate(leaf_a_parent,
+                                     candidate,
+                                     pov,
+                                     pvd,
+                                     validation_code,
+                                     expected_head_data,
+                                     false);
 
   // `seconding_sanity_check`
   const HypotheticalCandidateComplete hypothetical_candidate{
@@ -934,24 +943,28 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
       .persisted_validation_data = pvd,
   };
 
-  const IProspectiveParachains::HypotheticalMembershipRequest expected_request_a{
-      .candidates = {hypothetical_candidate},
-      .fragment_chain_relay_parent = leaf_a_hash,
-  };
+  const IProspectiveParachains::HypotheticalMembershipRequest
+      expected_request_a{
+          .candidates = {hypothetical_candidate},
+          .fragment_chain_relay_parent = leaf_a_hash,
+      };
 
-  const auto expected_response_a = make_hypothetical_membership_response(hypothetical_candidate, leaf_a_hash);
+  const auto expected_response_a = make_hypothetical_membership_response(
+      hypothetical_candidate, leaf_a_hash);
 
-  const IProspectiveParachains::HypotheticalMembershipRequest expected_request_b{
-      .candidates = {hypothetical_candidate},
-      .fragment_chain_relay_parent = leaf_b_hash,
-  };
+  const IProspectiveParachains::HypotheticalMembershipRequest
+      expected_request_b{
+          .candidates = {hypothetical_candidate},
+          .fragment_chain_relay_parent = leaf_b_hash,
+      };
 
-  const std::vector<std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>> expected_response_b = {
-      {hypothetical_candidate, {}}
-  };
+  const std::vector<
+      std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
+      expected_response_b = {{hypothetical_candidate, {}}};
 
-  assert_hypothetical_membership_requests({{expected_request_a, expected_response_a},
-                                           {expected_request_b, expected_response_b}});
+  assert_hypothetical_membership_requests(
+      {{expected_request_a, expected_response_a},
+       {expected_request_b, expected_response_b}});
 
   const network::CommittedCandidateReceipt receipt{
       .descriptor = candidate.descriptor,
@@ -978,7 +991,7 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
 
   EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
 
-    const auto candidate_hash = network::candidateHash(*hasher_, candidate);
+  const auto candidate_hash = network::candidateHash(*hasher_, candidate);
   BackingStore::ImportResult import_result{
       .candidate = candidate_hash,
       .group_id = 0,
@@ -999,15 +1012,19 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
       .WillOnce(Return(std::cref(stmt_info)));
 
   // Prospective parachains are notified
-  EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
+  EXPECT_CALL(
+      *prospective_parachains_,
+      introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
       .WillOnce(Return(true));
 
   // Statement distribution
-  EXPECT_CALL(*statement_distribution_, share_local_statement(leaf_a_parent, testing::_))
+  EXPECT_CALL(*statement_distribution_,
+              share_local_statement(leaf_a_parent, testing::_))
       .WillOnce(Return());
 
   // Process the second message for leaf_a
-  parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
+  parachain_processor_->handle_second_message(
+      candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
 TEST_F(BackingTest, prospective_parachains_reject_candidate) {
@@ -1023,7 +1040,8 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
   const TestLeaf test_leaf_a{
       .number = LEAF_A_BLOCK_NUMBER,
       .hash = leaf_a_hash,
-      .min_relay_parents = {{para_id, LEAF_A_BLOCK_NUMBER - LEAF_A_ANCESTRY_LEN}},
+      .min_relay_parents = {{para_id,
+                             LEAF_A_BLOCK_NUMBER - LEAF_A_ANCESTRY_LEN}},
   };
 
   sync_state_observable_->notify(
@@ -1039,18 +1057,25 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
   const auto &expected_head_data = test_state.head_data[para_id];
   const auto pov_hash = hash_of(pov);
 
-  const auto candidate = TestCandidateBuilder{
-      .para_id = para_id,
-      .head_data = expected_head_data,
-      .pov_hash = pov_hash,
-      .relay_parent = leaf_a_parent,
-      .erasure_root = make_erasure_root(test_state, pov, pvd),
-      .persisted_validation_data_hash = hash_of(pvd),
-      .validation_code = validation_code,
-  }
-      .build(*hasher_);
+  const auto candidate =
+      TestCandidateBuilder{
+          .para_id = para_id,
+          .head_data = expected_head_data,
+          .pov_hash = pov_hash,
+          .relay_parent = leaf_a_parent,
+          .erasure_root = make_erasure_root(test_state, pov, pvd),
+          .persisted_validation_data_hash = hash_of(pvd),
+          .validation_code = validation_code,
+      }
+          .build(*hasher_);
 
-  assert_validate_seconded_candidate(leaf_a_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+  assert_validate_seconded_candidate(leaf_a_parent,
+                                     candidate,
+                                     pov,
+                                     pvd,
+                                     validation_code,
+                                     expected_head_data,
+                                     false);
 
   // `seconding_sanity_check`
   const HypotheticalCandidateComplete hypothetical_candidate{
@@ -1059,17 +1084,22 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
       .persisted_validation_data = pvd,
   };
 
-  const IProspectiveParachains::HypotheticalMembershipRequest expected_request_a{
-      .candidates = {hypothetical_candidate},
-      .fragment_chain_relay_parent = leaf_a_hash,
-  };
+  const IProspectiveParachains::HypotheticalMembershipRequest
+      expected_request_a{
+          .candidates = {hypothetical_candidate},
+          .fragment_chain_relay_parent = leaf_a_hash,
+      };
 
-  const auto expected_response_a = make_hypothetical_membership_response(hypothetical_candidate, leaf_a_hash);
+  const auto expected_response_a = make_hypothetical_membership_response(
+      hypothetical_candidate, leaf_a_hash);
 
-  assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
+  assert_hypothetical_membership_requests(
+      {{expected_request_a, expected_response_a}});
 
   // Prospective parachains are notified, reject the candidate.
-  EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
+  EXPECT_CALL(
+      *prospective_parachains_,
+      introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
       .WillOnce(Return(false));  // Reject candidate.
 
   const network::CommittedCandidateReceipt receipt{
@@ -1097,16 +1127,24 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
 
   EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
 
-  parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
+  parachain_processor_->handle_second_message(
+      candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 
-  assert_validate_seconded_candidate(leaf_a_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+  assert_validate_seconded_candidate(leaf_a_parent,
+                                     candidate,
+                                     pov,
+                                     pvd,
+                                     validation_code,
+                                     expected_head_data,
+                                     false);
 
   // `seconding_sanity_check`
-  assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
+  assert_hypothetical_membership_requests(
+      {{expected_request_a, expected_response_a}});
 
   EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
 
-    const auto candidate_hash = network::candidateHash(*hasher_, candidate);
+  const auto candidate_hash = network::candidateHash(*hasher_, candidate);
   BackingStore::ImportResult import_result{
       .candidate = candidate_hash,
       .group_id = 0,
@@ -1127,14 +1165,18 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
       .WillOnce(Return(std::cref(stmt_info)));
 
   // Prospective parachains are notified again, now accept the candidate.
-  EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
+  EXPECT_CALL(
+      *prospective_parachains_,
+      introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
       .WillOnce(Return(true));  // Accept candidate.
 
   // Statement distribution
-  EXPECT_CALL(*statement_distribution_, share_local_statement(leaf_a_parent, testing::_))
+  EXPECT_CALL(*statement_distribution_,
+              share_local_statement(leaf_a_parent, testing::_))
       .WillOnce(Return());
 
-  parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
+  parachain_processor_->handle_second_message(
+      candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
 TEST_F(BackingTest, second_multiple_candidates_per_relay_parent) {
@@ -1186,82 +1228,100 @@ TEST_F(BackingTest, second_multiple_candidates_per_relay_parent) {
   const auto candidate_b = candidate_b_builder.build(*hasher_);
 
   // Helper function to process candidates
-  auto process_candidate = [&](const auto& candidate) {
-      assert_validate_seconded_candidate(leaf_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+  auto process_candidate = [&](const auto &candidate) {
+    assert_validate_seconded_candidate(leaf_parent,
+                                       candidate,
+                                       pov,
+                                       pvd,
+                                       validation_code,
+                                       expected_head_data,
+                                       false);
 
-      // Hypothetical candidate checks
-      const HypotheticalCandidateComplete hypothetical_candidate{
-          .candidate_hash = network::candidateHash(*hasher_, candidate),
-          .receipt = candidate,
-          .persisted_validation_data = pvd,
-      };
+    // Hypothetical candidate checks
+    const HypotheticalCandidateComplete hypothetical_candidate{
+        .candidate_hash = network::candidateHash(*hasher_, candidate),
+        .receipt = candidate,
+        .persisted_validation_data = pvd,
+    };
 
-      const IProspectiveParachains::HypotheticalMembershipRequest expected_request_a{
-          .candidates = {hypothetical_candidate},
-          .fragment_chain_relay_parent = leaf_hash,
-      };
+    const IProspectiveParachains::HypotheticalMembershipRequest
+        expected_request_a{
+            .candidates = {hypothetical_candidate},
+            .fragment_chain_relay_parent = leaf_hash,
+        };
 
-      const auto expected_response_a = make_hypothetical_membership_response(hypothetical_candidate, leaf_hash);
-      assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
+    const auto expected_response_a = make_hypothetical_membership_response(
+        hypothetical_candidate, leaf_hash);
+    assert_hypothetical_membership_requests(
+        {{expected_request_a, expected_response_a}});
 
-      // Prospective parachains are notified
-      EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
-          .WillOnce(Return(true));  // Accept candidate.
+    // Prospective parachains are notified
+    EXPECT_CALL(*prospective_parachains_,
+                introduce_seconded_candidate(
+                    para_id, candidate, testing::_, testing::_))
+        .WillOnce(Return(true));  // Accept candidate.
 
-  const network::CommittedCandidateReceipt receipt{
-      .descriptor = candidate.descriptor,
-      .commitments =
-          network::CandidateCommitments{
-              .upward_msgs = {},
-              .outbound_hor_msgs = {},
-              .opt_para_runtime = std::nullopt,
-              .para_head = expected_head_data,
-              .downward_msgs_count = 0,
-              .watermark = 0,
-          },
-  };
-  network::Statement statement{network::CandidateState{receipt}};
+    const network::CommittedCandidateReceipt receipt{
+        .descriptor = candidate.descriptor,
+        .commitments =
+            network::CandidateCommitments{
+                .upward_msgs = {},
+                .outbound_hor_msgs = {},
+                .opt_para_runtime = std::nullopt,
+                .para_head = expected_head_data,
+                .downward_msgs_count = 0,
+                .watermark = 0,
+            },
+    };
+    network::Statement statement{network::CandidateState{receipt}};
 
-  IndexedAndSigned<network::Statement> signed_statement{
-      .payload =
-          {
-              .payload = statement,
-              .ix = 0,
-          },
-      .signature = {},
-  };
+    IndexedAndSigned<network::Statement> signed_statement{
+        .payload =
+            {
+                .payload = statement,
+                .ix = 0,
+            },
+        .signature = {},
+    };
 
-  EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
+    EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
 
     const auto candidate_hash = network::candidateHash(*hasher_, candidate);
-  BackingStore::ImportResult import_result{
-      .candidate = candidate_hash,
-      .group_id = 0,
-      .validity_votes = 1,
-  };
+    BackingStore::ImportResult import_result{
+        .candidate = candidate_hash,
+        .group_id = 0,
+        .validity_votes = 1,
+    };
 
-  EXPECT_CALL(
-      *backing_store_,
-      put(candidate.descriptor.relay_parent, testing::_, testing::_, signed_statement, testing::_))
-      .WillOnce(Return(import_result));
+    EXPECT_CALL(*backing_store_,
+                put(candidate.descriptor.relay_parent,
+                    testing::_,
+                    testing::_,
+                    signed_statement,
+                    testing::_))
+        .WillOnce(Return(import_result));
 
-  BackingStore::StatementInfo stmt_info{
-      .group_id = 0,
-      .candidate = receipt,
-      .validity_votes = {{0, BackingStore::ValidityVoteIssued{}}},
-  };
-  EXPECT_CALL(*backing_store_, getCadidateInfo(candidate.descriptor.relay_parent, candidate_hash))
-      .WillOnce(Return(std::cref(stmt_info)));
+    BackingStore::StatementInfo stmt_info{
+        .group_id = 0,
+        .candidate = receipt,
+        .validity_votes = {{0, BackingStore::ValidityVoteIssued{}}},
+    };
+    EXPECT_CALL(
+        *backing_store_,
+        getCadidateInfo(candidate.descriptor.relay_parent, candidate_hash))
+        .WillOnce(Return(std::cref(stmt_info)));
 
-      // Statement distribution
-      EXPECT_CALL(*statement_distribution_, share_local_statement(candidate.descriptor.relay_parent, testing::_))
-          .WillOnce(Return());
+    // Statement distribution
+    EXPECT_CALL(
+        *statement_distribution_,
+        share_local_statement(candidate.descriptor.relay_parent, testing::_))
+        .WillOnce(Return());
 
-      parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_hash);
+    parachain_processor_->handle_second_message(
+        candidate.to_plain(*hasher_), pov, pvd, leaf_hash);
   };
 
   // Process candidate_a and candidate_b
   process_candidate(candidate_a);
   process_candidate(candidate_b);
 }
-
