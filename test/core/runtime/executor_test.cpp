@@ -40,6 +40,7 @@ using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TestMemory;
 using kagome::runtime::TrieStorageProviderMock;
+using kagome::scale::encode;
 using kagome::storage::trie::TrieBatch;
 using kagome::storage::trie::TrieBatchMock;
 using testing::_;
@@ -99,7 +100,7 @@ class ExecutorTest : public testing::Test {
     static const auto code_hash = "code_hash"_hash256;
     EXPECT_CALL(*module_instance, getCodeHash())
         .WillRepeatedly(Return(code_hash));
-    Buffer enc_res{scale::encode(res).value()};
+    Buffer enc_res{encode(res).value()};
     EXPECT_CALL(*module_instance,
                 callExportFunction(_, std::string_view{"addTwo"}, _))
         .WillRepeatedly(Return(enc_res));
@@ -152,7 +153,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
-  Buffer enc_args{scale::encode(std::tuple(2, 3)).value()};
+  Buffer enc_args{encode(std::tuple(2, 3)).value()};
   ASSERT_OUTCOME_SUCCESS(ctx1,
                          prepareCall(block_info1,
                                      "state_hash1"_hash256,
@@ -162,7 +163,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   auto res = executor.call<int>(ctx1, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
-  enc_args = scale::encode(std::tuple(7, 10)).value();
+  enc_args = encode(std::tuple(7, 10)).value();
   ASSERT_OUTCOME_SUCCESS(ctx2,
                          prepareCall(block_info1,
                                      "state_hash2"_hash256,
@@ -172,7 +173,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_OUTCOME_SUCCESS(res2, executor.call<int>(ctx2, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
-  enc_args = scale::encode(std::tuple(0, 0)).value();
+  enc_args = encode(std::tuple(0, 0)).value();
   ASSERT_OUTCOME_SUCCESS(ctx3,
                          prepareCall(block_info1,
                                      "state_hash2"_hash256,
@@ -181,7 +182,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
                                      0));
   EXPECT_EQ(executor.call<int>(ctx3, "addTwo", 0, 0).value(), 0);
 
-  enc_args = scale::encode(std::tuple(7, 10)).value();
+  enc_args = encode(std::tuple(7, 10)).value();
   ASSERT_OUTCOME_SUCCESS(ctx4,
                          prepareCall(block_info1,
                                      "state_hash3"_hash256,
@@ -191,7 +192,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_OUTCOME_SUCCESS(res4, executor.call<int>(ctx4, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
-  enc_args = scale::encode(std::tuple(-5, 5)).value();
+  enc_args = encode(std::tuple(-5, 5)).value();
   ASSERT_OUTCOME_SUCCESS(ctx5,
                          prepareCall(block_info2,
                                      "state_hash4"_hash256,
@@ -200,7 +201,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
                                      0));
   EXPECT_EQ(executor.call<int>(ctx5, "addTwo", -5, 5).value(), 0);
 
-  enc_args = scale::encode(std::tuple(7, 10)).value();
+  enc_args = encode(std::tuple(7, 10)).value();
   ASSERT_OUTCOME_SUCCESS(ctx6,
                          prepareCall(block_info2,
                                      "state_hash5"_hash256,

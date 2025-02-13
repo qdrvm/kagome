@@ -24,6 +24,7 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::RuntimeDispatchInfo;
 using kagome::primitives::Weight;
 using kagome::runtime::TransactionPaymentApiMock;
+using kagome::scale::decode;
 
 using testing::_;
 using testing::Return;
@@ -82,7 +83,7 @@ TEST_F(PaymentApiTest, DecodeRuntimeDispatchInfo) {
   Buffer data =
       Buffer::fromHex("8223712225380032153009000000000000000000000000").value();
 
-  auto info = scale::decode<RuntimeDispatchInfo<Weight>>(data).value();
+  auto info = decode<RuntimeDispatchInfo<Weight>>(data).value();
 
   ASSERT_EQ(info.weight.ref_time, 144460000);
   ASSERT_EQ(info.weight.proof_size, 3593);

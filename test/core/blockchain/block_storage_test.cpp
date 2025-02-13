@@ -15,7 +15,6 @@
 #include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -31,11 +30,11 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
+using kagome::scale::encode;
 using kagome::storage::BufferStorageMock;
 using kagome::storage::Space;
 using kagome::storage::SpacedStorageMock;
 using kagome::storage::trie::RootHash;
-using scale::encode;
 using testing::_;
 using testing::Ref;
 using testing::Return;
@@ -81,7 +80,7 @@ class BlockStorageTest : public testing::Test {
 
   std::shared_ptr<BlockStorageImpl> createWithGenesis() {
     // calculate hash of genesis block at put block header
-    static auto encoded_header = Buffer(scale::encode(BlockHeader{}).value());
+    static auto encoded_header = Buffer(encode(BlockHeader{}).value());
     ON_CALL(*hasher, blake2b_256(encoded_header.view()))
         .WillByDefault(Return(genesis_block_hash));
 
@@ -217,7 +216,7 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  auto encoded_header = Buffer(scale::encode(block.header).value());
+  auto encoded_header = Buffer(encode(block.header).value());
   ON_CALL(*hasher, blake2b_256(encoded_header.view()))
       .WillByDefault(Return(regular_block_hash));
 
@@ -241,7 +240,7 @@ TEST_F(BlockStorageTest, Remove) {
 
   BufferView hash(genesis_block_hash);
 
-  Buffer encoded_header{scale::encode(BlockHeader{}).value()};
+  Buffer encoded_header{encode(BlockHeader{}).value()};
 
   EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
       .WillOnce(Return(encoded_header));

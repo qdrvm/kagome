@@ -135,38 +135,32 @@ namespace kagome::primitives {
 
     bool operator==(const InvalidTransaction &other) const {
       return kind == other.kind
-          && (kind != Kind::Custom || custom_value == other.custom_value);
+          && (kind != Custom || custom_value == other.custom_value);
+    }
+
+    friend void encode(const InvalidTransaction &v, scale::Encoder &encoder) {
+      // -1 is needed for compatibility with Rust; indices of error codes start
+      // from 0 there, while in kagome they must start from 1 because of
+      // std::error_code policy
+      encoder.put(static_cast<uint8_t>(v.kind) - 1);
+      if (v.kind == Custom) {
+        encoder.put(v.custom_value);
+      }
+    }
+
+    friend void decode(InvalidTransaction &v, scale::Decoder &decoder) {
+      uint8_t value = decoder.take();
+
+      // increment is needed for compatibility with Rust; indices of error codes
+      // start from 0 there, while in kagome they must start from 1 because of
+      // std::error_code policy
+      ++value;
+      v.kind = static_cast<Kind>(value);
+      if (v.kind == Custom) {
+        v.custom_value = decoder.take();
+      }
     }
   };
-
-  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                               const InvalidTransaction &v) {
-    // -1 is needed for compatibility with Rust; indices of error codes start
-    // from 0 there, while in kagome they must start from 1 because of
-    // std::error_code policy
-    s << static_cast<uint8_t>(v.kind) - 1;
-    if (v.kind == InvalidTransaction::Custom) {
-      s << v.custom_value;
-    }
-    return s;
-  }
-
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               InvalidTransaction &v) {
-    uint8_t value = 0u;
-    s >> value;
-
-    // increment is needed for compatibility with Rust; indices of error codes
-    // start from 0 there, while in kagome they must start from 1 because of
-    // std::error_code policy
-    value++;
-    v.kind = static_cast<InvalidTransaction::Kind>(value);
-    if (v.kind == InvalidTransaction::Custom) {
-      s >> value;
-      v.custom_value = value;
-    }
-    return s;
-  }
 
   /// An unknown transaction validity.
   struct UnknownTransaction {
@@ -188,37 +182,30 @@ namespace kagome::primitives {
 
     Kind kind;
     uint8_t custom_value{};
+
+    friend void encode(const UnknownTransaction &v, scale::Encoder &encoder) {
+      // -1 is needed for compatibility with Rust; indices of error codes start
+      // from 0 there, while in kagome they must start from 1 because of
+      // std::error_code policy
+      encoder.put(static_cast<uint8_t>(v.kind) - 1);
+      if (v.kind == Custom) {
+        encoder.put(v.custom_value);
+      }
+    }
+
+    friend void decode(UnknownTransaction &v, scale::Decoder &decoder) {
+      uint8_t value = decoder.take();
+
+      // increment is needed for compatibility with Rust; indices of error codes
+      // start from 0 there, while in kagome they must start from 1 because of
+      // std::error_code policy
+      ++value;
+      v.kind = static_cast<Kind>(value);
+      if (v.kind == Custom) {
+        v.custom_value = decoder.take();
+      }
+    }
   };
-
-  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                               const UnknownTransaction &v) {
-    // -1 is needed for compatibility with Rust; indices of error codes start
-    // from 0 there, while in kagome they must start from 1 because of
-    // std::error_code policy
-    s << static_cast<uint8_t>(v.kind - 1);
-    if (v == UnknownTransaction::Custom) {
-      s << v.custom_value;
-    }
-    return s;
-  }
-
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               UnknownTransaction &v) {
-    uint8_t value = 0u;
-    s >> value;
-
-    // increment is needed for compatibility with Rust; indices of error codes
-    // start from 0 there, while in kagome they must start from 1 because of
-    // std::error_code policy
-    value++;
-    v.kind = static_cast<UnknownTransaction::Kind>(value);
-
-    if (value == UnknownTransaction::Custom) {
-      s >> v.custom_value;
-    }
-
-    return s;
-  }
 
   using TransactionValidityError =
       boost::variant<InvalidTransaction, UnknownTransaction>;

@@ -7,6 +7,7 @@
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 
 #include "crypto/hasher.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, BandersnatchProviderError, e) {
   using E = kagome::crypto::BandersnatchProviderError;

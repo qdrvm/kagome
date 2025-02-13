@@ -13,7 +13,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "primitives/event_types.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
@@ -31,6 +31,8 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::ExtrinsicIndex;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::scale::decode;
+using kagome::scale::encode;
 using kagome::storage::InMemorySpacedStorage;
 using kagome::storage::InMemoryStorage;
 using kagome::storage::changes_trie::ChangesTracker;
@@ -75,7 +77,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<TriePrunerMock>());
 
   EXPECT_OUTCOME_SUCCESS(
-      batch->put(":extrinsic_index"_buf, Buffer{scale::encode(42).value()}));
+      batch->put(":extrinsic_index"_buf, Buffer{encode(42).value()}));
   EXPECT_OUTCOME_SUCCESS(batch->put("abc"_buf, "123"_buf));
   EXPECT_OUTCOME_SUCCESS(batch->put("cde"_buf, "345"_buf));
 

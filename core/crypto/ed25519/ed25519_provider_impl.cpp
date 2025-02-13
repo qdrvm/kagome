@@ -12,6 +12,7 @@ extern "C" {
 
 #include "crypto/common.hpp"
 #include "crypto/hasher.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
   using E = kagome::crypto::Ed25519ProviderImpl::Error;

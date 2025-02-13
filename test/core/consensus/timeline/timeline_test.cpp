@@ -74,6 +74,7 @@ using kagome::primitives::detail::DigestItemCommon;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::CoreMock;
+using kagome::scale::encode;
 using kagome::storage::trie::TrieStorageMock;
 using libp2p::basic::SchedulerMock;
 
@@ -97,12 +98,12 @@ static Digest make_digest(SlotNumber slot) {
       .authority_index = 0,
       .slot_number = slot,
   };
-  Buffer encoded_header{scale::encode(babe_header).value()};
+  Buffer encoded_header{encode(babe_header).value()};
   digest.emplace_back(
       PreRuntime{kagome::primitives::kBabeEngineId, encoded_header});
 
   Seal seal{};
-  Buffer encoded_seal{scale::encode(seal).value()};
+  Buffer encoded_seal{encode(seal).value()};
   digest.emplace_back(
       SealDigest{kagome::primitives::kBabeEngineId, encoded_seal});
 

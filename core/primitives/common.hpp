@@ -40,7 +40,6 @@ namespace kagome::primitives {
       }
       auto operator<=>(const BlockInfoT<Tag> &o) const = default;
 
-     private:
       SCALE_CUSTOM_DECOMPOSITION(BlockInfoT, hash, number);
     };
   }  // namespace detail

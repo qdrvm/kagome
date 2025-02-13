@@ -63,9 +63,9 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
-  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                                 const SignedCommitment &v) {
-    s << v.commitment;
+
+  inline void encode(const SignedCommitment &v, scale::Encoder &encoder) {
+    encode(v.commitment, encoder);
     size_t count = 0;
     common::Buffer bits;
     // https://github.com/paritytech/substrate/blob/55bb6298e74d86be12732fd0f120185ee8fbfe97/primitives/consensus/beefy/src/commitment.rs#L149-L152
@@ -78,21 +78,20 @@ namespace kagome::consensus::beefy {
       }
       ++i;
     }
-    s << bits;
-    s << static_cast<uint32_t>(v.signatures.size());
-    s << scale::as_compact(count);
+    encode(bits, encoder);
+    encode(static_cast<uint32_t>(v.signatures.size()), encoder);
+    encode(scale::as_compact(count), encoder);
     for (auto &sig : v.signatures) {
       if (sig) {
-        s << *sig;
+        encode(*sig, encoder);
       }
     }
-    return s;
   }
-  inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                                 SignedCommitment &v) {
-    s >> v.commitment;
+
+  inline void decode(SignedCommitment &v, scale::Decoder &decoder) {
+    decode(v.commitment, decoder);
     common::Buffer bits;
-    s >> bits;
+    decode(bits, decoder);
     size_t expected_count = 0;
     for (auto byte : bits) {
       for (; byte; byte >>= 1) {
@@ -100,22 +99,21 @@ namespace kagome::consensus::beefy {
       }
     }
     uint32_t total = 0;
-    s >> total;
+    decode(total, decoder);
     if (bits.size() * 8 < total) {
-      ::scale::raise(::scale::DecodeError::NOT_ENOUGH_DATA);
+      scale::raise(scale::DecodeError::NOT_ENOUGH_DATA);
     }
     size_t actual_count;
-    s >> scale::as_compact(actual_count);
+    decode(scale::as_compact(actual_count), decoder);
     if (actual_count != expected_count) {
-      ::scale::raise(::scale::DecodeError::TOO_MANY_ITEMS);
+      scale::raise(scale::DecodeError::TOO_MANY_ITEMS);
     }
     v.signatures.resize(total);
     for (size_t i = 0; i < total; ++i) {
       if ((bits[i / 8] & (1 << (7 - i % 8))) != 0) {
-        s >> v.signatures[i].emplace();
+        decode(v.signatures[i].emplace(), decoder);
       }
     }
-    return s;
   }
 
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;

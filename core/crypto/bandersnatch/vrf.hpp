@@ -89,17 +89,15 @@ namespace kagome::crypto::bandersnatch::vrf {
    public:
     static constexpr uint32_t kDomainSize = 2048;
 
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 RingContext &x) {
+    friend void decode(RingContext &x, scale::Decoder &decoder) {
       static const size_t ring_context_serialized_size =
           ::bandersnatch_ring_context_serialized_size(kDomainSize);
 
       std::vector<uint8_t> KZG(ring_context_serialized_size);
 
-      s >> KZG;
+      decode(KZG, decoder);
 
       x.ptr_ = ::bandersnatch_ring_vrf_context(KZG.data(), KZG.size());
-      return s;
     }
 
     RingProver prover(std::span<const crypto::BandersnatchPublicKey> keys,

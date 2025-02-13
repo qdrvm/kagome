@@ -61,17 +61,14 @@ namespace kagome::consensus {
       return count() <=> r.count();
     }
 
-    friend ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const SlotDuration &duration) {
-      return s << duration.count();
+    friend void encode(const SlotDuration &duration, scale::Encoder &encoder) {
+      encode(duration.count(), encoder);
     }
 
-    friend ::scale::ScaleDecoderStream &operator>>(
-        ::scale::ScaleDecoderStream &s, SlotDuration &duration) {
-      uint64_t v;  // NOLINT(cppcoreguidelines-init-variables)
-      s >> v;
-      duration = {v};
-      return s;
+    friend void decode(SlotDuration &duration, scale::Decoder &decoder) {
+      uint64_t milliseconds_amount;  // NOLINT(cppcoreguidelines-init-variables)
+      decode(milliseconds_amount, decoder);
+      duration = {milliseconds_amount};
     }
   };
 

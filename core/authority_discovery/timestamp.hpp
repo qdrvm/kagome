@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <scale/types.hpp>
+#include <scale/kagome_scale.hpp>
 
 namespace kagome::authority_discovery {
-  using Timestamp = ::scale::uint128_t;
+  using Timestamp = scale::uint128_t;
 }  // namespace kagome::authority_discovery

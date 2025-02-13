@@ -428,9 +428,10 @@ namespace kagome::offchain {
       case ErrorHasOccurred:
         error_message_ = "IO error happened";
         return HttpError::IoError;
+      default:;
     }
 
-    auto amount = std::min(response_.body().size(), chunk.size());
+    auto amount = std::min<uint32_t>(response_.body().size(), chunk.size());
 
     std::copy_n(response_.body().begin(), amount, chunk.begin());
 

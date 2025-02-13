@@ -15,7 +15,7 @@
 #include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.
@@ -51,14 +51,7 @@ namespace kagome::primitives {
   /// code and state duplication. It is erroneous for a runtime to produce
   /// these, but this is not (yet) checked.
   struct PreRuntime : public detail::DigestItemCommon {
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const PreRuntime &v) {
-      return s << static_cast<const DigestItemCommon &>(v);
-    }
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 PreRuntime &v) {
-      return s >> static_cast<DigestItemCommon &>(v);
-    }
+    SCALE_CUSTOM_DECOMPOSITION(PreRuntime, SCALE_FROM_BASE(DigestItemCommon));
   };
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/lib.rs#L130
@@ -151,31 +144,17 @@ namespace kagome::primitives {
       // clang-format on
     }
 
-    outcome::result<DecodedConsensusMessage> decode() const {
+    outcome::result<DecodedConsensusMessage> decodeConsensusMessage() const {
       return DecodedConsensusMessage::create(consensus_engine_id, data);
     }
 
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const Consensus &v) {
-      return s << static_cast<const DigestItemCommon &>(v);
-    }
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 Consensus &v) {
-      return s >> static_cast<DigestItemCommon &>(v);
-    }
+    SCALE_CUSTOM_DECOMPOSITION(Consensus, SCALE_FROM_BASE(DigestItemCommon));
   };
 
   /// Put a Seal on it.
   /// This is only used by native code, and is never seen by runtimes.
   struct Seal : public detail::DigestItemCommon {
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const Seal &v) {
-      return s << static_cast<const DigestItemCommon &>(v);
-    }
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 Seal &v) {
-      return s >> static_cast<DigestItemCommon &>(v);
-    }
+    SCALE_CUSTOM_DECOMPOSITION(Seal, SCALE_FROM_BASE(DigestItemCommon));
   };
 
   /// Runtime code or heap pages updated.

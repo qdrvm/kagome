@@ -28,14 +28,20 @@ namespace kagome::runtime {
     std::optional<uint32_t> core_version;
     if (auto apis_section = custom_section_contents("runtime_apis")) {
       apis.emplace();
-      scale::ScaleDecoderStream s{*apis_section};
-      while (s.hasMore(1)) {
-        OUTCOME_TRY(scale::decode(s, apis->emplace_back()));
+      scale::DecoderFromBytes decoder{*apis_section};
+      try {
+        while (decoder.has(1)) {
+          decode(apis->emplace_back(), decoder);
+        }
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
       }
       core_version = primitives::detail::coreVersionFromApis(*apis);
     }
-    scale::ScaleDecoderStream s{*version_section};
-    OUTCOME_TRY(version, primitives::Version::decode(s, core_version));
+    scale::DecoderFromBytes decoder{*version_section};
+    OUTCOME_TRY(version,
+                primitives::Version::decodeConsideringToCoreVersion(
+                    decoder, core_version));
     if (apis) {
       version.apis = std::move(*apis);
     }

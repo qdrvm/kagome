@@ -13,6 +13,7 @@ using kagome::runtime::MemoryAllocator;
 using kagome::runtime::MemoryAllocatorImpl;
 using kagome::runtime::MemoryConfig;
 using kagome::runtime::TestMemory;
+using kagome::scale::decode;
 
 struct Replay {
   struct OpAllocate {
@@ -28,7 +29,7 @@ struct Replay {
 };
 
 void test(std::string_view hex) {
-  auto replay = scale::decode<Replay>(unhex(hex).value()).value();
+  auto replay = decode<Replay>(unhex(hex).value()).value();
 
   TestMemory memory;
   memory.handle->resize(replay.size);

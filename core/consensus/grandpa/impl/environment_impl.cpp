@@ -33,7 +33,7 @@
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {

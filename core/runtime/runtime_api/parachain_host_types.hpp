@@ -224,6 +224,10 @@ namespace kagome::runtime {
     GroupIndex group_index{};
 
     bool operator==(const CandidateBacked &rhs) const = default;
+
+    SCALE_CUSTOM_DECOMPOSITION(CandidateBacked,
+                               SCALE_FROM_BASE(Candidate),
+                               group_index);
   };
 
   struct CandidateIncluded
@@ -238,6 +242,10 @@ namespace kagome::runtime {
       return (const Candidate &)(*this) == (const Candidate &)rhs
          and group_index == rhs.group_index;
     }
+
+    SCALE_CUSTOM_DECOMPOSITION(CandidateIncluded,
+                               SCALE_FROM_BASE(Candidate),
+                               group_index);
   };
 
   using CandidateTimedOut = Tagged<Candidate, struct CandidateTimedOut_Tag>;

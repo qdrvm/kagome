@@ -12,7 +12,7 @@
 #include "mock/core/runtime/core_api_factory_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"
@@ -23,7 +23,7 @@ using kagome::host_api::MiscExtension;
 using kagome::runtime::CoreApiFactoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::TestMemory;
-using scale::encode;
+using kagome::scale::encode;
 using testing::_;
 using testing::Invoke;
 using testing::Return;

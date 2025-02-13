@@ -15,7 +15,7 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"

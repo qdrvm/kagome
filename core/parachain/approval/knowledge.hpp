@@ -14,11 +14,12 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"
+#include "scale/kagome_scale.hpp"
 
 template <>
 struct std::hash<scale::BitVec> {
   auto operator()(const scale::BitVec &v) const {
-    auto s = scale::encode(v).value();
+    auto s = kagome::scale::encode(v).value();
     return boost::hash_range(s.begin(), s.end());
   }
 };

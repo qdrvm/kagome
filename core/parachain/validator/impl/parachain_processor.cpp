@@ -31,7 +31,7 @@
 #include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/async_sequence.hpp"
 #include "utils/map.hpp"
 #include "utils/pool_handler.hpp"
@@ -1841,14 +1841,14 @@ namespace kagome::parachain {
     network::SignedStatement stmnt{
         .payload =
             {
-                .payload = visit_in_place(
+                .payload = {visit_in_place(
                     parachain::getPayload(statement),
                     [&](const StatementWithPVDSeconded &val) {
                       return network::CandidateState{val.committed_receipt};
                     },
                     [&](const StatementWithPVDValid &val) {
                       return network::CandidateState{val.candidate_hash};
-                    }),
+                    })},
                 .ix = statement.payload.ix,
             },
         .signature = statement.signature,
@@ -2134,7 +2134,7 @@ namespace kagome::parachain {
           return {
               .payload =
                   {
-                      .payload = network::CandidateState{s.committed_receipt},
+                      .payload = {network::CandidateState{s.committed_receipt}},
                       .ix = statement.payload.ix,
                   },
               .signature = statement.signature,
@@ -2144,7 +2144,7 @@ namespace kagome::parachain {
           return {
               .payload =
                   {
-                      .payload = network::CandidateState{s.candidate_hash},
+                      .payload = {network::CandidateState{s.candidate_hash}},
                       .ix = statement.payload.ix,
                   },
               .signature = statement.signature,

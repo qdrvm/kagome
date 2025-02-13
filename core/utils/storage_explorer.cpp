@@ -456,7 +456,7 @@ class SearchChainCommand : public Command {
           std::get_if<kagome::primitives::Consensus>(&digest_item);
       if (consensus_digest) {
         auto decoded = unwrapResult("Decoding consensus digest",
-                                    consensus_digest->decode());
+                                    consensus_digest->decodeConsensusMessage());
         if (decoded.consensus_engine_id
             == kagome::primitives::kGrandpaEngineId) {
           reportAuthorityUpdate(out, header.number, decoded.asGrandpaDigest());

@@ -44,7 +44,7 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/mkdirs.hpp"
 #include "utils/spdlog_stderr.hpp"
 

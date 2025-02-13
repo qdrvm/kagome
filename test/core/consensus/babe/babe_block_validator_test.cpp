@@ -58,6 +58,7 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::BabeApiMock;
+using kagome::scale::encode;
 using Seal = kagome::consensus::babe::Seal;
 using ValidatingError =
     kagome::consensus::babe::BabeBlockValidatorImpl::ValidationError;
@@ -134,7 +135,7 @@ class BabeBlockValidatorTest : public testing::Test {
                                authority_index_,
                                slot_number_,
                                {vrf_value_, vrf_proof_}};
-  Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
+  Buffer encoded_babe_header_{encode(babe_header_).value()};
 
   BlockHeader block_header_{123,           // number
                             parent_hash_,  // parent
@@ -173,7 +174,7 @@ class BabeBlockValidatorTest : public testing::Test {
 
     // seal the block
     Seal seal{sr25519_signature};
-    Buffer encoded_seal{scale::encode(seal).value()};
+    Buffer encoded_seal{encode(seal).value()};
     block.header.digest.push_back(
         kagome::primitives::Seal{{kEngineId, encoded_seal}});
 
@@ -191,7 +192,7 @@ TEST_F(BabeBlockValidatorTest, Success) {
   // get an encoded pre-seal part of the block's header
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = encode(block_copy.header).value();
   BlockHash encoded_block_copy_hash{};  // not a real hash, but don't want to
                                         // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -238,7 +239,7 @@ TEST_F(BabeBlockValidatorTest, LessDigestsThanNeeded) {
 TEST_F(BabeBlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = kagome::scale::encode(block_copy.header).value();
   BlockHash encoded_block_copy_hash{};  // not a real hash, but don't want to
                                         // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -266,7 +267,7 @@ TEST_F(BabeBlockValidatorTest, SignatureVerificationFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = encode(block_copy.header).value();
   BlockHash encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + BlockHash::size(),
@@ -296,7 +297,7 @@ TEST_F(BabeBlockValidatorTest, VRFFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = encode(block_copy.header).value();
   BlockHash encoded_block_copy_hash{};
   std::copy_n(encoded_block_copy.begin(),
               BlockHash::size(),
@@ -330,7 +331,7 @@ TEST_F(BabeBlockValidatorTest, ThresholdGreater) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = encode(block_copy.header).value();
   BlockHash encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + BlockHash::size(),

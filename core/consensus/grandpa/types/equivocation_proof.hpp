@@ -57,13 +57,16 @@ namespace kagome::consensus::grandpa {
       return round_number;
     }
 
-    friend scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const Equivocation &equivocation) {
-      return s << equivocation.stage << equivocation.round_number
-               << equivocation.first.id << equivocation.first.getBlockInfo()
-               << equivocation.first.signature
-               << equivocation.second.getBlockInfo()
-               << equivocation.second.signature;
+    friend void encode(const Equivocation &equivocation,
+                       scale::Encoder &encoder) {
+      encode(std::tie(equivocation.stage,
+                      equivocation.round_number,
+                      equivocation.first.id),
+             encoder);
+      encode(equivocation.first.getBlockInfo(), encoder);
+      encode(equivocation.first.signature, encoder);
+      encode(equivocation.second.getBlockInfo(), encoder);
+      encode(equivocation.second.signature, encoder);
     }
   };
 

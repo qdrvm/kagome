@@ -20,6 +20,7 @@
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::parachain {

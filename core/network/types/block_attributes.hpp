@@ -47,15 +47,12 @@ namespace kagome::network {
     return (l & r) == r;
   }
 
-  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                               BlockAttribute &attributes) {
-    uint8_t value = 0u;
-    s >> value;
+  inline void decode(BlockAttribute &attributes, scale::Decoder &decoder) {
+    uint8_t value = decoder.take();
     attributes = toBlockAttribute(value);
     if (static_cast<uint8_t>(attributes) != value) {
       common::raise(scale::DecodeError::UNEXPECTED_VALUE);
     }
-    return s;
   }
 
 }  // namespace kagome::network

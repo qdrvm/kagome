@@ -14,7 +14,6 @@
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/blocks_response.hpp"
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -31,20 +30,6 @@ using namespace connection;
 using testing::_;
 
 using ScaleRPC = RPC<ScaleMessageReadWriter>;
-
-namespace kagome::network {
-  /// outputs object of type BlockResponse to stream
-  scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                        const BlocksResponse &v) {
-    return s << v.blocks;
-  }
-
-  /// decodes object of type BlockResponse from stream
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                        BlocksResponse &v) {
-    return s >> v.blocks;
-  }
-}  // namespace kagome::network
 
 class RpcLibp2pTest : public testing::Test {
  public:

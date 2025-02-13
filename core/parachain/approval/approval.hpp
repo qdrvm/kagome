@@ -87,7 +87,6 @@ namespace kagome::parachain::approval {
 
     bool operator==(const AssignmentCertV2 &other) const = default;
 
-   private:
     SCALE_CUSTOM_DECOMPOSITION(AssignmentCertV2, kind, vrf)
   };
 
