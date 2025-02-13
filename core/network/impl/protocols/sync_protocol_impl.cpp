@@ -142,6 +142,7 @@ namespace kagome::network {
         reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,
                         kResponsesCacheExpirationTimeout) {
+    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(sync_observer_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
   }

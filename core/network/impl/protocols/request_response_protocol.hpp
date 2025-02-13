@@ -134,7 +134,10 @@ namespace kagome::network {
           metrics_{name},
           scheduler_{std::move(inject.scheduler)},
           timeout_(std::move(timeout)),
-          main_pool_handler_{inject.main_thread_pool->handlerStarted()} {}
+          main_pool_handler_{inject.main_thread_pool->handlerStarted()} {
+      BOOST_ASSERT(scheduler_ != nullptr);
+      BOOST_ASSERT(main_pool_handler_ != nullptr);
+    }
 
     bool start() override {
       return base_.start(this->weak_from_this());

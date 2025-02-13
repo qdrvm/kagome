@@ -33,7 +33,12 @@ namespace kagome::network {
         repository_{std::move(repository)},
         storage_{std::move(storage)},
         module_repo_{std::move(module_repo)},
-        executor_{std::move(executor)} {}
+        executor_{std::move(executor)} {
+    BOOST_ASSERT(repository_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(module_repo_ != nullptr);
+    BOOST_ASSERT(executor_ != nullptr);
+  }
 
   std::optional<outcome::result<LightProtocol::ResponseType>>
   LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {
