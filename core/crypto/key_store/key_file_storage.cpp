@@ -7,6 +7,7 @@
 #include "crypto/key_store/key_file_storage.hpp"
 
 #include "common/hexutil.hpp"
+#include "common/visitor.hpp"
 #include "crypto/key_store/key_type.hpp"
 #include "filesystem/common.hpp"
 #include "utils/json_unquote.hpp"
@@ -66,25 +67,22 @@ namespace kagome::crypto {
   outcome::result<void> KeyFileStorage::saveKeyPair(
       KeyType type,
       common::BufferView public_key,
-      common::BufferView seed) const {
+      PhraseOrSeed phrase_or_seed) const {
     auto &&path = composeKeyPath(type, public_key);
-    OUTCOME_TRY(saveKeyHexAtPath(seed, path));
     SL_TRACE(logger_,
              "Saving keypair (public: {}) to {}",
              common::hex_lower(public_key),
              path.native());
+    auto text = visit_in_place(
+        phrase_or_seed,
+        [](std::string_view phrase) { return jsonQuote(phrase); },
+        [](BufferView seed) { return common::hex_lower_0x(seed); });
+    OUTCOME_TRY(writeFile(path, text));
     return outcome::success();
   }
 
   outcome::result<void> KeyFileStorage::initialize() {
     OUTCOME_TRY(mkdirs(keystore_path_));
-    return outcome::success();
-  }
-
-  outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
-      common::BufferView private_key, const KeyFileStorage::Path &path) const {
-    OUTCOME_TRY(writeFile(path, common::hex_lower_0x(private_key)));
-    SL_TRACE(logger_, "Saving key to {}", path.native());
     return outcome::success();
   }
 
