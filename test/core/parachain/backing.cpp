@@ -1136,3 +1136,132 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
 
   parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
+
+TEST_F(BackingTest, second_multiple_candidates_per_relay_parent) {
+  TestState test_state;
+
+  const BlockNumber LEAF_BLOCK_NUMBER = 100;
+  const BlockNumber LEAF_ANCESTRY_LEN = 3;
+  const auto para_id = test_state.chain_ids[0];
+
+  const auto leaf_hash = fromNumber(130);
+  const auto leaf_parent = get_parent_hash(leaf_hash);
+  const auto leaf_grandparent = get_parent_hash(leaf_parent);
+
+  const TestLeaf test_leaf_a{
+      .number = LEAF_BLOCK_NUMBER,
+      .hash = leaf_hash,
+      .min_relay_parents = {{para_id, LEAF_BLOCK_NUMBER - LEAF_ANCESTRY_LEN}},
+  };
+
+  sync_state_observable_->notify(
+      kagome::primitives::events::SyncStateEventType::kSyncState,
+      kagome::primitives::events::SyncStateEventParams::SYNCHRONIZED);
+
+  activate_leaf(test_leaf_a, test_state);
+
+  // Create PoV and other required objects
+  kagome::network::PoV pov{.payload = {42, 43, 44}};
+  const auto pvd = dummy_pvd();
+  kagome::runtime::ValidationCode validation_code = {1, 2, 3};
+  const auto &expected_head_data = test_state.head_data[para_id];
+  const auto pov_hash = hash_of(pov);
+
+  // Build first candidate (candidate_a)
+  TestCandidateBuilder candidate_a_builder{
+      .para_id = para_id,
+      .head_data = expected_head_data,
+      .pov_hash = pov_hash,
+      .relay_parent = leaf_parent,
+      .erasure_root = make_erasure_root(test_state, pov, pvd),
+      .persisted_validation_data_hash = hash_of(pvd),
+      .validation_code = validation_code,
+  };
+
+  // Build second candidate (candidate_b) with different relay parent
+  TestCandidateBuilder candidate_b_builder = candidate_a_builder;
+  candidate_b_builder.relay_parent = leaf_grandparent;
+
+  const auto candidate_a = candidate_a_builder.build(*hasher_);
+  const auto candidate_b = candidate_b_builder.build(*hasher_);
+
+  // Helper function to process candidates
+  auto process_candidate = [&](const auto& candidate) {
+      assert_validate_seconded_candidate(leaf_parent, candidate, pov, pvd, validation_code, expected_head_data, false);
+
+      // Hypothetical candidate checks
+      const HypotheticalCandidateComplete hypothetical_candidate{
+          .candidate_hash = network::candidateHash(*hasher_, candidate),
+          .receipt = candidate,
+          .persisted_validation_data = pvd,
+      };
+
+      const IProspectiveParachains::HypotheticalMembershipRequest expected_request_a{
+          .candidates = {hypothetical_candidate},
+          .fragment_chain_relay_parent = leaf_hash,
+      };
+
+      const auto expected_response_a = make_hypothetical_membership_response(hypothetical_candidate, leaf_hash);
+      assert_hypothetical_membership_requests({{expected_request_a, expected_response_a}});
+
+      // Prospective parachains are notified
+      EXPECT_CALL(*prospective_parachains_, introduce_seconded_candidate(para_id, candidate, testing::_, testing::_))
+          .WillOnce(Return(true));  // Accept candidate.
+
+  const network::CommittedCandidateReceipt receipt{
+      .descriptor = candidate.descriptor,
+      .commitments =
+          network::CandidateCommitments{
+              .upward_msgs = {},
+              .outbound_hor_msgs = {},
+              .opt_para_runtime = std::nullopt,
+              .para_head = expected_head_data,
+              .downward_msgs_count = 0,
+              .watermark = 0,
+          },
+  };
+  network::Statement statement{network::CandidateState{receipt}};
+
+  IndexedAndSigned<network::Statement> signed_statement{
+      .payload =
+          {
+              .payload = statement,
+              .ix = 0,
+          },
+      .signature = {},
+  };
+
+  EXPECT_CALL(*signer_, sign(statement)).WillOnce(Return(signed_statement));
+
+    const auto candidate_hash = network::candidateHash(*hasher_, candidate);
+  BackingStore::ImportResult import_result{
+      .candidate = candidate_hash,
+      .group_id = 0,
+      .validity_votes = 1,
+  };
+
+  EXPECT_CALL(
+      *backing_store_,
+      put(candidate.descriptor.relay_parent, testing::_, testing::_, signed_statement, testing::_))
+      .WillOnce(Return(import_result));
+
+  BackingStore::StatementInfo stmt_info{
+      .group_id = 0,
+      .candidate = receipt,
+      .validity_votes = {{0, BackingStore::ValidityVoteIssued{}}},
+  };
+  EXPECT_CALL(*backing_store_, getCadidateInfo(candidate.descriptor.relay_parent, candidate_hash))
+      .WillOnce(Return(std::cref(stmt_info)));
+
+      // Statement distribution
+      EXPECT_CALL(*statement_distribution_, share_local_statement(candidate.descriptor.relay_parent, testing::_))
+          .WillOnce(Return());
+
+      parachain_processor_->handle_second_message(candidate.to_plain(*hasher_), pov, pvd, leaf_hash);
+  };
+
+  // Process candidate_a and candidate_b
+  process_candidate(candidate_a);
+  process_candidate(candidate_b);
+}
+
