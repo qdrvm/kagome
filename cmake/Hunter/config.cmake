@@ -93,12 +93,6 @@ hunter_config(
 )
 
 hunter_config(
-    libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/de20f4006eb58b12b3ac5ee5f5272376c77d46fc.zip
-    SHA1 7a3c13f87ed400a3215e4e8c4652ee7071e7292d
-)
-
-hunter_config(
     libsecp256k1
     VERSION 0.5.1
     CMAKE_ARGS
