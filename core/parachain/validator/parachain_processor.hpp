@@ -838,9 +838,10 @@ namespace kagome::parachain {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
     std::unordered_map<Hash, BlockNumber> existed_leaves_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_signed_statements_total_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
-    
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_signed_statements_total_;
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
 
    public:
     void handle_second_message(const network::CandidateReceipt &candidate,
@@ -911,6 +912,10 @@ namespace kagome::parachain {
                                  std::move(statement_distribution)),
           main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
       app_state_manager.takeControl(*this);
+    }
+
+    bool prepare() {
+      return true;
     }
 
     void onValidationProtocolMsg(

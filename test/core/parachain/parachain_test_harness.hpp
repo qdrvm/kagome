@@ -186,6 +186,21 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     };
   }
 
+  network::CandidateDescriptor dummy_candidate_descriptor(
+      const Hash &relay_parent) {
+    return network::CandidateDescriptor{
+        .para_id = 1,
+        .relay_parent = relay_parent,
+        .reserved_1 = {},
+        .persisted_data_hash = {},
+        .pov_hash = {},
+        .erasure_encoding_root = {},
+        .reserved_2 = {},
+        .para_head_hash = {},
+        .validation_code_hash = {},
+    };
+  }
+
   network::CandidateReceipt dummy_candidate_receipt_bad_sig(
       const Hash &relay_parent, const std::optional<Hash> &commitments) {
     const auto commitments_hash = [&]() -> Hash {
