@@ -130,7 +130,7 @@ jobs:
         working-directory: ./zombienet/docker
         run: |
           make configure
-          exists=$(make zombie_tester_check_tag)
+          exists=$(make zombie_tester_check_latest_tag)
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 

@@ -41,3 +41,6 @@ zombie_tester_image_info:
 
 zombie_tester_check_tag:
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE) > /dev/null 2>&1 && echo "true" || echo "false"
+
+zombie_tester_check_latest_tag:
+	@docker manifest inspect $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) > /dev/null 2>&1 && echo "true" || echo "false"

@@ -43,6 +43,9 @@ polkadot_builder_image_info:
 polkadot_builder_check_tag:
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) > /dev/null 2>&1 && echo "true" || echo "false"
 
+polkadot_builder_check_latest_tag:
+	@docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) > /dev/null 2>&1 && echo "true" || echo "false"
+
 polkadot_binary:
 	echo "-- Building Polkadot binary for $(ARCHITECTURE) architecture..." ; \
 	$(MAKE) docker_run ; \
