@@ -11,30 +11,6 @@ on:
   #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
     inputs:
-      polkadot_builder:
-        description: 'Build the polkadot builder image'
-        required: false
-        default: 'false'
-        type: 'boolean'
-      polkadot_builder_tag:
-        description: 'Custom Polkadot Builder tag'
-        default: 'latest'
-        required: false
-        type: 'string'
-      polkadot_binaries:
-        description: 'Build the polkadot binaries'
-        required: false
-        default: 'true'
-        type: 'boolean'
-      polkadot_sdk_tag:
-        description: 'Custom Polkadot SDK tag'
-        required: false
-        type: 'string'
-      zombie_tester:
-        description: 'Build the zombie tester image'
-        required: false
-        default: 'false'
-        type: 'boolean'
       zombie_tester_tag:
         description: 'Custom Zombie Tester tag'
         default: 'latest'
@@ -47,7 +23,7 @@ on:
         type: 'string'
       polkadot_package_version:
         description: 'Custom Polkadot package version'
-        default: '2412-20250127'
+        default: '20250211-24121'
         required: false
         type: 'string'
 
@@ -56,15 +32,13 @@ env:
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  POLKADOT_SDK_TAG: ${{ github.event.inputs.polkadot_sdk_tag }}
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.polkadot_builder_tag || 'latest' }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_tag || 'latest' }}
   ZOMBIENET_RELEASE: ${{ github.event.inputs.zombienet_release || '1.3.119' }}
-  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '2412-20250127' }}
+  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '20250211-24121' }}
   SCCACHE_GCS_BUCKET: ${{ secrets.SCCACHE_GCS_BUCKET }}
-  CACHE_VERSION: v001
-  CACHE_PATHS: ./zombienet/docker/build_docker/cargo
   DOCKER_BUILD_DIR_NAME: build_docker_ci
+#  CACHE_VERSION: v001
+#  CACHE_PATHS: ./zombienet/docker/build_docker/cargo
 
 jobs:
   build_zombie_tester:
@@ -81,58 +55,45 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
     steps:
-      - name: "Сheck if zombie_tester is required"
-        run: |
-          if [ "${{ github.event.inputs.zombie_tester }}" != "true" ]; then
-            echo "Zombie Tester is not required"
-            echo "skip=true" >> $GITHUB_ENV
-          fi
-
       - name: Checkout repository
-        if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Fetch master branch
-        if: env.skip != 'true'
         run: |
           git fetch origin master:master
 
       - name : "Authenticate with Google Cloud"
-        if: env.skip != 'true'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
       - name: "Set up Cloud SDK"
-        if: env.skip != 'true'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: "Configure Docker for GCR"
-        if: env.skip != 'true'
         run: |
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
       - name: "Check if image tag exists using Makefile"
-        if: env.skip != 'true'
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
-          make get_versions
+          make configure
           exists=$(make zombie_tester_check_tag)
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 
       - name: "Build Zombie Tester"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || env.skip != 'true'
+        if: env.exists == 'false'
         run: |
           make zombie_tester && make zombie_tester_push
 
       - name: "Versions Info"
-        if: always() && env.skip != 'true'
+        if: always()
         working-directory: ./zombienet/docker
         run: |
           make zombie_tester_image_info
@@ -142,59 +103,45 @@ jobs:
     timeout-minutes: 60
     needs: [build_zombie_tester]
     steps:
-      - name: "Сheck if zombie_tester is required"
-        run: |
-          if [ "${{ github.event.inputs.zombie_tester }}" != "true" ]; then
-          echo "Zombie Tester is not required"
-          echo "skip=true" >> $GITHUB_ENV
-          fi
-
       - name: Checkout repository
-        if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Fetch master branch
-        if: env.skip != 'true'
         run: |
           git fetch origin master:master
 
       - name : "Authenticate with Google Cloud"
-        if: env.skip != 'true'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
       - name: "Set up Cloud SDK"
-        if: env.skip != 'true'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: "Configure Docker for GCR"
-        if: env.skip != 'true'
         run: |
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
       - name: "Check if image tag exists using Makefile"
-        if: env.skip != 'true'
         id: check-tag
         working-directory: ./zombienet/docker
         run: |
-          make get_versions
+          make configure
           exists=$(make zombie_tester_check_tag)
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 
       - name: "Build Zombie Tester"
         working-directory: ./zombienet/docker
-        if: env.exists == 'false' || env.skip != 'true'
+        if: env.exists == 'false'
         run: |
           make zombie_tester_push_manifest
 
       - name: "Versions Info"
-        if: always() && env.skip != 'true'
+        if: always()
         working-directory: ./zombienet/docker
         run: |
           make zombie_tester_image_info
-      

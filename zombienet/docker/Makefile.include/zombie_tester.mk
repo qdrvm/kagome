@@ -10,10 +10,8 @@ zombie_tester:
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg PROJECT_ID=$(PROJECT_ID) \
-		--build-arg RUST_VERSION=$(RUST_VERSION) \
 		--build-arg POLKADOT_DEB_PACKAGE_VERSION="$(POLKADOT_DEB_PACKAGE_VERSION)" \
-		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) \
-		--build-arg POLKADOT_SDK_RELEASE=$(POLKADOT_SDK_RELEASE) .
+		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) .
 
 zombie_tester_push:
 	docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-$(ARCHITECTURE)
@@ -26,7 +24,7 @@ zombie_tester_push_manifest:
 		--amend $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-amd64 \
 		--amend $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-arm64 && \
 	docker manifest push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE) && \
-	docker manifest push $(DOCKER_REGISTRY_PATH)polkadot_builder:$(TESTER_LATEST_TAG)
+	docker manifest push $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG)
 
 zombie_tester_all_arch:
 	$(MAKE) zombie_tester PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \

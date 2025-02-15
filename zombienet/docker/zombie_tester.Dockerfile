@@ -2,15 +2,13 @@ ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
 ARG BASE_IMAGE_TAG
-ARG RUST_VERSION
 
 ARG PROJECT_ID
 ARG POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH
-ARG POLKADOT_SDK_RELEASE
 ARG ZOMBIENET_RELEASE
 
 ARG REGION=europe-north1
-ARG ARCHITECTURE=x86_64
+ARG ARCHITECTURE
 
 
 FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS zombie-tester
@@ -31,8 +29,6 @@ RUN chmod 0755 /usr/sbin/install_packages
 # Set Polkadot SDK release environment variable and install required packages
 ARG ZOMBIENET_RELEASE
 ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
-ARG POLKADOT_SDK_RELEASE
-ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
 
 # Setup enterprise repository and install required packages
 ARG REGION
@@ -90,7 +86,7 @@ RUN sed -i 's|^\(\s*\)# *Service-Account-JSON ".*";|\1Service-Account-JSON "/roo
 RUN mkdir -p /root/.gcp
 
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
-      install_packages polkadot-binary=${POLKADOT_DEB_PACKAGE_VERSION}" && \
+      install_packages polkadot-binary="${POLKADOT_DEB_PACKAGE_VERSION}" && \
       sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 # Check installed versions
@@ -138,7 +134,7 @@ WORKDIR /home/${USER_NAME}/workspace
 ARG KAGOME_PACKAGE_VERSION
 ENV KAGOME_PACKAGE_VERSION=${KAGOME_PACKAGE_VERSION}
 
-COPY tester-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
