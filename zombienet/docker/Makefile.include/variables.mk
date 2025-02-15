@@ -18,6 +18,7 @@ OS_IMAGE_TAG_WITH_HASH := $(OS_IMAGE_TAG)@sha256:$(OS_IMAGE_HASH)
 OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 USER_ID ?= $(shell id -u)
 GROUP_ID ?= $(shell id -g)
+DIR_PATH_HASH := $(shell echo -n $(CURDIR) | sha1sum | cut -c1-8 )
 # For Docker build
 # USER_ID = 5555
 # GROUP_ID = 5555
@@ -40,7 +41,7 @@ SCCACHE_GCS_BUCKET ?=
 SCCACHE_GCS_KEY_PREFIX ?= polkadot_builder_$(ARCHITECTURE)
 POLKADOT_REPO_URL ?= https://github.com/paritytech/polkadot-sdk.git
 POLKADOT_REPO_DIR ?= ./polkadot-sdk
-POLKADOT_BUILD_CONTAINER_NAME := polkadot_build 
+POLKADOT_BUILD_CONTAINER_NAME := polkadot_build-$(DIR_PATH_HASH)
 
 RESULT_BIN_NAMES=polkadot polkadot-parachain malus undying-collator adder-collator polkadot-execute-worker polkadot-prepare-worker
 BUILD_COMMANDS = \
@@ -64,7 +65,8 @@ POLKADOT_BINARY_PACKAGE_VERSION ?=
 # COPY_LOGS_TO_HOST: boolean flag to determine whether to copy logs to host
 COPY_LOGS_TO_HOST ?= true
 HOST_LOGS_PATH ?= /tmp/test_logs
-CONTAINER_NAME ?= zombienet-test
+# DIR_PATH_HASH Need for run two github actions in parallel
+CONTAINER_NAME ?= zombienet-test-$(DIR_PATH_HASH)
 
 # tests Variables
 ZOMBIE_TESTER_IMAGE_TAG ?= latest
