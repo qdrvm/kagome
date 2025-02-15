@@ -74,7 +74,8 @@ RUN install_packages \
         software-properties-common \
         unzip \
         vim \
-        zlib1g-dev
+        zlib1g-dev \
+        gosu
 
 # Create non-root user and switch to it
 ARG USER_ID=1000
