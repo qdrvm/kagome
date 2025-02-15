@@ -13,6 +13,13 @@ zombie_tester:
 		--build-arg POLKADOT_DEB_PACKAGE_VERSION="$(POLKADOT_DEB_PACKAGE_VERSION)" \
 		--build-arg ZOMBIENET_RELEASE=$(ZOMBIENET_RELEASE) .
 
+zombie_tester_all_arch:
+	$(MAKE) zombie_tester PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
+	$(MAKE) zombie_tester_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
+	$(MAKE) zombie_tester PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
+	$(MAKE) zombie_tester_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
+	$(MAKE) zombie_tester_push_manifest
+
 zombie_tester_push:
 	docker push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-$(ARCHITECTURE)
 
@@ -26,21 +33,15 @@ zombie_tester_push_manifest:
 	docker manifest push $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE) && \
 	docker manifest push $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG)
 
-zombie_tester_all_arch:
-	$(MAKE) zombie_tester PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
-	$(MAKE) zombie_tester_push PLATFORM=linux/amd64 ARCHITECTURE=amd64 && \
-	$(MAKE) zombie_tester PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
-	$(MAKE) zombie_tester_push PLATFORM=linux/arm64 ARCHITECTURE=arm64 && \
-	$(MAKE) zombie_tester_push_manifest
-
-zombie_tester_image_info:
-	@echo "---------------------------------"
-	@echo ZOMBIE_TESTER_IMAGE:       $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG)
-	@echo ZOMBIE_TESTER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-amd64
-	@echo ZOMBIE_TESTER_ARM64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-arm64
-
 zombie_tester_check_tag:
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE) > /dev/null 2>&1 && echo "true" || echo "false"
 
 zombie_tester_check_latest_tag:
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG) > /dev/null 2>&1 && echo "true" || echo "false"
+
+zombie_tester_image_info:
+	@echo "---------------------------------"
+	@echo ZOMBIE_TESTER_IMAGE:       $(DOCKER_REGISTRY_PATH)zombie_tester:$(TESTER_LATEST_TAG)
+	@echo ZOMBIE_TESTER_IMAGE:		 $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)
+	@echo ZOMBIE_TESTER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-amd64
+	@echo ZOMBIE_TESTER_ARM64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-arm64

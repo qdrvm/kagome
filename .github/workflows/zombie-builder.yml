@@ -68,13 +68,13 @@ jobs:
             echo "skip=true" >> $GITHUB_ENV
           fi
 
-      - name: Checkout repository
+      - name: "Checkout repository"
         if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fetch master branch
+      - name: "Fetch master branch"
         if: env.skip != 'true'
         run: |
           git fetch origin master:master
@@ -105,17 +105,18 @@ jobs:
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 
-      - name: "Build Polkadot Builder"
-        working-directory: ./zombienet/docker
-        if: env.exists == 'false' || env.skip != 'true'
-        run: |
-          make polkadot_builder && make polkadot_builder_push
-        
       - name: "Versions Info"
         if: always() && env.skip != 'true'
         working-directory: ./zombienet/docker
         run: |
           make polkadot_builder_image_info
+
+      - name: "Build Polkadot Builder"
+        working-directory: ./zombienet/docker
+        if: env.exists == 'false' || env.skip != 'true'
+        run: |
+          make polkadot_builder && make polkadot_builder_push
+
   
   docker_manifest:
     runs-on: ubuntu-24.04
