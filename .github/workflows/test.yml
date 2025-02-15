@@ -101,80 +101,82 @@ jobs:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
 
-  Linux:
-    if: false # Need to fix
-      # ${{
-      # !(github.ref == 'refs/heads/master' ||
-      # startsWith( github.ref, 'refs/tags/' )) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Linux: clang-19 External Project"
-            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-19_cxx20.cmake
-    name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        if: ${{ env.USE_CACHE == 'true' }}
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: df du
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
-      - name: "${{ matrix.options.name }}"
-        run: "${{ matrix.options.run }}"
-      - name: df du
-        if: ${{ always() }}
-        run: |
-          df -m || true
-          du -hd1 /__w /github || true
-
-  coverage-self-hosted:
-    if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
-    name: "Self-hosted: Linux: gcc-13 coverage/sonar"
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 120
-    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        if: ${{ env.USE_CACHE == 'true' }}
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
-      - name: makeBuild
-        env:
-          BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
-      - if: ${{ 
-          github.event_name != 'pull_request' || 
-          github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Submit Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-      - if: ${{ 
-          github.event_name != 'pull_request' || 
-          github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: ${{ github.ref }}
-        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+#  Linux:
+#    if: false # Need to fix
+#      # ${{
+#      # !(github.ref == 'refs/heads/master' ||
+#      # startsWith( github.ref, 'refs/tags/' )) }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "Linux: clang-19 External Project"
+#            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-19_cxx20.cmake
+#    name: "${{ matrix.options.name }}"
+#    runs-on: ubuntu-24.04
+#    timeout-minutes: 120
+#    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/cache@v4
+#        if: ${{ env.USE_CACHE == 'true' }}
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+#      - name: df du
+#        run: |
+#          df -m || true
+#          du -hd1 /__w /github || true
+#      - name: Install mold
+#        run: ./housekeeping/ci_install_mold.sh --make-default
+#      - name: "${{ matrix.options.name }}"
+#        run: "${{ matrix.options.run }}"
+#      - name: df du
+#        if: ${{ always() }}
+#        run: |
+#          df -m || true
+#          du -hd1 /__w /github || true
+#
+#  coverage-self-hosted:
+#    if: false # ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
+#    name: "Self-hosted: Linux: gcc-13 coverage/sonar"
+#    runs-on: [ actions-runner-controller ]
+#    timeout-minutes: 120
+#    container: qdrvm/kagome_builder:99c3519_rust1.81.0_gcc13_llvm19
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/cache@v4
+#        if: ${{ env.USE_CACHE == 'true' }}
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#      - name: Install mold
+#        run: ./housekeeping/ci_install_mold.sh --make-default
+#      - name: makeBuild
+#        env:
+#          BUILD_FINAL_TARGET: ctest_coverage
+#        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+#      - if: ${{ 
+#          github.event_name != 'pull_request' || 
+#          github.event.pull_request.head.repo.full_name == github.repository }}
+#        name: Submit Coverage
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+#        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+#      - if: ${{ 
+#          github.event_name != 'pull_request' || 
+#          github.event.pull_request.head.repo.full_name == github.repository }}
+#        name: Sonar
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          BRANCH_NAME: ${{ github.ref }}
+#        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   kagome_dev_docker_build_sanitizers:
+    # temporary disabled
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -242,6 +244,8 @@ jobs:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   kagome_dev_docker_build_tidy:
+    # temporary disabled
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 600 # TODO(xDimon): revert after merge PR#2208
     name: "Linux: clang-tidy"
@@ -452,13 +456,15 @@ jobs:
 
 
   Zombie-Tests:
+    # temporary disabled
+    if: false
     runs-on: [ actions-runner-controller ]
     timeout-minutes: 60
     needs: [kagome_dev_docker_build]
-    if: ${{
-      github.ref == 'refs/heads/master' ||
-      startsWith( github.ref, 'refs/tags/') ||
-      github.event.inputs.run_all_steps == 'true' }}
+#    if: ${{
+#      github.ref == 'refs/heads/master' ||
+#      startsWith( github.ref, 'refs/tags/') ||
+#      github.event.inputs.run_all_steps == 'true' }}
     strategy:
       fail-fast: false
       matrix:

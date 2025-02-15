@@ -7,9 +7,13 @@ GROUP_ID=${GROUP_ID:-1000}
 USER_NAME=${USER_NAME:-builder}
 USER_GROUP=${USER_GROUP:-builder}
 
-MOUNTED_DIRS=(
-  "/home/builder" 
-)
+DEFAULT_DIRS="/home/builder"
+
+if [ -z "$MOUNTED_DIRS" ]; then
+  read -r -a MOUNTED_DIRS_ARRAY <<< "$DEFAULT_DIRS"
+else
+  read -r -a MOUNTED_DIRS_ARRAY <<< "$MOUNTED_DIRS"
+fi
 
 echo "Current IDs for $USER_NAME: UID=$(id -u "$USER_NAME"), GID=$(id -g "$USER_NAME")"
 
@@ -27,7 +31,7 @@ else
   USER_NAME=$(getent passwd "$USER_ID" | cut -d: -f1)
 fi
 
-for dir in "${MOUNTED_DIRS[@]}"; do
+for dir in "${MOUNTED_DIRS_ARRAY[@]}"; do
   if [ -d "$dir" ]; then
     echo "Changing ownership of $dir to $USER_NAME:$USER_GROUP"
     chown -R "$USER_ID":"$GROUP_ID" "$dir"
