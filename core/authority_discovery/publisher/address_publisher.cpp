@@ -29,6 +29,9 @@ namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
   constexpr std::chrono::hours kIntervalMax{1};
 
+  // TODO(kamilsa): #2351, remove this variable when resolved
+  constexpr bool kAudiDisableTimestamp = true;
+
   static const metrics::GaugeHelper metric_amount_addresses_last_published{
       "kagome_authority_discovery_amount_external_addresses_last_published",
       "Number of external addresses published when authority discovery last "
@@ -125,15 +128,19 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    OUTCOME_TRY(
-        raw,
-        audiEncode(ed_crypto_provider_,
-                   sr_crypto_provider_,
-                   *libp2p_key_,
-                   *libp2p_key_pb_,
-                   peer_info,
-                   *audi_key,
-                   std::chrono::system_clock::now().time_since_epoch()));
+    std::optional<std::chrono::nanoseconds> now =
+        std::chrono::system_clock::now().time_since_epoch();
+    if (kAudiDisableTimestamp) {
+      now.reset();
+    }
+    OUTCOME_TRY(raw,
+                audiEncode(ed_crypto_provider_,
+                           sr_crypto_provider_,
+                           *libp2p_key_,
+                           *libp2p_key_pb_,
+                           peer_info,
+                           *audi_key,
+                           now));
     auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
     MetricDhtEventReceived::get().putResult(r.has_value());
     return r;
