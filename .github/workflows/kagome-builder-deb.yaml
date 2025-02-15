@@ -153,11 +153,23 @@ jobs:
         run: |
           make kagome_builder_image_info
 
-      - name: "Build Kagome Builder"
+      - name: "Push Kagome Builder Manifest (GCR)"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: |
           make kagome_builder_push_manifest
+          
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: "Push Kagome Builder Manifest (DockerHub)"
+        working-directory: ./housekeeping/docker/kagome-dev
+        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
+        run: |
           make kagome_builder_push_dockerhub_manifest
 
 

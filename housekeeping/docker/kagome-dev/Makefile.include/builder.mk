@@ -4,6 +4,9 @@
     		-t $(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG)-$(ARCHITECTURE) \
     		-t $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG)-$(ARCHITECTURE) \
     		-f kagome_builder.Dockerfile \
+			--build-arg USER_ID="5555" \
+			--build-arg GROUP_ID="5555" \
+			--build-arg USER_NAME=$(IN_DOCKER_USERNAME) \
     		--build-arg RUST_VERSION=$(RUST_VERSION) \
     		--build-arg GCC_VERSION=$(GCC_VERSION) \
     		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
