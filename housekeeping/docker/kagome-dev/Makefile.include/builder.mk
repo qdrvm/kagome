@@ -9,6 +9,7 @@
     		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
     		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
     		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
+    		--build-arg OS_REL_VERSION=$(OS_REL_VERSION) \
     		--build-arg ARCHITECTURE=$(ARCHITECTURE) .
 
 kagome_builder_all_arch:

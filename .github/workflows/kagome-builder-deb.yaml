@@ -50,6 +50,8 @@ jobs:
           - platform: linux/arm64
             os: ubuntu-24.04-arm
     timeout-minutes: 60
+    env:
+      PLATFORM: ${{ matrix.platform }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
