@@ -8,6 +8,8 @@
 
 #include <qtils/empty.hpp>
 
+#include <ostream>
+
 namespace kagome {
   /// Special zero-size-type for some things
   /// (e.g. unsupported, experimental or empty).

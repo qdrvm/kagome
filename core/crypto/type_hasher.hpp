@@ -35,6 +35,7 @@ namespace kagome::crypto {
     EncoderToHash() = default;
     EncoderToHash(EncoderToHash &&) noexcept = delete;
     EncoderToHash(const EncoderToHash &) = delete;
+    ~EncoderToHash() override = default;
     EncoderToHash &operator=(EncoderToHash &&) noexcept = delete;
     EncoderToHash &operator=(const EncoderToHash &) = delete;
     void put(uint8_t byte) override {

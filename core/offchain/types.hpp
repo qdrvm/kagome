@@ -33,7 +33,7 @@ namespace kagome::offchain {
 
   using RequestId = int16_t;
 
-  enum class HttpError : uint32_t {
+  enum class HttpError : uint8_t {
     Timeout = 0,   //!< The deadline was reached
     IoError = 1,   //!< There was an IO error while processing the request
     InvalidId = 2  //!< The ID of the request is invalid
@@ -107,7 +107,7 @@ namespace kagome::offchain {
       auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
       v.peer_id = std::move(peer_id_res.value());
 
-      size_t size;
+      size_t size;  // NOLINT(cppcoreguidelines-init-variables)
       decode(scale::as_compact(size), decoder);
 
       for (size_t i = 0; i < size; i++) {

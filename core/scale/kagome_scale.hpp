@@ -10,7 +10,7 @@
 
 namespace kagome::scale {
 
-  using namespace ::scale;
+  using namespace ::scale;  // NOLINT(google-build-using-namespace)
   using ::scale::decode;
   using ::scale::encode;
   using ::scale::impl::memory::decode;
