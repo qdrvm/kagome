@@ -205,12 +205,13 @@ namespace kagome::benchmark {
 
   primitives::Weight totalWeight(
       const PerDispatchClass<primitives::Weight> &weight_per_class) {
-    return primitives::Weight{weight_per_class.normal.ref_time
-                                  + weight_per_class.operational.ref_time
-                                  + weight_per_class.mandatory.ref_time,
-                              weight_per_class.normal.proof_size
-                                  + weight_per_class.operational.proof_size
-                                  + weight_per_class.mandatory.proof_size};
+    return primitives::Weight{
+        .ref_time = weight_per_class.normal.ref_time
+                  + weight_per_class.operational.ref_time
+                  + weight_per_class.mandatory.ref_time,
+        .proof_size = weight_per_class.normal.proof_size
+                    + weight_per_class.operational.proof_size
+                    + weight_per_class.mandatory.proof_size};
   }
 
   primitives::OldWeight totalWeight(
