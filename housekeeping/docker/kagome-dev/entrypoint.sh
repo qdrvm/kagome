@@ -7,11 +7,14 @@ GROUP_ID=${GROUP_ID:-1000}
 USER_NAME=${USER_NAME:-builder}
 USER_GROUP=${USER_GROUP:-builder}
 
-DEFAULT_DIRS="/home/builder"
+HOME_DIR="/home/$USER_NAME"
+MOUNTED_DIRS_ARRAY=()
 
-if [ -z "$MOUNTED_DIRS" ]; then
-  read -r -a MOUNTED_DIRS_ARRAY <<< "$DEFAULT_DIRS"
-else
+if [ ! -d "$HOME_DIR" ]; then
+  mkdir -p "$HOME_DIR"
+fi
+
+if [ -n "$MOUNTED_DIRS" ]; then
   read -r -a MOUNTED_DIRS_ARRAY <<< "$MOUNTED_DIRS"
 fi
 
@@ -29,7 +32,10 @@ if ! id -u "$USER_ID" &>/dev/null; then
 else
   echo "User $USER_ID already exists"
   USER_NAME=$(getent passwd "$USER_ID" | cut -d: -f1)
+  usermod -d "$HOME_DIR" "$USER_NAME"
 fi
+
+chown -R "$USER_ID":"$GROUP_ID" "$HOME_DIR"
 
 for dir in "${MOUNTED_DIRS_ARRAY[@]}"; do
   if [ -d "$dir" ]; then
