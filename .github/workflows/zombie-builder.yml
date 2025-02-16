@@ -75,9 +75,9 @@ jobs:
           fetch-depth: 0
 
       - name: "Fetch master branch"
-        if: env.skip != 'true'
+        if: github.ref != 'refs/heads/master' && env.skip != 'true'
         run: |
-          git fetch origin master:master
+          git fetch origin master:master || true
              
       - name : "Authenticate with Google Cloud"
         if: env.skip != 'true'
@@ -136,10 +136,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch master branch
-        if: env.skip != 'true'
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master' && env.skip != 'true'
         run: |
-          git fetch origin master:master
+          git fetch origin master:master || true
              
       - name : "Authenticate with Google Cloud"
         if: env.skip != 'true'
@@ -198,14 +198,15 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fetch master branch
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master'
         run: |
-          git fetch origin master:master
+          git fetch origin master:master || true
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'

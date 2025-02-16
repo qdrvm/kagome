@@ -101,11 +101,11 @@ upload_apt_package:
 	gcloud config set artifacts/repository $(ARTIFACTS_REPO); \
 	gcloud config set artifacts/location $(REGION); \
 	gcloud artifacts versions delete $(KAGOME_DEB_PACKAGE_VERSION) --package=kagome-dev --quiet || true ; \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./$(BUILD_DIR)/pkg/$(KAGOME_DEB_PACKAGE_NAME) ; \
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=$(BUILD_DIR)/pkg/$(KAGOME_DEB_PACKAGE_NAME) ; \
 	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
 	  	echo "-- Uploading Kagome release binary to Google Cloud Storage..." ; \
 	  	gcloud artifacts versions delete $(KAGOME_DEB_RELEASE_PACKAGE_VERSION) --package=kagome-dev --quiet || true ; \
-		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=./$(BUILD_DIR)/pkg/KAGOME_DEB_RELEASE_PACKAGE_NAME ; \
+		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=$(BUILD_DIR)/pkg/KAGOME_DEB_RELEASE_PACKAGE_NAME ; \
 	fi;
 
 kagome_deb_package_info:
@@ -114,3 +114,4 @@ kagome_deb_package_info:
 	@echo "Kagome deb package name: 			$(KAGOME_DEB_PACKAGE_NAME)"
 	@echo "Kagome deb release package version: 	$(KAGOME_DEB_RELEASE_PACKAGE_VERSION)"
 	@echo "Kagome deb release package name: 	$(KAGOME_DEB_RELEASE_PACKAGE_NAME)"
+

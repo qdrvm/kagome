@@ -60,9 +60,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch master branch
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
         run: |
-          git fetch origin master:master
+          git fetch origin master:master || true
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -108,9 +109,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch master branch
+      - name: "Get master branch"
+        if: github.ref != 'refs/heads/master'
         run: |
-          git fetch origin master:master
+          git fetch origin master:master || true
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
