@@ -111,3 +111,10 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    BoringSSL
+    VERSION qdrvm1
+    CMAKE_ARGS -Wno-error=stringop-overflow
+)
+
+add_flag(-Wno-stringop-overflow)

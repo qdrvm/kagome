@@ -115,3 +115,4 @@ kagome_deb_package_info:
 	@echo "Kagome deb release package version: 	$(KAGOME_DEB_RELEASE_PACKAGE_VERSION)"
 	@echo "Kagome deb release package name: 	$(KAGOME_DEB_RELEASE_PACKAGE_NAME)"
 
+.PHONY: kagome_docker_build stop_container clean_container reset_build_state docker_run docker_exec upload_apt_package kagome_deb_package_info
