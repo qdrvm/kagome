@@ -18,6 +18,7 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_params.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
