@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace kagome {
   /**
    * `clear_prefix` host api limit argument.

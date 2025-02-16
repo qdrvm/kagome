@@ -103,7 +103,7 @@ namespace kagome::consensus::beefy {
     if (bits.size() * 8 < total) {
       scale::raise(scale::DecodeError::NOT_ENOUGH_DATA);
     }
-    size_t actual_count;
+    size_t actual_count;  // NOLINT(cppcoreguidelines-init-variables)
     decode(scale::as_compact(actual_count), decoder);
     if (actual_count != expected_count) {
       scale::raise(scale::DecodeError::TOO_MANY_ITEMS);

@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include <cstdint>
+
 // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
+
 namespace kagome::network {
 
   struct Roles {
@@ -65,4 +68,5 @@ namespace kagome::network {
     return to_string(r.value);
   }
 }  // namespace kagome::network
+
 // NOLINTEND(cppcoreguidelines-pro-type-union-access)
