@@ -22,6 +22,7 @@ inline OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EncodeForHashError, e) {
     case EncodeForHashError::ALREADY_FINALIZED:
       return "Calculation of hash has already finalized before";
   }
+  return "Unknown error (EncodeForHashError)";
 }
 
 namespace kagome::crypto {
