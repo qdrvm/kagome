@@ -116,5 +116,3 @@ hunter_config(
     VERSION qdrvm1
     CMAKE_ARGS -Wno-error=stringop-overflow
 )
-
-add_flag(-Wno-stringop-overflow)
