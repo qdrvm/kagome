@@ -9,6 +9,7 @@
 #include "api/service/base_request.hpp"
 
 #include "account_next_index.hpp"
+#include "api/jrpc/value_converter.hpp"
 #include "api/service/system/system_api.hpp"
 #include "chain.hpp"
 #include "chain_type.hpp"
