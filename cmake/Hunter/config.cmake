@@ -106,6 +106,13 @@ hunter_config(
 )
 
 hunter_config(
+  libp2p
+  URL https://github.com/libp2p/cpp-libp2p/archive/43b992a79cc6c06553d348f7c431b6777619336b.tar.gz
+  SHA1 207404822fb2fac50e485dee64919f733ed233ab
+  KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
     soralog
     VERSION 0.2.4
     KEEP_PACKAGE_SOURCES
