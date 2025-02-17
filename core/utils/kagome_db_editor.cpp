@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "injector/idle_trie_pruner.hpp"
 #if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
 #endif
@@ -256,15 +257,12 @@ int db_editor_main(int argc, const char **argv) {
         di::bind<TrieSerializer>.to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
-              injector.template create<sptr<PolkadotCodec>>(),
+              injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.to(trie_node_tracker),
         di::bind<storage::trie_pruner::TriePruner>.to(
-            std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
-        di::bind<PolkadotCodec>.to([](const auto &injector) {
-          return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
-        }),
+            std::make_shared<storage::trie_pruner::IdleTriePruner>()),
         di::bind<Codec>.to([](const auto &injector) {
           return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
         }),
@@ -343,9 +341,9 @@ int db_editor_main(int argc, const char **argv) {
     RootHash target_state =
         target_state_param.value_or(last_finalized_block_state_root);
 
-    log->trace("Autodetected finalized block is {}, state root is {:l}",
-               last_finalized_block,
-               last_finalized_block_state_root);
+    log->info("Autodetected finalized block is {}, state root is {:l}",
+              last_finalized_block,
+              last_finalized_block_state_root);
 
     for (auto &block : std::ranges::reverse_view(to_remove)) {
       check(block_storage->removeBlock(block.hash)).value();
@@ -370,21 +368,18 @@ int db_editor_main(int argc, const char **argv) {
 
     auto trie =
         TrieStorageImpl::createFromStorage(
-            injector.template create<sptr<PolkadotCodec>>(),
+            injector.template create<sptr<Codec>>(),
             injector.template create<sptr<TrieSerializer>>(),
             injector.template create<sptr<storage::trie_pruner::TriePruner>>())
             .value();
 
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, target_state)).value();
-      auto finalized_batch =
-          check(persistent_batch(trie, target_state)).value();
 
       std::vector<std::unique_ptr<TrieBatch>> child_batches;
       {
         std::set<RootHash> child_root_hashes;
         child_storage_root_hashes(batch, child_root_hashes);
-        child_storage_root_hashes(finalized_batch, child_root_hashes);
         for (const auto &child_root_hash : child_root_hashes) {
           auto child_batch_res = persistent_batch(trie, child_root_hash);
           if (child_batch_res.has_value()) {
@@ -414,8 +409,8 @@ int db_editor_main(int argc, const char **argv) {
             }
             auto res2 = check(db_batch->remove(key));
             count++;
-            if (not(count % 10000000)) {
-              log->trace("{} keys were processed at the db.", count);
+            if (count % 10000000 == 0) {
+              log->info("{} keys were processed at the db.", count);
               res2 = check(db_batch->commit());
               dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
                   ->compact(prefix, check(db_cursor->key()).value());
@@ -451,8 +446,8 @@ int db_editor_main(int argc, const char **argv) {
         ofs << "keys:\n";
         while (cursor->key().has_value()) {
           ofs << "  - " << cursor->key().value().toHex() << "\n";
-          if (not(++count % 10000)) {
-            log->trace("{} keys were dumped.", count);
+          if (++count % 10000 == 0) {
+            log->info("{} keys were dumped.", count);
           }
           res = cursor->next();
         }
@@ -465,8 +460,8 @@ int db_editor_main(int argc, const char **argv) {
           ofs << "  - "
               << check(batch->get(check(cursor->key()).value())).value().view()
               << "\n";
-          if (not(++count % 50000)) {
-            log->trace("{} values were dumped.", count);
+          if (++count % 10000 == 0) {
+            log->info("{} values were dumped.", count);
           }
           res = check(cursor->next());
         }
