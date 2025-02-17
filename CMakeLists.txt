@@ -114,8 +114,6 @@ include(cmake/san.cmake)
 
 # setup compilation flags
 
-add_flag(-Wno-stringop-overflow) # temporary fix for BoringSSL
-
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # cmake-format: off
 

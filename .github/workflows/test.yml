@@ -315,13 +315,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ "linux/amd64", "linux/arm64" ]
+        platform: [ "linux/arm64" ]
         build_type: [ "Debug", "Release", "RelWithDebInfo" ]
         include:
-          - platform: "linux/amd64"
-            runs_on: [ "actions-runner-controller" ]
           - platform: "linux/arm64"
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
+#          - platform: "linux/amd64"
+#            runs_on: [ "actions-runner-controller" ]
     env:
       PLATFORM: ${{ matrix.platform }}
     name: "Build: ${{ matrix.platform }} / ${{ matrix.build_type }}"
@@ -430,6 +430,7 @@ jobs:
 
       - name: "Versions Info"
         if: always()
+        working-directory: ./housekeeping/docker/kagome-dev
         run: |
           make kagome_deb_package_info || true
 #          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
