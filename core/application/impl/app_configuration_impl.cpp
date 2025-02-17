@@ -83,12 +83,7 @@ namespace {
   const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
   const bool def_dev_mode = false;
-  const kagome::network::Roles def_roles = [] {
-    kagome::network::Roles roles;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    roles.flags.full = 1;
-    return roles;
-  }();
+  const kagome::network::Roles def_roles{kagome::network::Roles::Full};
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Compile;
@@ -445,10 +440,7 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.full = 0;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.authority = 1;
+      roles_ = kagome::network::Roles::Authority;
     }
 
     load_ms(val, "log", logger_tuning_config_);
@@ -1001,10 +993,7 @@ namespace kagome::application {
           }
         }
 
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.full = 0;
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.authority = 1;
+        roles_ = network::Roles::Authority;
         p2p_port_ = def_p2p_port;
         rpc_host_ = def_rpc_host;
         openmetrics_http_host_ = def_openmetrics_http_host;
@@ -1025,10 +1014,7 @@ namespace kagome::application {
         node_name_ = name;
         dev_mnemonic_phrase_ = dev;
         // if dev account is passed node is considered as validator
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.full = 0;
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.authority = 1;
+        roles_ = network::Roles::Authority;
       }
     }
 
@@ -1056,10 +1042,7 @@ namespace kagome::application {
     });
 
     if (vm.end() != vm.find("validator")) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.full = 0;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.authority = 1;
+      roles_ = network::Roles::Authority;
     }
 
     find_argument<std::string>(

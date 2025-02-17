@@ -152,7 +152,7 @@ struct AuthorApiTest : public ::testing::Test {
         key_store->saveKeyPair(KeyTypes::BABE,
                                std::span(key_pair.public_key).first<32>(),
                                std::array<uint8_t, 1>{1}));
-    role.flags.authority = 1;
+    role = kagome::network::Roles::Authority;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
     keys = std::make_shared<SessionKeysImpl>(store, *config);
     key_api = std::make_shared<SessionKeysApiMock>();

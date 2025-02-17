@@ -736,9 +736,8 @@ namespace kagome::network {
           if (it == peer_states_.end()) {
             return false;
           }
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-          const auto &roles = it->second.roles.flags;
-          return (in_light ? roles.light : roles.full) == 1;
+          const auto &roles = it->second.roles;
+          return in_light ? roles.isLight() : roles.isFull();
         });
   }
 
