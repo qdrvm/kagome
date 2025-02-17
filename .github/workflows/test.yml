@@ -315,13 +315,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ "linux/arm64" ]
+        platform: [ "linux/arm64", "linux/amd64" ]
         build_type: [ "Debug", "Release", "RelWithDebInfo" ]
         include:
           - platform: "linux/arm64"
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
-#          - platform: "linux/amd64"
-#            runs_on: [ "actions-runner-controller" ]
+          - platform: "linux/amd64"
+            runs_on: [ "actions-runner-controller" ]
     env:
       PLATFORM: ${{ matrix.platform }}
     name: "Build: ${{ matrix.platform }} / ${{ matrix.build_type }}"
