@@ -12,6 +12,7 @@
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/types/authority.hpp"
 #include "consensus/timeline/types.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -85,35 +86,25 @@ namespace kagome::consensus::grandpa {
     std::vector<std::tuple<Id, Weight>> list_;
     size_t total_weight_{0};
 
-    template <class Stream>
-    friend Stream &operator<<(Stream &s, const VoterSet &voters);
-    template <class Stream>
-    friend Stream &operator>>(Stream &s, VoterSet &voters);
-  };
+    friend void encode(const VoterSet &voters, scale::Encoder &encoder) {
+      encode(std::tie(voters.list_, voters.id_), encoder);
+    }
 
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const VoterSet &voters) {
-    return s << voters.list_ << voters.id_;
-  }
+    friend void decode(VoterSet &voters, scale::Decoder &decoder) {
+      voters.list_.clear();
+      voters.map_.clear();
+      voters.total_weight_ = 0;
 
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, VoterSet &voters) {
-    voters.list_.clear();
-    voters.map_.clear();
-    voters.total_weight_ = 0;
-
-    std::vector<std::tuple<Id, VoterSet::Weight>> list;
-    s >> list >> voters.id_;
-    for (const auto &[id, weight] : list) {
-      auto r = voters.insert(id, weight);
-      if (r.has_error()) {
-        common::raise(r.as_failure());
+      std::vector<std::tuple<Id, VoterSet::Weight>> list;
+      decode(std::tie(list, voters.id_), decoder);
+      for (const auto &[id, weight] : list) {
+        auto r = voters.insert(id, weight);
+        if (r.has_error()) {
+          common::raise(r.error());
+        }
       }
     }
-    return s;
-  }
+  };
 
 }  // namespace kagome::consensus::grandpa
 

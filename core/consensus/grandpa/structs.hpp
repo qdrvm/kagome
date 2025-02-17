@@ -10,6 +10,7 @@
 #include "consensus/grandpa/common.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -50,7 +51,6 @@ namespace kagome::consensus::grandpa {
     }
 
     bool operator==(const SignedMessage &other) const = default;
-    SCALE_CUSTOM_DECOMPOSITION(SignedMessage, message, signature, id);
   };
 
   using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
@@ -58,43 +58,45 @@ namespace kagome::consensus::grandpa {
 
   class SignedPrevote : public SignedMessage {
     using SignedMessage::SignedMessage;
+
+    friend void encode(const SignedPrevote &signed_msg,
+                       scale::Encoder &encoder) {
+      assert(signed_msg.template is<Prevote>());
+      encode(std::tie(boost::strict_get<Prevote>(signed_msg.message),
+                      signed_msg.signature,
+                      signed_msg.id),
+             encoder);
+    }
+
+    friend void decode(SignedPrevote &signed_msg, scale::Decoder &decoder) {
+      signed_msg.message = Prevote{};
+      decode(std::tie(boost::strict_get<Prevote>(signed_msg.message),
+                      signed_msg.signature,
+                      signed_msg.id),
+             decoder);
+    }
   };
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const SignedPrevote &signed_msg) {
-    assert(signed_msg.template is<Prevote>());
-    return s << boost::strict_get<Prevote>(signed_msg.message)
-             << signed_msg.signature << signed_msg.id;
-  }
-
-  template <typename Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, SignedPrevote &signed_msg) {
-    signed_msg.message = Prevote{};
-    return s >> boost::strict_get<Prevote>(signed_msg.message)
-        >> signed_msg.signature >> signed_msg.id;
-  }
 
   class SignedPrecommit : public SignedMessage {
     using SignedMessage::SignedMessage;
+
+    friend void encode(const SignedPrecommit &signed_msg,
+                       scale::Encoder &encoder) {
+      assert(signed_msg.template is<Precommit>());
+      encode(std::tie(boost::strict_get<Precommit>(signed_msg.message),
+                      signed_msg.signature,
+                      signed_msg.id),
+             encoder);
+    }
+
+    friend void decode(SignedPrecommit &signed_msg, scale::Decoder &decoder) {
+      signed_msg.message = Precommit{};
+      decode(std::tie(boost::strict_get<Precommit>(signed_msg.message),
+                      signed_msg.signature,
+                      signed_msg.id),
+             decoder);
+    }
   };
-
-  template <class Stream>
-    requires Stream::is_encoder_stream
-  Stream &operator<<(Stream &s, const SignedPrecommit &signed_msg) {
-    assert(signed_msg.template is<Precommit>());
-    return s << boost::strict_get<Precommit>(signed_msg.message)
-             << signed_msg.signature << signed_msg.id;
-  }
-
-  template <class Stream>
-    requires Stream::is_decoder_stream
-  Stream &operator>>(Stream &s, SignedPrecommit &signed_msg) {
-    signed_msg.message = Precommit{};
-    return s >> boost::strict_get<Precommit>(signed_msg.message)
-        >> signed_msg.signature >> signed_msg.id;
-  }
 
   // justification that contains a list of signed precommits justifying the
   // validity of the block
