@@ -666,8 +666,6 @@ namespace kagome::parachain {
                                    const RelayHash &relay_parent,
                                    const SignedFullStatementWithPVD &statement);
 
-    void onDeactivateBlocks(
-        const primitives::events::RemoveAfterFinalizationParams &event);
     void handle_active_leaves_update_for_validator(const network::ExView &event,
                                                    std::vector<Hash> pruned);
     void onViewUpdated(const network::ExView &event);
