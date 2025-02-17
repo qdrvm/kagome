@@ -75,7 +75,7 @@ namespace kagome::storage {
       const std::unordered_map<std::string, int32_t> &column_ttl,
       bool enable_migration) {
     auto log = log::createLogger("RocksDB", "storage");
-    
+
     // little sanity check
     if (path.is_relative() && path.begin() != path.end()
         && *path.begin() == "~") {
