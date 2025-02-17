@@ -184,14 +184,27 @@ namespace kagome::network::notifications {
     if (not peer) {
       return;
     }
-    peer.insert_or_assign(PeerOutBackoff{
-        scheduler_->scheduleWithHandle(
-            [WEAK_SELF, peer_id] {
-              WEAK_LOCK(self);
-              self->onBackoff(peer_id);
-            },
-            backoffTime()),
-    });
+    /*
+    there was bug (created by turuslan, found by harrm) causing double free.
+      *peer = PeerOutBackoff
+    variant assignment destroys old contained value then inserts new.
+    `~PeerOutConnected` calls `YamuxStream::reset`,
+    `YamuxStream::reset` cancels pending read,
+    read error calls `onError`,
+    `onError` calls `backoff`,
+    but `peer` still contains half-destructed `PeerOutConnected`,
+    and calls `~PeerOutConnected` again,
+    causing double free.
+    */
+    std::exchange(*peer,
+                  PeerOutBackoff{
+                      scheduler_->scheduleWithHandle(
+                          [WEAK_SELF, peer_id] {
+                            WEAK_LOCK(self);
+                            self->onBackoff(peer_id);
+                          },
+                          backoffTime()),
+                  });
   }
 
   void Protocol::onBackoff(const PeerId &peer_id) {
