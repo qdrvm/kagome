@@ -50,7 +50,8 @@ WERROR ?= OFF
 SAN_PARAMS ?= -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
 UBSAN_OPTIONS ?= print_stacktrace=1
 BUILD_COMMANDS = \
-	time cmake . -B\"$(DOCKER_BUILD_DIR_NAME)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+	time cmake . -B\"$(DOCKER_BUILD_DIR_NAME)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" \
+		-DHUNTER_STATUS_DEBUG=ON -DHUNTER_USE_CACHE_SERVERS=NO -DBACKWARD=OFF -DWERROR=$(WERROR) && \
 	time cmake --build \"$(DOCKER_BUILD_DIR_NAME)\" --target kagome -- -j$(BUILD_THREADS)
 
 # Generated versions
