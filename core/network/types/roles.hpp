@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <string>
 
+#include "scale/kagome_scale.hpp"
+
 // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 
 namespace kagome::network {
@@ -32,7 +34,7 @@ namespace kagome::network {
         uint8_t authority : 1;
 
       } flags;
-      uint8_t value;
+      uint8_t value{0};
     };
 
     Roles() : value(0) {}
@@ -65,8 +67,9 @@ namespace kagome::network {
         return "light";
       case 4:
         return "authority";
+      default:
+        return to_string(static_cast<int>(r.value));
     }
-    return to_string(r.value);
   }
 }  // namespace kagome::network
 
