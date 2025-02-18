@@ -5,6 +5,8 @@
  */
 
 #include <boost/algorithm/string/join.hpp>
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
+
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -32,8 +34,10 @@ struct Bip39IntegrationTest : public ::testing::TestWithParam<TestItem> {
   void SetUp() override {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
-    bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
+    bip39_provider = std::make_shared<Bip39ProviderImpl>(
+        pbkdf2_provider,
+        std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
+        hasher);
   }
 
   std::shared_ptr<Bip39Provider> bip39_provider;

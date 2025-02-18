@@ -18,6 +18,7 @@ namespace rapidjson {
 }  // namespace rapidjson
 
 #include <rapidjson/reader.h>
+#include <rapidjson/writer.h>
 
 namespace kagome {
 
@@ -43,5 +44,12 @@ namespace kagome {
       return std::move(handler.str);
     }
     return std::nullopt;
+  }
+
+  inline std::string jsonQuote(std::string_view s) {
+    rapidjson::StringBuffer stream;
+    rapidjson::Writer writer{stream};
+    writer.String(s.data(), s.size());
+    return std::string{stream.GetString(), stream.GetSize()};
   }
 }  // namespace kagome
