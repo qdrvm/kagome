@@ -71,7 +71,7 @@ namespace kagome::storage::trie {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       auto &mut_parent = const_cast<BranchNode &>(parent);
       const auto &opaque_child = parent.getChild(idx);
-      if (opaque_child->isDummy()) {
+      if (opaque_child != nullptr && opaque_child->isDummy()) {
         OUTCOME_TRY(child, retrieve_node_(opaque_child->asDummy()));
         mut_parent.replaceDummyUnsafe(idx, child);
       }
