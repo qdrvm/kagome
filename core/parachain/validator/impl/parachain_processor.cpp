@@ -3429,6 +3429,20 @@ namespace kagome::parachain {
                 "Group found for relay parent {} on core {}",
                 block_hash,
                 assigned_core);
+        const auto &group = jit->second;
+        std::unordered_map<ValidatorIndex, std::size_t>
+            group_validator_position;
+        for (std::size_t group_position = 0; group_position < group.size();
+             ++group_position) {
+          group_validator_position.emplace(group[group_position],
+                                           group_position);
+          SL_INFO(logger_,
+                  "Group validator index {} found for relay parent {} on core "
+                  "{}",
+                  group[group_position],
+                  block_hash,
+                  assigned_core);
+        }
 
         const auto validator_index_res = utils::map(
             parachain_state.table_context.validator,
@@ -3447,6 +3461,22 @@ namespace kagome::parachain {
                 block_hash,
                 assigned_core,
                 validator_index);
+        const auto validator_position_it =
+            group_validator_position.find(validator_index);
+        if (validator_position_it == group_validator_position.end()) {
+          SL_INFO(logger_,
+                  "Validator position not found for relay parent {} on core {}",
+                  block_hash,
+                  assigned_core);
+          return;
+        }
+        const auto validator_position = validator_position_it->second;
+        SL_INFO(logger_,
+                "Validator position found for relay parent {} on core {} it is "
+                "{}",
+                block_hash,
+                assigned_core,
+                validator_position);
         const auto availability_cores_res =
             parachain_host_->availability_cores(block_hash);
         if (not availability_cores_res) {
@@ -3523,31 +3553,32 @@ namespace kagome::parachain {
             SL_INFO(logger_,
                     "Candidate descriptor matches candidate descriptor");
             if (backed_candidate.validator_indices.bits.size()
-                <= validator_index) {
-              SL_INFO(logger_,
-                      "Validator index {} is too large for validator indices",
-                      validator_index);
+                <= validator_position) {
+              SL_INFO(
+                  logger_,
+                  "Validator position {} is too large for validator indices",
+                  validator_position);
               break;
             }
-            if (backed_candidate.validator_indices.bits[validator_index]
+            if (backed_candidate.validator_indices.bits[validator_position]
                 == false) {
               SL_INFO(logger_,
-                      "Validator index {} is false, so no vote",
-                      validator_index);
+                      "Validator position {} is false, so no vote",
+                      validator_position);
               break;
             }
             SL_INFO(logger_,
-                    "Validator index {} voted for the candidate",
-                    validator_index);
-            if (backed_candidate.validity_votes.size() <= validator_index) {
+                    "Validator position {} voted for the candidate",
+                    validator_position);
+            if (backed_candidate.validity_votes.size() <= validator_position) {
               SL_INFO(logger_,
-                      "Validator index {} is too large for validity votes",
-                      validator_index);
+                      "Validator position {} is too large for validity votes",
+                      validator_position);
               break;
             }
             SL_INFO(logger_,
-                    "Validator index {} is in the validity votes",
-                    validator_index);
+                    "Validator position {} is in the validity votes",
+                    validator_position);
             boost::apply_visitor(
                 [&](const auto &attestation) {
                   using T = std::decay_t<decltype(attestation)>;
@@ -3571,7 +3602,7 @@ namespace kagome::parachain {
                     explicit_found = true;
                   }
                 },
-                backed_candidate.validity_votes[validator_index].kind);
+                backed_candidate.validity_votes[validator_position].kind);
             break;
           }
           if (explicit_found) {
