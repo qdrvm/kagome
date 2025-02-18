@@ -72,8 +72,6 @@ namespace kagome::crypto {
   template <typename H, typename... T>
   inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
     EncoderToHash<H> to_hasher{};
-    // auto tie = std::tie(std::forward<T>(t)...);
-    // scale::encode(tie, to_hasher);
     scale::encode(std::tie(std::forward<T>(t)...), to_hasher);
     to_hasher.get_final(out);
   }

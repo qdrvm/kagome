@@ -149,13 +149,10 @@ namespace kagome::primitives {
     }
 
     friend void decode(InvalidTransaction &v, scale::Decoder &decoder) {
-      uint8_t value = decoder.take();
-
       // increment is needed for compatibility with Rust; indices of error codes
       // start from 0 there, while in kagome they must start from 1 because of
       // std::error_code policy
-      ++value;
-      v.kind = static_cast<Kind>(value);
+      v.kind = static_cast<Kind>(decoder.take() + 1);
       if (v.kind == Custom) {
         v.custom_value = decoder.take();
       }
@@ -194,13 +191,10 @@ namespace kagome::primitives {
     }
 
     friend void decode(UnknownTransaction &v, scale::Decoder &decoder) {
-      uint8_t value = decoder.take();
-
       // increment is needed for compatibility with Rust; indices of error codes
       // start from 0 there, while in kagome they must start from 1 because of
       // std::error_code policy
-      ++value;
-      v.kind = static_cast<Kind>(value);
+      v.kind = static_cast<Kind>(decoder.take() + 1);
       if (v.kind == Custom) {
         v.custom_value = decoder.take();
       }

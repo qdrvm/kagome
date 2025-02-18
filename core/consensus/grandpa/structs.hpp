@@ -116,8 +116,6 @@ namespace kagome::consensus::grandpa {
     Id id() const {
       return vote.id;
     }
-
-    SCALE_CUSTOM_DECOMPOSITION(VoteMessage, round_number, counter, vote);
   };
 
   struct TotalWeight {

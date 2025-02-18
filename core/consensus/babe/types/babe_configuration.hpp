@@ -57,14 +57,6 @@ namespace kagome::consensus::babe {
 
     /// Type of allowed slots.
     AllowedSlots allowed_slots{};  // can be changed by NextConfigData
-
-    SCALE_CUSTOM_DECOMPOSITION(BabeConfiguration,
-                               slot_duration,
-                               epoch_length,
-                               leadership_rate,
-                               authorities,
-                               randomness,
-                               allowed_slots);
   };
 
   struct Epoch {

@@ -10,8 +10,6 @@
 #include "utils/tuple_hash.hpp"
 
 namespace scale {
-  class ScaleEncoderStream;
-
   using detail::decompose_and_apply;
 
   size_t tieHash(const auto &value) {

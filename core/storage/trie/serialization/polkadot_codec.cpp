@@ -108,9 +108,9 @@ namespace kagome::storage::trie {
       const TrieNode &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
-    auto *trie_node = dynamic_cast<const TrieNode *>(&node);
+    const auto *trie_node = dynamic_cast<const TrieNode *>(&node);
     if (trie_node == nullptr) {
-      auto &dummy_node = dynamic_cast<const DummyNode &>(node);
+      const auto &dummy_node = dynamic_cast<const DummyNode &>(node);
       return dummy_node.db_key.asBuffer();
     }
     if (trie_node->isBranch()) {
@@ -211,9 +211,8 @@ namespace kagome::storage::trie {
     if (hash) {
       out += *hash;
     } else if (node.getValue().value) {
-      // TODO(turuslan): soramitsu/scale-codec-cpp non-allocating methods
       OUTCOME_TRY(value, scale::encode(*node.getValue().value));
-      out += value;
+      out += std::move(value);
     }
     return outcome::success();
   }
@@ -405,7 +404,7 @@ namespace kagome::storage::trie {
     common::Buffer value;
     if (type == TrieNode::Type::BranchWithValue) {
       try {
-        decoder >> value;
+        decode(value, decoder);
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
@@ -413,7 +412,7 @@ namespace kagome::storage::trie {
     } else if (type == TrieNode::Type::BranchContainingHashes) {
       common::Hash256 hash;
       try {
-        decoder >> hash;
+        decode(hash, decoder);
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
@@ -432,7 +431,7 @@ namespace kagome::storage::trie {
         // child in the processed branch
         common::Buffer child_hash;
         try {
-          decoder >> child_hash;
+          decode(child_hash, decoder);
         } catch (std::system_error &e) {
           return outcome::failure(e.code());
         }

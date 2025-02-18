@@ -41,14 +41,11 @@ namespace kagome::primitives {
     inline std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis) {
       // We break DI principle here since we need to use hasher in decode scale
       // operator overload and we cannot inject it there
-      static const std::unique_ptr<kagome::crypto::Hasher> kHasher =
-          std::make_unique<kagome::crypto::HasherImpl>();
+      static auto api_id =
+          crypto::HasherImpl{}.blake2b_64(common::Buffer::fromString("Core"));
 
-      auto result = std::ranges::find_if(apis, [](auto &api) {
-        static auto api_id =
-            kHasher->blake2b_64(common::Buffer::fromString("Core"));
-        return api.first == api_id;
-      });
+      auto result = std::ranges::find_if(
+          apis, [&](auto &api) { return api.first == api_id; });
       if (result == apis.end()) {
         return std::nullopt;
       }

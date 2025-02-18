@@ -11,6 +11,8 @@
 
 #include "common/outcome_throw.hpp"
 
+#include <scale/kagome_scale.hpp>
+
 #define BLOCK_ATTRIBUTE_OP(op)                                          \
   constexpr auto operator op(BlockAttribute l, BlockAttribute r) {      \
     return static_cast<BlockAttribute>(static_cast<uint8_t>(l)          \
@@ -46,16 +48,24 @@ namespace kagome::network {
   inline bool has(BlockAttribute l, BlockAttribute r) {
     return (l & r) == r;
   }
+}  // namespace kagome::network
 
-  inline void decode(BlockAttribute &attributes, scale::Decoder &decoder) {
+namespace scale {
+  inline void encode(kagome::network::BlockAttribute &attributes,
+                     scale::Encoder &encoder) {
+    encoder.put(static_cast<uint8_t>(attributes));
+  }
+
+  inline void decode(kagome::network::BlockAttribute &attributes,
+                     scale::Decoder &decoder) {
     uint8_t value = decoder.take();
-    attributes = toBlockAttribute(value);
+    attributes = kagome::network::toBlockAttribute(value);
     if (static_cast<uint8_t>(attributes) != value) {
-      common::raise(scale::DecodeError::UNEXPECTED_VALUE);
+      kagome::scale::raise(scale::DecodeError::UNEXPECTED_VALUE);
     }
   }
 
-}  // namespace kagome::network
+}  // namespace scale
 
 template <>
 struct std::hash<kagome::network::BlockAttribute> {
