@@ -15,7 +15,6 @@
 #include <soralog/impl/configurator_from_yaml.hpp>
 
 #include "blockchain/block_storage_error.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
@@ -268,7 +267,7 @@ int db_editor_main(int argc, const char **argv) {
         }),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockTreeImpl>(),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>());
 
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
@@ -290,9 +289,8 @@ int db_editor_main(int argc, const char **argv) {
     primitives::BlockInfo best_leaf(
         std::numeric_limits<primitives::BlockNumber>::min(), {});
     for (auto hash : block_tree_leaf_hashes) {
-      auto number = check(check(block_storage->getBlockHeader(hash)).value())
-                        .value()
-                        .number;
+      auto number =
+          check(check(block_storage->getBlockHeader(hash))).value().number;
       const auto &leaf = *leafs.emplace(number, hash).first;
       SL_TRACE(log, "Leaf {} found", leaf);
       if (leaf.number <= least_leaf.number) {
@@ -317,8 +315,7 @@ int db_editor_main(int argc, const char **argv) {
       auto &block = node.value();
 
       auto header =
-          check(check(block_storage->getBlockHeader(block.hash)).value())
-              .value();
+          check(check(block_storage->getBlockHeader(block.hash))).value();
       if (header.number == 0) {
         last_finalized_block = block;
         last_finalized_block_header = header;
@@ -397,7 +394,6 @@ int db_editor_main(int argc, const char **argv) {
       }
 
       auto trie_node_storage = storage->getSpace(storage::Space::kTrieNode);
-      auto trie_value_storage = storage->getSpace(storage::Space::kTrieValue);
 
       auto track_trie_entries = [&log, &buffer_storage, &prefix](auto storage,
                                                                  auto tracker) {

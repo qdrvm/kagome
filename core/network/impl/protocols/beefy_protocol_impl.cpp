@@ -8,79 +8,59 @@
 
 #include "consensus/beefy/beefy.hpp"
 #include "network/common.hpp"
-#include "network/impl/stream_engine.hpp"
-#include "network/notifications/connect_and_handshake.hpp"
-#include "network/notifications/handshake_and_read_messages.hpp"
+#include "network/notifications/encode.hpp"
+#include "utils/try.hpp"
 
 namespace kagome::network {
+  using consensus::beefy::BeefyGossipMessage;
 
-  BeefyProtocolImpl::BeefyProtocolImpl(libp2p::Host &host,
-                               const blockchain::GenesisBlockHash &genesis,
-                               Roles roles,
-                               std::shared_ptr<Beefy> beefy,
-                               std::shared_ptr<StreamEngine>stream_engine
-                               )
-      : base_{
-          kName,
-          host,
-          make_protocols(kBeefyProtocol, genesis),
-          log::createLogger(kName),
-        },
+  // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/substrate/client/consensus/beefy/src/communication/mod.rs#L82-L83
+  constexpr size_t kPeersLimit = 25;
+
+  BeefyProtocolImpl::BeefyProtocolImpl(
+      const notifications::Factory &notifications_factory,
+      const blockchain::GenesisBlockHash &genesis,
+      Roles roles,
+      std::shared_ptr<Beefy> beefy)
+      : notifications_{notifications_factory.make(
+            {make_protocols(kBeefyProtocol, genesis)},
+            kPeersLimit,
+            kPeersLimit)},
         roles_{roles},
-        beefy_{std::move(beefy)},
-        stream_engine_{std::move(stream_engine)}
-        {}
+        beefy_{std::move(beefy)} {}
 
-  bool BeefyProtocolImpl::start() {
-    return base_.start(weak_from_this());
+  Buffer BeefyProtocolImpl::handshake() {
+    return scale::encode(roles_).value();
   }
 
-  const std::string &BeefyProtocolImpl::protocolName() const {
-    return base_.protocolName();
+  bool BeefyProtocolImpl::onHandshake(const PeerId &peer_id,
+                                      size_t,
+                                      bool,
+                                      Buffer &&handshake) {
+    TRY_FALSE(scale::decode<Roles>(handshake));
+    return true;
   }
 
-  void BeefyProtocolImpl::onIncomingStream(std::shared_ptr<Stream> stream) {
-    auto on_handshake = [](std::shared_ptr<BeefyProtocolImpl> self,
-                           std::shared_ptr<Stream> stream,
-                           Roles) {
-      self->stream_engine_->addIncoming(stream, self);
-      return true;
-    };
-    auto on_message = [](std::shared_ptr<BeefyProtocolImpl> self,
-                         consensus::beefy::BeefyGossipMessage message) {
-      self->beefy_->onMessage(std::move(message));
-      return true;
-    };
-    notifications::handshakeAndReadMessages<
-        consensus::beefy::BeefyGossipMessage>(weak_from_this(),
-                                              std::move(stream),
-                                              roles_,
-                                              std::move(on_handshake),
-                                              std::move(on_message));
+  bool BeefyProtocolImpl::onMessage(const PeerId &peer_id,
+                                    size_t,
+                                    Buffer &&message_raw) {
+    auto message = TRY_FALSE(scale::decode<BeefyGossipMessage>(message_raw));
+    beefy_->onMessage(std::move(message));
+    return true;
   }
 
-  void BeefyProtocolImpl::newOutgoingStream(
-      const PeerId &peer_id,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto on_handshake =
-        [cb = std::move(cb)](
-            std::shared_ptr<BeefyProtocolImpl> self,
-            outcome::result<notifications::ConnectAndHandshake<Roles>>
-                r) mutable {
-          if (not r) {
-            cb(r.error());
-            return;
-          }
-          auto &stream = std::get<0>(r.value());
-          self->stream_engine_->addOutgoing(stream, self);
-          cb(std::move(stream));
-        };
-    notifications::connectAndHandshake(
-        weak_from_this(), base_, peer_id, roles_, std::move(on_handshake));
-  }
+  void BeefyProtocolImpl::onClose(const PeerId &peer_id) {}
 
   void BeefyProtocolImpl::broadcast(
       std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) {
-    stream_engine_->broadcast(shared_from_this(), message);
+    auto message_raw = notifications::encode(message);
+    notifications_->peersOut([&](const PeerId &peer_id, size_t) {
+      notifications_->write(peer_id, message_raw);
+      return true;
+    });
+  }
+
+  void BeefyProtocolImpl::start() {
+    return notifications_->start(weak_from_this());
   }
 }  // namespace kagome::network

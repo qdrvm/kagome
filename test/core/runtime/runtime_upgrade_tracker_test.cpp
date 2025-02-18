@@ -8,8 +8,6 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
-#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -59,8 +57,6 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
   }
 
   void SetUp() override {
-    header_repo_ =
-        std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
     buffer_storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
     storage_ = std::make_shared<kagome::storage::SpacedStorageMock>();
@@ -72,16 +68,13 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
         std::make_shared<kagome::primitives::CodeSubstituteBlockIds>();
     sub_engine_ =
         std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
-    block_storage_ = std::make_shared<kagome::blockchain::BlockStorageMock>();
-    tracker_ =
-        kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-            header_repo_, storage_, known_code_substitutes_, block_storage_)
-            .value();
+    tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                   storage_, known_code_substitutes_, block_tree_)
+                   .value();
   }
 
  protected:
   std::unique_ptr<kagome::runtime::RuntimeUpgradeTrackerImpl> tracker_;
-  std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
   std::shared_ptr<kagome::primitives::events::ChainSubscriptionEngine>
       sub_engine_;
@@ -90,7 +83,6 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
 
   std::shared_ptr<kagome::primitives::CodeSubstituteBlockIds>
       known_code_substitutes_{};
-  std::shared_ptr<kagome::blockchain::BlockStorage> block_storage_;
   kagome::primitives::BlockInfo genesis_block{0, "block_genesis_hash"_hash256};
   kagome::primitives::BlockHeader genesis_block_header{
       0,                             // number
@@ -113,7 +105,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
  * THEN first encountered state is returned
  */
 TEST_F(RuntimeUpgradeTrackerTest, NullBlockTree) {
-  EXPECT_CALL(*header_repo_, getBlockHeader({block_42.hash}))
+  EXPECT_CALL(*block_tree_, getBlockHeader({block_42.hash}))
       .WillOnce(testing::Return(block_42_header));
   EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
   ASSERT_EQ(state, block_42_header.state_root);
@@ -126,10 +118,11 @@ TEST_F(RuntimeUpgradeTrackerTest, NullBlockTree) {
  * returned
  */
 TEST_F(RuntimeUpgradeTrackerTest, EmptyUpdatesCache) {
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
 
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_42.hash))
       .WillOnce(testing::Return(block_42_header));
+
   EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
   ASSERT_EQ(state, block_42_header.state_root);
 }
@@ -140,9 +133,9 @@ TEST_F(RuntimeUpgradeTrackerTest, EmptyUpdatesCache) {
  * THEN genesis state is returned
  */
 TEST_F(RuntimeUpgradeTrackerTest, AutoUpgradeAfterEmpty) {
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
 
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_2.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_2.hash))
       .WillRepeatedly(testing::Return(block_2_header));
   EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_2));
   ASSERT_EQ(state, block_2_header.state_root);
@@ -155,12 +148,12 @@ TEST_F(RuntimeUpgradeTrackerTest, AutoUpgradeAfterEmpty) {
 }
 
 TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(testing::Return(makeBlockInfo(100500)));
 
   // first we execute block #1
-  EXPECT_CALL(*header_repo_, getBlockHeader(genesis_block.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(genesis_block.hash))
       .WillRepeatedly(testing::Return(genesis_block_header));
 
   EXPECT_OUTCOME_TRUE(state1, tracker_->getLastCodeUpdateState(genesis_block));
@@ -169,9 +162,9 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   // then we upgrade in block #42
   auto block_41_header = makeBlockHeader(41);
   auto block_41 = makeBlockInfo(41);
-  EXPECT_CALL(*header_repo_, getBlockHeader(genesis_block.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(genesis_block.hash))
       .WillRepeatedly(testing::Return(genesis_block_header));
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_42.hash))
       .WillRepeatedly(testing::Return(block_42_header));
 
   EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_41));
@@ -187,7 +180,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   EXPECT_CALL(*block_tree_, getChildren(block_41.hash))
       .WillRepeatedly(testing::Return(
           std::vector<kagome::primitives::BlockHash>{block_42.hash}));
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_42.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_42.hash))
       .WillRepeatedly(testing::Return(block_42_header));
 
   EXPECT_OUTCOME_TRUE(state43, tracker_->getLastCodeUpdateState(block_42));
@@ -208,10 +201,10 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(testing::Return(makeBlockInfo(5203205)));
 
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
   auto block1 = makeBlockInfo(5200000);  // took a block before code update!!!
   auto block1_header = makeBlockHeader(5200000);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block1.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block1.hash))
       .WillRepeatedly(testing::Return(block1_header));
   sub_engine_->notify(
       kagome::primitives::events::ChainEventType::kNewRuntime,
@@ -219,27 +212,25 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
 
   auto block2 = makeBlockInfo(5203203);
   auto block2_header = makeBlockHeader(5203203);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block2.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block2.hash))
       .WillRepeatedly(testing::Return(block2_header));
   known_code_substitutes_.reset(
       new kagome::primitives::CodeSubstituteBlockIds{{block2.number}});
 
   // reset tracker
-  tracker_ =
-      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-          header_repo_, storage_, known_code_substitutes_, block_storage_)
-          .value();
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                 storage_, known_code_substitutes_, block_tree_)
+                 .value();
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
 
   EXPECT_OUTCOME_TRUE(state2, tracker_->getLastCodeUpdateState(block2));
   ASSERT_EQ(state2, block2_header.state_root);
 
   // reset tracker
-  tracker_ =
-      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-          header_repo_, storage_, known_code_substitutes_, block_storage_)
-          .value();
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                 storage_, known_code_substitutes_, block_tree_)
+                 .value();
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
 
   auto block3 = makeBlockInfo(5203204);
   EXPECT_OUTCOME_TRUE(state3, tracker_->getLastCodeUpdateState(block3));
@@ -252,25 +243,24 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
   EXPECT_CALL(*block_tree_, hasDirectChain(testing::_, testing::_))
       .WillRepeatedly(testing::Return(true));
 
-  tracker_ =
-      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-          header_repo_, storage_, known_code_substitutes_, block_storage_)
-          .value();
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                 storage_, known_code_substitutes_, block_tree_)
+                 .value();
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
 
   auto block1 = makeBlockInfo(5203203);
   auto block1_header = makeBlockHeader(5203203);
   known_code_substitutes_.reset(
       new kagome::primitives::CodeSubstituteBlockIds({block1.number}));
 
-  EXPECT_CALL(*header_repo_, getBlockHeader(block1.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block1.hash))
       .WillOnce(testing::Return(block1_header));
   EXPECT_OUTCOME_TRUE_1(tracker_->getLastCodeUpdateState(block1));
 
   // @see https://polkadot.subscan.io/event?module=system&event=codeupdated
   auto block2 = makeBlockInfo(5661442);
   auto block2_header = makeBlockHeader(5661442);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block2.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block2.hash))
       .WillRepeatedly(testing::Return(block2_header));
   sub_engine_->notify(
       kagome::primitives::events::ChainEventType::kNewRuntime,
@@ -285,7 +275,7 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
 }
 
 TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
-  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  tracker_->subscribeToBlockchainEvents(sub_engine_);
   // suppose we have two forks
   //  / - 33f2
   // 32 - 33f1 - 34f1
@@ -296,7 +286,7 @@ TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
   // and then we receive 34f2 with a runtime upgrade
   auto block_34f2 = makeBlockInfo(34, 2);
   auto block_34f2_header = makeBlockHeader(34, 2);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_34f2.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_34f2.hash))
       .WillRepeatedly(testing::Return(block_34f2_header));
   sub_engine_->notify(
       kagome::primitives::events::ChainEventType::kNewRuntime,
@@ -305,7 +295,7 @@ TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
   // and then we receive 35f1 and query the latest runtime for it
   auto block_35f1 = makeBlockInfo(35, 1);
   auto block_35f1_header = makeBlockHeader(35, 1);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_35f1.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_35f1.hash))
       .WillRepeatedly(testing::Return(block_35f1_header));
 
   EXPECT_CALL(*block_tree_, hasDirectChain(block_34f2.hash, block_35f1.hash))
@@ -319,7 +309,7 @@ TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
 
   auto block_33f1 = makeBlockInfo(33, 1);
   auto block_33f1_header = makeBlockHeader(33, 1);
-  EXPECT_CALL(*header_repo_, getBlockHeader(block_33f1.hash))
+  EXPECT_CALL(*block_tree_, getBlockHeader(block_33f1.hash))
       .WillRepeatedly(testing::Return(block_33f1_header));
   sub_engine_->notify(
       kagome::primitives::events::ChainEventType::kNewRuntime,

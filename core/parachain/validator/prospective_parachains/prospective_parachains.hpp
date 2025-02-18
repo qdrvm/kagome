@@ -58,7 +58,7 @@ namespace kagome::parachain {
       get_fragment_chains(const Hash &leaf) const {
         auto view_data = utils::get(per_relay_parent, leaf);
         if (view_data) {
-          return std::cref((*view_data)->second.fragment_chains);
+          return std::cref(view_data->get().fragment_chains);
         }
         return std::nullopt;
       }

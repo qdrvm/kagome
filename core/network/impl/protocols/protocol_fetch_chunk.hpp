@@ -16,8 +16,9 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
-#include "network/impl/stream_engine.hpp"
+#include "network/peer_manager.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -41,52 +42,98 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        std::shared_ptr<PeerManager> pm,
+        common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-            FetchChunkRequest,
-            FetchChunkResponse,
-            ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                    host,
-                                    make_protocols(kFetchChunkProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kFetchChunkProtocolName,
-                                                      "req_chunk_protocol")},
-          pp_{std::move(pp)} {
+              FetchChunkRequest,
+              FetchChunkResponse,
+              ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                      host,
+                                      make_protocols(kFetchChunkProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kFetchChunkProtocolName,
+                                                        "req_chunk_protocol"),
+                                      main_thread_pool},
+          pp_{std::move(pp)},
+          pm_{std::move(pm)} {
       BOOST_ASSERT(pp_);
+      BOOST_ASSERT(pm_);
     }
 
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
-        RequestType request, std::shared_ptr<Stream> /*stream*/) override {
-      base().logger()->info("Fetching chunk request.(chunk={}, candidate={})",
-                            request.chunk_index,
-                            request.candidate);
-      auto res = pp_->OnFetchChunkRequest(std::move(request));
+        RequestType request, std::shared_ptr<Stream> stream) override {
+      SL_DEBUG(base_.logger(),
+               "Fetching chunk request.(chunk={}, candidate={})",
+               request.chunk_index,
+               request.candidate);
+
+      auto peer_id = [&] {
+        auto res = stream->remotePeerId();
+        BOOST_ASSERT(res.has_value());
+        return res.value();
+      }();
+      auto &peer_state = [&]() -> PeerState & {
+        auto res = pm_->getPeerState(peer_id);
+        if (!res) {
+          SL_TRACE(base_.logger(),
+                   "No PeerState of peer {}. Default one has created",
+                   peer_id);
+          res = pm_->createDefaultPeerState(peer_id);
+        }
+        return res.value().get();
+      }();
+      peer_state.req_chunk_version = ReqChunkVersion::V2;
+
+      SL_TRACE(
+          base_.logger(),
+          "ChunkRequest (v2) received from peer {}: candidate={}, chunk={}",
+          peer_id,
+          request.candidate,
+          request.chunk_index);
+
+      auto res = pp_->OnFetchChunkRequest(request);
       if (res.has_error()) {
-        base().logger()->error("Fetching chunk response failed.(error={})",
-                               res.error());
-      } else {
-        visit_in_place(
-            res.value(),
-            [&](const network::Chunk &r) {
-              base().logger()->info("Fetching chunk response with data.");
-            },
-            [&](const auto &) {
-              base().logger()->info("Fetching chunk response empty.");
-            });
+        SL_ERROR(base_.logger(),
+                 "Fetching chunk response failed.(error={})",
+                 res.error());
+        return res.as_failure();
       }
-      return res;
+
+      if (auto _chunk = if_type<const network::Chunk>(res.value())) {
+        SL_DEBUG(base_.logger(), "Fetching chunk response with data.");
+
+        auto &chunk = _chunk.value().get();
+        SL_TRACE(base_.logger(),
+                 "ChunkResponse (v2) sent to peer {}: "
+                 "chunk={}, data={}, proof=[{}]",
+                 peer_id,
+                 chunk.chunk_index,
+                 chunk.data,
+                 fmt::join(chunk.proof, ", "));
+      } else {
+        SL_DEBUG(base_.logger(), "Fetching chunk response empty.");
+
+        SL_TRACE(base_.logger(),
+                 "ChunkResponse (v2) sent to peer {}: empty",
+                 peer_id);
+      }
+
+      return std::move(res);
     }
 
     void onTxRequest(const RequestType &request) override {
-      base().logger()->debug("Fetching chunk candidate: {}, index: {}",
-                             request.candidate,
-                             request.chunk_index);
+      SL_DEBUG(base_.logger(),
+               "Fetching chunk candidate: {}, index: {}",
+               request.candidate,
+               request.chunk_index);
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;
     std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<PeerManager> pm_;
   };
 
 }  // namespace kagome::network

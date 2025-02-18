@@ -204,7 +204,6 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
   auto spaced_db = std::make_shared<SpacedStorageMock>();
   ON_CALL(*spaced_db, getSpace(Space::kTrieNode)).WillByDefault(Return(db));
-  ON_CALL(*spaced_db, getSpace(Space::kTrieValue)).WillByDefault(Return(db));
 
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();

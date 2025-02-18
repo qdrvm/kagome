@@ -1,7 +1,8 @@
 ARG AUTHOR="k.azovtsev@qdrvm.io <Kirill Azovtsev>"
 
 ARG BASE_IMAGE
-ARG RUST_VERSION=1.79.0
+ARG BASE_IMAGE_TAG
+ARG RUST_VERSION
 
 ARG PROJECT_ID
 ARG POLKADOT_BINARY_PACKAGE_VERSION
@@ -12,7 +13,7 @@ ARG REGION=europe-north1
 ARG ARCHITECTURE=x86_64
 
 
-FROM ${BASE_IMAGE} as zombie-tester
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS zombie-tester
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -23,6 +24,11 @@ ARG ZOMBIENET_RELEASE
 ENV ZOMBIENET_RELEASE=$ZOMBIENET_RELEASE
 ARG POLKADOT_SDK_RELEASE
 ENV POLKADOT_SDK_RELEASE=$POLKADOT_SDK_RELEASE
+
+COPY install_packages /usr/sbin/install_packages
+RUN chmod 0755 /usr/sbin/install_packages
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN groupadd --gid 10000 nonroot && \
     useradd --home-dir /home/nonroot \
@@ -35,14 +41,12 @@ RUN groupadd --gid 10000 nonroot && \
 WORKDIR /home/nonroot/
 
 RUN install_packages  \
-        bash \
         wget  \
         nano \
         ca-certificates \
         gnupg2 \
         curl
 
-SHELL ["/bin/bash", "-c"]
 
 RUN mkdir -p /home/nonroot/bin
     
@@ -99,14 +103,14 @@ RUN zombienet setup -y polkadot polkadot-parachain; \
         exit $EXIT_CODE; \
     fi;
 
-RUN ./polkadot --version && \
-    ./polkadot-parachain --version && \
-    ./zombienet version  && \
-    ./polkadot-execute-worker --version && \
-    ./polkadot-prepare-worker --version && \
-    malus --version && \
-    adder-collator --version && \
-    undying-collator --version
+RUN echo "Polkadot Version:" && ./polkadot --version && \
+    echo "Polkadot Parachain Version:" && ./polkadot-parachain --version && \
+    echo "Zombienet Version:" && ./zombienet version && \
+    echo "Polkadot Execute Worker Version:" && ./polkadot-execute-worker --version && \
+    echo "Polkadot Prepare Worker Version:" && ./polkadot-prepare-worker --version && \
+    echo "Malus Version:" && malus --version && \
+    echo "Adder Collator Version:" && adder-collator --version && \
+    echo "Undying Collator Version:" && undying-collator --version
 
 RUN ln -s /home/nonroot/bin/zombienet-linux-x64 /usr/local/bin/zombienet && \
     ln -s /home/nonroot/bin/polkadot /usr/local/bin/polkadot && \
@@ -115,7 +119,6 @@ RUN ln -s /home/nonroot/bin/zombienet-linux-x64 /usr/local/bin/zombienet && \
     ln -s /home/nonroot/bin/polkadot-prepare-worker /usr/local/bin/polkadot-prepare-worker
 
 RUN install_packages  \
-      curl  \
       gpg  \
       gpg-agent  \
       git \
@@ -127,4 +130,6 @@ RUN install_packages  \
       libtinfo6 \
       libseccomp2 \
       libatomic1 \
-      ssh
+      ssh \
+      libgcc-s1 \
+      zlib1g

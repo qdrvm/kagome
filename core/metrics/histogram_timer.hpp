@@ -11,9 +11,7 @@
 #include <libp2p/common/final_action.hpp>
 
 namespace kagome::metrics {
-  inline std::vector<double> exponentialBuckets(double start,
-                                                double factor,
-                                                size_t count) {
+  inline auto exponentialBuckets(double start, double factor, size_t count) {
     std::vector<double> buckets;
     for (auto bucket = start; buckets.size() < count; bucket *= factor) {
       buckets.emplace_back(bucket);
@@ -27,12 +25,26 @@ namespace kagome::metrics {
       metric_ = registry_->registerGaugeMetric(name);
     }
 
-    auto *operator->() {
+    auto *operator->() const {
       return metric_;
     }
 
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *metric_;
+  };
+
+  struct CounterHelper {
+    CounterHelper(const std::string &name, const std::string &help) {
+      registry_->registerCounterFamily(name, help);
+      metric_ = registry_->registerCounterMetric(name);
+    }
+
+    auto *operator->() const {
+      return metric_;
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Counter *metric_;
   };
 
   struct HistogramHelper {

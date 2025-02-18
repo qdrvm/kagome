@@ -39,19 +39,34 @@ namespace kagome {
       const parachain::Groups &groups,
       parachain::ValidatorIndex originator,
       const network::vstaging::CompactStatement &statement) {
-    parachain::CandidateHash candidate_hash;
-    network::vstaging::StatementKind statement_kind = visit_in_place(
+    namespace vs = network::vstaging;
+
+    const auto [statement_kind, candidate_hash] = visit_in_place(
         statement.inner_value,
-        [&](const network::vstaging::SecondedCandidateHash &) {
-          return network::vstaging::StatementKind::Seconded;
+        [&](const network::vstaging::SecondedCandidateHash &v)
+            -> std::pair<vs::StatementKind,
+                         std::optional<std::reference_wrapper<
+                             const parachain::CandidateHash>>> {
+          return {network::vstaging::StatementKind::Seconded,
+                  std::cref(v.hash)};
         },
-        [&](const network::vstaging::ValidCandidateHash &) {
-          return network::vstaging::StatementKind::Valid;
+        [&](const network::vstaging::ValidCandidateHash &v)
+            -> std::pair<vs::StatementKind,
+                         std::optional<std::reference_wrapper<
+                             const parachain::CandidateHash>>> {
+          return {network::vstaging::StatementKind::Valid, std::cref(v.hash)};
         },
-        [&](const auto &) {
-          UNREACHABLE;
-          return network::vstaging::StatementKind::Valid;
+        [&](const auto &) -> std::pair<vs::StatementKind,
+                                       std::optional<std::reference_wrapper<
+                                           const parachain::CandidateHash>>> {
+          return std::make_pair(network::vstaging::StatementKind::Valid,
+                                std::nullopt);
         });
+
+    if (!candidate_hash) {
+      UNREACHABLE;
+      return {};
+    }
 
     auto group = groups.byValidatorIndex(originator);
     if (!group) {
@@ -61,7 +76,8 @@ namespace kagome {
     auto s = groups.get(*group).value();
     for (size_t ix = 0; ix < s.size(); ++ix) {
       if (s[ix] == originator) {
-        return std::make_tuple(*group, candidate_hash, statement_kind, ix);
+        return std::make_tuple(
+            *group, candidate_hash->get(), statement_kind, ix);
       }
     }
     return {};
@@ -131,10 +147,36 @@ namespace kagome::parachain::grid {
     bool manifest_allowed = true;
     if (kind == ManifestKind::Full) {
       manifest_allowed = receiving_from;
+      SL_TRACE(logger,
+               "Manifest full allowed. (receiving_from={})",
+               manifest_allowed ? "[yes]" : "[no]");
     } else {
       auto it = confirmed_backed.find(candidate_hash);
       manifest_allowed = sending_to && it != confirmed_backed.end()
                       && it->second.has_sent_manifest_to(sender);
+      SL_TRACE(logger,
+               "Manifest acknowledgement allowed. (sender={}, "
+               "candidate_hash={}, sending_to={}, "
+               "has_confirmed_back={}, has_sent_manifest_to={})",
+               sender,
+               candidate_hash,
+               sending_to ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()) ? "[yes]" : "[no]",
+               (it != confirmed_backed.end()
+                && it->second.has_sent_manifest_to(sender))
+                   ? "[yes]"
+                   : "[no]");
+      if (it != confirmed_backed.end()) {
+        auto a = it->second.mutual_knowledge.find(sender);
+        SL_TRACE(
+            logger,
+            "Local knowledge. (has_mutual_knowledge={}, local_knowledge={})",
+            (a != it->second.mutual_knowledge.end()) ? "[yes]" : "[no]",
+            (a != it->second.mutual_knowledge.end())
+                    && a->second.local_knowledge
+                ? "[yes]"
+                : "[no]");
+      }
     }
     if (!manifest_allowed) {
       return Error::DISALLOWED_DIRECTION;
@@ -250,6 +292,11 @@ namespace kagome::parachain::grid {
                                      const StatementFilter &local_knowledge) {
     auto confirmed = confirmed_backed.find(candidate_hash);
     if (confirmed != confirmed_backed.end()) {
+      SL_TRACE(logger,
+               "Manifest sent to. (validator_index={}, candidate_hash={}, "
+               "local_knowledge=[yes])",
+               validator_index,
+               candidate_hash);
       confirmed->second.manifest_sent_to(validator_index, local_knowledge);
       auto ps = confirmed->second.pending_statements(validator_index);
       if (ps) {
@@ -465,9 +512,16 @@ namespace kagome::parachain::grid {
       return recipients;
     }
     for (const auto &[v, k] : mutual_knowledge) {
-      if (k.local_knowledge
-          && !k.remote_knowledge->contains(originator_index_in_group,
-                                           statement_kind)) {
+      if (!k.local_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge) {
+        continue;
+      }
+
+      if (!k.remote_knowledge->contains(originator_index_in_group,
+                                        statement_kind)) {
         recipients.push_back(v);
       }
     }

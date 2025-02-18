@@ -35,25 +35,6 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
-  enum class PvfError {
-    // NO_DATA conflicted with <netdb.h>
-    NO_PERSISTED_DATA = 1,
-    POV_SIZE,
-    POV_HASH,
-    CODE_HASH,
-    SIGNATURE,
-    HEAD_HASH,
-    COMMITMENTS_HASH,
-    OUTPUTS,
-    PERSISTED_DATA_HASH,
-    NO_CODE,
-    COMPILATION_ERROR
-  };
-}  // namespace kagome::parachain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, PvfError)
-
-namespace kagome::parachain {
   class PvfPool;
   class PvfThreadPool;
   class PvfWorkers;
@@ -105,6 +86,7 @@ namespace kagome::parachain {
                      const ParachainBlock &pov,
                      const CandidateReceipt &receipt,
                      const ParachainRuntime &code,
+                     runtime::PvfExecTimeoutKind timeout_kind,
                      Cb cb) const override;
 
    private:
@@ -118,6 +100,7 @@ namespace kagome::parachain {
                   const common::Hash256 &code_hash,
                   const ParachainRuntime &code_zstd,
                   const ValidationParams &params,
+                  runtime::PvfExecTimeoutKind timeout_kind,
                   WasmCb cb) const;
 
     outcome::result<CandidateCommitments> fromOutputs(

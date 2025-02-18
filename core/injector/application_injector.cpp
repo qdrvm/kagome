@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "injector/application_injector.hpp"
-
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   32  // TODO(Harrm): #2104 check how it influences on compilation time
+
+#include "injector/application_injector.hpp"
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -47,16 +47,17 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/key.hpp"
 #include "application/modes/precompile_wasm.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
+#include "authority_discovery/query/audi_store_impl.hpp"
 #include "authority_discovery/query/query_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
-#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
@@ -119,10 +120,11 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/protocols/beefy_justification_protocol.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/fetch_attested_candidate.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/light.hpp"
-#include "network/impl/protocols/parachain_protocols.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk_obsolete.hpp"
@@ -162,6 +164,7 @@
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
@@ -191,6 +194,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
@@ -257,6 +261,7 @@ namespace {
       const sptr<application::ChainSpec> &chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
+    bool enable_migration = app_config.enableDbMigration();
 
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
@@ -272,11 +277,15 @@ namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
     options.max_open_files = soft_limit.value() / 2;
 
+    const std::unordered_map<std::string, int32_t> column_ttl = {
+        {"avaliability_storage", 25 * 60 * 60}};  // 25 hours
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  app_config.dbCacheSize(),
-                                 prevent_destruction);
+                                 prevent_destruction,
+                                 column_ttl,
+                                 enable_migration);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical(
@@ -327,7 +336,6 @@ namespace {
     libp2p::protocol::kademlia::Config kademlia_config;
     kademlia_config.protocols =
         network::make_protocols("/{}/kad", genesis, chain_spec);
-    kademlia_config.maxBucketSize = 1000;
     kademlia_config.randomWalk.enabled = false;
     kademlia_config.valueLookupsQuorum = 4;
 
@@ -335,8 +343,15 @@ namespace {
         std::move(kademlia_config));
   }
 
+  sptr<libp2p::protocol::IdentifyConfig> get_identify_config() {
+    libp2p::protocol::IdentifyConfig identify_config;
+    identify_config.protocols = {"/ipfs/id/1.0.0", "/substrate/1.0"};
+    return std::make_shared<libp2p::protocol::IdentifyConfig>(
+        std::move(identify_config));
+  }
+
   template <typename Injector>
-  sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
+  sptr<blockchain::BlockTreeImpl> get_block_tree(const Injector &injector) {
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
@@ -344,9 +359,7 @@ namespace {
     // clang-format off
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<network::ExtrinsicObserver>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         chain_events_engine,
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
@@ -360,12 +373,6 @@ namespace {
       common::raise(block_tree_res.error());
     }
     auto &block_tree = block_tree_res.value();
-
-    auto runtime_upgrade_tracker =
-        injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
-
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
-                                                         block_tree);
 
     return block_tree;
   }
@@ -461,20 +468,17 @@ namespace {
   template <typename Injector>
   std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
   get_runtime_upgrade_tracker(const Injector &injector) {
-    auto header_repo =
-        injector
-            .template create<sptr<const blockchain::BlockHeaderRepository>>();
     auto storage = injector.template create<sptr<storage::SpacedStorage>>();
     auto substitutes =
         injector
             .template create<sptr<const primitives::CodeSubstituteBlockIds>>();
-    auto block_storage =
-        injector.template create<sptr<blockchain::BlockStorage>>();
-    auto res =
-        runtime::RuntimeUpgradeTrackerImpl::create(std::move(header_repo),
-                                                   std::move(storage),
-                                                   std::move(substitutes),
-                                                   std::move(block_storage));
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
+    auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+        std::move(storage), std::move(substitutes), std::move(block_tree));
+    auto chain_events_engine =
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>();
+    res.value()->subscribeToBlockchainEvents(chain_events_engine);
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }
@@ -735,8 +739,13 @@ namespace {
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
             bind_by_lambda<blockchain::BlockTree>(
-                [](const auto &injector) { return get_block_tree(injector); }),
-            di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+              [](const auto &injector) {
+                return get_block_tree(injector);
+              }),
+            bind_by_lambda<blockchain::BlockHeaderRepository>(
+              [](const auto &injector) {
+                return injector.template create<sptr<blockchain::BlockTree>>();
+              }),
             di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -749,7 +758,6 @@ namespace {
             di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
             di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
             di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-            di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
             di::bind<network::ReputationRepository>.template to<network::ReputationRepositoryImpl>(),
             di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
             di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
@@ -781,8 +789,34 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
-            di::bind<network::CanDisconnect>.template to<parachain::ParachainProcessorImpl>(),
+            di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
+            bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
+              auto support = parachain::SecureModeSupport::none();
+              auto log = log::createLogger("Application", "application");
+#ifdef __linux__
+              if (not config->disableSecureMode() and config->usePvfSubprocess()
+                  and config->roles().isAuthority()) {
+                auto res = parachain::runSecureModeCheckProcess(config->runtimeCacheDirPath());
+                if (!res) {
+                  SL_ERROR(log, "Secure mode check failed: {}", res.error());
+                  exit(EXIT_FAILURE);
+                }
+                support = res.value();
+                if (not support.isTotallySupported()) {
+                  SL_ERROR(log,
+                          "Secure mode is not supported completely. You can disable it "
+                          "using --insecure-validator-i-know-what-i-do.");
+                  exit(EXIT_FAILURE);
+                }
+              }
+#else
+              SL_WARN(log,
+                      "Secure validator mode is not implemented for the current "
+                      "platform. Proceed at your own risk.");
+#endif
+              return toSptr(support);
+            }),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
@@ -857,11 +891,13 @@ namespace {
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<authority_discovery::AudiStore>.template to<authority_discovery::AudiStoreImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<libp2p::protocol::kademlia::Validator>.template to<authority_discovery::QueryImpl>()[boost::di::override],
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+            di::bind<network::ValidationProtocolReserve>.template to<network::ValidationProtocol>(),
             di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
             di::bind<consensus::beefy::FetchJustification>.template to<network::BeefyJustificationProtocol>(),
             di::bind<network::Beefy>.template to<network::BeefyImpl>(),
@@ -890,6 +926,10 @@ namespace {
             di::bind<network::FetchAvailableDataProtocol>.template to<network::FetchAvailableDataProtocolImpl>(),
             di::bind<network::WarpProtocol>.template to<network::WarpProtocolImpl>(),
             di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
+            bind_by_lambda<libp2p::protocol::IdentifyConfig>(
+                [](const auto &injector) {
+                  return get_identify_config();
+                }),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
@@ -923,7 +963,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
@@ -998,6 +1038,12 @@ namespace kagome::injector {
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_
         .template create<sptr<parachain::ParachainProcessorImpl>>();
+  }
+
+  std::shared_ptr<parachain::statement_distribution::StatementDistribution>
+  KagomeNodeInjector::injectStatementDistribution() {
+    return pimpl_->injector_.template create<
+        sptr<parachain::statement_distribution::StatementDistribution>>();
   }
 
   std::shared_ptr<parachain::ApprovalDistribution>
@@ -1093,6 +1139,10 @@ namespace kagome::injector {
   KagomeNodeInjector::injectBlockBenchmark() {
     return pimpl_->injector_
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
+  }
+
+  std::shared_ptr<key::Key> KagomeNodeInjector::injectKey() {
+    return pimpl_->injector_.template create<sptr<key::Key>>();
   }
 
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {

@@ -7,7 +7,7 @@
 #pragma once
 
 #include <boost/asio/ssl/context.hpp>
-#include <boost/asio/ssl/rfc2818_verification.hpp>
+#include <boost/asio/ssl/host_name_verification.hpp>
 #include <filesystem>
 
 namespace kagome {
@@ -47,7 +47,7 @@ namespace kagome {
                   | context::no_tlsv1_2 | context::single_dh_use);
       set_default_verify_paths();
       set_verify_mode(boost::asio::ssl::verify_peer);
-      set_verify_callback(boost::asio::ssl::rfc2818_verification{host});
+      set_verify_callback(boost::asio::ssl::host_name_verification{host});
     }
   };
 }  // namespace kagome

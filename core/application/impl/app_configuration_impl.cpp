@@ -22,6 +22,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/common/final_action.hpp>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
+#include <libp2p/transport/tcp/tcp_util.hpp>
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -90,7 +91,7 @@ namespace {
   }();
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
-      kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+      kagome::application::AppConfiguration::RuntimeExecutionMethod::Compile;
   const auto def_runtime_interpreter =
       kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
   const auto def_purge_wavm_cache_ = false;
@@ -104,6 +105,7 @@ namespace {
   const uint32_t def_in_peers = 75;
   const uint32_t def_in_peers_light = 100;
   const auto def_lucky_peers = 4;
+  const auto def_max_peers = 1000;
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
@@ -175,12 +177,11 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen"};
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -281,6 +282,7 @@ namespace kagome::application {
         in_peers_(def_in_peers),
         in_peers_light_(def_in_peers_light),
         lucky_peers_(def_lucky_peers),
+        max_peers_(def_max_peers),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         node_version_(buildVersion()),
@@ -494,6 +496,7 @@ namespace kagome::application {
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
     load_u32(val, "lucky-peers", lucky_peers_);
+    load_u32(val, "max-peers", max_peers_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
     load_u32(val, "random-walk-interval", random_walk_interval_);
   }
@@ -597,7 +600,7 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
 
-    endpoint.address(boost::asio::ip::address::from_string(host, err));
+    endpoint.address(boost::asio::ip::make_address(host, err));
     if (err.failed()) {
       SL_ERROR(logger_, "RPC address '{}' is invalid", host);
       exit(EXIT_FAILURE);
@@ -605,52 +608,6 @@ namespace kagome::application {
 
     endpoint.port(port);
     return endpoint;
-  }
-
-  outcome::result<boost::asio::ip::tcp::endpoint>
-  AppConfigurationImpl::getEndpointFrom(
-      const libp2p::multi::Multiaddress &multiaddress) const {
-    using proto = libp2p::multi::Protocol::Code;
-    constexpr auto NOT_SUPPORTED = std::errc::address_family_not_supported;
-    constexpr auto BAD_ADDRESS = std::errc::bad_address;
-    auto host = multiaddress.getFirstValueForProtocol(proto::IP4);
-    if (not host) {
-      host = multiaddress.getFirstValueForProtocol(proto::IP6);
-    }
-    if (not host) {
-      SL_ERROR(logger_,
-               "Address cannot be used to bind to ({}). Only IPv4 and IPv6 "
-               "interfaces are supported",
-               multiaddress.getStringAddress());
-      return NOT_SUPPORTED;
-    }
-    auto port = multiaddress.getFirstValueForProtocol(proto::TCP);
-    if (not port) {
-      return NOT_SUPPORTED;
-    }
-    uint16_t port_number = 0;
-    try {
-      auto wide_port = std::stoul(port.value());
-      constexpr auto max_port = std::numeric_limits<uint16_t>::max();
-      if (wide_port > max_port or 0 == wide_port) {
-        SL_ERROR(
-            logger_,
-            "Port value ({}) cannot be zero or greater than {} (address {})",
-            wide_port,
-            max_port,
-            multiaddress.getStringAddress());
-        return BAD_ADDRESS;
-      }
-      port_number = static_cast<uint16_t>(wide_port);
-    } catch (...) {
-      // only std::out_of_range or std::invalid_argument are possible
-      SL_ERROR(logger_,
-               "Passed value {} is not a valid port number within address {}",
-               port.value(),
-               multiaddress.getStringAddress());
-      return BAD_ADDRESS;
-    }
-    return getEndpointFrom(host.value(), port_number);
   }
 
   bool AppConfigurationImpl::testListenAddresses() const {
@@ -665,23 +622,31 @@ namespace kagome::application {
                  addr.getStringAddress());
         return false;
       }
-      auto endpoint = getEndpointFrom(addr);
-      if (not endpoint) {
+      auto tcp = libp2p::transport::detail::asTcp(addr);
+      auto quic = libp2p::transport::detail::asQuic(addr);
+      if (not(tcp and tcp.value().first.asTcp())
+          and not(quic and quic.value().asUdp())) {
         SL_ERROR(logger_,
                  "Endpoint cannot be constructed from address {}",
                  addr.getStringAddress());
         return false;
       }
-      try {
-        boost::system::error_code error_code;
-        auto acceptor = api::acceptOnFreePort(
-            temp_context, endpoint.value(), kZeroPortTolerance, logger_);
-        acceptor->cancel(error_code);
-        acceptor->close(error_code);
-      } catch (...) {
-        SL_ERROR(
-            logger_, "Unable to listen on address {}", addr.getStringAddress());
-        return false;
+      if (tcp) {
+        try {
+          boost::system::error_code error_code;
+          auto acceptor =
+              api::acceptOnFreePort(temp_context,
+                                    tcp.value().first.asTcp().value(),
+                                    kZeroPortTolerance,
+                                    logger_);
+          acceptor->cancel(error_code);
+          acceptor->close(error_code);
+        } catch (...) {
+          SL_ERROR(logger_,
+                   "Unable to listen on address {}",
+                   addr.getStringAddress());
+          return false;
+        }
       }
     }
     return true;
@@ -844,6 +809,7 @@ namespace kagome::application {
         ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
         ("blocks-pruning", po::value<uint32_t>(), "If specified, keep block body only for specified number of recent finalized blocks.")
         ("enable-thorough-pruning", po::bool_switch(), "Makes trie node pruner more efficient, but the node starts slowly")
+        ("enable-db-migration", po::bool_switch(), "Enable automatic db migration")
         ;
 
     po::options_description network_desc("Network options");
@@ -863,7 +829,8 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
-        ("lucky-peers", po::value<int32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for broadcast." )
+        ("lucky-peers", po::value<uint32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for full broadcast." )
+        ("max-peers", po::value<uint32_t>()->default_value(def_max_peers), "maximum number of peer connections" )
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ("no-telemetry", po::bool_switch(), "Disables telemetry broadcasting")
@@ -948,8 +915,8 @@ namespace kagome::application {
     }
 
     if (vm.count("help") > 0) {
-      std::cout
-          << "Available subcommands: storage-explorer db-editor benchmark\n";
+      std::cout << "Available subcommands: storage-explorer db-editor "
+                   "benchmark key\n";
       std::cout << desc << '\n';
       return false;
     }
@@ -1365,6 +1332,8 @@ namespace kagome::application {
     find_argument<int32_t>(
         vm, "lucky-peers", [&](int32_t val) { lucky_peers_ = val; });
 
+    max_peers_ = vm.at("max-peers").as<uint32_t>();
+
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
     });
@@ -1617,6 +1586,10 @@ namespace kagome::application {
     }
 
     blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
+
+    if (find_argument(vm, "enable-db-migration")) {
+      enable_db_migration_ = true;
+    }
 
     if (find_argument(vm, "precompile-relay")) {
       precompile_wasm_.emplace();

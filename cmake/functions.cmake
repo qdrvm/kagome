@@ -15,7 +15,7 @@ function(addtest test_name)
   set(xml_output "--gtest_output=xml:${CMAKE_BINARY_DIR}/xunit/xunit-${test_name}.xml")
   add_test(
       NAME ${test_name}
-      COMMAND $<TARGET_FILE:${test_name}> ${xml_output}
+      COMMAND $<TARGET_FILE:${test_name}> ${xml_output} "--output-on-failure"
   )
   set_target_properties(${test_name} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test_bin
@@ -23,6 +23,9 @@ function(addtest test_name)
       LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/test_lib
       )
   disable_clang_tidy(${test_name})
+  if(KAGOME_CTEST_ENV)
+    set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "${KAGOME_CTEST_ENV}")
+  endif()
 endfunction()
 
 function(addtest_part test_name)

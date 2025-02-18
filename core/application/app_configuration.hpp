@@ -134,6 +134,11 @@ namespace kagome::application {
     virtual uint32_t luckyPeers() const = 0;
 
     /**
+     * @return maximum number of peer connections
+     */
+    virtual uint32_t maxPeers() const = 0;
+
+    /**
      * @return multiaddresses of bootstrat nodes
      */
     virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()
@@ -213,8 +218,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint> &
-    telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint>
+        &telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -266,6 +271,11 @@ namespace kagome::application {
      * Whether secure validator mode should be disabled.
      */
     virtual bool disableSecureMode() const = 0;
+
+    /**
+     * Whether to enable automatic database migration.
+     */
+    virtual bool enableDbMigration() const = 0;
 
     enum class OffchainWorkerMode : uint8_t {
       WhenValidating,

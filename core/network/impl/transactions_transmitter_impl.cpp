@@ -15,11 +15,11 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router)
       : router_(std::move(router)) {}
 
-  void TransactionsTransmitterImpl::propagateTransactions(
-      std::span<const primitives::Transaction> txs) {
+  void TransactionsTransmitterImpl::propagateTransaction(
+      primitives::Transaction tx) {
     auto protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide propagate transactions protocol");
-    protocol->propagateTransactions(txs);
+    protocol->propagateTransaction(std::move(tx));
   }
 }  // namespace kagome::network

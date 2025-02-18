@@ -53,6 +53,14 @@ namespace kagome::runtime {
       }
       return std::nullopt;
     }
+
+    std::span<const ParachainId> iter_claims_for_core(
+        CoreIndex core_index) const {
+      if (auto it = claimes.find(core_index); it != claimes.end()) {
+        return it->second;
+      }
+      return {};
+    }
   };
 
   /// Information about a core which is currently occupied.
@@ -407,8 +415,9 @@ namespace kagome::runtime {
     uint64_t msec;
   };
 
-  /// Enables WASM bulk memory proposal
-  using WasmExtBulkMemory = Unused<1>;
+  struct WasmExtBulkMemory {
+    SCALE_TIE(0);
+  };
 
   using ExecutorParam = std::variant<Unused<0>,
                                      MaxMemoryPages,
@@ -417,6 +426,5 @@ namespace kagome::runtime {
                                      PrecheckingMaxMemory,
                                      PvfPrepTimeout,
                                      PvfExecTimeout,
-                                     Unused<7>>;  // WasmExtBulkMemory
-
+                                     WasmExtBulkMemory>;
 }  // namespace kagome::runtime

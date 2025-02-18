@@ -14,8 +14,10 @@
 #include "common/visitor.hpp"
 #include "log/profiling_logger.hpp"
 #include "metrics/histogram_timer.hpp"
+#include "parachain/candidate_descriptor_v2.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/pvf_error.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/session_params.hpp"
@@ -30,7 +32,6 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_instances_pool.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
-#include "scale/std_variant.hpp"
 
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
@@ -212,6 +213,7 @@ namespace kagome::parachain {
                             const ParachainBlock &pov,
                             const CandidateReceipt &receipt,
                             const ParachainRuntime &code_zstd,
+                            runtime::PvfExecTimeoutKind timeout_kind,
                             Cb cb) const {
     REINVOKE(*pvf_thread_handler_,
              pvfValidate,
@@ -219,7 +221,20 @@ namespace kagome::parachain {
              pov,
              receipt,
              code_zstd,
+             timeout_kind,
              std::move(cb));
+    // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L763-L782
+    auto session = sessionIndex(receipt.descriptor);
+    if (session and timeout_kind == runtime::PvfExecTimeoutKind::Backing) {
+      CB_TRY(auto expected_session,
+             parachain_api_->session_index_for_child(
+                 receipt.descriptor.relay_parent));
+      if (sessionIndex(receipt.descriptor) != expected_session) {
+        cb(network::CheckCoreIndexError::InvalidSession);
+        return;
+      }
+    }
+
     CB_TRY(auto pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return cb(PvfError::POV_SIZE);
@@ -232,13 +247,7 @@ namespace kagome::parachain {
     if (code_hash != receipt.descriptor.validation_code_hash) {
       return cb(PvfError::CODE_HASH);
     }
-    CB_TRY(auto signature_valid,
-           sr25519_provider_->verify(receipt.descriptor.signature,
-                                     receipt.descriptor.signable(),
-                                     receipt.descriptor.collator_id));
-    if (!signature_valid) {
-      return cb(PvfError::SIGNATURE);
-    }
+    CB_TRYV(checkSignature(*sr25519_provider_, receipt.descriptor));
 
     auto timer = metric_pvf_execution_time.timer();
     ValidationParams params;
@@ -251,9 +260,11 @@ namespace kagome::parachain {
              code_hash,
              code_zstd,
              params,
+             timeout_kind,
              libp2p::SharedFn{[weak_self{weak_from_this()},
                                data,
                                receipt,
+                               timeout_kind,
                                cb{std::move(cb)},
                                timer{std::move(timer)}](
                                   outcome::result<ValidationResult> r) {
@@ -264,6 +275,22 @@ namespace kagome::parachain {
                CB_TRY(auto result, std::move(r));
                CB_TRY(auto commitments,
                       self->fromOutputs(receipt, std::move(result)));
+               // https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/core/candidate-validation/src/lib.rs#L915-L951
+               if (timeout_kind == runtime::PvfExecTimeoutKind::Backing
+                   and coreIndex(receipt.descriptor)) {
+                 CB_TRY(auto claims,
+                        self->parachain_api_->claim_queue(
+                            receipt.descriptor.relay_parent));
+                 if (not claims) {
+                   claims.emplace();
+                 }
+                 CB_TRYV(network::checkCoreIndex(
+                     {
+                         .descriptor = receipt.descriptor,
+                         .commitments = commitments,
+                     },
+                     transposeClaimQueue(*claims)));
+               }
                cb(std::make_pair(std::move(commitments), data));
              }});
   }
@@ -278,13 +305,18 @@ namespace kagome::parachain {
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
 
-    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
+    auto data_hash = hasher_->blake2b_256(scale::encode(pvd).value());
     if (receipt.descriptor.persisted_data_hash != data_hash) {
       return cb(PvfError::PERSISTED_DATA_HASH);
     }
 
     CB_TRY(auto code, getCode(receipt.descriptor));
-    pvfValidate(pvd, pov, receipt, code, std::move(cb));
+    pvfValidate(pvd,
+                pov,
+                receipt,
+                code,
+                runtime::PvfExecTimeoutKind::Backing,
+                std::move(cb));
   }
 
   outcome::result<ParachainRuntime> PvfImpl::getCode(
@@ -317,6 +349,7 @@ namespace kagome::parachain {
                          const common::Hash256 &code_hash,
                          const ParachainRuntime &code_zstd,
                          const ValidationParams &params,
+                         runtime::PvfExecTimeoutKind timeout_kind,
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
            sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
@@ -344,8 +377,11 @@ namespace kagome::parachain {
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
       return cb(executor_->call<ValidationResult>(ctx, name, params));
     }
+    kagome::parachain::PvfWorkerInputCodeParams code_params{
+        .path = pvf_pool_->getCachePath(code_hash, context_params),
+        .context_params = context_params};
     workers_->execute({
-        .code_path = pvf_pool_->getCachePath(code_hash, context_params),
+        .code_params = std::move(code_params),
         .args = scale::encode(params).value(),
         .cb =
             [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
@@ -354,9 +390,12 @@ namespace kagome::parachain {
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },
+        .kind = timeout_kind,
         .timeout =
             std::chrono::milliseconds{
-                executor_params.pvf_exec_timeout_backing_ms},
+                timeout_kind == runtime::PvfExecTimeoutKind::Backing
+                    ? executor_params.pvf_exec_timeout_backing_ms
+                    : executor_params.pvf_exec_timeout_approval_ms},
     });
   }
 

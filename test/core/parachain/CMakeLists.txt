@@ -30,6 +30,19 @@ target_link_libraries(scope_test
     logger
     )
 
+addtest(candidates_test
+    candidates.cpp
+    )
+
+target_link_libraries(candidates_test
+    prospective_parachains
+    validator_parachain
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(fragment_chain_test
     fragment_chain.cpp
     )
@@ -60,6 +73,7 @@ addtest(parachain_test
     assignments.cpp
     cluster_test.cpp
     grid.cpp
+    grid_tracker.cpp
     )
 
 target_link_libraries(parachain_test

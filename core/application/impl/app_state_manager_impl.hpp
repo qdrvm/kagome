@@ -49,11 +49,17 @@ namespace kagome::application {
     void doShutdown() override;
 
    private:
-    static std::atomic_bool signals_enabled;
-    static void signalsEnable();
-    static void signalsDisable();
     static std::weak_ptr<AppStateManagerImpl> wp_to_myself;
+
+    static std::atomic_bool shutting_down_signals_enabled;
+    static void shuttingDownSignalsEnable();
+    static void shuttingDownSignalsDisable();
     static void shuttingDownSignalsHandler(int);
+
+    static std::atomic_bool log_rotate_signals_enabled;
+    static void logRotateSignalsEnable();
+    static void logRotateSignalsDisable();
+    static void logRotateSignalsHandler(int);
 
     void shutdownRequestWaiting();
 

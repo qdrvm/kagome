@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include "filesystem/common.hpp"
 
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
@@ -25,8 +25,7 @@
 #include "testutil/runtime/common/basic_code_provider.hpp"
 #include "testutil/runtime/memory.hpp"
 
-using kagome::blockchain::BlockHeaderRepository;
-using kagome::blockchain::BlockHeaderRepositoryMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::BasicCodeProvider;
@@ -55,7 +54,7 @@ class ExecutorTest : public testing::Test {
   }
 
   void SetUp() override {
-    header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
+    block_tree_ = std::make_shared<BlockTreeMock>();
 
     auto code_provider = std::make_shared<BasicCodeProvider>(
         kagome::filesystem::path(__FILE__).parent_path().string()
@@ -73,7 +72,7 @@ class ExecutorTest : public testing::Test {
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
 
     ctx_factory_ = std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(
-        module_repo_, header_repo_);
+        module_repo_, block_tree_);
   }
 
   enum class CallType { Persistent, Ephemeral };
@@ -84,7 +83,7 @@ class ExecutorTest : public testing::Test {
       CallType type,
       const Buffer &encoded_args,
       int res) {
-    EXPECT_CALL(*header_repo_, getBlockHeader(blockchain_state.hash))
+    EXPECT_CALL(*block_tree_, getBlockHeader(blockchain_state.hash))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{
             blockchain_state.number,  // number
             {},                       // parent
@@ -139,9 +138,9 @@ class ExecutorTest : public testing::Test {
 
  protected:
   TestMemory memory_;
+  std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<kagome::runtime::RuntimeContextFactoryImpl> ctx_factory_;
   std::shared_ptr<kagome::runtime::RuntimePropertiesCacheMock> cache_;
-  std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::storage::trie::TrieStorageMock> storage_;
   std::shared_ptr<ModuleRepositoryMock> module_repo_;
 };

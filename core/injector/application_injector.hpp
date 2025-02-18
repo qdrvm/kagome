@@ -30,6 +30,7 @@ namespace kagome {
     class PrecompileWasmMode;
     class RecoveryMode;
     class BenchmarkMode;
+    class Key;
   }  // namespace application::mode
 
   namespace authority_discovery {
@@ -58,8 +59,12 @@ namespace kagome {
 
   namespace parachain {
     class ParachainObserver;
-    struct ParachainProcessorImpl;
-    struct ApprovalDistribution;
+    class ParachainProcessorImpl;
+    class ApprovalDistribution;
+
+    namespace statement_distribution {
+      class StatementDistribution;
+    }
   }  // namespace parachain
 
   namespace runtime {
@@ -99,6 +104,10 @@ namespace kagome {
     class TelemetryService;
   }
 
+  namespace key {
+    class Key;
+  }
+
   class Watchdog;
 }  // namespace kagome
 
@@ -131,6 +140,8 @@ namespace kagome::injector {
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
+    std::shared_ptr<parachain::statement_distribution::StatementDistribution>
+    injectStatementDistribution();
     std::shared_ptr<parachain::ApprovalDistribution>
     injectApprovalDistribution();
     std::shared_ptr<network::DisputeRequestObserver>
@@ -154,6 +165,7 @@ namespace kagome::injector {
     injectPrecompileWasmMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
     std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
+    std::shared_ptr<key::Key> injectKey();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

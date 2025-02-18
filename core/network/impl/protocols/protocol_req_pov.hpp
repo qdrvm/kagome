@@ -15,8 +15,8 @@
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
+#include "common/main_thread_pool.hpp"
 #include "log/logger.hpp"
-#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_pov_protocol.hpp"
 #include "utils/non_copyable.hpp"
@@ -37,7 +37,8 @@ namespace kagome::network {
     ReqPovProtocol(libp2p::Host &host,
                    const application::ChainSpec &chain_spec,
                    const blockchain::GenesisBlockHash &genesis_hash,
-                   std::shared_ptr<ReqPovObserver> observer);
+                   std::shared_ptr<ReqPovObserver> observer,
+                   common::MainThreadPool &main_thread_pool);
 
     const Protocol &protocolName() const override;
 

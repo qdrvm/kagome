@@ -35,7 +35,7 @@ namespace kagome::parachain::fragment {
       const Hash &parent_head_data_hash) {
     Option<size_t> found_index;
     for (size_t index = 0; index < chain.size(); ++index) {
-      const auto &node = chain[0];
+      const auto &node = chain[index];
       if (found_index) {
         by_parent_head.erase(node.parent_head_data_hash);
         by_output_head.erase(node.output_head_data_hash);

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/variant.hpp>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -14,6 +15,8 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
+#include "utils/map.hpp"
+#include "utils/retain_if.hpp"
 
 namespace kagome::parachain {
 
@@ -93,6 +96,60 @@ namespace kagome::parachain {
       unconfirmed_importable_under.emplace(UnconfiredImportablePair{
           .hash = active_leaf,
           .ui = std::move(unconfirmed_importable),
+      });
+    }
+
+    bool has_claims() const {
+      return !claims.empty();
+    }
+
+    template <typename F, typename D>
+    void on_deactivate_leaves(std::span<const Hash> leaves,
+                              F &&remove_parent_index,
+                              D &&relay_parent_live) {
+      retain_if(claims, [&](const auto &c) {
+        if (std::forward<D>(relay_parent_live)(c.second.relay_parent)) {
+          return true;
+        }
+
+        if (c.second.parent_hash_and_id) {
+          const auto &pc = *c.second.parent_hash_and_id;
+          if (auto it_1 = parent_claims.find(pc.first);
+              it_1 != parent_claims.end()) {
+            if (auto it_2 = it_1->second.find(pc.second);
+                it_2 != it_1->second.end()) {
+              auto it = std::ranges::find_if(it_2->second, [&](const auto &x) {
+                return x.first == c.second.relay_parent;
+              });
+              if (it != it_2->second.end()) {
+                const auto p = std::distance(it_2->second.begin(), it);
+                auto &sub_claims = it_2->second;
+                sub_claims[p].second -= 1;
+                if (sub_claims[p].second == 0) {
+                  auto rem_it = sub_claims.begin();
+                  std::advance(rem_it, p);
+                  sub_claims.erase(rem_it);
+                }
+              }
+
+              if (it_2->second.empty()) {
+                std::forward<F>(remove_parent_index)(pc.first, pc.second);
+                it_1->second.erase(it_2);
+              }
+            }
+
+            if (it_1->second.empty()) {
+              parent_claims.erase(it_1);
+            }
+          }
+        }
+        return false;
+      });
+
+      retain_if(unconfirmed_importable_under, [&](const auto &pair) {
+        const auto &[l, props] = pair;
+        return (std::ranges::find(leaves, l) != leaves.end())
+            && std::forward<D>(relay_parent_live)(props.relay_parent);
       });
     }
 
@@ -205,11 +262,14 @@ namespace kagome::parachain {
       boost::variant<UnconfirmedCandidate, ConfirmedCandidate>;
 
   struct Candidates {
-    std::unordered_map<CandidateHash, CandidateState> candidates;
-    std::unordered_map<
-        Hash,
-        std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>
-        by_parent;
+    using ByParaId =
+        std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>;
+    using ByRelayParent = std::unordered_map<Hash, ByParaId>;
+    using StateByCandidate = std::unordered_map<CandidateHash, CandidateState>;
+
+    StateByCandidate candidates;
+    ByRelayParent by_parent;
+    log::Logger logger = log::createLogger("Candidates", "parachain");
 
     std::vector<HypotheticalCandidate> frontier_hypotheticals(
         const std::optional<std::pair<std::reference_wrapper<const Hash>,
@@ -440,6 +500,56 @@ namespace kagome::parachain {
           .hypothetical = new_confirmed.to_hypothetical(candidate_hash),
           .reckoning = reckoning,
       };
+    }
+
+    void on_deactivate_leaves(
+        std::span<const Hash> leaves,
+        const std::function<bool(const Hash &)> &relay_parent_live) {
+      auto remove_parent_claims =
+          [&](const auto &c_hash, const auto &parent_hash, const auto id) {
+            if (auto it_1 = utils::get_it(by_parent, parent_hash)) {
+              if (auto it_2 = utils::get_it((*it_1)->second, id)) {
+                (*it_2)->second.erase(c_hash);
+                if ((*it_2)->second.empty()) {
+                  (*it_1)->second.erase(*it_2);
+                }
+              }
+              if ((*it_1)->second.empty()) {
+                by_parent.erase(*it_1);
+              }
+            }
+          };
+
+      retain_if(candidates, [&](auto &pair) {
+        auto &[_c_hash, state] = pair;
+        auto &c_hash = _c_hash;
+        return visit_in_place(
+            state,
+            [&](ConfirmedCandidate &c) {
+              if (!relay_parent_live(c.relay_parent())) {
+                remove_parent_claims(
+                    c_hash, c.parent_head_data_hash(), c.para_id());
+                return false;
+              }
+
+              for (const auto &leaf_hash : leaves) {
+                c.importable_under.erase(leaf_hash);
+              }
+              return true;
+            },
+            [&](UnconfirmedCandidate &c) {
+              c.on_deactivate_leaves(
+                  leaves,
+                  [&](const auto &parent_hash, const auto &id) {
+                    return remove_parent_claims(c_hash, parent_hash, id);
+                  },
+                  relay_parent_live);
+              return c.has_claims();
+            });
+      });
+
+      SL_TRACE(
+          logger, "Candidates remaining after cleanup: {}", candidates.size());
     }
   };
 

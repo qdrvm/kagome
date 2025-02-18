@@ -68,6 +68,10 @@ namespace kagome::runtime {
     candidate_pending_availability(const primitives::BlockHash &block,
                                    ParachainId id) override;
 
+    outcome::result<std::vector<std::optional<CommittedCandidateReceipt>>>
+    candidates_pending_availability(const primitives::BlockHash &block,
+                                    ParachainId id) override;
+
     outcome::result<std::vector<CandidateEvent>> candidate_events(
         const primitives::BlockHash &block) override;
 
@@ -115,14 +119,10 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorIndex>> disabled_validators(
         const primitives::BlockHash &block) override;
 
-    outcome::result<std::optional<NodeFeatures>> node_features(
-        const primitives::BlockHash &block, SessionIndex index) override;
-
-    outcome::result<std::map<CoreIndex, std::vector<ParachainId>>> claim_queue(
+    outcome::result<NodeFeatures> node_features(
         const primitives::BlockHash &block) override;
 
-    outcome::result<uint32_t> runtime_api_version(
-        const primitives::BlockHash &block) override;
+    ClaimQueueResult claim_queue(const primitives::BlockHash &block) override;
 
    private:
     bool prepare();
@@ -148,6 +148,9 @@ namespace kagome::runtime {
     };
     RuntimeApiLruBlockArg<ParachainId, std::optional<CommittedCandidateReceipt>>
         candidate_pending_availability_{10};
+    RuntimeApiLruBlockArg<ParachainId,
+                          std::vector<std::optional<CommittedCandidateReceipt>>>
+        candidates_pending_availability_{10};
     RuntimeApiLruBlock<std::vector<CandidateEvent>> candidate_events_{10};
     RuntimeApiLruBlockArg<SessionIndex, std::optional<SessionInfo>>
         session_info_{10};

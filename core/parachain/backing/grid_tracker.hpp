@@ -16,10 +16,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include "log/logger.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/backing/grid.hpp"
 #include "parachain/groups.hpp"
 #include "parachain/types.hpp"
+#include "utils/map.hpp"
 
 template <>
 struct std::hash<std::pair<kagome::parachain::ValidatorIndex,
@@ -287,6 +289,16 @@ namespace kagome::parachain::grid {
     std::optional<StatementFilter> advertised_statements(
         ValidatorIndex validator, const CandidateHash &candidate_hash);
 
+    std::optional<ManifestKind> is_manifest_pending_for(
+        ValidatorIndex validator, const CandidateHash &candidate_hash) const {
+      if (auto m = utils::get(pending_manifests, validator)) {
+        if (auto x = utils::get(m->get(), candidate_hash)) {
+          return x->get();
+        }
+      }
+      return std::nullopt;
+    }
+
    private:
     std::unordered_map<ValidatorIndex, ReceivedManifests> received;
     std::unordered_map<CandidateHash, KnownBackedCandidate> confirmed_backed;
@@ -301,6 +313,7 @@ namespace kagome::parachain::grid {
         std::unordered_set<
             std::pair<ValidatorIndex, network::vstaging::CompactStatement>>>
         pending_statements;
+    log::Logger logger = log::createLogger("GridTracker", "parachain");
   };
 
 }  // namespace kagome::parachain::grid

@@ -43,6 +43,7 @@ namespace kagome::parachain {
     if (av_store_->hasChunk(core.candidate_hash, chunk_index)) {
       return;
     }
+
     Active active;
     active.chunk_index = chunk_index;
     active.relay_parent = core.candidate_descriptor.relay_parent;
@@ -85,7 +86,7 @@ namespace kagome::parachain {
       }();
 
       auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-          network::ReqChunkVersion::V1_obsolete);
+          network::ReqChunkVersion::V2);
 
       switch (req_chunk_version) {
         case network::ReqChunkVersion::V2:
@@ -153,7 +154,7 @@ namespace kagome::parachain {
       }
       return;
     }
-    SL_WARN(log(),
+    SL_DEBUG(log(),
             "candidate={} chunk={} not found",
             candidate_hash,
             active.chunk_index);

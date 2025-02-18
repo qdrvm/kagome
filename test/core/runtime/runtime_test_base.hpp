@@ -26,8 +26,7 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
-#include "mock/core/blockchain/block_storage_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
@@ -136,12 +135,12 @@ class RuntimeTestBaseImpl {
         offchain_storage_,
         offchain_worker_pool_);
 
-    header_repo_ = std::make_shared<
-        testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>();
+    block_tree_ =
+        std::make_shared<testing::NiceMock<blockchain::BlockTreeMock>>();
 
-    ON_CALL(*header_repo_, getHashByNumber(0))
+    ON_CALL(*block_tree_, getHashByNumber(0))
         .WillByDefault(testing::Return("genesis_hash"_hash256));
-    EXPECT_CALL(*header_repo_, getBlockHeader("genesis_hash"_hash256))
+    EXPECT_CALL(*block_tree_, getBlockHeader("genesis_hash"_hash256))
         .WillRepeatedly(testing::Return(primitives::BlockHeader{
             0,                             // number
             {},                            // parent_hash
@@ -179,10 +178,9 @@ class RuntimeTestBaseImpl {
 
     std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> upgrade_tracker =
         runtime::RuntimeUpgradeTrackerImpl::create(
-            header_repo_,
             spaced_storage,
             std::make_shared<primitives::CodeSubstituteBlockIds>(),
-            std::make_shared<blockchain::BlockStorageMock>())
+            block_tree_)
             .value();
 
     auto wasm_cache_dir =
@@ -197,14 +195,14 @@ class RuntimeTestBaseImpl {
     auto module_repo =
         std::make_shared<runtime::ModuleRepositoryImpl>(instance_pool_,
                                                         hasher_,
-                                                        header_repo_,
+                                                        block_tree_,
                                                         upgrade_tracker,
                                                         trie_storage_,
                                                         module_factory,
                                                         wasm_provider_);
 
     ctx_factory_ = std::make_shared<runtime::RuntimeContextFactoryImpl>(
-        module_repo, header_repo_);
+        module_repo, block_tree_);
 
     executor_ = std::make_shared<runtime::Executor>(ctx_factory_, cache_);
   }
@@ -257,14 +255,14 @@ class RuntimeTestBaseImpl {
 
     Digest digest{};
 
-    ON_CALL(*header_repo_, getHashByNumber(number))
+    ON_CALL(*block_tree_, getHashByNumber(number))
         .WillByDefault(testing::Return(hash));
-    ON_CALL(*header_repo_, getNumberByHash(hash))
+    ON_CALL(*block_tree_, getNumberByHash(hash))
         .WillByDefault(testing::Return(number));
 
     BlockHeader header{
         number, parent_hash, state_root, extrinsics_root, digest};
-    EXPECT_CALL(*header_repo_, getBlockHeader(hash))
+    EXPECT_CALL(*block_tree_, getBlockHeader(hash))
         .WillRepeatedly(testing::Return(header));
     return header;
   }
@@ -280,8 +278,7 @@ class RuntimeTestBaseImpl {
 
  protected:
   AppConfigurationMock app_config_;
-  std::shared_ptr<testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>
-      header_repo_;
+  std::shared_ptr<testing::NiceMock<blockchain::BlockTreeMock>> block_tree_;
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;

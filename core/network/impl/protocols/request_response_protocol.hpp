@@ -8,6 +8,7 @@
 
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
+#include "common/main_thread_pool.hpp"
 #include "protocol_error.hpp"
 #include "utils/box.hpp"
 
@@ -39,9 +40,11 @@ namespace kagome::network {
         libp2p::Host &host,
         Protocols protocols,
         log::Logger logger,
+        common::MainThreadPool &main_thread_pool,
         std::chrono::milliseconds timeout = std::chrono::seconds(1))
         : base_(std::move(name), host, std::move(protocols), std::move(logger)),
-          timeout_(std::move(timeout)) {}
+          timeout_(std::move(timeout)),
+          main_pool_handler_{main_thread_pool.handlerStarted()} {}
 
     bool start() override {
       return base_.start(this->weak_from_this());
@@ -86,6 +89,11 @@ namespace kagome::network {
           });
     }
 
+    void writeResponseAsync(std::shared_ptr<Stream> stream,
+                            ResponseType response) {
+      writeResponse(std::move(stream), std::move(response));
+    }
+
    protected:
     virtual std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> stream) = 0;
@@ -120,7 +128,10 @@ namespace kagome::network {
           base_.host().getPeerRepository().getAddressRepository().getAddresses(
               peer_id);
       if (not addresses_res.has_value()) {
-        cb(addresses_res.as_failure());
+        main_pool_handler_->execute(
+            [cb(std::move(cb)), addresses_res(std::move(addresses_res))] {
+              cb(addresses_res.as_failure());
+            });
         return;
       }
 
@@ -149,8 +160,7 @@ namespace kagome::network {
                      self->protocolName(),
                      peer_id);
             cb(std::move(stream));
-          },
-          timeout_);
+          });
     }
 
     template <typename M>
@@ -369,6 +379,9 @@ namespace kagome::network {
 
     ProtocolBaseImpl base_;
     std::chrono::milliseconds timeout_;
+
+   private:
+    std::shared_ptr<PoolHandler> main_pool_handler_;
   };
 
 }  // namespace kagome::network

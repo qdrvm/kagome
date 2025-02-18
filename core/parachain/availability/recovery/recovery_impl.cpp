@@ -9,6 +9,7 @@
 #include "application/chain_spec.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_tree.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "log/formatters/optional.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
@@ -47,6 +48,7 @@ namespace {
 
 namespace kagome::parachain {
   constexpr size_t kParallelRequests = 50;
+  constexpr size_t kMaxSizeOfDataToRecoverFromBackers = 1 << 20;  // 1Mb
 
   RecoveryImpl::RecoveryImpl(
       std::shared_ptr<application::ChainSpec> chain_spec,
@@ -56,7 +58,8 @@ namespace kagome::parachain {
       std::shared_ptr<AvailabilityStore> av_store,
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<network::PeerManager> pm)
+      std::shared_ptr<network::PeerManager> pm,
+      std::shared_ptr<crypto::SessionKeys> session_keys)
       : logger_{log::createLogger("Recovery", "parachain")},
         hasher_{std::move(hasher)},
         block_tree_{std::move(block_tree)},
@@ -64,7 +67,8 @@ namespace kagome::parachain {
         av_store_{std::move(av_store)},
         query_audi_{std::move(query_audi)},
         router_{std::move(router)},
-        pm_{std::move(pm)} {
+        pm_{std::move(pm)},
+        session_keys_{std::move(session_keys)} {
     // Register metrics
     metrics_registry_->registerCounterFamily(
         fullRecoveriesStartedMetricName, "Total number of started recoveries");
@@ -134,8 +138,7 @@ namespace kagome::parachain {
       cb(_min.error());
       return;
     }
-    auto _node_features =
-        parachain_api_->node_features(block.hash, session_index);
+    auto _node_features = parachain_api_->node_features(block.hash);
     if (_node_features.has_error()) {
       lock.unlock();
       cb(_node_features.error());
@@ -149,16 +152,18 @@ namespace kagome::parachain {
       }
     }
 
+    auto val2chunk = [n_validators{session->validators.size()},
+                      start_pos](ValidatorIndex validator_index) -> ChunkIndex {
+      return (start_pos + validator_index) % n_validators;
+    };
+
     Active active;
     active.erasure_encoding_root = receipt.descriptor.erasure_encoding_root;
     active.chunks_total = session->validators.size();
     active.chunks_required = _min.value();
     active.cb.emplace_back(std::move(cb));
     active.discovery_keys = session->discovery_keys;
-    active.val2chunk = [n_validators{active.chunks_total}, start_pos](
-                           ValidatorIndex validator_index) -> ChunkIndex {
-      return (start_pos + validator_index) % n_validators;
-    };
+    active.val2chunk = val2chunk;
 
     if (backing_group.has_value()) {
       const auto group = backing_group.value();
@@ -185,7 +190,36 @@ namespace kagome::parachain {
     active_.emplace(candidate_hash, std::move(active));
 
     lock.unlock();
-    full_from_bakers_recovery_prepare(candidate_hash);
+
+    std::optional<size_t> available_data_size;
+
+    if (auto indexed_key_pair_opt =
+            session_keys_->getParaKeyPair(session->validators);
+        indexed_key_pair_opt.has_value()) {
+      auto our_validator_index = indexed_key_pair_opt->second;
+      auto index_of_our_chunk = val2chunk(our_validator_index);
+      auto min_chunks = _min.value();
+
+      auto our_chunk = av_store_->getChunk(candidate_hash, index_of_our_chunk);
+      if (not our_chunk.has_value()) {
+        SL_WARN(logger_,
+                "Our chunk {}:{} not found",
+                candidate_hash,
+                index_of_our_chunk);
+      } else {
+        available_data_size = our_chunk->chunk.size() * min_chunks;
+      }
+    } else {
+      SL_WARN(logger_, "Cannot retrieve our validator index");
+    }
+
+    // Do recovery from backers strategy iff available
+    // date size can be calculated and less than limit
+    if (available_data_size < kMaxSizeOfDataToRecoverFromBackers) {
+      return full_from_bakers_recovery_prepare(candidate_hash);
+    }
+
+    systematic_chunks_recovery_prepare(candidate_hash);
   }
 
   void RecoveryImpl::full_from_bakers_recovery_prepare(
@@ -336,7 +370,7 @@ namespace kagome::parachain {
       }
       active.order.emplace_back(validator_index);
     }
-    std::shuffle(active.order.begin(), active.order.end(), random_);
+    std::ranges::shuffle(active.order, random_);
     active.queried.clear();
     active.chunks_active = 0;
 
@@ -909,7 +943,7 @@ namespace kagome::parachain {
     }();
 
     auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-        network::ReqChunkVersion::V1_obsolete);
+        network::ReqChunkVersion::V2);
 
     SL_TRACE(logger_,
              "Candidate {}. "

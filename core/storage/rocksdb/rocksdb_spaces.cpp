@@ -6,6 +6,7 @@
 
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 
+#include <algorithm>
 #include <array>
 
 #include <rocksdb/db.h>
@@ -14,16 +15,15 @@
 namespace kagome::storage {
 
   std::string spaceName(Space space) {
-    static constexpr std::array kNames{
-        "lookup_key",
-        "header",
-        "block_body",
-        "justification",
-        "trie_node",
-        "trie_value",
-        "dispute_data",
-        "beefy_justification",
-    };
+    static constexpr std::array kNames{"lookup_key",
+                                       "header",
+                                       "block_body",
+                                       "justification",
+                                       "trie_node",
+                                       "dispute_data",
+                                       "beefy_justification",
+                                       "avaliability_storage",
+                                       "audi_peers"};
     static_assert(kNames.size() == Space::kTotal - 1);
 
     static const std::vector<std::string> names = []() {

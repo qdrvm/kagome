@@ -45,6 +45,7 @@ target_link_libraries(application_injector
     grandpa_api
     host_api_factory
     kagome_benchmarks
+    kagome_key
     log_configurator
     metadata_api
     metrics
@@ -84,5 +85,6 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     wasm_compiler
+    zstd::libzstd_static
     )
 kagome_clear_objects(application_injector)

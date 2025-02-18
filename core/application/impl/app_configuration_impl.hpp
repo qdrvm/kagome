@@ -117,6 +117,9 @@ namespace kagome::application {
     uint32_t luckyPeers() const override {
       return lucky_peers_;
     }
+    uint32_t maxPeers() const override {
+      return max_peers_;
+    }
     const boost::asio::ip::tcp::endpoint &rpcEndpoint() const override {
       return rpc_endpoint_;
     }
@@ -207,6 +210,9 @@ namespace kagome::application {
     }
     std::optional<uint32_t> blocksPruning() const override {
       return blocks_pruning_;
+    }
+    bool enableDbMigration() const override {
+      return enable_db_migration_;
     }
     std::optional<std::string_view> devMnemonicPhrase() const override {
       if (dev_mnemonic_phrase_) {
@@ -299,16 +305,6 @@ namespace kagome::application {
                                                    uint16_t port) const;
 
     /**
-     * Convert a given libp2p multiaddress into a boost tcp::endpoint format.
-     * @param multiaddress - an address to be converted. Should contain a valid
-     * interface name or IP4/IP6 address and a port value to listen on.
-     * @return boost tcp::endpoint when well-formed multiaddress is passed,
-     * otherwise - an error
-     */
-    outcome::result<boost::asio::ip::tcp::endpoint> getEndpointFrom(
-        const libp2p::multi::Multiaddress &multiaddress) const;
-
-    /**
      * Checks whether configured listen addresses are available.
      * @return true when addresses are available, false - when at least one
      * address is not available
@@ -355,6 +351,7 @@ namespace kagome::application {
     uint32_t in_peers_;
     uint32_t in_peers_light_;
     uint32_t lucky_peers_;
+    uint32_t max_peers_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
@@ -375,6 +372,7 @@ namespace kagome::application {
     bool prune_discarded_states_ = false;
     bool enable_thorough_pruning_ = false;
     std::optional<uint32_t> blocks_pruning_;
+    bool enable_db_migration_ = false;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;

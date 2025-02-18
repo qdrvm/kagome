@@ -26,32 +26,55 @@ namespace kagome::utils {
   }
 
   template <typename C>
-  inline std::optional<typename C::const_iterator> get(
-      const C &container, const typename C::key_type &key) {
+    requires requires { typename C::mapped_type; }
+  inline std::optional<std::reference_wrapper<const typename C::mapped_type>>
+  get(const C &container, const typename C::key_type &key) {
     if (auto it = container.find(key); it != container.end()) {
-      return it;
+      return {{it->second}};
     }
     return std::nullopt;
   }
 
   template <typename C>
-  inline std::optional<typename C::iterator> get(
+    requires requires { typename C::mapped_type; }
+  inline std::optional<std::reference_wrapper<typename C::mapped_type>> get(
       C &container, const typename C::key_type &key) {
     if (auto it = container.find(key); it != container.end()) {
-      return it;
+      return {{it->second}};
     }
     return std::nullopt;
   }
 
-  template <typename T>
-  inline auto get(const std::vector<T> &container, const size_t &index) {
-    using ItT = std::vector<T>::const_iterator;
-    if (index >= container.size()) {
-      return std::optional<ItT>{};
+  template <typename>
+  struct is_pair : std::false_type {};
+
+  template <typename T, typename U>
+  struct is_pair<std::pair<T, U>> : std::true_type {};
+
+  template <typename C>
+    requires requires {
+      typename C::value_type;
+      std::is_same_v<is_pair<typename C::value_type>, std::false_type>;
     }
-    auto it = container.begin();
-    std::advance(it, index);
-    return std::make_optional(it);
+  inline std::optional<std::reference_wrapper<const typename C::value_type>>
+  get(const C &container, const size_t &index) {
+    if (index < container.size()) {
+      return {{container[index]}};
+    }
+    return std::nullopt;
+  }
+
+  template <typename C>
+    requires requires {
+      typename C::value_type;
+      std::is_same_v<is_pair<typename C::value_type>, std::false_type>;
+    }
+  inline std::optional<std::reference_wrapper<typename C::value_type>> get(
+      C &container, const size_t &index) {
+    if (index < container.size()) {
+      return {{container[index]}};
+    }
+    return std::nullopt;
   }
 
   template <typename T>
@@ -62,6 +85,16 @@ namespace kagome::utils {
       val = opt_ref->get();
     }
     return val;
+  }
+
+  template <typename C>
+    requires requires { typename C::mapped_type; }
+  inline std::optional<typename C::iterator> get_it(
+      C &container, const typename C::key_type &key) {
+    if (auto it = container.find(key); it != container.end()) {
+      return it;
+    }
+    return std::nullopt;
   }
 
 }  // namespace kagome::utils

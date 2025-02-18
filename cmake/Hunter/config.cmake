@@ -26,16 +26,9 @@ hunter_config(
 )
 
 hunter_config(
-    benchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
-    SHA1 bf9870756ee3f8d2d3b346b24ee3600a41c74d3d
-    CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
-)
-
-hunter_config(
     rocksdb
-    VERSION 9.0.0
-    CMAKE_ARGS WITH_GFLAGS=OFF
+    VERSION 9.6.1
+    CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
@@ -59,11 +52,12 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   hunter_config(
       WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/update/0.14.0.zip
+      URL https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.14.1.zip
       SHA1 ${WASMEDGE_ID}
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
+        CMAKE_CXX_FLAGS=-Wno-error=maybe-uninitialized
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -94,8 +88,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/1.0.2.tar.gz
-    SHA1 946c48508545380e155ab831be54228b916544d3
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.3.tar.gz
+    SHA1 4207446a0e45764b814805821aa6860924b03cb7
 )
 
 hunter_config(
@@ -106,16 +100,14 @@ hunter_config(
 )
 
 hunter_config(
-    libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/66764acb294517f8249aea6d63c6e6cc0be5686f.tar.gz
-    SHA1 45b73da05e1b59f46b9f4cb39a24c485ee6d5ba1
+    erasure_coding_crust
+    VERSION 0.0.9
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
-    erasure_coding_crust
-#    VERSION 0.0.8
-    URL  https://github.com/qdrvm/erasure-coding-crust/archive/refs/tags/v0.0.8.tar.gz
-    SHA1 6bcdb6327f5da2dcec5c70f2fa63b95a44925af0
+    soralog
+    VERSION 0.2.4
     KEEP_PACKAGE_SOURCES
 )
 

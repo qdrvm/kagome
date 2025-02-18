@@ -10,6 +10,7 @@
 
 #include <rocksdb/db.h>
 #include <rocksdb/table.h>
+#include <rocksdb/utilities/db_ttl.h>
 #include <boost/container/flat_map.hpp>
 
 #include "filesystem/common.hpp"
@@ -48,7 +49,9 @@ namespace kagome::storage {
         const filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
         uint32_t memory_budget_mib = kDefaultStateCacheSizeMiB,
-        bool prevent_destruction = false);
+        bool prevent_destruction = false,
+        const std::unordered_map<std::string, int32_t> &column_ttl = {},
+        bool enable_migration = true);
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
 
@@ -73,11 +76,52 @@ namespace kagome::storage {
     friend class RocksDbBatch;
 
    private:
+    struct DatabaseGuard {
+      DatabaseGuard(
+          std::shared_ptr<rocksdb::DB> db,
+          std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles,
+          log::Logger log);
+
+      DatabaseGuard(
+          std::shared_ptr<rocksdb::DBWithTTL> db_ttl,
+          std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles,
+          log::Logger log);
+
+      ~DatabaseGuard();
+
+     private:
+      std::shared_ptr<rocksdb::DB> db_;
+      std::shared_ptr<rocksdb::DBWithTTL> db_ttl_;
+      std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles_;
+      log::Logger log_;
+    };
+
     RocksDb();
 
-    static rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget);
+    static outcome::result<void> createDirectory(
+        const std::filesystem::path &absolute_path, log::Logger &log);
 
-    rocksdb::DB *db_{};
+    static outcome::result<void> openDatabaseWithTTL(
+        const rocksdb::Options &options,
+        const filesystem::path &path,
+        const std::vector<rocksdb::ColumnFamilyDescriptor>
+            &column_family_descriptors,
+        const std::vector<int32_t> &ttls,
+        std::shared_ptr<RocksDb> &rocks_db,
+        const filesystem::path &ttl_migrated_path,
+        log::Logger &log);
+
+    static outcome::result<void> migrateDatabase(
+        const rocksdb::Options &options,
+        const filesystem::path &path,
+        const std::vector<rocksdb::ColumnFamilyDescriptor>
+            &column_family_descriptors,
+        const std::vector<int32_t> &ttls,
+        std::shared_ptr<RocksDb> &rocks_db,
+        const filesystem::path &ttl_migrated_path,
+        log::Logger &log);
+
+    rocksdb::DBWithTTL *db_{};
     std::vector<ColumnFamilyHandlePtr> column_family_handles_;
     boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
     rocksdb::ReadOptions ro_;

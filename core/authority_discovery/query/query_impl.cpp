@@ -6,10 +6,13 @@
 
 #include "authority_discovery/query/query_impl.hpp"
 
+#include "authority_discovery/metrics.hpp"
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 #include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
+#include "metrics/histogram_timer.hpp"
+#include "network/impl/protocols/parachain.hpp"
 #include "utils/retain_if.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
@@ -34,11 +37,26 @@ namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
   constexpr std::chrono::minutes kIntervalMax{10};
 
+  static const metrics::GaugeHelper metric_requests_pending{
+      "kagome_authority_discovery_authority_address_requests_pending",
+      "Number of pending authority address requests.",
+  };
+  static const metrics::CounterHelper metric_handle_value_found_event_failure{
+      "kagome_authority_discovery_handle_value_found_event_failure",
+      "Number of times handling a dht value found event failed.",
+  };
+  static const metrics::GaugeHelper metric_known_authorities_count{
+      "kagome_authority_discovery_known_authorities_count",
+      "Number of authorities known by authority discovery.",
+  };
+
   QueryImpl::QueryImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+      LazySPtr<network::ValidationProtocolReserve> validation_protocol,
       std::shared_ptr<crypto::KeyStore> key_store,
+      std::shared_ptr<AudiStore> audi_store,
       std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       std::shared_ptr<libp2p::crypto::CryptoProvider> libp2p_crypto_provider,
       std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller,
@@ -47,7 +65,9 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : block_tree_{std::move(block_tree)},
         authority_discovery_api_{std::move(authority_discovery_api)},
+        validation_protocol_{std::move(validation_protocol)},
         key_store_{std::move(key_store)},
+        audi_store_(std::move(audi_store)),
         sr_crypto_provider_{std::move(sr_crypto_provider)},
         libp2p_crypto_provider_{std::move(libp2p_crypto_provider)},
         key_marshaller_{std::move(key_marshaller)},
@@ -65,6 +85,7 @@ namespace kagome::authority_discovery {
         log_{log::createLogger("AuthorityDiscoveryQuery",
                                "authority_discovery")} {
     app_state_manager->takeControl(*this);
+    BOOST_ASSERT(audi_store_ != nullptr);
   }
 
   bool QueryImpl::start() {
@@ -80,11 +101,18 @@ namespace kagome::authority_discovery {
   std::optional<libp2p::peer::PeerInfo> QueryImpl::get(
       const primitives::AuthorityDiscoveryId &authority) const {
     std::unique_lock lock{mutex_};
-    auto it = auth_to_peer_cache_.find(authority);
-    if (it != auth_to_peer_cache_.end()) {
-      return it->second.peer;
+    auto authority_opt = audi_store_->get(authority);
+    if (authority_opt == std::nullopt) {
+      SL_TRACE(log_,
+               "No authority peer found in storage {}",
+               common::hex_lower(authority));
+      return std::nullopt;
     }
-    return std::nullopt;
+    SL_TRACE(log_,
+             "Authority id {} {} addresses found in storage",
+             common::hex_lower(authority),
+             authority_opt.value().peer.addresses.size());
+    return authority_opt.value().peer;
   }
 
   std::optional<primitives::AuthorityDiscoveryId> QueryImpl::get(
@@ -109,6 +137,7 @@ namespace kagome::authority_discovery {
     auto r = add(*id, value);
     if (not r) {
       SL_DEBUG(log_, "Can't add: {}", r.error());
+      metric_handle_value_found_event_failure->inc();
     }
     return r;
   }
@@ -122,9 +151,9 @@ namespace kagome::authority_discovery {
       lock.unlock();
       return kademlia_validator_.select(key, values);
     }
-    auto it = auth_to_peer_cache_.find(*id);
-    if (it != auth_to_peer_cache_.end()) {
-      auto it_value = std::ranges::find(values, it->second.raw);
+    auto authority = audi_store_->get(*id);
+    if (authority != std::nullopt) {
+      auto it_value = std::ranges::find(values, authority.value().raw);
       if (it_value != values.end()) {
         return it_value - values.begin();
       }
@@ -152,24 +181,42 @@ namespace kagome::authority_discovery {
     retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return not has(local_keys, id);
     });
-    for (auto it = auth_to_peer_cache_.begin();
-         it != auth_to_peer_cache_.end();) {
-      if (has(authorities, it->first)) {
-        ++it;
-      } else {
-        it = auth_to_peer_cache_.erase(it);
+    size_t known_authorities_count = 0;
+    // remove outdated authorities
+    audi_store_->retainIf([&](const primitives::AuthorityDiscoveryId &id,
+                              const AuthorityPeerInfo &info) {
+      if (has(authorities, id)) {
+        ++known_authorities_count;
+        return true;
       }
-    }
+      validation_protocol_.get()->reserve(info.peer.id, false);
+      return false;
+    });
+    metric_known_authorities_count->set(known_authorities_count);
     for (auto it = peer_to_auth_cache_.begin();
          it != peer_to_auth_cache_.end();) {
       if (has(authorities, it->second)) {
         ++it;
       } else {
         it = peer_to_auth_cache_.erase(it);
+        validation_protocol_.get()->reserve(it->first, false);
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
-    queue_ = std::move(authorities);
+
+    // reorder queue to query unknown authorities first
+    queue_.resize(0);
+    queue_.reserve(authorities.size());
+    // `queue_` is a stack, so push known first
+    for (auto &known : {true, false}) {
+      for (auto &id : authorities) {
+        if (audi_store_->contains(id) == known) {
+          queue_.emplace_back(id);
+        }
+      }
+    }
+    metric_requests_pending->set(queue_.size());
+
     pop();
     return outcome::success();
   }
@@ -193,13 +240,18 @@ namespace kagome::authority_discovery {
       ++active_;
       auto authority = queue_.back();
       queue_.pop_back();
+      metric_requests_pending->set(queue_.size());
 
       scheduler_->schedule([wp{weak_from_this()},
-                            hash = common::Buffer{crypto::sha256(authority)}] {
+                            hash = common::Buffer{crypto::sha256(authority)},
+                            authority] {
         if (auto self = wp.lock()) {
+          SL_DEBUG(
+              self->log_, "start lookup({})", common::hex_lower(authority));
           std::ignore = self->kademlia_.get()->getValue(
               hash, [=](const outcome::result<std::vector<uint8_t>> &res) {
                 if (auto self = wp.lock()) {
+                  MetricDhtEventReceived::get().getResult(res.has_value());
                   std::unique_lock lock{self->mutex_};
                   --self->active_;
                   self->pop();
@@ -213,10 +265,13 @@ namespace kagome::authority_discovery {
   outcome::result<void> QueryImpl::add(
       const primitives::AuthorityDiscoveryId &authority,
       outcome::result<std::vector<uint8_t>> _res) {
+    SL_TRACE(log_,
+             "lookup : add addresses for authority {}, _res {}",
+             common::hex_lower(authority),
+             _res.has_value() ? "ok" : "error: " + _res.error().message());
     OUTCOME_TRY(signed_record_pb, _res);
-    auto it = auth_to_peer_cache_.find(authority);
-    if (it != auth_to_peer_cache_.end()
-        and signed_record_pb == it->second.raw) {
+    auto it = audi_store_->get(authority);
+    if (it != std::nullopt and signed_record_pb == it->raw) {
       return outcome::success();
     }
     ::authority_discovery_v3::SignedAuthorityRecord signed_record;
@@ -224,6 +279,9 @@ namespace kagome::authority_discovery {
             signed_record_pb.data(),
             // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
             signed_record_pb.size())) {
+      SL_ERROR(log_,
+               "lookup: can't parse signed record from authority {}",
+               authority);
       return Error::DECODE_ERROR;
     }
 
@@ -241,9 +299,11 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery_v3::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
+      SL_TRACE(log_, "lookup: can't parse record from authority {}", authority);
       return Error::DECODE_ERROR;
     }
     if (record.addresses().empty()) {
+      SL_ERROR(log_, "lookup: no addresses from authority {}", authority);
       return Error::NO_ADDRESSES;
     }
     std::optional<Timestamp> time{};
@@ -252,12 +312,18 @@ namespace kagome::authority_discovery {
                   scale::decode<TimestampScale>(
                       qtils::str2byte(record.creation_time().timestamp())));
       time = *tmp;
-      if (it != auth_to_peer_cache_.end() and time <= it->second.time) {
+      if (it and it->time and time <= it->time->number) {
+        SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }
     }
-    libp2p::peer::PeerInfo peer{.id = std::move(peer_id)};
+    scale::PeerInfoSerializable peer;
+    peer.id = std::move(peer_id);
     auto peer_id_str = peer.id.toBase58();
+    SL_TRACE(log_,
+             "lookup: adding {} addresses for authority {}",
+             record.addresses().size(),
+             authority);
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
       auto id = address.getPeerId();
@@ -265,6 +331,10 @@ namespace kagome::authority_discovery {
         continue;
       }
       if (id != peer_id_str) {
+        SL_ERROR(log_,
+                 "lookup: inconsistent peer id {} != {}",
+                 id.value(),
+                 peer_id_str);
         return Error::INCONSISTENT_PEER_ID;
       }
       peer.addresses.emplace_back(std::move(address));
@@ -274,6 +344,7 @@ namespace kagome::authority_discovery {
                 sr_crypto_provider_->verify(
                     auth_sig, str2byte(signed_record.record()), authority));
     if (not auth_sig_ok) {
+      SL_ERROR(log_, "lookup: invalid authority signature");
       return Error::INVALID_SIGNATURE;
     }
 
@@ -283,6 +354,7 @@ namespace kagome::authority_discovery {
                     str2byte(signed_record.peer_signature().signature()),
                     peer_key));
     if (not peer_sig_ok) {
+      SL_ERROR(log_, "lookup: invalid peer signature");
       return Error::INVALID_SIGNATURE;
     }
 
@@ -290,12 +362,19 @@ namespace kagome::authority_discovery {
         peer.id, peer.addresses, libp2p::peer::ttl::kDay);
 
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
-    auth_to_peer_cache_.insert_or_assign(authority,
-                                         Authority{
-                                             .raw = std::move(signed_record_pb),
-                                             .time = time,
-                                             .peer = std::move(peer),
-                                         });
+    if (not audi_store_->contains(authority)) {
+      metric_known_authorities_count->inc();
+    }
+    audi_store_->store(
+        authority,
+        AuthorityPeerInfo{
+            .raw = std::move(signed_record_pb),
+            .time = time.has_value() ? std::make_optional(TimestampScale{*time})
+                                     : std::nullopt,
+            .peer = peer,
+        });
+
+    validation_protocol_.get()->reserve(peer.id, true);
 
     return outcome::success();
   }

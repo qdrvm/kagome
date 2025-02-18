@@ -20,9 +20,10 @@ namespace kagome::storage {
     kBlockBody,
     kJustification,
     kTrieNode,
-    kTrieValue,
     kDisputeData,
     kBeefyJustification,
+    kAvaliabilityStorage,
+    kAudiPeers,
 
     kTotal
   };

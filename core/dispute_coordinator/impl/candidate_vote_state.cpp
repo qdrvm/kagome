@@ -5,14 +5,13 @@
  */
 
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
+
 #include <set>
 
 namespace kagome::dispute {
-  CandidateVoteState CandidateVoteState::create(
-      CandidateVotes votes,
-      CandidateEnvironment &env,
-      std::vector<ValidatorIndex> &disabled_validators,
-      Timestamp now) {
+  CandidateVoteState CandidateVoteState::create(CandidateVotes votes,
+                                                CandidateEnvironment &env,
+                                                Timestamp now) {
     CandidateVoteState res{.votes = std::move(votes),
                            .own_vote = CannotVote{},
                            .dispute_status = std::nullopt};
@@ -54,8 +53,7 @@ namespace kagome::dispute {
 
     auto has_vote_of_active = [&](auto &votes) {
       auto is_not_disabled = [&](auto &vote) {
-        return not std::binary_search(
-            disabled_validators.begin(), disabled_validators.end(), vote.first);
+        return not std::ranges::binary_search(env.disabled_indices, vote.first);
       };
       return std::ranges::find_if(votes.begin(), votes.end(), is_not_disabled)
           != votes.end();

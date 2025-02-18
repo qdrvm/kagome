@@ -80,6 +80,11 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &, ParachainId),
                 (override));
 
+    MOCK_METHOD(outcome::result<std::vector<std::optional<CommittedCandidateReceipt>>>,
+                candidates_pending_availability,
+                (const primitives::BlockHash &, ParachainId),
+                (override));
+
     MOCK_METHOD(outcome::result<std::vector<CandidateEvent>>,
                 candidate_events,
                 (const primitives::BlockHash &),
@@ -154,19 +159,13 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(outcome::result<std::optional<NodeFeatures>>,
+    MOCK_METHOD(outcome::result<NodeFeatures>,
                 node_features,
-                (const primitives::BlockHash &, SessionIndex),
+                (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(
-        (outcome::result<std::map<CoreIndex, std::vector<ParachainId>>>),
-        claim_queue,
-        (const primitives::BlockHash &),
-        (override));
-
-    MOCK_METHOD(outcome::result<uint32_t>,
-                runtime_api_version,
+    MOCK_METHOD(ClaimQueueResult,
+                claim_queue,
                 (const primitives::BlockHash &),
                 (override));
   };

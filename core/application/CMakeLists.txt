@@ -83,6 +83,14 @@ target_link_libraries(recovery_mode
     logger
     )
 
+add_library(kagome_key
+    modes/key_main.cpp
+)
+
+target_link_libraries(kagome_key
+    application_injector
+)
+
 add_library(kagome_application
     impl/kagome_application_impl.cpp
     )

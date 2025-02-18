@@ -38,7 +38,7 @@ set(CMAKE_TOOLCHAIN_FILE
 # SHA1 hash of the WasmEdge repository archive.
 # Required to separate cached runtimes
 # compiled with different WasmEdge versions.
-set(WASMEDGE_ID 58aea400de9179ad3e314c7e84fd4da345b8a643)
+set(WASMEDGE_ID 3fbf6c6a39a5fd065e8964a979d5edcddf877cca)
 
 include("cmake/Hunter/init.cmake")
 
@@ -97,6 +97,12 @@ option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 # cmake-format: on
+
+# useful for tests, an error message will be printed
+option(UBSAN_ABORT "Make UB sanitizer abort on error" OFF)
+
+# useful to catch the exact wrong place with a debugger
+option(UBSAN_TRAP "Make UB sanitizer execute a trap instruction on error" OFF)
 
 set(RECOMMENDED_CLANG_FORMAT_VERSION 16)
 
@@ -197,9 +203,12 @@ include(cmake/install.cmake)
 include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/core> # for generated file
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/third_party> # for generated file
 )
 
 add_subdirectory(core)
+add_subdirectory(third_party)
 
 kagome_install_setup(
     HEADER_DIRS

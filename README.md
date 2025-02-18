@@ -121,6 +121,33 @@ make debug_docker
 make clear
 ```
 
+### Installation from APT Package
+
+To install KAGOME releases using the provided package repository, follow these steps (tested on Ubuntu 24.04.1 LTS (Noble Numbat)):
+
+Update your package lists and install necessary utilities:
+    
+```sh
+apt update && apt install -y gpg curl
+```
+
+Add the repository’s GPG signing key:
+    
+```sh
+curl -fsSL https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg | gpg --dearmor -o /usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg
+```
+
+Add the KAGOME package repository to your sources list:
+```sh
+echo "deb [signed-by=/usr/share/keyrings/europe-north-1-apt-archive-keyring.gpg] https://europe-north1-apt.pkg.dev/projects/kagome-408211 kagome main" > /etc/apt/sources.list.d/kagome.list
+```
+
+Update the package lists and install KAGOME:
+
+```sh
+apt update && apt install -y kagome
+```
+
 ### Using KAGOME
 
 #### Obtaining database snapshot (optional)
@@ -180,15 +207,73 @@ kagome --validator --chain localchain.json --base-path base_path
 
 This command executes a KAGOME full node with an authority role.
 
+#### Running KAGOME as a Service
+
+You can run KAGOME as a service using a systemd service file. Below is an example of a service file to launch KAGOME Kusama validator:
+```sh
+[Unit]
+Description=Kagome Node
+
+[Service]
+User=kagome
+Group=kagome
+LimitCORE=infinity
+LimitNOFILE=65536
+ExecStart=kagome \ # should be in path
+  --name kagome-validator \
+  --base-path /home/kagome/dev/kagome-fun/kusama-node-1 \
+  --public-addr=/ip4/212.11.12.32/tcp/30334 \ # Address should be publicly accessible
+  --validator \
+  --listen-addr=/ip4/0.0.0.0/tcp/30334 \
+  --chain kusama \
+  --prometheus-port=9615 \
+  --prometheus-external \
+  --wasm-execution Compiled \
+  --telemetry-url 'wss://telemetry.polkadot.io/submit/ 1' \
+  --rpc-port=9944 \
+  --node-key 63808171009b35fc218f207442e355b0634561c84e0aec2093e3515113475624
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+##### Adding the Service File
+
+1. Copy the service file content into a new file named kagome.service.
+2. Move the file to the systemd directory:
+
+`sudo mv kagome.service /etc/systemd/system/`
+
+##### Starting the Kagome Node
+
+To start the Kagome node using systemd:
+1. Reload the systemd manager configuration:
+```sh
+sudo systemctl daemon-reload
+```
+
+2. (Optionally) Enable the Kagome service to start on boot:
+```sh
+sudo systemctl enable kagome
+```
+
+3. Start the Kagome service:
+```sh
+sudo systemctl start kagome
+```
+
+4. Check the status of the Kagome service:
+```sh
+sudo systemctl status kagome
+```
+
 #### Run KAGOME with collator
 
 Read [this](./examples/adder-collator) tutorial
 
-### Configuration Details
-To run a KAGOME node, you need to provide it with a genesis config, cryptographic keys, and a place to store db files.
-* Example of a genesis config file can be found in `examples/first_kagome_chain/localchain.json`
-* Example of a base path dir can be found in `examples/first_kagome_chain/base_path`
-* To create database files, just provide any base path into `kagome` executable (mind that start with authority role requires keys to start).
 
 
 ## Contributing Guides
@@ -255,7 +340,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
 * [utils](./core/utils)
     * Utils such as profiler, pruner, thread pool
 
-You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in official documentation: https://kagome.readthedocs.io/
+You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in the official documentation: https://kagome.readthedocs.io/
 
 ## KAGOME in media
 

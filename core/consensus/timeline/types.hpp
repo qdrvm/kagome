@@ -34,7 +34,8 @@ namespace kagome::consensus {
     template <typename Rep, typename Period>
     SlotDuration(const std::chrono::duration<Rep, Period> &duration)
         : std::chrono::milliseconds(
-            std::chrono::duration_cast<std::chrono::milliseconds>(duration)) {}
+              std::chrono::duration_cast<std::chrono::milliseconds>(duration)) {
+    }
 
     template <class Rep>
       requires std::is_integral_v<Rep>
