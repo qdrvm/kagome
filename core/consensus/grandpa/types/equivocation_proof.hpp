@@ -77,6 +77,7 @@ namespace kagome::consensus::grandpa {
   struct EquivocationProof {
     AuthoritySetId set_id;
     Equivocation equivocation;
+    SCALE_CUSTOM_DECOMPOSITION(EquivocationProof, set_id, equivocation)
   };
 
 }  // namespace kagome::consensus::grandpa

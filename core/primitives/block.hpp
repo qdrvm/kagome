@@ -25,6 +25,7 @@ namespace kagome::primitives {
     BlockHeaderReflection header;  ///< block header
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const BlockBody &body;  ///< extrinsics collection
+    SCALE_CUSTOM_DECOMPOSITION(BlockReflection, header, body)
   };
 
 }  // namespace kagome::primitives
