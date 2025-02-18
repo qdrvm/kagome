@@ -376,21 +376,6 @@ Buffer randomBuffer(RandomDevice &rand) {
 }
 
 template <typename F>
-void forAllLoadedNodes(const trie::TrieNode &node, const F &f) {
-  f(node);
-  if (node.isBranch()) {
-    const auto &branch = static_cast<const trie::BranchNode &>(node);
-    for (const auto &child : branch.children) {
-      if (const auto *transparent_child =
-              dynamic_cast<const trie::TrieNode *>(child.get());
-          transparent_child != nullptr) {
-        forAllLoadedNodes(*transparent_child, f);
-      }
-    }
-  }
-}
-
-template <typename F>
 void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
   f(root);
   if (root.isBranch()) {
