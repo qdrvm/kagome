@@ -12,11 +12,11 @@
 
 #include <qtils/test/outcome.hpp>
 
-#include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::crypto::Bip39ProviderImpl;
