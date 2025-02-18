@@ -185,15 +185,15 @@ namespace kagome::network::notifications {
       return;
     }
     /*
-    there was bug (created by turuslan, found by harrm) causing double free.
+    there was bug causing double free.
       *peer = PeerOutBackoff
     variant assignment destroys old contained value then inserts new.
-    `~PeerOutConnected` calls `YamuxStream::reset`,
+    `~PeerOutOpen` calls `YamuxStream::reset`,
     `YamuxStream::reset` cancels pending read,
     read error calls `onError`,
     `onError` calls `backoff`,
-    but `peer` still contains half-destructed `PeerOutConnected`,
-    and calls `~PeerOutConnected` again,
+    but `peer` still contains half-destructed `PeerOutOpen`,
+    and calls `~PeerOutOpen` again,
     causing double free.
     */
     std::exchange(*peer,
