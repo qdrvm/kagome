@@ -666,6 +666,7 @@ namespace kagome::parachain {
                                    const RelayHash &relay_parent,
                                    const SignedFullStatementWithPVD &statement);
 
+    void onFinalize();
     void handle_active_leaves_update_for_validator(const network::ExView &event,
                                                    std::vector<Hash> pruned);
     void onViewUpdated(const network::ExView &event);
@@ -788,6 +789,9 @@ namespace kagome::parachain {
             blocked_from_seconding;
       } validator_side;
     } our_current_state_;
+    std::unordered_map<primitives::BlockHash, RelayParentState>
+        state_by_relay_parent_to_check_;
+    std::unordered_map<primitives::BlockHash, uint32_t> relay_parent_depth_;
 
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
