@@ -146,7 +146,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(parent_cursor_->seekFirst());
     cached_parent_key_ = parent_cursor_->key();
     overlay_it_ = parent_batch_->cache_.begin();
-    choose();
+    updateSource();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
   }
@@ -161,7 +161,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return choice_;
+    return static_cast<bool>(source_);
   }
 
   outcome::result<void> TopperTrieCursor::next() {
@@ -175,11 +175,11 @@ namespace kagome::storage::trie {
   }
 
   std::optional<Buffer> TopperTrieCursor::key() const {
-    return choice_.overlay ? overlay_it_->first : cached_parent_key_;
+    return source_.overlay ? overlay_it_->first : cached_parent_key_;
   }
 
   std::optional<BufferOrView> TopperTrieCursor::value() const {
-    return choice_.overlay ? Buffer{*overlay_it_->second}
+    return source_.overlay ? Buffer{*overlay_it_->second}
                            : parent_cursor_->value();
   }
 
@@ -188,7 +188,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(parent_cursor_->seekLowerBound(key));
     cached_parent_key_ = parent_cursor_->key();
     overlay_it_ = parent_batch_->cache_.lower_bound(key);
-    choose();
+    updateSource();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
   }
@@ -198,30 +198,30 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(parent_cursor_->seekUpperBound(key));
     cached_parent_key_ = parent_cursor_->key();
     overlay_it_ = parent_batch_->cache_.upper_bound(key);
-    choose();
+    updateSource();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
   }
 
-  void TopperTrieCursor::choose() {
+  void TopperTrieCursor::updateSource() {
     if (overlay_it_ != parent_batch_->cache_.end()
         and (not cached_parent_key_
              or *cached_parent_key_ >= overlay_it_->first)) {
-      choice_ = Choice{cached_parent_key_ == overlay_it_->first, true};
+      source_ = Source{cached_parent_key_ == overlay_it_->first, true};
       return;
     }
     if (cached_parent_key_) {
-      choice_ = Choice{true, false};
+      source_ = Source{true, false};
     } else {
-      choice_ = Choice{false, false};
+      source_ = Source{false, false};
     }
   }
 
   bool TopperTrieCursor::isRemoved() const {
-    if (not choice_) {
+    if (not source_) {
       return false;
     }
-    if (choice_.overlay) {
+    if (source_.overlay) {
       return not overlay_it_->second;
     }
     return false;
@@ -235,17 +235,17 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieCursor::step() {
-    if (not choice_) {
+    if (not source_) {
       return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
     }
-    if (choice_.parent) {
+    if (source_.parent) {
       OUTCOME_TRY(parent_cursor_->next());
       cached_parent_key_ = parent_cursor_->key();
     }
-    if (choice_.overlay) {
+    if (source_.overlay) {
       ++overlay_it_;
     }
-    choose();
+    updateSource();
     return outcome::success();
   }
 }  // namespace kagome::storage::trie
