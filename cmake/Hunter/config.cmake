@@ -120,7 +120,9 @@ hunter_config(
 
 hunter_config(
     qtils
-    URL  https://github.com/qdrvm/qtils/archive/8ffc961b4fa64ab6268beec59ec16b08aaff4e3e.tar.gz
-    SHA1 fef53a76291baf741b6b714fd84d9b509d096235
+    URL  https://github.com/qdrvm/qtils/archive/9a64dfd6ed0226dec29805aa89d4c713a6f81d9f.tar.gz
+    SHA1 16c0269175018e88c33090f9fbdaa230c8fdb911
+    CMAKE_ARGS
+      FORMAT_ERROR_WITH_FULLTYPE=ON
     KEEP_PACKAGE_SOURCES
 )

@@ -661,22 +661,28 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto get_res = storage_->get(storage::kActivePeersKey);
-    if (not get_res) {
+    auto data_opt_res = storage_->tryGet(storage::kActivePeersKey);
+    if (not data_opt_res) {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage: {}",
-               get_res.error());
+               data_opt_res.error());
       return {};
     }
-    auto decode_res = scale::decode<std::vector<scale::PeerInfoSerializable>>(
-        get_res.value());
+    auto &data_opt = data_opt_res.value();
+    if (not data_opt.has_value()) {
+      SL_ERROR(log_, "List of last active peers has not found in storage");
+      return {};
+    }
+    auto &data = data_opt.value();
+    auto decode_res =
+        scale::decode<std::vector<scale::PeerInfoSerializable>>(data);
     if (decode_res.has_error()) {
       SL_ERROR(log_,
                "Unable to decode list of active peers: {}",
                decode_res.error());
       return {};
     }
-    return decode_res.value();
+    return std::move(decode_res.value());
   }
 
   void PeerManagerImpl::storeActivePeers() {
