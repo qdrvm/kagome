@@ -12,7 +12,7 @@ set(FLAGS
     -g
     -O0
     )
-if(CMAKE_COMPILER_ID MATCHES ".*Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   list(APPEND FLAGS -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/ubsan_ignore.txt")
 else()
   message(WARNING "Non-Clang compilers do not support -fsanitize-ignorelist flag, some known false positives are expected.")
