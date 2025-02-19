@@ -5,11 +5,13 @@
  */
 
 #include <libp2p/log/configurator.hpp>
+#include <sstream>
 
 #include "application/chain_spec.hpp"
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+#include "common/hexutil.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
@@ -17,7 +19,11 @@
 #include "log/formatters/variant.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
+#include "storage/rocksdb/rocksdb_spaces.hpp"
+#include "storage/spaced_storage.hpp"
+#include "storage/spaces.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome {
 
@@ -202,7 +208,7 @@ namespace kagome {
       if (hash_opt_res.has_error()) {
         throwError("Internal error: {}}", hash_opt_res.error());
       }
-      if (hash_opt_res.value().has_value()) {
+      if (!hash_opt_res.value().has_value()) {
         throwError("Block header not found for '{}'", args[1]);
       }
       const auto &hash = hash_opt_res.value().value();
@@ -518,7 +524,7 @@ namespace kagome {
     ChainInfoCommand(std::shared_ptr<kagome::blockchain::BlockTree> block_tree)
         : Command{"chain-info", "Print general info about the current chain. "},
           block_tree{std::move(block_tree)} {
-      BOOST_ASSERT(block_tree);
+      BOOST_ASSERT(this->block_tree);
     }
 
     void execute(std::ostream &out, const ArgumentList &args) override {
@@ -612,6 +618,46 @@ namespace kagome {
     std::filesystem::path db_path;
   };
 
+  class QueryDbCommand : public Command {
+   public:
+    explicit QueryDbCommand(std::shared_ptr<storage::SpacedStorage> db)
+        : Command{"query-db",
+                  "column-space key-hex - print a value stored in the "
+                  "database."},
+          db_{std::move(db)} {
+      BOOST_ASSERT(db_ != nullptr);
+    }
+
+    void execute(std::ostream &out, const ArgumentList &args) override {
+      assertArgumentCount(args, 3, 3);
+
+      auto column_space_str = args[1];
+      auto key_hex = args[2];
+
+      common::Buffer key = unwrapResult("Unhex key", common::unhex(key_hex));
+
+      if (auto column_space = storage::spaceFromString(column_space_str);
+          column_space.has_value()) {
+        auto space = db_->getSpace(*column_space);
+        auto result = unwrapResult("Query value from DB", space->get(key));
+        out << "Hex: " << result.view().toHex() << "\n";
+        out << "ASCII: " << result.view().toStringView() << "\n";
+
+      } else {
+        std::stringstream ss;
+        for (int i = 0; i < storage::Space::kTotal; ++i) {
+          ss << storage::spaceName(static_cast<storage::Space>(i)) << "\n";
+        }
+        throwError("Column space {} doesn't exist.\nExisting column spaces: {}",
+                   column_space_str,
+                   ss.str());
+      }
+    }
+
+   private:
+    std::shared_ptr<storage::SpacedStorage> db_;
+  };
+
   int storage_explorer_main(int argc, const char **argv) {
     ArgumentList args(argv, argc);
 
@@ -681,8 +727,12 @@ namespace kagome {
         block_storage, trie_storage, authority_manager, hasher));
     parser.addCommand(std::make_unique<DbStatsCommand>(
         configuration->databasePath(chain_spec->id())));
+    parser.addCommand(std::make_unique<QueryDbCommand>(persistent_storage));
 
     parser.invoke(args.first(kagome_args_start));
+
+    auto watchdog = injector.injectWatchdog();
+    watchdog->stop();
 
     SL_INFO(logger, "Kagome storage explorer stopped");
     logger->flush();

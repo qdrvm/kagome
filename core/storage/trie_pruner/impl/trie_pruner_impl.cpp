@@ -48,20 +48,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
 namespace kagome::storage::trie_pruner {
 
   template <typename F>
-    requires std::is_invocable_r_v<outcome::result<void>,
-                                   F,
-                                   common::BufferView,
-                                   const trie::RootHash &>
-  outcome::result<void> forEachChildTrie(const trie::PolkadotTrie &parent,
-                                         const F &f) {
+    requires std::
+        is_invocable_r_v<outcome::result<void>, F, const trie::RootHash &>
+      outcome::result<void> forEachChildTrie(const trie::PolkadotTrie &parent,
+                                             const F &callback,
+                                             const log::Logger &logger) {
     auto child_tries = parent.trieCursor();
     OUTCOME_TRY(child_tries->seekLowerBound(storage::kChildStoragePrefix));
     while (child_tries->isValid()
            && startsWith(child_tries->key().value(),
                          storage::kChildStoragePrefix)) {
+      BOOST_ASSERT(child_tries->key().has_value());
+      SL_TRACE(logger,
+               "Found child tree at key {:l} ({})",
+               child_tries->key().value(),
+               child_tries->key().value().asString());
       auto child_key = child_tries->value().value();
       OUTCOME_TRY(child_hash, trie::RootHash::fromSpan(child_key));
-      OUTCOME_TRY(f(child_key.view(), child_hash));
+      OUTCOME_TRY(callback(child_hash));
       OUTCOME_TRY(child_tries->next());
     }
     return outcome::success();
@@ -247,12 +251,12 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
-    OUTCOME_TRY(
-        forEachChildTrie(*trie,
-                         [this, &node_batch](common::BufferView child_key,
-                                             const trie::RootHash &child_hash) {
-                           return prune(node_batch, child_hash);
-                         }));
+    OUTCOME_TRY(forEachChildTrie(
+        *trie,
+        [this, &node_batch](const trie::RootHash &child_hash) {
+          return prune(node_batch, child_hash);
+        },
+        logger_));
 
     size_t nodes_removed = 0;
     size_t values_removed = 0;
@@ -494,13 +498,22 @@ namespace kagome::storage::trie_pruner {
     }
     OUTCOME_TRY(forEachChildTrie(
         new_trie,
-        [this, version](
-            common::BufferView child_key,
-            const trie::RootHash &child_hash) -> outcome::result<void> {
-          OUTCOME_TRY(trie, serializer_->retrieveTrie(child_hash));
-          OUTCOME_TRY(addNewStateWith(*trie, version));
+        [this,
+         version](const trie::RootHash &child_hash) -> outcome::result<void> {
+          auto trie_res = serializer_->retrieveTrie(child_hash);
+          if (!trie_res) {
+            SL_DEBUG(
+                logger_,
+                "A key {} with :child_trie prefix detected in storage, but "
+                "the corresponding child trie is absent: {}",
+                child_hash.toHex(),
+                trie_res.error());
+            return outcome::success();
+          }
+          OUTCOME_TRY(addNewStateWith(*trie_res.value(), version));
           return outcome::success();
-        }));
+        },
+        logger_));
     SL_DEBUG(logger_,
              "Referenced {} nodes and {} values. Ref count map size: {}, "
              "immortal nodes count: {}",
