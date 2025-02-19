@@ -54,6 +54,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
       return COMPONENT_NAME ": Unsupported backend kind";
     case E::UNSUPPORTED_SANDBOX:
       return COMPONENT_NAME ": Unsupported sandbox";
+      case E::ALLOW_EXPERIMENTAL_DISABLED:
+      return COMPONENT_NAME ": cannot enable execution cross-checking: `set_allow_experimental`/`POLKAVM_ALLOW_EXPERIMENTAL` is not enabled";
+      case E::MODULE_CACHE_IS_NOT_SUPPORTED:
+      return COMPONENT_NAME ": module cache is not supported yet";
   }
   return COMPONENT_NAME ": Unknown error";
 }

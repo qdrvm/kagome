@@ -7,6 +7,7 @@
 add_library(pvm
     sections.cpp
     errors.cpp
+    sandbox.cpp
     )
 
 target_link_libraries(pvm

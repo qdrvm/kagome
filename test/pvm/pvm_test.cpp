@@ -12,8 +12,7 @@
 #include <iterator>
 #include <vector>
 #include "primitives/math.hpp"
-#include "pvm/config.hpp"
-#include "pvm/sections.hpp"
+#include "pvm/api.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -69,4 +68,8 @@ TEST(PvmTest, doom) {
       std::fread(&program[0], sizeof(program[0]), program.size(), fp.get());
   EXPECT_OUTCOME_TRUE(program_blob,
                       ProgramBlob::create_from(std::move(program)));
+
+  EXPECT_OUTCOME_TRUE(config, Config::from_env());
+  EXPECT_OUTCOME_TRUE(engine, Engine::create(config));
+
 }
