@@ -160,7 +160,7 @@ namespace kagome::storage::trie_pruner {
     struct PendingPrune {
       primitives::BlockInfo block_info;
       trie::RootHash root;
-      PruneReason reason;
+      PruneReason reason = PruneReason::Finalized;
     };
     boost::lockfree::queue<PendingPrune> prune_queue_;
     std::atomic_size_t prune_queue_length_;

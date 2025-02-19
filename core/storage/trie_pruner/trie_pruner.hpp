@@ -24,7 +24,11 @@ namespace kagome::storage::trie {
 
 namespace kagome::storage::trie_pruner {
 
-  enum class PruneReason {
+  /**
+   * @brief Indicates whether the block, which state is pruned, is discarded or
+   * an old finalized block
+   */
+  enum class PruneReason : uint8_t {
     Discarded,
     Finalized,
   };

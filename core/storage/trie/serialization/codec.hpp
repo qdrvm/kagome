@@ -42,7 +42,7 @@ namespace kagome::storage::trie {
 
     virtual ~Codec() = default;
 
-    enum class TraversePolicy { IgnoreMerkleCache, UncachedOnly };
+    enum class TraversePolicy : uint8_t { IgnoreMerkleCache, UncachedOnly };
 
     /**
      * @brief Encode node to byte representation and store children
