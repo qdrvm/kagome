@@ -3342,68 +3342,6 @@ namespace kagome::parachain {
               state_by_relay_parent_to_check_.erase(block_hash);
               delete p;
             });
-        const auto block_body_res = block_tree_->getBlockBody(block_hash);
-        if (not block_body_res) {
-          SL_INFO(logger_,
-                  "Block body error {} for block {}",
-                  block_body_res.error(),
-                  block_hash);
-          return;
-        }
-        const auto &block_body = block_body_res.value();
-        std::optional<parachain::ParachainInherentData> parachain_inherent_data;
-        for (const auto &extrinsic : block_body) {
-          if (extrinsic.data.empty()) {
-            SL_INFO(logger_, "Extrinsic data is empty");
-            continue;
-          }
-          if (extrinsic.data.size() < 3) {
-            SL_INFO(logger_,
-                    "Extrinsic data is too short for parachain "
-                    "inherent data");
-            continue;
-          }
-          if (extrinsic.data[0] != 0x4) {
-            SL_INFO(logger_,
-                    "Extrinsic version is not 4, but {}",
-                    extrinsic.data[0]);
-            continue;
-          }
-          if (extrinsic.data[1] != 0x36) {
-            SL_INFO(logger_,
-                    "Extrinsic call index is not 54, but {}",
-                    extrinsic.data[1]);
-            continue;
-          }
-          if (extrinsic.data[2] != 0x00) {
-            SL_INFO(logger_,
-                    "Extrinsic function index is not 0, but {}",
-                    extrinsic.data[2]);
-            continue;
-          }
-          std::vector<uint8_t> buffer(extrinsic.data.begin() + 3,
-                                      extrinsic.data.end());
-          const auto parachain_inherent_data_decode_res =
-              scale::decode<parachain::ParachainInherentData>(buffer);
-          if (not parachain_inherent_data_decode_res) {
-            SL_INFO(logger_,
-                    "Failed to decode ParachainInherentData: {}",
-                    parachain_inherent_data_decode_res.error());
-            continue;
-          }
-          parachain_inherent_data =
-              std::move(parachain_inherent_data_decode_res.value());
-          SL_INFO(logger_,
-                  "Successfully extracted ParachainInherentData for block {}",
-                  block_hash);
-          break;
-        }
-        if (not parachain_inherent_data) {
-          SL_INFO(logger_,
-                  "ParachainInherentData not found for block {}",
-                  block_hash);
-          return;
-        }
         auto &parachain_state = it->second;
         if (not parachain_state.assigned_core) {
           SL_INFO(logger_,
@@ -3491,136 +3429,202 @@ namespace kagome::parachain {
                 "Availability cores size {} on relay parent {}",
                 availability_cores.size(),
                 block_hash);
-        std::vector<ParachainId> active_paras;
-        for (const auto &core_state : availability_cores) {
-          if (auto occupied_core =
-                  std::get_if<runtime::OccupiedCore>(&core_state)) {
-            active_paras.push_back(occupied_core->candidate_descriptor.para_id);
-            SL_INFO(logger_,
-                    "Occupied core found for parachain {} on relay parent {}",
-                    occupied_core->candidate_descriptor.para_id,
-                    block_hash);
-          }
+        if (assigned_core >= availability_cores.size()) {
+          SL_INFO(logger_,
+                  "Assigned core {} is too large for availability cores size "
+                  "{} on relay parent {}",
+                  assigned_core,
+                  availability_cores.size(),
+                  block_hash);
+          return;
+        }
+        ParachainId parachain_id = {};
+        if (auto occupied_core = std::get_if<runtime::OccupiedCore>(
+                &availability_cores[assigned_core])) {
+          parachain_id = occupied_core->candidate_descriptor.para_id;
+          SL_INFO(logger_,
+                  "Occupied core found for parachain {} on relay parent {}",
+                  parachain_id,
+                  block_hash);
+        } else {
+          SL_INFO(logger_,
+                  "Occupied core not found for assigned core {}"
+                  " on relay parent {}",
+                  assigned_core,
+                  block_hash);
+          return;
         }
         SL_INFO(logger_,
-                "Occupied cores count {} on relay parent {}",
-                active_paras.size(),
+                "Checking parachain {} on relay parent {}",
+                parachain_id,
                 block_hash);
-        for (const auto &parachain_id : active_paras) {
+        auto candidate_res = parachain_host_->candidate_pending_availability(
+            block_hash, parachain_id);
+        if (not candidate_res) {
           SL_INFO(logger_,
-                  "Checking parachain {} on relay parent {}",
-                  parachain_id,
+                  "Candidate pending availability error {} on relay parent {}",
+                  candidate_res.error(),
                   block_hash);
-          auto candidate_res = parachain_host_->candidate_pending_availability(
-              block_hash, parachain_id);
-          if (not candidate_res) {
-            SL_INFO(
-                logger_,
-                "Candidate pending availability error {} on relay parent {}",
-                candidate_res.error(),
+          return;
+        }
+        SL_INFO(logger_,
+                "Candidate pending availability no error for parachain {} on "
+                "relay parent {}",
+                parachain_id,
                 block_hash);
-            continue;
-          }
+        if (not candidate_res.value()) {
           SL_INFO(logger_,
-                  "Candidate pending availability no error for parachain {} on "
+                  "No candidates pending availability for parachain {} on "
                   "relay parent {}",
                   parachain_id,
                   block_hash);
-          if (not candidate_res.value()) {
-            SL_INFO(logger_,
-                    "No candidates pending availability for parachain {} on "
-                    "relay parent {}",
-                    parachain_id,
-                    block_hash);
-            continue;
-          }
-          SL_INFO(logger_,
-                  "Candidates pending availability found for parachain {} on "
-                  "relay parent {}",
-                  parachain_id,
-                  block_hash);
+          return;
+        }
+        SL_INFO(logger_,
+                "Candidates pending availability found for parachain {} on "
+                "relay parent {}",
+                parachain_id,
+                block_hash);
 
-          auto candidate = candidate_res.value().value();
-          bool explicit_found = false, implicit_found = false;
-          for (const auto &backed_candidate :
-               parachain_inherent_data->backed_candidates) {
-            if (backed_candidate.candidate != candidate) {
-              SL_INFO(
-                  logger_,
-                  "Candidate descriptor does not match candidate descriptor");
-              continue;
-            }
+        auto candidate = candidate_res.value().value();
+        const auto block_body_res = block_tree_->getBlockBody(block_hash);
+        if (not block_body_res) {
+          SL_INFO(logger_,
+                  "Block body error {} for block {}",
+                  block_body_res.error(),
+                  block_hash);
+          return;
+        }
+        const auto &block_body = block_body_res.value();
+        std::optional<parachain::ParachainInherentData> parachain_inherent_data;
+        for (const auto &extrinsic : block_body) {
+          if (extrinsic.data.empty()) {
+            SL_INFO(logger_, "Extrinsic data is empty");
+            continue;
+          }
+          if (extrinsic.data.size() < 3) {
             SL_INFO(logger_,
-                    "Candidate descriptor matches candidate descriptor");
-            if (backed_candidate.validator_indices.bits.size()
-                <= validator_position) {
-              SL_INFO(
-                  logger_,
-                  "Validator position {} is too large for validator indices",
-                  validator_position);
-              break;
-            }
-            if (backed_candidate.validator_indices.bits[validator_position]
-                == false) {
-              SL_INFO(logger_,
-                      "Validator position {} is false, so no vote",
-                      validator_position);
-              break;
-            }
+                    "Extrinsic data is too short for parachain "
+                    "inherent data");
+            continue;
+          }
+          if (extrinsic.data[0] != 0x4) {
             SL_INFO(logger_,
-                    "Validator position {} voted for the candidate",
+                    "Extrinsic version is not 4, but {}",
+                    extrinsic.data[0]);
+            continue;
+          }
+          if (extrinsic.data[1] != 0x36) {
+            SL_INFO(logger_,
+                    "Extrinsic call index is not 54, but {}",
+                    extrinsic.data[1]);
+            continue;
+          }
+          if (extrinsic.data[2] != 0x00) {
+            SL_INFO(logger_,
+                    "Extrinsic function index is not 0, but {}",
+                    extrinsic.data[2]);
+            continue;
+          }
+          std::vector<uint8_t> buffer(extrinsic.data.begin() + 3,
+                                      extrinsic.data.end());
+          const auto parachain_inherent_data_decode_res =
+              scale::decode<parachain::ParachainInherentData>(buffer);
+          if (not parachain_inherent_data_decode_res) {
+            SL_INFO(logger_,
+                    "Failed to decode ParachainInherentData: {}",
+                    parachain_inherent_data_decode_res.error());
+            continue;
+          }
+          parachain_inherent_data =
+              std::move(parachain_inherent_data_decode_res.value());
+          SL_INFO(logger_,
+                  "Successfully extracted ParachainInherentData for block {}",
+                  block_hash);
+          break;
+        }
+        if (not parachain_inherent_data) {
+          SL_INFO(logger_,
+                  "ParachainInherentData not found for block {}",
+                  block_hash);
+          return;
+        }
+
+        bool explicit_found = false, implicit_found = false;
+        for (const auto &backed_candidate :
+             parachain_inherent_data->backed_candidates) {
+          if (backed_candidate.candidate != candidate) {
+            SL_INFO(logger_,
+                    "Candidate descriptor does not match candidate descriptor");
+            continue;
+          }
+          SL_INFO(logger_, "Candidate descriptor matches candidate descriptor");
+          if (backed_candidate.validator_indices.bits.size()
+              <= validator_position) {
+            SL_INFO(logger_,
+                    "Validator position {} is too large for validator indices",
                     validator_position);
-            if (backed_candidate.validity_votes.size() <= validator_position) {
-              SL_INFO(logger_,
-                      "Validator position {} is too large for validity votes",
-                      validator_position);
-              break;
-            }
-            SL_INFO(logger_,
-                    "Validator position {} is in the validity votes",
-                    validator_position);
-            boost::apply_visitor(
-                [&](const auto &attestation) {
-                  using T = std::decay_t<decltype(attestation)>;
-                  if constexpr (std::is_same_v<
-                                    T,
-                                    network::ValidityAttestation::Implicit>) {
-                    SL_INFO(logger_,
-                            "Implicit validity attestation found for parachain "
-                            "{} on relay parent {}",
-                            parachain_id,
-                            block_hash);
-                    implicit_found = true;
-                  } else if constexpr (
-                      std::is_same_v<T,
-                                     network::ValidityAttestation::Explicit>) {
-                    SL_INFO(logger_,
-                            "Explicit validity attestation found for parachain "
-                            "{} on relay parent {}",
-                            parachain_id,
-                            block_hash);
-                    explicit_found = true;
-                  }
-                },
-                backed_candidate.validity_votes[validator_position].kind);
             break;
           }
-          if (explicit_found) {
+          if (backed_candidate.validator_indices.bits[validator_position]
+              == false) {
             SL_INFO(logger_,
-                    "Explicit vote found for parachain {} on relay parent {}",
-                    parachain_id,
-                    block_hash);
-          } else if (implicit_found) {
-            SL_INFO(logger_,
-                    "Implicit vote found for parachain {} on relay parent {}",
-                    parachain_id,
-                    block_hash);
-          } else {
-            SL_INFO(logger_,
-                    "No vote found for parachain {} on relay parent {}",
-                    parachain_id,
-                    block_hash);
+                    "Validator position {} is false, so no vote",
+                    validator_position);
+            break;
           }
+          SL_INFO(logger_,
+                  "Validator position {} voted for the candidate",
+                  validator_position);
+          if (backed_candidate.validity_votes.size() <= validator_position) {
+            SL_INFO(logger_,
+                    "Validator position {} is too large for validity votes",
+                    validator_position);
+            break;
+          }
+          SL_INFO(logger_,
+                  "Validator position {} is in the validity votes",
+                  validator_position);
+          boost::apply_visitor(
+              [&](const auto &attestation) {
+                using T = std::decay_t<decltype(attestation)>;
+                if constexpr (std::is_same_v<
+                                  T,
+                                  network::ValidityAttestation::Implicit>) {
+                  SL_INFO(logger_,
+                          "Implicit validity attestation found for parachain "
+                          "{} on relay parent {}",
+                          parachain_id,
+                          block_hash);
+                  implicit_found = true;
+                } else if constexpr (
+                    std::is_same_v<T, network::ValidityAttestation::Explicit>) {
+                  SL_INFO(logger_,
+                          "Explicit validity attestation found for parachain "
+                          "{} on relay parent {}",
+                          parachain_id,
+                          block_hash);
+                  explicit_found = true;
+                }
+              },
+              backed_candidate.validity_votes[validator_position].kind);
+          break;
+        }
+        if (explicit_found) {
+          SL_INFO(logger_,
+                  "Explicit vote found for parachain {} on relay parent {}",
+                  parachain_id,
+                  block_hash);
+        } else if (implicit_found) {
+          SL_INFO(logger_,
+                  "Implicit vote found for parachain {} on relay parent {}",
+                  parachain_id,
+                  block_hash);
+        } else {
+          SL_INFO(logger_,
+                  "No vote found for parachain {} on relay parent {}",
+                  parachain_id,
+                  block_hash);
         }
       }
     };
