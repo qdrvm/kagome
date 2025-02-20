@@ -141,9 +141,8 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
-              reinterpret_cast<uintptr_t>(raw_data)))},
-          current_position_{*(buffer_ + kBufferSize)},
+        : buffer_{reinterpret_cast<uint8_t *>(
+            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
           begin_position_{*(buffer_ + kBufferSize + 1ull)},
           current_state_{*(buffer_ + kBufferSize + 2ull)} {}
 
