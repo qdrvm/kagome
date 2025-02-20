@@ -9,14 +9,11 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <tuple>
 #include <type_traits>
 
 #include <boost/assert.hpp>
 
-#include "common/buffer_view.hpp"
 #include "keccak/keccak.h"
-#include "primitives/math.hpp"
 
 namespace kagome::primitives {
 
