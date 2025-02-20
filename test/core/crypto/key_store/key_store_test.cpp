@@ -90,8 +90,8 @@ struct KeyStoreTest : public test::BaseFS_Test {
         std::make_shared<BandersnatchProviderImpl>(hasher);
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
-    bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
+    bip39_provider = std::make_shared<Bip39ProviderImpl>(
+        std::move(pbkdf2_provider), csprng, hasher);
 
     std::shared_ptr key_file_storage =
         kagome::crypto::KeyFileStorage::createAt(crypto_store_test_directory)

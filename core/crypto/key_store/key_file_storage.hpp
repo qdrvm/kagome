@@ -51,23 +51,14 @@ namespace kagome::crypto {
     outcome::result<bool> searchForKey(KeyType type,
                                        common::BufferView public_key) const;
 
+    using PhraseOrSeed = std::variant<std::string_view, BufferView>;
     /**
      * Stores the \param seed that generates the \param public_key to the key
      * storage
      */
     outcome::result<void> saveKeyPair(KeyType type,
                                       common::BufferView public_key,
-                                      common::BufferView seed) const;
-
-    /**
-     * Save key as hex to the specific path.
-     * Used when --node-key-file flag is specified.
-     * @param key_bytes - key contents to save
-     * @param file_path - user-provided path to create the file
-     * @return an error if any
-     */
-    outcome::result<void> saveKeyHexAtPath(common::BufferView private_key,
-                                           const Path &path) const;
+                                      PhraseOrSeed phrase_or_seed) const;
 
    private:
     explicit KeyFileStorage(Path keystore_path);

@@ -62,13 +62,9 @@ namespace kagome::crypto {
     }
 
     outcome::result<Keypair> generateKeypairOnDisk(KeyType key_type) override {
-      SecureBuffer<> seed_buf(Seed::size());
-      csprng_->fillRandomly(seed_buf);
-      OUTCOME_TRY(seed, Seed::from(std::move(seed_buf)));
-      OUTCOME_TRY(kp, suite_->generateKeypair(seed, {}));
-      keys_[key_type].insert(std::pair{kp.public_key, kp});
-      OUTCOME_TRY(file_storage_->saveKeyPair(
-          key_type, kp.public_key, seed.unsafeBytes()));
+      auto phrase = bip39_provider_->generatePhrase();
+      OUTCOME_TRY(kp, generateKeypair(key_type, phrase));
+      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, phrase));
       return kp;
     }
 

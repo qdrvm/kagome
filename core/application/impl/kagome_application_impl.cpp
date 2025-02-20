@@ -93,6 +93,7 @@ namespace kagome::application {
     app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
 
     {  // Metrics
+      injector_.injectMetricsWatcher();
       auto metrics_registry = metrics::createRegistry();
 
       constexpr auto startTimeMetricName = "kagome_process_start_time_seconds";

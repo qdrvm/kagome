@@ -163,6 +163,8 @@ namespace kagome::parachain {
 
     auto abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
+    auto logger = log::createLogger("Landlock", "parachain");
+    SL_INFO(logger, "Landlock ABI version: {} ", abi);
     if (abi < 0) {
       return getLastErr("landlock_create_ruleset");
     }
@@ -175,19 +177,26 @@ namespace kagome::parachain {
             | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR
             | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK
             | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
-            | LANDLOCK_ACCESS_FS_MAKE_SYM
+            | LANDLOCK_ACCESS_FS_MAKE_SYM};
+
+    // only add Landlock V2+ features if defined and supported by the (runtime)
+    // kernel
 #ifdef LANDLOCK_ACCESS_FS_REFER
-            | LANDLOCK_ACCESS_FS_REFER
+    if (abi >= 2) {
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_REFER;
+    }
 #endif
 #ifdef LANDLOCK_ACCESS_FS_TRUNCATE
-            | LANDLOCK_ACCESS_FS_TRUNCATE
+    if (abi >= 3) {
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_TRUNCATE;
+    }
 #endif
-        ,
 #ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
-        .handled_access_net =
-            LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP,
+    if (abi >= 4) {
+      ruleset_attr.handled_access_net =
+          LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP;
+    }
 #endif
-    };
 
     auto ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);

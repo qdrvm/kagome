@@ -25,18 +25,19 @@ namespace kagome::network {
                                              std::decay_t<ResponseT>,
                                              ScaleMessageReadWriter>;
 
-    ReqCollationProtocolImpl(libp2p::Host &host,
+    static constexpr std::chrono::seconds kRequestTimeout{2};
+
+    ReqCollationProtocolImpl(RequestResponseInject inject,
                              const libp2p::peer::ProtocolName &protoname,
                              const application::ChainSpec &chain_spec,
                              const blockchain::GenesisBlockHash &genesis_hash,
-                             std::shared_ptr<ReqCollationObserver> observer,
-                             common::MainThreadPool &main_thread_pool)
+                             std::shared_ptr<ReqCollationObserver> observer)
         : Base{kReqCollationProtocolName,
-               host,
+               std::move(inject),
                make_protocols(protoname, genesis_hash, kProtocolPrefixPolkadot),
                log::createLogger(kReqCollationProtocolName,
                                  "req_collation_protocol"),
-               main_thread_pool},
+               kRequestTimeout},
           observer_{std::move(observer)} {}
 
    protected:
@@ -59,29 +60,22 @@ namespace kagome::network {
   };
 
   ReqCollationProtocol::ReqCollationProtocol(
-      libp2p::Host &host,
+      const RequestResponseInject &inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<ReqCollationObserver> observer,
-      common::MainThreadPool &main_thread_pool)
+      std::shared_ptr<ReqCollationObserver> observer)
       : v1_impl_{std::make_shared<
             ReqCollationProtocolImpl<CollationFetchingRequest,
                                      CollationFetchingResponse>>(
-            host,
-            kReqCollationProtocol,
-            chain_spec,
-            genesis_hash,
-            observer,
-            main_thread_pool)},
+            inject, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
         vstaging_impl_{std::make_shared<
             ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
                                      vstaging::CollationFetchingResponse>>(
-            host,
+            inject,
             kReqCollationVStagingProtocol,
             chain_spec,
             genesis_hash,
-            observer,
-            main_thread_pool)} {
+            observer)} {
     BOOST_ASSERT(v1_impl_);
     BOOST_ASSERT(vstaging_impl_);
   }

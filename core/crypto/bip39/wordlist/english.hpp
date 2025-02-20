@@ -8,10 +8,12 @@
 #include <array>
 #include <string_view>
 
+#include "crypto/bip39/const.hpp"
+
 namespace kagome::crypto::bip39::english {
   /// @brief words are taken from
   /// https://github.com/bitcoin/bips/blob/master/bip-0039/bip-0039-wordlists.md
-  constexpr std::array<std::string_view, 2048> dictionary = {
+  constexpr std::array<std::string_view, kDictionaryWords> dictionary = {
       "abandon",  "ability",  "able",     "about",    "above",    "absent",
       "absorb",   "abstract", "absurd",   "abuse",    "access",   "accident",
       "account",  "accuse",   "achieve",  "acid",     "acoustic", "acquire",

@@ -31,19 +31,19 @@ namespace kagome::network {
                                            WarpResponse,
                                            ScaleMessageReadWriter> {
     static constexpr auto kName = "WarpProtocol";
+    static constexpr std::chrono::seconds kRequestTimeout{10};
 
    public:
-    WarpProtocolImpl(libp2p::Host &host,
+    WarpProtocolImpl(RequestResponseInject inject,
                      const application::ChainSpec &chain_spec,
                      const blockchain::GenesisBlockHash &genesis,
-                     std::shared_ptr<WarpSyncCache> cache,
-                     common::MainThreadPool &main_thread_pool)
+                     std::shared_ptr<WarpSyncCache> cache)
         : RequestResponseProtocolImpl(
               kName,
-              host,
+              std::move(inject),
               make_protocols(kWarpProtocol, genesis, chain_spec),
               log::createLogger(kName, "warp_sync_protocol"),
-              main_thread_pool),
+              kRequestTimeout),
           cache_{std::move(cache)} {}
 
     std::optional<outcome::result<ResponseType>> onRxRequest(

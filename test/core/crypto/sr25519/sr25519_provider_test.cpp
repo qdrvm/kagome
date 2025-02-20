@@ -7,6 +7,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
 #include <span>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -178,6 +179,7 @@ TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
 TEST_F(Sr25519ProviderTest, Junctions) {
   Bip39ProviderImpl bip_provider{
       std::make_shared<Pbkdf2ProviderImpl>(),
+      std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
       std::make_shared<HasherImpl>(),
   };
   auto f = [&](std::string_view phrase, std::string_view pub_str) {

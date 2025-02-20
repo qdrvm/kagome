@@ -7,6 +7,8 @@
 #include <gtest/gtest.h>
 
 #include <boost/algorithm/string/join.hpp>
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
+
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -28,8 +30,10 @@ struct Bip39EntropyTest : public ::testing::Test {
   void SetUp() override {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
-    bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
+    bip39_provider = std::make_shared<Bip39ProviderImpl>(
+        pbkdf2_provider,
+        std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
+        hasher);
     phrase =
         "legal winner thank year wave sausage worth useful legal winner "
         "thank yellow";

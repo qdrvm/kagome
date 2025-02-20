@@ -18,6 +18,8 @@ namespace kagome::crypto {
    public:
     virtual ~Bip39Provider() = default;
 
+    virtual std::string generatePhrase() const = 0;
+
     /**
      * @brief calculates entropy from mnemonic
      * @param correct mnemonic word list

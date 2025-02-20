@@ -6,9 +6,9 @@
 
 #pragma once
 
-#define WEAK_SELF    \
-  weak_self {        \
-    weak_from_this() \
+#define WEAK_SELF          \
+  weak_self {              \
+    this->weak_from_this() \
   }
 
 #define WEAK_LOCK(name)           \
