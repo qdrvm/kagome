@@ -97,7 +97,8 @@ More details of KAGOME development can be found within the [supported features](
 
 #### Prerequisites
 
-If you are using a Debian Linux system, the following command allows you to build KAGOME:
+##### Debian/Ubuntu
+If you are using a Debian-based Linux system, the following command allows you to build KAGOME:
 
 ```sh
 git clone https://github.com/qdrvm/kagome
@@ -120,6 +121,14 @@ make release_docker
 make debug_docker
 make clear
 ```
+
+##### Nix(OS)
+With the Nix package manager or on NixOS, the project can be instantiated using
+1. `nix develop`, or
+2. `echo "use flake ." > .envrc && direnv allow`
+
+The build steps are otherwise the same as for Debian-based distros.
+Note that with this setup, `.cargo` and `.rustup` will be local to the repository to avoid pollution of the host system.
 
 ### Installation from APT Package
 
