@@ -25,7 +25,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
-#include "utils/json_unquote.hpp"
 #include "utils/read_file.hpp"
 
 namespace kagome::crypto {

@@ -43,14 +43,13 @@ namespace kagome::network {
     static constexpr auto kName = "LightProtocol";
 
    public:
-    LightProtocol(libp2p::Host &host,
+    LightProtocol(RequestResponseInject inject,
                   const application::ChainSpec &chain_spec,
                   const blockchain::GenesisBlockHash &genesis,
                   std::shared_ptr<blockchain::BlockHeaderRepository> repository,
                   std::shared_ptr<storage::trie::TrieStorage> storage,
                   std::shared_ptr<runtime::ModuleRepository> module_repo,
-                  std::shared_ptr<runtime::Executor> executor,
-                  common::MainThreadPool &main_thread_pool);
+                  std::shared_ptr<runtime::Executor> executor);
 
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override;
