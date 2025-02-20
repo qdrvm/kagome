@@ -304,9 +304,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
   // integers)
-  std::vector<scale::EncodeOpaqueValue> vals(
-      scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
-      scale::EncodeOpaqueValue{value1});
+  std::vector<scale::EncodeOpaqueValue> vals(scale::detail::kMinUint16 - 1,
+                                             scale::EncodeOpaqueValue{value1});
   Buffer vals_encoded = Buffer(scale::encode(vals).value());
 
   {

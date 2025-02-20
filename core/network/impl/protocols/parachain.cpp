@@ -87,7 +87,7 @@ namespace kagome::network {
         collation_versions_.at(protocol_group);
     if (out) {
       notifications_->write(
-          peer_id, protocol_group, encodeView(peer_view_->getMyView()));
+          peer_id, protocol_group, encodeView(peer_view_->getMyViewStripped()));
     }
     return true;
   }
@@ -111,7 +111,7 @@ namespace kagome::network {
                                       PeerView::EventType::kViewUpdated,
                                       [WEAK_SELF](const ExView &event) {
                                         WEAK_LOCK(self);
-                                        self->write(event.view);
+                                        self->write(event.stripped_view);
                                       });
   }
 

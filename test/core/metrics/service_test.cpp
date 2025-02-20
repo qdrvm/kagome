@@ -58,7 +58,7 @@ class HttpClient {
   HttpClient()
       : ioc_{},
         stream_{ioc_},
-        endpoint_{boost::asio::ip::address::from_string("0.0.0.0"), 9955} {}
+        endpoint_{boost::asio::ip::make_address("0.0.0.0"), 9955} {}
 
   ~HttpClient() {
     boost::system::error_code ec;
@@ -110,7 +110,7 @@ TEST(ServiceTest, CreateMetricsExposer) {
       di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
       di::bind<metrics::Exposer::Configuration>.to([](const auto &) {
         return metrics::Exposer::Configuration{
-            {boost::asio::ip::address::from_string("0.0.0.0"), 9955}};
+            {boost::asio::ip::make_address("0.0.0.0"), 9955}};
       }),
       di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
         return metrics::Session::Configuration{};

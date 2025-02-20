@@ -80,7 +80,9 @@ namespace kagome::offchain {
     std::string error_message_;
     boost::beast::flat_buffer buffer_;
     boost::asio::steady_timer deadline_timer_;
-    boost::asio::ip::tcp::resolver::iterator resolver_iterator_;
+    using resolver_iterator =
+        boost::asio::ip::tcp::resolver::results_type::const_iterator;
+    resolver_iterator resolver_iterator_;
     boost::beast::http::request<boost::beast::http::string_body> request_;
     boost::beast::http::response_parser<boost::beast::http::string_body>
         parser_;

@@ -65,6 +65,6 @@ namespace kagome::network::notifications {
           std::move(stream), std::move(frame_stream), handshake, std::move(cb));
     };
 
-    newHost(base.host(), peer_id, base.protocolIds(), std::move(cb));
+    newStream(base.host(), peer_id, base.protocolIds(), std::move(cb));
   }
 }  // namespace kagome::network::notifications

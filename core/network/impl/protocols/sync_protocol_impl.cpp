@@ -19,6 +19,7 @@
 #include "network/types/blocks_response.hpp"
 
 namespace kagome::network {
+  constexpr std::chrono::seconds kRequestTimeout{20};
 
   namespace detail {
     BlocksResponseCache::BlocksResponseCache(
@@ -127,6 +128,7 @@ namespace kagome::network {
 
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
@@ -135,10 +137,14 @@ namespace kagome::network {
               host,
               make_protocols(kSyncProtocol, genesis_hash, chain_spec),
               log::createLogger(kSyncProtocolName, "sync_protocol")),
+        scheduler_{std::move(scheduler)},
+        metrics_{kSyncProtocolName},
+        timeout_{kRequestTimeout},
         sync_observer_(std::move(sync_observer)),
         reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,
                         kResponsesCacheExpirationTimeout) {
+    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(sync_observer_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
   }
@@ -160,7 +166,6 @@ namespace kagome::network {
              "New outgoing {} stream with {}",
              protocolName(),
              peer_id);
-
     newStream(
         base_.host(),
         peer_id,
@@ -463,7 +468,7 @@ namespace kagome::network {
 
     newOutgoingStream(
         peer_id,
-        [wp{weak_from_this()},
+        [WEAK_SELF,
          response_handler = std::move(response_handler),
          block_request = std::move(block_request)](auto &&stream_res) mutable {
           if (not stream_res.has_value()) {
@@ -472,7 +477,7 @@ namespace kagome::network {
           }
           auto &stream = stream_res.value();
 
-          auto self = wp.lock();
+          auto self = weak_self.lock();
           if (not self) {
             stream->reset();
             response_handler(ProtocolError::GONE);
@@ -484,13 +489,15 @@ namespace kagome::network {
                    self->protocolName(),
                    stream->remotePeerId().value());
 
+          RequestResponseTimeout::wrap(self, response_handler, stream);
+
           self->writeRequest(stream,
                              block_request,
                              [stream,
-                              wp = std::move(wp),
+                              weak_self,
                               response_handler = std::move(response_handler)](
                                  auto &&write_res) mutable {
-                               auto self = wp.lock();
+                               auto self = weak_self.lock();
                                if (not self) {
                                  stream->reset();
                                  response_handler(ProtocolError::GONE);

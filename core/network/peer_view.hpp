@@ -31,6 +31,7 @@ namespace kagome::network {
   using HashedBlockHeader = primitives::BlockHeader;
   struct ExView {
     View view;
+    View stripped_view;
     HashedBlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
   };
@@ -83,8 +84,8 @@ namespace kagome::network {
 
     void removePeer(const PeerId &peer_id);
     void updateRemoteView(const PeerId &peer_id, network::View &&view);
-    auto &getMyView() const {
-      return my_view_;
+    auto &getMyViewStripped() const {
+      return my_view_stripped_;
     }
 
    private:
@@ -97,6 +98,7 @@ namespace kagome::network {
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
 
     View my_view_;
+    View my_view_stripped_;
     SafeObject<std::unordered_map<PeerId, View>> remote_view_;
   };
 
