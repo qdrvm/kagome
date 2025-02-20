@@ -6,9 +6,11 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <type_traits>
 
 #include <boost/assert.hpp>
@@ -37,7 +39,7 @@ namespace kagome::primitives {
     static constexpr Flags kFlag_M = 0x10;
     static constexpr Flags kFlag_K = 0x20;
 
-    alignas(kAlignment) std::array<uint8_t, kBufferSize + 3ull> buffer_;
+    alignas(kAlignment) std::array<uint8_t, kBufferSize + 3ull> buffer_{};
     Position &current_position_;
     Position &begin_position_;
     Flags &current_state_;
@@ -137,8 +139,7 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{},
-          current_position_{buffer_[kBufferSize]},
+        : current_position_{buffer_[kBufferSize]},
           begin_position_{buffer_[kBufferSize + 1ull]},
           current_state_{buffer_[kBufferSize + 2ull]} {}
 
