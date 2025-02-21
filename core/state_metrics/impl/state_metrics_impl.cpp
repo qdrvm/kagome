@@ -15,7 +15,7 @@ namespace kagome::state_metrics {
   static constexpr auto SET_ERA_POINTS_PERIOD = 60;  // in seconds
 
   StateMetricsImpl::StateMetricsImpl(
-      std::string &&validator_address,
+      const application::AppConfiguration &app_config,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<api::StateApi> state_api,
       std::shared_ptr<metrics::Registry> registry,
@@ -28,6 +28,12 @@ namespace kagome::state_metrics {
     BOOST_ASSERT(state_api_);
     BOOST_ASSERT(registry);
     BOOST_ASSERT(hasher);
+    auto validator_address_res = app_config.getValidatorAddress();
+    if (not validator_address_res) {
+      SL_INFO(logger_, "Validator address is not set, state metrics won't run");
+      return;
+    }
+    const auto &validator_address = validator_address_res.value();
     auto validator_id = primitives::decodeSs58(validator_address, *hasher);
     if (not validator_id) {
       const auto error_message =
@@ -86,23 +92,6 @@ namespace kagome::state_metrics {
         }
       }
     });
-  }
-
-  outcome::result<std::shared_ptr<StateMetricsImpl>> StateMetricsImpl::create(
-      const application::AppConfiguration &app_config,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-      std::shared_ptr<api::StateApi> state_api,
-      std::shared_ptr<metrics::Registry> registry,
-      std::shared_ptr<crypto::Hasher> hasher) {
-    if (auto validator_address = app_config.getValidatorAddress()) {
-      return std::make_shared<StateMetricsImpl>(
-          std::move(validator_address.value()),
-          std::move(scheduler),
-          std::move(state_api),
-          std::move(registry),
-          std::move(hasher));
-    }
-    return nullptr;
   }
 
   StateMetricsImpl::~StateMetricsImpl() {

@@ -381,17 +381,12 @@ namespace {
   template <typename Injector>
   sptr<state_metrics::StateMetricsImpl> get_state_metrics(
       const Injector &injector) {
-    auto state_metrics_res = state_metrics::StateMetricsImpl::create(
+    return std::make_shared<state_metrics::StateMetricsImpl>(
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<api::StateApi>>(),
         injector.template create<sptr<metrics::Registry>>(),
         injector.template create<sptr<crypto::Hasher>>());
-    if (not state_metrics_res.has_value()) {
-      common::raise(state_metrics_res.error());
-    }
-    auto &state_metrics = state_metrics_res.value();
-    return state_metrics;
   }
 
   template <typename... Ts>

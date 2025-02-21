@@ -25,19 +25,12 @@ namespace kagome::state_metrics {
       : public StateMetrics,
         public std::enable_shared_from_this<StateMetricsImpl> {
    public:
-    StateMetricsImpl(std::string &&validator_address,
+    StateMetricsImpl(const application::AppConfiguration &app_config,
                      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                      std::shared_ptr<api::StateApi> state_api,
                      std::shared_ptr<metrics::Registry> registry,
                      std::shared_ptr<crypto::Hasher> hasher);
     ~StateMetricsImpl() override;
-
-    static outcome::result<std::shared_ptr<StateMetricsImpl>> create(
-        const application::AppConfiguration &app_config,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<api::StateApi> state_api,
-        std::shared_ptr<metrics::Registry> registry,
-        std::shared_ptr<crypto::Hasher> hasher);
 
     void updateEraPoints() override;
 
