@@ -39,11 +39,17 @@ namespace kagome::state_metrics {
     constexpr auto era_points_metric = "era_points";
     registry->registerGaugeFamily(
         era_points_metric,
-        "The number of reward points for the current era for the validator",
+        "The number of reward points for the active era for the validator",
         {{"validator_address", validator_address}});
-    era_points_gauge_ = registry->registerGaugeMetric(era_points_metric);
-    BOOST_ASSERT(era_points_gauge_);
-
+    era_points_ = registry->registerGaugeMetric(era_points_metric);
+    BOOST_ASSERT(era_points_);
+    constexpr auto active_era_number_metric = "active_era_number";
+    registry->registerGaugeFamily(active_era_number_metric,
+                                  "The active era index",
+                                  {{"validator_address", validator_address}});
+    active_era_number_ =
+        registry->registerGaugeMetric(active_era_number_metric);
+    BOOST_ASSERT(active_era_number_);
     const auto staking_prefix =
         crypto::make_twox128(kagome::common::Buffer::fromString("Staking"));
     const auto active_era_prefix =
@@ -109,13 +115,14 @@ namespace kagome::state_metrics {
   void StateMetricsImpl::updateEraPoints() {
     if (auto active_era = getActiveEraIndex()) {
       const auto &active_era_value = active_era.value();
+      active_era_number_->set(active_era_value);
       if (auto reward_points = getRewardPoints(active_era_value)) {
         const auto &reward_points_value = reward_points.value();
         SL_TRACE(logger_,
                  "Reward points for era {}: {}",
                  active_era_value,
                  reward_points_value);
-        era_points_gauge_->set(reward_points_value);
+        era_points_->set(reward_points_value);
       }
     }
   }

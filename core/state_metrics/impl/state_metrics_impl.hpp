@@ -51,7 +51,8 @@ namespace kagome::state_metrics {
     primitives::AccountId validator_id_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<api::StateApi> state_api_;
-    kagome::metrics::Gauge *era_points_gauge_;
+    kagome::metrics::Gauge *active_era_number_;
+    kagome::metrics::Gauge *era_points_;
     std::atomic_bool stop_signal_received_;
     std::thread era_points_thread_;
     log::Logger logger_;
