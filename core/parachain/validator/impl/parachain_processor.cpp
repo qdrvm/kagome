@@ -3387,14 +3387,10 @@ namespace kagome::parachain {
       return;
     }
 
-    struct CleanupGuard {
-      std::function<void()> cleanup;
-      ~CleanupGuard() {
-        cleanup();
-      }
-    } cleanup_guard{[this, &block_hash] {
-      state_by_relay_parent_to_check_.erase(block_hash);
-    }};
+    auto cleanup_guard = std::unique_ptr<void, std::function<void(void *)>>(
+        new int, [this, &block_hash](void *) {
+          state_by_relay_parent_to_check_.erase(block_hash);
+        });
 
     const auto &parachain_state = it->second;
 
@@ -3481,21 +3477,21 @@ namespace kagome::parachain {
 
     if (explicit_found) {
       SL_TRACE(logger_,
-              "Explicit vote found for parachain {} on relay parent {}",
-              parachain_id,
-              block_hash);
+               "Explicit vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
       metric_kagome_parachain_candidate_explicit_votes_total_->inc();
     } else if (implicit_found) {
       SL_TRACE(logger_,
-              "Implicit vote found for parachain {} on relay parent {}",
-              parachain_id,
-              block_hash);
+               "Implicit vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
       metric_kagome_parachain_candidate_implicit_votes_total_->inc();
     } else {
       SL_TRACE(logger_,
-              "No vote found for parachain {} on relay parent {}",
-              parachain_id,
-              block_hash);
+               "No vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
       metric_kagome_parachain_candidate_no_votes_total_->inc();
     }
   }
