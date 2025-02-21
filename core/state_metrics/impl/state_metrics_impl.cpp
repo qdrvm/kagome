@@ -12,7 +12,7 @@
 
 namespace kagome::state_metrics {
 
-  static constexpr auto SET_ERA_POINTS_PERIOD = 60;
+  static constexpr auto SET_ERA_POINTS_PERIOD = 60;  // in seconds
 
   StateMetricsImpl::StateMetricsImpl(
       std::string &&validator_address,
