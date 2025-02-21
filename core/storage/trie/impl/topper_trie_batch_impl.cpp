@@ -161,7 +161,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return static_cast<bool>(source_);
+    return source_.hasValidSource();
   }
 
   outcome::result<void> TopperTrieCursor::next() {

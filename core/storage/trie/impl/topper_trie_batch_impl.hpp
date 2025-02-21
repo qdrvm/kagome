@@ -91,8 +91,12 @@ namespace kagome::storage::trie {
     struct Source {
       Source(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
 
-      explicit operator bool() const {
+      bool hasValidSource() const {
         return parent || overlay;
+      }
+
+      explicit operator bool() const {
+        return hasValidSource();
       }
 
       bool parent;   // parent_cursor_ is valid

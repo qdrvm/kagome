@@ -265,6 +265,11 @@ namespace kagome::storage::trie {
 
           // use optional because MerkleValue doesn't have a default constructor
           std::optional<MerkleValue> merkle;
+
+          // if TraversePolicy is UncachedOnly, we don't need to call
+          // child_visitor on nodes with cached merkle value, therefore we don't
+          // need to encode them (child_visitor requires a node's encoding) and
+          // can just take the cached merkle value
           if (policy == TraversePolicy::UncachedOnly
               && child_node.getMerkleCache().has_value()) {
             merkle = child_node.getMerkleCache().value();

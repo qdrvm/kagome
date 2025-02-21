@@ -133,7 +133,7 @@ namespace kagome::storage::trie {
                  bool dirty = true)
         : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
 
-    operator bool() const {
+    explicit operator bool() const {
       return is_some();
     }
 
@@ -166,18 +166,22 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
+  struct DummyNode;
+  struct BranchNode;
+  struct LeafNode;
+
   struct OpaqueTrieNode {
     virtual ~OpaqueTrieNode() = default;
 
     inline bool isDummy() const;
     inline bool isBranch() const;
     inline bool isLeaf() const;
-    inline const struct DummyNode &asDummy() const;
-    inline const struct BranchNode &asBranch() const;
-    inline const struct LeafNode &asLeaf() const;
-    inline struct DummyNode &asDummy();
-    inline struct BranchNode &asBranch();
-    inline struct LeafNode &asLeaf();
+    inline const DummyNode &asDummy() const;
+    inline const BranchNode &asBranch() const;
+    inline const LeafNode &asLeaf() const;
+    inline DummyNode &asDummy();
+    inline BranchNode &asBranch();
+    inline LeafNode &asLeaf();
   };
 
   struct TrieNode : public OpaqueTrieNode {
