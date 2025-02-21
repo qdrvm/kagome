@@ -786,7 +786,7 @@ namespace kagome::application {
           "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
-        ("validator-address", po::value<std::string>(), "SS58 address, if provided, erapoints of current era for it will be sent as metric\n")
+        ("validator-address", po::value<std::string>(), "SS58 address, if provided, erapoints of current era for it will be sent as metric")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
