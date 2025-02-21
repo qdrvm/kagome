@@ -9,6 +9,7 @@
 #include "network/adapters/protobuf_state_request.hpp"
 #include "network/adapters/protobuf_state_response.hpp"
 #include "network/common.hpp"
+#include "network/helpers/new_stream.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 
@@ -45,7 +46,8 @@ namespace kagome::network {
              protocolName(),
              peer_id);
 
-    base_.host().newStream(
+    newStream(
+        base_.host(),
         peer_id,
         base_.protocolIds(),
         [wp{weak_from_this()}, peer_id, cb = std::move(cb)](
