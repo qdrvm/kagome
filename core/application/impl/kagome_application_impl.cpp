@@ -63,6 +63,7 @@ namespace kagome::application {
     injector_.kademliaRandomWalk();
     injector_.injectAddressPublisher();
     injector_.injectTimeline();
+    injector_.injectStateMetrics();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_->nodeVersion(),
@@ -144,7 +145,6 @@ namespace kagome::application {
             "Secure validator mode is not implemented for the current "
             "platform. Proceed at your own risk.");
 #endif
-
     app_state_manager->run();
 
     watchdog->stop();

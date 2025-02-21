@@ -235,6 +235,7 @@ kagome_install_setup(
     core/subscription
     core/telemetry
     core/utils
+    core/state_metrics
 )
 
 include(CMakePackageConfigHelpers)

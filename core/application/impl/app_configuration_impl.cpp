@@ -786,6 +786,7 @@ namespace kagome::application {
           "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
+        ("validator-address", po::value<std::string>(), "SS58 address, if provided, erapoints of current era for it will be sent as metric\n")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
@@ -1603,6 +1604,11 @@ namespace kagome::application {
     }
     if (precompile_wasm_) {
       runtime_exec_method_ = RuntimeExecutionMethod::Compile;
+    }
+
+    if (auto validator_address =
+            find_argument<std::string>(vm, "validator-address")) {
+      validator_address_ss58_ = *validator_address;
     }
 
     // if something wrong with config print help message

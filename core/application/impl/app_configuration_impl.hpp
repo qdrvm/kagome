@@ -242,6 +242,10 @@ namespace kagome::application {
       return precompile_wasm_;
     }
 
+    std::optional<std::string> getValidatorAddress() const override {
+      return validator_address_ss58_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -386,6 +390,7 @@ namespace kagome::application {
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
+    std::optional<std::string> validator_address_ss58_;
   };
 
 }  // namespace kagome::application

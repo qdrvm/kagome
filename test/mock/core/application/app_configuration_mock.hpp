@@ -199,6 +199,11 @@ namespace kagome::application {
                 precompileWasm,
                 (),
                 (const, override));
+
+    MOCK_METHOD(std::optional<std::string>,
+                getValidatorAddress,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application
