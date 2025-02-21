@@ -3403,7 +3403,8 @@ namespace kagome::parachain {
     }
 
     const auto assigned_core = parachain_state.assigned_core.value();
-    const auto group_it = parachain_state.table_context.groups.find(assigned_core);
+    const auto group_it =
+        parachain_state.table_context.groups.find(assigned_core);
     if (group_it == parachain_state.table_context.groups.end()) {
       return;
     }
@@ -3423,29 +3424,20 @@ namespace kagome::parachain {
       group_validator_position.emplace(group[pos], pos);
     }
 
-    const auto validator_position_it = group_validator_position.find(validator_index);
+    const auto validator_position_it =
+        group_validator_position.find(validator_index);
     if (validator_position_it == group_validator_position.end()) {
       return;
     }
 
     const auto validator_position = validator_position_it->second;
-
-    const auto availability_cores_res =
-        parachain_host_->availability_cores(block_hash);
-    if (not availability_cores_res) {
-      SL_DEBUG(logger_,
-               "Availability cores error {} on relay parent {}",
-               availability_cores_res.error(),
-               block_hash);
-      return;
-    }
-
-    const auto &availability_cores = availability_cores_res.value();
+    const auto &availability_cores = parachain_state.availability_cores;
     if (assigned_core >= availability_cores.size()) {
       return;
     }
 
-    const auto parachain_id_opt = extractParachainId(availability_cores[assigned_core]);
+    const auto parachain_id_opt =
+        extractParachainId(availability_cores[assigned_core]);
     if (not parachain_id_opt) {
       return;
     }
@@ -3474,7 +3466,8 @@ namespace kagome::parachain {
     }
 
     const auto &block_body = block_body_res.value();
-    const auto parachain_inherent_data = extractParachainInherentData(block_body);
+    const auto parachain_inherent_data =
+        extractParachainInherentData(block_body);
     if (not parachain_inherent_data) {
       return;
     }
@@ -3488,21 +3481,21 @@ namespace kagome::parachain {
 
     if (explicit_found) {
       SL_TRACE(logger_,
-               "Explicit vote found for parachain {} on relay parent {}",
-               parachain_id,
-               block_hash);
+              "Explicit vote found for parachain {} on relay parent {}",
+              parachain_id,
+              block_hash);
       metric_kagome_parachain_candidate_explicit_votes_total_->inc();
     } else if (implicit_found) {
       SL_TRACE(logger_,
-               "Implicit vote found for parachain {} on relay parent {}",
-               parachain_id,
-               block_hash);
+              "Implicit vote found for parachain {} on relay parent {}",
+              parachain_id,
+              block_hash);
       metric_kagome_parachain_candidate_implicit_votes_total_->inc();
     } else {
       SL_TRACE(logger_,
-               "No vote found for parachain {} on relay parent {}",
-               parachain_id,
-               block_hash);
+              "No vote found for parachain {} on relay parent {}",
+              parachain_id,
+              block_hash);
       metric_kagome_parachain_candidate_no_votes_total_->inc();
     }
   }
