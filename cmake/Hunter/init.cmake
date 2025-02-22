@@ -45,7 +45,7 @@ set(HUNTER_PASSWORDS_PATH
 )
 
 set(HUNTER_CACHE_SERVERS
-    "https://github.com/qdrvm/hunter-cache"
+    "https://github.com/qdrvm/hunter-binary-cache"
     CACHE STRING "Binary cache server"
 )
 

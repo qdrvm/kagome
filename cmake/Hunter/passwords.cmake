@@ -1,7 +1,7 @@
 hunter_upload_password(
-  # REPO_OWNER + REPO = https://github.com/forexample/hunter-cache
+  # REPO_OWNER + REPO = https://github.com/forexample/hunter-binary-cache
   REPO_OWNER "qdrvm"
-  REPO "hunter-cache"
+  REPO "hunter-binary-cache"
 
   # USERNAME = warchant
   USERNAME "$ENV{GITHUB_HUNTER_USERNAME}"
