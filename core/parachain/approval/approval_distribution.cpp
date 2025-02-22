@@ -116,14 +116,14 @@ namespace {
             &cert_proof,
             &cores,
             &cores_out_sz)) {
-      ::scale::BitVec assignment_bitfield;
+      ::scale::BitVector assignment_bitfield;
       for (size_t ix = 0; ix < cores_out_sz; ++ix) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const auto ci = cores[ix];
-        if (ci >= assignment_bitfield.bits.size()) {
-          assignment_bitfield.bits.resize(ci + 1);
+        if (ci >= assignment_bitfield.size()) {
+          assignment_bitfield.resize(ci + 1);
         }
-        assignment_bitfield.bits[ci] = true;
+        assignment_bitfield[ci] = true;
       }
 
       crypto::VRFPreOutput o;
@@ -272,7 +272,7 @@ namespace {
   kagome::parachain::approval::RequiredTranches tranchesToApprove(
       const kagome::parachain::ApprovalDistribution::ApprovalEntry
           &approval_entry,
-      const scale::BitVec &approvals,
+      const scale::BitVector &approvals,
       kagome::network::DelayTranche tranche_now,
       kagome::parachain::Tick block_tick,
       kagome::parachain::Tick no_show_duration,
@@ -318,8 +318,8 @@ namespace {
           const auto no_show_at = kagome::math::sat_sub_unsigned(
                                       std::max(t, block_tick), clock_drift)
                                 + no_show_duration;
-          if (v_index < approvals.bits.size()) {
-            const auto has_approved = approvals.bits.at(v_index);
+          if (v_index < approvals.size()) {
+            const auto has_approved = approvals.at(v_index);
             const auto is_no_show =
                 !has_approved && no_show_at <= drifted_tick_now;
             if (!is_no_show && !has_approved) {
@@ -361,10 +361,10 @@ namespace {
     return required_tranches;
   }
 
-  scale::BitVec &filter(scale::BitVec &lh, const scale::BitVec &rh) {
-    BOOST_ASSERT(lh.bits.size() == rh.bits.size());
-    for (size_t ix = 0; ix < lh.bits.size(); ++ix) {
-      lh.bits[ix] = (lh.bits[ix] && rh.bits[ix]);
+  scale::BitVector &filter(scale::BitVector &lh, const scale::BitVector &rh) {
+    BOOST_ASSERT(lh.size() == rh.size());
+    for (size_t ix = 0; ix < lh.size(); ++ix) {
+      lh[ix] = (lh[ix] && rh[ix]);
     }
     return lh;
   }
@@ -375,7 +375,7 @@ namespace {
       const kagome::parachain::approval::RequiredTranches &required) {
     const auto &approvals = candidate.approvals;
     if (3 * kagome::parachain::approval::count_ones(approvals)
-        > approvals.bits.size()) {
+        > approvals.size()) {
       return kagome::parachain::approval::ApprovedOneThird{};
     }
 
@@ -395,8 +395,8 @@ namespace {
           kagome::log::createLogger("ApprovalDistribution", "parachain");
       SL_TRACE(logger_,
                "assigned_mask=[{}] approvals=[{}] (candidate={})",
-               fmt::join(assigned_mask.bits, ","),
-               fmt::join(approvals.bits, ","),
+               fmt::join(assigned_mask, ","),
+               fmt::join(approvals, ","),
                candidate.candidate.getHash());
       const auto n_assigned =
           kagome::parachain::approval::count_ones(assigned_mask);
@@ -454,7 +454,7 @@ namespace {
   }
 
   outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
-      const scale::BitVec &claimed_core_indices,
+      const scale::BitVector &claimed_core_indices,
       kagome::network::ValidatorIndex validator_index,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
@@ -479,9 +479,9 @@ namespace {
     // Check that the validator was not part of the backing group
     // and not already assigned.
     for (size_t claimed_core = 0, b_i = 0;
-         claimed_core < claimed_core_indices.bits.size();
+         claimed_core < claimed_core_indices.size();
          ++claimed_core) {
-      if (!claimed_core_indices.bits[claimed_core]) {
+      if (!claimed_core_indices[claimed_core]) {
         continue;
       }
 
@@ -500,8 +500,8 @@ namespace {
     const auto &vrf_output = assignment.vrf.output;
     const auto &vrf_proof = assignment.vrf.proof;
     const auto first_claimed_core_index = [&]() {
-      for (uint32_t i = 0; i < claimed_core_indices.bits.size(); ++i) {
-        if (claimed_core_indices.bits[i]) {
+      for (uint32_t i = 0; i < claimed_core_indices.size(); ++i) {
+        if (claimed_core_indices[i]) {
           return i;
         }
       }
@@ -847,8 +847,8 @@ namespace kagome::parachain {
     return approval::iter_ones(
                getPayload(approval).candidate_indices,
                [&](const auto candidate_index) -> outcome::result<void> {
-                 if (candidate_index < assignment_claimed_candidates.bits.size()
-                     && assignment_claimed_candidates.bits[candidate_index]) {
+                 if (candidate_index < assignment_claimed_candidates.size()
+                     && assignment_claimed_candidates[candidate_index]) {
                    return ApprovalDistributionError::BIT_FOUND;
                  }
                  return outcome::success();
@@ -891,8 +891,8 @@ namespace kagome::parachain {
                            std::make_pair(validator, assignment_bitfield))) {
           for (const auto &[approved_candidates, vote] :
                approval_entry->get().approvals) {
-            if (candidate_index < approved_candidates.bits.size()
-                && approved_candidates.bits[candidate_index]) {
+            if (candidate_index < approved_candidates.size()
+                && approved_candidates[candidate_index]) {
               result[std::make_pair(approval_entry->get().validator_index,
                                     approved_candidates)] = vote;
             }
@@ -920,11 +920,11 @@ namespace kagome::parachain {
     std::optional<grid::RequiredRouting> required_routing;
     std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed_to;
 
-    if (candidates.size() < approval.candidate_indices.bits.size()) {
+    if (candidates.size() < approval.candidate_indices.size()) {
       return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
     }
 
-    std::unordered_set<scale::BitVec> covered_assignments_bitfields;
+    std::unordered_set<scale::BitVector> covered_assignments_bitfields;
     std::ignore = approval::iter_ones(
         approval.candidate_indices,
         [&](const auto candidate_index) -> outcome::result<void> {
@@ -967,7 +967,7 @@ namespace kagome::parachain {
     return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
   }
 
-  std::optional<scale::BitVec>
+  std::optional<scale::BitVector>
   ApprovalDistribution::get_assignment_core_indices(
       const approval::AssignmentCertKindV2 &assignment,
       const CandidateHash &candidate_hash,
@@ -975,30 +975,31 @@ namespace kagome::parachain {
     return visit_in_place(
         assignment,
         [&](const kagome::parachain::approval::RelayVRFModuloCompact &value)
-            -> std::optional<scale::BitVec> { return value.core_bitfield; },
+            -> std::optional<scale::BitVector> { return value.core_bitfield; },
         [&](const kagome::parachain::approval::RelayVRFModulo &value)
-            -> std::optional<scale::BitVec> {
+            -> std::optional<scale::BitVector> {
           for (const auto &[core_index, h] : block_entry.candidates) {
             if (candidate_hash == h) {
-              scale::BitVec v;
-              v.bits.resize(core_index + 1);
-              v.bits[core_index] = true;
-              return v;
+              scale::BitVector bits;
+              bits.resize(core_index + 1);
+              bits[core_index] = true;
+              return bits;
             }
           }
           return std::nullopt;
         },
         [&](const kagome::parachain::approval::RelayVRFDelay &value)
-            -> std::optional<scale::BitVec> {
-          scale::BitVec v;
-          v.bits.resize(value.core_index + 1);
-          v.bits[value.core_index] = true;
-          return v;
+            -> std::optional<scale::BitVector> {
+          scale::BitVector bits;
+          bits.resize(value.core_index + 1);
+          bits[value.core_index] = true;
+          return bits;
         });
   }
 
-  std::optional<scale::BitVec> ApprovalDistribution::cores_to_candidate_indices(
-      const scale::BitVec &core_indices, const BlockEntry &block_entry) {
+  std::optional<scale::BitVector>
+  ApprovalDistribution::cores_to_candidate_indices(
+      const scale::BitVector &core_indices, const BlockEntry &block_entry) {
     std::vector<uint32_t> candidate_indices;
     std::ignore = approval::iter_ones(
         core_indices,
@@ -1016,19 +1017,19 @@ namespace kagome::parachain {
           return outcome::success();
         });
 
-    scale::BitVec v;
+    scale::BitVector bits;
     for (const auto candidate_index : candidate_indices) {
-      if (candidate_index >= v.bits.size()) {
-        v.bits.resize(candidate_index + 1);
+      if (candidate_index >= bits.size()) {
+        bits.resize(candidate_index + 1);
       }
-      v.bits[candidate_index] = true;
+      bits[candidate_index] = true;
     }
 
-    if (v.bits.empty()) {
+    if (bits.empty()) {
       return std::nullopt;
     }
 
-    return v;
+    return bits;
   }
 
   void ApprovalDistribution::imported_block_info(
@@ -1280,7 +1281,7 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       const primitives::BlockHash &block_hash,
       const primitives::BlockHash &parent_hash,
-      scale::BitVec &&approved_bitfield,
+      scale::BitVector &&approved_bitfield,
       const ImportedBlockInfo &block_info) {
     std::vector<std::pair<CandidateHash, CandidateEntry>> entries;
     std::vector<std::pair<CoreIndex, CandidateHash>> candidates;
@@ -1373,17 +1374,15 @@ namespace kagome::parachain {
     const auto needed_approvals = session_info->needed_approvals;
     const auto num_candidates = imported_block.included_candidates.size();
 
-    scale::BitVec approved_bitfield;
+    scale::BitVector approved_bitfield;
     size_t num_ones = 0ull;
 
     if (0 == needed_approvals) {
       SL_TRACE(logger_, "Insta-approving all candidates. {}", block_hash);
-      approved_bitfield.bits.insert(
-          approved_bitfield.bits.end(), num_candidates, true);
+      approved_bitfield.insert(approved_bitfield.end(), num_candidates, true);
       num_ones = num_candidates;
     } else {
-      approved_bitfield.bits.insert(
-          approved_bitfield.bits.end(), num_candidates, false);
+      approved_bitfield.insert(approved_bitfield.end(), num_candidates, false);
       for (size_t ix = 0; ix < imported_block.included_candidates.size();
            ++ix) {
         const auto &[_0, _1, backing_group] =
@@ -1396,12 +1395,12 @@ namespace kagome::parachain {
                                    backing_group_size)
             < needed_approvals) {
           num_ones += 1ull;
-          approved_bitfield.bits[ix] = true;
+          approved_bitfield[ix] = true;
         }
       }
     }
 
-    if (num_ones == approved_bitfield.bits.size()) {
+    if (num_ones == approved_bitfield.size()) {
       notifyApproved(block_hash);
     }
 
@@ -1772,7 +1771,7 @@ namespace kagome::parachain {
   ApprovalDistribution::AssignmentCheckResult
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCertV2 &assignment,
-      const scale::BitVec &candidate_indices) {
+      const scale::BitVector &candidate_indices) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
     const auto tick_now = ::tickNow();
 
@@ -1809,13 +1808,13 @@ namespace kagome::parachain {
     // Early check the candidate bitfield and core bitfields lengths <
     // `n_cores`. Core bitfield length is checked later in
     // `check_assignment_cert`.
-    if (candidate_indices.bits.size() > n_cores) {
+    if (candidate_indices.size() > n_cores) {
       SL_TRACE(logger_,
                "Oversized bitfield. (validator={}, n_cores={}, "
                "candidate_bitfield_len={})",
                assignment.validator,
                n_cores,
-               candidate_indices.bits.size());
+               candidate_indices.size());
       return AssignmentCheckResult::Bad;
     }
 
@@ -1823,10 +1822,9 @@ namespace kagome::parachain {
     std::vector<CoreIndex> claimed_core_indices;
     std::vector<CandidateHash> assigned_candidate_hashes;
 
-    for (size_t candidate_index = 0;
-         candidate_index < candidate_indices.bits.size();
+    for (size_t candidate_index = 0; candidate_index < candidate_indices.size();
          ++candidate_index) {
-      if (!candidate_indices.bits[candidate_index]) {
+      if (!candidate_indices[candidate_index]) {
         continue;
       }
 
@@ -1853,16 +1851,16 @@ namespace kagome::parachain {
       return AssignmentCheckResult::Bad;
     }
 
-    scale::BitVec v;
+    scale::BitVector bits;
     for (const auto ci : claimed_core_indices) {
-      if (ci >= v.bits.size()) {
-        v.bits.resize(ci + 1);
+      if (ci >= bits.size()) {
+        bits.resize(ci + 1);
       }
-      v.bits[ci] = true;
+      bits[ci] = true;
     }
 
     DelayTranche tranche;  // NOLINT(cppcoreguidelines-init-variables)
-    if (auto res = checkAssignmentCert(v,
+    if (auto res = checkAssignmentCert(bits,
                                        assignment.validator,
                                        session_info,
                                        block_entry.relay_vrf_story,
@@ -1885,9 +1883,9 @@ namespace kagome::parachain {
 
     bool is_duplicate = true;
     for (size_t candidate_index = 0, h_i = 0;
-         candidate_index < candidate_indices.bits.size();
+         candidate_index < candidate_indices.size();
          ++candidate_index) {
-      if (!candidate_indices.bits[candidate_index]) {
+      if (!candidate_indices[candidate_index]) {
         continue;
       }
       const auto assigned_candidate_hash = assigned_candidate_hashes[h_i++];
@@ -2033,7 +2031,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::import_and_circulate_assignment(
       const MessageSource &source,
       const approval::IndirectAssignmentCertV2 &assignment,
-      const scale::BitVec &claimed_candidate_indices) {
+      const scale::BitVector &claimed_candidate_indices) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
 
     const auto &block_hash = assignment.block_hash;
@@ -2398,14 +2396,14 @@ namespace kagome::parachain {
                  candidate_index,
                  cert.validator);
       } else {
-        scale::BitVec v;
-        v.bits.resize(candidate_index + 1);
-        v.bits[candidate_index] = true;
+        scale::BitVector bits;
+        bits.resize(candidate_index + 1);
+        bits[candidate_index] = true;
         sanitized_assignments.assignments.emplace_back(
             network::vstaging::Assignment{
                 .indirect_assignment_cert =
                     approval::IndirectAssignmentCertV2::from(cert),
-                .candidate_bitfield = std::move(v),
+                .candidate_bitfield = std::move(bits),
             });
       }
     }
@@ -2567,7 +2565,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::runDistributeAssignment(
       const approval::IndirectAssignmentCertV2 &indirect_cert,
-      const scale::BitVec &candidate_indices,
+      const scale::BitVector &candidate_indices,
       std::unordered_set<libp2p::peer::PeerId> &&peers) {
     REINVOKE(*main_pool_handler_,
              runDistributeAssignment,
@@ -2776,9 +2774,9 @@ namespace kagome::parachain {
                                .validator_sig = *sig,
                            });
 
-    scale::BitVec v;
-    v.bits.resize(*candidate_index + 1);
-    v.bits[*candidate_index] = true;
+    scale::BitVector bits;
+    bits.resize(*candidate_index + 1);
+    bits[*candidate_index] = true;
 
     import_and_circulate_approval(
         std::nullopt,
@@ -2788,7 +2786,7 @@ namespace kagome::parachain {
                     .payload =
                         approval::IndirectApprovalVoteV2{
                             .block_hash = block_hash,
-                            .candidate_indices = std::move(v),
+                            .candidate_indices = std::move(bits),
                         },
                     .ix = validator_index,
                 },
@@ -2824,7 +2822,7 @@ namespace kagome::parachain {
       const approval::IndirectAssignmentCertV2 &indirect_cert,
       DelayTranche assignment_tranche,
       const RelayHash &relay_block_hash,
-      const scale::BitVec &claimed_candidate_indices,
+      const scale::BitVector &claimed_candidate_indices,
       SessionIndex session,
       const HashedCandidateReceipt &hashed_candidate,
       GroupIndex backing_group,
@@ -2956,9 +2954,9 @@ namespace kagome::parachain {
       CandidateEntry &candidate_entry,
       approval::ApprovalStateTransition transition) {
     const auto validator_index = approval::validator_index(transition);
-    const std::optional<bool> already_approved_by =
+    const scale::OptionalBool already_approved_by =
         validator_index ? candidate_entry.mark_approval(*validator_index)
-                        : std::optional<bool>{};
+                        : scale::OptionalBool{};
     const auto candidate_approved_in_block =
         block_entry.is_candidate_approved(candidate_hash);
 

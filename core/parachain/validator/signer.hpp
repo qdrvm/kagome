@@ -18,7 +18,7 @@ namespace kagome::parachain {
   /// A type returned by runtime with current session index and a parent hash.
   class SigningContext {
    private:
-    static auto &toSignable(const crypto::Hasher &, const scale::BitVec &v) {
+    static auto &toSignable(const crypto::Hasher &, const scale::BitVector &v) {
       return v;
     }
     static auto toSignable(const crypto::Hasher &hasher,

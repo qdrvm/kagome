@@ -8,7 +8,7 @@
 
 #include <boost/variant.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <scale/bitvec.hpp>
+#include <scale/bit_vector.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -173,13 +173,13 @@ namespace kagome::network {
   struct BackedCandidate {
     CommittedCandidateReceipt candidate;
     std::vector<ValidityAttestation> validity_votes;
-    scale::BitVec validator_indices;
+    scale::BitVector validator_indices;
 
     /// Creates `BackedCandidate` from args.
     static BackedCandidate from(
         CommittedCandidateReceipt candidate_,
         std::vector<ValidityAttestation> validity_votes_,
-        scale::BitVec validator_indices_,
+        scale::BitVector validator_indices_,
         std::optional<CoreIndex> core_index_) {
       BackedCandidate backed{
           .candidate = std::move(candidate_),
@@ -195,16 +195,16 @@ namespace kagome::network {
     }
 
     void inject_core_index(CoreIndex core_index) {
-      scale::BitVec core_index_to_inject;
-      core_index_to_inject.bits.assign(8, false);
+      scale::BitVector core_index_to_inject;
+      core_index_to_inject.assign(8, false);
 
       auto val = uint8_t(core_index);
       for (size_t i = 0; i < 8; ++i) {
-        core_index_to_inject.bits[i] = (val >> i) & 1;
+        core_index_to_inject[i] = (val >> i) & 1;
       }
-      validator_indices.bits.insert(validator_indices.bits.end(),
-                                    core_index_to_inject.bits.begin(),
-                                    core_index_to_inject.bits.end());
+      validator_indices.insert(validator_indices.end(),
+                               core_index_to_inject.begin(),
+                               core_index_to_inject.end());
     }
   };
 
@@ -232,7 +232,7 @@ namespace kagome::network {
   };
 
   /// Signed availability bitfield.
-  using SignedBitfield = parachain::IndexedAndSigned<scale::BitVec>;
+  using SignedBitfield = parachain::IndexedAndSigned<scale::BitVector>;
 
   struct BitfieldDistribution {
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
@@ -423,7 +423,7 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
   auto format(const kagome::network::SignedBitfield &val,
               FormatContext &ctx) const -> decltype(ctx.out()) {
     char buf[8] = {0};
-    const auto &bits = val.payload.payload.bits;
+    const auto &bits = val.payload.payload;
 
     static_assert(sizeof(buf) > 1, "Because of last zero-terminate symbol");
     size_t ix = 0;

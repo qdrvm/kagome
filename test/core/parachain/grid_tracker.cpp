@@ -33,12 +33,8 @@ class GridTrackerTest : public ProspectiveParachainsTestHarness {
 
   StatementFilter create_filter(const std::vector<bool> (&flags)[2]) {
     StatementFilter statement_filter;
-    statement_filter.seconded_in_group = scale::BitVec{
-        .bits = flags[0],
-    };
-    statement_filter.validated_in_group = scale::BitVec{
-        .bits = flags[1],
-    };
+    statement_filter.seconded_in_group = flags[0];
+    statement_filter.validated_in_group = flags[1];
     return statement_filter;
   }
 };
@@ -931,7 +927,7 @@ TEST_F(GridTrackerTest, knowledge_rejects_conflicting_manifest) {
   // conflicting seconded statements bitfield
   {
     auto s = expected_manifest_summary;
-    s.statement_knowledge.seconded_in_group.bits = {false, true, false};
+    s.statement_knowledge.seconded_in_group = {false, true, false};
     ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
                          GridTracker::Error::CONFLICTING);
   }
@@ -939,7 +935,7 @@ TEST_F(GridTrackerTest, knowledge_rejects_conflicting_manifest) {
   // conflicting valid statements bitfield
   {
     auto s = expected_manifest_summary;
-    s.statement_knowledge.validated_in_group.bits = {false, true, false};
+    s.statement_knowledge.validated_in_group = {false, true, false};
     ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
                          GridTracker::Error::CONFLICTING);
   }

@@ -290,16 +290,16 @@ namespace kagome::dispute {
       }
       auto &dispute_state = it->second;
 
-      const auto size = dispute_state.validators_against.bits.size();
+      const auto size = dispute_state.validators_against.size();
       auto supermajority =
           static_cast<ssize_t>(size - (std::min<size_t>(1, size) - 1) / 3);
 
       // Check if there are enough onchain votes for or against to conclude
       // the dispute
       bool concluded_onchain = false;
-      for (const auto &bits : {dispute_state.validators_for.bits,
-                               dispute_state.validators_against.bits}) {
-        if (std::ranges::count(bits, true) >= supermajority) {
+      for (const auto &bits :
+           {dispute_state.validators_for, dispute_state.validators_against}) {
+        if (std::count(bits.begin(), bits.end(), true) >= supermajority) {
           concluded_onchain = true;
           break;
         }
@@ -330,12 +330,12 @@ namespace kagome::dispute {
     }
 
     auto in_validators_for =
-        onchain_state.validators_for.bits.size() < validator_index
-            ? onchain_state.validators_for.bits[validator_index]
+        onchain_state.validators_for.size() < validator_index
+            ? onchain_state.validators_for[validator_index]
             : false;
     auto in_validators_against =
-        onchain_state.validators_against.bits.size() < validator_index
-            ? onchain_state.validators_against.bits[validator_index]
+        onchain_state.validators_against.size() < validator_index
+            ? onchain_state.validators_against[validator_index]
             : false;
 
     if (in_validators_for and in_validators_against) {

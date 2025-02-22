@@ -679,8 +679,8 @@ namespace kagome::parachain::statement_distribution {
 
     const auto group_size = group->size();
     auto &mask = request.mask;
-    if (mask.seconded_in_group.bits.size() != group_size
-        || mask.validated_in_group.bits.size() != group_size) {
+    if (mask.seconded_in_group.size() != group_size
+        || mask.validated_in_group.size() != group_size) {
       SL_ERROR(logger,
                "Fetch attested candidate failed. Incorrect bitfield size. "
                "(candidate hash={}, relay parent={})",
@@ -734,10 +734,11 @@ namespace kagome::parachain::statement_distribution {
       return;
     }
 
-    auto init_with_not = [](scale::BitVec &dst, const scale::BitVec &src) {
-      dst.bits.reserve(src.bits.size());
-      for (const auto i : src.bits) {
-        dst.bits.emplace_back(!i);
+    auto init_with_not = [](scale::BitVector &dst,
+                            const scale::BitVector &src) {
+      dst.reserve(src.size());
+      for (const auto i : src) {
+        dst.push_back(!i);
       }
     };
 
@@ -759,10 +760,10 @@ namespace kagome::parachain::statement_distribution {
               visit_in_place(
                   getPayload(statement).inner_value,
                   [&](const network::vstaging::SecondedCandidateHash &) {
-                    sent_filter.seconded_in_group.bits[ix] = true;
+                    sent_filter.seconded_in_group[ix] = true;
                   },
                   [&](const network::vstaging::ValidCandidateHash &) {
-                    sent_filter.validated_in_group.bits[ix] = true;
+                    sent_filter.validated_in_group[ix] = true;
                   },
                   [&](const auto &) {});
             }
@@ -892,24 +893,22 @@ namespace kagome::parachain::statement_distribution {
       const auto v = (*group)[i];
       if (relay_parent_state.statement_store.seconded_count(v)
           >= seconding_limit) {
-        unwanted_mask.seconded_in_group.bits[i] = true;
+        unwanted_mask.seconded_in_group[i] = true;
       }
     }
 
     auto disabled_mask = relay_parent_state.disabled_bitmask(*group);
-    if (disabled_mask.bits.size()
-        > unwanted_mask.seconded_in_group.bits.size()) {
-      unwanted_mask.seconded_in_group.bits.resize(disabled_mask.bits.size());
+    if (disabled_mask.size() > unwanted_mask.seconded_in_group.size()) {
+      unwanted_mask.seconded_in_group.resize(disabled_mask.size());
     }
-    if (disabled_mask.bits.size()
-        > unwanted_mask.validated_in_group.bits.size()) {
-      unwanted_mask.validated_in_group.bits.resize(disabled_mask.bits.size());
+    if (disabled_mask.size() > unwanted_mask.validated_in_group.size()) {
+      unwanted_mask.validated_in_group.resize(disabled_mask.size());
     }
-    for (size_t i = 0; i < disabled_mask.bits.size(); ++i) {
-      unwanted_mask.seconded_in_group.bits[i] =
-          unwanted_mask.seconded_in_group.bits[i] || disabled_mask.bits[i];
-      unwanted_mask.validated_in_group.bits[i] =
-          unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
+    for (size_t i = 0; i < disabled_mask.size(); ++i) {
+      unwanted_mask.seconded_in_group[i] =
+          unwanted_mask.seconded_in_group[i] || disabled_mask[i];
+      unwanted_mask.validated_in_group[i] =
+          unwanted_mask.validated_in_group[i] || disabled_mask[i];
     }
 
     SL_TRACE(logger,

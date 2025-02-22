@@ -14,10 +14,10 @@ namespace kagome::scale {
   using ::scale::decode;
   using ::scale::encode;
   using ::scale::impl::memory::decode;
-  using ::scale::impl::memory::DecoderFromBytes;
+  using ::scale::impl::memory::DecoderFromSpan;
   using ::scale::impl::memory::encode;
   using ::scale::impl::memory::encoded_size;
   using ::scale::impl::memory::EncoderForCount;
-  using ::scale::impl::memory::EncoderToBytes;
+  using ::scale::impl::memory::EncoderToVector;
 
 }  // namespace kagome::scale

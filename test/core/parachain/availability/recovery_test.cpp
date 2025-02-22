@@ -109,9 +109,9 @@ class RecoveryTest : public testing::Test {
         .WillByDefault(Invoke([&] { return session; }));
     ON_CALL(*parachain_api, node_features(best_block.hash))
         .WillByDefault(Invoke([&] {
-          scale::BitVec bits;
-          bits.bits.resize(NodeFeatures::FirstUnassigned);
-          bits.bits[NodeFeatures::AvailabilityChunkMapping] = true;
+          scale::BitVector bits;
+          bits.resize(NodeFeatures::FirstUnassigned);
+          bits[NodeFeatures::AvailabilityChunkMapping] = true;
           return NodeFeatures{.bits = std::move(bits)};
         }));
 

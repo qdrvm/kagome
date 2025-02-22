@@ -7,7 +7,7 @@
 #pragma once
 
 #include <map>
-#include <scale/bitvec.hpp>
+#include <scale/bit_vector.hpp>
 #include <vector>
 
 #include "common/blob.hpp"
@@ -81,7 +81,7 @@ namespace kagome::runtime {
     /// A bitfield with 1 bit for each validator in the set. `1` bits mean that
     /// the corresponding validators has attested to availability on-chain. A
     /// 2/3+ majority of `1` bits means that this will be available.
-    scale::BitVec availability;
+    scale::BitVector availability;
     /// The group assigned to distribute availability pieces of this candidate.
     GroupIndex group_responsible;
     /// The hash of the candidate occupying the core.

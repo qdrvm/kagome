@@ -38,6 +38,10 @@ namespace kagome::crypto {
     ~EncoderToHash() override = default;
     EncoderToHash &operator=(EncoderToHash &&) noexcept = delete;
     EncoderToHash &operator=(const EncoderToHash &) = delete;
+    /// @node Does not matter here. Implemented to follow interface
+    [[nodiscard]] constexpr bool isContinuousReceiver() const override {
+      return true;
+    }
     void put(uint8_t byte) override {
       [[unlikely]] if (finalized_) {
         scale::raise(EncodeForHashError::ALREADY_FINALIZED);

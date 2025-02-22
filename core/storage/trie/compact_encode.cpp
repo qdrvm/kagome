@@ -91,7 +91,8 @@ namespace kagome::storage::trie {
     }
 
     // encode concatenated vectors
-    scale::EncoderToBytes encoder;
+    std::vector<uint8_t> out;
+    scale::EncoderToVector encoder(out);
     try {
       encode(scale::as_compact(proofs[0].size() + proofs[1].size()), encoder);
       for (auto &proof : proofs) {
@@ -102,6 +103,6 @@ namespace kagome::storage::trie {
     } catch (std::system_error &e) {
       return e.code();
     }
-    return common::Buffer{std::move(encoder).to_vector()};
+    return common::Buffer{std::move(out)};
   }
 }  // namespace kagome::storage::trie

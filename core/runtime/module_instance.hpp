@@ -60,7 +60,7 @@ namespace kagome::runtime {
         return outcome::success();
       } else {
         Result t{};
-        scale::DecoderFromBytes decoder(value);
+        scale::DecoderFromSpan decoder(value);
         try {
           decoder >> t;
           // Check whether the whole byte buffer was consumed

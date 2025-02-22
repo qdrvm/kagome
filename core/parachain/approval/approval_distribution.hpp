@@ -103,14 +103,13 @@ namespace kagome::parachain {
       bool operator==(const TrancheEntry &other) const = default;
     };
 
-    using DistribApprovalEntryKey = std::pair<ValidatorIndex, scale::BitVec>;
+    using DistribApprovalEntryKey = std::pair<ValidatorIndex, scale::BitVector>;
 
     struct ApprovalEntryHash {
       size_t operator()(const DistribApprovalEntryKey &obj) const {
         size_t value{0ull};
         boost::hash_combine(value, obj.first);
-        boost::hash_range(
-            value, obj.second.bits.begin(), obj.second.bits.end());
+        boost::hash_range(value, obj.second.begin(), obj.second.end());
         return value;
       }
     };
@@ -126,7 +125,7 @@ namespace kagome::parachain {
       std::optional<OurAssignment> our_assignment;
       std::optional<ValidatorSignature> our_approval_sig;
       // `n_validators` bits.
-      scale::BitVec assignments;
+      scale::BitVector assignments;
       bool approved;
 
       ApprovalEntry(
@@ -136,37 +135,36 @@ namespace kagome::parachain {
           : backing_group{group_index},
             our_assignment{assignment},
             approved(false) {
-        assignments.bits.insert(
-            assignments.bits.end(), assignments_size, false);
+        assignments.insert(assignments.end(), assignments_size, false);
       }
 
       bool operator==(const ApprovalEntry &) const = default;
 
       /// Whether a validator is already assigned.
       bool is_assigned(ValidatorIndex validator_index) const {
-        if (validator_index < assignments.bits.size()) {
-          return assignments.bits[validator_index];
+        if (validator_index < assignments.size()) {
+          return assignments[validator_index];
         }
         return false;
       }
 
       /// Get the number of validators in this approval entry.
       auto n_validators() const {
-        return assignments.bits.size();
+        return assignments.size();
       }
 
       // Produce a bitvec indicating the assignments of all validators up to and
       // including `tranche`.
-      scale::BitVec assignments_up_to(const DelayTranche tranche) const {
-        scale::BitVec out;
-        out.bits.assign(assignments.bits.size(), false);
+      scale::BitVector assignments_up_to(const DelayTranche tranche) const {
+        scale::BitVector out;
+        out.assign(assignments.size(), false);
         for (const auto &e : tranches) {
           if (e.tranche > tranche) {
             break;
           }
           for (const auto &[v, _] : e.assignments) {
-            BOOST_ASSERT(v < out.bits.size());
-            out.bits[v] = true;
+            BOOST_ASSERT(v < out.size());
+            out[v] = true;
           }
         }
         return out;
@@ -218,7 +216,7 @@ namespace kagome::parachain {
 
         const auto idx = upload_tranche_and_return_pos();
         tranches[idx].assignments.emplace_back(validator_index, tick_now);
-        assignments.bits[validator_index] = true;
+        assignments[validator_index] = true;
       }
     };
 
@@ -228,13 +226,13 @@ namespace kagome::parachain {
       // Assignments are based on blocks, so we need to track assignments
       // separately based on the block we are looking at.
       std::unordered_map<Hash, ApprovalEntry> block_assignments;
-      scale::BitVec approvals;
+      scale::BitVector approvals;
 
       CandidateEntry(const HashedCandidateReceipt &hashed_receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
           : candidate(hashed_receipt), session(session_index) {
-        approvals.bits.insert(approvals.bits.end(), approvals_size, false);
+        approvals.insert(approvals.end(), approvals_size, false);
       }
 
       CandidateEntry(const network::CandidateReceipt &receipt,
@@ -254,17 +252,17 @@ namespace kagome::parachain {
 
       /// Query whether a given validator has approved the candidate.
       bool has_approved(const ValidatorIndex validator) {
-        if (validator >= approvals.bits.size()) {
+        if (validator >= approvals.size()) {
           return false;
         }
-        return approvals.bits[validator];
+        return approvals[validator];
       }
 
       /// Return the previous approval state.
       bool mark_approval(const ValidatorIndex validator) {
-        BOOST_ASSERT(validator < approvals.bits.size());
+        BOOST_ASSERT(validator < approvals.size());
         const auto prev = has_approved(validator);
-        approvals.bits[validator] = true;
+        approvals[validator] = true;
         return prev;
       }
 
@@ -393,7 +391,7 @@ namespace kagome::parachain {
       /// The value represents part of the lookup key in `approval_entries` to
       /// fetch the assignment
       /// and existing votes.
-      std::unordered_map<ValidatorIndex, scale::BitVec> assignments;
+      std::unordered_map<ValidatorIndex, scale::BitVector> assignments;
     };
 
     /// Contains topology routing information for assignments and approvals.
@@ -417,11 +415,12 @@ namespace kagome::parachain {
 
       // The candidates claimed by the certificate. A mapping between bit index
       // and candidate index.
-      scale::BitVec assignment_claimed_candidates;
+      scale::BitVector assignment_claimed_candidates;
 
       // The approval signatures for each `CandidateIndex` claimed by the
       // assignment certificate.
-      std::unordered_map<scale::BitVec, approval::IndirectSignedApprovalVoteV2>
+      std::unordered_map<scale::BitVector,
+                         approval::IndirectSignedApprovalVoteV2>
           approvals;
 
       // The validator index of the assignment signer.
@@ -431,7 +430,7 @@ namespace kagome::parachain {
       // topology.
       ApprovalRouting routing_info;
 
-      std::pair<approval::IndirectAssignmentCertV2, scale::BitVec>
+      std::pair<approval::IndirectAssignmentCertV2, scale::BitVector>
       get_assignment() const {
         return {assignment, assignment_claimed_candidates};
       }
@@ -528,12 +527,12 @@ namespace kagome::parachain {
       // `candidates`. The i'th bit is `true` iff the candidate has been
       // approved in the context of this block. The block can be considered
       // approved if the bitfield has all bits set to `true`.
-      scale::BitVec approved_bitfield;
+      scale::BitVector approved_bitfield;
 
       // A list of assignments for which we already distributed the assignment.
       // We use this to ensure we don't distribute multiple core assignments
       // twice as we track individual wakeups for each core.
-      scale::BitVec distributed_assignments;
+      scale::BitVector distributed_assignments;
 
       std::vector<Hash> children;
 
@@ -553,21 +552,21 @@ namespace kagome::parachain {
       /// Mark a candidate as fully approved in the bitfield.
       void mark_approved_by_hash(const CandidateHash &candidate_hash) {
         if (auto p = candidateIxByHash(candidate_hash)) {
-          approved_bitfield.bits[*p] = true;
+          approved_bitfield[*p] = true;
         }
       }
 
       /// Whether the block entry is fully approved.
       bool is_fully_approved() const {
         return approval::count_ones(approved_bitfield)
-            == approved_bitfield.bits.size();
+            == approved_bitfield.size();
       }
 
       /// Whether a candidate is approved in the bitfield.
       bool is_candidate_approved(const CandidateHash &candidate_hash) {
         if (auto pos = candidateIxByHash(candidate_hash);
-            pos && *pos < approved_bitfield.bits.size()) {
-          return approved_bitfield.bits[*pos];
+            pos && *pos < approved_bitfield.size()) {
+          return approved_bitfield[*pos];
         }
         return false;
       }
@@ -575,16 +574,16 @@ namespace kagome::parachain {
       /// Mark distributed assignment for many candidate indices.
       /// Returns `true` if an assignment was already distributed for the
       /// `candidates`.
-      bool mark_assignment_distributed(const scale::BitVec &bitfield) {
+      bool mark_assignment_distributed(const scale::BitVector &bitfield) {
         const auto total_one_bits =
             approval::count_ones(distributed_assignments);
         const auto new_len =
-            std::max(distributed_assignments.bits.size(), bitfield.bits.size());
+            std::max(distributed_assignments.size(), bitfield.size());
 
-        distributed_assignments.bits.resize(new_len);
-        for (size_t ix = 0; ix < bitfield.bits.size(); ++ix) {
-          distributed_assignments.bits[ix] =
-              distributed_assignments.bits[ix] || bitfield.bits[ix];
+        distributed_assignments.resize(new_len);
+        for (size_t ix = 0; ix < bitfield.size(); ++ix) {
+          distributed_assignments[ix] =
+              distributed_assignments[ix] || bitfield[ix];
         }
 
         const auto distributed =
@@ -657,13 +656,13 @@ namespace kagome::parachain {
 
     AssignmentCheckResult check_and_import_assignment(
         const approval::IndirectAssignmentCertV2 &assignment,
-        const scale::BitVec &candidate_indices);
+        const scale::BitVector &candidate_indices);
     ApprovalCheckResult check_and_import_approval(
         const approval::IndirectSignedApprovalVoteV2 &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
         const approval::IndirectAssignmentCertV2 &assignment,
-        const scale::BitVec &claimed_candidate_indices);
+        const scale::BitVector &claimed_candidate_indices);
     void import_and_circulate_approval(
         const MessageSource &source,
         const approval::IndirectSignedApprovalVoteV2 &vote);
@@ -673,13 +672,13 @@ namespace kagome::parachain {
     // `BlockEntry`. Can fail only for VRF Delay assignments for which we cannot
     // find the candidate hash in the block entry which indicates a bug or
     // corrupted storage.
-    std::optional<scale::BitVec> get_assignment_core_indices(
+    std::optional<scale::BitVector> get_assignment_core_indices(
         const approval::AssignmentCertKindV2 &assignment,
         const CandidateHash &candidate_hash,
         const BlockEntry &block_entry);
 
-    std::optional<scale::BitVec> cores_to_candidate_indices(
-        const scale::BitVec &core_indices, const BlockEntry &block_entry);
+    std::optional<scale::BitVector> cores_to_candidate_indices(
+        const scale::BitVector &core_indices, const BlockEntry &block_entry);
 
     network::vstaging::Assignments sanitize_v1_assignments(
         const network::Assignments &assignments);
@@ -737,7 +736,7 @@ namespace kagome::parachain {
     add_block_entry(primitives::BlockNumber block_number,
                     const primitives::BlockHash &block_hash,
                     const primitives::BlockHash &parent_hash,
-                    scale::BitVec &&approved_bitfield,
+                    scale::BitVector &&approved_bitfield,
                     const ImportedBlockInfo &block_info);
 
     void on_active_leaves_update(const network::ExView &updated);
@@ -762,7 +761,7 @@ namespace kagome::parachain {
         const approval::IndirectAssignmentCertV2 &indirect_cert,
         DelayTranche assignment_tranche,
         const RelayHash &relay_block_hash,
-        const scale::BitVec &claimed_candidate_indices,
+        const scale::BitVector &claimed_candidate_indices,
         SessionIndex session,
         const HashedCandidateReceipt &hashed_candidate,
         GroupIndex backing_group,
@@ -804,7 +803,7 @@ namespace kagome::parachain {
 
     void runDistributeAssignment(
         const approval::IndirectAssignmentCertV2 &indirect_cert,
-        const scale::BitVec &candidate_indices,
+        const scale::BitVector &candidate_indices,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void send_assignments_batched(

@@ -1451,13 +1451,13 @@ namespace kagome::parachain {
   bool ParachainProcessorImpl::bitfields_indicate_availability(
       size_t core_idx,
       const std::vector<BitfieldStore::SignedBitfield> &bitfields,
-      const scale::BitVec &availability_) {
-    scale::BitVec availability{availability_};
-    const auto availability_len = availability.bits.size();
+      const scale::BitVector &availability_) {
+    scale::BitVector availability{availability_};
+    const auto availability_len = availability.size();
 
     for (const auto &bitfield : bitfields) {
       const auto validator_idx{size_t(bitfield.payload.ix)};
-      if (validator_idx >= availability.bits.size()) {
+      if (validator_idx >= availability.size()) {
         SL_WARN(logger_,
                 "attempted to set a transverse bit at idx which is greater "
                 "than bitfield size. (validator_idx={}, availability_len={})",
@@ -1467,13 +1467,11 @@ namespace kagome::parachain {
         return false;
       }
 
-      availability.bits[validator_idx] =
-          availability.bits[validator_idx]
-          || bitfield.payload.payload.bits[core_idx];
+      availability[validator_idx] =
+          availability[validator_idx] || bitfield.payload.payload[core_idx];
     }
 
-    return 3 * approval::count_ones(availability)
-        >= 2 * availability.bits.size();
+    return 3 * approval::count_ones(availability) >= 2 * availability.size();
   }
 
   std::vector<network::BackedCandidate>
@@ -1746,8 +1744,8 @@ namespace kagome::parachain {
     }
 
     const auto &group = it->second;
-    scale::BitVec validator_indices{};
-    validator_indices.bits.resize(group.size(), false);
+    scale::BitVector validator_indices{};
+    validator_indices.resize(group.size(), false);
 
     std::vector<std::pair<size_t, size_t>> vote_positions;
     vote_positions.reserve(attested.validity_votes.size());
@@ -1766,7 +1764,7 @@ namespace kagome::parachain {
          ++orig_idx) {
       const auto &id = attested.validity_votes[orig_idx].first;
       if (auto p = position(group, id)) {
-        validator_indices.bits[*p] = true;
+        validator_indices[*p] = true;
         vote_positions.emplace_back(orig_idx, *p);
       } else {
         logger_->critical(

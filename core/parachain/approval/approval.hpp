@@ -48,7 +48,7 @@ namespace kagome::parachain::approval {
   /// relay-chain block where the candidates were included.
   struct RelayVRFModuloCompact {
     /// A bitfield representing the core indices claimed by this assignment.
-    scale::BitVec core_bitfield;
+    scale::BitVector core_bitfield;
     bool operator==(const RelayVRFModuloCompact &other) const = default;
   };
 
@@ -143,15 +143,15 @@ namespace kagome::parachain::approval {
 
     /// The index of the candidate in the list of candidates fully included
     /// as-of the block.
-    scale::BitVec candidate_indices;
+    scale::BitVector candidate_indices;
 
     static IndirectApprovalVoteV2 from(const IndirectApprovalVote &value) {
-      scale::BitVec v;
-      v.bits.resize(value.candidate_index + 1);
-      v.bits[value.candidate_index] = true;
+      scale::BitVector bits;
+      bits.resize(value.candidate_index + 1);
+      bits[value.candidate_index] = true;
       return IndirectApprovalVoteV2{
           .block_hash = value.block_hash,
-          .candidate_indices = std::move(v),
+          .candidate_indices = std::move(bits),
       };
     }
   };

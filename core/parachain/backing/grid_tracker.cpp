@@ -99,9 +99,9 @@ namespace kagome {
                           network::vstaging::CompactStatement>>
         result;
     auto count_ones = [&](const network::vstaging::CompactStatement &s,
-                          const scale::BitVec &bf) {
-      for (size_t ix = 0; ix < bf.bits.size(); ++ix) {
-        if (bf.bits[ix]) {
+                          const scale::BitVector &bf) {
+      for (size_t ix = 0; ix < bf.size(); ++ix) {
+        if (bf[ix]) {
           const auto v = (*group)[ix];
           result.emplace_back(v, s);
         }
@@ -470,7 +470,7 @@ namespace kagome::parachain::grid {
       ValidatorIndex validator, const StatementFilter &local_knowledge) {
     MutualKnowledge &k = mutual_knowledge[validator];
     k.received_knowledge =
-        StatementFilter(local_knowledge.seconded_in_group.bits.size());
+        StatementFilter(local_knowledge.seconded_in_group.size());
     k.local_knowledge = local_knowledge;
   }
 
@@ -577,13 +577,12 @@ namespace kagome::parachain::grid {
     if (it != mutual_knowledge.end() && it->second.local_knowledge
         && it->second.remote_knowledge) {
       const StatementFilter &remote = *it->second.remote_knowledge;
-      StatementFilter result(full_local.seconded_in_group.bits.size());
-      for (size_t i = 0; i < full_local.seconded_in_group.bits.size(); ++i) {
-        result.seconded_in_group.bits[i] = full_local.seconded_in_group.bits[i]
-                                        && !remote.seconded_in_group.bits[i];
-        result.validated_in_group.bits[i] =
-            full_local.validated_in_group.bits[i]
-            && !remote.validated_in_group.bits[i];
+      StatementFilter result(full_local.seconded_in_group.size());
+      for (size_t i = 0; i < full_local.seconded_in_group.size(); ++i) {
+        result.seconded_in_group[i] =
+            full_local.seconded_in_group[i] && !remote.seconded_in_group[i];
+        result.validated_in_group[i] =
+            full_local.validated_in_group[i] && !remote.validated_in_group[i];
       }
       return result;
     }
@@ -611,20 +610,23 @@ namespace kagome::parachain::grid {
       auto &prev = it->second;
       if (prev.claimed_group_index != manifest_summary.claimed_group_index
           || prev.claimed_parent_hash != manifest_summary.claimed_parent_hash
-          || !std::ranges::includes(
-              manifest_summary.statement_knowledge.seconded_in_group.bits,
-              prev.statement_knowledge.seconded_in_group.bits)
-          || !std::ranges::includes(
-              manifest_summary.statement_knowledge.validated_in_group.bits,
-              prev.statement_knowledge.validated_in_group.bits)) {
+          || !std::includes(
+              manifest_summary.statement_knowledge.seconded_in_group.begin(),
+              manifest_summary.statement_knowledge.seconded_in_group.end(),
+              prev.statement_knowledge.seconded_in_group.begin(),
+              prev.statement_knowledge.seconded_in_group.end())
+          || !std::includes(
+              manifest_summary.statement_knowledge.validated_in_group.begin(),
+              manifest_summary.statement_knowledge.validated_in_group.end(),
+              prev.statement_knowledge.validated_in_group.begin(),
+              prev.statement_knowledge.validated_in_group.end())) {
         return GridTracker::Error::CONFLICTING;
       }
       auto fresh_seconded =
           manifest_summary.statement_knowledge.seconded_in_group;
-      for (size_t i = 0; i < fresh_seconded.bits.size(); ++i) {
-        fresh_seconded.bits[i] =
-            fresh_seconded.bits[i]
-            || prev.statement_knowledge.seconded_in_group.bits[i];
+      for (size_t i = 0; i < fresh_seconded.size(); ++i) {
+        fresh_seconded[i] =
+            fresh_seconded[i] || prev.statement_knowledge.seconded_in_group[i];
       }
 
       bool within_limits = updating_ensure_within_seconding_limit(
@@ -632,7 +634,7 @@ namespace kagome::parachain::grid {
           manifest_summary.claimed_group_index,
           group_size,
           seconding_limit,
-          fresh_seconded.bits);
+          fresh_seconded);
       if (!within_limits) {
         return GridTracker::Error::SECONDING_OVERFLOW;
       }
@@ -645,7 +647,7 @@ namespace kagome::parachain::grid {
         manifest_summary.claimed_group_index,
         group_size,
         seconding_limit,
-        manifest_summary.statement_knowledge.seconded_in_group.bits);
+        manifest_summary.statement_knowledge.seconded_in_group);
     if (within_limits) {
       received[candidate_hash] = manifest_summary;
       return outcome::success();
@@ -658,7 +660,7 @@ namespace kagome::parachain::grid {
       GroupIndex group_index,
       size_t group_size,
       size_t seconding_limit,
-      const std::vector<bool> &new_seconded) {
+      const scale::BitVector &new_seconded) {
     if (seconding_limit == 0) {
       return false;
     }

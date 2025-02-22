@@ -235,7 +235,7 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    scale::DecoderFromBytes decoder{enc_block_weight.view()};
+    scale::DecoderFromSpan decoder{enc_block_weight.view()};
     ConsumedWeight block_weight;
     try {
       decode(block_weight, decoder);

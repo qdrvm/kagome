@@ -11,7 +11,7 @@
 #include <vector>
 
 #include <boost/variant.hpp>
-#include <scale/bitvec.hpp>
+#include <scale/bit_vector.hpp>
 
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
@@ -39,7 +39,7 @@ namespace kagome::network::vstaging {
   struct Assignment {
     kagome::parachain::approval::IndirectAssignmentCertV2
         indirect_assignment_cert;
-    scale::BitVec candidate_bitfield;
+    scale::BitVector candidate_bitfield;
   };
 
   struct Assignments {
@@ -187,14 +187,14 @@ namespace kagome::network::vstaging {
 
   struct StatementFilter {
     /// Seconded statements. '1' is known or undesired.
-    scale::BitVec seconded_in_group;
+    scale::BitVector seconded_in_group;
     /// Valid statements. '1' is known or undesired.
-    scale::BitVec validated_in_group;
+    scale::BitVector validated_in_group;
 
     StatementFilter() = default;
     StatementFilter(size_t len, bool val = false) {
-      seconded_in_group.bits.assign(len, val);
-      validated_in_group.bits.assign(len, val);
+      seconded_in_group.assign(len, val);
+      validated_in_group.assign(len, val);
     }
 
     bool operator==(const StatementFilter &other) const = default;
@@ -204,27 +204,27 @@ namespace kagome::network::vstaging {
                                validated_in_group);
 
    public:
-    void mask_seconded(const scale::BitVec &mask) {
-      for (size_t i = 0; i < seconded_in_group.bits.size(); ++i) {
-        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
-        seconded_in_group.bits[i] = seconded_in_group.bits[i] && !m;
+    void mask_seconded(const scale::BitVector &mask) {
+      for (size_t i = 0; i < seconded_in_group.size(); ++i) {
+        const bool m = (i < mask.size()) ? mask[i] : false;
+        seconded_in_group[i] = seconded_in_group[i] && !m;
       }
     }
 
-    void mask_valid(const scale::BitVec &mask) {
-      for (size_t i = 0; i < validated_in_group.bits.size(); ++i) {
-        const bool m = (i < mask.bits.size()) ? mask.bits[i] : false;
-        validated_in_group.bits[i] = validated_in_group.bits[i] && !m;
+    void mask_valid(const scale::BitVector &mask) {
+      for (size_t i = 0; i < validated_in_group.size(); ++i) {
+        const bool m = (i < mask.size()) ? mask[i] : false;
+        validated_in_group[i] = validated_in_group[i] && !m;
       }
     }
 
     bool has_len(size_t len) const {
-      return seconded_in_group.bits.size() == len
-          && validated_in_group.bits.size() == len;
+      return seconded_in_group.size() == len
+          && validated_in_group.size() == len;
     }
 
     bool has_seconded() const {
-      for (const auto x : seconded_in_group.bits) {
+      for (const auto x : seconded_in_group) {
         if (x) {
           return true;
         }
@@ -233,13 +233,12 @@ namespace kagome::network::vstaging {
     }
 
     size_t backing_validators() const {
-      BOOST_ASSERT(seconded_in_group.bits.size()
-                   == validated_in_group.bits.size());
+      BOOST_ASSERT(seconded_in_group.size() == validated_in_group.size());
 
       size_t count = 0;
-      for (size_t ix = 0; ix < seconded_in_group.bits.size(); ++ix) {
-        const auto s = seconded_in_group.bits[ix];
-        const auto v = validated_in_group.bits[ix];
+      for (size_t ix = 0; ix < seconded_in_group.size(); ++ix) {
+        const auto s = seconded_in_group[ix];
+        const auto v = validated_in_group[ix];
         count += size_t(s || v);
       }
       return count;
@@ -248,11 +247,9 @@ namespace kagome::network::vstaging {
     bool contains(size_t index, StatementKind statement_kind) const {
       switch (statement_kind) {
         case StatementKind::Seconded:
-          return index < seconded_in_group.bits.size()
-              && seconded_in_group.bits[index];
+          return index < seconded_in_group.size() && seconded_in_group[index];
         case StatementKind::Valid:
-          return index < validated_in_group.bits.size()
-              && validated_in_group.bits[index];
+          return index < validated_in_group.size() && validated_in_group[index];
       }
       return false;
     }
@@ -260,13 +257,13 @@ namespace kagome::network::vstaging {
     void set(size_t index, StatementKind statement_kind) {
       switch (statement_kind) {
         case StatementKind::Seconded:
-          if (index < seconded_in_group.bits.size()) {
-            seconded_in_group.bits[index] = true;
+          if (index < seconded_in_group.size()) {
+            seconded_in_group[index] = true;
           }
           break;
         case StatementKind::Valid:
-          if (index < validated_in_group.bits.size()) {
-            validated_in_group.bits[index] = true;
+          if (index < validated_in_group.size()) {
+            validated_in_group[index] = true;
           }
           break;
       }

@@ -398,7 +398,7 @@ namespace kagome::storage::trie {
     uint16_t children_bitmap = stream.next();
     children_bitmap += stream.next() << 8u;
 
-    scale::DecoderFromBytes decoder(stream.leftBytes());
+    scale::DecoderFromSpan decoder(stream.leftBytes());
 
     // decode the branch value if needed
     common::Buffer value;

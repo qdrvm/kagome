@@ -28,7 +28,7 @@ namespace kagome::runtime {
     std::optional<uint32_t> core_version;
     if (auto apis_section = custom_section_contents("runtime_apis")) {
       apis.emplace();
-      scale::DecoderFromBytes decoder{*apis_section};
+      scale::DecoderFromSpan decoder{*apis_section};
       try {
         while (decoder.has(1)) {
           decode(apis->emplace_back(), decoder);
@@ -38,7 +38,7 @@ namespace kagome::runtime {
       }
       core_version = primitives::detail::coreVersionFromApis(*apis);
     }
-    scale::DecoderFromBytes decoder{*version_section};
+    scale::DecoderFromSpan decoder{*version_section};
     OUTCOME_TRY(version,
                 primitives::Version::decodeConsideringToCoreVersion(
                     decoder, core_version));
