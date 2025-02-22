@@ -429,9 +429,10 @@ jobs:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: "Versions Info"
+        working-directory: ./housekeeping/docker/kagome-dev
         if: always()
         run: |
-          make kagome_deb_package_info
+          make kagome_deb_package_info || true
 #          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
 #          echo "Kagome Images: "
 #          cat /tmp/docker_image.env || true
