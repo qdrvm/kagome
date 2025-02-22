@@ -198,8 +198,8 @@ namespace kagome::authority_discovery {
       if (has(authorities, it->second)) {
         ++it;
       } else {
-        it = peer_to_auth_cache_.erase(it);
         validation_protocol_.get()->reserve(it->first, false);
+        it = peer_to_auth_cache_.erase(it);
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);

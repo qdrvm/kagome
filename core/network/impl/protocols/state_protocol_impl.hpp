@@ -30,6 +30,7 @@ namespace kagome::network {
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
 
+  // TODO(turuslan): #2372, RequestResponseProtocol
   class StateProtocolImpl final
       : public StateProtocol,
         public std::enable_shared_from_this<StateProtocolImpl>,
