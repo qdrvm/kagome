@@ -24,7 +24,7 @@ reset_build_state: clean_container
     $(call safe_rm,$(BUILD_DIR)) || true
 
 docker_run: clean_container
-	@echo "-- Running Kagome build container..." ; \
+	echo "-- Running Kagome build container..." ; \
 	mkdir -p \
 		$(CACHE_DIR)/.cargo \
 		$(CACHE_DIR)/.hunter \
