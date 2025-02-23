@@ -25,7 +25,7 @@ define safe_rm
     echo "Checking $$PATH_TO_RM..."; \
     if [ -d "$$PATH_TO_RM" ]; then \
         echo "Deleting $$PATH_TO_RM"; \
-        rm -rv --preserve-root "$$PATH_TO_RM"; \
+        rm -rvf --preserve-root "$$PATH_TO_RM"; \
     else \
         echo "Directory $$PATH_TO_RM does not exist"; \
     fi

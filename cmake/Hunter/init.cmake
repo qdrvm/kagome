@@ -18,7 +18,6 @@ if(NOT DEFINED CMAKE_SYSTEM_PROCESSOR OR CMAKE_SYSTEM_PROCESSOR STREQUAL "")
     endif()
 endif()
 
-# Задаём HUNTER_ROOT в каталоге ~/.hunter/<system name>-<processor>
 set(HUNTER_ROOT "$ENV{HOME}/.hunter/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}" CACHE PATH "Hunter root directory")
 
 # specify GITHUB_HUNTER_TOKEN and GITHUB_HUNTER_USERNAME to automatically upload binary cache to github.com/qdrvm/hunter-binary-cache
@@ -44,10 +43,17 @@ set(HUNTER_PASSWORDS_PATH
     CACHE FILEPATH "Hunter passwords"
 )
 
-set(HUNTER_CACHE_SERVERS
-    "https://github.com/qdrvm/hunter-binary-cache"
-    CACHE STRING "Binary cache server"
-)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    set(HUNTER_CACHE_SERVERS
+        "https://github.com/qdrvm/hunter-binary-cache"
+        CACHE STRING "Binary cache server"
+    )
+else()
+    set(HUNTER_CACHE_SERVERS
+        "https://github.com/qdrvm/hunter-cache"
+        CACHE STRING "Binary cache server"
+    )
+endif()
 
 # https://hunter.readthedocs.io/en/latest/reference/user-variables.html#hunter-use-cache-servers
 # set(
