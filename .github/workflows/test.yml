@@ -436,19 +436,6 @@ jobs:
 #          GIT_REF_NAME=${{ env.GIT_REF_NAME }} \
 #          IS_MAIN_OR_TAG=${{ env.IS_MAIN_OR_TAG }}
 
-      - name: "Cleaning cache"
-        if: env.package_exist == 'False'
-        run: |
-          find ${{ env.CACHE_PATH }} -name '*.pdf' -exec rm {} \;
-
-      - name: "Always Save Cache"
-        id: cache-save
-        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-
       - name: "Versions Info"
         working-directory: ./housekeeping/docker/kagome-dev
         if: always()

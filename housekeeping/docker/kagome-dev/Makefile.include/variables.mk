@@ -53,7 +53,7 @@ UBSAN_OPTIONS ?= print_stacktrace=1
 # Hunter debug flags -DHUNTER_STATUS_DEBUG=ON -DHUNTER_USE_CACHE_SERVERS=NO
 BUILD_COMMANDS = \
 	time cmake . -B\"$(DOCKER_BUILD_DIR_NAME)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" \
-		-DHUNTER_STATUS_DEBUG=ON -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+		-DBACKWARD=OFF -DWERROR=$(WERROR) && \
 	time cmake --build \"$(DOCKER_BUILD_DIR_NAME)\" --target kagome -- -j$(BUILD_THREADS)
 
 # Generated versions
