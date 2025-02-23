@@ -609,13 +609,15 @@ namespace kagome::parachain::grid {
       // Entry is occupied
       auto &prev = it->second;
       if (prev.claimed_group_index != manifest_summary.claimed_group_index
-          || prev.claimed_parent_hash != manifest_summary.claimed_parent_hash
-          || !std::includes(
+          or prev.claimed_parent_hash != manifest_summary.claimed_parent_hash
+          // NOLINTNEXTLINE(modernize-use-ranges,boost-use-ranges)
+          or !std::includes(
               manifest_summary.statement_knowledge.seconded_in_group.begin(),
               manifest_summary.statement_knowledge.seconded_in_group.end(),
               prev.statement_knowledge.seconded_in_group.begin(),
               prev.statement_knowledge.seconded_in_group.end())
-          || !std::includes(
+          // NOLINTNEXTLINE(modernize-use-ranges,boost-use-ranges)
+          or !std::includes(
               manifest_summary.statement_knowledge.validated_in_group.begin(),
               manifest_summary.statement_knowledge.validated_in_group.end(),
               prev.statement_knowledge.validated_in_group.begin(),
