@@ -364,6 +364,15 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         run: make configure
 
+      - name: "Install zstd"
+        run: |
+          if ! command -v zstd &> /dev/null; then
+            echo "zstd not found, installing..."
+            sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
+          else
+            echo "zstd is already installed"
+          fi
+
       - name: "Get Cache"
         if: ${{ env.USE_CACHE == 'true' }}
         working-directory: ./housekeeping/docker/kagome-dev
