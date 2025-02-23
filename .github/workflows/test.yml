@@ -22,9 +22,17 @@ on:
           - 'true'
           - 'false'
       use_cache:
-        description: 'Use cache for build'
+        description: 'Use cache'
         required: true
         default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      cache_upload_allowed:
+        description: 'Force cache upload'
+        required: true
+        default: 'false'
         type: 'choice'
         options:
           - 'true'
@@ -60,6 +68,7 @@ env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
+  CACHE_UPLOAD_ALLOWED: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
   DEFAULT_BUILD_TYPE: Release
   GIT_REF_NAME: ${{ github.ref_name }}
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
@@ -324,6 +333,7 @@ jobs:
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
     env:
       PLATFORM: ${{ matrix.platform }}
+      BUILD_TYPE: ${{ matrix.build_type }}
     name: "Build: ${{ matrix.platform }} / ${{ matrix.build_type }}"
 
     steps:
@@ -354,21 +364,23 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         run: make configure
 
-      - name: "Cache dependencies"
-        if:  ${{ env.USE_CACHE == 'true' }}
-        id: cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ matrix.build_type }}-${{ env.short_commit_hash }}
-          restore-keys: |
-            ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ matrix.build_type }}-
+      - name: "Get Cache"
+        if: ${{ env.USE_CACHE == 'true' }}
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make cache_get || true
 
       - name: "Build target"
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
           make kagome_docker_build \
           BUILD_TYPE=${{ matrix.build_type }}
+          
+      - name: "Upload cache"
+        if: ${{ success() }}
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make cache_check_and_upload || true
 
       - name: "Push Kagome APT Package"
         working-directory: ./housekeeping/docker/kagome-dev

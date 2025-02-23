@@ -45,6 +45,7 @@ cache_get:
 	@FOUND_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE).tar.zst" 2>/dev/null | sort -r | head -n1); \
 	if [ -n "$$FOUND_CACHE" ]; then \
 		echo "Found suitable $(BUILD_TYPE) cache: $$FOUND_CACHE"; \
+		mkdir -p $(WORKING_DIR)/$(DOCKER_BUILD_DIR_NAME) && \
 		cd $(WORKING_DIR); \
 		echo "Downloading cache..."; \
 		$(call measure_time,gcloud storage cp "$$FOUND_CACHE" "$(CACHE_ARCHIVE)") && \
@@ -70,7 +71,7 @@ endef
 
 cache_check_and_upload:
 	@echo "Checking cache upload conditions..."
-	@if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && [ "$(GIT_REF_NAME)" = "master" ]; then \
+	@if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && ( [ "$(CACHE_ONLY_MASTER)" = "false" ] || [ "$(GIT_REF_NAME)" = "master" ] ); then \
 		if $(call check_cache_age); then \
 			echo "Cache is older than $(CACHE_LIFETIME_DAYS) days or missing - enabling upload"; \
 			$(MAKE) cache_upload CACHE_UPLOAD_ALLOWED=true; \

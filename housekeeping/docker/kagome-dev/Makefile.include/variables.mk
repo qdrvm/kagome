@@ -82,8 +82,9 @@ ZSTD_LEVEL ?= 5
 ZSTD_THREADS = $(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
 CACHE_TAG = $(CURRENT_DATE)-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE)
 CACHE_ARCHIVE = build-cache-$(CACHE_TAG).tar.zst
-CACHE_UPLOAD_ALLOWED ?= true
+CACHE_UPLOAD_ALLOWED ?= false
 CACHE_LIFETIME_DAYS ?= 3
+CACHE_ONLY_MASTER ?= false
 
 
 export DOCKER_BUILDKIT=1
