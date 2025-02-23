@@ -15,6 +15,7 @@ OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 USER_ID ?= $(shell id -u)
 GROUP_ID ?= $(shell id -g)
 DIR_PATH_HASH := $(shell echo -n $(CURDIR) | sha1sum | cut -c1-8 )
+HOST_OS := $(shell uname -s)
 # For Docker build
 # USER_ID = 5555
 # GROUP_ID = 5555
@@ -74,6 +75,15 @@ KAGOME_PACKAGE_VERSION ?=
 ARTIFACTS_REPO ?= kagome-apt
 PUBLIC_ARTIFACTS_REPO ?= kagome
 REGION ?= europe-north1
+
+# cache management Variables
+CACHE_BUCKET ?= ci-cache-kagome
+CACHE_LIFETIME_DAYS ?= 3
+ZSTD_LEVEL ?= 5
+ZSTD_THREADS = $(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
+CACHE_TAG = $(CURRENT_DATE)-$(HOST_OS)-$(ARCHITECTURE)
+CACHE_ARCHIVE = build-cache-$(CACHE_TAG).tar.zst
+CACHE_UPLOAD_ALLOWED ?= true
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson

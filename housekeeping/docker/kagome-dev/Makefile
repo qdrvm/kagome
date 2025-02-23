@@ -40,6 +40,7 @@ include Makefile.include/kagome_image.mk
 include Makefile.include/runtime.mk
 include Makefile.include/sanitizers.mk
 include Makefile.include/tidy.mk
+include Makefile.include/cache.mk
 
 # Run the configure target to generate the version files
 configure: get_versions
