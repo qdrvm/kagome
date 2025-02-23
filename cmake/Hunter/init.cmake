@@ -43,17 +43,22 @@ set(HUNTER_PASSWORDS_PATH
     CACHE FILEPATH "Hunter passwords"
 )
 
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    set(HUNTER_CACHE_SERVERS
-        "https://github.com/qdrvm/hunter-binary-cache"
-        CACHE STRING "Binary cache server"
-    )
-else()
-    set(HUNTER_CACHE_SERVERS
-        "https://github.com/qdrvm/hunter-cache"
-        CACHE STRING "Binary cache server"
-    )
-endif()
+#if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#    set(HUNTER_CACHE_SERVERS
+#        "https://github.com/qdrvm/hunter-binary-cache"
+#        CACHE STRING "Binary cache server"
+#    )
+#else()
+#    set(HUNTER_CACHE_SERVERS
+#        "https://github.com/qdrvm/hunter-cache"
+#        CACHE STRING "Binary cache server"
+#    )
+#endif()
+
+set(HUNTER_CACHE_SERVERS
+    "https://github.com/qdrvm/hunter-binary-cache"
+    CACHE STRING "Binary cache server"
+)
 
 # https://hunter.readthedocs.io/en/latest/reference/user-variables.html#hunter-use-cache-servers
 # set(
