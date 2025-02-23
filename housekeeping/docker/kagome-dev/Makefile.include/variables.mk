@@ -1,6 +1,6 @@
 ﻿# CI Variables
 IS_MAIN_OR_TAG ?= false
-GIT_REF_NAME ?=
+GIT_REF_NAME ?= 
 CI ?= false
 BUILD_THREADS=$(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
 CURRENT_DATE := $(shell TZ=UTC-3 date +"%Y%m%d")
@@ -78,12 +78,13 @@ REGION ?= europe-north1
 
 # cache management Variables
 CACHE_BUCKET ?= ci-cache-kagome
-CACHE_LIFETIME_DAYS ?= 3
 ZSTD_LEVEL ?= 5
 ZSTD_THREADS = $(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
-CACHE_TAG = $(CURRENT_DATE)-$(HOST_OS)-$(ARCHITECTURE)
+CACHE_TAG = $(CURRENT_DATE)-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE)
 CACHE_ARCHIVE = build-cache-$(CACHE_TAG).tar.zst
 CACHE_UPLOAD_ALLOWED ?= true
+CACHE_LIFETIME_DAYS ?= 3
+
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
