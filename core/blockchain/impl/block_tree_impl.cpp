@@ -271,7 +271,6 @@ namespace kagome::blockchain {
                           std::move(justification_storage_policy),
                           state_pruner,
                           main_thread_pool));
-
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
       const auto &block = e.first;

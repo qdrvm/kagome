@@ -6,17 +6,16 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <tuple>
+#include <span>
 #include <type_traits>
 
 #include <boost/assert.hpp>
 
-#include "common/buffer_view.hpp"
 #include "keccak/keccak.h"
-#include "primitives/math.hpp"
 
 namespace kagome::primitives {
 
@@ -40,8 +39,7 @@ namespace kagome::primitives {
     static constexpr Flags kFlag_M = 0x10;
     static constexpr Flags kFlag_K = 0x20;
 
-    uint8_t raw_data[kBufferSize + kAlignment - 1ull + 3ull];
-    uint8_t *const buffer_;
+    alignas(kAlignment) std::array<uint8_t, kBufferSize + 3ull> buffer_{};
     Position &current_position_;
     Position &begin_position_;
     Flags &current_state_;
@@ -49,13 +47,13 @@ namespace kagome::primitives {
     template <typename T, size_t kOffset = 0ull>
     constexpr T *as() {
       static_assert(kOffset < count<T>(), "Overflow!");
-      return (reinterpret_cast<T *>(buffer_) + kOffset);  // NOLINT
+      return (reinterpret_cast<T *>(buffer_.data()) + kOffset);  // NOLINT
     }
 
     template <typename T, size_t kOffset = 0ull>
     constexpr const T *as() const {
       static_assert(kOffset < count<T>(), "Overflow!");
-      return (reinterpret_cast<const T *>(buffer_) + kOffset);  // NOLINT
+      return (reinterpret_cast<const T *>(buffer_.data()) + kOffset);  // NOLINT
     }
 
     template <typename T>
@@ -141,18 +139,16 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(
-            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
-          current_position_{*(buffer_ + kBufferSize)},
-          begin_position_{*(buffer_ + kBufferSize + 1ull)},
-          current_state_{*(buffer_ + kBufferSize + 2ull)} {}
+        : current_position_{buffer_[kBufferSize]},
+          begin_position_{buffer_[kBufferSize + 1ull]},
+          current_state_{buffer_[kBufferSize + 2ull]} {}
 
     Strobe(const Strobe &other) : Strobe() {
-      std::ranges::copy(other.raw_data, std::begin(raw_data));
+      std::ranges::copy(other.buffer_, std::begin(buffer_));
     }
 
     Strobe &operator=(const Strobe &other) {
-      std::ranges::copy(other.raw_data, std::begin(raw_data));
+      std::ranges::copy(other.buffer_, std::begin(buffer_));
       return *this;
     }
 
