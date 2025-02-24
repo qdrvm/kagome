@@ -14,25 +14,31 @@
 #include "storage/trie/on_read.hpp"
 
 namespace kagome::network {
+  constexpr std::chrono::seconds kRequestTimeout{15};
+
   LightProtocol::LightProtocol(
-      libp2p::Host &host,
+      RequestResponseInject inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis,
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
-      std::shared_ptr<runtime::Executor> executor,
-      common::MainThreadPool &main_thread_pool)
+      std::shared_ptr<runtime::Executor> executor)
       : RequestResponseProtocolImpl{kName,
-                                    host,
+                                    std::move(inject),
                                     make_protocols(
                                         kLightProtocol, genesis, chain_spec),
                                     log::createLogger(kName),
-                                    main_thread_pool},
+                                    kRequestTimeout},
         repository_{std::move(repository)},
         storage_{std::move(storage)},
         module_repo_{std::move(module_repo)},
-        executor_{std::move(executor)} {}
+        executor_{std::move(executor)} {
+    BOOST_ASSERT(repository_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(module_repo_ != nullptr);
+    BOOST_ASSERT(executor_ != nullptr);
+  }
 
   std::optional<outcome::result<LightProtocol::ResponseType>>
   LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {

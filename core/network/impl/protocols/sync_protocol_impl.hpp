@@ -21,6 +21,7 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "utils/non_copyable.hpp"
@@ -103,14 +104,18 @@ namespace kagome::network {
 
   }  // namespace detail
 
+  // TODO(turuslan): #2372, RequestResponseProtocol
   class SyncProtocolImpl final
       : public SyncProtocol,
         public std::enable_shared_from_this<SyncProtocolImpl>,
         NonCopyable,
         NonMovable {
    public:
+    using Response = BlocksResponse;
+
     SyncProtocolImpl(
         libp2p::Host &host,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
@@ -149,6 +154,10 @@ namespace kagome::network {
    private:
     inline static const auto kSyncProtocolName = "SyncProtocol"s;
     ProtocolBaseImpl base_;
+    friend RequestResponseTimeout;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    RequestResponseMetrics metrics_;
+    std::chrono::milliseconds timeout_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
     detail::BlocksResponseCache response_cache_;
