@@ -330,6 +330,8 @@ namespace kagome::application {
         const = 0;
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
+
+    virtual uint32_t maxParallelDownloads() const = 0;
   };
 
 }  // namespace kagome::application
