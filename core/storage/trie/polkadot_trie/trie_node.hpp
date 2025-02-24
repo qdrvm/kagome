@@ -137,7 +137,10 @@ namespace kagome::storage::trie {
       return is_some();
     }
 
-    bool operator==(const ValueAndHash &) const = default;
+    bool operator==(const ValueAndHash &rhs) const {
+      // is_dirty_ does not participate in comparison
+      return std::tie(hash, value) == std::tie(rhs.hash, rhs.value);
+    }
 
     bool is_none() const {
       return !is_some();
