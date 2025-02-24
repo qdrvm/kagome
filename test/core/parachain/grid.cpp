@@ -1851,44 +1851,45 @@ TEST(GridTest, TestRequiredRoutingCombine) {
 
 // https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L651
 TEST(GridTest, TestRandomRoutingSample) {
-  auto dummy_rng = []() {
-    std::seed_seq seed{12345};
-    return std::make_shared<std::mt19937>(seed);
-  };
+  std::seed_seq seed{12345};
+  std::mt19937 rng(seed);
 
-  auto rng = dummy_rng();
+  auto rng_ref = std::ref(rng);
+
   RandomRouting random_routing(4, 0, 8);
 
-  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
   random_routing.inc_sent();
-  EXPECT_FALSE(random_routing.sample(16, rng));
-  EXPECT_TRUE(random_routing.sample(16, rng));
-  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_TRUE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
   random_routing.inc_sent();
-  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
   random_routing.inc_sent();
-  EXPECT_TRUE(random_routing.sample(16, rng));
-  EXPECT_FALSE(random_routing.sample(16, rng));
-  EXPECT_FALSE(random_routing.sample(16, rng));
-  EXPECT_FALSE(random_routing.sample(16, rng));
+  EXPECT_TRUE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
   random_routing.inc_sent();
 
   for (int i = 0; i < 16; ++i) {
-    EXPECT_FALSE(random_routing.sample(16, rng));
+    EXPECT_FALSE(random_routing.sample(16, rng_ref));
   }
 }
 
 // https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L695
 TEST(GridTest, TestRandomRoutingDistribution) {
-  auto rng = std::make_shared<std::mt19937>(std::random_device{}());
+  std::random_device rd;
+  std::mt19937 rng(rd());  // Use stack allocation instead of shared_ptr
+
   auto run_random_routing = [](RandomRouting &random_routing,
-                               std::shared_ptr<std::mt19937> rng,
+                               std::mt19937 &rng,
                                int iterations,
                                int max_samples) {
     int count = 0;
     for (int i = 0; i < iterations; ++i) {
       for (int j = 0; j < max_samples; ++j) {
-        if (random_routing.sample(max_samples, rng)) {
+        if (random_routing.sample(max_samples, std::ref(rng))) {
           random_routing.inc_sent();
           ++count;
         }

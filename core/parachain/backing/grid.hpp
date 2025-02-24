@@ -177,17 +177,20 @@ namespace kagome::parachain::grid {
     /// Perform random sampling for a specific peer
     /// Returns `true` for a lucky peer
     bool sample(size_t n_peers_total,
-                std::shared_ptr<std::mt19937> rng = nullptr) {
+                std::optional<std::reference_wrapper<std::mt19937>> rng =
+                    std::nullopt) {
       if (n_peers_total == 0 || sent >= target) {
         return false;
       } else if (sample_rate > n_peers_total) {
         return true;
       } else {
-        if (rng == nullptr) {
+        std::mt19937 local_rng;
+        if (not rng) {
           std::random_device rd;
-          rng = std::make_shared<std::mt19937>(rd());
+          local_rng = std::mt19937(rd());
+          rng = std::ref(local_rng);
         }
-        size_t random_number = ((*rng)() % n_peers_total) + size_t(1);
+        size_t random_number = ((*rng).get()() % n_peers_total) + size_t(1);
         return random_number <= sample_rate;
       }
     }
