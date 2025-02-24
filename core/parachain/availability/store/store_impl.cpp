@@ -291,9 +291,9 @@ namespace kagome::parachain {
                    res.error());
         } else {
           SL_TRACE(logger,
-                  "Chunk {}:{} is saved by storeData()",
-                  candidate_hash,
-                  chunk.index);
+                   "Chunk {}:{} is saved by storeData()",
+                   candidate_hash,
+                   chunk.index);
         }
       }
       candidate_data.pov = pov;
@@ -342,9 +342,9 @@ namespace kagome::parachain {
     }
 
     SL_TRACE(logger,
-            "Chunk {}:{} is saved by putChunk()",
-            candidate_hash,
-            chunk.index);
+             "Chunk {}:{} is saved by putChunk()",
+             candidate_hash,
+             chunk.index);
   }
 
   void AvailabilityStoreImpl::remove_no_lock(

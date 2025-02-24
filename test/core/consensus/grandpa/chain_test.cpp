@@ -115,8 +115,7 @@ class ChainTest : public testing::Test {
       BlockHeader hh;
       hh.number = number;
       hh.parent_hash = parent;
-      EXPECT_CALL(*tree, getBlockHeader(hash))
-          .WillRepeatedly(Return(hh));
+      EXPECT_CALL(*tree, getBlockHeader(hash)).WillRepeatedly(Return(hh));
     };
 
     addBlock(h[3], h[2], 42);

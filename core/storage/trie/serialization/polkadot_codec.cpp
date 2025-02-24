@@ -91,14 +91,28 @@ namespace kagome::storage::trie {
   outcome::result<MerkleValue> PolkadotCodec::merkleValue(
       const OpaqueTrieNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
-    if (auto dummy = dynamic_cast<const DummyNode *>(&node); dummy != nullptr) {
-      return dummy->db_key;
+    if (node.isDummy()) {
+      ++stats_.node_cache_hits;
+      return node.asDummy().db_key;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto &trie_node = static_cast<const TrieNode &>(node);
-    OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
-    return merkleValue(enc);
+
+    if (auto cached_merkle_value = trie_node.getMerkleCache();
+        cached_merkle_value.has_value()) {
+      ++stats_.node_cache_hits;
+      return *cached_merkle_value;
+    }
+    OUTCOME_TRY(enc, encodeNode(trie_node, version, policy, child_visitor));
+
+    auto merkle_value = merkleValue(enc);
+    if (merkle_value.isHash()) {
+      trie_node.setMerkleCache(*merkle_value.asHash());
+    }
+
+    return merkle_value;
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
@@ -108,18 +122,19 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const TrieNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
-    auto *trie_node = dynamic_cast<const TrieNode *>(&node);
-    if (trie_node == nullptr) {
-      auto &dummy_node = dynamic_cast<const DummyNode &>(node);
-      return dummy_node.db_key.asBuffer();
+    outcome::result<common::Buffer> res{{}};
+    if (node.isBranch()) {
+      res = encodeBranch(node.asBranch(), version, policy, child_visitor);
+    } else {
+      res = encodeLeaf(node.asLeaf(), version, child_visitor);
     }
-    if (trie_node->isBranch()) {
-      return encodeBranch(
-          dynamic_cast<const BranchNode &>(node), version, child_visitor);
+    if (res) {
+      ++stats_.encoded_nodes;
+      stats_.total_encoded_nodes_size += res.value().size();
     }
-    return encodeLeaf(
-        dynamic_cast<const LeafNode &>(node), version, child_visitor);
+    return res;
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
@@ -216,12 +231,15 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(value, scale::encode(*node.getValue().value));
       out += value;
     }
+    ++stats_.encoded_values;
+    stats_.total_encoded_values_size += out.size();
     return outcome::success();
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeBranch(
       const BranchNode &node,
       StateVersion version,
+      TraversePolicy policy,
       const ChildVisitor &child_visitor) const {
     // node header
     OUTCOME_TRY(encoding, encodeHeader(node, version));
@@ -235,23 +253,42 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encodeValue(encoding, node, version, child_visitor));
 
     // encode each child
-    for (auto &child : node.children) {
+    for (auto &child : node.getChildren()) {
       if (child) {
-        if (auto dummy = std::dynamic_pointer_cast<DummyNode>(child);
-            dummy != nullptr) {
-          auto merkle_value = dummy->db_key;
+        if (child->isDummy()) {
+          auto merkle_value = child->asDummy().db_key;
           OUTCOME_TRY(scale_enc, scale::encode(merkle_value.asBuffer()));
           encoding.put(scale_enc);
         } else {
           // because a node is either a dummy or a trienode
           auto &child_node = dynamic_cast<TrieNode &>(*child);
-          OUTCOME_TRY(enc, encodeNode(child_node, version, child_visitor));
-          auto merkle = merkleValue(enc);
-          if (merkle.isHash() && child_visitor) {
-            OUTCOME_TRY(
-                child_visitor(ChildData{child_node, merkle, std::move(enc)}));
+
+          // use optional because MerkleValue doesn't have a default constructor
+          std::optional<MerkleValue> merkle;
+
+          // if TraversePolicy is UncachedOnly, we don't need to call
+          // child_visitor on nodes with cached merkle value, therefore we don't
+          // need to encode them (child_visitor requires a node's encoding) and
+          // can just take the cached merkle value
+          if (policy == TraversePolicy::UncachedOnly
+              && child_node.getMerkleCache().has_value()) {
+            merkle = child_node.getMerkleCache().value();
+          } else {
+            OUTCOME_TRY(enc,
+                        encodeNode(child_node, version, policy, child_visitor));
+            merkle = merkleValue(enc);
+            if (merkle->isHash()) {
+              if (child_visitor) {
+                OUTCOME_TRY(child_visitor(
+                    ChildData{child_node, *merkle, std::move(enc)}));
+              }
+              if (!child_node.getMerkleCache().has_value()) {
+                child_node.setMerkleCache(merkle->asHash());
+              }
+            }
           }
-          OUTCOME_TRY(scale_enc, scale::encode(merkle.asBuffer()));
+
+          OUTCOME_TRY(scale_enc, scale::encode(merkle->asBuffer()));
           encoding.put(scale_enc);
         }
       }
@@ -281,6 +318,8 @@ namespace kagome::storage::trie {
   outcome::result<std::shared_ptr<TrieNode>> PolkadotCodec::decodeNode(
       common::BufferView encoded_data) const {
     BufferStream stream{encoded_data};
+    stats_.total_decoded_nodes_size += encoded_data.size();
+    ++stats_.decoded_nodes;
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
     auto [type, pk_length] = header;
@@ -438,8 +477,9 @@ namespace kagome::storage::trie {
           return outcome::failure(e.code());
         }
         // SAFETY: database cannot contain invalid merkle values
-        node->children.at(i) = std::make_shared<DummyNode>(
-            MerkleValue::create(child_hash).value());
+        node->setChild(i,
+                       std::make_shared<DummyNode>(
+                           MerkleValue::create(child_hash).value()));
       }
       i++;
     }
