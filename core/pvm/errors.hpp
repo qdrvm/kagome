@@ -35,6 +35,8 @@ namespace kagome::pvm {
     UNSUPPORTED_SANDBOX,
     ALLOW_EXPERIMENTAL_DISABLED,
     MODULE_CACHE_IS_NOT_SUPPORTED,
+    SYS_CALL_FAILED,
+    SYS_CALL_NOT_PERMITTED,
   };
 
   template <typename T>

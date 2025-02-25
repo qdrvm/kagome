@@ -8,10 +8,21 @@
 
 #include <variant>
 #include "pvm/types.hpp"
+#include "pvm/sandbox/linux.hpp"
+#include "pvm/config.hpp"
 
 namespace kagome::pvm::sandbox {
     extern void init_native_page_size();
+    extern size_t get_native_page_size();
 
     using GlobalStateKind = std::variant<linux::GlobalState>;
+    outcome::result<GlobalStateKind> createGlobalState(SandboxKind kind, const Config &config) {
+        switch (kind.value) {
+            case SandboxKind::Linux:
+                return linux::GlobalState::create(config);
+            case SandboxKind::Generic:
+                return Error::NOT_IMPLEMENTED;
+        }
+    }
 
 }

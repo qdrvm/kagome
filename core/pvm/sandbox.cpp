@@ -7,6 +7,7 @@
 #pragma once
 
 #include <atomic>
+#include <assert.h>
 #include "pvm/sandbox.hpp"
 
 namespace kagome::pvm::sandbox {
@@ -23,5 +24,11 @@ namespace kagome::pvm::sandbox {
         }        
 
         NATIVE_PAGE_SIZE.store(page_size);
+    }
+
+    size_t get_native_page_size() {
+        const auto page_size = NATIVE_PAGE_SIZE.load(std::memory_order::relaxed);
+        assert(page_size != 0);
+        return page_size;
     }
 }

@@ -13,10 +13,10 @@
 namespace kagome::pvm {
 
     struct EngineState {
-        // Opt<sandbox::GlobalStateKind> sandbox_global;
-        // Opt<sandbox::WorkerCacheKind> sandbox_cache;
-        // CompilerCache compiler_cache;
-        // ModuleCache _module_cache;
+        Opt<sandbox::GlobalStateKind> sandbox_global;
+        Opt<sandbox::WorkerCacheKind> sandbox_cache;
+        CompilerCache compiler_cache;
+        ModuleCache _module_cache;
     };
 
     struct Engine {
@@ -78,8 +78,9 @@ namespace kagome::pvm {
                         return Error::ALLOW_EXPERIMENTAL_DISABLED;
                     }
 
-                     let sandbox_global = crate::sandbox::GlobalStateKind::new(selected_sandbox, config)?;
-                     let sandbox_cache = crate::sandbox::WorkerCacheKind::new(selected_sandbox, config);
+                    // TODO(iceseer)
+                    // auto sandbox_global = sandbox::GlobalStateKind::new(selected_sandbox, config)?;
+                    // auto sandbox_cache = sandbox::WorkerCacheKind::new(selected_sandbox, config);
                     // for _ in 0..config.worker_count {
                     //     sandbox_cache.spawn(&sandbox_global)?;
                     // }
