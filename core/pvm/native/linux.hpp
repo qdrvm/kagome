@@ -34,10 +34,18 @@ namespace kagome::pvm::native::linux {
         return outcome::success();
     }
 
-    inline Result<Fd> sys_userfaultfd(unsigned int flags) {
-        auto fd = syscall(SYS_userfaultfd, flags);
+    inline Result<Fd> __syscall(long int sysno, unsigned int flags) {
+        auto fd = syscall(sysno, flags);
         OUTCOME_TRY(check_syscall(fd));
         return outcome::success(fd);
+    }
+
+    inline Result<Fd> sys_userfaultfd(unsigned int flags) {
+        return __syscall(SYS_userfaultfd, flags);
+    }
+
+    inline Result<Fd> sys_memfd_create(unsigned int flags) {
+        return __syscall(SYS_memfd_create, flags);
     }
 
 }
