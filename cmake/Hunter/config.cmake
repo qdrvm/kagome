@@ -111,3 +111,10 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    wabt
+    URL https://github.com/qdrvm/wabt/archive/d1abde6977d4d3f81024a7eb099228107f27377e.tar.gz
+    SHA1 0917dd9e8300c888ef0005b027008efe001abda4
+    KEEP_PACKAGE_SOURCES
+)
+

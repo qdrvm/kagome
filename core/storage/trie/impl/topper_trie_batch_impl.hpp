@@ -80,28 +80,36 @@ namespace kagome::storage::trie {
     outcome::result<void> seekUpperBound(const BufferView &key) override;
 
    private:
-    void choose();
+    void updateSource();
     bool isRemoved() const;
     outcome::result<void> skipRemoved();
     outcome::result<void> step();
 
-    struct Choice {
-      Choice(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
+    // since topper batches accumulate changes in an associative cache,
+    // sometimes cursor needs to switch between this cache and the actual trie
+    // beneath
+    struct Source {
+      Source(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
 
-      operator bool() const {
+      bool hasValidSource() const {
         return parent || overlay;
       }
 
-      bool parent;
-      bool overlay;
+      explicit operator bool() const {
+        return hasValidSource();
+      }
+
+      bool parent;   // parent_cursor_ is valid
+      bool overlay;  // overlay_it_ is valid
     };
 
     std::shared_ptr<TopperTrieBatchImpl> parent_batch_;
     std::unique_ptr<PolkadotTrieCursor> parent_cursor_;
     std::optional<Buffer> cached_parent_key_;
     decltype(TopperTrieBatchImpl::cache_)::iterator overlay_it_;
-    Choice choice_{false, false};
+    Source source_{false, false};
   };
+
 }  // namespace kagome::storage::trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, TopperTrieBatchImpl::Error)

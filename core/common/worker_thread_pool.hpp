@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "application/app_state_manager.hpp"
 #include "injector/inject.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/watchdog.hpp"
@@ -16,12 +15,12 @@ namespace kagome::common {
    public:
     WorkerThreadPool(std::shared_ptr<Watchdog> watchdog, size_t thread_number)
         : ThreadPool(
-            std::move(watchdog), "worker", thread_number, std::nullopt) {}
+              std::move(watchdog), "worker", thread_number, std::nullopt) {}
 
     WorkerThreadPool(std::shared_ptr<Watchdog> watchdog, Inject, ...)
         : WorkerThreadPool(
-            std::move(watchdog),
-            std::max<size_t>(3, std::thread::hardware_concurrency()) - 1) {}
+              std::move(watchdog),
+              std::max<size_t>(3, std::thread::hardware_concurrency()) - 1) {}
 
     // Ctor for test purposes
     WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}

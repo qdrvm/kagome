@@ -11,6 +11,7 @@
 #include "common/bytestr.hpp"
 #include "common/visitor.hpp"
 #include "crypto/key_store.hpp"
+#include "utils/json_unquote.hpp"
 #include "utils/read_file.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyStoreError, e) {

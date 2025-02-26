@@ -666,8 +666,6 @@ namespace kagome::parachain {
                                    const RelayHash &relay_parent,
                                    const SignedFullStatementWithPVD &statement);
 
-    void onDeactivateBlocks(
-        const primitives::events::RemoveAfterFinalizationParams &event);
     void handle_active_leaves_update_for_validator(const network::ExView &event,
                                                    std::vector<Hash> pruned);
     void onViewUpdated(const network::ExView &event);
@@ -823,8 +821,10 @@ namespace kagome::parachain {
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_signed_statements_total_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_signed_statements_total_;
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
   };
 
 }  // namespace kagome::parachain
