@@ -128,8 +128,8 @@ hunter_config(
 
 hunter_config(
     qtils
-    URL  https://github.com/qdrvm/qtils/archive/1e492cf09a3640570cae59a951502614320c0797.tar.gz
-    SHA1 033dd907e2566c95ce2ccf1fa6dd9766bc896894
+    URL  https://github.com/qdrvm/qtils/archive/6d02006f7c0fe44958acbfe53016fa81f1ac0bf5.tar.gz
+    SHA1 b37b32a882788eb8f2c796098b5bf3a19cf00fe3
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
     KEEP_PACKAGE_SOURCES
