@@ -150,11 +150,7 @@ struct BlockTreeTest : public testing::Test {
     ON_CALL(*state_pruner_, recoverState(_))
         .WillByDefault(Return(outcome::success()));
 
-    ON_CALL(*state_pruner_, pruneDiscarded(_))
-        .WillByDefault(Return(outcome::success()));
-
-    ON_CALL(*state_pruner_, pruneFinalized(_))
-        .WillByDefault(Return(outcome::success()));
+    ON_CALL(*state_pruner_, schedulePrune(_, _, _)).WillByDefault(Return());
 
     putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);

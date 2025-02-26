@@ -34,10 +34,12 @@ namespace kagome::log {
     std::shared_ptr<soralog::LoggingSystem>
     ensure_logger_system_is_initialized() {
       auto logging_system = logging_system_.lock();
-      BOOST_ASSERT_MSG(
-          logging_system,
-          "Logging system is not ready. "
-          "kagome::log::setLoggingSystem() must be executed once before");
+      if (logging_system == nullptr) {
+        std::cerr
+            << "Logging system is not ready. "
+               "kagome::log::setLoggingSystem() must be executed once before";
+        std::abort();
+      }
       return logging_system;
     }
   }  // namespace

@@ -33,13 +33,13 @@ namespace kagome::storage::trie {
       }
       auto &node = node_res.value();
       std::optional<common::BufferView> compact;
-      auto &value = node->getMutableValue();
+      const auto &value = node->getValue();
       if (value.hash) {
         auto it = db.db.find(*value.hash);
         if (it != db.db.end() and value_seen.emplace(*value.hash).second) {
           compact = it->second;
-          value.hash.reset();
-          value.value.emplace();
+          node->setValueHash(std::nullopt);
+          node->setValue(common::Buffer{});
         }
       }
       auto &level = levels.back();
@@ -77,7 +77,11 @@ namespace kagome::storage::trie {
         if (level.branch_end) {
           auto &item = level.stack.back();
           auto &proof = proofs[levels.size() - 1][item.t];
-          proof.put(codec.encodeNode(*item.node, StateVersion::V0).value());
+          proof.put(codec
+                        .encodeNode(*item.node,
+                                    StateVersion::V0,
+                                    Codec::TraversePolicy::UncachedOnly)
+                        .value());
           level.pop();
           if (not level.stack.empty()) {
             *level.branch_merkle = MerkleValue::create({}).value();

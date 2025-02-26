@@ -35,15 +35,13 @@ namespace kagome::storage::trie {
         auto i = *item.branch;
         child.match(i);
         if (item.node->isBranch() and i < BranchNode::kMaxChildren) {
-          auto &branches =
-              dynamic_cast<storage::trie::BranchNode &>(*item.node).children;
+          const auto &branches = item.node->asBranch().getChildren();
           // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
           auto &branch = branches[i];
           if (not branch) {
             throw std::logic_error{"RawCursor::update branches[branch]=null"};
           }
-          branch_merkle =
-              &dynamic_cast<storage::trie::DummyNode &>(*branch).db_key;
+          branch_merkle = &branch->asDummy().db_key;
           branch_hash = branch_merkle->asHash();
         } else {
           branch_end = true;
@@ -90,8 +88,8 @@ namespace kagome::storage::trie {
         i = 0;
       }
       if (item.node->isBranch()) {
-        auto &branches =
-            dynamic_cast<storage::trie::BranchNode &>(*item.node).children;
+        const auto &branches =
+            dynamic_cast<storage::trie::BranchNode &>(*item.node).getChildren();
         for (; *i < BranchNode::kMaxChildren; ++*i) {
           // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
           if (not branches[*i]) {

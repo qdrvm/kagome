@@ -60,17 +60,18 @@ namespace kagome::storage::trie {
                 << std::setw(0) << "(branch) key: <"
                 << hex_lower(node->getKeyNibbles().toByteBuffer())
                 << "> value: " << value << " children: ";
-        for (size_t i = 0; i < branch->children.size(); i++) {
-          if (branch->children[i]) {
+        for (size_t i = 0; i < branch->getChildren().size(); i++) {
+          if (branch->getChild(i)) {
             stream_ << std::hex << i << "|";
           }
         }
         stream_ << "\n";
         printEncAndHash(node, nest_level);
-        for (size_t i = 0; i < branch->children.size(); i++) {
-          auto child = branch->children.at(i);
+        for (size_t i = 0; i < branch->getChildren().size(); i++) {
+          auto child = branch->getChild(i);
           if (child) {
-            if (auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
+            if (auto child_node =
+                    std::dynamic_pointer_cast<const TrieNode>(child);
                 child_node != nullptr) {
               printNode(child_node, trie, nest_level + 1);
             } else {

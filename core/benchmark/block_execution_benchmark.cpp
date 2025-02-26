@@ -17,6 +17,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "utils/pretty_duration.hpp"
 
 #define OUTCOME_UNIQUE QTILS_UNIQUE_NAME(outcome)
 
@@ -50,55 +51,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
   _OUTCOME_TRY_MSG_OUT(OUTCOME_UNIQUE, out, expr, __VA_ARGS__)
 #define OUTCOME_TRY_MSG_VOID(expr, ...) \
   _OUTCOME_TRY_MSG_VOID(OUTCOME_UNIQUE, expr, __VA_ARGS__)
-
-namespace {
-
-  template <typename Rep, typename Period>
-  struct pretty_duration {
-    std::chrono::duration<Rep, Period> dur;
-  };
-
-  template <typename Rep, typename Period>
-  pretty_duration(std::chrono::duration<Rep, Period>)
-      -> pretty_duration<Rep, Period>;
-
-  const char *suffix(unsigned denominator) {
-    switch (denominator) {
-      case 1:
-        return "s";
-      case 1000:
-        return "ms";
-      case 1'000'000:
-        return "us";
-      case 1'000'000'000:
-        return "ns";
-      default:
-        return "??";
-    }
-  }
-
-}  // namespace
-
-template <typename Rep, typename Period>
-struct fmt::formatter<pretty_duration<Rep, Period>> {
-  constexpr auto parse(format_parse_context &ctx)
-      -> format_parse_context::iterator {
-    return ctx.end();
-  }
-
-  auto format(const pretty_duration<Rep, Period> &p, format_context &ctx) const
-      -> format_context::iterator {
-    auto denominator = 1;
-    static_assert(Period::num == 1);
-    while (p.dur.count() / denominator > 1000 && denominator < Period::den) {
-      denominator *= 1000;
-    }
-    return fmt::format_to(ctx.out(),
-                          "{:.2f} {}",
-                          static_cast<double>(p.dur.count()) / denominator,
-                          suffix(Period::den / denominator));
-  }
-};
 
 namespace kagome::benchmark {
 

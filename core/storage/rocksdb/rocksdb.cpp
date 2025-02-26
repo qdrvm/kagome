@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iterator>
 #include <ranges>
+#include <soralog/macro.hpp>
 
 #include "filesystem/common.hpp"
 
@@ -73,10 +74,19 @@ namespace kagome::storage {
       bool prevent_destruction,
       const std::unordered_map<std::string, int32_t> &column_ttl,
       bool enable_migration) {
+    auto log = log::createLogger("RocksDB", "storage");
+
+    // little sanity check
+    if (path.is_relative() && path.begin() != path.end()
+        && *path.begin() == "~") {
+      SL_WARN(log,
+              "Database path starts with '~', most likely the home dir was "
+              "meant, but '~' was not expanded.");
+    }
+
     const auto no_db_presented = not fs::exists(path);
     OUTCOME_TRY(mkdirs(path));
 
-    auto log = log::createLogger("RocksDB", "storage");
     auto absolute_path = fs::absolute(path);
 
     OUTCOME_TRY(createDirectory(absolute_path, log));
