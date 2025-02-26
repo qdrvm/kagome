@@ -9,9 +9,15 @@
 #include "pvm/types.hpp"
 #include <sys/syscall.h>
 #include <errno.h>
+#include <fstream>
 
 namespace kagome::pvm::native::linux {
     using Fd = decltype(syscall());
+
+    struct iovec {
+        void *iov_base,
+        size_t iov_len;
+    };
 
     inline Result<void> check_syscall(Fd result) {
         auto unprivileged_userfaultfd = []() {
@@ -34,8 +40,9 @@ namespace kagome::pvm::native::linux {
         return outcome::success();
     }
 
-    inline Result<Fd> __syscall(long int sysno, unsigned int flags) {
-        auto fd = syscall(sysno, flags);
+    template<typename...Args>
+    inline Result<Fd> __syscall(long int sysno, Args...&&args) {
+        auto fd = syscall(sysno, std::forward<Args>(args)...);
         OUTCOME_TRY(check_syscall(fd));
         return outcome::success(fd);
     }
@@ -44,8 +51,20 @@ namespace kagome::pvm::native::linux {
         return __syscall(SYS_userfaultfd, flags);
     }
 
-    inline Result<Fd> sys_memfd_create(unsigned int flags) {
-        return __syscall(SYS_memfd_create, flags);
+    inline Result<Fd> sys_memfd_create(const char *name, unsigned int flags) {
+        return __syscall(SYS_memfd_create, name, flags);
+    }
+
+    inline Result<void> sys_ftruncate(Fd fd, size_t length) {
+        OUTCOME_TRY(_, __syscall(SYS_ftruncate, fd, length));
+        return outcome::success();
+    }
+
+    template<size_t N>
+    inline Result<size_t> sys_writev(Fd fd, const iovec (&iv)[N]) {
+        OUTCOME_TRY(result, __syscall(SYS_writev, fd, iv, N));
+        return outcome::success(size_t(result));
     }
 
 }
+

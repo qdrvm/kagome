@@ -62,6 +62,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
       return COMPONENT_NAME ": syscall failed";
       case E::SYS_CALL_NOT_PERMITTED:
       return COMPONENT_NAME ": syscall not permitted. run 'sysctl -w vm.unprivileged_userfaultfd=1' to enable it";
+      case E::LEN_UNALIGNED:
+      return COMPONENT_NAME ": length is not aligned";
+      case E::MEMFD_INCOMPLETE_WRITE:
+      return COMPONENT_NAME ": memfd incomplete write";
   }
   return COMPONENT_NAME ": Unknown error";
 }

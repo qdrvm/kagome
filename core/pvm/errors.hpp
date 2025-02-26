@@ -37,6 +37,8 @@ namespace kagome::pvm {
     MODULE_CACHE_IS_NOT_SUPPORTED,
     SYS_CALL_FAILED,
     SYS_CALL_NOT_PERMITTED,
+    LEN_UNALIGNED,
+    MEMFD_INCOMPLETE_WRITE,
   };
 
   template <typename T>
