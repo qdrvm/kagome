@@ -55,8 +55,6 @@ namespace kagome {
   using storage::trie::TrieStorageBackendImpl;
   using storage::trie::TrieStorageImpl;
 
-  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
   struct TrieTracker : TrieStorageBackend {
     TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
         : inner{std::move(inner)} {}
