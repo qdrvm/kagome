@@ -85,6 +85,7 @@ namespace kagome::pvm::sandbox::linux {
       const auto uffd_available = config.allow_dynamic_paging;
       if (uffd_available) {
         OUTCOME_TRY(userfaultfd, native::linux::sys_userfaultfd(O_CLOEXEC));
+        (void)userfaultfd;
         // TODO(iceseer): userfaultfd features
       }
 
