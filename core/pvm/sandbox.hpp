@@ -16,10 +16,12 @@ namespace kagome::pvm::sandbox {
     extern size_t get_native_page_size();
 
     using GlobalStateKind = std::variant<linux::GlobalState>;
-    outcome::result<GlobalStateKind> createGlobalState(SandboxKind kind, const Config &config) {
+    inline outcome::result<GlobalStateKind> createGlobalState(SandboxKind kind, const Config &config) {
         switch (kind.value) {
-            case SandboxKind::Linux:
-                return linux::GlobalState::create(config);
+            case SandboxKind::Linux: {
+                OUTCOME_TRY(global_state, linux::GlobalState::create(config));
+                return GlobalStateKind(global_state);
+            }
             case SandboxKind::Generic:
                 return Error::NOT_IMPLEMENTED;
         }

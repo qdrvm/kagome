@@ -27,17 +27,17 @@ namespace kagome::pvm::sandbox::linux {
     inline Result<Fd> create_empty_memfd(const char *name) {
         const unsigned int MFD_CLOEXEC = 0x0001;  // Флаг CLOEXEC
         const unsigned int MFD_ALLOW_SEALING = 0x0002;  // Флаг ALLOW_SEALING
-        native::linux::sys_memfd_create(name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
+        return native::linux::sys_memfd_create(name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
     }
 
     template<size_t N>
-    Result<size_t> writev(Fd memfd, const std::span<uint8_t> (&data)[N]) {
+    inline Result<size_t> writev(Fd fd, const std::span<uint8_t> (&data)[N]) {
         native::linux::iovec iv[N];
         for (size_t i = 0; i < N; ++i) {
             iv[i].iov_base = data[i].data();
             iv[i].iov_len = data[i].size();
         }
-        return native::linux::sys_writev(fd, &iv);
+        return native::linux::sys_writev(fd, iv);
     }
 
 
@@ -59,21 +59,15 @@ namespace kagome::pvm::sandbox::linux {
             return Error::MEMFD_INCOMPLETE_WRITE;
         }
 
-        linux_raw::sys_fcntl(
-            memfd.borrow(),
-            linux_raw::F_ADD_SEALS,
-            linux_raw::F_SEAL_SEAL | linux_raw::F_SEAL_SHRINK | linux_raw::F_SEAL_GROW | linux_raw::F_SEAL_WRITE,
-        )?;
-
-        Ok(memfd)
-
+        OUTCOME_TRY(native::linux::sys_fcntl(memfd, F_ADD_SEALS, F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE));
+        return outcome::success(memfd);
     }
 
     inline Result<Fd> prepare_zygote() {
-
         const auto native_page_size = get_native_page_size();
         const auto length_aligned = align_to_next_page_usize(native_page_size, ZYGOTE_BLOB_LEN);
-        return prepare_sealed_memfd(create_empty_memfd("polkavm_zygote"), length_aligned, {ZYGOTE_BLOB});
+        OUTCOME_TRY(memfd, create_empty_memfd("polkavm_zygote"));
+        return prepare_sealed_memfd(memfd, length_aligned, {ZYGOTE_BLOB});
     }
 
     struct GlobalState {

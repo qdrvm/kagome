@@ -14,9 +14,11 @@ namespace kagome::pvm {
 
     struct EngineState {
         Opt<sandbox::GlobalStateKind> sandbox_global;
-        Opt<sandbox::WorkerCacheKind> sandbox_cache;
-        CompilerCache compiler_cache;
-        ModuleCache _module_cache;
+
+        // TODO(iceseer)        
+        // Opt<sandbox::WorkerCacheKind> sandbox_cache;
+        // CompilerCache compiler_cache;
+        // ModuleCache _module_cache;
     };
 
     struct Engine {

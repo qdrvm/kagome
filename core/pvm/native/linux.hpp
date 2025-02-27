@@ -12,10 +12,10 @@
 #include <fstream>
 
 namespace kagome::pvm::native::linux {
-    using Fd = decltype(syscall());
+    using Fd = long int;
 
     struct iovec {
-        void *iov_base,
+        void *iov_base;
         size_t iov_len;
     };
 
@@ -41,7 +41,7 @@ namespace kagome::pvm::native::linux {
     }
 
     template<typename...Args>
-    inline Result<Fd> __syscall(long int sysno, Args...&&args) {
+    inline Result<Fd> __syscall(long int sysno, Args&&...args) {
         auto fd = syscall(sysno, std::forward<Args>(args)...);
         OUTCOME_TRY(check_syscall(fd));
         return outcome::success(fd);
@@ -64,6 +64,11 @@ namespace kagome::pvm::native::linux {
     inline Result<size_t> sys_writev(Fd fd, const iovec (&iv)[N]) {
         OUTCOME_TRY(result, __syscall(SYS_writev, fd, iv, N));
         return outcome::success(size_t(result));
+    }
+
+    inline Result<int32_t> sys_fcntl(Fd fd, uint32_t cmd, uint32_t arg) {
+        OUTCOME_TRY(result, __syscall(SYS_fcntl, fd, cmd, arg));
+        return outcome::success(int32_t(result));
     }
 
 }
