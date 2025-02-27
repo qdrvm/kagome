@@ -534,6 +534,34 @@ namespace {
     return {t};
   }
 
+  kagome::primitives::Transcript assigned_cores_transcript(
+      const scale::BitVec &core_indices) {
+    kagome::primitives::Transcript t;
+    t.initialize(ASSIGNED_CORE_CONTEXT);
+    t.append_message("core", scale::encode(core_indices).value());
+    return {t};
+  }
+
+  constexpr std::string_view RELAY_VRF_MODULO_CONTEXT_V1 = "A&V MOD";
+  constexpr std::string_view RELAY_VRF_MODULO_CONTEXT_V2 = "A&V MOD v2";
+
+  kagome::primitives::Transcript relay_vrf_modulo_transcript_v1(
+      const RelayVRFStory &relay_vrf_story, uint32_t sample) {
+    kagome::primitives::Transcript transcript;
+    transcript.initialize("A&V MOD");
+    transcript.append_message("RC-VRF", relay_vrf_story.data);
+    transcript.append_message("sample", sample);
+    return {transcript};
+  }
+
+  kagome::primitives::Transcript relay_vrf_modulo_transcript_v2(
+      const RelayVRFStory &relay_vrf_story) {
+    kagome::primitives::Transcript transcript;
+    transcript.initialize("A&V MOD v2");
+    transcript.append_message("RC-VRF", relay_vrf_story.data);
+    return {transcript};
+  }
+
   outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
       const scale::BitVec &claimed_core_indices,
       kagome::network::ValidatorIndex validator_index,
@@ -599,8 +627,68 @@ namespace {
             return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
           }
 
-          /// TODO(iceseer): `vrf_verify_extra` check
-          /// TODO(iceseer): `relay_vrf_modulo_core`
+          auto log_ =
+              kagome::log::createLogger("ApprovalDistribution", "parachain");
+
+          primitives::Transcript modulo_transcript =
+              relay_vrf_modulo_transcript_v2(relay_vrf_story);
+          primitives::Transcript transcript =
+              assigned_cores_transcript(obj.core_bitfield);
+
+          auto res = sr25519_vrf_verify_extra(
+              validator_public.data(),
+              assignment.vrf.output.data(),
+              vrf_proof.data(),
+              reinterpret_cast<const Strobe128 *>(
+                  modulo_transcript.data().data()),
+              reinterpret_cast<const Strobe128 *>(transcript.data().data()));
+
+          // Prepare output variables
+          uint32_t *cores_out = nullptr;
+          size_t cores_out_sz = 0;
+
+          sr25519_relay_vrf_modulo_cores(&res.input_bytes,
+                                         &res.output_bytes,
+                                         config.relay_vrf_modulo_samples,
+                                         config.n_cores,
+                                         &cores_out,
+                                         &cores_out_sz);
+
+          // Process the resulting cores
+          std::vector<uint32_t> resulting_cores(cores_out,
+                                                cores_out + cores_out_sz);
+
+          // Validate that all claimed cores are in the resulting cores
+          bool all_cores_valid = true;
+          for (size_t claimed_core_index = 0;
+               claimed_core_index < claimed_core_indices.bits.size();
+               ++claimed_core_index) {
+            if (claimed_core_indices.bits[claimed_core_index]) {
+              if (std::ranges::find(resulting_cores, claimed_core_index)
+                  == resulting_cores.end()) {
+                all_cores_valid = false;
+
+                SL_DEBUG(
+                    log_,
+                    "Assignment claimed cores mismatch. (resulting_cores={}, "
+                    "claimed_core_indices={}, claimed_core_index={})",
+                    fmt::join(resulting_cores, ","),
+                    fmt::join(claimed_core_indices.bits, ","),
+                    claimed_core_index);
+
+                break;
+              }
+            }
+          }
+
+          if (!all_cores_valid) {
+            // Clean up allocated memory?
+            if (cores_out) {
+              sr25519_clear_assigned_cores_v2(cores_out, cores_out_sz);
+            }
+            return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
+          }
+
           return network::DelayTranche(0ull);
         },
         [&](const parachain::approval::RelayVRFModulo &obj)
@@ -610,21 +698,23 @@ namespace {
             return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
           }
 
-          auto log_ = kagome::log::createLogger("ApprovalDistribution",
-                                                "parachain");
+          auto log_ =
+              kagome::log::createLogger("ApprovalDistribution", "parachain");
           if (parachain::approval::count_ones(claimed_core_indices) != 1) {
             SL_WARN(log_,
                     "`RelayVRFModulo` assignment must always claim 1 core.");
             return ApprovalDistributionError::INVALID_ARGUMENTS;
           }
+          primitives::Transcript modulo_transcript =
+              relay_vrf_modulo_transcript_v1(relay_vrf_story, sample);
           primitives::Transcript transcript =
               assigned_core_transcript(first_claimed_core_index);
           auto res = sr25519_vrf_verify_extra(
               validator_public.data(),
-              &relay_vrf_story,
-              sample,
               assignment.vrf.output.data(),
               vrf_proof.data(),
+              reinterpret_cast<const Strobe128 *>(
+                  modulo_transcript.data().data()),
               reinterpret_cast<const Strobe128 *>(transcript.data().data()));
 
           auto core = sr25519_relay_vrf_modulo_core(
