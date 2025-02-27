@@ -86,6 +86,15 @@ namespace kagome::primitives {
       }
     }
 
+    void absorb(const uint8_t *src, size_t len) {
+      for (size_t i = 0; i < len; ++i) {
+        *as<uint8_t>(current_position_++) ^= src[i];
+        if (kStrobeR == current_position_) {
+          runF();
+        }
+      }
+    }
+
     template <typename T, size_t N>
     void overwrite(const T (&src)[N]) {
       for (const auto i : src) {
@@ -198,6 +207,12 @@ namespace kagome::primitives {
     void ad(const T (&src)[N]) {
       beginOp<kMore, kFlag_A>();
       absorb(src);
+    }
+
+    template <bool kMore>
+    void ad(const uint8_t *src, size_t len) {
+      beginOp<kMore, kFlag_A>();
+      absorb(src, len);
     }
 
     template <bool kMore, typename T, size_t N>
