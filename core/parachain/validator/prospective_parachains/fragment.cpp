@@ -151,9 +151,9 @@ namespace kagome::parachain::fragment {
         .required_parent = commitments.para_head,
         .hrmp_watermark = ((commitments.watermark == relay_parent.number)
                                ? HrmpWatermarkUpdate{HrmpWatermarkUpdateHead{
-                                   .v = commitments.watermark}}
+                                     .v = commitments.watermark}}
                                : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{
-                                   .v = commitments.watermark}}),
+                                     .v = commitments.watermark}}),
         .outbound_hrmp = outbound_hrmp,
         .ump_messages_sent = uint32_t(commitments.upward_msgs.size()),
         .ump_bytes_sent = ump_sent_bytes,

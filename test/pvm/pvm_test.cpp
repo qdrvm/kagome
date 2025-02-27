@@ -16,77 +16,89 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-template<typename T>
+template <typename T>
 struct Channel {
-    struct _Receiver;
-    struct _Sender;
+  struct _Receiver;
+  struct _Sender;
 
-    struct _Receiver { using Other = _Sender; };
-    struct _Sender { using Other = _Receiver; };
+  struct _Receiver {
+    using Other = _Sender;
+  };
+  struct _Sender {
+    using Other = _Receiver;
+  };
 
-    // template<typename V>
-    // concept IsReceiver = std::is_same_v<V, Receiver>;
+  // template<typename V>
+  // concept IsReceiver = std::is_same_v<V, Receiver>;
 
-    // template<typename V>
-    // concept IsReceiver = std::is_same_v<V, Receiver>;
+  // template<typename V>
+  // concept IsReceiver = std::is_same_v<V, Receiver>;
 
-    template<typename Opp>
-    struct Endpoint {
-        static_assert(std::is_same_v<Opp, _Receiver> || std::is_same_v<Opp, _Sender>, "Incorrect type");
-        static constexpr bool IsReceiver = std::is_same_v<Opp, _Receiver>;
-        static constexpr bool IsSender = std::is_same_v<Opp, _Sender>;
+  template <typename Opp>
+  struct Endpoint {
+    static_assert(std::is_same_v<Opp, _Receiver>
+                      || std::is_same_v<Opp, _Sender>,
+                  "Incorrect type");
+    static constexpr bool IsReceiver = std::is_same_v<Opp, _Receiver>;
+    static constexpr bool IsSender = std::is_same_v<Opp, _Sender>;
 
-        void register_opp(Endpoint<typename Opp::Other> &opp) {
-            opp_ = &opp;
-        }
+    void register_opp(Endpoint<typename Opp::Other> &opp) {
+      opp_ = &opp;
+    }
 
-        void unregister_opp(Endpoint<typename Opp::Other> &opp) {
-            assert(opp_ == &opp);
-            opp_ = nullptr;
-        }
+    void unregister_opp(Endpoint<typename Opp::Other> &opp) {
+      assert(opp_ == &opp);
+      opp_ = nullptr;
+    }
 
-        ~Endpoint() {
-            if (opp_) {
-                opp_->unregister_opp(*this);
-                opp_ = nullptr;
-            }
-        }
+    ~Endpoint() {
+      if (opp_) {
+        opp_->unregister_opp(*this);
+        opp_ = nullptr;
+      }
+    }
 
-        void set(T &&t) requires (IsSender) {
-            opp_->data_ = std::move(t);
-        }
+    void set(T &&t)
+      requires(IsSender)
+    {
+      opp_->data_ = std::move(t);
+    }
 
-        void set(T &t) requires (IsSender) {
-            opp_->data_ = t;
-        }
+    void set(T &t)
+      requires(IsSender)
+    {
+      opp_->data_ = t;
+    }
 
+   private:
+    friend struct Endpoint<typename Opp::Other>;
 
-    private:
-        friend struct Endpoint<typename Opp::Other>;
-        
-        Endpoint<typename Opp::Other> *opp_ = nullptr;
-        std::conditional_t<std::is_same_v<Opp, _Receiver> , std::optional<T>, std::monostate> data_;
-    };
+    Endpoint<typename Opp::Other> *opp_ = nullptr;
+    std::conditional_t<std::is_same_v<Opp, _Receiver>,
+                       std::optional<T>,
+                       std::monostate>
+        data_;
+  };
 
-    // struct Sender {
-    //     void register_receiver(Receiver &receiver) {
-    //         receiver_ = &receiver;
-    //     }
+  // struct Sender {
+  //     void register_receiver(Receiver &receiver) {
+  //         receiver_ = &receiver;
+  //     }
 
-    //     void unregister_receiver(Receiver &receiver) {
-    //         assert(receiver_ == &receiver);
-    //         receiver_ = nullptr;
-    //     }
+  //     void unregister_receiver(Receiver &receiver) {
+  //         assert(receiver_ == &receiver);
+  //         receiver_ = nullptr;
+  //     }
 
-    //     ~Sender() {
-    //         if (receiver_) {
-    //             receiver_->unregister_sender(*this);
-    //             receiver_ = nullptr;
-    //         }
-    //     }
-    // private:
-    //     Receiver *receiver_ = nullptr;
-    // };
+  //     ~Sender() {
+  //         if (receiver_) {
+  //             receiver_->unregister_sender(*this);
+  //             receiver_ = nullptr;
+  //         }
+  //     }
+  // private:
+  //     Receiver *receiver_ = nullptr;
+  // };
 };
 
 using namespace kagome::pvm;
@@ -94,14 +106,14 @@ using namespace kagome::pvm;
 class PvmTest : public testing::Test {};
 
 TEST(PvmTest, t) {
-    Channel<int>::Endpoint<Channel<int>::_Receiver> r;
-    Channel<int>::Endpoint<Channel<int>::_Sender> s;
+  Channel<int>::Endpoint<Channel<int>::_Receiver> r;
+  Channel<int>::Endpoint<Channel<int>::_Sender> s;
 
-    r.register_opp(s);
-    s.register_opp(r);
+  r.register_opp(s);
+  s.register_opp(r);
 
-    int q = 10;
-    s.set(q);
+  int q = 10;
+  s.set(q);
 }
 
 TEST(PvmTest, test_blog_1) {
@@ -155,5 +167,4 @@ TEST(PvmTest, doom) {
 
   EXPECT_OUTCOME_TRUE(config, Config::from_env());
   EXPECT_OUTCOME_TRUE(engine, Engine::create(config));
-
 }

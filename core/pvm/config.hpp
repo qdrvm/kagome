@@ -48,7 +48,7 @@ inline constexpr std::optional<bool> bool_from_env(
 
 namespace kagome::pvm {
   struct BackendKind {
-    enum T: uint8_t {
+    enum T : uint8_t {
       Compiler,
       Interpreter,
     } value;
@@ -73,7 +73,7 @@ namespace kagome::pvm {
   };
 
   struct SandboxKind {
-    enum T: uint8_t {
+    enum T : uint8_t {
       Linux,
       Generic,
     } value;
@@ -92,11 +92,11 @@ namespace kagome::pvm {
     }
 
     static bool is_supported(T value) {
-      #if defined(__linux__)
-        const auto builded = Linux;
-      #else
-        const auto builded = Generic;
-      #endif      
+#if defined(__linux__)
+      const auto builded = Linux;
+#else
+      const auto builded = Generic;
+#endif
       return builded == value;
     }
 

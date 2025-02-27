@@ -54,17 +54,22 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::pvm, Error, e) {
       return COMPONENT_NAME ": Unsupported backend kind";
     case E::UNSUPPORTED_SANDBOX:
       return COMPONENT_NAME ": Unsupported sandbox";
-      case E::ALLOW_EXPERIMENTAL_DISABLED:
-      return COMPONENT_NAME ": cannot enable execution cross-checking: `set_allow_experimental`/`POLKAVM_ALLOW_EXPERIMENTAL` is not enabled";
-      case E::MODULE_CACHE_IS_NOT_SUPPORTED:
+    case E::ALLOW_EXPERIMENTAL_DISABLED:
+      return COMPONENT_NAME
+          ": cannot enable execution cross-checking: "
+          "`set_allow_experimental`/`POLKAVM_ALLOW_EXPERIMENTAL` is not "
+          "enabled";
+    case E::MODULE_CACHE_IS_NOT_SUPPORTED:
       return COMPONENT_NAME ": module cache is not supported yet";
-      case E::SYS_CALL_FAILED:
+    case E::SYS_CALL_FAILED:
       return COMPONENT_NAME ": syscall failed";
-      case E::SYS_CALL_NOT_PERMITTED:
-      return COMPONENT_NAME ": syscall not permitted. run 'sysctl -w vm.unprivileged_userfaultfd=1' to enable it";
-      case E::LEN_UNALIGNED:
+    case E::SYS_CALL_NOT_PERMITTED:
+      return COMPONENT_NAME
+          ": syscall not permitted. run 'sysctl -w "
+          "vm.unprivileged_userfaultfd=1' to enable it";
+    case E::LEN_UNALIGNED:
       return COMPONENT_NAME ": length is not aligned";
-      case E::MEMFD_INCOMPLETE_WRITE:
+    case E::MEMFD_INCOMPLETE_WRITE:
       return COMPONENT_NAME ": memfd incomplete write";
   }
   return COMPONENT_NAME ": Unknown error";

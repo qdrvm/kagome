@@ -7,23 +7,22 @@
 #pragma once
 
 #include <unordered_map>
-#include "pvm/types.hpp"
 #include "pvm/native/linux.hpp"
+#include "pvm/types.hpp"
 
 namespace kagome::pvm::sandbox {
 
-struct ShmAllocator {
-    private:
+  struct ShmAllocator {
+   private:
     struct State {
-        uint32_t page_shift;
+      uint32_t page_shift;
 
-        // TODO(iceseer)
-        //native::linux::Mmap mmap;
-        //Fd fd;
-        //mutable: Mutex<GenericAllocator<Config>>,
+      // TODO(iceseer)
+      // native::linux::Mmap mmap;
+      // Fd fd;
+      // mutable: Mutex<GenericAllocator<Config>>,
     };
     std::shared_ptr<State> state;
-};
+  };
 
-
-}
+}  // namespace kagome::pvm::sandbox
