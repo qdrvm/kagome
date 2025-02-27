@@ -34,11 +34,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
  public:
   using ClaimQueue = std::map<CoreIndex, std::vector<ParachainId>>;
 
-  static constexpr fragment::AsyncBackingParams ASYNC_BACKING_PARAMETERS{
-      .max_candidate_depth = 4,
-      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
-  };
-
   std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
 
@@ -114,47 +109,58 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   }
 
   void handle_leaf_activation_2(
-      const network::ExView &update,
-      const TestLeaf &leaf,
-      const TestState &test_state,
-      const fragment::AsyncBackingParams &async_backing_params,
-      std::function<Hash(const Hash &)> func = get_parent_hash) {
+    const network::ExView &update,
+    const TestLeaf &leaf,
+    const TestState &test_state,
+    std::function<Hash(const Hash &)> func = get_parent_hash) {
     const auto &[number, hash, para_data] = leaf;
     const auto &header = update.new_head;
 
-    EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
-        .WillRepeatedly(Return(outcome::success(async_backing_params)));
+    size_t candidate_depth = 0;
 
-    if (not test_state.enable_claim_queue_api) {
-      EXPECT_CALL(*parachain_api_, claim_queue(hash))
-          .WillRepeatedly(Return(std::nullopt));
-      std::vector<runtime::CoreState> cores;
-      for (const auto &[_, paras] : test_state.claim_queue) {
+    if (test_state.enable_claim_queue_api) {
+        EXPECT_CALL(*parachain_api_, claim_queue(hash))
+            .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
+
+        runtime::ClaimQueueSnapshot snapshot;
+        snapshot.claimes = test_state.claim_queue;
+
+        TransposedClaimQueue transposed_claim_queue =
+        transposeClaimQueue(snapshot);
+
+        for (const auto &[core_index, claims] : transposed_claim_queue) {
+            for (const auto &[_, claim_set] : claims) {
+                candidate_depth += claim_set.size();
+            }
+        }
+    } else {
+        EXPECT_CALL(*parachain_api_, claim_queue(hash))
+            .WillRepeatedly(Return(std::nullopt));
+
+        std::vector<runtime::CoreState> cores;
+        for (const auto &[_, paras] : test_state.claim_queue) {
         cores.emplace_back(runtime::ScheduledCore{
             .para_id = paras[0],
             .collator = std::nullopt,
         });
-      }
-      EXPECT_CALL(*parachain_api_, availability_cores(hash))
-          .WillRepeatedly(Return(outcome::success(cores)));
-    } else {
-      EXPECT_CALL(*parachain_api_, claim_queue(hash))
-          .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
+        }
+        EXPECT_CALL(*parachain_api_, availability_cores(hash))
+            .WillRepeatedly(Return(outcome::success(cores)));
     }
 
     EXPECT_CALL(*block_tree_, tryGetBlockHeader(hash))
         .WillRepeatedly(Return(header));
 
     const BlockNumber min_min = [&, number = number]() -> BlockNumber {
-      std::optional<BlockNumber> min_min;
-      for (const auto &[_, data] : leaf.para_data) {
+        std::optional<BlockNumber> min_min;
+        for (const auto &[_, data] : leaf.para_data) {
         min_min = (min_min ? std::min(*min_min, data.min_relay_parent)
-                           : data.min_relay_parent);
-      }
-      if (min_min) {
+                            : data.min_relay_parent);
+        }
+        if (min_min) {
         return *min_min;
-      }
-      return number;
+        }
+        return number;
     }();
 
     const auto ancestry_len = number - min_min;
@@ -163,26 +169,26 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
 
     Hash d = hash;
     for (BlockNumber x = 0; x <= ancestry_len; ++x) {
-      ancestry_hashes.emplace_back(d);
-      ancestry_numbers.push_back(number - x);
-      d = func(d);
+        ancestry_hashes.emplace_back(d);
+        ancestry_numbers.push_back(number - x);
+        d = func(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
 
     if (ancestry_len > 0) {
-      EXPECT_CALL(*block_tree_,
-                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN + 1))
-          .WillRepeatedly(Return(ancestry_hashes));
-      EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
-          .WillRepeatedly(Return(1));
+        EXPECT_CALL(*block_tree_,
+                    getDescendingChainToBlock(hash, candidate_depth + 1))
+            .WillRepeatedly(Return(ancestry_hashes));
+        EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
+            .WillRepeatedly(Return(1));
     }
 
     std::unordered_set<Hash> used_relay_parents;
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
-      const auto &h_ = ancestry_hashes[i];
-      const auto &n_ = ancestry_numbers[i];
+        const auto &h_ = ancestry_hashes[i];
+        const auto &n_ = ancestry_numbers[i];
 
-      if (!used_relay_parents.contains(h_)) {
+        if (!used_relay_parents.contains(h_)) {
         BlockHeader h{
             .number = n_,
             .parent_hash = get_parent_hash(h_),
@@ -195,49 +201,49 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
         EXPECT_CALL(*parachain_api_, session_index_for_child(h_))
             .WillRepeatedly(Return(outcome::success(1)));
         used_relay_parents.emplace(h_);
-      }
+        }
     }
 
     std::unordered_set<ParachainId> paras;
     for (const auto &[_, values] : test_state.claim_queue) {
-      for (const auto &value : values) {
+        for (const auto &value : values) {
         paras.emplace(value);
-      }
+        }
     }
 
     for (auto it = paras.begin(); it != paras.end(); ++it) {
-      const auto para_id = *it;
-      const auto &[min_relay_parent, head_data, pending_availability] =
-          leaf.paraData(para_id).get();
+        const auto para_id = *it;
+        const auto &[min_relay_parent, head_data, pending_availability] =
+            leaf.paraData(para_id).get();
 
-      const auto constraints =
-          dummy_constraints(min_relay_parent,
+        const auto constraints =
+            dummy_constraints(min_relay_parent,
                             {number},
                             head_data,
                             test_state.validation_code_hash);
-      const fragment::BackingState backing_state{
-          .constraints = constraints,
-          .pending_availability = pending_availability,
-      };
-      EXPECT_CALL(*parachain_api_, staging_para_backing_state(hash, para_id))
-          .WillRepeatedly(Return(backing_state));
+        const fragment::BackingState backing_state{
+            .constraints = constraints,
+            .pending_availability = pending_availability,
+        };
+        EXPECT_CALL(*parachain_api_, staging_para_backing_state(hash, para_id))
+            .WillRepeatedly(Return(backing_state));
 
-      for (const auto &pending : pending_availability) {
+        for (const auto &pending : pending_availability) {
         if (!used_relay_parents.contains(pending.descriptor.relay_parent)) {
-          BlockHeader h{
-              .number = pending.relay_parent_number,
-              .parent_hash = get_parent_hash(pending.descriptor.relay_parent),
-              .state_root = {},
-              .extrinsics_root = {},
-              .digest = {},
-              .hash_opt = {},
-          };
-          EXPECT_CALL(*block_tree_,
-                      tryGetBlockHeader(pending.descriptor.relay_parent))
-              .WillRepeatedly(Return(h));
-          used_relay_parents.emplace(pending.descriptor.relay_parent);
+            BlockHeader h{
+                .number = pending.relay_parent_number,
+                .parent_hash = get_parent_hash(pending.descriptor.relay_parent),
+                .state_root = {},
+                .extrinsics_root = {},
+                .digest = {},
+                .hash_opt = {},
+            };
+            EXPECT_CALL(*block_tree_,
+                        tryGetBlockHeader(pending.descriptor.relay_parent))
+                .WillRepeatedly(Return(h));
+            used_relay_parents.emplace(pending.descriptor.relay_parent);
         }
-      }
+        }
     }
 
     ASSERT_OUTCOME_SUCCESS_TRY(
@@ -248,12 +254,12 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
 
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
-      return l.first < r.first;
+        return l.first < r.first;
     });
 
     std::vector<std::pair<ParachainId, BlockNumber>> mrp_response;
     for (const auto &[pid, ppd] : para_data) {
-      mrp_response.emplace_back(pid, ppd.min_relay_parent);
+        mrp_response.emplace_back(pid, ppd.min_relay_parent);
     }
     ASSERT_EQ(resp, mrp_response);
   }
@@ -291,7 +297,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   void activate_leaf(
       const TestLeaf &leaf,
       const TestState &test_state,
-      const fragment::AsyncBackingParams &async_backing_params,
       std::function<Hash(const Hash &)> parent_hash_fn = get_parent_hash) {
     const auto &[number, hash, para_data] = leaf;
     BlockHeader header{
@@ -312,7 +317,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     handle_leaf_activation_2(update,
                              leaf,
                              test_state,
-                             async_backing_params,
                              std::move(parent_hash_fn));
   }
 
@@ -414,10 +418,6 @@ TEST_F(ProspectiveParachainsTest,
   };
   update.new_head.hash_opt = hash;
 
-  EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
-      .WillRepeatedly(
-          Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
-
   std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
@@ -464,9 +464,9 @@ TEST_F(ProspectiveParachainsTest, introduce_candidates_basic) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
+  activate_leaf(leaf_b, test_state);
+  activate_leaf(leaf_c, test_state);
 
   // Candidate A1
 
@@ -557,7 +557,7 @@ TEST_F(ProspectiveParachainsTest, introduce_candidate_multiple_times) {
               {2, PerParaData(100, {2, 3, 4})},
           },
   };
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidate A.
   const auto &[candidate_a, pvd_a] =
@@ -606,11 +606,7 @@ TEST_F(ProspectiveParachainsTest, fragment_chain_best_chain_length_is_bounded) {
           },
   };
   activate_leaf(leaf_a,
-                test_state,
-                fragment::AsyncBackingParams{
-                    .max_candidate_depth = 1,
-                    .allowed_ancestry_len = 3,
-                });
+                test_state);
 
   // Candidates A, B and C form a chain.
   const auto &[candidate_a, pvd_a] =
@@ -694,9 +690,9 @@ TEST_F(ProspectiveParachainsTest, introduce_candidate_parent_leaving_view) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
+  activate_leaf(leaf_b, test_state);
+  activate_leaf(leaf_c, test_state);
 
   // Candidate A1
   const auto &[candidate_a1, pvd_a1] =
@@ -810,8 +806,8 @@ TEST_F(ProspectiveParachainsTest, introduce_candidate_on_multiple_forks) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
+  activate_leaf(leaf_b, test_state);
 
   // Candidate built on leaf A.
   const auto &[candidate_a, pvd_a] =
@@ -851,7 +847,7 @@ TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidates A, B, C and D all form a chain, but we'll first introduce A, C
   // and D.
@@ -919,7 +915,7 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_single_candidate) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidate A
   const auto &[candidate_a, pvd_a] =
@@ -987,7 +983,7 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidate A
   const auto &[candidate_a, pvd_a] =
@@ -1154,17 +1150,9 @@ TEST_F(ProspectiveParachainsTest, check_hypothetical_membership_query) {
 
   // Activate leaves.
   activate_leaf(leaf_a,
-                test_state,
-                fragment::AsyncBackingParams{
-                    .max_candidate_depth = 1,
-                    .allowed_ancestry_len = 3,
-                });
+                test_state);
   activate_leaf(leaf_b,
-                test_state,
-                fragment::AsyncBackingParams{
-                    .max_candidate_depth = 1,
-                    .allowed_ancestry_len = 3,
-                });
+                test_state);
 
   // Candidates will be valid on both leaves.
 
@@ -1258,7 +1246,7 @@ TEST_F(ProspectiveParachainsTest, check_pvd_query) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidate A.
   const auto [candidate_a, pvd_a] =
@@ -1357,11 +1345,11 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   };
 
   // Activate leaves.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
+  activate_leaf(leaf_b, test_state);
 
   // Try activating a duplicate leaf.
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state);
 
   // Pass in an empty update.
   ASSERT_OUTCOME_SUCCESS_TRY(
@@ -1393,7 +1381,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
     //         .lost = update.lost,
     //     }));
     handle_leaf_activation_2(
-        update, leaf_c, test_state, ASYNC_BACKING_PARAMETERS);
+        update, leaf_c, test_state);
   }
 
   // Remove all remaining leaves.
@@ -1464,7 +1452,7 @@ TEST_F(ProspectiveParachainsTest,
   };
 
   // Activate leaf A.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidates A, B, C and D all form a chain
   const auto [candidate_a, pvd_a] =
@@ -1522,7 +1510,7 @@ TEST_F(ProspectiveParachainsTest,
       }},
   };
   // Activate leaf B.
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state);
   get_backable_candidates(leaf_b, para_id, {}, 5, {});
 
   get_backable_candidates(
@@ -1560,7 +1548,7 @@ TEST_F(ProspectiveParachainsTest,
   };
 
   activate_leaf(
-      leaf_c, test_state, ASYNC_BACKING_PARAMETERS, [&](const auto &hash) {
+      leaf_c, test_state, [&](const auto &hash) {
         if (hash == leaf_c.hash) {
           return leaf_a.hash;
         }
@@ -1584,7 +1572,7 @@ TEST_F(ProspectiveParachainsTest,
   const auto [candidate_e, _] =
       make_and_back_candidate(test_state, leaf_a, candidate_d, 5);
   activate_leaf(
-      leaf_c, test_state, ASYNC_BACKING_PARAMETERS, [&](const auto &hash) {
+      leaf_c, test_state, [&](const auto &hash) {
         if (hash == leaf_c.hash) {
           return leaf_a.hash;
         }
@@ -1651,7 +1639,7 @@ TEST_F(ProspectiveParachainsTest,
 
   // Activate first 10 leaves.
   for (const auto &leaf : leaves) {
-    activate_leaf(leaf, test_state, ASYNC_BACKING_PARAMETERS);
+    activate_leaf(leaf, test_state);
   }
 
   // Now deactivate first 9 leaves.
@@ -1665,8 +1653,6 @@ TEST_F(ProspectiveParachainsTest,
 
   // We keep allowed_ancestry_len implicit leaves. The latest leaf is also
   // present here.
-  ASSERT_EQ(prospective_parachain_->view().per_relay_parent.size(),
-            ASYNC_BACKING_PARAMETERS.allowed_ancestry_len + 1);
   ASSERT_EQ(*prospective_parachain_->view().active_leaves.begin(),
             leaves[9].hash);
 
@@ -1713,7 +1699,7 @@ TEST_F(ProspectiveParachainsTest, persists_pending_availability_candidate) {
   const BlockNumber leaf_b_number = leaf_a.number + 1;
 
   // Activate leaf.
-  activate_leaf(leaf_a, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_a, test_state);
 
   // Candidate A
   const auto [candidate_a, pvd_a] =
@@ -1758,7 +1744,7 @@ TEST_F(ProspectiveParachainsTest, persists_pending_availability_candidate) {
           },
   };
 
-  activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
+  activate_leaf(leaf_b, test_state);
 
   get_hypothetical_membership(
       candidate_hash_a, candidate_a, pvd_a, {leaf_a.hash, leaf_b.hash});
@@ -1802,11 +1788,7 @@ TEST_F(ProspectiveParachainsTest,
 
   // Activate leaf.
   activate_leaf(leaf_a,
-                test_state,
-                fragment::AsyncBackingParams{
-                    .max_candidate_depth = 0,
-                    .allowed_ancestry_len = 0,
-                });
+                test_state);
 
   // Candidate A
   const auto [candidate_a, pvd_a] =
@@ -1831,11 +1813,7 @@ TEST_F(ProspectiveParachainsTest,
           {para_id,
            PerParaData(candidate_relay_parent_number + 1, para_head)}}};
   activate_leaf(leaf_b,
-                test_state,
-                fragment::AsyncBackingParams{
-                    .max_candidate_depth = 0,
-                    .allowed_ancestry_len = 0,
-                });
+                test_state);
 
   get_backable_candidates(leaf_b, para_id, {}, 1, {});
 }
@@ -1860,10 +1838,6 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
   //		ActiveLeavesUpdate::start_work(activated),
   //	)))
   //	.await;
-
-  EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
-      .WillRepeatedly(Return(outcome::success(fragment::AsyncBackingParams{
-          .max_candidate_depth = 0, .allowed_ancestry_len = ancestry_len})));
 
   EXPECT_CALL(*parachain_api_, claim_queue(hash))
       .WillRepeatedly(Return(ClaimQueueSnapshot{}));
