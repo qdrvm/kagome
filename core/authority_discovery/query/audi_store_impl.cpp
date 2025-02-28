@@ -12,7 +12,7 @@ namespace kagome::authority_discovery {
 
   AudiStoreImpl::AudiStoreImpl(std::shared_ptr<storage::SpacedStorage> storage)
       : space_{storage->getSpace(storage::Space::kAudiPeers)},
-        logger_{log::createLogger("AudiStore", "authority_discovery")} {
+        log_{log::createLogger("AudiStore", "authority_discovery")} {
     BOOST_ASSERT(space_ != nullptr);
   }
 
