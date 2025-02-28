@@ -11,6 +11,7 @@
 #include "pvm/native/linux.hpp"
 #include "pvm/sandbox/polkavm_zygote.hpp"
 #include "pvm/types.hpp"
+#include "pvm/allocator/linux/shared_memory_allocator.hpp"
 
 namespace kagome::pvm::sandbox {
   extern size_t get_native_page_size();

@@ -67,7 +67,7 @@ namespace kagome::pvm::native::linux {
     }
 
   template <typename... Args>
-  inline Result<Fd> __syscall(long int sysno, Args &&...args) {
+  inline Result<long int> __syscall(long int sysno, Args &&...args) {
     auto fd = syscall(sysno, encode_to_machine_word(args)...);
     OUTCOME_TRY(check_syscall(fd));
     return outcome::success(fd);
@@ -82,8 +82,7 @@ namespace kagome::pvm::native::linux {
   }
 
   inline Result<void> sys_ftruncate(Fd fd, size_t length) {
-    OUTCOME_TRY(_, __syscall(SYS_ftruncate, fd, length));
-    (void)_;
+    OUTCOME_TRY(__syscall(SYS_ftruncate, fd, length));
     return outcome::success();
   }
 
@@ -108,6 +107,27 @@ inline Result<void*> sys_mmap(
 ) {
     OUTCOME_TRY(result, __syscall(SYS_mmap, address, length, protection, flags, fd, offset));
     return outcome::success((void*)result);
+}
+
+inline Result<void> sys_munmap(void *address, size_t length) {
+    OUTCOME_TRY(__syscall(SYS_munmap, address, length));
+    return outcome::success();
+}
+
+inline Result<void*> sys_mremap(
+    void *address,
+    size_t old_length,
+    size_t new_length,
+    uint32_t flags,
+    void *new_address
+) {
+    OUTCOME_TRY(result, __syscall(SYS_mremap, address, old_length, new_length, flags, new_address));
+    return outcome::success((void*)result);
+}
+
+inline Result<void> sys_mprotect(void *address, size_t length, uint32_t protection) {
+    OUTCOME_TRY(__syscall(SYS_mprotect, address, length, protection));
+    return outcome::success();
 }
 
 
