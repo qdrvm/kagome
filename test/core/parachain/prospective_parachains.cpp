@@ -23,6 +23,23 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
     prospective_parachain_ = std::make_shared<ProspectiveParachains>(
         hasher_, parachain_api_, block_tree_);
+
+    //     EXPECT_CALL(*parachain_api_, availability_cores)
+    // .WillRepeatedly(Return(std::vector<runtime::CoreState>{
+    //     runtime::OccupiedCore{
+    //         std::nullopt,  // next_up_on_available
+    //         100,  // occupied_since
+    //         110,  // time_out_at
+    //         std::nullopt,  // next_up_on_time_out
+    //         scale::BitVec{},  // availability
+    //         1,  // group_responsible
+    //         "candidate_hash"_hash256,  // candidate_hash
+    //         {/* candidate_descriptor заполнить! */}
+    //     }
+    // }));
+
+    ON_CALL(*parachain_api_, availability_cores)
+        .WillByDefault(Return(std::vector<runtime::CoreState>{}));
   }
 
   void TearDown() override {
@@ -1838,6 +1855,8 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
   //		ActiveLeavesUpdate::start_work(activated),
   //	)))
   //	.await;
+  EXPECT_CALL(*parachain_api_, availability_cores(hash))
+  .WillRepeatedly(Return(std::vector<runtime::CoreState>{}));
 
   EXPECT_CALL(*parachain_api_, claim_queue(hash))
       .WillRepeatedly(Return(ClaimQueueSnapshot{}));
