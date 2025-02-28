@@ -562,6 +562,10 @@ namespace {
     return {transcript};
   }
 
+}  // namespace
+
+namespace kagome::parachain {
+
   outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
       const scale::BitVec &claimed_core_indices,
       kagome::network::ValidatorIndex validator_index,
@@ -758,9 +762,6 @@ namespace {
         });
   }
 
-}  // namespace
-
-namespace kagome::parachain {
   constexpr auto kMetricNoShowsTotal =
       "kagome_parachain_approvals_no_shows_total";
 

@@ -15,6 +15,7 @@
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
+#include "crypto/bandersnatch/vrf.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -26,6 +27,7 @@
 #include "log/logger.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "parachain/approval/approval_distribution_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -117,6 +119,32 @@ struct AssignmentsTest : public test::BaseFS_Test {
         ed25519_provider,
         std::make_shared<kagome::application::AppStateManagerMock>(),
         config);
+  }
+
+  std::vector<std::vector<kagome::parachain::ValidatorIndex>> basic_groups(
+      size_t n_validators, size_t n_cores) {
+    std::vector<std::vector<kagome::parachain::ValidatorIndex>> groups;
+
+    // Calculate the number of validators per group
+    size_t validators_per_group = n_validators / n_cores;
+    size_t remaining_validators = n_validators % n_cores;
+
+    // Distribute validators across groups
+    size_t validator_index = 0;
+    for (size_t i = 0; i < n_cores; ++i) {
+      std::vector<kagome::parachain::ValidatorIndex> group;
+      size_t group_size =
+          validators_per_group + (i < remaining_validators ? 1 : 0);
+
+      for (size_t j = 0; j < group_size; ++j) {
+        group.push_back(
+            static_cast<kagome::parachain::ValidatorIndex>(validator_index++));
+      }
+
+      groups.push_back(group);
+    }
+
+    return groups;
   }
 };
 
@@ -291,4 +319,124 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
             memcmp(&our_assignment.cert.vrf.output,
                    vrf_output,
                    kagome::crypto::constants::sr25519::vrf::OUTPUT_SIZE));
+}
+
+TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
+  auto cs = create_crypto_store();
+  auto asgn_keys = assignment_keys_plus_random(
+      cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
+
+  ::RelayVRFStory vrf_story;
+  ::memset(vrf_story.data, 42, sizeof(vrf_story.data));
+
+  kagome::runtime::SessionInfo si;
+  for (const auto &a : asgn_keys) {
+    si.assignment_keys.emplace_back(a);
+  }
+
+  si.validator_groups = basic_groups(200, 100);
+  si.n_cores = 100;
+  si.zeroth_delay_tranche_width = 10;
+  si.relay_vrf_modulo_samples = 15;
+  si.n_delay_tranches = 40;
+
+  auto check_mutated_assignments =
+      [&](std::function<std::optional<bool>(
+              scale::BitVec &,
+              kagome::parachain::approval::AssignmentCertV2 &,
+              std::vector<kagome::network::GroupIndex> &,
+              kagome::network::GroupIndex,
+              kagome::network::ValidatorIndex,
+              const kagome::runtime::SessionInfo &)> f) {
+        kagome::parachain::ApprovalDistribution::CandidateIncludedList
+            leaving_cores{};
+        for (size_t i = 0; i < 100; ++i) {
+          leaving_cores.emplace_back(std::make_tuple(
+              kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
+                  kagome::network::CandidateReceipt{}},
+              (kagome::parachain::CoreIndex)i,
+              (kagome::parachain::GroupIndex)((i + 25) % 100)));
+        }
+        auto assignments =
+            kagome::parachain::ApprovalDistribution::compute_assignments(
+                cs, si, vrf_story, leaving_cores, false, log());
+        auto assignments2 =
+            kagome::parachain::ApprovalDistribution::compute_assignments(
+                cs, si, vrf_story, leaving_cores, true, log());
+        for (auto &[core, assignment] : assignments2) {
+          assignments[core] = std::move(assignment);
+        }
+
+        size_t counted = 0;
+        for (auto &[core, assignment] : assignments) {
+          scale::BitVec cores;
+          kagome::visit_in_place(
+              assignment.cert.kind,
+              [&](const kagome::parachain::approval::RelayVRFModuloCompact
+                      &compact) { cores = compact.core_bitfield; },
+              [&](const kagome::parachain::approval::RelayVRFModulo &modulo) {
+                cores.bits.resize(core + 1);
+                cores.bits[core] = true;
+              },
+              [&](const kagome::parachain::approval::RelayVRFDelay &delay) {
+                cores.bits.resize(delay.core_index + 1);
+                cores.bits[delay.core_index] = true;
+              });
+
+          std::vector<kagome::network::GroupIndex> groups;
+          for (size_t i = 0; i < cores.bits.size(); ++i) {
+            if (cores.bits[i]) {
+              groups.emplace_back((i + 25) % 100);
+            }
+          }
+
+          std::optional<bool> expected = f(cores,
+                                           assignment.cert,
+                                           groups,
+                                           0,
+                                           0,
+                                           si);  // own_group, val_index
+          if (!expected) {
+            continue;
+          }
+          ++counted;
+
+          auto is_good = kagome::parachain::checkAssignmentCert(
+                             cores, 0, si, vrf_story, assignment.cert, groups)
+                             .has_value();
+
+          ASSERT_EQ(expected.value(), is_good);
+        }
+        ASSERT_GT(counted, 0);
+      };
+
+  auto garbage_vrf_signature = [&]() {
+    VRFOutput garbage;
+    memset(garbage.output.data(), 42, garbage.output.size());
+    memset(garbage.proof.data(), 69, garbage.proof.size());
+    return garbage;
+  };
+
+  check_mutated_assignments(
+      [&](scale::BitVec &cores,
+          kagome::parachain::approval::AssignmentCertV2 &cert,
+          std::vector<kagome::network::GroupIndex> &groups,
+          kagome::network::GroupIndex own_group,
+          kagome::network::ValidatorIndex val_index,
+          const kagome::runtime::SessionInfo &config) -> std::optional<bool> {
+        auto vrf_signature = garbage_vrf_signature();
+        if (auto k =
+                kagome::if_type<kagome::parachain::approval::RelayVRFModulo>(
+                    cert.kind)) {
+          cert.vrf = vrf_signature;
+          return false;
+        } else if (auto k = kagome::if_type<
+                       kagome::parachain::approval::RelayVRFModuloCompact>(
+                       cert.kind)) {
+          cert.vrf = vrf_signature;
+          return false;
+        } else {
+          return std::nullopt;
+        }
+      });
 }

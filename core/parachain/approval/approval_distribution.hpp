@@ -37,6 +37,16 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 
+namespace kagome::parachain {
+  outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
+      const scale::BitVec &claimed_core_indices,
+      kagome::network::ValidatorIndex validator_index,
+      const kagome::runtime::SessionInfo &config,
+      const RelayVRFStory &relay_vrf_story,
+      const kagome::parachain::approval::AssignmentCertV2 &assignment,
+      const std::vector<kagome::network::GroupIndex> &backing_groups);
+}
+
 namespace kagome {
   class PoolHandler;
   class PoolHandlerReady;
