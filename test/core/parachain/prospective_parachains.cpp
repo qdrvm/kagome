@@ -21,25 +21,30 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
     parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
+
+    TestState test_state;
+
+    const ParachainId chain_a(1);
+    const ParachainId chain_b(2);
+    test_state.claim_queue = {{CoreIndex(0), {chain_a, chain_b}}};
+
+    EXPECT_CALL(*parachain_api_, claim_queue)
+        .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
+    EXPECT_CALL(*parachain_api_, availability_cores)
+    .WillRepeatedly(Return(std::vector<runtime::CoreState>{
+        runtime::OccupiedCore{
+            std::nullopt,  // next_up_on_available
+            97,  // occupied_since
+            100,  // time_out_at
+            std::nullopt,  // next_up_on_time_out
+            scale::BitVec{},  // availability
+            1,  // group_responsible
+            "candidate_hash"_hash256,  // candidate_hash
+            {} // candidate_descriptor
+        }
+    }));
     prospective_parachain_ = std::make_shared<ProspectiveParachains>(
         hasher_, parachain_api_, block_tree_);
-
-    //     EXPECT_CALL(*parachain_api_, availability_cores)
-    // .WillRepeatedly(Return(std::vector<runtime::CoreState>{
-    //     runtime::OccupiedCore{
-    //         std::nullopt,  // next_up_on_available
-    //         100,  // occupied_since
-    //         110,  // time_out_at
-    //         std::nullopt,  // next_up_on_time_out
-    //         scale::BitVec{},  // availability
-    //         1,  // group_responsible
-    //         "candidate_hash"_hash256,  // candidate_hash
-    //         {/* candidate_descriptor заполнить! */}
-    //     }
-    // }));
-
-    ON_CALL(*parachain_api_, availability_cores)
-        .WillByDefault(Return(std::vector<runtime::CoreState>{}));
   }
 
   void TearDown() override {
@@ -417,29 +422,40 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   }
 };
 
-TEST_F(ProspectiveParachainsTest,
-       should_do_no_work_if_async_backing_disabled_for_leaf) {
-  const auto hash = fromNumber(130);
+TEST_F(ProspectiveParachainsTest, should_do_no_work_if_async_backing_disabled_for_leaf) {
+  const BlockNumber number = 5;
+  const auto hash = fromNumber(5);
+
+  EXPECT_CALL(*parachain_api_, claim_queue(hash))
+      .WillRepeatedly(Return(std::nullopt));
+
+  using ::testing::_;
+  EXPECT_CALL(*parachain_api_, staging_para_backing_state(hash, _))
+      .Times(0);
+
+  BlockHeader header{
+      .number = number,
+      .parent_hash = get_parent_hash(hash),
+      .state_root = {},
+      .extrinsics_root = {},
+      .digest = {},
+      .hash_opt = hash,
+  };
+
+  EXPECT_CALL(*block_tree_, tryGetBlockHeader(hash))
+      .WillRepeatedly(Return(header));
+
   network::ExView update{
       .view = {},
-      .new_head =
-          BlockHeader{
-              .number = 1,
-              .parent_hash = get_parent_hash(hash),
-              .state_root = {},
-              .extrinsics_root = {},
-              .digest = {},
-              .hash_opt = {},
-          },
+      .new_head = header,
       .lost = {},
   };
-  update.new_head.hash_opt = hash;
 
-  std::ignore = prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
-      .new_head = {update.new_head},
-      .lost = update.lost,
-  });
-  ASSERT_TRUE(prospective_parachain_->view().active_leaves.empty());
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+          .new_head = {update.new_head},
+          .lost = update.lost,
+      }));
 }
 
 TEST_F(ProspectiveParachainsTest, introduce_candidates_basic) {
