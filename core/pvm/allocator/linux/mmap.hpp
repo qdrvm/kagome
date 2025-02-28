@@ -18,13 +18,58 @@ namespace kagome::pvm::native::linux {
    * using the `mmap` system call and provides functions for mapping and
    * unmapping memory.
    */
-  struct Mmap final {
+  class Mmap final {
+    void *pointer;  ///< Pointer to the beginning of the mapped memory region.
+    size_t length;  ///< Size of the mapped memory region.
+
+    /**
+     * @brief Constructor.
+     *
+     * Constructs an Mmap object with the specified pointer and length.
+     *
+     * @param p Pointer to the beginning of the mapped memory region.
+     * @param l Length of the mapped memory region.
+     */
+    Mmap(void *p, size_t l) : pointer(p), length(l) {}
+
+    /**
+     * @brief Internal method to unmap the memory.
+     *
+     * Implements the logic to unmap the memory and reset the pointer.
+     *
+     * @return The result of the unmapping operation.
+     */
+    Result<void> unmap_inplace() {
+      if (length > 0) {
+        OUTCOME_TRY(sys_munmap(pointer, length));
+        length = 0;
+        pointer = nullptr;
+      }
+      return outcome::success();
+    }
+
+   public:
     /**
      * @brief Deleted copy constructor.
      *
      * Prevents copying of the Mmap object.
      */
     Mmap(const Mmap &) = delete;
+
+    /**
+     * @brief Move constructor for Mmap
+     *
+     * This constructor transfers ownership of resources from another `Mmap`
+     * object to the current one. After the move, the `other` object is left in
+     * a valid but unspecified state, with its pointer set to `nullptr` and
+     * length set to `0`.
+     *
+     * @param other The `Mmap` object from which resources are moved
+     */
+    Mmap(Mmap &&other) : pointer(other.pointer), length(other.length) {
+      other.pointer = nullptr;
+      other.length = 0;
+    }
 
     /**
      * @brief Deleted copy assignment operator.
@@ -53,7 +98,7 @@ namespace kagome::pvm::native::linux {
                                uint64_t offset) {
       OUTCOME_TRY(pointer,
                   sys_mmap(address, length, protection, flags, fd, offset));
-      return Mmap(pointer, length);
+      return outcome::success(Mmap(pointer, length));
     }
 
     /**
@@ -106,8 +151,10 @@ namespace kagome::pvm::native::linux {
      *
      * @return A span of data.
      */
-    std::span<uint8_t> slice() const {
-      return std::span<uint8_t>(pointer, std::span<uint8_t>::size_type(length));
+    std::span<const uint8_t> slice() const {
+      return std::span<const uint8_t>(
+          (const uint8_t *)pointer,
+          std::span<const uint8_t>::size_type(length));
     }
 
     /**
@@ -120,36 +167,6 @@ namespace kagome::pvm::native::linux {
     size_t size() const {
       return length;
     }
-
-   private:
-    /**
-     * @brief Internal method to unmap the memory.
-     *
-     * Implements the logic to unmap the memory and reset the pointer.
-     *
-     * @return The result of the unmapping operation.
-     */
-    Result<void> unmap_inplace() {
-      if (length > 0) {
-        OUTCOME_TRY(sys_munmap(pointer, length));
-        self.length = 0;
-        self.pointer = nullptr;
-      }
-      return outcome::success();
-    }
-
-    /**
-     * @brief Constructor.
-     *
-     * Constructs an Mmap object with the specified pointer and length.
-     *
-     * @param p Pointer to the beginning of the mapped memory region.
-     * @param l Length of the mapped memory region.
-     */
-    Mmap(void *p, size_t l) : pointer(p), length(l) {}
-
-    void *pointer;  ///< Pointer to the beginning of the mapped memory region.
-    size_t length;  ///< Size of the mapped memory region.
   };
 
 }  // namespace kagome::pvm::native::linux
